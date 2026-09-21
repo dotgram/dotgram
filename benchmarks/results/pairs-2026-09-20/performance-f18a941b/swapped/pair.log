@@ -1,0 +1,1263 @@
+=== run 1 of 10, 05:29:36
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 17 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163677.3 ns before   180943.8 ns after   182256.2 ns  before/hand 1.11x  after/hand 1.11x
+sql/select20.at        hand     6696.0 ns before    17759.4 ns after    17029.5 ns  before/hand 2.65x  after/hand 2.54x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6718.9 ns before    18631.8 ns after    17450.8 ns  before/hand 2.77x  after/hand 2.60x
+sql/select20.scan      control      375.2 ns before      376.8 ns after      372.4 ns  before/control 1.00x  after/control 0.99x
+tsql/select20.scan     control      368.3 ns before      371.3 ns after      373.2 ns  before/control 1.01x  after/control 1.01x
+el/ladder.scan         control      136.3 ns before      136.2 ns after      135.7 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      935.3 ns before     1671.2 ns after     1668.6 ns  before/hand 1.79x  after/hand 1.78x
+sql/refused-late.bool  hand     2501.2 ns before    11985.7 ns after     5614.8 ns  before/hand 4.79x  after/hand 2.24x
+  sql/select20.bool: 4 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6677.0 ns before    18026.4 ns after    17460.1 ns  before/hand 2.70x  after/hand 2.61x
+  sql/refused-cliff-case-1391: 12 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4152450.0 ns before  4341150.0 ns after  4342400.0 ns  before/control 1.05x  after/control 1.05x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6325656.2 ns before  6410950.0 ns after  6551656.2 ns  before/control 1.01x  after/control 1.04x
+el/ladder              hand      940.0 ns before     1691.2 ns after     1677.3 ns before-immediate     1149.0 ns after-immediate     1131.1 ns  before/hand 1.80x  after/hand 1.78x  before-immediate/hand 1.22x  after-immediate/hand 1.20x
+  el/terms1000: 16 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106119.4 ns before   147597.3 ns after   145158.3 ns before-immediate   120349.3 ns after-immediate   119769.7 ns  before/hand 1.39x  after/hand 1.37x  before-immediate/hand 1.13x  after-immediate/hand 1.13x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6657.5 ns before    17993.1 ns after    17337.1 ns  before/hand 2.70x  after/hand 2.60x
+sql/refused-late       hand     2504.2 ns before    11914.9 ns after    11849.4 ns  before/hand 4.76x  after/hand 4.73x
+
+# Paired stand, 2026-09-21 05:30
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.3 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163677.3 | 180943.8 | 1.11x | 182256.2 | 1.11x | +0.7% | 720048 | 720048 | 42 % |  |
+| sql/select20.at | generated | hand | 6696.0 | 17759.4 | 2.65x | 17029.5 | 2.54x | -4.1% | 21416 | 21416 | 5 % |  |
+| sql/select20.window | generated | hand | 6718.9 | 18631.8 | 2.77x | 17450.8 | 2.60x | -6.3% | 21416 | 21416 | 8 % |  |
+| sql/select20.scan | generated | control | 375.2 | 376.8 | 1.00x | 372.4 | 0.99x | -1.2% | 0 | 0 | 5 % |  |
+| tsql/select20.scan | generated | control | 368.3 | 371.3 | 1.01x | 373.2 | 1.01x | +0.5% | 0 | 0 | 5 % |  |
+| el/ladder.scan | generated | control | 136.3 | 136.2 | 1.00x | 135.7 | 1.00x | -0.3% | 0 | 0 | 5 % |  |
+| el/ladder.bool | generated | hand | 935.3 | 1671.2 | 1.79x | 1668.6 | 1.78x | -0.2% | 1776 | 1720 | 5 % |  |
+| sql/refused-late.bool | generated | hand | 2501.2 | 11985.7 | 4.79x | 5614.8 | 2.24x | -53.2% | 13552 | 6616 | 1 % |  |
+| sql/select20.bool | generated | hand | 6677.0 | 18026.4 | 2.70x | 17460.1 | 2.61x | -3.1% | 21448 | 21392 | 3 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4152450.0 | 4341150.0 | 1.05x | 4342400.0 | 1.05x | 0.0% | 6276688 | 6276684 | 17 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6325656.2 | 6410950.0 | 1.01x | 6551656.2 | 1.04x | +2.2% | 8778556 | 8778595 | 10 % |  |
+| el/ladder | generated | hand | 940.0 | 1691.2 | 1.80x | 1677.3 | 1.78x | -0.8% | 1776 | 1776 | 3 % |  |
+| el/ladder | immediate | hand | 940.0 | 1149.0 | 1.22x | 1131.1 | 1.20x | -1.6% | 1784 | 1784 | 3 % |  |
+| el/terms1000 | generated | hand | 106119.4 | 147597.3 | 1.39x | 145158.3 | 1.37x | -1.7% | 169104 | 169128 | 14 % |  |
+| el/terms1000 | immediate | hand | 106119.4 | 120349.3 | 1.13x | 119769.7 | 1.13x | -0.5% | 177120 | 177123 | 14 % |  |
+| sql/select20 | generated | hand | 6657.5 | 17993.1 | 2.70x | 17337.1 | 2.60x | -3.6% | 21448 | 21448 | 4 % |  |
+| sql/refused-late | generated | hand | 2504.2 | 11914.9 | 4.76x | 11849.4 | 4.73x | -0.5% | 13552 | 13552 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-1
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163840.6 ns before   181856.2 ns after   182947.7 ns  before/hand 1.11x  after/hand 1.12x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6680.2 ns before    16997.5 ns after    17327.7 ns  before/hand 2.54x  after/hand 2.59x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6646.9 ns before    17300.1 ns after    17524.8 ns  before/hand 2.60x  after/hand 2.64x
+sql/select20.scan      control      366.0 ns before      366.4 ns after      369.7 ns  before/control 1.00x  after/control 1.01x
+tsql/select20.scan     control      373.2 ns before      369.3 ns after      371.5 ns  before/control 0.99x  after/control 1.00x
+el/ladder.scan         control      135.0 ns before      135.3 ns after      135.6 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      942.1 ns before     1644.8 ns after     1681.5 ns  before/hand 1.75x  after/hand 1.78x
+  sql/refused-late.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late.bool  hand     2483.3 ns before    11676.4 ns after     5631.5 ns  before/hand 4.70x  after/hand 2.27x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6596.0 ns before    17465.3 ns after    17604.2 ns  before/hand 2.65x  after/hand 2.67x
+  sql/refused-cliff-case-1391: 20 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4285662.5 ns before  4373906.2 ns after  4473850.0 ns  before/control 1.02x  after/control 1.04x
+  sql/refused-cliff-paren-2715: 56 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6434750.0 ns before  6314743.8 ns after  6266568.8 ns  before/control 0.98x  after/control 0.97x
+el/ladder              hand      942.3 ns before     1645.5 ns after     1699.2 ns before-immediate     1129.9 ns after-immediate     1125.5 ns  before/hand 1.75x  after/hand 1.80x  before-immediate/hand 1.20x  after-immediate/hand 1.19x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   108882.3 ns before   146419.4 ns after   147592.2 ns before-immediate   123058.7 ns after-immediate   120350.3 ns  before/hand 1.34x  after/hand 1.36x  before-immediate/hand 1.13x  after-immediate/hand 1.11x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6643.8 ns before    17316.3 ns after    17548.1 ns  before/hand 2.61x  after/hand 2.64x
+sql/refused-late       hand     2471.0 ns before    11653.2 ns after    11780.3 ns  before/hand 4.72x  after/hand 4.77x
+
+# Paired stand, 2026-09-21 05:32
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163840.6 | 181856.2 | 1.11x | 182947.7 | 1.12x | +0.6% | 720048 | 720048 | 354 % |  |
+| sql/select20.at | generated | hand | 6680.2 | 16997.5 | 2.54x | 17327.7 | 2.59x | +1.9% | 21416 | 21416 | 18 % |  |
+| sql/select20.window | generated | hand | 6646.9 | 17300.1 | 2.60x | 17524.8 | 2.64x | +1.3% | 21416 | 21416 | 3 % |  |
+| sql/select20.scan | generated | control | 366.0 | 366.4 | 1.00x | 369.7 | 1.01x | +0.9% | 0 | 0 | 6 % |  |
+| tsql/select20.scan | generated | control | 373.2 | 369.3 | 0.99x | 371.5 | 1.00x | +0.6% | 0 | 0 | 5 % |  |
+| el/ladder.scan | generated | control | 135.0 | 135.3 | 1.00x | 135.6 | 1.00x | +0.2% | 0 | 0 | 17 % |  |
+| el/ladder.bool | generated | hand | 942.1 | 1644.8 | 1.75x | 1681.5 | 1.78x | +2.2% | 1776 | 1720 | 18 % |  |
+| sql/refused-late.bool | generated | hand | 2483.3 | 11676.4 | 4.70x | 5631.5 | 2.27x | -51.8% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6596.0 | 17465.3 | 2.65x | 17604.2 | 2.67x | +0.8% | 21448 | 21392 | 3 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4285662.5 | 4373906.2 | 1.02x | 4473850.0 | 1.04x | +2.3% | 6276684 | 6276684 | 9 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6434750.0 | 6314743.8 | 0.98x | 6266568.8 | 0.97x | -0.8% | 8778600 | 8778600 | 20 % |  |
+| el/ladder | generated | hand | 942.3 | 1645.5 | 1.75x | 1699.2 | 1.80x | +3.3% | 1776 | 1776 | 14 % |  |
+| el/ladder | immediate | hand | 942.3 | 1129.9 | 1.20x | 1125.5 | 1.19x | -0.4% | 1784 | 1784 | 14 % |  |
+| el/terms1000 | generated | hand | 108882.3 | 146419.4 | 1.34x | 147592.2 | 1.36x | +0.8% | 169104 | 169131 | 6 % |  |
+| el/terms1000 | immediate | hand | 108882.3 | 123058.7 | 1.13x | 120350.3 | 1.11x | -2.2% | 177120 | 177120 | 6 % |  |
+| sql/select20 | generated | hand | 6643.8 | 17316.3 | 2.61x | 17548.1 | 2.64x | +1.3% | 21448 | 21448 | 7 % |  |
+| sql/refused-late | generated | hand | 2471.0 | 11653.2 | 4.72x | 11780.3 | 4.77x | +1.1% | 13552 | 13552 | 9 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-1
+=== run 2 of 10, 05:32:11
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165589.8 ns before   180693.8 ns after   182678.1 ns  before/hand 1.09x  after/hand 1.10x
+sql/select20.at        hand     6584.1 ns before    17150.3 ns after    17171.2 ns  before/hand 2.60x  after/hand 2.61x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6598.3 ns before    17459.2 ns after    17384.2 ns  before/hand 2.65x  after/hand 2.63x
+sql/select20.scan      control      365.0 ns before      373.9 ns after      369.3 ns  before/control 1.02x  after/control 1.01x
+tsql/select20.scan     control      368.5 ns before      373.5 ns after      369.7 ns  before/control 1.01x  after/control 1.00x
+el/ladder.scan         control      134.5 ns before      134.2 ns after      134.3 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      964.0 ns before     1639.4 ns after     1657.6 ns  before/hand 1.70x  after/hand 1.72x
+sql/refused-late.bool  hand     2483.4 ns before    11885.9 ns after     5659.2 ns  before/hand 4.79x  after/hand 2.28x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6630.1 ns before    17503.9 ns after    17653.7 ns  before/hand 2.64x  after/hand 2.66x
+  sql/refused-cliff-case-1391: 12 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4311175.0 ns before  4376262.5 ns after  4325825.0 ns  before/control 1.02x  after/control 1.00x
+  sql/refused-cliff-paren-2715: 54 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6197218.8 ns before  6211381.2 ns after  6292118.8 ns  before/control 1.00x  after/control 1.02x
+el/ladder              hand      943.5 ns before     1636.6 ns after     1666.9 ns before-immediate     1120.6 ns after-immediate     1108.2 ns  before/hand 1.73x  after/hand 1.77x  before-immediate/hand 1.19x  after-immediate/hand 1.17x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   105961.3 ns before   146939.5 ns after   147416.7 ns before-immediate   121306.4 ns after-immediate   121568.3 ns  before/hand 1.39x  after/hand 1.39x  before-immediate/hand 1.14x  after-immediate/hand 1.15x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6594.7 ns before    17434.1 ns after    17481.9 ns  before/hand 2.64x  after/hand 2.65x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2498.3 ns before    11866.5 ns after    11777.1 ns  before/hand 4.75x  after/hand 4.71x
+
+# Paired stand, 2026-09-21 05:33
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165589.8 | 180693.8 | 1.09x | 182678.1 | 1.10x | +1.1% | 720048 | 720048 | 347 % |  |
+| sql/select20.at | generated | hand | 6584.1 | 17150.3 | 2.60x | 17171.2 | 2.61x | +0.1% | 21416 | 21416 | 7 % |  |
+| sql/select20.window | generated | hand | 6598.3 | 17459.2 | 2.65x | 17384.2 | 2.63x | -0.4% | 21416 | 21416 | 3 % |  |
+| sql/select20.scan | generated | control | 365.0 | 373.9 | 1.02x | 369.3 | 1.01x | -1.2% | 0 | 0 | 17 % |  |
+| tsql/select20.scan | generated | control | 368.5 | 373.5 | 1.01x | 369.7 | 1.00x | -1.0% | 0 | 0 | 14 % |  |
+| el/ladder.scan | generated | control | 134.5 | 134.2 | 1.00x | 134.3 | 1.00x | 0.0% | 0 | 0 | 6 % |  |
+| el/ladder.bool | generated | hand | 964.0 | 1639.4 | 1.70x | 1657.6 | 1.72x | +1.1% | 1776 | 1720 | 46 % |  |
+| sql/refused-late.bool | generated | hand | 2483.4 | 11885.9 | 4.79x | 5659.2 | 2.28x | -52.4% | 13552 | 6616 | 1 % |  |
+| sql/select20.bool | generated | hand | 6630.1 | 17503.9 | 2.64x | 17653.7 | 2.66x | +0.9% | 21448 | 21392 | 5 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4311175.0 | 4376262.5 | 1.02x | 4325825.0 | 1.00x | -1.2% | 6276643 | 6276641 | 16 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6197218.8 | 6211381.2 | 1.00x | 6292118.8 | 1.02x | +1.3% | 8778556 | 8778600 | 13 % |  |
+| el/ladder | generated | hand | 943.5 | 1636.6 | 1.73x | 1666.9 | 1.77x | +1.9% | 1776 | 1776 | 2 % |  |
+| el/ladder | immediate | hand | 943.5 | 1120.6 | 1.19x | 1108.2 | 1.17x | -1.1% | 1784 | 1784 | 2 % |  |
+| el/terms1000 | generated | hand | 105961.3 | 146939.5 | 1.39x | 147416.7 | 1.39x | +0.3% | 169104 | 169104 | 3 % |  |
+| el/terms1000 | immediate | hand | 105961.3 | 121306.4 | 1.14x | 121568.3 | 1.15x | +0.2% | 177120 | 177123 | 3 % |  |
+| sql/select20 | generated | hand | 6594.7 | 17434.1 | 2.64x | 17481.9 | 2.65x | +0.3% | 21448 | 21448 | 4 % |  |
+| sql/refused-late | generated | hand | 2498.3 | 11866.5 | 4.75x | 11777.1 | 4.71x | -0.8% | 13552 | 13552 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-2
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   164945.3 ns before   182994.5 ns after   182689.1 ns  before/hand 1.11x  after/hand 1.11x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6654.2 ns before    18386.6 ns after    16960.6 ns  before/hand 2.76x  after/hand 2.55x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6633.9 ns before    18395.9 ns after    17550.8 ns  before/hand 2.77x  after/hand 2.65x
+sql/select20.scan      control      369.8 ns before      366.8 ns after      366.8 ns  before/control 0.99x  after/control 0.99x
+tsql/select20.scan     control      368.7 ns before      366.8 ns after      369.4 ns  before/control 0.99x  after/control 1.00x
+el/ladder.scan         control      134.3 ns before      134.3 ns after      134.2 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      922.8 ns before     1641.1 ns after     1658.8 ns  before/hand 1.78x  after/hand 1.80x
+sql/refused-late.bool  hand     2506.1 ns before    12827.0 ns after     5644.3 ns  before/hand 5.12x  after/hand 2.25x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6633.0 ns before    19966.5 ns after    17589.1 ns  before/hand 3.01x  after/hand 2.65x
+  sql/refused-cliff-case-1391: 18 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4386581.2 ns before  4479875.0 ns after  4406987.5 ns  before/control 1.02x  after/control 1.00x
+  sql/refused-cliff-paren-2715: 54 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6250106.2 ns before  6665843.8 ns after  6350100.0 ns  before/control 1.07x  after/control 1.02x
+el/ladder              hand      932.4 ns before     1654.6 ns after     1700.0 ns before-immediate     1133.1 ns after-immediate     1127.7 ns  before/hand 1.77x  after/hand 1.82x  before-immediate/hand 1.22x  after-immediate/hand 1.21x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106593.6 ns before   147789.8 ns after   145838.8 ns before-immediate   121300.6 ns after-immediate   121674.7 ns  before/hand 1.39x  after/hand 1.37x  before-immediate/hand 1.14x  after-immediate/hand 1.14x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6651.6 ns before    19799.1 ns after    17352.5 ns  before/hand 2.98x  after/hand 2.61x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2508.7 ns before    12773.7 ns after    11772.2 ns  before/hand 5.09x  after/hand 4.69x
+
+# Paired stand, 2026-09-21 05:34
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 164945.3 | 182994.5 | 1.11x | 182689.1 | 1.11x | -0.2% | 720048 | 720048 | 352 % |  |
+| sql/select20.at | generated | hand | 6654.2 | 18386.6 | 2.76x | 16960.6 | 2.55x | -7.8% | 21416 | 21416 | 32 % |  |
+| sql/select20.window | generated | hand | 6633.9 | 18395.9 | 2.77x | 17550.8 | 2.65x | -4.6% | 21416 | 21416 | 9 % |  |
+| sql/select20.scan | generated | control | 369.8 | 366.8 | 0.99x | 366.8 | 0.99x | 0.0% | 0 | 0 | 10 % |  |
+| tsql/select20.scan | generated | control | 368.7 | 366.8 | 0.99x | 369.4 | 1.00x | +0.7% | 0 | 0 | 5 % |  |
+| el/ladder.scan | generated | control | 134.3 | 134.3 | 1.00x | 134.2 | 1.00x | -0.1% | 0 | 0 | 7 % |  |
+| el/ladder.bool | generated | hand | 922.8 | 1641.1 | 1.78x | 1658.8 | 1.80x | +1.1% | 1776 | 1720 | 4 % |  |
+| sql/refused-late.bool | generated | hand | 2506.1 | 12827.0 | 5.12x | 5644.3 | 2.25x | -56.0% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6633.0 | 19966.5 | 3.01x | 17589.1 | 2.65x | -11.9% | 21448 | 21392 | 9 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4386581.2 | 4479875.0 | 1.02x | 4406987.5 | 1.00x | -1.6% | 6276684 | 6276684 | 8 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6250106.2 | 6665843.8 | 1.07x | 6350100.0 | 1.02x | -4.7% | 8778556 | 8778600 | 4 % |  |
+| el/ladder | generated | hand | 932.4 | 1654.6 | 1.77x | 1700.0 | 1.82x | +2.7% | 1776 | 1776 | 1 % |  |
+| el/ladder | immediate | hand | 932.4 | 1133.1 | 1.22x | 1127.7 | 1.21x | -0.5% | 1784 | 1784 | 1 % |  |
+| el/terms1000 | generated | hand | 106593.6 | 147789.8 | 1.39x | 145838.8 | 1.37x | -1.3% | 169104 | 169104 | 3 % |  |
+| el/terms1000 | immediate | hand | 106593.6 | 121300.6 | 1.14x | 121674.7 | 1.14x | +0.3% | 177120 | 177123 | 3 % |  |
+| sql/select20 | generated | hand | 6651.6 | 19799.1 | 2.98x | 17352.5 | 2.61x | -12.4% | 21448 | 21448 | 6 % |  |
+| sql/refused-late | generated | hand | 2508.7 | 12773.7 | 5.09x | 11772.2 | 4.69x | -7.8% | 13552 | 13552 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-2
+=== run 3 of 10, 05:34:45
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165518.8 ns before   182175.8 ns after   182423.4 ns  before/hand 1.10x  after/hand 1.10x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6579.5 ns before    17107.7 ns after    17101.4 ns  before/hand 2.60x  after/hand 2.60x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6680.3 ns before    17405.4 ns after    17368.4 ns  before/hand 2.61x  after/hand 2.60x
+sql/select20.scan      control      373.3 ns before      374.2 ns after      374.8 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      376.5 ns before      425.9 ns after      380.1 ns  before/control 1.13x  after/control 1.01x
+el/ladder.scan         control      134.0 ns before      136.0 ns after      135.6 ns  before/control 1.02x  after/control 1.01x
+el/ladder.bool         hand      941.5 ns before     1662.7 ns after     1641.6 ns  before/hand 1.77x  after/hand 1.74x
+sql/refused-late.bool  hand     2499.3 ns before    11878.1 ns after     5716.0 ns  before/hand 4.75x  after/hand 2.29x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6551.0 ns before    17546.5 ns after    17621.2 ns  before/hand 2.68x  after/hand 2.69x
+  sql/refused-cliff-case-1391: 10 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4343900.0 ns before  4567000.0 ns after  4309000.0 ns  before/control 1.05x  after/control 0.99x
+  sql/refused-cliff-paren-2715: 56 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6538850.0 ns before  6473131.2 ns after  6552125.0 ns  before/control 0.99x  after/control 1.00x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand      939.8 ns before     1647.2 ns after     1661.8 ns before-immediate     1134.0 ns after-immediate     1141.3 ns  before/hand 1.75x  after/hand 1.77x  before-immediate/hand 1.21x  after-immediate/hand 1.21x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106813.6 ns before   145291.8 ns after   147274.3 ns before-immediate   119000.6 ns after-immediate   123265.2 ns  before/hand 1.36x  after/hand 1.38x  before-immediate/hand 1.11x  after-immediate/hand 1.15x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6596.3 ns before    17483.9 ns after    17346.0 ns  before/hand 2.65x  after/hand 2.63x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2490.0 ns before    11843.6 ns after    11712.0 ns  before/hand 4.76x  after/hand 4.70x
+
+# Paired stand, 2026-09-21 05:36
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165518.8 | 182175.8 | 1.10x | 182423.4 | 1.10x | +0.1% | 720048 | 720048 | 347 % |  |
+| sql/select20.at | generated | hand | 6579.5 | 17107.7 | 2.60x | 17101.4 | 2.60x | 0.0% | 21416 | 21416 | 12 % |  |
+| sql/select20.window | generated | hand | 6680.3 | 17405.4 | 2.61x | 17368.4 | 2.60x | -0.2% | 21416 | 21416 | 19 % |  |
+| sql/select20.scan | generated | control | 373.3 | 374.2 | 1.00x | 374.8 | 1.00x | +0.2% | 0 | 0 | 8 % |  |
+| tsql/select20.scan | generated | control | 376.5 | 425.9 | 1.13x | 380.1 | 1.01x | -10.8% | 0 | 0 | 5 % |  |
+| el/ladder.scan | generated | control | 134.0 | 136.0 | 1.02x | 135.6 | 1.01x | -0.3% | 0 | 0 | 3 % |  |
+| el/ladder.bool | generated | hand | 941.5 | 1662.7 | 1.77x | 1641.6 | 1.74x | -1.3% | 1776 | 1720 | 16 % |  |
+| sql/refused-late.bool | generated | hand | 2499.3 | 11878.1 | 4.75x | 5716.0 | 2.29x | -51.9% | 13552 | 6616 | 5 % |  |
+| sql/select20.bool | generated | hand | 6551.0 | 17546.5 | 2.68x | 17621.2 | 2.69x | +0.4% | 21448 | 21392 | 6 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4343900.0 | 4567000.0 | 1.05x | 4309000.0 | 0.99x | -5.6% | 6276598 | 6276598 | 52 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6538850.0 | 6473131.2 | 0.99x | 6552125.0 | 1.00x | +1.2% | 8778619 | 8778600 | 11 % |  |
+| el/ladder | generated | hand | 939.8 | 1647.2 | 1.75x | 1661.8 | 1.77x | +0.9% | 1776 | 1776 | 3 % |  |
+| el/ladder | immediate | hand | 939.8 | 1134.0 | 1.21x | 1141.3 | 1.21x | +0.6% | 1784 | 1784 | 3 % |  |
+| el/terms1000 | generated | hand | 106813.6 | 145291.8 | 1.36x | 147274.3 | 1.38x | +1.4% | 169104 | 169150 | 9 % |  |
+| el/terms1000 | immediate | hand | 106813.6 | 119000.6 | 1.11x | 123265.2 | 1.15x | +3.6% | 177144 | 177120 | 9 % |  |
+| sql/select20 | generated | hand | 6596.3 | 17483.9 | 2.65x | 17346.0 | 2.63x | -0.8% | 21448 | 21448 | 7 % |  |
+| sql/refused-late | generated | hand | 2490.0 | 11843.6 | 4.76x | 11712.0 | 4.70x | -1.1% | 13552 | 13552 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-3
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 21 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   166494.5 ns before   182872.7 ns after   183039.8 ns  before/hand 1.10x  after/hand 1.10x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6692.5 ns before    16949.3 ns after    17750.7 ns  before/hand 2.53x  after/hand 2.65x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6696.1 ns before    17447.4 ns after    17603.8 ns  before/hand 2.61x  after/hand 2.63x
+sql/select20.scan      control      363.7 ns before      370.6 ns after      368.7 ns  before/control 1.02x  after/control 1.01x
+tsql/select20.scan     control      372.0 ns before      380.9 ns after      369.1 ns  before/control 1.02x  after/control 0.99x
+el/ladder.scan         control      133.7 ns before      134.2 ns after      133.9 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      946.2 ns before     1647.4 ns after     1651.4 ns  before/hand 1.74x  after/hand 1.75x
+sql/refused-late.bool  hand     2534.1 ns before    11672.7 ns after     5620.8 ns  before/hand 4.61x  after/hand 2.22x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6644.1 ns before    17375.2 ns after    17926.0 ns  before/hand 2.62x  after/hand 2.70x
+  sql/refused-cliff-case-1391: 18 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4384356.2 ns before  4414506.2 ns after  4382912.5 ns  before/control 1.01x  after/control 1.00x
+  sql/refused-cliff-paren-2715: 53 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6251337.5 ns before  6328850.0 ns after  6268081.2 ns  before/control 1.01x  after/control 1.00x
+el/ladder              hand      966.9 ns before     1665.5 ns after     1721.2 ns before-immediate     1137.2 ns after-immediate     1131.9 ns  before/hand 1.72x  after/hand 1.78x  before-immediate/hand 1.18x  after-immediate/hand 1.17x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   110557.9 ns before   144108.1 ns after   148526.0 ns before-immediate   121146.5 ns after-immediate   118979.8 ns  before/hand 1.30x  after/hand 1.34x  before-immediate/hand 1.10x  after-immediate/hand 1.08x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6645.5 ns before    17338.7 ns after    17983.1 ns  before/hand 2.61x  after/hand 2.71x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2494.8 ns before    11680.2 ns after    11745.5 ns  before/hand 4.68x  after/hand 4.71x
+
+# Paired stand, 2026-09-21 05:37
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 166494.5 | 182872.7 | 1.10x | 183039.8 | 1.10x | +0.1% | 720048 | 720048 | 60 % |  |
+| sql/select20.at | generated | hand | 6692.5 | 16949.3 | 2.53x | 17750.7 | 2.65x | +4.7% | 21416 | 21416 | 46 % |  |
+| sql/select20.window | generated | hand | 6696.1 | 17447.4 | 2.61x | 17603.8 | 2.63x | +0.9% | 21416 | 21416 | 6 % |  |
+| sql/select20.scan | generated | control | 363.7 | 370.6 | 1.02x | 368.7 | 1.01x | -0.5% | 0 | 0 | 3 % |  |
+| tsql/select20.scan | generated | control | 372.0 | 380.9 | 1.02x | 369.1 | 0.99x | -3.1% | 0 | 0 | 24 % |  |
+| el/ladder.scan | generated | control | 133.7 | 134.2 | 1.00x | 133.9 | 1.00x | -0.2% | 0 | 0 | 4 % |  |
+| el/ladder.bool | generated | hand | 946.2 | 1647.4 | 1.74x | 1651.4 | 1.75x | +0.2% | 1776 | 1720 | 12 % |  |
+| sql/refused-late.bool | generated | hand | 2534.1 | 11672.7 | 4.61x | 5620.8 | 2.22x | -51.8% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6644.1 | 17375.2 | 2.62x | 17926.0 | 2.70x | +3.2% | 21448 | 21392 | 4 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4384356.2 | 4414506.2 | 1.01x | 4382912.5 | 1.00x | -0.7% | 6276684 | 6276684 | 7 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6251337.5 | 6328850.0 | 1.01x | 6268081.2 | 1.00x | -1.0% | 8778556 | 8778595 | 7 % |  |
+| el/ladder | generated | hand | 966.9 | 1665.5 | 1.72x | 1721.2 | 1.78x | +3.3% | 1776 | 1776 | 7 % |  |
+| el/ladder | immediate | hand | 966.9 | 1137.2 | 1.18x | 1131.9 | 1.17x | -0.5% | 1784 | 1784 | 7 % |  |
+| el/terms1000 | generated | hand | 110557.9 | 144108.1 | 1.30x | 148526.0 | 1.34x | +3.1% | 169104 | 169104 | 11 % |  |
+| el/terms1000 | immediate | hand | 110557.9 | 121146.5 | 1.10x | 118979.8 | 1.08x | -1.8% | 177120 | 177123 | 11 % |  |
+| sql/select20 | generated | hand | 6645.5 | 17338.7 | 2.61x | 17983.1 | 2.71x | +3.7% | 21448 | 21472 | 2 % |  |
+| sql/refused-late | generated | hand | 2494.8 | 11680.2 | 4.68x | 11745.5 | 4.71x | +0.6% | 13552 | 13552 | 19 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-3
+=== run 4 of 10, 05:37:18
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163587.5 ns before   180578.1 ns after   182422.7 ns  before/hand 1.10x  after/hand 1.12x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6663.7 ns before    17328.7 ns after    16958.1 ns  before/hand 2.60x  after/hand 2.54x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6589.5 ns before    17811.8 ns after    17481.2 ns  before/hand 2.70x  after/hand 2.65x
+sql/select20.scan      control      365.6 ns before      365.0 ns after      369.4 ns  before/control 1.00x  after/control 1.01x
+tsql/select20.scan     control      367.5 ns before      370.9 ns after      368.9 ns  before/control 1.01x  after/control 1.00x
+el/ladder.scan         control      138.2 ns before      133.0 ns after      132.6 ns  before/control 0.96x  after/control 0.96x
+el/ladder.bool         hand      934.9 ns before     1663.9 ns after     1634.3 ns  before/hand 1.78x  after/hand 1.75x
+  sql/refused-late.bool: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late.bool  hand     2557.5 ns before    11984.2 ns after     5608.6 ns  before/hand 4.69x  after/hand 2.19x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6632.9 ns before    17807.3 ns after    17470.9 ns  before/hand 2.68x  after/hand 2.63x
+  sql/refused-cliff-case-1391: 11 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4322787.5 ns before  4488550.0 ns after  4464662.5 ns  before/control 1.04x  after/control 1.03x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6240756.2 ns before  6303225.0 ns after  6304306.2 ns  before/control 1.01x  after/control 1.01x
+el/ladder              hand      937.3 ns before     1653.3 ns after     1646.9 ns before-immediate     1113.5 ns after-immediate     1118.2 ns  before/hand 1.76x  after/hand 1.76x  before-immediate/hand 1.19x  after-immediate/hand 1.19x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106994.5 ns before   146806.1 ns after   146053.4 ns before-immediate   119130.8 ns after-immediate   121724.9 ns  before/hand 1.37x  after/hand 1.37x  before-immediate/hand 1.11x  after-immediate/hand 1.14x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6651.4 ns before    17666.7 ns after    17555.4 ns  before/hand 2.66x  after/hand 2.64x
+sql/refused-late       hand     2566.0 ns before    11949.0 ns after    11856.9 ns  before/hand 4.66x  after/hand 4.62x
+
+# Paired stand, 2026-09-21 05:38
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163587.5 | 180578.1 | 1.10x | 182422.7 | 1.12x | +1.0% | 720048 | 720048 | 353 % |  |
+| sql/select20.at | generated | hand | 6663.7 | 17328.7 | 2.60x | 16958.1 | 2.54x | -2.1% | 21416 | 21416 | 10 % |  |
+| sql/select20.window | generated | hand | 6589.5 | 17811.8 | 2.70x | 17481.2 | 2.65x | -1.9% | 21416 | 21416 | 1 % |  |
+| sql/select20.scan | generated | control | 365.6 | 365.0 | 1.00x | 369.4 | 1.01x | +1.2% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 367.5 | 370.9 | 1.01x | 368.9 | 1.00x | -0.5% | 0 | 0 | 2 % |  |
+| el/ladder.scan | generated | control | 138.2 | 133.0 | 0.96x | 132.6 | 0.96x | -0.3% | 0 | 0 | 9 % |  |
+| el/ladder.bool | generated | hand | 934.9 | 1663.9 | 1.78x | 1634.3 | 1.75x | -1.8% | 1776 | 1720 | 12 % |  |
+| sql/refused-late.bool | generated | hand | 2557.5 | 11984.2 | 4.69x | 5608.6 | 2.19x | -53.2% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6632.9 | 17807.3 | 2.68x | 17470.9 | 2.63x | -1.9% | 21448 | 21392 | 11 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4322787.5 | 4488550.0 | 1.04x | 4464662.5 | 1.03x | -0.5% | 6276664 | 6276685 | 34 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6240756.2 | 6303225.0 | 1.01x | 6304306.2 | 1.01x | 0.0% | 8778556 | 8778600 | 12 % |  |
+| el/ladder | generated | hand | 937.3 | 1653.3 | 1.76x | 1646.9 | 1.76x | -0.4% | 1776 | 1776 | 17 % |  |
+| el/ladder | immediate | hand | 937.3 | 1113.5 | 1.19x | 1118.2 | 1.19x | +0.4% | 1784 | 1784 | 17 % |  |
+| el/terms1000 | generated | hand | 106994.5 | 146806.1 | 1.37x | 146053.4 | 1.37x | -0.5% | 169104 | 169131 | 13 % |  |
+| el/terms1000 | immediate | hand | 106994.5 | 119130.8 | 1.11x | 121724.9 | 1.14x | +2.2% | 177120 | 177120 | 13 % |  |
+| sql/select20 | generated | hand | 6651.4 | 17666.7 | 2.66x | 17555.4 | 2.64x | -0.6% | 21448 | 21448 | 4 % |  |
+| sql/refused-late | generated | hand | 2566.0 | 11949.0 | 4.66x | 11856.9 | 4.62x | -0.8% | 13552 | 13552 | 7 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-4
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165275.8 ns before   181400.0 ns after   183805.5 ns  before/hand 1.10x  after/hand 1.11x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6669.9 ns before    17073.6 ns after    17160.3 ns  before/hand 2.56x  after/hand 2.57x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6603.1 ns before    17313.7 ns after    17373.6 ns  before/hand 2.62x  after/hand 2.63x
+sql/select20.scan      control      377.3 ns before      372.1 ns after      369.3 ns  before/control 0.99x  after/control 0.98x
+tsql/select20.scan     control      371.4 ns before      369.3 ns after      368.5 ns  before/control 0.99x  after/control 0.99x
+el/ladder.scan         control      134.2 ns before      134.2 ns after      134.1 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      943.8 ns before     1688.9 ns after     1641.4 ns  before/hand 1.79x  after/hand 1.74x
+sql/refused-late.bool  hand     2492.1 ns before    11697.8 ns after     5659.3 ns  before/hand 4.69x  after/hand 2.27x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6702.8 ns before    17508.1 ns after    17567.1 ns  before/hand 2.61x  after/hand 2.62x
+  sql/refused-cliff-case-1391: 11 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4400112.5 ns before  4603837.5 ns after  4488125.0 ns  before/control 1.05x  after/control 1.02x
+  sql/refused-cliff-paren-2715: 54 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6378193.8 ns before  6325187.5 ns after  6301631.2 ns  before/control 0.99x  after/control 0.99x
+el/ladder              hand      941.0 ns before     1687.3 ns after     1688.6 ns before-immediate     1149.0 ns after-immediate     1130.1 ns  before/hand 1.79x  after/hand 1.79x  before-immediate/hand 1.22x  after-immediate/hand 1.20x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   105595.6 ns before   148530.7 ns after   143708.7 ns before-immediate   121268.3 ns after-immediate   118507.9 ns  before/hand 1.41x  after/hand 1.36x  before-immediate/hand 1.15x  after-immediate/hand 1.12x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6622.4 ns before    17416.4 ns after    17446.8 ns  before/hand 2.63x  after/hand 2.63x
+sql/refused-late       hand     2490.1 ns before    11731.2 ns after    11702.1 ns  before/hand 4.71x  after/hand 4.70x
+
+# Paired stand, 2026-09-21 05:39
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165275.8 | 181400.0 | 1.10x | 183805.5 | 1.11x | +1.3% | 720048 | 720048 | 350 % |  |
+| sql/select20.at | generated | hand | 6669.9 | 17073.6 | 2.56x | 17160.3 | 2.57x | +0.5% | 21416 | 21441 | 6 % |  |
+| sql/select20.window | generated | hand | 6603.1 | 17313.7 | 2.62x | 17373.6 | 2.63x | +0.3% | 21416 | 21416 | 6 % |  |
+| sql/select20.scan | generated | control | 377.3 | 372.1 | 0.99x | 369.3 | 0.98x | -0.7% | 0 | 0 | 15 % |  |
+| tsql/select20.scan | generated | control | 371.4 | 369.3 | 0.99x | 368.5 | 0.99x | -0.2% | 0 | 0 | 13 % |  |
+| el/ladder.scan | generated | control | 134.2 | 134.2 | 1.00x | 134.1 | 1.00x | -0.1% | 0 | 0 | 8 % |  |
+| el/ladder.bool | generated | hand | 943.8 | 1688.9 | 1.79x | 1641.4 | 1.74x | -2.8% | 1776 | 1720 | 6 % |  |
+| sql/refused-late.bool | generated | hand | 2492.1 | 11697.8 | 4.69x | 5659.3 | 2.27x | -51.6% | 13552 | 6616 | 1 % |  |
+| sql/select20.bool | generated | hand | 6702.8 | 17508.1 | 2.61x | 17567.1 | 2.62x | +0.3% | 21448 | 21392 | 7 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4400112.5 | 4603837.5 | 1.05x | 4488125.0 | 1.02x | -2.5% | 6276641 | 6276617 | 44 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6378193.8 | 6325187.5 | 0.99x | 6301631.2 | 0.99x | -0.4% | 8778600 | 8778619 | 8 % |  |
+| el/ladder | generated | hand | 941.0 | 1687.3 | 1.79x | 1688.6 | 1.79x | +0.1% | 1776 | 1776 | 7 % |  |
+| el/ladder | immediate | hand | 941.0 | 1149.0 | 1.22x | 1130.1 | 1.20x | -1.6% | 1784 | 1784 | 7 % |  |
+| el/terms1000 | generated | hand | 105595.6 | 148530.7 | 1.41x | 143708.7 | 1.36x | -3.2% | 169107 | 169104 | 23 % |  |
+| el/terms1000 | immediate | hand | 105595.6 | 121268.3 | 1.15x | 118507.9 | 1.12x | -2.3% | 177120 | 177120 | 23 % |  |
+| sql/select20 | generated | hand | 6622.4 | 17416.4 | 2.63x | 17446.8 | 2.63x | +0.2% | 21448 | 21448 | 5 % |  |
+| sql/refused-late | generated | hand | 2490.1 | 11731.2 | 4.71x | 11702.1 | 4.70x | -0.2% | 13552 | 13552 | 10 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-4
+=== run 5 of 10, 05:39:50
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 9 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165407.8 ns before   181929.7 ns after   181587.5 ns  before/hand 1.10x  after/hand 1.10x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6603.9 ns before    17124.7 ns after    17086.2 ns  before/hand 2.59x  after/hand 2.59x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6617.6 ns before    17432.6 ns after    17460.3 ns  before/hand 2.63x  after/hand 2.64x
+sql/select20.scan      control      369.1 ns before      369.2 ns after      367.4 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      369.7 ns before      373.0 ns after      374.4 ns  before/control 1.01x  after/control 1.01x
+el/ladder.scan         control      136.8 ns before      133.4 ns after      133.3 ns  before/control 0.97x  after/control 0.97x
+el/ladder.bool         hand      953.4 ns before     1656.3 ns after     1625.2 ns  before/hand 1.74x  after/hand 1.70x
+sql/refused-late.bool  hand     2495.1 ns before    11825.2 ns after     5616.7 ns  before/hand 4.74x  after/hand 2.25x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6629.9 ns before    17627.2 ns after    17534.6 ns  before/hand 2.66x  after/hand 2.64x
+  sql/refused-cliff-case-1391: 25 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4388637.5 ns before  4357881.2 ns after  4394875.0 ns  before/control 0.99x  after/control 1.00x
+  sql/refused-cliff-paren-2715: 53 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6302650.0 ns before  6238037.5 ns after  6276662.5 ns  before/control 0.99x  after/control 1.00x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand      956.0 ns before     1652.9 ns after     1648.2 ns before-immediate     1121.4 ns after-immediate     1135.1 ns  before/hand 1.73x  after/hand 1.72x  before-immediate/hand 1.17x  after-immediate/hand 1.19x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   108443.7 ns before   147183.9 ns after   146199.4 ns before-immediate   120714.3 ns after-immediate   120733.8 ns  before/hand 1.36x  after/hand 1.35x  before-immediate/hand 1.11x  after-immediate/hand 1.11x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6653.7 ns before    17586.4 ns after    17633.8 ns  before/hand 2.64x  after/hand 2.65x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2483.2 ns before    11864.9 ns after    11742.9 ns  before/hand 4.78x  after/hand 4.73x
+
+# Paired stand, 2026-09-21 05:41
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.3 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165407.8 | 181929.7 | 1.10x | 181587.5 | 1.10x | -0.2% | 720048 | 720048 | 13 % |  |
+| sql/select20.at | generated | hand | 6603.9 | 17124.7 | 2.59x | 17086.2 | 2.59x | -0.2% | 21416 | 21416 | 4 % |  |
+| sql/select20.window | generated | hand | 6617.6 | 17432.6 | 2.63x | 17460.3 | 2.64x | +0.2% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 369.1 | 369.2 | 1.00x | 367.4 | 1.00x | -0.5% | 0 | 0 | 5 % |  |
+| tsql/select20.scan | generated | control | 369.7 | 373.0 | 1.01x | 374.4 | 1.01x | +0.4% | 0 | 0 | 10 % |  |
+| el/ladder.scan | generated | control | 136.8 | 133.4 | 0.97x | 133.3 | 0.97x | -0.1% | 0 | 0 | 23 % |  |
+| el/ladder.bool | generated | hand | 953.4 | 1656.3 | 1.74x | 1625.2 | 1.70x | -1.9% | 1776 | 1720 | 6 % |  |
+| sql/refused-late.bool | generated | hand | 2495.1 | 11825.2 | 4.74x | 5616.7 | 2.25x | -52.5% | 13552 | 6616 | 6 % |  |
+| sql/select20.bool | generated | hand | 6629.9 | 17627.2 | 2.66x | 17534.6 | 2.64x | -0.5% | 21448 | 21392 | 5 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4388637.5 | 4357881.2 | 0.99x | 4394875.0 | 1.00x | +0.8% | 6276531 | 6276660 | 5 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6302650.0 | 6238037.5 | 0.99x | 6276662.5 | 1.00x | +0.6% | 8778556 | 8778600 | 14 % |  |
+| el/ladder | generated | hand | 956.0 | 1652.9 | 1.73x | 1648.2 | 1.72x | -0.3% | 1776 | 1776 | 2 % |  |
+| el/ladder | immediate | hand | 956.0 | 1121.4 | 1.17x | 1135.1 | 1.19x | +1.2% | 1784 | 1784 | 2 % |  |
+| el/terms1000 | generated | hand | 108443.7 | 147183.9 | 1.36x | 146199.4 | 1.35x | -0.7% | 169104 | 169104 | 14 % |  |
+| el/terms1000 | immediate | hand | 108443.7 | 120714.3 | 1.11x | 120733.8 | 1.11x | 0.0% | 177120 | 177123 | 14 % |  |
+| sql/select20 | generated | hand | 6653.7 | 17586.4 | 2.64x | 17633.8 | 2.65x | +0.3% | 21448 | 21448 | 5 % |  |
+| sql/refused-late | generated | hand | 2483.2 | 11864.9 | 4.78x | 11742.9 | 4.73x | -1.0% | 13552 | 13552 | 13 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-5
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   164014.8 ns before   180776.6 ns after   182350.8 ns  before/hand 1.10x  after/hand 1.11x
+sql/select20.at        hand     6574.6 ns before    16946.9 ns after    16937.8 ns  before/hand 2.58x  after/hand 2.58x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6560.3 ns before    17465.4 ns after    17432.0 ns  before/hand 2.66x  after/hand 2.66x
+sql/select20.scan      control      369.9 ns before      371.1 ns after      371.4 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      366.8 ns before      408.1 ns after      370.2 ns  before/control 1.11x  after/control 1.01x
+el/ladder.scan         control      132.8 ns before      137.9 ns after      136.2 ns  before/control 1.04x  after/control 1.03x
+el/ladder.bool         hand      943.9 ns before     1646.8 ns after     1647.8 ns  before/hand 1.74x  after/hand 1.75x
+sql/refused-late.bool  hand     2500.8 ns before    11704.5 ns after     5647.5 ns  before/hand 4.68x  after/hand 2.26x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6650.0 ns before    17485.3 ns after    17429.7 ns  before/hand 2.63x  after/hand 2.62x
+  sql/refused-cliff-case-1391: 24 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4391543.8 ns before  4434387.5 ns after  4489062.5 ns  before/control 1.01x  after/control 1.02x
+  sql/refused-cliff-paren-2715: 54 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6361100.0 ns before  6357081.2 ns after  6409575.0 ns  before/control 1.00x  after/control 1.01x
+  el/ladder: 1 round(s) redone after a gen1/gen2 collection
+el/ladder              hand      948.9 ns before     1654.4 ns after     1671.1 ns before-immediate     1136.8 ns after-immediate     1127.1 ns  before/hand 1.74x  after/hand 1.76x  before-immediate/hand 1.20x  after-immediate/hand 1.19x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   110697.2 ns before   145030.0 ns after   145892.2 ns before-immediate   119628.9 ns after-immediate   119933.2 ns  before/hand 1.31x  after/hand 1.32x  before-immediate/hand 1.08x  after-immediate/hand 1.08x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6742.8 ns before    17708.1 ns after    17661.8 ns  before/hand 2.63x  after/hand 2.62x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2572.9 ns before    12182.8 ns after    12469.1 ns  before/hand 4.74x  after/hand 4.85x
+
+# Paired stand, 2026-09-21 05:42
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 164014.8 | 180776.6 | 1.10x | 182350.8 | 1.11x | +0.9% | 720048 | 720048 | 351 % |  |
+| sql/select20.at | generated | hand | 6574.6 | 16946.9 | 2.58x | 16937.8 | 2.58x | -0.1% | 21416 | 21416 | 6 % |  |
+| sql/select20.window | generated | hand | 6560.3 | 17465.4 | 2.66x | 17432.0 | 2.66x | -0.2% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 369.9 | 371.1 | 1.00x | 371.4 | 1.00x | +0.1% | 0 | 0 | 14 % |  |
+| tsql/select20.scan | generated | control | 366.8 | 408.1 | 1.11x | 370.2 | 1.01x | -9.3% | 0 | 0 | 4 % |  |
+| el/ladder.scan | generated | control | 132.8 | 137.9 | 1.04x | 136.2 | 1.03x | -1.2% | 0 | 0 | 11 % |  |
+| el/ladder.bool | generated | hand | 943.9 | 1646.8 | 1.74x | 1647.8 | 1.75x | +0.1% | 1776 | 1720 | 18 % |  |
+| sql/refused-late.bool | generated | hand | 2500.8 | 11704.5 | 4.68x | 5647.5 | 2.26x | -51.7% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6650.0 | 17485.3 | 2.63x | 17429.7 | 2.62x | -0.3% | 21448 | 21392 | 3 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4391543.8 | 4434387.5 | 1.01x | 4489062.5 | 1.02x | +1.2% | 6276688 | 6276641 | 3 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6361100.0 | 6357081.2 | 1.00x | 6409575.0 | 1.01x | +0.8% | 8778600 | 8778600 | 7 % |  |
+| el/ladder | generated | hand | 948.9 | 1654.4 | 1.74x | 1671.1 | 1.76x | +1.0% | 1776 | 1776 | 38 % |  |
+| el/ladder | immediate | hand | 948.9 | 1136.8 | 1.20x | 1127.1 | 1.19x | -0.9% | 1784 | 1784 | 38 % |  |
+| el/terms1000 | generated | hand | 110697.2 | 145030.0 | 1.31x | 145892.2 | 1.32x | +0.6% | 169104 | 169107 | 4 % |  |
+| el/terms1000 | immediate | hand | 110697.2 | 119628.9 | 1.08x | 119933.2 | 1.08x | +0.3% | 177120 | 177120 | 4 % |  |
+| sql/select20 | generated | hand | 6742.8 | 17708.1 | 2.63x | 17661.8 | 2.62x | -0.3% | 21448 | 21448 | 27 % |  |
+| sql/refused-late | generated | hand | 2572.9 | 12182.8 | 4.74x | 12469.1 | 4.85x | +2.4% | 13552 | 13552 | 17 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-5
+=== run 6 of 10, 05:42:28
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   166005.5 ns before   184798.4 ns after   186347.7 ns  before/hand 1.11x  after/hand 1.12x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6601.4 ns before    17244.9 ns after    17139.5 ns  before/hand 2.61x  after/hand 2.60x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6672.6 ns before    17687.7 ns after    17644.2 ns  before/hand 2.65x  after/hand 2.64x
+sql/select20.scan      control      372.7 ns before      371.1 ns after      372.4 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      374.0 ns before      369.7 ns after      369.8 ns  before/control 0.99x  after/control 0.99x
+el/ladder.scan         control      135.9 ns before      133.4 ns after      133.0 ns  before/control 0.98x  after/control 0.98x
+el/ladder.bool         hand      928.3 ns before     1666.0 ns after     1624.9 ns  before/hand 1.79x  after/hand 1.75x
+sql/refused-late.bool  hand     2495.7 ns before    11944.7 ns after     5609.5 ns  before/hand 4.79x  after/hand 2.25x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6709.5 ns before    17684.4 ns after    17481.9 ns  before/hand 2.64x  after/hand 2.61x
+  sql/refused-cliff-case-1391: 30 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4421587.5 ns before  4372268.8 ns after  4434612.5 ns  before/control 0.99x  after/control 1.00x
+  sql/refused-cliff-paren-2715: 56 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6420656.2 ns before  6328462.5 ns after  6364806.2 ns  before/control 0.99x  after/control 0.99x
+el/ladder              hand      948.9 ns before     1668.4 ns after     1674.0 ns before-immediate     1146.4 ns after-immediate     1143.4 ns  before/hand 1.76x  after/hand 1.76x  before-immediate/hand 1.21x  after-immediate/hand 1.21x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   109489.5 ns before   148597.0 ns after   148874.5 ns before-immediate   123792.3 ns after-immediate   121239.1 ns  before/hand 1.36x  after/hand 1.36x  before-immediate/hand 1.13x  after-immediate/hand 1.11x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6708.5 ns before    17728.8 ns after    18017.8 ns  before/hand 2.64x  after/hand 2.69x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2495.9 ns before    11854.1 ns after    11730.2 ns  before/hand 4.75x  after/hand 4.70x
+
+# Paired stand, 2026-09-21 05:43
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 166005.5 | 184798.4 | 1.11x | 186347.7 | 1.12x | +0.8% | 720048 | 720048 | 19 % |  |
+| sql/select20.at | generated | hand | 6601.4 | 17244.9 | 2.61x | 17139.5 | 2.60x | -0.6% | 21416 | 21416 | 13 % |  |
+| sql/select20.window | generated | hand | 6672.6 | 17687.7 | 2.65x | 17644.2 | 2.64x | -0.2% | 21416 | 21416 | 59 % |  |
+| sql/select20.scan | generated | control | 372.7 | 371.1 | 1.00x | 372.4 | 1.00x | +0.4% | 0 | 0 | 11 % |  |
+| tsql/select20.scan | generated | control | 374.0 | 369.7 | 0.99x | 369.8 | 0.99x | +0.1% | 0 | 0 | 4 % |  |
+| el/ladder.scan | generated | control | 135.9 | 133.4 | 0.98x | 133.0 | 0.98x | -0.3% | 0 | 0 | 8 % |  |
+| el/ladder.bool | generated | hand | 928.3 | 1666.0 | 1.79x | 1624.9 | 1.75x | -2.5% | 1776 | 1720 | 10 % |  |
+| sql/refused-late.bool | generated | hand | 2495.7 | 11944.7 | 4.79x | 5609.5 | 2.25x | -53.0% | 13552 | 6616 | 7 % |  |
+| sql/select20.bool | generated | hand | 6709.5 | 17684.4 | 2.64x | 17481.9 | 2.61x | -1.1% | 21448 | 21392 | 4 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4421587.5 | 4372268.8 | 0.99x | 4434612.5 | 1.00x | +1.4% | 6276598 | 6276555 | 8 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6420656.2 | 6328462.5 | 0.99x | 6364806.2 | 0.99x | +0.6% | 8778600 | 8778600 | 29 % |  |
+| el/ladder | generated | hand | 948.9 | 1668.4 | 1.76x | 1674.0 | 1.76x | +0.3% | 1776 | 1776 | 11 % |  |
+| el/ladder | immediate | hand | 948.9 | 1146.4 | 1.21x | 1143.4 | 1.21x | -0.3% | 1784 | 1784 | 11 % |  |
+| el/terms1000 | generated | hand | 109489.5 | 148597.0 | 1.36x | 148874.5 | 1.36x | +0.2% | 169104 | 169104 | 2 % |  |
+| el/terms1000 | immediate | hand | 109489.5 | 123792.3 | 1.13x | 121239.1 | 1.11x | -2.1% | 177166 | 177144 | 2 % |  |
+| sql/select20 | generated | hand | 6708.5 | 17728.8 | 2.64x | 18017.8 | 2.69x | +1.6% | 21448 | 21448 | 10 % |  |
+| sql/refused-late | generated | hand | 2495.9 | 11854.1 | 4.75x | 11730.2 | 4.70x | -1.0% | 13552 | 13552 | 6 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-6
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165695.3 ns before   181234.4 ns after   182821.9 ns  before/hand 1.09x  after/hand 1.10x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6598.8 ns before    17186.2 ns after    17569.7 ns  before/hand 2.60x  after/hand 2.66x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6641.0 ns before    17307.7 ns after    17928.5 ns  before/hand 2.61x  after/hand 2.70x
+sql/select20.scan      control      375.5 ns before      376.2 ns after      374.2 ns  before/control 1.00x  after/control 1.00x
+tsql/select20.scan     control      371.4 ns before      378.5 ns after      379.3 ns  before/control 1.02x  after/control 1.02x
+el/ladder.scan         control      134.8 ns before      137.5 ns after      138.1 ns  before/control 1.02x  after/control 1.02x
+el/ladder.bool         hand      937.5 ns before     1681.8 ns after     1639.8 ns  before/hand 1.79x  after/hand 1.75x
+sql/refused-late.bool  hand     2499.3 ns before    11792.5 ns after     5900.0 ns  before/hand 4.72x  after/hand 2.36x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6597.4 ns before    17441.6 ns after    17971.5 ns  before/hand 2.64x  after/hand 2.72x
+  sql/refused-cliff-case-1391: 29 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4312850.0 ns before  4553562.5 ns after  4404843.8 ns  before/control 1.06x  after/control 1.02x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6224700.0 ns before  6293381.2 ns after  6669462.5 ns  before/control 1.01x  after/control 1.07x
+el/ladder              hand      947.8 ns before     1675.3 ns after     1662.1 ns before-immediate     1163.0 ns after-immediate     1144.8 ns  before/hand 1.77x  after/hand 1.75x  before-immediate/hand 1.23x  after-immediate/hand 1.21x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106052.1 ns before   147186.0 ns after   146215.6 ns before-immediate   122588.6 ns after-immediate   121931.0 ns  before/hand 1.39x  after/hand 1.38x  before-immediate/hand 1.16x  after-immediate/hand 1.15x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6541.5 ns before    17263.4 ns after    17828.3 ns  before/hand 2.64x  after/hand 2.73x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2505.5 ns before    11732.9 ns after    12212.0 ns  before/hand 4.68x  after/hand 4.87x
+
+# Paired stand, 2026-09-21 05:45
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165695.3 | 181234.4 | 1.09x | 182821.9 | 1.10x | +0.9% | 720048 | 720048 | 19 % |  |
+| sql/select20.at | generated | hand | 6598.8 | 17186.2 | 2.60x | 17569.7 | 2.66x | +2.2% | 21416 | 21416 | 18 % |  |
+| sql/select20.window | generated | hand | 6641.0 | 17307.7 | 2.61x | 17928.5 | 2.70x | +3.6% | 21416 | 21416 | 4 % |  |
+| sql/select20.scan | generated | control | 375.5 | 376.2 | 1.00x | 374.2 | 1.00x | -0.5% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 371.4 | 378.5 | 1.02x | 379.3 | 1.02x | +0.2% | 0 | 0 | 7 % |  |
+| el/ladder.scan | generated | control | 134.8 | 137.5 | 1.02x | 138.1 | 1.02x | +0.4% | 0 | 0 | 2 % |  |
+| el/ladder.bool | generated | hand | 937.5 | 1681.8 | 1.79x | 1639.8 | 1.75x | -2.5% | 1776 | 1720 | 5 % |  |
+| sql/refused-late.bool | generated | hand | 2499.3 | 11792.5 | 4.72x | 5900.0 | 2.36x | -50.0% | 13552 | 6616 | 2 % |  |
+| sql/select20.bool | generated | hand | 6597.4 | 17441.6 | 2.64x | 17971.5 | 2.72x | +3.0% | 21448 | 21392 | 53 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4312850.0 | 4553562.5 | 1.06x | 4404843.8 | 1.02x | -3.3% | 6276617 | 6276555 | 7 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6224700.0 | 6293381.2 | 1.01x | 6669462.5 | 1.07x | +6.0% | 8778600 | 8778600 | 10 % |  |
+| el/ladder | generated | hand | 947.8 | 1675.3 | 1.77x | 1662.1 | 1.75x | -0.8% | 1776 | 1776 | 18 % |  |
+| el/ladder | immediate | hand | 947.8 | 1163.0 | 1.23x | 1144.8 | 1.21x | -1.6% | 1784 | 1784 | 18 % |  |
+| el/terms1000 | generated | hand | 106052.1 | 147186.0 | 1.39x | 146215.6 | 1.38x | -0.7% | 169104 | 169107 | 5 % |  |
+| el/terms1000 | immediate | hand | 106052.1 | 122588.6 | 1.16x | 121931.0 | 1.15x | -0.5% | 177120 | 177120 | 5 % |  |
+| sql/select20 | generated | hand | 6541.5 | 17263.4 | 2.64x | 17828.3 | 2.73x | +3.3% | 21448 | 21448 | 1 % |  |
+| sql/refused-late | generated | hand | 2505.5 | 11732.9 | 4.68x | 12212.0 | 4.87x | +4.1% | 13552 | 13552 | 8 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-6
+=== run 7 of 10, 05:45:04
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   164038.3 ns before   181778.9 ns after   183158.6 ns  before/hand 1.11x  after/hand 1.12x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6677.6 ns before    16898.4 ns after    17028.3 ns  before/hand 2.53x  after/hand 2.55x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6636.1 ns before    17291.4 ns after    17498.6 ns  before/hand 2.61x  after/hand 2.64x
+sql/select20.scan      control      371.2 ns before      370.8 ns after      375.6 ns  before/control 1.00x  after/control 1.01x
+tsql/select20.scan     control      372.2 ns before      373.4 ns after      386.7 ns  before/control 1.00x  after/control 1.04x
+el/ladder.scan         control      133.9 ns before      135.7 ns after      133.9 ns  before/control 1.01x  after/control 1.00x
+el/ladder.bool         hand      921.5 ns before     1643.6 ns after     1609.7 ns  before/hand 1.78x  after/hand 1.75x
+sql/refused-late.bool  hand     2493.8 ns before    11638.1 ns after     5652.7 ns  before/hand 4.67x  after/hand 2.27x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6656.8 ns before    17386.9 ns after    17466.2 ns  before/hand 2.61x  after/hand 2.62x
+  sql/refused-cliff-case-1391: 14 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4327168.8 ns before  4365981.2 ns after  4476450.0 ns  before/control 1.01x  after/control 1.03x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6212281.2 ns before  6196137.5 ns after  6433243.8 ns  before/control 1.00x  after/control 1.04x
+el/ladder              hand      930.2 ns before     1657.1 ns after     1667.6 ns before-immediate     1167.9 ns after-immediate     1151.3 ns  before/hand 1.78x  after/hand 1.79x  before-immediate/hand 1.26x  after-immediate/hand 1.24x
+  el/terms1000: 16 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   108831.0 ns before   148706.0 ns after   146320.3 ns before-immediate   121120.9 ns after-immediate   120671.6 ns  before/hand 1.37x  after/hand 1.34x  before-immediate/hand 1.11x  after-immediate/hand 1.11x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6673.1 ns before    17269.6 ns after    17603.0 ns  before/hand 2.59x  after/hand 2.64x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2482.3 ns before    11675.7 ns after    11976.8 ns  before/hand 4.70x  after/hand 4.82x
+
+# Paired stand, 2026-09-21 05:46
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 164038.3 | 181778.9 | 1.11x | 183158.6 | 1.12x | +0.8% | 720048 | 720048 | 22 % |  |
+| sql/select20.at | generated | hand | 6677.6 | 16898.4 | 2.53x | 17028.3 | 2.55x | +0.8% | 21416 | 21416 | 20 % |  |
+| sql/select20.window | generated | hand | 6636.1 | 17291.4 | 2.61x | 17498.6 | 2.64x | +1.2% | 21416 | 21416 | 8 % |  |
+| sql/select20.scan | generated | control | 371.2 | 370.8 | 1.00x | 375.6 | 1.01x | +1.3% | 0 | 0 | 20 % |  |
+| tsql/select20.scan | generated | control | 372.2 | 373.4 | 1.00x | 386.7 | 1.04x | +3.6% | 0 | 0 | 8 % |  |
+| el/ladder.scan | generated | control | 133.9 | 135.7 | 1.01x | 133.9 | 1.00x | -1.3% | 0 | 0 | 7 % |  |
+| el/ladder.bool | generated | hand | 921.5 | 1643.6 | 1.78x | 1609.7 | 1.75x | -2.1% | 1776 | 1720 | 9 % |  |
+| sql/refused-late.bool | generated | hand | 2493.8 | 11638.1 | 4.67x | 5652.7 | 2.27x | -51.4% | 13552 | 6616 | 2 % |  |
+| sql/select20.bool | generated | hand | 6656.8 | 17386.9 | 2.61x | 17466.2 | 2.62x | +0.5% | 21448 | 21392 | 14 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4327168.8 | 4365981.2 | 1.01x | 4476450.0 | 1.03x | +2.5% | 6276684 | 6276684 | 6 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6212281.2 | 6196137.5 | 1.00x | 6433243.8 | 1.04x | +3.8% | 8778600 | 8778600 | 17 % |  |
+| el/ladder | generated | hand | 930.2 | 1657.1 | 1.78x | 1667.6 | 1.79x | +0.6% | 1776 | 1776 | 7 % |  |
+| el/ladder | immediate | hand | 930.2 | 1167.9 | 1.26x | 1151.3 | 1.24x | -1.4% | 1784 | 1784 | 7 % |  |
+| el/terms1000 | generated | hand | 108831.0 | 148706.0 | 1.37x | 146320.3 | 1.34x | -1.6% | 169107 | 169104 | 2 % |  |
+| el/terms1000 | immediate | hand | 108831.0 | 121120.9 | 1.11x | 120671.6 | 1.11x | -0.4% | 177120 | 177120 | 2 % |  |
+| sql/select20 | generated | hand | 6673.1 | 17269.6 | 2.59x | 17603.0 | 2.64x | +1.9% | 21448 | 21448 | 3 % |  |
+| sql/refused-late | generated | hand | 2482.3 | 11675.7 | 4.70x | 11976.8 | 4.82x | +2.6% | 13552 | 13552 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-7
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165640.6 ns before   180978.1 ns after   188339.1 ns  before/hand 1.09x  after/hand 1.14x
+sql/select20.at        hand     6588.0 ns before    17070.1 ns after    16972.9 ns  before/hand 2.59x  after/hand 2.58x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6610.4 ns before    17359.7 ns after    17307.8 ns  before/hand 2.63x  after/hand 2.62x
+sql/select20.scan      control      364.0 ns before      374.2 ns after      371.0 ns  before/control 1.03x  after/control 1.02x
+tsql/select20.scan     control      367.6 ns before      372.9 ns after      376.7 ns  before/control 1.01x  after/control 1.02x
+el/ladder.scan         control      136.2 ns before      135.3 ns after      135.2 ns  before/control 0.99x  after/control 0.99x
+el/ladder.bool         hand      938.1 ns before     1645.1 ns after     1627.7 ns  before/hand 1.75x  after/hand 1.74x
+sql/refused-late.bool  hand     2486.9 ns before    11926.0 ns after     5589.7 ns  before/hand 4.80x  after/hand 2.25x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6650.3 ns before    17343.7 ns after    17462.4 ns  before/hand 2.61x  after/hand 2.63x
+  sql/refused-cliff-case-1391: 24 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4371856.2 ns before  4621812.5 ns after  4402343.8 ns  before/control 1.06x  after/control 1.01x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6255025.0 ns before  6553212.5 ns after  6267550.0 ns  before/control 1.05x  after/control 1.00x
+el/ladder              hand      931.0 ns before     1653.5 ns after     1644.1 ns before-immediate     1139.3 ns after-immediate     1125.7 ns  before/hand 1.78x  after/hand 1.77x  before-immediate/hand 1.22x  after-immediate/hand 1.21x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   106958.4 ns before   147278.8 ns after   145834.0 ns before-immediate   121232.6 ns after-immediate   120388.2 ns  before/hand 1.38x  after/hand 1.36x  before-immediate/hand 1.13x  after-immediate/hand 1.13x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6673.5 ns before    17291.4 ns after    17315.8 ns  before/hand 2.59x  after/hand 2.59x
+sql/refused-late       hand     2485.4 ns before    11835.5 ns after    11687.6 ns  before/hand 4.76x  after/hand 4.70x
+
+# Paired stand, 2026-09-21 05:47
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165640.6 | 180978.1 | 1.09x | 188339.1 | 1.14x | +4.1% | 720048 | 720048 | 21 % |  |
+| sql/select20.at | generated | hand | 6588.0 | 17070.1 | 2.59x | 16972.9 | 2.58x | -0.6% | 21416 | 21416 | 29 % |  |
+| sql/select20.window | generated | hand | 6610.4 | 17359.7 | 2.63x | 17307.8 | 2.62x | -0.3% | 21416 | 21416 | 8 % |  |
+| sql/select20.scan | generated | control | 364.0 | 374.2 | 1.03x | 371.0 | 1.02x | -0.8% | 0 | 0 | 4 % |  |
+| tsql/select20.scan | generated | control | 367.6 | 372.9 | 1.01x | 376.7 | 1.02x | +1.0% | 0 | 0 | 11 % |  |
+| el/ladder.scan | generated | control | 136.2 | 135.3 | 0.99x | 135.2 | 0.99x | 0.0% | 0 | 0 | 5 % |  |
+| el/ladder.bool | generated | hand | 938.1 | 1645.1 | 1.75x | 1627.7 | 1.74x | -1.1% | 1776 | 1720 | 14 % |  |
+| sql/refused-late.bool | generated | hand | 2486.9 | 11926.0 | 4.80x | 5589.7 | 2.25x | -53.1% | 13552 | 6616 | 9 % |  |
+| sql/select20.bool | generated | hand | 6650.3 | 17343.7 | 2.61x | 17462.4 | 2.63x | +0.7% | 21448 | 21392 | 6 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4371856.2 | 4621812.5 | 1.06x | 4402343.8 | 1.01x | -4.7% | 6276598 | 6276684 | 4 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6255025.0 | 6553212.5 | 1.05x | 6267550.0 | 1.00x | -4.4% | 8778600 | 8778600 | 6 % |  |
+| el/ladder | generated | hand | 931.0 | 1653.5 | 1.78x | 1644.1 | 1.77x | -0.6% | 1776 | 1776 | 7 % |  |
+| el/ladder | immediate | hand | 931.0 | 1139.3 | 1.22x | 1125.7 | 1.21x | -1.2% | 1784 | 1784 | 7 % |  |
+| el/terms1000 | generated | hand | 106958.4 | 147278.8 | 1.38x | 145834.0 | 1.36x | -1.0% | 169104 | 169128 | 2 % |  |
+| el/terms1000 | immediate | hand | 106958.4 | 121232.6 | 1.13x | 120388.2 | 1.13x | -0.7% | 177123 | 177120 | 2 % |  |
+| sql/select20 | generated | hand | 6673.5 | 17291.4 | 2.59x | 17315.8 | 2.59x | +0.1% | 21448 | 21448 | 10 % |  |
+| sql/refused-late | generated | hand | 2485.4 | 11835.5 | 4.76x | 11687.6 | 4.70x | -1.2% | 13552 | 13552 | 3 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-7
+=== run 8 of 10, 05:47:39
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165414.8 ns before   181264.8 ns after   182480.5 ns  before/hand 1.10x  after/hand 1.10x
+sql/select20.at        hand     6609.5 ns before    16986.2 ns after    17073.7 ns  before/hand 2.57x  after/hand 2.58x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6607.6 ns before    17294.0 ns after    17533.4 ns  before/hand 2.62x  after/hand 2.65x
+sql/select20.scan      control      369.7 ns before      368.8 ns after      367.0 ns  before/control 1.00x  after/control 0.99x
+tsql/select20.scan     control      368.4 ns before      368.3 ns after      371.7 ns  before/control 1.00x  after/control 1.01x
+el/ladder.scan         control      133.8 ns before      133.9 ns after      134.6 ns  before/control 1.00x  after/control 1.01x
+el/ladder.bool         hand      935.1 ns before     1646.4 ns after     1641.6 ns  before/hand 1.76x  after/hand 1.76x
+sql/refused-late.bool  hand     2488.9 ns before    11725.2 ns after     5697.1 ns  before/hand 4.71x  after/hand 2.29x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6705.7 ns before    17670.7 ns after    17706.0 ns  before/hand 2.64x  after/hand 2.64x
+  sql/refused-cliff-case-1391: 20 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4367918.8 ns before  4396706.2 ns after  4331593.8 ns  before/control 1.01x  after/control 0.99x
+  sql/refused-cliff-paren-2715: 56 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6393118.8 ns before  6364500.0 ns after  6262793.8 ns  before/control 1.00x  after/control 0.98x
+el/ladder              hand      930.0 ns before     1652.7 ns after     1651.7 ns before-immediate     1124.4 ns after-immediate     1103.3 ns  before/hand 1.78x  after/hand 1.78x  before-immediate/hand 1.21x  after-immediate/hand 1.19x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   108732.6 ns before   148934.6 ns after   150736.2 ns before-immediate   123362.0 ns after-immediate   121462.7 ns  before/hand 1.37x  after/hand 1.39x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6587.4 ns before    17497.1 ns after    17388.4 ns  before/hand 2.66x  after/hand 2.64x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2483.6 ns before    11721.5 ns after    11752.9 ns  before/hand 4.72x  after/hand 4.73x
+
+# Paired stand, 2026-09-21 05:48
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165414.8 | 181264.8 | 1.10x | 182480.5 | 1.10x | +0.7% | 720048 | 720048 | 20 % |  |
+| sql/select20.at | generated | hand | 6609.5 | 16986.2 | 2.57x | 17073.7 | 2.58x | +0.5% | 21416 | 21416 | 3 % |  |
+| sql/select20.window | generated | hand | 6607.6 | 17294.0 | 2.62x | 17533.4 | 2.65x | +1.4% | 21416 | 21416 | 22 % |  |
+| sql/select20.scan | generated | control | 369.7 | 368.8 | 1.00x | 367.0 | 0.99x | -0.5% | 0 | 0 | 6 % |  |
+| tsql/select20.scan | generated | control | 368.4 | 368.3 | 1.00x | 371.7 | 1.01x | +0.9% | 0 | 0 | 9 % |  |
+| el/ladder.scan | generated | control | 133.8 | 133.9 | 1.00x | 134.6 | 1.01x | +0.5% | 0 | 0 | 10 % |  |
+| el/ladder.bool | generated | hand | 935.1 | 1646.4 | 1.76x | 1641.6 | 1.76x | -0.3% | 1776 | 1720 | 4 % |  |
+| sql/refused-late.bool | generated | hand | 2488.9 | 11725.2 | 4.71x | 5697.1 | 2.29x | -51.4% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6705.7 | 17670.7 | 2.64x | 17706.0 | 2.64x | +0.2% | 21448 | 21392 | 8 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4367918.8 | 4396706.2 | 1.01x | 4331593.8 | 0.99x | -1.5% | 6276684 | 6276684 | 7 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6393118.8 | 6364500.0 | 1.00x | 6262793.8 | 0.98x | -1.6% | 8778600 | 8778600 | 5 % |  |
+| el/ladder | generated | hand | 930.0 | 1652.7 | 1.78x | 1651.7 | 1.78x | -0.1% | 1776 | 1776 | 2 % |  |
+| el/ladder | immediate | hand | 930.0 | 1124.4 | 1.21x | 1103.3 | 1.19x | -1.9% | 1784 | 1784 | 2 % |  |
+| el/terms1000 | generated | hand | 108732.6 | 148934.6 | 1.37x | 150736.2 | 1.39x | +1.2% | 169104 | 169104 | 3 % |  |
+| el/terms1000 | immediate | hand | 108732.6 | 123362.0 | 1.13x | 121462.7 | 1.12x | -1.5% | 177120 | 177123 | 3 % |  |
+| sql/select20 | generated | hand | 6587.4 | 17497.1 | 2.66x | 17388.4 | 2.64x | -0.6% | 21448 | 21448 | 6 % |  |
+| sql/refused-late | generated | hand | 2483.6 | 11721.5 | 4.72x | 11752.9 | 4.73x | +0.3% | 13552 | 13552 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-8
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163617.2 ns before   181267.2 ns after   182462.5 ns  before/hand 1.11x  after/hand 1.12x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6612.7 ns before    16954.8 ns after    16979.8 ns  before/hand 2.56x  after/hand 2.57x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6620.8 ns before    17519.5 ns after    17466.6 ns  before/hand 2.65x  after/hand 2.64x
+sql/select20.scan      control      374.8 ns before      366.0 ns after      375.8 ns  before/control 0.98x  after/control 1.00x
+tsql/select20.scan     control      370.1 ns before      369.5 ns after      367.6 ns  before/control 1.00x  after/control 0.99x
+el/ladder.scan         control      133.9 ns before      134.2 ns after      134.3 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      941.7 ns before     1673.3 ns after     1658.3 ns  before/hand 1.78x  after/hand 1.76x
+sql/refused-late.bool  hand     2477.2 ns before    11701.3 ns after     5587.2 ns  before/hand 4.72x  after/hand 2.26x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6569.0 ns before    17376.1 ns after    17580.7 ns  before/hand 2.65x  after/hand 2.68x
+  sql/refused-cliff-case-1391: 16 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4345587.5 ns before  4301262.5 ns after  4377462.5 ns  before/control 0.99x  after/control 1.01x
+  sql/refused-cliff-paren-2715: 54 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6216437.5 ns before  6273968.8 ns after  6207262.5 ns  before/control 1.01x  after/control 1.00x
+el/ladder              hand      936.7 ns before     1681.4 ns after     1663.7 ns before-immediate     1165.2 ns after-immediate     1129.9 ns  before/hand 1.79x  after/hand 1.78x  before-immediate/hand 1.24x  after-immediate/hand 1.21x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   107528.0 ns before   146229.9 ns after   147719.2 ns before-immediate   116843.6 ns after-immediate   121225.7 ns  before/hand 1.36x  after/hand 1.37x  before-immediate/hand 1.09x  after-immediate/hand 1.13x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6555.0 ns before    17366.3 ns after    17406.6 ns  before/hand 2.65x  after/hand 2.66x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2484.7 ns before    11666.4 ns after    11666.0 ns  before/hand 4.70x  after/hand 4.70x
+
+# Paired stand, 2026-09-21 05:50
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163617.2 | 181267.2 | 1.11x | 182462.5 | 1.12x | +0.7% | 720048 | 720048 | 354 % |  |
+| sql/select20.at | generated | hand | 6612.7 | 16954.8 | 2.56x | 16979.8 | 2.57x | +0.1% | 21416 | 21416 | 6 % |  |
+| sql/select20.window | generated | hand | 6620.8 | 17519.5 | 2.65x | 17466.6 | 2.64x | -0.3% | 21416 | 21416 | 59 % |  |
+| sql/select20.scan | generated | control | 374.8 | 366.0 | 0.98x | 375.8 | 1.00x | +2.7% | 0 | 0 | 3 % |  |
+| tsql/select20.scan | generated | control | 370.1 | 369.5 | 1.00x | 367.6 | 0.99x | -0.5% | 0 | 0 | 3 % |  |
+| el/ladder.scan | generated | control | 133.9 | 134.2 | 1.00x | 134.3 | 1.00x | 0.0% | 0 | 0 | 8 % |  |
+| el/ladder.bool | generated | hand | 941.7 | 1673.3 | 1.78x | 1658.3 | 1.76x | -0.9% | 1776 | 1720 | 6 % |  |
+| sql/refused-late.bool | generated | hand | 2477.2 | 11701.3 | 4.72x | 5587.2 | 2.26x | -52.3% | 13552 | 6616 | 3 % |  |
+| sql/select20.bool | generated | hand | 6569.0 | 17376.1 | 2.65x | 17580.7 | 2.68x | +1.2% | 21448 | 21392 | 4 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4345587.5 | 4301262.5 | 0.99x | 4377462.5 | 1.01x | +1.8% | 6276660 | 6276684 | 4 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6216437.5 | 6273968.8 | 1.01x | 6207262.5 | 1.00x | -1.1% | 8778600 | 8778600 | 14 % |  |
+| el/ladder | generated | hand | 936.7 | 1681.4 | 1.79x | 1663.7 | 1.78x | -1.1% | 1776 | 1776 | 1 % |  |
+| el/ladder | immediate | hand | 936.7 | 1165.2 | 1.24x | 1129.9 | 1.21x | -3.0% | 1784 | 1784 | 1 % |  |
+| el/terms1000 | generated | hand | 107528.0 | 146229.9 | 1.36x | 147719.2 | 1.37x | +1.0% | 169128 | 169128 | 6 % |  |
+| el/terms1000 | immediate | hand | 107528.0 | 116843.6 | 1.09x | 121225.7 | 1.13x | +3.8% | 177120 | 177120 | 6 % |  |
+| sql/select20 | generated | hand | 6555.0 | 17366.3 | 2.65x | 17406.6 | 2.66x | +0.2% | 21448 | 21448 | 1 % |  |
+| sql/refused-late | generated | hand | 2484.7 | 11666.4 | 4.70x | 11666.0 | 4.70x | 0.0% | 13552 | 13552 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-8
+=== run 9 of 10, 05:50:13
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 19 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163296.1 ns before   182694.5 ns after   183175.0 ns  before/hand 1.12x  after/hand 1.12x
+sql/select20.at        hand     6689.6 ns before    17396.1 ns after    16956.9 ns  before/hand 2.60x  after/hand 2.53x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6724.5 ns before    17550.9 ns after    17399.7 ns  before/hand 2.61x  after/hand 2.59x
+sql/select20.scan      control      361.9 ns before      367.3 ns after      368.7 ns  before/control 1.02x  after/control 1.02x
+tsql/select20.scan     control      385.7 ns before      366.4 ns after      367.5 ns  before/control 0.95x  after/control 0.95x
+el/ladder.scan         control      135.9 ns before      133.7 ns after      133.1 ns  before/control 0.98x  after/control 0.98x
+el/ladder.bool         hand      946.9 ns before     1669.5 ns after     1617.1 ns  before/hand 1.76x  after/hand 1.71x
+sql/refused-late.bool  hand     2517.3 ns before    11765.3 ns after     5720.3 ns  before/hand 4.67x  after/hand 2.27x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6719.4 ns before    18075.7 ns after    18219.4 ns  before/hand 2.69x  after/hand 2.71x
+  sql/refused-cliff-case-1391: 29 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4312487.5 ns before  4373268.8 ns after  4414700.0 ns  before/control 1.01x  after/control 1.02x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6271037.5 ns before  6266675.0 ns after  6302550.0 ns  before/control 1.00x  after/control 1.01x
+el/ladder              hand      939.4 ns before     1669.4 ns after     1639.7 ns before-immediate     1126.8 ns after-immediate     1147.3 ns  before/hand 1.78x  after/hand 1.75x  before-immediate/hand 1.20x  after-immediate/hand 1.22x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   109258.0 ns before   146170.3 ns after   147257.3 ns before-immediate   120019.2 ns after-immediate   124299.6 ns  before/hand 1.34x  after/hand 1.35x  before-immediate/hand 1.10x  after-immediate/hand 1.14x
+  sql/select20: 4 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6688.4 ns before    18060.1 ns after    17598.5 ns  before/hand 2.70x  after/hand 2.63x
+sql/refused-late       hand     2514.3 ns before    11791.2 ns after    11867.6 ns  before/hand 4.69x  after/hand 4.72x
+
+# Paired stand, 2026-09-21 05:51
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163296.1 | 182694.5 | 1.12x | 183175.0 | 1.12x | +0.3% | 720048 | 720048 | 354 % |  |
+| sql/select20.at | generated | hand | 6689.6 | 17396.1 | 2.60x | 16956.9 | 2.53x | -2.5% | 21416 | 21416 | 6 % |  |
+| sql/select20.window | generated | hand | 6724.5 | 17550.9 | 2.61x | 17399.7 | 2.59x | -0.9% | 21416 | 21416 | 8 % |  |
+| sql/select20.scan | generated | control | 361.9 | 367.3 | 1.02x | 368.7 | 1.02x | +0.4% | 0 | 0 | 2 % |  |
+| tsql/select20.scan | generated | control | 385.7 | 366.4 | 0.95x | 367.5 | 0.95x | +0.3% | 0 | 0 | 9 % |  |
+| el/ladder.scan | generated | control | 135.9 | 133.7 | 0.98x | 133.1 | 0.98x | -0.4% | 0 | 0 | 7 % |  |
+| el/ladder.bool | generated | hand | 946.9 | 1669.5 | 1.76x | 1617.1 | 1.71x | -3.1% | 1776 | 1720 | 7 % |  |
+| sql/refused-late.bool | generated | hand | 2517.3 | 11765.3 | 4.67x | 5720.3 | 2.27x | -51.4% | 13552 | 6616 | 4 % |  |
+| sql/select20.bool | generated | hand | 6719.4 | 18075.7 | 2.69x | 18219.4 | 2.71x | +0.8% | 21448 | 21392 | 3 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4312487.5 | 4373268.8 | 1.01x | 4414700.0 | 1.02x | +0.9% | 6276574 | 6276598 | 3 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6271037.5 | 6266675.0 | 1.00x | 6302550.0 | 1.01x | +0.6% | 8778556 | 8778600 | 4 % |  |
+| el/ladder | generated | hand | 939.4 | 1669.4 | 1.78x | 1639.7 | 1.75x | -1.8% | 1776 | 1776 | 14 % |  |
+| el/ladder | immediate | hand | 939.4 | 1126.8 | 1.20x | 1147.3 | 1.22x | +1.8% | 1784 | 1784 | 14 % |  |
+| el/terms1000 | generated | hand | 109258.0 | 146170.3 | 1.34x | 147257.3 | 1.35x | +0.7% | 169104 | 169128 | 24 % |  |
+| el/terms1000 | immediate | hand | 109258.0 | 120019.2 | 1.10x | 124299.6 | 1.14x | +3.6% | 177120 | 177123 | 24 % |  |
+| sql/select20 | generated | hand | 6688.4 | 18060.1 | 2.70x | 17598.5 | 2.63x | -2.6% | 21448 | 21472 | 3 % |  |
+| sql/refused-late | generated | hand | 2514.3 | 11791.2 | 4.69x | 11867.6 | 4.72x | +0.6% | 13552 | 13552 | 4 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-9
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 7 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   164559.4 ns before   177785.9 ns after   177540.6 ns  before/hand 1.08x  after/hand 1.08x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6603.7 ns before    16918.6 ns after    16970.4 ns  before/hand 2.56x  after/hand 2.57x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6535.0 ns before    17280.1 ns after    17261.2 ns  before/hand 2.64x  after/hand 2.64x
+sql/select20.scan      control      374.1 ns before      372.7 ns after      369.8 ns  before/control 1.00x  after/control 0.99x
+tsql/select20.scan     control      378.4 ns before      370.7 ns after      368.8 ns  before/control 0.98x  after/control 0.97x
+el/ladder.scan         control      133.9 ns before      133.8 ns after      134.2 ns  before/control 1.00x  after/control 1.00x
+el/ladder.bool         hand      943.5 ns before     1674.4 ns after     1680.9 ns  before/hand 1.77x  after/hand 1.78x
+sql/refused-late.bool  hand     2473.1 ns before    11716.0 ns after     5629.0 ns  before/hand 4.74x  after/hand 2.28x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6538.8 ns before    17580.8 ns after    17385.5 ns  before/hand 2.69x  after/hand 2.66x
+  sql/refused-cliff-case-1391: 26 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4424375.0 ns before  4343693.8 ns after  4358968.8 ns  before/control 0.98x  after/control 0.99x
+  sql/refused-cliff-paren-2715: 53 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6274481.2 ns before  6242643.8 ns after  6222700.0 ns  before/control 0.99x  after/control 0.99x
+el/ladder              hand      945.7 ns before     1683.9 ns after     1704.0 ns before-immediate     1117.6 ns after-immediate     1133.6 ns  before/hand 1.78x  after/hand 1.80x  before-immediate/hand 1.18x  after-immediate/hand 1.20x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   107484.3 ns before   148554.0 ns after   151062.6 ns before-immediate   120316.6 ns after-immediate   121871.6 ns  before/hand 1.38x  after/hand 1.41x  before-immediate/hand 1.12x  after-immediate/hand 1.13x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6546.9 ns before    17488.8 ns after    17300.2 ns  before/hand 2.67x  after/hand 2.64x
+  sql/refused-late: 1 round(s) redone after a gen1/gen2 collection
+sql/refused-late       hand     2473.3 ns before    11728.3 ns after    11780.9 ns  before/hand 4.74x  after/hand 4.76x
+
+# Paired stand, 2026-09-21 05:52
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.6 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 164559.4 | 177785.9 | 1.08x | 177540.6 | 1.08x | -0.1% | 720048 | 720048 | 198 % |  |
+| sql/select20.at | generated | hand | 6603.7 | 16918.6 | 2.56x | 16970.4 | 2.57x | +0.3% | 21416 | 21416 | 21 % |  |
+| sql/select20.window | generated | hand | 6535.0 | 17280.1 | 2.64x | 17261.2 | 2.64x | -0.1% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 374.1 | 372.7 | 1.00x | 369.8 | 0.99x | -0.8% | 0 | 0 | 7 % |  |
+| tsql/select20.scan | generated | control | 378.4 | 370.7 | 0.98x | 368.8 | 0.97x | -0.5% | 0 | 0 | 14 % |  |
+| el/ladder.scan | generated | control | 133.9 | 133.8 | 1.00x | 134.2 | 1.00x | +0.3% | 0 | 0 | 3 % |  |
+| el/ladder.bool | generated | hand | 943.5 | 1674.4 | 1.77x | 1680.9 | 1.78x | +0.4% | 1776 | 1720 | 63 % |  |
+| sql/refused-late.bool | generated | hand | 2473.1 | 11716.0 | 4.74x | 5629.0 | 2.28x | -52.0% | 13552 | 6616 | 1 % |  |
+| sql/select20.bool | generated | hand | 6538.8 | 17580.8 | 2.69x | 17385.5 | 2.66x | -1.1% | 21448 | 21392 | 14 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4424375.0 | 4343693.8 | 0.98x | 4358968.8 | 0.99x | +0.4% | 6276531 | 6276660 | 10 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6274481.2 | 6242643.8 | 0.99x | 6222700.0 | 0.99x | -0.3% | 8778556 | 8778600 | 9 % |  |
+| el/ladder | generated | hand | 945.7 | 1683.9 | 1.78x | 1704.0 | 1.80x | +1.2% | 1776 | 1776 | 3 % |  |
+| el/ladder | immediate | hand | 945.7 | 1117.6 | 1.18x | 1133.6 | 1.20x | +1.4% | 1784 | 1784 | 3 % |  |
+| el/terms1000 | generated | hand | 107484.3 | 148554.0 | 1.38x | 151062.6 | 1.41x | +1.7% | 169104 | 169104 | 10 % |  |
+| el/terms1000 | immediate | hand | 107484.3 | 120316.6 | 1.12x | 121871.6 | 1.13x | +1.3% | 177123 | 177120 | 10 % |  |
+| sql/select20 | generated | hand | 6546.9 | 17488.8 | 2.67x | 17300.2 | 2.64x | -1.1% | 21448 | 21448 | 19 % |  |
+| sql/refused-late | generated | hand | 2473.3 | 11728.3 | 4.74x | 11780.9 | 4.76x | +0.4% | 13552 | 13552 | 2 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-9
+=== run 10 of 10, 05:52:48
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 20 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   163978.9 ns before   180494.5 ns after   182090.6 ns  before/hand 1.10x  after/hand 1.11x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6627.3 ns before    17049.1 ns after    17132.6 ns  before/hand 2.57x  after/hand 2.59x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6572.0 ns before    17615.1 ns after    18215.4 ns  before/hand 2.68x  after/hand 2.77x
+sql/select20.scan      control      363.6 ns before      370.8 ns after      371.3 ns  before/control 1.02x  after/control 1.02x
+tsql/select20.scan     control      382.6 ns before      371.9 ns after      381.4 ns  before/control 0.97x  after/control 1.00x
+el/ladder.scan         control      137.6 ns before      133.1 ns after      136.7 ns  before/control 0.97x  after/control 0.99x
+el/ladder.bool         hand      931.5 ns before     1674.4 ns after     1637.5 ns  before/hand 1.80x  after/hand 1.76x
+sql/refused-late.bool  hand     2496.7 ns before    11772.6 ns after     5640.9 ns  before/hand 4.72x  after/hand 2.26x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6598.7 ns before    17539.7 ns after    17643.3 ns  before/hand 2.66x  after/hand 2.67x
+  sql/refused-cliff-case-1391: 21 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4290468.8 ns before  4293387.5 ns after  4369468.8 ns  before/control 1.00x  after/control 1.02x
+  sql/refused-cliff-paren-2715: 53 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6182531.2 ns before  6294012.5 ns after  6264625.0 ns  before/control 1.02x  after/control 1.01x
+el/ladder              hand      932.6 ns before     1678.9 ns after     1629.7 ns before-immediate     1120.9 ns after-immediate     1114.1 ns  before/hand 1.80x  after/hand 1.75x  before-immediate/hand 1.20x  after-immediate/hand 1.19x
+  el/terms1000: 15 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   107760.9 ns before   148756.6 ns after   146966.5 ns before-immediate   121844.0 ns after-immediate   121223.6 ns  before/hand 1.38x  after/hand 1.36x  before-immediate/hand 1.13x  after-immediate/hand 1.12x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6573.3 ns before    17518.0 ns after    17718.4 ns  before/hand 2.67x  after/hand 2.70x
+sql/refused-late       hand     2502.6 ns before    11773.5 ns after    11736.4 ns  before/hand 4.70x  after/hand 4.69x
+
+# Paired stand, 2026-09-21 05:54
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.2 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 163978.9 | 180494.5 | 1.10x | 182090.6 | 1.11x | +0.9% | 720048 | 720048 | 45 % |  |
+| sql/select20.at | generated | hand | 6627.3 | 17049.1 | 2.57x | 17132.6 | 2.59x | +0.5% | 21416 | 21416 | 8 % |  |
+| sql/select20.window | generated | hand | 6572.0 | 17615.1 | 2.68x | 18215.4 | 2.77x | +3.4% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 363.6 | 370.8 | 1.02x | 371.3 | 1.02x | +0.1% | 0 | 0 | 3 % |  |
+| tsql/select20.scan | generated | control | 382.6 | 371.9 | 0.97x | 381.4 | 1.00x | +2.6% | 0 | 0 | 1 % |  |
+| el/ladder.scan | generated | control | 137.6 | 133.1 | 0.97x | 136.7 | 0.99x | +2.7% | 0 | 0 | 11 % |  |
+| el/ladder.bool | generated | hand | 931.5 | 1674.4 | 1.80x | 1637.5 | 1.76x | -2.2% | 1776 | 1720 | 9 % |  |
+| sql/refused-late.bool | generated | hand | 2496.7 | 11772.6 | 4.72x | 5640.9 | 2.26x | -52.1% | 13552 | 6616 | 14 % |  |
+| sql/select20.bool | generated | hand | 6598.7 | 17539.7 | 2.66x | 17643.3 | 2.67x | +0.6% | 21448 | 21392 | 10 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4290468.8 | 4293387.5 | 1.00x | 4369468.8 | 1.02x | +1.8% | 6276660 | 6276660 | 5 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6182531.2 | 6294012.5 | 1.02x | 6264625.0 | 1.01x | -0.5% | 8778556 | 8778600 | 4 % |  |
+| el/ladder | generated | hand | 932.6 | 1678.9 | 1.80x | 1629.7 | 1.75x | -2.9% | 1776 | 1776 | 18 % |  |
+| el/ladder | immediate | hand | 932.6 | 1120.9 | 1.20x | 1114.1 | 1.19x | -0.6% | 1784 | 1784 | 18 % |  |
+| el/terms1000 | generated | hand | 107760.9 | 148756.6 | 1.38x | 146966.5 | 1.36x | -1.2% | 169104 | 169128 | 2 % |  |
+| el/terms1000 | immediate | hand | 107760.9 | 121844.0 | 1.13x | 121223.6 | 1.12x | -0.5% | 177123 | 177120 | 2 % |  |
+| sql/select20 | generated | hand | 6573.3 | 17518.0 | 2.67x | 17718.4 | 2.70x | +1.1% | 21448 | 21448 | 2 % |  |
+| sql/refused-late | generated | hand | 2502.6 | 11773.5 | 4.70x | 11736.4 | 4.69x | -0.3% | 13552 | 13552 | 4 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\run-10
+15 rows, every reading agreeing. Timing 8 rounds.
+  web/json.array10000: 21 round(s) redone after a gen1/gen2 collection
+web/json.array10000    hand   165539.1 ns before   182670.3 ns after   182863.3 ns  before/hand 1.10x  after/hand 1.10x
+  sql/select20.at: 1 round(s) redone after a gen1/gen2 collection
+sql/select20.at        hand     6622.2 ns before    16959.9 ns after    17054.0 ns  before/hand 2.56x  after/hand 2.58x
+  sql/select20.window: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.window    hand     6610.4 ns before    17474.5 ns after    17550.1 ns  before/hand 2.64x  after/hand 2.65x
+sql/select20.scan      control      383.9 ns before      373.8 ns after      371.8 ns  before/control 0.97x  after/control 0.97x
+tsql/select20.scan     control      367.2 ns before      374.7 ns after      374.2 ns  before/control 1.02x  after/control 1.02x
+el/ladder.scan         control      136.6 ns before      135.1 ns after      133.6 ns  before/control 0.99x  after/control 0.98x
+el/ladder.bool         hand      926.8 ns before     1664.9 ns after     1623.0 ns  before/hand 1.80x  after/hand 1.75x
+sql/refused-late.bool  hand     2507.4 ns before    11678.8 ns after     5616.2 ns  before/hand 4.66x  after/hand 2.24x
+  sql/select20.bool: 3 round(s) redone after a gen1/gen2 collection
+sql/select20.bool      hand     6712.8 ns before    17493.4 ns after    17602.8 ns  before/hand 2.61x  after/hand 2.62x
+  sql/refused-cliff-case-1391: 12 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-case-1391 control  4252025.0 ns before  4266962.5 ns after  4382950.0 ns  before/control 1.00x  after/control 1.03x
+  sql/refused-cliff-paren-2715: 55 round(s) redone after a gen1/gen2 collection
+sql/refused-cliff-paren-2715 control  6414743.8 ns before  6235318.8 ns after  6268731.2 ns  before/control 0.97x  after/control 0.98x
+el/ladder              hand      940.4 ns before     1680.6 ns after     1655.9 ns before-immediate     1124.8 ns after-immediate     1193.0 ns  before/hand 1.79x  after/hand 1.76x  before-immediate/hand 1.20x  after-immediate/hand 1.27x
+  el/terms1000: 14 round(s) redone after a gen1/gen2 collection
+el/terms1000           hand   107926.3 ns before   145207.4 ns after   145206.1 ns before-immediate   119264.6 ns after-immediate   123244.5 ns  before/hand 1.35x  after/hand 1.35x  before-immediate/hand 1.11x  after-immediate/hand 1.14x
+  sql/select20: 3 round(s) redone after a gen1/gen2 collection
+sql/select20           hand     6712.1 ns before    17305.1 ns after    17476.9 ns  before/hand 2.58x  after/hand 2.60x
+sql/refused-late       hand     2507.6 ns before    11648.4 ns after    11757.1 ns  before/hand 4.65x  after/hand 4.69x
+
+# Paired stand, 2026-09-21 05:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| web/json.array10000 | generated | hand | 165539.1 | 182670.3 | 1.10x | 182863.3 | 1.10x | +0.1% | 720048 | 720048 | 10 % |  |
+| sql/select20.at | generated | hand | 6622.2 | 16959.9 | 2.56x | 17054.0 | 2.58x | +0.6% | 21416 | 21416 | 9 % |  |
+| sql/select20.window | generated | hand | 6610.4 | 17474.5 | 2.64x | 17550.1 | 2.65x | +0.4% | 21416 | 21416 | 2 % |  |
+| sql/select20.scan | generated | control | 383.9 | 373.8 | 0.97x | 371.8 | 0.97x | -0.5% | 0 | 0 | 11 % |  |
+| tsql/select20.scan | generated | control | 367.2 | 374.7 | 1.02x | 374.2 | 1.02x | -0.1% | 0 | 0 | 16 % |  |
+| el/ladder.scan | generated | control | 136.6 | 135.1 | 0.99x | 133.6 | 0.98x | -1.1% | 0 | 0 | 8 % |  |
+| el/ladder.bool | generated | hand | 926.8 | 1664.9 | 1.80x | 1623.0 | 1.75x | -2.5% | 1776 | 1720 | 23 % |  |
+| sql/refused-late.bool | generated | hand | 2507.4 | 11678.8 | 4.66x | 5616.2 | 2.24x | -51.9% | 13552 | 6616 | 5 % |  |
+| sql/select20.bool | generated | hand | 6712.8 | 17493.4 | 2.61x | 17602.8 | 2.62x | +0.6% | 21448 | 21392 | 11 % |  |
+| sql/refused-cliff-case-1391 | generated | control | 4252025.0 | 4266962.5 | 1.00x | 4382950.0 | 1.03x | +2.7% | 6276684 | 6276641 | 15 % |  |
+| sql/refused-cliff-paren-2715 | generated | control | 6414743.8 | 6235318.8 | 0.97x | 6268731.2 | 0.98x | +0.5% | 8778600 | 8778619 | 13 % |  |
+| el/ladder | generated | hand | 940.4 | 1680.6 | 1.79x | 1655.9 | 1.76x | -1.5% | 1776 | 1776 | 4 % |  |
+| el/ladder | immediate | hand | 940.4 | 1124.8 | 1.20x | 1193.0 | 1.27x | +6.1% | 1784 | 1784 | 4 % |  |
+| el/terms1000 | generated | hand | 107926.3 | 145207.4 | 1.35x | 145206.1 | 1.35x | 0.0% | 169104 | 169128 | 2 % |  |
+| el/terms1000 | immediate | hand | 107926.3 | 119264.6 | 1.11x | 123244.5 | 1.14x | +3.3% | 177120 | 177120 | 2 % |  |
+| sql/select20 | generated | hand | 6712.1 | 17305.1 | 2.58x | 17476.9 | 2.60x | +1.0% | 21448 | 21448 | 3 % |  |
+| sql/refused-late | generated | hand | 2507.6 | 11648.4 | 4.65x | 11757.1 | 4.69x | +0.9% | 13552 | 13552 | 5 % |  |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair\aa-run-10
+
+Median of 10 of 10 runs, each in a process of its own; control 30.5 ns (the runs' controls: 30.3, 30.5, 30.5, 30.5, 30.3, 30.6, 30.5, 30.5, 30.5, 30.2).
+No run was dropped.
+The spread column is the spread of the base reading between runs, not between rounds.
+
+# Paired stand, 2026-09-21 05:55
+
+IGOR-DESKTOP, pinned to 0-15, high priority, control 30.5 ns.
+
+This binary, and the libraries it holds as the control, was built from 601e6608. JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on; a row is warmed to a stable reading before it is timed).
+
+Sides: before (commit f18a941b, framework net10.0, no properties, emitted c4a11adbcaea2002); after (commit 0783f47b, framework net10.0, no properties, emitted a743c79456502eb7). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)
+
+**The rows named `.bool` compare two APIs, not two commits: `before` is the Match form of the before side and `after` the bool form of the after side (`StandBool.cs`), so their difference is the price of the Match form against the bool form. It is there in an A/A of one build and in a pair of commits that have nothing to do with it, and it is not an effect of the commit under test.**
+
+The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.
+
+The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).
+
+The last column is the **A/A of the parent** taken in the same slot, on the same rows: the parent's build against itself, its median change and its range over the runs. What the stand says of a row when nothing changed; a change is read as its excess over it (D50).
+
+| row | reading | base | base ns | before ns | before/base | after ns | after/base | change | before B | after B | base spread | change over the runs | A/A of the parent |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| web/json.array10000 | generated | hand | 164723.0 | 181521.9 | 1.10x | 182452.0 | 1.11x | +0.5% | 720048 | 720048 | 2 % | [-0.2%..+1.1%], 9 of 10 positive | +0.8% [-0.2%..+4.1%], 8 of 10 positive |
+| sql/select20.at | generated | hand | 6618.4 | 17137.5 | 2.59x | 17080.0 | 2.58x | -0.3% | 21416 | 21416 | 2 % | [-4.1%..+0.8%], 4 of 10 positive | +0.2% [-7.8%..+4.7%], 7 of 10 positive |
+| sql/select20.window | generated | hand | 6626.8 | 17505.1 | 2.64x | 17470.7 | 2.64x | -0.2% | 21416 | 21416 | 2 % | [-6.3%..+3.4%], 4 of 10 positive | +0.5% [-4.6%..+3.6%], 5 of 10 positive |
+| sql/select20.scan | generated | control | 369.4 | 370.8 | 1.00x | 370.4 | 1.00x | -0.1% | 0 | 0 | 4 % | [-1.2%..+1.3%], 6 of 10 positive | -0.3% [-0.8%..+2.7%], 4 of 10 positive |
+| tsql/select20.scan | generated | control | 371.0 | 371.6 | 1.00x | 372.4 | 1.00x | +0.2% | 0 | 0 | 5 % | [-10.8%..+3.6%], 7 of 10 positive | -0.5% [-9.3%..+1.0%], 4 of 10 positive |
+| el/ladder.scan | generated | control | 135.9 | 133.8 | 0.98x | 134.1 | 0.99x | +0.2% | 0 | 0 | 3 % | [-1.3%..+2.7%], 3 of 10 positive | -0.3% [-1.2%..+0.4%], 4 of 10 positive |
+| el/ladder.bool | generated | hand | 935.2 | 1663.3 | 1.78x | 1635.9 | 1.75x | -1.6% | 1776 | 1720 | 5 % | [-3.1%..+1.1%], 1 of 10 positive | -0.4% [-2.8%..+2.2%], 5 of 10 positive |
+| sql/refused-late.bool | generated | hand | 2496.2 | 11851.7 | 4.75x | 5646.8 | 2.26x | -52.4% | 13552 | 6616 | 3 % | [-53.2%..-51.4%], 0 of 10 positive | -51.9% [-56.0%..-50.0%], 0 of 10 positive |
+| sql/select20.bool | generated | hand | 6644.8 | 17648.9 | 2.66x | 17577.9 | 2.65x | -0.4% | 21448 | 21392 | 3 % | [-3.1%..+0.9%], 6 of 10 positive | +0.6% [-11.9%..+3.2%], 7 of 10 positive |
+| sql/refused-cliff-case-1391 | generated | control | 4324978.1 | 4372768.8 | 1.01x | 4382171.9 | 1.01x | +0.2% | 6276652 | 6276660 | 6 % | [-5.6%..+2.5%], 6 of 10 positive | -0.5% [-4.7%..+2.7%], 5 of 10 positive |
+| sql/refused-cliff-paren-2715 | generated | control | 6286843.8 | 6298618.8 | 1.00x | 6303428.1 | 1.00x | +0.1% | 8778556 | 8778600 | 6 % | [-1.6%..+3.8%], 8 of 10 positive | -0.8% [-4.7%..+6.0%], 3 of 10 positive |
+| el/ladder | generated | hand | 939.6 | 1655.2 | 1.76x | 1656.7 | 1.76x | +0.1% | 1776 | 1776 | 3 % | [-2.9%..+1.9%], 4 of 10 positive | +0.6% [-1.5%..+3.3%], 6 of 10 positive |
+| el/ladder | immediate | hand | 939.6 | 1125.6 | 1.20x | 1133.1 | 1.21x | +0.7% | 1784 | 1784 | 3 % | [-1.9%..+1.8%], 4 of 10 positive | -0.6% [-3.0%..+6.1%], 2 of 10 positive |
+| el/terms1000 | generated | hand | 108102.3 | 147390.6 | 1.36x | 147111.9 | 1.36x | -0.2% | 169104 | 169116 | 3 % | [-1.7%..+1.4%], 5 of 10 positive | -0.5% [-3.2%..+3.1%], 5 of 10 positive |
+| el/terms1000 | immediate | hand | 108102.3 | 120917.6 | 1.12x | 121350.9 | 1.12x | +0.4% | 177120 | 177123 | 3 % | [-2.1%..+3.6%], 5 of 10 positive | -0.3% [-2.3%..+3.8%], 5 of 10 positive |
+| sql/select20 | generated | hand | 6652.5 | 17552.2 | 2.64x | 17576.9 | 2.64x | +0.1% | 21448 | 21448 | 2 % | [-3.6%..+1.9%], 5 of 10 positive | +0.6% [-12.4%..+3.7%], 7 of 10 positive |
+| sql/refused-late | generated | hand | 2497.1 | 11848.8 | 4.75x | 11765.0 | 4.71x | -0.7% | 13552 | 13552 | 3 % | [-1.1%..+2.6%], 3 of 10 positive | +0.3% [-7.8%..+4.1%], 6 of 10 positive |
+
+Written to T:\TEMP\dotgram-stand\wc11-swapped\pair
