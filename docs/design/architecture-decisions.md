@@ -6766,8 +6766,11 @@ it until the dictionary work says where schema-level state will live. That is de
 prediction. Decide it on what each type answers instead: a field separator is what delimits a
 field, which is the field layer's own fact, not a message-layer one. It belongs beside the per-tag
 table on the merits, today, and the type left behind is empty because its content was never its
-own. So the package has one options type; the surviving name should read at both layers, which is
-a rename and costs nothing before release. If the dictionary work then brings schema-level state,
+own. So the package has one options type, and it keeps the name it has: the owner checked rather
+than guessed, and `FixFieldOptions` governs how the fields are read, of which what separates one
+field from the next is a part. The wrapper goes; the message layer takes the same type the field
+layer does. A consumer with both a dictionary of their own and log framing writes the constructor
+— the common case is a named value, the particular one is still expressible. If the dictionary work then brings schema-level state,
 it lands where the tables already are, which is the same type — not a re-split.
 
 ## D81 — A generated table cannot show what was never read
