@@ -2722,3 +2722,38 @@ The copy chain is a Web, FIX and expression-language phenomenon — 240 of its 2
 **80 in `SqlStandardParser.g.cs`'s 167 methods, close to one method in two.** Whatever emits each
 shape is reached by different grammars, so they are two items and not one, and the SQL ratio says
 where to look first.
+
+**Answer (architect, 2026-09-21), and the standard is neither of the two this entry framed.** Not
+"the compiler's warnings are the standard" and not a march for tidiness, but: **nothing in generated
+code that the machine is obliged to execute in vain.** It is a criterion about cost, it does not
+move when Roslyn adds or drops a warning, and it sorts this entry's findings into two subjects — the
+copy chain is size and not time, and probably one place in the emitter given 240 of 250 sit in three
+grammars, while a never-read local holding an array element is a defect in what we generate. D47 was
+taken first, as asked, and with it Q21 is answered and Q22 narrowed: inside CI the bytes become
+comparable, and on a developer's machine the rule stands with a named mechanism instead of a
+superstition.
+
+**Two things the standard needs before it can be applied, and the first is not a quibble.**
+
+- **"Obliged" is a property of the JIT, not of the emitter, so the standard as phrased is not
+  decidable where it has to be enforced.** Whether the null check on `values.CountN` survives
+  depends on whether the reference is provably non-null *in that method after inlining* — which
+  varies with the runtime, with what else the method touches, and, once D40's branches land, with
+  the bucket. A generator cannot ask that question at generation time; only a disassembly can answer
+  it, per instance and per runtime. As a principle it is right; as a test it cannot be run.
+- **Its checkable form is one step weaker and the emitter can decide it: no emitted expression whose
+  value is never read and whose evaluation can fault.** The emitter knows it is writing an array
+  index or a load through a reference, and it knows the value is discarded — both without asking any
+  JIT anything. That form catches exactly the twelve `starts[from]` and the `values.CountN` loads,
+  costs nothing to check, and does not drift. Unless the standard carries a form like it, it will be
+  applied by eye, which is how the last floor came to be an accident.
+
+**And the thing the standard excludes now needs a home.** By this criterion the 250 copy chains are
+formally not defects — correctly, since the machine executes nothing for them. But they are then
+neither a defect nor anyone's item: size has an instrument since Q22 (`ILBytes` beside the source
+figure) and no standard saying what a number from it is worth. A criterion that sorts findings into
+"defect" and "not a defect" silently retires everything in the second pile unless something else
+picks it up. Naming where 240 of 250 live — Web, FIX and the expression language, 44 in
+`Rfc3986.g.cs` — is the start of that, but it is a location and not a verdict.
+
+**Answer:** —
