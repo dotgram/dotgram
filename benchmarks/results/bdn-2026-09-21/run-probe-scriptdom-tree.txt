@@ -1,0 +1,18 @@
+# BenchmarkDotNet run price-scriptdom-tree, 2026-09-21 10:14 - 10:17
+
+Assembly P:\dotgram.WorkTrees\sql\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll, commit 102df6e0. Arguments: --filter *ScriptDomBenchmarks.Tree*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 9 workers (its log), 9 were read.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 58052 | 0xFFFF | High | 10:14:42 |
+| 55784 | 0xFFFF | High | 10:15:07 |
+| 47636 | 0xFFFF | High | 10:15:25 |
+| 56372 | 0xFFFF | High | 10:15:44 |
+| 57104 | 0xFFFF | High | 10:16:05 |
+| 42080 | 0xFFFF | High | 10:16:27 |
+| 44276 | 0xFFFF | High | 10:16:49 |
+| 3268 | 0xFFFF | High | 10:17:08 |
+| 58004 | 0xFFFF | High | 10:17:26 |

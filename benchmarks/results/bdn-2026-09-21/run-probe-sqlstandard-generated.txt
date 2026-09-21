@@ -1,0 +1,15 @@
+# BenchmarkDotNet run price-sqlstandard-generated, 2026-09-21 10:17 - 10:21
+
+Assembly P:\dotgram.WorkTrees\sql\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll, commit 102df6e0. Arguments: --filter *SqlStandardBenchmarks.Generated. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 6 workers (its log), 6 were read.
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 44000 | 0xFFFF | High | 10:18:47 |
+| 54848 | 0xFFFF | High | 10:19:13 |
+| 50328 | 0xFFFF | High | 10:19:38 |
+| 57812 | 0xFFFF | High | 10:19:54 |
+| 52228 | 0xFFFF | High | 10:20:18 |
+| 45400 | 0xFFFF | High | 10:20:39 |

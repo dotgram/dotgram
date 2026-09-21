@@ -1,0 +1,10 @@
+# BenchmarkDotNet run negtest4, 2026-09-21 09:55 - 09:56
+
+Assembly P:\dotgram.WorkTrees\stand\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll, commit ceab4f12 (+ uncommitted changes). Arguments: --filter *TinyParserBenchmarks* --affinity 255. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Exit code: none (stopped). 
+**FAILED: worker 60136 runs on 0xFF, not on 0xFFFF: the run is stopped and its numbers are not to be quoted**
+
+| worker pid | affinity read | priority read | at |
+| --- | --- | --- | --- |
+| 60136 | 0xFF | High | 09:56:45 |
