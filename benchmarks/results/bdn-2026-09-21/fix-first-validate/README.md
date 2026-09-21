@@ -87,16 +87,29 @@ They are not one size: 10 are under a kilobyte, 23 between one and ten, 17 betwe
 10 344 bytes and `FixCodes` 16 952, which agrees with the 24 994 a Heartbeat was measured
 compiling.
 
-**What a process that touches all ninety-three would pay, and what that figure rests on.** The four
-cells give a marginal rate of about 0.43 ms per kilobyte of IL (a straight line through the
-extremes reproduces the two middle cells to within 1.3 ms). At that rate 2 332 491 bytes is about
-**one second** of compiling, against the walk's 6.8 ms for the same ninety-three types — which the
-walk pays for whichever single type it is first asked about.
+**What a process that touches all ninety-three pays -- read, not multiplied.** The four cells gave
+a marginal rate of about 0.43 ms per kilobyte of IL, and at that rate 2 332 491 bytes is about a
+second of compiling. That was an estimate, and it has since been measured in a window of its own:
+see `../fix-first-validate-all`, where one process validates one message of every type the package
+knows.
 
-That second is an extrapolation of the RATE, and the rate was measured between 25 and 90 KB while
-33 of the 93 methods are smaller than its floor, where a method's fixed cost weighs more. The IL is
-counted; the time per byte is not. A harness mode that validates one message of every type in one
-process would replace the product with a reading, and would take one short window.
+| road | wall ms (min/med/max) | compiling ms | methods | IL bytes |
+|---|---|---|---|---|
+| the walk | 11.98 / **12.18** / 12.61 | 9.66 / 9.87 / 10.17 | 345 | 16 595 |
+| generated | 816.64 / **823.37** / 831.25 | 813.15 / 819.64 / 827.75 | 130 | 2 357 511 |
+| generated A/A | 818.41 / **822.28** / 827.34 | 814.92 / 818.69 / 823.87 | 130 | 2 357 511 |
+
+**823 ms against 12.2, which is sixty-eight times**, and the A/A pair differs by 1.1 ms, so the
+difference is seven hundred times what that run cannot tell apart.
+
+The estimate was 8 to 19 per cent high. At bulk the rate is 0.356 ms/KB rather than the 0.43 the
+four large methods gave: the JIT is cheaper per byte with more of it, not dearer, which is the
+opposite of what a third of the methods lying below the measured range would have suggested. The
+product was the right size and the wrong number.
+
+And the walk is not quite flat after all: 6.8 ms for one type, 12.2 ms for all ninety-three, because
+ninety-three different messages reach more of it (345 methods against 64). What is unbounded in the
+number of types is the generated road, not the walk that is free.
 
 **And it is a JIT cost, which is not the only way this ships.** What the package carries is IL;
 what compiles it is the consumer's build. A consumer publishing with ReadyToRun or NativeAOT
