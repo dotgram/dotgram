@@ -118,6 +118,52 @@ public sealed class GramLanguageServiceTests
 		Assert.DoesNotContain(("/* text */", GramSyntaxKind.Comment), classified);
 	}
 
+	/// <summary>
+	/// A constructing group owns its captures (§3.7), so two groups may each capture `value`
+	/// and they are two symbols, not one.
+	/// </summary>
+	/// <remarks>
+	/// What this guards is Rename, Find All References and Go To Definition. With one dictionary
+	/// of captures per rule, the second group's `value` reads as another use of the first, so
+	/// renaming inside one group silently renames inside the other -- and the compiler, which
+	/// lowers each group to a rule of its own, would then be reading a grammar the author did not
+	/// write.
+	/// </remarks>
+	[Fact]
+	public void CapturesOfTwoConstructingGroupsAreTwoSymbols()
+	{
+		const string source =
+			"Digit : @string = t: '0'..'9' => @(t.ToString())\n" +
+			"Pair : @string[] = (value: Digit => @(value))+ & (value: Digit => @(value))+\n" +
+			"parse Pair";
+
+		var document = GramLanguageService.Analyze(source);
+
+		var captures = document.Symbols
+			.Where(symbol => symbol.Name == "value")
+			.ToArray();
+
+		// Two definitions and two uses, and each use belongs to the definition in its own group.
+		Assert.Equal(4, captures.Length);
+		Assert.Equal(2, captures.Count(symbol => symbol.IsDefinition));
+		Assert.Equal(
+			2,
+			captures.Select(symbol => symbol.DefinitionPosition).Distinct().Count());
+
+		// By the opening of each group, and not by "(value": `@(value)` holds that too, and a
+		// landmark that also matches the use is a test that fails on its own arithmetic.
+		var first  = source.IndexOf("(value: Digit", StringComparison.Ordinal);
+		var second = source.IndexOf("(value: Digit", first + 1, StringComparison.Ordinal);
+
+		Assert.All(
+			captures.Where(symbol => symbol.Position < second),
+			symbol => Assert.InRange(symbol.DefinitionPosition, first, second));
+		Assert.All(
+			captures.Where(symbol => symbol.Position > second),
+			symbol => Assert.True(symbol.DefinitionPosition > second,
+				"a capture of the second group resolves to the first group's"));
+	}
+
 	[Fact]
 	public void ClassifiesGrammarMetacharactersAsSpecialSymbols()
 	{

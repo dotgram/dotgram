@@ -701,8 +701,17 @@ public static class GramLanguageService
 			localScope = null;
 		}
 
+		/// <summary>Every capture of one scope: a rule's, or a constructing group's.</summary>
 		void CollectCaptures(Expr expression)
 		{
+			// A constructing group owns its captures (syntax.md 3.7): its names do not escape,
+			// and its factory cannot reach what stands outside. They are collected where the
+			// group is visited; descending into one here would hoist them into the rule, and a
+			// second group capturing the same name would then read as another use of the first --
+			// one symbol where there are two, so Rename would rename inside both groups.
+			if (expression is Expr.Group nested && Constructs(nested.Body))
+				return;
+
 			if (expression is Expr.Capture capture)
 			{
 				if (!captures!.TryGetValue(capture.Name, out var definition))
@@ -718,6 +727,18 @@ public static class GramLanguageService
 			foreach (var child in Dump.Children(expression))
 				CollectCaptures(child);
 		}
+
+		/// <summary>Whether a group constructs, which is what gives it a scope of its own.</summary>
+		/// <remarks>
+		/// Through its alternatives, because `( a => @(x) | b => @(y) )` is one group and each
+		/// alternative constructs. A plain group keeps the capture scope it always had.
+		/// </remarks>
+		static bool Constructs(Expr body) => body switch
+		{
+			Expr.Construct                => true,
+			Expr.Choice(var alternatives) => alternatives.Any(Constructs),
+			_                             => false,
+		};
 
 		void VisitType(TypeRef type)
 		{
@@ -815,7 +836,18 @@ public static class GramLanguageService
 					Visit(capture.Operand);
 					break;
 				case Expr.Group group:
-					Visit(group.Body);
+					if (Constructs(group.Body))
+					{
+						var outer = captures;
+
+						captures = new Dictionary<string, int>(StringComparer.Ordinal);
+						CollectCaptures(group.Body);
+						Visit(group.Body);
+
+						captures = outer;
+					}
+					else
+						Visit(group.Body);
 					break;
 				case Expr.Atomic atomic:
 					Visit(atomic.Body);
