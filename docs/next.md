@@ -24719,3 +24719,32 @@ instrument is knowledge its owner holds and the reader of a number usually canno
 where the receiver cannot ask, the owner says it unprompted -- which extends the older rule that
 the sender is the last person who can still apply a check, with: there are checks only the sender
 can apply.
+
+## What the release gives back, and when: at a collection, not by itself
+
+The store a parse grows past the bound is parked rather than thrown away, and let go of after
+eight parses that did not use the room -- let go of into a **weak reference**, not into nothing.
+That word decides what a profiler shows, so it is said here rather than left to be discovered.
+
+**Residency falls at a collection and not before.** The retained-bytes instrument reads 20,018 KB
+after a large parse and 3,012 KB once the release has fired **and a collection has run**; without
+the collection it reads 20,018 both times, because a weakly held store stays exactly where it was
+until the memory is wanted. In a tight loop that allocates nothing, the memory is therefore still
+there -- and that is right rather than a defect, because in a loop that allocates nothing nobody
+else wants it. What the release promises is that the store stops competing, not that it
+disappears on a schedule.
+
+This also cost an instrument a day. Eight small parses in a tight loop do not collect, so the
+next `Rent` retook the weakly held store and *released* and *released-and-retaken* read the same.
+With a forced collection between the parses the two separate cleanly: 20,018 to 3,012 on the
+commit that has the release, unchanged on the one before it. An instrument that cannot distinguish
+the two states will report the working mechanism as a dead one, which is what it did.
+
+**What is still held, and is nobody's fault but ours.** The bound and the release govern the
+`_large` slot alone. The four ordinary slots -- `_spare` and three `_deeper` -- hold stores up to
+the same bound with **no release at all**, which is the residue the instrument still reads:
+`Ways._spare` at 2.2 MB and the lexer's buffer at 0.15. Those are older than this whole chain, and
+they are what the four-slot work is about. The arithmetic worth writing down before that work
+starts is the multiplicity: the bound admits a store of about a megabyte of entries to the
+ordinary slots, `DeeperSpares` is 3, so a thread may hold **four** of them per pool, none bounded
+beyond the admission test and none ever given back.
