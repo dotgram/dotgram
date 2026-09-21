@@ -2900,3 +2900,30 @@ live `Grow`.
 emitter knows which at the moment it writes the call site, because it is the thing that chose the
 path — the used set is derivable where the loop runs, as performance said, but the predicate is
 "which path does this table's writes take", not "is this store dense".
+
+**And the check performance asked for overturns the sentence I had just written (critic, read at
+`72f06e29`).** They wanted "the rest are inline" as a count rather than a description, because it is
+the kind of thing true of five files and false of the sixth. It is false of the first:
+
+| class | tables | written through `Add` | written inline (`Grow`) | **both** |
+| --- | --- | --- | --- | --- |
+| `SqlStandardParser` | 302 | 4 | **302** | **4** — tables 0, 1, 2, 3 |
+| `Sql92Parser` | 11 | 11 | 0 | 0 |
+| `Rfc9651` | 11 | 11 | 0 | 0 |
+| `Rfc6265` | 9 | 4 | 0 | 0 |
+
+**The sets are not disjoint.** All 302 of SQL:2023's tables are written inline, and four of them are
+*additionally* written through the accessor. So my "four accessor tables and the rest inline" was
+wrong in the way a description is wrong: it named a partition where there is an overlap.
+
+**Which means the filter I proposed one entry above would have broken those four tables.** "Emit the
+accessor the table's path needs" assumes each table has *a* path; tables 0–3 have two, and choosing
+one accessor for them deletes a method something calls. The correct predicate is simpler than
+either of ours and needs no reasoning about paths at all: **emit each accessor where something calls
+that accessor.** Per accessor, not per table and not per store. The emitter knows the call sites
+because it wrote them.
+
+**This is the third time today the same shape has been caught by the same question**, and the first
+time it was caught by somebody else asking it of me: structure does not imply use, and "the rest"
+is a structure. The cost of not asking would have been four broken tables in the one measurement
+that was otherwise going to be unambiguous.
