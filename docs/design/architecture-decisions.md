@@ -7389,3 +7389,29 @@ unconditionally true, needs no survey, and does the same work for the person it 
 a dated internal document is exactly the right form and where its being a snapshot is understood.
 A survey is knowledge; a comparative claim on a shipped page is a liability that ages without
 telling anyone.
+
+## D97 — A magnitude inside the scatter and a sign that never changes are two readings
+
+The retention pair answers D67's question with a no: on all ten paired cliff rows the bytes a
+call are identical to the last digits on both sides, the twelvefold step stands on both, and the
+times sit inside the A/A. So whatever that commit keeps, the SQL:2023 steps are not made of it —
+and the caution I attached to the ten cliff rows is retired rather than confirmed. Nothing moved,
+so the rows keep the meaning they had, and nothing in them can be read as the re-reading class
+cured.
+
+**A hypothesis answered "no" by a measurement is a result, and the cheapest kind we get.** D67
+said that if the boundary moved, the rows had to straighten. They did not straighten, so the
+boundary is not what they are made of. That closes a line of explanation for good, at the cost of
+one window, and it closes it in a way no amount of reading the code would have.
+
+**And the part of the report worth reading twice is the small one.** A lean of two to three per
+cent on the largest documents is *inside the scatter of the A/A* — and none of its five runs is
+negative. Those are two different statements. Magnitude inside scatter says the effect is small
+next to the noise; a sign that holds five times out of five says there is an effect, since under
+no effect that costs one chance in thirty-two. Reporting only the first dismisses what the second
+found. So a paired row carries both, and a consistent sign at a magnitude the noise could hide is
+the case for one more measurement rather than for a shrug.
+
+**What that next measurement has to do is swap the slots.** The one row below the bound moves 1.9%
+with five signs out of five, and the session cannot separate it from the bias of the second slot —
+which is exactly what swapping decides, and nothing else does.
