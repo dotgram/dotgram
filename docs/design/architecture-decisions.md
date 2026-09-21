@@ -6955,3 +6955,30 @@ a consumer's stack trace landing somewhere they can open. Embedded symbols were 
 that. So the mapping goes in together with source link, and the grammars it points at are in the
 repository already: mapped without it, the symbols are anonymous and useless; mapped with it, they
 are anonymous and still navigable.
+
+## D86 — A property travels by the likeness of names, not of mechanisms
+
+Three times in one day, in three sessions, the same mistake with three faces.
+
+A figure measured on the materializer's arms — small methods entered constantly — was carried to
+the reader's methods, which are entered once per rule per position, and made an argument about
+what a local costs. The spread of an exponent measured on quiet ladders was carried to the whole
+slow suite and made an argument about what the measurement can do. And "a refusing parse
+materializes nothing", true of the listing loop in a cubic case, was carried to "a refusing parse
+records nothing" — a different stage of the same parse, and false: two refusals of three write
+records, quadratically.
+
+**Each carried a property across a boundary the name does not show.** Arms and readers are both
+"methods"; a ladder and a suite are both "the guard running"; materializing and recording are both
+"building". The likeness is in what we call them. The mechanisms are not alike at all, and nothing
+in the sentence warns you, because the sentence was true where it was made.
+
+**The cure is the one all three used once caught: measure on the material you are speaking
+about.** Not "does this argument still sound right" — it will, the words are the same — but the
+count, taken again, on the thing now under discussion. Each of the three took minutes.
+
+**What this asks of a decision that rests on a figure.** The figure carries where it was taken, in
+the sentence that uses it, not in a footnote: on which family, at which stage, in which process.
+A number without that is a number that will be moved, because nothing in it resists the move. And
+a claim whose evidence was gathered elsewhere is a hypothesis, however well it reasons — which is
+the day's other rule seen from the front: what a measurement cannot see, it also cannot forbid.
