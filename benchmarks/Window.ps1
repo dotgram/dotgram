@@ -7,7 +7,7 @@
 	  idle         no window; the lines below say when the last one ended and what it was
 	  pid <n>      a window is announced by process <n>, with `started`, `until` and `what` below it
 	Whether the file exists says nothing about whether a window is open: a missing file is a defect of the stand (something deleted it) and this script says so.
-	A file that names a pid which is no longer alive is STALE: the run that announced it died without ending its window. The machine is free, and the file is put back to idle.
+	A file that names a pid which is gone, or which is held by a process that started at another time than the announcement records (pids are recycled), is STALE: the run that announced it died without ending its window. The machine is free, and the file is put back to idle.
 
 	Output is one line and it begins with a WORD, and the word is the answer: IDLE or STALE (the machine is free), BUSY (do not build, test or run anything, on either half), MISSING (the file was missing, a defect of the stand: created idle; tell the stand session) or UNREADABLE (treat as busy). The exit code repeats it: 0 IDLE/STALE, 1 BUSY/UNREADABLE, 2 MISSING.
 
@@ -19,7 +19,9 @@
 .EXAMPLE
 	pwsh benchmarks/Window.ps1
 #>
-$window = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
+. (Join-Path $PSScriptRoot 'WindowLib.ps1')
+
+$window = Get-WindowFile
 $idle   = { param($why) Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why $why") }
 
 if (-not (Test-Path $window)) {
@@ -29,27 +31,12 @@ if (-not (Test-Path $window)) {
 }
 
 $lines = @(Get-Content $window)
-$first = if ($lines.Count -gt 0) { $lines[0].Trim() } else { '' }
 
-if ($first -eq 'idle' -or $first -eq '') {
-	'IDLE: no window is open. ' + (($lines | Select-Object -Skip 1) -join '; ')
-	exit 0
+switch (Get-WindowOwnerState $lines) {
+	'Idle' { 'IDLE: no window is open. ' + (($lines | Select-Object -Skip 1) -join '; '); exit 0 }
+	'Alive' { 'BUSY: ' + ($lines -join '; ') + '. Do not build, test or run anything, on either half.'; exit 1 }
+	'AliveByPid' { 'BUSY: ' + ($lines -join '; ') + ". Do not build, test or run anything, on either half. (This announcement records no start time of its process, so only the pid could be checked: it is treated as live.)"; exit 1 }
+	'Gone' { & $idle "the announcing process is gone (it died without ending its window): $($lines -join '; ')"; "STALE: the process that announced a window is gone; the machine is free, the file is idle again. Was: $($lines -join '; ')"; exit 0 }
+	'Reused' { & $idle "the announced pid is held by a DIFFERENT process (started at another time than the announcement says): the announcer is gone: $($lines -join '; ')"; "STALE: the pid in the announcement is held now by a different process (its start time is not the one recorded), so the announcer is gone; the machine is free, the file is idle again. Was: $($lines -join '; ')"; exit 0 }
+	default { "UNREADABLE first line '$($lines[0])': treat the machine as busy and ask the stand session."; exit 1 }
 }
-
-if ($first -like 'pid *') {
-	$owner = 0
-
-	if (-not [int]::TryParse($first.Substring(4), [ref]$owner)) { "UNREADABLE first line '$first': treat the machine as busy and ask the stand session."; exit 1 }
-
-	if (Get-Process -Id $owner -ErrorAction SilentlyContinue) {
-		'BUSY: ' + ($lines -join '; ') + '. Do not build, test or run anything, on either half.'
-		exit 1
-	}
-
-	& $idle "pid $owner was announced and is gone (the run died without ending its window): $($lines -join '; ')"
-	"STALE: pid $owner announced a window and is gone; the machine is free, the file is idle again. Was: $($lines -join '; ')"
-	exit 0
-}
-
-"UNREADABLE first line '$first': treat the machine as busy and ask the stand session."
-exit 1

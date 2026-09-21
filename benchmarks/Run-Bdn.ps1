@@ -45,6 +45,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'WindowLib.ps1')
+
 $Assembly = (Resolve-Path $Assembly).Path
 $window   = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
 $stamp    = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -61,11 +63,11 @@ if ($Within) {
 	if ((Get-Content $window -ErrorAction SilentlyContinue | Select-Object -First 1) -ne "pid $PID") { Write-Error '-Within needs the window to be announced by the calling process (the first line of the file must be its pid).'; exit 3 }
 }
 elseif (Test-Path $window) {
-	$owner = (Get-Content $window | Where-Object { $_ -like 'pid *' } | Select-Object -First 1)
-	$ownerPid = if ($owner) { [int]($owner.Substring(4)) } else { 0 }
+	# The announcer is checked by pid AND start time (WindowLib.ps1): a recycled pid is not a live window.
+	$lines = @(Get-Content $window)
 
-	if ($ownerPid -ne 0 -and $ownerPid -ne $PID -and (Get-Process -Id $ownerPid -ErrorAction SilentlyContinue)) {
-		Write-Error ("Another timing window is announced and its process is alive: " + ((Get-Content $window) -join '; ')); exit 3
+	if ((Get-WindowOwnerState $lines) -in 'Alive', 'AliveByPid' -and $lines[0] -ne "pid $PID") {
+		Write-Error ("Another timing window is announced and its process is alive: " + ($lines -join '; ')); exit 3
 	}
 }
 
@@ -80,7 +82,8 @@ function CpuSample {
 	$sample = @{}
 
 	foreach ($process in Get-Process) {
-		try { if ($process.Id -ne $PID -and $process.Id -ne 0) { $sample[$process.Id] = @($process.ProcessName, $process.TotalProcessorTime.TotalSeconds) } } catch { }
+		# Keyed by pid AND start time: a pid recycled inside the three seconds is another process, not a jump in the first one's CPU time.
+		try { if ($process.Id -ne $PID -and $process.Id -ne 0) { $sample["$($process.Id)@$($process.StartTime.Ticks)"] = @($process.ProcessName, $process.TotalProcessorTime.TotalSeconds, $process.Id) } } catch { }
 	}
 
 	$sample
@@ -90,7 +93,7 @@ $before  = CpuSample
 Start-Sleep -Seconds 3
 $after   = CpuSample
 $cores   = [int]$env:NUMBER_OF_PROCESSORS
-$busy    = @(foreach ($id in $after.Keys) { if ($before.ContainsKey($id)) { [pscustomobject]@{ Id = $id; Name = $after[$id][0]; Cores = [math]::Round(($after[$id][1] - $before[$id][1]) / 3, 3) } } })
+$busy    = @(foreach ($id in $after.Keys) { if ($before.ContainsKey($id)) { [pscustomobject]@{ Id = $after[$id][2]; Name = $after[$id][0]; Cores = [math]::Round(($after[$id][1] - $before[$id][1]) / 3, 3) } } })
 $total   = ($busy | Measure-Object Cores -Sum).Sum
 $percent = [math]::Round(100 * $total / $cores, 1)
 $top     = ($busy | Sort-Object Cores -Descending | Select-Object -First 3 | ForEach-Object { "$($_.Name) (pid $($_.Id)) $($_.Cores)" }) -join '; '
@@ -167,7 +170,7 @@ $started = Get-Date
 $until   = $started.AddMinutes($LimitMinutes)
 $what    = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')$(if ($Note) { ' [' + $Note + ']' })"
 
-if (-not $Within) { Set-Content $window @("pid $PID", "started $($started.ToString('yyyy-MM-dd HH:mm:ss'))", "until $($until.ToString('yyyy-MM-dd HH:mm:ss'))", "what $what") }
+if (-not $Within) { Set-Content $window (New-WindowAnnouncement $started $until $what) }
 
 $me = Get-Process -Id $PID
 $me.ProcessorAffinity = [IntPtr][int64]$Affinity

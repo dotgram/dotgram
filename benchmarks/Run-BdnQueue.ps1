@@ -18,18 +18,15 @@ param(
 )
 
 $window  = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
+. (Join-Path $PSScriptRoot 'WindowLib.ps1')
 $script  = Join-Path $PSScriptRoot 'Run-Bdn.ps1'
 $first   = (Get-Content $window -ErrorAction SilentlyContinue | Select-Object -First 1)
 
-if ($first -like 'pid *') {
-	$owner = 0
-
-	if ([int]::TryParse($first.Substring(4), [ref]$owner) -and $owner -ne $PID -and (Get-Process -Id $owner -ErrorAction SilentlyContinue)) { Write-Error "Another timing window is announced and its process is alive: $(Get-Content $window)"; exit 3 }
-}
+if ((Get-WindowOwnerState @(Get-Content $window -ErrorAction SilentlyContinue)) -in 'Alive', 'AliveByPid' -and $first -ne "pid $PID") { Write-Error "Another timing window is announced and its process is alive: $(Get-Content $window)"; exit 3 }
 
 $started = Get-Date
 $labels  = ($Steps | ForEach-Object { $_.Label }) -join ' + '
-Set-Content $window @("pid $PID", "started $($started.ToString('yyyy-MM-dd HH:mm:ss'))", "until $($started.AddMinutes($SlotMinutes).ToString('yyyy-MM-dd HH:mm:ss'))", "what Run-BdnQueue.ps1 $labels$(if ($Note) { ' [' + $Note + ']' })")
+Set-Content $window (New-WindowAnnouncement $started $started.AddMinutes($SlotMinutes) "Run-BdnQueue.ps1 $labels$(if ($Note) { ' [' + $Note + ']' })")
 
 $done   = @()
 $stoppedAt = $null

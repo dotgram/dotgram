@@ -47,7 +47,8 @@ $env:MSBUILDDISABLENODEREUSE = '1'
 
 # A timing window announces itself (StandWindow.cs): the temp directory's dotgram-timing-window.txt, read by every session before it times anything; a file whose pid is not alive is stale.
 $window = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
-Set-Content $window @("pid $PID", "started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')", 'until unknown (a gate of alternating rebuilds)', "what Gate-Generation.ps1 -Base $Base -Head $Head -Rounds $Rounds")
+. (Join-Path $PSScriptRoot 'WindowLib.ps1')
+Set-Content $window (@("pid $PID", "started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')", 'until unknown (a gate of alternating rebuilds)', "what Gate-Generation.ps1 -Base $Base -Head $Head -Rounds $Rounds") + "process-start $(Get-ProcessStartText $PID)")
 Register-EngineEvent PowerShell.Exiting -Action { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", 'why the window of a generation gate ended') -ErrorAction SilentlyContinue } | Out-Null
 
 $sides = [ordered]@{

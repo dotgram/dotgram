@@ -27,7 +27,7 @@ static partial class Stand
 				var lines = File.ReadAllLines(path);
 				var owner = lines.FirstOrDefault(static line => line.StartsWith("pid ", StringComparison.Ordinal));
 
-				if (owner is not null && int.TryParse(owner[4..], out var pid) && pid != Environment.ProcessId && IsAlive(pid))
+				if (owner is not null && int.TryParse(owner[4..], out var pid) && pid != Environment.ProcessId && IsAlive(pid, lines))
 				{
 					// Our parent (a repeated run started this child) or another session's window: either way this run announces nothing.
 					if (!IsParent(pid))
@@ -43,6 +43,7 @@ static partial class Stand
 				$"started {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
 				$"until {(limitMinutes is { } minutes ? DateTime.Now.AddMinutes(minutes).ToString("yyyy-MM-dd HH:mm:ss") : "unknown")}",
 				$"what {what}",
+				$"process-start {Process.GetCurrentProcess().StartTime.ToUniversalTime():o}",
 			]);
 
 			return new Announced(path, Environment.ProcessId);
@@ -53,13 +54,23 @@ static partial class Stand
 		}
 	}
 
-	static bool IsAlive(int pid)
+	/// <summary>
+	/// Whether the process that announced is alive: a process holds the pid AND started when the announcement says it did. Windows recycles process ids, so "some process has that pid" says nothing about
+	/// whether the announcer is alive (2026-09-21); an announcement without a recorded start time can be checked by the pid only.
+	/// </summary>
+	static bool IsAlive(int pid, string[] lines)
 	{
 		try
 		{
 			using var process = Process.GetProcessById(pid);
 
-			return !process.HasExited;
+			if (process.HasExited)
+				return false;
+
+			var recorded = lines.FirstOrDefault(static line => line.StartsWith("process-start ", StringComparison.Ordinal));
+
+			return recorded is null || !DateTime.TryParse(recorded["process-start ".Length..], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var then)
+				|| Math.Abs((process.StartTime.ToUniversalTime() - then.ToUniversalTime()).TotalSeconds) < 2;
 		}
 		catch (ArgumentException)
 		{
