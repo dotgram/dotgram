@@ -8260,10 +8260,17 @@ worth less than a suite two seconds slower.
 
 **A rule cannot be compared with `ReferenceEquals`, and the reason is worth stating correctly.**
 `FixMessage.NewOrderSingle.Rule == FixValidator.ValidateNewOrderSingle` is true, and
-`ReferenceEquals` of the two is false. Not because every method-group conversion allocates — since
-C# 11 a static method group conversion is cached — but because it is cached **per conversion site**,
-so two sites yield two instances that are equal and not the same. A consumer asking "is our rule
-still in place" compares with `==`. That belongs on the page, not only in a test.
+`ReferenceEquals` of the two is false. A consumer asking "is our rule still in place" compares
+with `==`. That belongs on the page, not only in a test.
+
+**Both explanations offered for WHY were wrong, and the second was mine.** "Every method-group
+conversion allocates" is false: since C# 11 a static one is cached. "It is cached per conversion
+site, so two sites give two instances" is also false, and a test says so — two conversions at two
+sites in one method returned **the same object**. Where the cache's boundary actually is has not
+been established and is not asserted here. What the page carries is what a test holds: compare with
+`==`, and whether it is also the same object is the compiler's business and may differ between call
+sites, assemblies and versions. The correct statement survived; the reason under it did not, and a
+reason nobody ran had no business being written down.
 
 **And undoing one rule is an assignment while undoing a whole dictionary is ninety-three.** The
 name makes a single replacement reversible, which is what it was for; a load has no such handle,
@@ -8271,3 +8278,26 @@ and an operation a consumer can perform but not reverse is a trap. Restoring the
 exists internally for the tests, which must return the process to where they found it. Whether it
 becomes public is Igor's, and the case for it is that `LoadDictionary` is public and changes the
 whole process.
+
+## D117 — Three plausible causes in one day, and nobody ran any of them
+
+Today a stated cause survived until its first execution three times, and each time it was wrong:
+`FixValues` is public "because generated code in the consumer's assembly reaches it" — no generated
+file references it; "collection initializers are not supported" — they are, and only the
+constructor's parentheses were missing; and "a method-group conversion gives a new object each
+time / is cached per site" — neither, by a test that took minutes to write.
+
+**In all three, both people in the conversation were wrong, and both were experienced with the
+material.** Agreement is not evidence: two plausible accounts of the same mechanism agree with each
+other for the same reason they are both plausible. What none of the three had was an execution —
+not a deeper reading, not a second opinion, an execution.
+
+**And the architect is where the cost is paid.** A cause repeated between sessions is talk; a cause
+written into this file is repository fact, and the next reader takes it without re-running anything.
+So the rule falls hardest here: **a mechanism goes into a decision only when something has run it**,
+and where nothing has, the entry says what is held and stops — as the page for this one now does.
+
+**The cheap form of "run it" is worth naming, because it is not a project.** A console of thirty
+lines, a unit test, a `Debug.Assert`, a grep over the generated output. Each of today's three cost
+under ten minutes, and each was available before the sentence was written rather than after it was
+believed.
