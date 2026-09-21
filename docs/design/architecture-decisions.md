@@ -8815,3 +8815,34 @@ habit, and it protects nothing outside its own process.** It is now stated to ev
 strong at absolute figures and allocations and weak at ratios; a ratio without its measured
 resolution was retracted from this journal once already this week, and an A/A row is the cheapest
 possible statement of what the instrument can and cannot separate.
+
+## D126 — A figure that changes every week does not live in a comment
+
+Two counts went stale in the SQL benchmark's remarks at once, and neither was wrong when it was
+typed. The text said "6,861 of the 8,397 ScriptDom finds"; the run says **7,716** statements both
+parsers read, because the grammar has read more of that corpus every week since somebody typed the
+old pair. And the ScriptDom version: the project asks for `180.102.0`, the loaded assembly answers
+`18.0.102.0+9d1d1c1d…` — **not even the same shape**, which is the whole argument for reading a
+version off what ran rather than off what was requested.
+
+**So the rule is about which figures may be written down at all.** A number that is a property of
+the repository at a moment — how much of a corpus is read, which assembly loaded, how many rules a
+grammar has — is printed by the run that uses it, not stated in prose beside it. Prose is for what
+does not move: why the bucket boundaries are 100 and 300, why a flag is set. The test is simple
+and worth applying before typing any figure into a comment: **would this still be true next
+month, and would anybody notice if it were not?**
+
+**A second finding, offered against itself, is better than a second finding.** The same work
+recorded the `initialQuotedIdentifiers` flag with two reasons and named the second one weaker: the
+server answers `0` to `SESSIONPROPERTY('QUOTED_IDENTIFIER')` under `sqlcmd`, which is `sqlcmd`'s
+default and not the server's. Evidence that looks like it settles a question and does not is the
+most expensive kind we handle, and the cheapest treatment is to write it down *with* what is wrong
+with it rather than to leave it out — because left out, it gets rediscovered and believed.
+
+**And the sharpest sentence of the week is a correction of one of my own relays.** I took the
+blame for a mis-stated affinity rule as a relay error; the session that made it declined the
+excuse and put it better: *"the file I read was true and what I concluded from it was not — a fact
+I had checked sat next to one I had not."* That is not an argument for reading the README. It is
+the observation that **adjacency confers nothing**: a verified statement lends no standing to the
+statement beside it, and a list mixing the two reads as uniformly checked to everyone downstream,
+including its author an hour later.
