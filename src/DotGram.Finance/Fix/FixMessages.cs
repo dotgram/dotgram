@@ -236,8 +236,6 @@ public static partial class FixMessages
 		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields, Custom(options)), options, out message, out error);
 	}
 
-	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
-
 	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
 	public static FixMessage Build(string source, FixField[] fields, FixFieldOptions? options = null)
 	{

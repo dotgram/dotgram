@@ -54,7 +54,7 @@ public sealed class FixFieldOptions
 
 	/// <summary>Reads a lossless pipe rendering by the standard's pairs alone.</summary>
 	/// <remarks>
-	/// What <c>ParseLog</c> used to be, as a value rather than a second name for every method.
+	/// Framing is a value here rather than a second name for every method.
 	/// Which separator an input uses is a property of the input, not of the caller's wish, and a
 	/// property of the input belongs in the value that describes the input. A consumer with their
 	/// own pairs AND log framing names the constructor; this is the common case, not the only one.
