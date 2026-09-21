@@ -40,10 +40,10 @@ already returned without reading the input again.
   then rejects the message on BodyLength or CheckSum. `FixMessages` rejects
   characters above U+00FF.
 - **Wire or log.** `FixParser.Parse` reads SOH-separated fields and
-  `FixParser.ParseLog` pipe-separated ones, with or without spaces around the pipe.
-  For messages use `FixMessages.ParseLog`, or `new FixParseOptions(FixFraming.Log)`
+  `FixFieldOptions.Log` makes it read pipe-separated ones, with or without spaces
+  around the pipe. The same value is what `FixMessages` takes
   with any other entry point. The message layer accepts a bare `|` only; read a log
-  padded with spaces through `FixParser.ParseLog`.
+  padded with spaces through `FixParser` with `FixFieldOptions.Log`.
 - **Forms.** Fields: `string`, `ReadOnlySpan<char>`, `byte[]`, `TextReader` and
   `Stream`. Messages: `string`, `ReadOnlySpan<char>`, `TextReader` and `Stream`. The
   span overloads copy the input into a string first. `TextReader` and `Stream` are
@@ -210,11 +210,11 @@ var pairs = new FixFieldOptions(new Dictionary<int, int>
 });
 
 var fields  = FixParser.Parse(wire, pairs);
-var options = new FixParseOptions(FixFraming.Wire, fieldOptions: pairs);
+var options = pairs;
 ```
 
 The dictionary **replaces** the standard pairs rather than adding to them, so list the
-standard ones still needed. Pass the same object to `FixParseOptions` for messages. When
+standard ones still needed. The same object is what `FixMessages` takes. When
 reading a stream, `maxRetained` bounds one field, from its tag through the separator that
 ends it, or a whole pair: 16 Mi characters from a `TextReader` or bytes from a `Stream` by
 default. A field that needs more throws `IOException`, so pass a larger `maxRetained` for
@@ -233,6 +233,6 @@ large binary data.
 2. Reading `Value` from a field without checking `IsValid`.
 3. Expecting `FixParser` to reject a bad message. It does not validate; `FixMessages`
    does.
-4. Feeding a space-padded log to `FixMessages`. Only `FixParser.ParseLog` reads padding.
+4. Feeding a space-padded log to `FixMessages`. Only `FixParser` reads padding.
 5. Supplying a length/data dictionary and dropping the standard pairs it replaced.
 6. Holding a `FixMessage` longer than needed. It keeps its whole source string alive.

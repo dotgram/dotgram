@@ -6,59 +6,51 @@ namespace DotGram.Finance.Fix;
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
 public static partial class FixMessages
 {
-	/// <summary>Parse a lossless octet string: each character must be in U+0000..U+00FF.</summary>
-	public static FixMessage Parse(string input)
-	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-		if (TryParse(input, out var message, out var error)) return message!;
-		throw new FormatException(error!.ToString());
-	}
-
-	/// <summary>Copies the contiguous input once so the result owns its source.</summary>
-	public static FixMessage Parse(ReadOnlySpan<char> input) => Parse(input.ToString());
-
 	/// <summary>
-	/// Parses one complete message under the given options.
+	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
 	/// </summary>
-	/// <exception cref="FormatException">The input is not a valid message under <paramref name="options"/>.</exception>
-	public static FixMessage Parse(string input, FixParseOptions options)
+	/// <param name="input">The message.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>
+	/// The options are one optional argument rather than a second method, which is the shape
+	/// <c>FixParser</c> beside it already uses. A pair of methods where one passes a default is ten
+	/// pairs across this class, and the tenth has to be written twice by whoever adds a setting.
+	/// </remarks>
+	public static FixMessage Parse(string input, FixFieldOptions? options = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		if (options == null) throw new ArgumentNullException(nameof(options));
 		if (TryParse(input, out var message, out var error, options)) return message!;
 		throw new FormatException(error!.ToString());
 	}
 
-	/// <summary>
-	/// Parses one complete message under the given options from a copy of the input.
-	/// </summary>
-	/// <exception cref="FormatException">The input is not a valid message under <paramref name="options"/>.</exception>
-	/// <remarks>
-	/// The message keeps its source, so the input is copied into a string once.
-	/// </remarks>
-	public static FixMessage Parse(ReadOnlySpan<char> input, FixParseOptions options) => Parse(input.ToString(), options);
-	/// <summary>
-	/// Tries to parse one complete message under the given options from a copy of the input.
-	/// </summary>
-	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	/// <remarks>
-	/// The message keeps its source, so the input is copied into a string once.
-	/// </remarks>
-	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseOptions options) => TryParse(input.ToString(), out message, out error, options);
+	/// <summary>Parses one complete message from a copy of the input.</summary>
+	/// <param name="input">The message.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
+	public static FixMessage Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null) =>
+		Parse(input.ToString(), options);
 
-	/// <summary>
-	/// Tries to parse one complete message under the given options.
-	/// </summary>
+	/// <summary>Tries to parse one complete message from a copy of the input.</summary>
+	/// <param name="input">The message.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseOptions options)
-	{
-		if (options == null) throw new ArgumentNullException(nameof(options));
-		return TryParseCore(input, out message, out error, options);
-	}
+	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
+	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null) =>
+		TryParse(input.ToString(), out message, out error, options);
 
-	/// <summary>Returns false and diagnostic context for malformed or incomplete input.</summary>
-	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error)
-		=> TryParseCore(input, out message, out error, null);
+	/// <summary>Tries to parse one complete message.</summary>
+	/// <param name="input">The message; null is refused with a diagnostic rather than thrown for.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+		=> TryParseCore(input, out message, out error, options);
 
 	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
@@ -95,16 +87,14 @@ public static partial class FixMessages
 		return true;
 	}
 
-	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixParseOptions? options)
+	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
 	{
 		message = null;
 		error = null;
 		if (input == null) return Fail(0, null, null, "Input is null.", out error);
 		var framing = options?.Framing ?? FixFraming.Wire;
 		if (!Envelope(input, framing, null, out var type, out error)) return false;
-		var fields = framing == FixFraming.Log
-			? FixParser.ParseLog(input, options?.FieldOptions)
-			: FixParser.Parse(input, options?.FieldOptions);
+		var fields = FixParser.Parse(input, options);
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
@@ -146,14 +136,12 @@ public static partial class FixMessages
 		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
 	}
 
-	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixParseOptions? options)
+	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
 	{
 		message = null;
 		var framing = options?.Framing ?? FixFraming.Wire;
 		if (!Envelope(input, framing, null, out var type, out error)) return false;
-		var fields = framing == FixFraming.Log
-			? FixParser.ParseLog(input, options?.FieldOptions)
-			: FixParser.Parse(input, options?.FieldOptions);
+		var fields = FixParser.Parse(input, options);
 		if (!CheckSyntax(fields, out error))
 			return false;
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error)) return false;
@@ -162,19 +150,9 @@ public static partial class FixMessages
 	}
 
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
-	public static FixMessage ParseLog(string input) => Parse(input, new FixParseOptions(FixFraming.Log));
-
-	/// <summary>
-	/// Tries to parse one complete wire message from a copy of the input.
-	/// </summary>
-	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	/// <remarks>
-	/// The message keeps its source, so the input is copied into a string once.
-	/// </remarks>
-	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error) => TryParse(input.ToString(), out message, out error);
 
 	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
-	public static FixMessage Build(string source, FixField[] fields, FixParseOptions? options = null)
+	public static FixMessage Build(string source, FixField[] fields, FixFieldOptions? options = null)
 	{
 		if (TryBuild(source, fields, out var message, out var error, options)) return message!;
 		throw new FormatException(error!.ToString());
@@ -184,7 +162,7 @@ public static partial class FixMessages
 	/// Tries to build one message from fields already parsed from the supplied source.
 	/// </summary>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixParseOptions? options = null)
+	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
 		if (source == null) throw new ArgumentNullException(nameof(source));
 		if (fields == null) throw new ArgumentNullException(nameof(fields));
@@ -305,8 +283,8 @@ public static partial class FixMessages
 	};
 
 	// Never null, so that the one path holds here as it does in the reader.
-	static FixCustomFields Custom(FixParseOptions? options) =>
-		options?.FieldOptions.CustomFields ?? FixSpareFields.Instance;
+	static FixCustomFields Custom(FixFieldOptions? options) =>
+		options?.CustomFields ?? FixSpareFields.Instance;
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

@@ -6,7 +6,7 @@ namespace DotGram.Finance.Fix;
 /// <summary>Interprets a flat sequence of fields using the FIX message schema.</summary>
 static class FixSemantics
 {
-	public static bool TryBuild(string source, string type, FixNode[] fields, FixParseOptions? options, out FixMessage? message, out FixParseError? error)
+	public static bool TryBuild(string source, string type, FixNode[] fields, FixFieldOptions? options, out FixMessage? message, out FixParseError? error)
 	{
 		message = null;
 
@@ -75,7 +75,7 @@ static class FixSemantics
 		readonly string source;
 		readonly string type;
 		readonly FixNode[] fields;
-		readonly FixParseOptions? options;
+		readonly FixFieldOptions? options;
 
 		// The nodes of every scope still open, innermost last. A scope reads onto the top and
 		// takes its own nodes off as one array, so a group read inside it has come and gone.
@@ -90,7 +90,7 @@ static class FixSemantics
 		public int Position { get; private set; }
 		public FixParseError? Error { get; private set; }
 
-		public Reader(string source, string type, FixNode[] fields, FixParseOptions? options)
+		public Reader(string source, string type, FixNode[] fields, FixFieldOptions? options)
 		{
 			this.source = source;
 			this.type = type;

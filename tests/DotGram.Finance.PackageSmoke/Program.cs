@@ -17,7 +17,7 @@ if (message.Header.SenderCompID != "S" || message.OriginalWire != wire)
 	throw new Exception("Package model did not preserve the message.");
 if (message.Header.GetField(34)?.TypedValue is not FixField.MsgSeqNum sequence || sequence.Value != 1)
 	throw new Exception("Expected a typed sequence-number field.");
-if (FixMessages.ParseLog(wire.Replace('\u0001', '|')) is not Heartbeat)
+if (FixMessages.Parse(wire.Replace('\u0001', '|'), FixFieldOptions.Log) is not Heartbeat)
 	throw new Exception("Expected a pipe-delimited Heartbeat.");
 using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire + wire));
 var count = 0;

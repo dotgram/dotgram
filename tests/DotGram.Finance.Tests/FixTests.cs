@@ -26,7 +26,7 @@ public sealed class FixTests
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "55=ABC|5000=" + size + "|5001=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
-		var fields = FixParser.ParseLog(stream, options, bufferSize: 3).ToArray();
+		var fields = FixParser.Parse(stream, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 3).ToArray();
 		Assert.Equal(new[] { 55, 5001, 55 }, fields.Select(field => field.Tag));
 		var binary = Assert.IsType<FixField.Custom>(fields[1]);
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
@@ -34,9 +34,9 @@ public sealed class FixTests
 		Assert.Equal(input.IndexOf("5001=", StringComparison.Ordinal) + 5, binary.ValuePosition);
 		Assert.Equal(size, binary.Length);
 		Assert.True(stream.CanRead);
-		Equal(fields, FixParser.ParseLog(input, options));
-		Assert.Contains(FixParser.ParseLog("5000=1|5002=X|", options), field => field is FixField.Invalid);
-		Assert.Contains(FixParser.ParseLog("5001=X|", options), field => field is FixField.Invalid);
+		Equal(fields, FixParser.Parse(input, (options ?? new FixFieldOptions()).With(FixFraming.Log)));
+		Assert.Contains(FixParser.Parse("5000=1|5002=X|", (options ?? new FixFieldOptions()).With(FixFraming.Log)), field => field is FixField.Invalid);
+		Assert.Contains(FixParser.Parse("5001=X|", (options ?? new FixFieldOptions()).With(FixFraming.Log)), field => field is FixField.Invalid);
 	}
 
 	[Theory]
@@ -45,7 +45,7 @@ public sealed class FixTests
 	[InlineData("95=0000|96=", 96)]
 	public void Typed_numbers_preserve_integer_boundaries_and_zero_padded_lengths(string input, int tag)
 	{
-		var expected = FixParser.ParseLog(input);
+		var expected = FixParser.Parse(input, FixFieldOptions.Log);
 
 		Assert.Equal(tag, Assert.Single(expected).Tag);
 		Assert.DoesNotContain(expected, field => field is FixField.Invalid);
@@ -53,8 +53,8 @@ public sealed class FixTests
 		using var reader = new StringReader(input);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 
-		Equal(expected, FixParser.ParseLog(reader, bufferSize: 1));
-		Equal(expected, FixParser.ParseLog(stream, bufferSize: 1));
+		Equal(expected, FixParser.Parse(reader, FixFieldOptions.Log, bufferSize: 1));
+		Equal(expected, FixParser.Parse(stream, FixFieldOptions.Log, bufferSize: 1));
 	}
 
 	[Fact]
@@ -62,8 +62,8 @@ public sealed class FixTests
 	{
 		using var input = new ShortStream(Encoding.Latin1.GetBytes("95=3|96=a|b|55=END|"));
 		using var reader = new StringReader("95=1|96=X|55=NEXT|");
-		using var first = FixParser.ParseLog(input, bufferSize: 1).GetEnumerator();
-		using var second = FixParser.ParseLog(reader, bufferSize: 1).GetEnumerator();
+		using var first = FixParser.Parse(input, FixFieldOptions.Log, bufferSize: 1).GetEnumerator();
+		using var second = FixParser.Parse(reader, FixFieldOptions.Log, bufferSize: 1).GetEnumerator();
 		Assert.True(first.MoveNext());
 		Assert.True(second.MoveNext());
 		Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(first.Current).Value.Span));
@@ -82,7 +82,7 @@ public sealed class FixTests
 		Assert.Equal(int.MaxValue, Assert.Single(FixParser.Parse(text)).Tag);
 		var options = new FixFieldOptions(new Dictionary<int, int> { [int.MaxValue - 1] = int.MaxValue });
 		var wire = "2147483646=3|2147483647=a|b|55=END";
-		var expected = FixParser.ParseLog(wire, options);
+		var expected = FixParser.Parse(wire, (options ?? new FixFieldOptions()).With(FixFraming.Log));
 		var binary = Assert.IsType<FixField.Custom>(expected[0]);
 		Assert.Equal(int.MaxValue, binary.Tag);
 		Assert.Equal("a|b", Encoding.Latin1.GetString(binary.Value.Span));
@@ -90,8 +90,8 @@ public sealed class FixTests
 		Assert.Equal(wire.IndexOf("a|b", StringComparison.Ordinal), binary.ValuePosition);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(wire));
 		using var reader = new StringReader(wire);
-		Equal(expected, FixParser.ParseLog(stream, options, bufferSize: 1));
-		Equal(expected, FixParser.ParseLog(reader, options, bufferSize: 1));
+		Equal(expected, FixParser.Parse(stream, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1));
+		Equal(expected, FixParser.Parse(reader, (options ?? new FixFieldOptions()).With(FixFraming.Log), bufferSize: 1));
 	}
 
 	sealed class ShortStream(byte[] input) : MemoryStream(input)

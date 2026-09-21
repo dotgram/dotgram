@@ -24,7 +24,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
 FixField[] fields = FixParser.Parse(wire);
-var logFields = FixParser.ParseLog("55=ABC | 38=100");
+var logFields = FixParser.Parse("55=ABC | 38=100", FixFieldOptions.Log);
 using var input = File.OpenRead("messages.fix");
 foreach (FixField field in FixParser.Parse(input))
     Console.WriteLine(field.Tag);
@@ -63,7 +63,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixParser.ParseLog("55=ABC|broken|38=2"))
+foreach (var field in FixParser.Parse("55=ABC|broken|38=2", FixFieldOptions.Log))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -79,7 +79,7 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.Parse` reads SOH-delimited wire input. `FixParser.ParseLog` reads logs
+`FixParser.Parse` reads SOH-delimited wire input; given `FixFieldOptions.Log` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
 `FixFieldOptions` declares length/data pairs of your own, not the delimiter.
@@ -116,17 +116,17 @@ It is not included in the Finance package.
 ```csharp
 using System.Collections.Generic;
 
-var fields = FixParser.ParseLog("55=ABC|38=100|");
+var fields = FixParser.Parse("55=ABC|38=100|", FixFieldOptions.Log);
 var options = new FixFieldOptions(new Dictionary<int, int>
 {
     [5000] = 5001,   // the standard's own sixteen pairs hold as well, and may not be redeclared
 });
-var custom = FixParser.ParseLog("5000=3 | 5001=a|b | ", options);
+var custom = FixParser.Parse("5000=3 | 5001=a|b | ", options.With(FixFraming.Log));
 ```
 
 A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
 at construction; the standard's own pairs always hold, so neither tag of a supplied pair may be one
-the standard already defines. Omit it to use the standard pairs alone. `FixParseOptions` takes the
+the standard already defines. Omit it to use the standard pairs alone. The same object carries the
 same object for message parsing. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
 data tags the package does not define produce `FixField.Custom` with binary metadata. Standalone
@@ -186,7 +186,7 @@ var next = FixMessages.Parse(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
-with an optional `FixParseOptions`. Byte streams use the generated native
+with an optional `FixFieldOptions`. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
@@ -218,8 +218,8 @@ of subsequent stream reads. See the finance benchmarks for total parsing costs.
 ## Input and ownership
 
 The input is a **lossless octet string**: every character represents one octet,
-U+0000 through U+00FF. The default delimiter is SOH (`\u0001`). Use `ParseLog`
-or `new FixParseOptions(FixFraming.Log)` for pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
+U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixFieldOptions.Log`
+reads pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
 `CheckSum` therefore count exactly the octets present on the wire, including raw
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
@@ -323,13 +323,13 @@ field objects and nothing more: a tag outside FIX 4.4 is still unknown to the me
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixMessages.ParseLog(logLine);
-var options = new FixParseOptions(FixFraming.Log);
+var message = FixMessages.Parse(logLine, FixFieldOptions.Log);
+var options = FixFieldOptions.Log;
 foreach (var item in FixMessages.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
 
-For logs with added presentation spaces, use the flat `FixParser.ParseLog` API.
+For logs with added presentation spaces, use the flat `FixParser` API.
 The message-validation APIs below require the lossless representation: replace each
 structural SOH with one pipe without adding formatting spaces, so BodyLength and
 CheckSum can still be verified.

@@ -49,8 +49,17 @@ public sealed class FixFieldOptions
 	readonly Dictionary<int, sbyte>? _far;
 	readonly Dictionary<int, int>?   _pairs;
 
-	/// <summary>Reads by the standard's sixteen length/data pairs alone.</summary>
+	/// <summary>Reads wire framing by the standard's sixteen length/data pairs alone.</summary>
 	public FixFieldOptions() : this(null) { }
+
+	/// <summary>Reads a lossless pipe rendering by the standard's pairs alone.</summary>
+	/// <remarks>
+	/// What <c>ParseLog</c> used to be, as a value rather than a second name for every method.
+	/// Which separator an input uses is a property of the input, not of the caller's wish, and a
+	/// property of the input belongs in the value that describes the input. A consumer with their
+	/// own pairs AND log framing names the constructor; this is the common case, not the only one.
+	/// </remarks>
+	public static FixFieldOptions Log { get; } = new(null, null, FixFraming.Log);
 
 	/// <summary>Reads by the standard's pairs and a consumer's own.</summary>
 	/// <param name="lengthDataPairs">
@@ -64,9 +73,19 @@ public sealed class FixFieldOptions
 	/// <param name="customFields">
 	/// Builds the fields of tags this package does not define; null builds what it builds today.
 	/// </param>
-	public FixFieldOptions(IReadOnlyDictionary<int, int>? lengthDataPairs, FixCustomFields? customFields = null)
+	/// <param name="framing">
+	/// Wire framing for SOH-separated input, log framing for a lossless pipe rendering.
+	/// </param>
+	public FixFieldOptions(
+		IReadOnlyDictionary<int, int>? lengthDataPairs,
+		FixCustomFields?               customFields = null,
+		FixFraming                     framing      = FixFraming.Wire)
 	{
+		if (framing != FixFraming.Wire && framing != FixFraming.Log)
+			throw new ArgumentOutOfRangeException(nameof(framing));
+
 		CustomFields = customFields ?? FixSpareFields.Instance;
+		Framing      = framing;
 
 		if (lengthDataPairs is null || lengthDataPairs.Count == 0)
 		{
@@ -140,6 +159,33 @@ public sealed class FixFieldOptions
 	/// one path and never asks whether anybody supplied anything.
 	/// </remarks>
 	public FixCustomFields CustomFields { get; }
+
+	/// <summary>How the input separates one field from the next.</summary>
+	public FixFraming Framing { get; }
+
+	/// <summary>The same dictionary and the same custom fields, reading the other framing.</summary>
+	/// <param name="framing">The framing the copy reads.</param>
+	/// <remarks>
+	/// Because framing is a property of the input and a dictionary is not: a process that reads a
+	/// venue's live wire and its logs has one dictionary and two framings, and rebuilding the
+	/// options from the pairs would mean keeping the pairs after they had been used. This is the
+	/// only thing about a <see cref="FixFieldOptions"/> that is worth changing a copy for; the
+	/// pairs and the custom fields are what the object IS.
+	/// </remarks>
+	public FixFieldOptions With(FixFraming framing) =>
+		framing == Framing ? this : new FixFieldOptions(this, framing);
+
+	FixFieldOptions(FixFieldOptions other, FixFraming framing)
+	{
+		if (framing != FixFraming.Wire && framing != FixFraming.Log)
+			throw new ArgumentOutOfRangeException(nameof(framing));
+
+		_kinds       = other._kinds;
+		_far         = other._far;
+		_pairs       = other._pairs;
+		CustomFields = other.CustomFields;
+		Framing      = framing;
+	}
 
 	/// <summary>What the reader does with a tag: 1 a length/data pair, -1 no field, 0 an ordinary value.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]

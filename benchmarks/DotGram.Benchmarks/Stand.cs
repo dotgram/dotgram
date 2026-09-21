@@ -677,7 +677,7 @@ static partial class Stand
 			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
 
 			_fixParseMode    = finance.GetType("DotGram.Finance.Fix.FixParseMode");
-			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixParseOptions");
+			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixFieldOptions");
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
@@ -1195,7 +1195,7 @@ static partial class Stand
 			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
 			var build  = (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
-				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) or (string, FixField[], FixParseOptions) not found");
+				?? throw new InvalidOperationException("FixMessages.Build(string, FixField[]) or (string, FixField[], FixFieldOptions) not found");
 			var withOptions = build.GetParameters().Length == 3;
 
 			return () => build.Invoke(null, withOptions ? [wire, array.Invoke(null, [fields()]), null] : [wire, array.Invoke(null, [fields()])]) is null ? 0 : 1;

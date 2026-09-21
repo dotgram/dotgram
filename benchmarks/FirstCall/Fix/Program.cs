@@ -162,7 +162,7 @@ switch (mode)
 
 		Phase("field parse", false);
 
-		var build = messages.GetMethod("Build", [typeof(string), fields.GetType(), finance.GetType("DotGram.Finance.Fix.FixParseOptions")!])!;
+		var build = messages.GetMethod("Build", [typeof(string), fields.GetType(), finance.GetType("DotGram.Finance.Fix.FixFieldOptions")!])!;
 		var call  = () => build.Invoke(null, [order, fields, null])!;
 
 		var first = Guard(call);

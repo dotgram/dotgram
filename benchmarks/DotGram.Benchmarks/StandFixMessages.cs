@@ -99,8 +99,8 @@ static partial class Stand
 			yield return new Workload(
 				"fixmsg",
 				$"slope-{fields}",
-				[new Reading("generated", () => FixMessages.TryParse(framed, out _, out _, new FixParseOptions()) ? 1 : 0)],
-				() => FixMessages.TryParse(framed, out _, out var error, new FixParseOptions()) ? null : $"  the reader refuses the {fields}-field message: {error}");
+				[new Reading("generated", () => FixMessages.TryParse(framed, out _, out _, null) ? 1 : 0)],
+				() => FixMessages.TryParse(framed, out _, out var error, null) ? null : $"  the reader refuses the {fields}-field message: {error}");
 		}
 
 		// The message layer against QuickFIX/n on a message both accept. The second reading is a reference: another library's reader, doing the work a
@@ -110,10 +110,10 @@ static partial class Stand
 			"fixmsg",
 			"Order44.strict",
 			[
-				new Reading("generated", () => FixMessages.TryParse(agreed, out _, out _, new FixParseOptions()) ? 1 : 0),
+				new Reading("generated", () => FixMessages.TryParse(agreed, out _, out _, null) ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],
-			() => FixMessages.TryParse(agreed, out _, out var error, new FixParseOptions())
+			() => FixMessages.TryParse(agreed, out _, out var error, null)
 				? (QuickFixAccepts(agreed) ? null : "  the message layer accepts the wire and QuickFIX/n does not")
 				: $"  the message layer refuses the wire: {error}");
 

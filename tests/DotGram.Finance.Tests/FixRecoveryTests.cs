@@ -24,7 +24,7 @@ public sealed class FixRecoveryTests
 		var wire    = FixFixtures.Wire("0", "broken|55=END|");
 		var fields  = FixParser.Parse(wire);
 		var invalid = Assert.Single(fields.OfType<FixField.Invalid>());
-		var options = new FixParseOptions();
+		FixFieldOptions? options = null;
 
 		Assert.False(FixMessages.TryParse(wire, out var message, out var error, options));
 		Assert.Null(message);

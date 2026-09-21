@@ -122,7 +122,7 @@ public sealed class HandFixTests
 
 	static void Compare(string input, bool log, FixFieldOptions? options = null)
 	{
-		var expected = log ? FixParser.ParseLog(input, options) : FixParser.Parse(input, options);
+		var expected = log ? FixParser.Parse(input, (options ?? new FixFieldOptions()).With(FixFraming.Log)) : FixParser.Parse(input, options);
 		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));
 		Equal(expected, log ? HandFixParser.ParseLog(input.AsSpan(), options) : HandFixParser.Parse(input.AsSpan(), options));
 		using var reader = new StringReader(input);
@@ -130,7 +130,7 @@ public sealed class HandFixTests
 		Assert.Equal(-1, reader.Peek());
 
 		var bytes = Encoding.Latin1.GetBytes(input);
-		var expectedBytes = log ? FixParser.ParseLog(bytes, options) : FixParser.Parse(bytes, options);
+		var expectedBytes = log ? FixParser.Parse(bytes, (options ?? new FixFieldOptions()).With(FixFraming.Log)) : FixParser.Parse(bytes, options);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(bytes, options) : HandFixParser.Parse(bytes, options));
 		using var stream = new ShortStream(bytes);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, options, 3) : HandFixParser.Parse(stream, options, 3));

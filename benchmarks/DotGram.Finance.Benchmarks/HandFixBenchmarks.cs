@@ -71,12 +71,12 @@ public class HandFixBenchmarks
 	{
 		if (InputForm == "Text")
 			return hand
-				? _log ? HandFixParser.ParseLog(_text) : HandFixParser.Parse(_text)
-				: _log ? FixParser.ParseLog(_text) : FixParser.Parse(_text);
+				? _log ? HandFixParser.Parse(_text, FixFieldOptions.Log) : HandFixParser.Parse(_text)
+				: _log ? FixParser.Parse(_text, FixFieldOptions.Log) : FixParser.Parse(_text);
 		if (InputForm == "Bytes")
 			return hand
-				? _log ? HandFixParser.ParseLog(_bytes) : HandFixParser.Parse(_bytes)
-				: _log ? FixParser.ParseLog(_bytes) : FixParser.Parse(_bytes);
+				? _log ? HandFixParser.Parse(_bytes, FixFieldOptions.Log) : HandFixParser.Parse(_bytes)
+				: _log ? FixParser.Parse(_bytes, FixFieldOptions.Log) : FixParser.Parse(_bytes);
 
 		return Read();
 
@@ -86,11 +86,11 @@ public class HandFixBenchmarks
 			using var stream = new MemoryStream(_bytes, false);
 			var fields = InputForm == "Reader"
 				? hand
-					? _log ? HandFixParser.ParseLog(reader) : HandFixParser.Parse(reader)
-					: _log ? FixParser.ParseLog(reader) : FixParser.Parse(reader)
+					? _log ? HandFixParser.Parse(reader, FixFieldOptions.Log) : HandFixParser.Parse(reader)
+					: _log ? FixParser.Parse(reader, FixFieldOptions.Log) : FixParser.Parse(reader)
 				: hand
-					? _log ? HandFixParser.ParseLog(stream) : HandFixParser.Parse(stream)
-					: _log ? FixParser.ParseLog(stream) : FixParser.Parse(stream);
+					? _log ? HandFixParser.Parse(stream, FixFieldOptions.Log) : HandFixParser.Parse(stream)
+					: _log ? FixParser.Parse(stream, FixFieldOptions.Log) : FixParser.Parse(stream);
 			foreach (var field in fields)
 				yield return field;
 		}
