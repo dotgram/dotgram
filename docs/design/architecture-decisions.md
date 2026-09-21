@@ -7469,3 +7469,23 @@ because it is expected to fail, but because a pair that exercises only the case 
 measures our hope. That is D98 read forwards: rows are chosen by mechanism, and the mechanism that
 loses is one of them. Retained bytes after a parse, not only bytes a call, since what is being
 traded is memory for allocation.
+
+## D100 — The compiled-in road's remaining advantage is the start (Igor)
+
+Igor, reading the before-count: this is what he expected of the expression language, and it is what
+compiling to IL was for. The emphasis moves. The road with the schema compiled into the package
+keeps one advantage — it starts immediately — and the dictionary road offers a slightly slower
+start with full flexibility in validation. Improving the compiled-in road stays possible; it stops
+being the thing the design is arranged around.
+
+**One caution belongs beside that, and it is ours to state rather than his to remember.** The
+expression-language road has not been measured. The two numbers in hand — 1,183 ns and 1,278 —
+are both table-walking roads, and they bound the difference between two table shapes, not what
+removing the interpretation wins. `Expression.Compile` producing a delegate is a good reason to
+expect it; it is not a reading. The acceptance named before the work stands: if the compiled
+lambdas do not go clearly below 1,278 it is said out loud, and the emphasis above is then a
+decision taken on an expectation that did not hold.
+
+**And the corollary keeps its shape.** If the lambdas beat 1,183 as well, the same technique is
+available to the schema compiled into the package — a far larger change, wanted or not, and his to
+order rather than one to drift into on the strength of a validation benchmark.
