@@ -8188,3 +8188,33 @@ of its own to go: it reaches `FixMessage.Custom`, whose single field then stands
 type at once. That follows from the classes being a closed set and the types not being one; it is
 not a defect of this design, but it is the one place where "one to one" stops holding, and what
 should happen there is still to be said.
+
+**The reason for the withdrawal was wrong; the withdrawal stands, on a better one.** The bound now
+counts the value tables, and on all eighteen rows the retention is **byte-for-byte what it was
+without it** — the cliff rows still hold 19.8 to 24.9 MB and still never let go. So the blindness
+of the bound was not what put twenty megabytes on those rows.
+
+**And the arithmetic that says so was three lines away the whole time.** The bound counts ELEMENTS,
+at most 1,048,576 of them; in SQL:2023 all but two of the three hundred and two value tables are
+reference types, so an element is eight bytes and a store under the bound can hold about ten
+megabytes at the outside. The rows hold twenty to twenty-five. The memory is therefore not in a
+pooled store under the bound at all — and the second half of that sentence, "probably not in
+`DirectValues`", is the part nobody has established.
+
+**What that does to the three commits.** The release fix is measured and works. The dense trade is
+measured and large. The bound fix is correct on its own terms — the old bound really was blind to
+as much as eight megabytes — and **inert on every row we have**. And the twenty-odd megabytes are
+unexplained.
+
+**So the change waits, and the reason is better than the one it replaces.** Before, it waited
+because the flaw was in it; now it waits because the flaw is somewhere nobody has named, and the
+change sextuples it — from three and a half megabytes to twenty-five — for a cause we cannot state.
+Landing an enlargement whose mechanism is unknown is worse than landing one we understand and have
+priced. The readout of every pool's slot on the parsing thread turns "which pool holds it" from a
+prediction into a reading, and it costs no window.
+
+**Twice in one night the same session reasoned from a mechanism it had not priced** — sixteen bytes
+for a one-field struct, and a bound blind to where the memory was — and both times the number was
+three lines away. Naming that is worth more than either correction: **the cheapest measurement is
+the one that would have stopped you writing the commit, and it is almost always an arithmetic on
+sizes you already know.**
