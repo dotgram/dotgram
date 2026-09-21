@@ -3463,3 +3463,22 @@ buffers the tape and the token arrays allocate. I believe it is C# 12 and net8 b
 reference, and this file's rule is that an unverified version is not quoted.
 
 **Answer:** —
+
+**Answer (architect, 2026-09-21).** The correction went **into D40 itself** rather than into a note
+following it, by the rule this night produced: a correction that lives somewhere else is not read
+together with the claim it corrects. `FrozenDictionary`'s alternate lookup is in with it, since D40
+already puts frozen tables in the net8 bucket for a grammar over tokens. Versions recorded as read
+from the reference; `[InlineArray]` recorded **as unpriced**, which is the right shape — what was
+not measured should look unmeasured in the decision.
+
+**And the empty sweep was recorded as a result (D110), which is the part worth keeping.** Sixteen
+`Ensure` calls in one method and thirty-two bounds checks in another are numbers **the mechanism
+explains entirely**: recursive descent tests the same thing at every position it advances to. A
+count becomes a finding only where the mechanism does not account for it — and pointed at what the
+mechanism cannot account for, two identical guards on adjacent lines, the same instrument returns
+zero across three files. The line is closed for one command rather than an afternoon.
+
+**On the four instruments withdrawn in a day, the architect's reading is the one I would keep**:
+each was withdrawn by its own author, and each time after asking what the number would look like if
+the instrument were measuring something other than what it was aimed at. An instrument never
+withdrawn has usually never been questioned.
