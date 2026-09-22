@@ -1,0 +1,9 @@
+# fix-rewrite-stand-before-49ecdaf9, 2026-09-22 10:12 - 10:23
+
+Script P:\dotgram\.work\Run-Stand.ps1, arguments: -Dll T:\TEMP\dotgram-stand\wt\before-49ecdaf9\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll -Out T:\TEMP\dotgram-stand\stand-before-49ecdaf9. Machine IGOR-DESKTOP, this process and its children on mask 0xFFFF at high priority (the children inherit it; whether they stayed on it was not read back).
+Quiet check before the start: 0.8% of the machine (0.24 of 32 logical processors) in use outside this script, three seconds; busiest: claude (pid 36444) 0.042; iCUE (pid 21640) 0.031; claude (pid 36808) 0.026.
+State of the repository the script sits in, read at 10:12:45: HEAD 0e948b69; 0 tracked files modified.
+Artifact T:\TEMP\dotgram-stand\wt\before-49ecdaf9\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll: sha256 9B9E3A9584480A4D, 1370112 bytes, written 10:08:36.
+Artifact T:\TEMP\dotgram-stand\wt\before-49ecdaf9\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Finance.dll: sha256 00D47AB7706E369C, 3389440 bytes, written 10:07:25.
+Exit code: 0.
+Note: Side BEFORE of the FIX message-model rewrite, as a full --stand of its own tree (49ecdaf9, form 4): the paired stand cannot pair these commits, FixField lost FieldType and the hand parser disagrees with the older side on serialisation (README: a type both sides construct; two --stand runs and --stand-compare). Rows fix/ and fixmsg/, five runs; compared later against the same rows of b9985c36.
