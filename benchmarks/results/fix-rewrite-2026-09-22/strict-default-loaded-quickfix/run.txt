@@ -1,0 +1,9 @@
+# fix-strict-default-loaded-quickfix, 2026-09-22 11:11 - 11:11
+
+Script P:\dotgram\.work\Run-Stand.ps1, arguments: -Dll P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll -Out T:\TEMP\dotgram-stand\stand-strict3 -Only fixmsg/Order44.strict. Machine IGOR-DESKTOP, this process and its children on mask 0xFFFF at high priority (the children inherit it; whether they stayed on it was not read back).
+Quiet check before the start: 1.2% of the machine (0.39 of 32 logical processors) in use outside this script, three seconds; busiest: claude (pid 36444) 0.115; claude (pid 36752) 0.068; claude (pid 35900) 0.026.
+State of the repository the script sits in, read at 11:11:01: HEAD 38ac14af; 0 tracked files modified.
+Artifact P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll: sha256 9B96BB90EDE03660, 1368576 bytes, written 11:10:43.
+Artifact P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Finance.dll: sha256 E4652BC694BD4B1E, 4071424 bytes, written 11:09:48.
+Exit code: 0.
+Note: One order, parse and schema on every reading: ours with the compiled-in schema, ours with FIX44.xml loaded once over it (expression-language checks combined with the compiled-in), and QuickFIX/n with the same FIX44.xml. Loading is outside the reading on both sides. Five runs.

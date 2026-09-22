@@ -1,0 +1,42 @@
+{
+  "Commit": "156d16cd (run in a tree at 38ac14af)",
+  "Machine": "IGOR-DESKTOP",
+  "Runtime": ".NET 10.0.12",
+  "Taken": "2026-09-22T11:11:05.9964665-04:00",
+  "Pinned": true,
+  "Control": 30.50925,
+  "Rows": [
+    {
+      "Id": "fixmsg/Order44.strict",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1020.4833984375,
+          "Bytes": 3112,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "generated-loaded",
+          "Nanoseconds": 1039.215087890625,
+          "Bytes": 3112,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "reference-QuickFIXn",
+          "Nanoseconds": 2442.93212890625,
+          "Bytes": 6808,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.030969640422019665,
+      "Ranges": {}
+    }
+  ],
+  "FirstCalls": [],
+  "Streamed": [],
+  "Generation": [],
+  "MissingGeneration": []
+}

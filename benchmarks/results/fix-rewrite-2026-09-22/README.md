@@ -57,3 +57,20 @@ Its code did not change in the rewrite beyond the property removed from `FixFiel
 rows read +2 to +7% against their hand base and the regex readings beside them, which read no
 code of this package, moved +1 to +8% the same way; `.bytes` and `.stream` rows moved -4 to +3%.
 Nothing there is read as an effect of the rewrite.
+
+## Parse and schema on every reading: compiled in, loaded, and QuickFIX/n
+
+`strict-default-loaded-quickfix/`: one order, five runs, control 30.5 ns. Every reading parses
+and then holds the message to a schema; loading a schema is outside the reading on both sides
+(a `Lazy` each). The loaded reading is `FixContext.Default.Load(FIX44.xml)`, the same file
+QuickFIX/n validates with: its checks are written by the expression language at the load and
+combined with the compiled-in ones, so this is what that road costs beside the compiled-in one.
+
+| reading | ns | B | against ours compiled in |
+| --- | ---: | ---: | ---: |
+| ours, the compiled-in schema | 1020.5 | 3112 | — |
+| ours, FIX44.xml loaded over it | 1039.2 | 3112 | +1.8% (5 of 5 runs above, +14 to +30 ns) |
+| QuickFIX/n, FIX44.xml | 2442.9 | 6808 | 2.39x |
+
+A loaded schema costs 19 ns on this order and no bytes: the loaded checks find nothing on a
+valid message either, and a combined delegate is two calls where there was one.
