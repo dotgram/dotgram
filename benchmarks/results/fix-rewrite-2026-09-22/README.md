@@ -33,8 +33,21 @@ Both are parse-and-check.
 | Order.parse | 1052.5 | 909.2 | -14% | 3456 | 3048 |
 | Order.build | 1271.3 | 1119.5 | -12% | 3608 | 3200 |
 
-`reference-QuickFIXn` on `Order44.strict` (their parse and `DataDictionary.Validate`, the same
-library on both sides): 2398.6 and 2426.3 ns, so the ratio to it went from 2.09x to 2.55x.
+**Corrected the same day.** The `generated` reading of `Order44.strict` in these two runs was
+`TryParseMessage` alone: the stand's binder for the schema check reaches the paired forms and not
+this row, so the row read our parse against QuickFIX/n's parse *and* `DataDictionary.Validate`,
+and the 2.09x and 2.55x it printed were never like against like. The commit that filed this
+(8f206d4b) says "parse and check both sides" of that row, and that sentence is wrong; the numbers
+of our side stand as what they are, the parse alone. The row is now two (aceedc78), and
+`order44-vs-quickfix/` holds the reading of both, five runs, control 30.0 ns:
+
+| row | work on both sides | ours ns | QuickFIX/n ns | theirs / ours | ours B | theirs B |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Order44.parse | read, envelope checked, no schema | 940.4 | 1463.6 | 1.56x | 3112 | 5784 |
+| Order44.strict | read, then the schema | 995.4 | 2420.1 | 2.43x | 3112 | 6808 |
+
+Holding the order to the schema costs this package 55 ns and no bytes (a valid message makes no
+finding, so nothing is allocated); it costs QuickFIX/n 956 ns and 1,024 bytes.
 
 The spread of the `fixmsg/` rows rose from 2-5% to 6-9% between the two runs.
 

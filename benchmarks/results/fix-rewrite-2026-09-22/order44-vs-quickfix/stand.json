@@ -1,0 +1,56 @@
+{
+  "Commit": "8f206d4b (run in a tree at aceedc78)",
+  "Machine": "IGOR-DESKTOP",
+  "Runtime": ".NET 10.0.12",
+  "Taken": "2026-09-22T10:53:55.4668278-04:00",
+  "Pinned": true,
+  "Control": 29.988,
+  "Rows": [
+    {
+      "Id": "fixmsg/Order44.parse",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 940.399169921875,
+          "Bytes": 3112,
+          "Warmup": 4,
+          "Rounds": []
+        },
+        {
+          "Reading": "reference-QuickFIXn",
+          "Nanoseconds": 1463.629150390625,
+          "Bytes": 5784,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.0817134512412786,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order44.strict",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 995.4010009765625,
+          "Bytes": 3112,
+          "Warmup": 3,
+          "Rounds": []
+        },
+        {
+          "Reading": "reference-QuickFIXn",
+          "Nanoseconds": 2420.050048828125,
+          "Bytes": 6808,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09950547715476143,
+      "Ranges": {}
+    }
+  ],
+  "FirstCalls": [],
+  "Streamed": [],
+  "Generation": [],
+  "MissingGeneration": []
+}
