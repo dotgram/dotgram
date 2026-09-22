@@ -29,6 +29,11 @@
 
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
+		<!-- A dictionary loaded at run time is turned into the same straight-line checks the package
+		     compiles in, written as text and compiled by the expression language: one lambda a
+		     slot, typed on the class it checks. -->
+		<ProjectReference Include="../DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
+
 		<AdditionalFiles Include="Fix/*.gram" />
 
 		<None Include="README.md" Pack="true" PackagePath="/" />

@@ -36,7 +36,7 @@ namespace DotGram.Finance.Fix;
 /// which are the same two questions one level down.
 /// </para>
 /// </remarks>
-class FixValidators
+partial class FixValidators
 {
 	/// <summary>What this package compiles in, which is what a context takes unless it is given another.</summary>
 	public static readonly FixValidators Default = new();
