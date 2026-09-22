@@ -9275,19 +9275,19 @@ sequence is one lazy operator that hands on the messages that have findings. Cop
 into a shared list would strip the owner — a `FixFinding` is about one message and holds no
 identity of it — and the message is what the consumer would have to re-attach.
 
-**A finding is four fields.** `FixRule Rule`, `int Tag`, `FixField? Field`, `int EntryIndex`.
+**A finding is five fields.** `FixRule Rule`, `int Tag`, `int Position`, `FixField? Field`,
+`int EntryIndex`.
 What was dropped and why, all four bought by Igor reading the type and asking what each field was
 for:
 
-- `Position` — as stored state. `FixField` has carried `Position`, `Length` and `ValuePosition`
-  since it was written, and a finding that holds the field holds them, and the value with them,
-  which is what an `InvalidValue` finding wants to show. Igor objected that a nullable `Field`
-  then makes the position cost a null check, which is true; it comes back as a computed member,
-  `public int Position => Field?.Position ?? 0`, so the call site is unchanged and nothing is
-  stored. A stored field would have had nothing to put in it in exactly the three cases where
-  `Field` is null: an absent field has no position, and the message's own start is no answer
-  either — `FixMessages.Streaming.cs` cuts the input into frames and parses each message from its
-  own, so every message begins at zero.
+- `Position` — kept, and I twice got it wrong on the way. I dropped it because `FixField` has
+  carried `Position`, `Length` and `ValuePosition` since it was written, so a finding holding the
+  field holds them. Igor: a nullable `Field` then makes the position cost a null check. I offered
+  a computed member and argued a stored one would have nothing to put in it where `Field` is null.
+  **That was wrong.** It reasons from "the field is not there" to "the place is not there", and
+  the place is known: a required field absent from its scope is reported at the field it was
+  expected after or before, and the validator walking the message has that field in its hand.
+  So `Position` is stored and always answerable, like `Tag`.
 - `GroupTag` — derivable. We established by exhaustive check that **no tag belongs to two scopes
   within any of the ninety-three messages**, so the tag names the group. `EntryIndex` does not
   follow from anything and stays.
