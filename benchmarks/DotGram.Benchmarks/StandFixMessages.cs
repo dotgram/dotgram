@@ -67,6 +67,11 @@ static partial class Stand
 
 	static readonly Lazy<QuickFix.DataDictionary.DataDictionary> QuickFixDictionary = new(static () => new QuickFix.DataDictionary.DataDictionary(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml")));
 
+	// The same file loaded over this package's own schema, once: what a consumer who holds a venue's dictionary
+	// validates with. Its checks are the expression language's, compiled at the load and combined with the
+	// compiled-in ones, so this reading is what that road costs against the compiled-in one beside it.
+	static readonly Lazy<FixContext> LoadedContext = new(static () => FixContext.Default.Load(System.IO.File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml"))));
+
 	/// <summary>Whether QuickFIX/n accepts the wire as a session would take it: parsed with the dictionary and validated against it.</summary>
 	/// <summary>Whether QuickFIX/n reads the wire at all: parsed with the dictionary, BodyLength and CheckSum checked, and not held to the schema.</summary>
 	static bool QuickFixParses(string wire)
@@ -144,6 +149,7 @@ static partial class Stand
 			"Order44.strict",
 			[
 				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(FixContext.Default) ? 1 : 0),
+				new Reading("generated-loaded", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(LoadedContext.Value) ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],
 			() => FixParser.TryParseMessage(agreed, out _, out var error, null)
