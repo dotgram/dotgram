@@ -196,12 +196,13 @@ partial class FixValidators
 					}
 
 					if (member.Required && subject == "entry")
-						body.Append("if (entry.").Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(", ").Append(Opened(carrier)).Append(", index);\n");
+						body.Append("if (entry.").Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(", ").Append(Opened(carrier)).Append(", index);\nelse ");
 					else if (member.Required)
-						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(");\n");
+						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(");\nelse ");
+					else
+						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" != null) ");
 
-					body.Append("if (").Append(subject).Append('.').Append(ours).Append(" != null) context.Validators.").Append(ours)
-						.Append(".Invoke(context, message, ").Append(subject).Append('.').Append(ours).Append(");\n");
+					body.Append("context.Validators.").Append(ours).Append(".Invoke(context, message, ").Append(subject).Append('.').Append(ours).Append(");\n");
 					break;
 				}
 
