@@ -19,8 +19,7 @@ public sealed class Fix44StreamingTests
 		foreach (var parsed in messages)
 		{
 			Assert.Equal(name, parsed.GetType().Name);
-			Assert.Equal(wire, parsed.OriginalWire);
-			Assert.Equal(FixParser.ParseMessage(wire).AllFields.Select(f => (f.Tag, f.Value.ToString())), parsed.AllFields.Select(f => (f.Tag, f.Value.ToString())));
+			Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(parsed));
 		}
 	}
 
@@ -29,7 +28,7 @@ public sealed class Fix44StreamingTests
 	{
 		var wire = (string)FixFixtures.Messages().First()[1];
 		using var input = new MemoryStream(ToBytes(wire + wire));
-		Assert.Equal(wire, FixParser.ReadMessage(input).OriginalWire);
+		Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(FixParser.ReadMessage(input)));
 		Assert.Equal(wire.Length, input.Position);
 		using (var iterator = FixParser.ReadMessages(input).GetEnumerator()) Assert.True(iterator.MoveNext());
 		Assert.True(input.CanRead);
@@ -48,7 +47,7 @@ public sealed class Fix44StreamingTests
 			Assert.NotNull(error);
 		}
 		Assert.False(FixParser.TryReadMessage(new StringReader(wire), out _, out _, maxMessageLength: wire.Length - 1));
-		Assert.Equal(wire, FixParser.ReadMessage(new StringReader(wire), maxMessageLength: wire.Length).OriginalWire);
+		Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(FixParser.ReadMessage(new StringReader(wire), maxMessageLength: wire.Length)));
 		Assert.False(FixParser.TryReadMessage(new StringReader(wire.Substring(0, wire.Length - 4) + "999\u0001"), out _, out _));
 		Assert.Throws<FormatException>(() => FixParser.ReadMessages(new StringReader(wire + "8=")).ToArray());
 		foreach (var length in new[] { "", "-1", "x", "999999999999999999999" })
@@ -64,7 +63,13 @@ public sealed class Fix44StreamingTests
 		FixFieldOptions? options = null;
 		using var bytes = new ShortStream(ToBytes(wire + wire));
 		Assert.Equal(2, FixParser.ReadMessages(bytes, options).Count());
-		Assert.Equal(wire, FixParser.ReadMessage(new StringReader(wire), options).OriginalWire);
+		Assert.Equal(Extents(FixParser.ParseMessage(wire, options)), Extents(FixParser.ReadMessage(new StringReader(wire), options)));
+	}
+
+	/// <summary>Every field as the tag it carries and the extent it was read from.</summary>
+	static (int Tag, int Position, int Length)[] Extents(FixMessage message)
+	{
+		return message.Fields.Select(field => (field.Tag, field.Position, field.Length)).ToArray();
 	}
 
 	static byte[] ToBytes(string text)

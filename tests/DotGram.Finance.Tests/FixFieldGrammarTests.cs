@@ -23,9 +23,8 @@ public sealed class FixFieldGrammarTests
 		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixFieldOptions.Log), FixParser.ReadMessage(logBytes, FixFieldOptions.Log) })
 		{
 			Assert.Equal(name, message.GetType().Name);
-			Assert.Equal(expected.AllFields.Select(f => f.Value.ToString()), message.AllFields.Select(f => f.Value.ToString()));
-			Assert.Equal(expected.AllFields.Select(f => f.TypedValue!.GetType()), message.AllFields.Select(f => f.TypedValue!.GetType()));
-			Assert.All(message.AllFields, f => Assert.True(f.TypedValue!.IsValid, $"Tag {f.Tag}"));
+			Assert.Equal(expected.Fields.Select(f => (f.Tag, f.GetType())), message.Fields.Select(f => (f.Tag, f.GetType())));
+			Assert.All(message.Fields, f => Assert.True(f.IsValid, $"Tag {f.Tag}"));
 		}
 	}
 
@@ -36,14 +35,14 @@ public sealed class FixFieldGrammarTests
 		using var stream = new MemoryStream(Bytes(orderWire));
 		foreach (var order in new[] { FixParser.ParseMessage(orderWire), FixParser.ReadMessage(stream) })
 		{
-			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(order.GetField(55)!.Value.TypedValue).Value);
-			Assert.Equal('1', Assert.IsType<FixField.Side>(order.GetField(54)!.Value.TypedValue).Value);
-			var price = Assert.IsType<FixField.Price>(order.GetField(44)!.Value.TypedValue).Value;
+			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(Field(order, 55)).Value);
+			Assert.Equal('1', Assert.IsType<FixField.Side>(Field(order, 54)).Value);
+			var price = Assert.IsType<FixField.Price>(Field(order, 44)).Value;
 			Assert.Equal(12.50m, price);
-			var time = Assert.IsType<FixField.TransactTime>(order.GetField(60)!.Value.TypedValue).Value;
+			var time = Assert.IsType<FixField.TransactTime>(Field(order, 60)).Value;
 			Assert.Equal(2026, time.Date.Year);
 			Assert.Equal(12, time.Time.Hour);
-			Assert.Equal(BigInteger.One, Assert.IsType<FixField.MsgSeqNum>(order.Header.GetField(34)!.Value.TypedValue).Value);
+			Assert.Equal(BigInteger.One, Assert.IsType<FixField.MsgSeqNum>(Field(order, 34)).Value);
 		}
 		Assert.True(FixConvert.Boolean("Y".AsSpan(), out var flag));
 		Assert.True(flag);
@@ -70,6 +69,11 @@ public sealed class FixFieldGrammarTests
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
 		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixFieldOptions.Log));
+	}
+
+	static FixField Field(FixMessage message, int tag)
+	{
+		return message.Fields.First(field => field.Tag == tag);
 	}
 
 	static byte[] Bytes(string text)

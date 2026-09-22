@@ -53,15 +53,6 @@ public abstract class FixField : IFixLocation
 	}
 
 	/// <summary>
-	/// Gets the numeric tag as a <see cref="FixFieldType"/> value.
-	/// </summary>
-	/// <remarks>
-	/// Custom tags retain their number even when the enum has no corresponding member.
-	/// An <see cref="Invalid"/> field returns the unnamed value zero.
-	/// </remarks>
-	public FixFieldType FieldType => (FixFieldType)Tag;
-
-	/// <summary>
 	/// Gets the numeric FIX tag. A combined length/data field uses the data tag;
 	/// an <see cref="Invalid"/> field uses zero.
 	/// </summary>

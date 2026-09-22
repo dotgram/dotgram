@@ -475,7 +475,7 @@ public abstract class FixFieldReaderTests
 		var body   = "35=A\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000198=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
 		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
 		var wire   = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
-		var log    = Log(FixParser.ParseMessage(wire));
+		var log    = Log(wire, FixParser.ParseMessage(wire));
 
 		Each(parser =>
 		{
@@ -502,7 +502,14 @@ public abstract class FixFieldReaderTests
 		var text = wire.ToCharArray();
 
 		foreach (var field in message.Fields)
+		{
+			// A length/data pair arrives as the data field alone, and it begins at the length field it
+			// was measured by, so the separator that ends that length is the one before the data tag.
+			if (field.IsBinary)
+				text[field.DataPosition - 1] = '|';
+
 			text[field.ValuePosition + field.Length] = '|';
+		}
 
 		return new string(text);
 	}

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Numerics;
+
 namespace DotGram.Finance.Fix;
 
 /// <summary>
@@ -131,10 +134,42 @@ public static partial class FixParser
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		return TryParseMessage(ParseFields(input, options), out message, out error);
+		// The same road as every other overload: the envelope is checked, the fields are read, and
+		// the message is put together from them.
+		return FixMessages.TryParse(input, out message, out error, options);
 	}
 
-	static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error)
+
+	// The length half of a pair, built from the count it measured. The wire text it was read from
+	// is not kept, and a FIX Length is plain digits, so the two agree wherever the input is valid.
+	static FixField LengthField(int tag, int count, FixCustomFields? custom)
+	{
+		(bool, BigInteger) value = (true, count);
+
+		return tag switch
+		{
+			 90 => new FixField.SecureDataLen(value),
+			 93 => new FixField.SignatureLength(value),
+			 95 => new FixField.RawDataLength(value),
+			212 => new FixField.XmlDataLen(value),
+			348 => new FixField.EncodedIssuerLen(value),
+			350 => new FixField.EncodedSecurityDescLen(value),
+			352 => new FixField.EncodedListExecInstLen(value),
+			354 => new FixField.EncodedTextLen(value),
+			356 => new FixField.EncodedSubjectLen(value),
+			358 => new FixField.EncodedHeadlineLen(value),
+			360 => new FixField.EncodedAllocTextLen(value),
+			362 => new FixField.EncodedUnderlyingIssuerLen(value),
+			364 => new FixField.EncodedUnderlyingSecurityDescLen(value),
+			445 => new FixField.EncodedListStatusTextLen(value),
+			618 => new FixField.EncodedLegIssuerLen(value),
+			621 => new FixField.EncodedLegSecurityDescLen(value),
+			  _ => (custom ?? FixSpareFields.Instance).Text(tag, count.ToString(CultureInfo.InvariantCulture).AsSpan()),
+		};
+	}
+
+	/// <summary>Puts one message together from fields already read, in the order they were read.</summary>
+	internal static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
 		message = null;
 
@@ -145,6 +180,18 @@ public static partial class FixParser
 
 		foreach (var field in input)
 		{
+			// A length/data pair is read as the data field alone, since the length is how the reader
+			// knew where to stop. The message carries both, so the length half is put back here, with
+			// the count it measured and the extent it was read from.
+			if (field.IsBinary)
+			{
+				var settings = options ?? FixFieldOptions.Default;
+				var length   = LengthField(settings.LengthTag(field.Tag), field.Length, settings.CustomFields);
+
+				length.Locate(field.Position, field.DataPosition - field.Position);
+				fields.Add(length);
+			}
+
 			fields.Add(field);
 
 			switch (field.Tag)

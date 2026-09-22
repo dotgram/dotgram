@@ -58,6 +58,12 @@ public sealed class FixOctetRoadTests
 		return Framed([..Octets(before), ..payload, Soh, ..Octets(after)]);
 	}
 
+	/// <summary>Every field as the tag it carries and the extent it was read from.</summary>
+	static (int Tag, int Position, int Length)[] Extents(FixMessage message)
+	{
+		return message.Fields.Select(field => (field.Tag, field.Position, field.Length)).ToArray();
+	}
+
 	static byte[] Octets(string text)
 	{
 		return Encoding.Latin1.GetBytes(text.Replace('|', '\u0001'));
@@ -67,9 +73,9 @@ public sealed class FixOctetRoadTests
 	/// The field with that tag wherever it sits — header, body or trailer — because which scope
 	/// holds a tag is the schema's answer and not what any of these tests is asking.
 	/// </summary>
-	static FixFieldView Find(FixMessage message, int tag)
+	static FixField Find(FixMessage message, int tag)
 	{
-		return message.AllFields.First(field => field.Tag == tag);
+		return message.Fields.First(field => field.Tag == tag);
 	}
 
 	const string Head  = "35=D|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|";
@@ -88,13 +94,13 @@ public sealed class FixOctetRoadTests
 		byte[] payload = [(byte)'a', Soh, (byte)'b', Soh, (byte)'c'];
 
 		var message = FixParser.ParseMessage(Framed(Logon + "95=5|96=", payload, "141=N|"));
-		var data    = Assert.IsType<FixField.RawData>(Find(message, 96).TypedValue);
+		var data    = Assert.IsType<FixField.RawData>(Find(message, 96));
 
 		Assert.True(data.IsValid);
 		Assert.Equal(payload, data.Value.ToArray());
 
 		// And the field after it is read as a field, which is what "cut by the length" has to mean.
-		Assert.Equal("N", Find(message, 141).Value.ToString());
+		Assert.False(Assert.IsType<FixField.ResetSeqNumFlag>(Find(message, 141)).Value);
 	}
 
 	/// <summary>XmlData, a header pair, behaves the same way.</summary>
@@ -103,7 +109,7 @@ public sealed class FixOctetRoadTests
 	{
 		var payload = Octets("<a>|</a>");
 		var message = FixParser.ParseMessage(Framed(Head + "212=" + payload.Length + "|213=", payload, Order));
-		var data    = Assert.IsType<FixField.XmlData>(Find(message, 213).TypedValue);
+		var data    = Assert.IsType<FixField.XmlData>(Find(message, 213));
 
 		Assert.Equal(payload, data.Value.ToArray());
 	}
@@ -150,8 +156,8 @@ public sealed class FixOctetRoadTests
 		var message = FixParser.ParseMessage(
 			Framed(Head + "347=Shift_JIS|" + Order + "58=note|354=" + payload.Length + "|355=", payload, ""));
 
-		Assert.Equal("Shift_JIS", Find(message, 347).Value.ToString());
-		Assert.Equal(payload, Assert.IsType<FixField.EncodedText>(Find(message, 355).TypedValue).Value.ToArray());
+		Assert.Equal("Shift_JIS", Assert.IsType<FixField.MessageEncoding>(Find(message, 347)).Value);
+		Assert.Equal(payload, Assert.IsType<FixField.EncodedText>(Find(message, 355)).Value.ToArray());
 	}
 
 	// ── what the octet road asks of a caller, and what the string road asks ──────────────────
@@ -180,7 +186,7 @@ public sealed class FixOctetRoadTests
 		Assert.Equal(2, Find(message, 58).Length);
 
 		// Latin-1: the claim the string road makes is true, so it reads the same message.
-		Assert.Equal(message.OriginalWire, FixParser.ParseMessage(Encoding.Latin1.GetString(wire)).OriginalWire);
+		Assert.Equal(Extents(message), Extents(FixParser.ParseMessage(Encoding.Latin1.GetString(wire))));
 
 		// UTF-8: the claim is false, and the refusal is about the length rather than the decoding.
 		var refused = Assert.Throws<FormatException>(
@@ -226,12 +232,9 @@ public sealed class FixOctetRoadTests
 
 		var fromStream = FixParser.ReadMessage(stream);
 
-		Assert.Equal(fromOctets.OriginalWire, fromString.OriginalWire);
-		Assert.Equal(fromOctets.OriginalWire, fromStream.OriginalWire);
-		Assert.Equal(fromOctets.MessageType,  fromStream.MessageType);
-		Assert.Equal(
-			fromOctets.AllFields.Select(field => field.Tag),
-			fromStream.AllFields.Select(field => field.Tag));
+		Assert.Equal(Extents(fromOctets), Extents(fromString));
+		Assert.Equal(Extents(fromOctets), Extents(fromStream));
+		Assert.Equal(fromOctets.MessageType, fromStream.MessageType);
 	}
 
 	/// <summary>An array and a span over it are the same input to every door that takes octets.</summary>
@@ -241,11 +244,11 @@ public sealed class FixOctetRoadTests
 		var wire = Framed(Head + Order);
 		var read = FixParser.ParseMessage(wire);
 
-		Assert.Equal(read.OriginalWire, FixParser.ParseMessage(new ReadOnlySpan<byte>(wire)).OriginalWire);
+		Assert.Equal(Extents(read), Extents(FixParser.ParseMessage(new ReadOnlySpan<byte>(wire))));
 
 		Assert.True(FixParser.TryParseMessage(new ReadOnlySpan<byte>(wire), out var message, out var error));
 		Assert.Null(error);
-		Assert.Equal(read.OriginalWire, message!.OriginalWire);
+		Assert.Equal(Extents(read), Extents(message!));
 
 		Assert.Equal(
 			FixParser.ParseFields(wire).Select(field => field.Tag),
@@ -269,8 +272,8 @@ public sealed class FixOctetRoadTests
 		Assert.Equal(2, messages.Length);
 		Assert.Equal("D", messages[0].MessageType);
 		Assert.Equal("A", messages[1].MessageType);
-		Assert.Equal(Encoding.Latin1.GetString(first),  messages[0].OriginalWire);
-		Assert.Equal(Encoding.Latin1.GetString(second), messages[1].OriginalWire);
+		Assert.Equal(Extents(FixParser.ParseMessage(Encoding.Latin1.GetString(first))),  Extents(messages[0]));
+		Assert.Equal(Extents(FixParser.ParseMessage(Encoding.Latin1.GetString(second))), Extents(messages[1]));
 	}
 
 	// ── the refusals ─────────────────────────────────────────────────────────────────────────

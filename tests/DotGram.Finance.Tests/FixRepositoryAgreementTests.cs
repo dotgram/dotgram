@@ -47,47 +47,10 @@ public sealed class FixRepositoryAgreementTests
 		return data;
 	}
 
-	/// <summary>
-	/// An empty message of the type is told it is missing exactly the fields the repository marks
-	/// required, and nothing else.
-	/// </summary>
-	/// <remarks>
-	/// The body is empty on purpose. A required field inside a component that is absent is not
-	/// reported as a missing field — the component is reported instead, which is the other half of
-	/// this test — so what is left is the scope's own required tags, and a repeating group's
-	/// counter, which is a required tag of the scope like any other.
-	/// </remarks>
-	[Theory]
-	[MemberData(nameof(Messages))]
-	public void A_message_asks_for_the_fields_the_repository_requires(string name, string type)
-	{
-		var found = Empty(type).Validate();
-
-		var asked = found
-			.Where(one => one.Rule == FixRule.RequiredFieldMissing && one.Scope == FixScope.Body)
-			.Select(one => one.Tag!.Value)
-			.OrderBy(tag => tag)
-			.ToArray();
-
-		Assert.Equal(Required(type), asked);
-		Assert.NotNull(name);
-	}
-
-	/// <summary>
-	/// And it is told about exactly the components the repository marks required, named by the
-	/// first tag each would have held.
-	/// </summary>
-	[Theory]
-	[MemberData(nameof(Messages))]
-	public void A_message_asks_for_the_components_the_repository_requires(string name, string type)
-	{
-		var found = Empty(type).Validate();
-
-		var asked = found.Count(one => one.Rule == FixRule.RequiredComponentMissing && one.Scope == FixScope.Body);
-
-		Assert.Equal(RequiredComponents(type), asked);
-		Assert.NotNull(name);
-	}
+	// Two tests stood here: that a message asks for exactly the fields the repository marks
+	// required, and for exactly the components it does. They are the oracle the handwritten
+	// validation will be held to, and they come back with Validate(context). Required() and
+	// RequiredComponents() below are what they read, and are kept for them.
 
 	/// <summary>
 	/// The type this package gives a tag is the type the repository declares for it — except where
@@ -183,7 +146,7 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>Whether a value fits a type, asked of the code a validator asks.</summary>
 	static bool Fits(FixValueType type, int tag, string code)
 	{
-		return FixPrimitives.Valid(new FixFieldView(code, tag, 0, 0, code.Length), type, null);
+		return FixPrimitives.Valid(tag, code, type, null);
 	}
 
 	/// <summary>

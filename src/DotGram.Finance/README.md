@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   Agents: the skill for this package is SKILL.md, beside this file in the package
   directory — which layer to use, how to read fields and messages, and the mistakes
   that are easy to make. Read it before writing code against the package. In a
@@ -155,12 +155,12 @@ if (FixParser.TryParseMessage(wire, out var message, out var error))
 {
     if (message is FixMessage.NewOrderSingle order)
     {
-        Console.WriteLine(order.Symbol);
-        Console.WriteLine(order.OrderQty);
-        Console.WriteLine(order.Header.SenderCompID);
+        Console.WriteLine(order.Symbol?.Value);
+        Console.WriteLine(order.OrderQty?.Value);
+        Console.WriteLine(order.SenderCompID?.Value);
 
-        foreach (var party in order.Parties)
-            Console.WriteLine(party.GetField(448));   // PartyID
+        foreach (var party in order.Parties ?? [])
+            Console.WriteLine(party.PartyID.Value);   // tag 448
     }
 }
 else
@@ -340,8 +340,8 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
 var order = (FixMessage.NewOrderSingle)FixParser.ParseMessage(wire);
-var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
-var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
+FixField.Symbol symbol = order.Symbol!;
+FixField.OrderQty quantity = order.OrderQty!;
 Console.WriteLine(symbol.Value);             // string
 Console.WriteLine(quantity.Value);           // decimal
 ```

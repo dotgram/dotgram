@@ -64,6 +64,6 @@ public sealed class PrimitiveTests
 
 	static bool Valid(int tag, string value)
 	{
-		return FixPrimitives.Valid(new FixFieldView(value, tag, 0, 0, value.Length), FixSchema.Type(tag), FixSchema.Codes(tag));
+		return FixPrimitives.Valid(tag, value, FixSchema.Type(tag), FixSchema.Codes(tag));
 	}
 }

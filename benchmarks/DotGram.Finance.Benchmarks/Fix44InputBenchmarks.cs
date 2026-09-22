@@ -53,12 +53,14 @@ public partial class Fix44InputBenchmarks
 		for (var i = 0; i < bytes.Length; i++) bytes[i] = checked((byte)corpus[i]);
 		var expected = String();
 		if (Characters() != expected || Bytes() != expected) throw new InvalidOperationException("Input results differ.");
-		var type = FixParser.ParseMessage(message).GetType();
+		var one0 = FixParser.ParseMessage(message);
+		var type = one0.GetType();
+		var fieldCount = one0.Fields.Count;
 		foreach (var parsed in FixParser.ReadMessages(new StringReader(message)))
-			if (parsed.OriginalWire != message || parsed.GetType() != type) throw new InvalidOperationException("Character result differs.");
+			if (parsed.Fields.Count != fieldCount || parsed.GetType() != type) throw new InvalidOperationException("Character result differs.");
 		using var one = new MemoryStream(bytes, 0, message.Length, false);
 		var result = FixParser.ReadMessage(one);
-		if (result.OriginalWire != message || result.GetType() != type) throw new InvalidOperationException("Byte result differs.");
+		if (result.Fields.Count != fieldCount || result.GetType() != type) throw new InvalidOperationException("Byte result differs.");
 		Console.WriteLine($"FIX corpus: {Workload}, {count} messages, {message.Length} octets/message, {corpus.Length} octets total.");
 	}
 
@@ -66,7 +68,7 @@ public partial class Fix44InputBenchmarks
 	public long String()
 	{
 		long total = 0;
-		for (var i = 0; i < count; i++) total += FixParser.ParseMessage(message).OriginalWire.Length;
+		for (var i = 0; i < count; i++) total += FixParser.ParseMessage(message).Fields.Count;
 		return total;
 	}
 
@@ -75,7 +77,7 @@ public partial class Fix44InputBenchmarks
 	{
 		using var input = new StringReader(corpus);
 		long total = 0;
-		foreach (var parsed in FixParser.ReadMessages(input)) total += parsed.OriginalWire.Length;
+		foreach (var parsed in FixParser.ReadMessages(input)) total += parsed.Fields.Count;
 		return total;
 	}
 
@@ -84,7 +86,7 @@ public partial class Fix44InputBenchmarks
 	{
 		using var input = new MemoryStream(bytes, false);
 		long total = 0;
-		foreach (var parsed in FixParser.ReadMessages(input)) total += parsed.OriginalWire.Length;
+		foreach (var parsed in FixParser.ReadMessages(input)) total += parsed.Fields.Count;
 		return total;
 	}
 }

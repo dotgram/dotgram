@@ -119,8 +119,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		
-		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
+		return FixParser.TryParseMessage(fields, out message, out error, options);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -271,10 +270,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		var wire = FixConvert.Text(input);
-
-		
-		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
+		return FixParser.TryParseMessage(fields, out message, out error, options);
 	}
 
 	static bool TryParseBytes(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
@@ -294,10 +290,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		var wire = FixConvert.Text(input);
-
-		
-		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
+		return FixParser.TryParseMessage(fields, out message, out error, options);
 	}
 
 	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
@@ -371,8 +364,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error))
 			return false;
 
-		
-		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
+		return FixParser.TryParseMessage(fields, out message, out error, options);
 	}
 
 	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and
@@ -404,61 +396,6 @@ static partial class FixMessages
 		return true;
 	}
 
-	static FixNode[] Nodes(string source, FixField[] values, FixCustomFields custom)
-	{
-		var count = values.Length;
-
-		foreach (var value in values)
-			if (value.IsBinary)
-				count++;
-
-		var fields = new FixNode[count];
-		var index  = 0;
-
-		foreach (var value in values)
-		{
-			if (value.IsBinary)
-			{
-				var header = source.AsSpan(value.Position, value.DataPosition - value.Position - 1);
-				var equals = header.IndexOf('=');
-				var tag    = FixConvert.Tag(header.Slice(0, equals));
-				var length = LengthField(tag, header.Slice(equals + 1), custom);
-
-				length.Locate(value.Position, value.DataPosition - value.Position);
-
-				fields[index++] = new FixNode(tag, length.Position, length.ValuePosition, length.Length, typedValue: length);
-			}
-
-			fields[index++] = new FixNode(value.Tag, value.IsBinary ? value.DataPosition : value.Position, value.ValuePosition, value.Length, typedValue: value);
-		}
-
-		return fields;
-	}
-
-	// The optional message model exposes both wire fields; the parser returns only data.
-	static FixField LengthField(int tag, ReadOnlySpan<char> value, FixCustomFields custom)
-	{
-		return tag switch
-		{
-			90 => new FixField.SecureDataLen(FixConvert.Integer(value)),
-			93 => new FixField.SignatureLength(FixConvert.Integer(value)),
-			95 => new FixField.RawDataLength(FixConvert.Integer(value)),
-			212 => new FixField.XmlDataLen(FixConvert.Integer(value)),
-			348 => new FixField.EncodedIssuerLen(FixConvert.Integer(value)),
-			350 => new FixField.EncodedSecurityDescLen(FixConvert.Integer(value)),
-			352 => new FixField.EncodedListExecInstLen(FixConvert.Integer(value)),
-			354 => new FixField.EncodedTextLen(FixConvert.Integer(value)),
-			356 => new FixField.EncodedSubjectLen(FixConvert.Integer(value)),
-			358 => new FixField.EncodedHeadlineLen(FixConvert.Integer(value)),
-			360 => new FixField.EncodedAllocTextLen(FixConvert.Integer(value)),
-			362 => new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(value)),
-			364 => new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)),
-			445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
-			618 => new FixField.EncodedLegIssuerLen(FixConvert.Integer(value)),
-			621 => new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(value)),
-			_ => custom.Text(tag, value),
-		};
-	}
 
 	// Never null, so that the one path holds here as it does in the reader.
 	static FixCustomFields Custom(FixFieldOptions? options)

@@ -219,6 +219,26 @@ public sealed class FixFieldOptions
 		return _pairs is not null && _pairs.TryGetValue(lengthTag, out var data) ? data : 0;
 	}
 
+	/// <summary>The length tag a data tag is measured by, or zero where it is not a data tag.</summary>
+	/// <remarks>
+	/// The standard's sixteen answer from the table. A consumer's pair is held the other way round,
+	/// length to data, because that is the direction the reader asks in; this walks it, which is a
+	/// handful of entries and is asked once per data field of a message rather than once per field.
+	/// </remarks>
+	internal int LengthTag(int dataTag)
+	{
+		var standard = FixSchema.LengthTag(dataTag);
+
+		if (standard != 0 || _pairs is null)
+			return standard;
+
+		foreach (var pair in _pairs)
+			if (pair.Value == dataTag)
+				return pair.Key;
+
+		return 0;
+	}
+
 	/// <summary>Whether a tag carries binary data — the standard's, or one this consumer declared.</summary>
 	internal bool IsData(int tag)
 	{

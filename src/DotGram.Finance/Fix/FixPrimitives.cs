@@ -10,10 +10,8 @@ static class FixPrimitives
 	/// so that this could parse the spelling back was a string switch on every field of every
 	/// message — work that only existed because the two halves disagreed about the currency.
 	/// </remarks>
-	public static bool Valid(FixFieldView field, FixValueType type, string[]? codes)
+	public static bool Valid(int tag, ReadOnlySpan<char> value, FixValueType type, string[]? codes)
 	{
-		var value = field.Value;
-
 		if (type == FixValueType.None) return false;
 		if (type == FixValueType.Data) return true;
 		if (value.IsEmpty)             return false;
@@ -47,7 +45,7 @@ static class FixPrimitives
 			return valid;
 
 		// IOIQty explicitly permits either a numeric quantity or a relative-size code.
-		if (field.Tag == 27 && Numeric(value, true, false))
+		if (tag == 27 && Numeric(value, true, false))
 			return true;
 
 		if (type == FixValueType.MultipleValueString)

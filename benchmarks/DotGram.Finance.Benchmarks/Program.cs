@@ -46,31 +46,6 @@ static class Program
 			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
 			return;
 		}
-		if (args.Length >= 1 && args[0] == "--validation-size")
-		{
-			FixRuleCompiled.Size(args[1..]);
-			return;
-		}
-		if (args.Length >= 1 && args[0] == "--validation-compiled")
-		{
-			FixRuleCompiled.Run(args[1..]);
-			return;
-		}
-		if (args.Length >= 1 && args[0] == "--validation-dump")
-		{
-			FixRuleDump.Run(args[1..]);
-			return;
-		}
-		if (args.Length >= 1 && args[0] == "--validation-share")
-		{
-			FixValidationBenchmarks.Share(args[1..]);
-			return;
-		}
-		if (args.Length >= 1 && args[0] == "--validation")
-		{
-			FixValidationBenchmarks.Run(args[1..]);
-			return;
-		}
 		if (args.Length == 2 && args[0] == "--fix-jit-probe")
 		{
 			FixInitializationBenchmarks.Probe(args[1] == "previous");
@@ -113,7 +88,7 @@ public class Fix44Benchmarks
 		rawBytes = Encoding.Latin1.GetBytes(raw);
 		using var orderInput = new MemoryStream(orderBytes);
 		using var rawInput = new MemoryStream(rawBytes);
-		if (FixParser.ReadMessage(orderInput).OriginalWire != order || FixParser.ReadMessage(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
+		if (FixParser.ReadMessage(orderInput).Fields.Count != FixParser.ParseMessage(order).Fields.Count || FixParser.ReadMessage(rawInput).Fields.Count != FixParser.ParseMessage(raw).Fields.Count) throw new InvalidOperationException("Input paths differ.");
 	}
 
 	[Benchmark]
