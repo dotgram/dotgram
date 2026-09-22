@@ -27,6 +27,7 @@ public sealed class FixContext
 
 	/// <summary>This schema with a dictionary loaded over it.</summary>
 	/// <param name="dictionary">A QuickFIX dictionary, or a fragment of one: the text of the file.</param>
+	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot, named for the slot with the extension <c>.el</c>; null writes nothing.</param>
 	/// <returns>A new context; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
 	/// <exception cref="FormatException">The text is not a dictionary this package can read, or names a type, a field or a block it has no class for.</exception>
@@ -42,28 +43,43 @@ public sealed class FixContext
 	/// since a venue that lists the values of a field lists all of them.
 	/// </para>
 	/// </remarks>
-	public FixContext Load(string dictionary)
+	public FixContext Load(string dictionary, string? emitTo = null)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return new FixContext { Validators = Validators.Load(FixDictionary.Parse(dictionary)) };
+		return new FixContext { Validators = Validators.Load(FixDictionary.Parse(dictionary), Emitter(emitTo)) };
 	}
 
-	/// <inheritdoc cref="Load(string)"/>
+	/// <inheritdoc cref="Load(string, string)"/>
 	/// <param name="dictionary">The dictionary's text; the reader is read and left open.</param>
-	public FixContext Load(TextReader dictionary)
+	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot; null writes nothing.</param>
+	public FixContext Load(TextReader dictionary, string? emitTo = null)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return new FixContext { Validators = Validators.Load(FixDictionary.Read(dictionary)) };
+		return new FixContext { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
 	}
 
-	/// <inheritdoc cref="Load(string)"/>
+	/// <inheritdoc cref="Load(string, string)"/>
 	/// <param name="dictionary">The dictionary's octets; the stream is read and left open.</param>
-	public FixContext Load(Stream dictionary)
+	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot; null writes nothing.</param>
+	public FixContext Load(Stream dictionary, string? emitTo = null)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return new FixContext { Validators = Validators.Load(FixDictionary.Read(dictionary)) };
+		return new FixContext { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
+	}
+
+	// The texts a load writes are the expression language's, one file a slot, so that what a
+	// dictionary was turned into can be read and kept; a check that would not compile is written
+	// before the refusal names it.
+	static Action<string, string>? Emitter(string? directory)
+	{
+		if (directory is null)
+			return null;
+
+		Directory.CreateDirectory(directory);
+
+		return (slot, text) => File.WriteAllText(Path.Combine(directory, slot + ".el"), text);
 	}
 }

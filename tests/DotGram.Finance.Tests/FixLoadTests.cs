@@ -196,6 +196,25 @@ public sealed class FixLoadTests
 		Assert.Equal(((FixMessage.NewOrderSingle)order).Parties![1].PartyID.Position, finding.Position);
 	}
 	[Fact]
+	public void What_a_load_wrote_can_be_kept_as_files()
+	{
+		var directory = Path.Combine(Path.GetTempPath(), "dotgram-fix-load-" + Guid.NewGuid().ToString("N"));
+
+		try
+		{
+			FixContext.Default.Load(LogonWantsReset, directory);
+
+			var written = Directory.GetFiles(directory, "*.el").Select(Path.GetFileName).ToArray();
+
+			Assert.Equal(["Logon.el"], written);
+			Assert.Contains("(FixContext context, FixMessage.Logon message) =>", File.ReadAllText(Path.Combine(directory, "Logon.el")), StringComparison.Ordinal);
+		}
+		finally
+		{
+			Directory.Delete(directory, true);
+		}
+	}
+	[Fact]
 	public void A_type_this_package_has_no_class_for_is_refused_by_name()
 	{
 		const string venueOnly =

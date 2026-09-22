@@ -53,9 +53,11 @@ partial class FixValidators
 
 	/// <summary>A copy of these slots with every check the dictionary describes replaced by the file's.</summary>
 	/// <exception cref="FormatException">The file describes a type, a field or a block this package has no class for.</exception>
-	internal FixValidators Load(FixDictionary dictionary)
+	internal FixValidators Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
 		var loaded = Clone();
+
+		loaded._emitted = emitted;
 
 		loaded.Unplaced = [.. Unplaced];
 
@@ -106,8 +108,13 @@ partial class FixValidators
 				Replace(loaded, Slot(name), text);
 		}
 
+		loaded._emitted = null;
+
 		return loaded;
 	}
+
+	// Where each text written from the file goes before it is compiled, for the length of one load.
+	Action<string, string>? _emitted;
 
 	static PropertyInfo Slot(string name)
 	{
@@ -124,6 +131,7 @@ partial class FixValidators
 
 	static void Replace(FixValidators into, PropertyInfo slot, string text)
 	{
+		into._emitted?.Invoke(slot.Name, text);
 		slot.SetValue(into, Compile(slot.PropertyType, text));
 	}
 
