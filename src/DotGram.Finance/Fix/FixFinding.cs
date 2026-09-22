@@ -44,19 +44,6 @@ public enum FixRule
 	MessageEncodingMissing,
 }
 
-/// <summary>Which of a message's three scopes a finding is in.</summary>
-public enum FixScope
-{
-	/// <summary>The header.</summary>
-	Header = 1,
-
-	/// <summary>The body.</summary>
-	Body,
-
-	/// <summary>The trailer.</summary>
-	Trailer,
-}
-
 /// <summary>One thing wrong with a message, and where.</summary>
 /// <remarks>
 /// <para>
@@ -71,30 +58,24 @@ public enum FixScope
 /// </para>
 /// </remarks>
 /// <param name="Rule">Which rule found it.</param>
-/// <param name="Scope">The header, the body or the trailer.</param>
-/// <param name="Tag">The tag it is about, or null where the finding is about a component or a message.</param>
-/// <param name="GroupTag">The counter tag of the group this is inside, or zero where it is not inside one.</param>
-/// <param name="EntryIndex">Which entry of that group, counting from zero, or -1 outside a group.</param>
-/// <param name="Position">Where in the source the field begins, or zero where there is no field.</param>
-/// <param name="Reason">What is wrong, in one sentence.</param>
+/// <param name="Tag">The tag it is about; zero where the finding is about the message itself.</param>
+/// <param name="Position">Where the fault is: the field it is about, or the field it was expected beside.</param>
+/// <param name="Field">The field it is about, or null where the finding is that there is none.</param>
+/// <param name="EntryIndex">Which entry of the repeating group it is in, counting from zero, or -1 outside one.</param>
 public readonly record struct FixFinding(
-	FixRule  Rule,
-	FixScope Scope,
-	int?     Tag,
-	int      GroupTag,
-	int      EntryIndex,
-	int      Position,
-	string   Reason)
+	FixRule   Rule,
+	int       Tag,
+	int       Position,
+	FixField? Field,
+	int       EntryIndex)
 {
-	/// <summary>The finding as a line: where it is, what rule, and what is wrong.</summary>
+	/// <summary>The finding as a line: what is wrong, which tag, and where.</summary>
 	public override string ToString()
 	{
-		var where = GroupTag == 0
-			? Scope.ToString()
-			: $"{Scope}/{GroupTag}[{EntryIndex}]";
+		var where = EntryIndex < 0 ? "" : $"[{EntryIndex}] ";
 
-		return Tag is { } tag
-			? $"{where} tag {tag} at {Position}: {Rule}: {Reason}"
-			: $"{where} at {Position}: {Rule}: {Reason}";
+		return Tag == 0
+			? $"{where}at {Position}: {Rule}"
+			: $"{where}tag {Tag} at {Position}: {Rule}";
 	}
 }

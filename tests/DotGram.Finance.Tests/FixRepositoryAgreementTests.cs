@@ -47,10 +47,39 @@ public sealed class FixRepositoryAgreementTests
 		return data;
 	}
 
-	// Two tests stood here: that a message asks for exactly the fields the repository marks
-	// required, and for exactly the components it does. They are the oracle the handwritten
-	// validation will be held to, and they come back with Validate(context). Required() and
-	// RequiredComponents() below are what they read, and are kept for them.
+	/// <summary>
+	/// A message of this type with nothing in it asks for exactly the fields the repository marks
+	/// required, and for no others.
+	/// </summary>
+	/// <remarks>
+	/// The two readings meet at the public call rather than over their tables: this one reads the
+	/// repository here, and the package read it when its checks were written. What this can prove
+	/// is that nothing was lost between the table and the code — which is what three hundred and
+	/// twenty-five checks across ninety-three types is most likely to lose. It cannot prove the
+	/// table is right; nothing here can.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Messages))]
+	public void A_message_asks_for_the_fields_the_repository_requires(string name, string type)
+	{
+		var message = Empty(type);
+
+		message.Validate(FixContext.Default);
+
+		var asked = (message.InvalidFindings ?? [])
+			.Where(one => one.Rule == FixRule.RequiredFieldMissing)
+			.Select(one => one.Tag)
+			.OrderBy(tag => tag)
+			.ToArray();
+
+		Assert.Equal(Required(type), asked);
+		Assert.NotNull(name);
+	}
+
+	// A second test stood here, asking for exactly the components the repository marks required —
+	// two hundred and twenty non-repeating blocks across the ninety-three types. Those are not
+	// checked yet: a component is checked once, against the type it is, and that layer is unwritten.
+	// RequiredComponents() below is what it read, and is kept for it.
 
 	/// <summary>
 	/// The type this package gives a tag is the type the repository declares for it — except where
@@ -337,7 +366,10 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var row in Rows(ComponentId(type)))
 		{
-			if (Text(row, "Reqd") != "1")
+			// What the message itself requires. A row deeper than that is a requirement of the
+			// component it sits in, and is asked of that component rather than of every type that
+			// carries it.
+			if (Text(row, "Reqd") != "1" || Text(row, "Indent") != "0")
 				continue;
 
 			var text = Text(row, "TagText");
