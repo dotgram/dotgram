@@ -9279,9 +9279,15 @@ identity of it — and the message is what the consumer would have to re-attach.
 What was dropped and why, all four bought by Igor reading the type and asking what each field was
 for:
 
-- `Position` — `FixField` has carried `Position`, `Length` and `ValuePosition` since it was
-  written. A finding that holds the field holds them, and the value with them, which is what an
-  `InvalidValue` finding wants to show.
+- `Position` — as stored state. `FixField` has carried `Position`, `Length` and `ValuePosition`
+  since it was written, and a finding that holds the field holds them, and the value with them,
+  which is what an `InvalidValue` finding wants to show. Igor objected that a nullable `Field`
+  then makes the position cost a null check, which is true; it comes back as a computed member,
+  `public int Position => Field?.Position ?? 0`, so the call site is unchanged and nothing is
+  stored. A stored field would have had nothing to put in it in exactly the three cases where
+  `Field` is null: an absent field has no position, and the message's own start is no answer
+  either — `FixMessages.Streaming.cs` cuts the input into frames and parses each message from its
+  own, so every message begins at zero.
 - `GroupTag` — derivable. We established by exhaustive check that **no tag belongs to two scopes
   within any of the ninety-three messages**, so the tag names the group. `EntryIndex` does not
   follow from anything and stays.
@@ -9321,6 +9327,11 @@ Their `validate` flag is **framing only**; every schema check lives in the separ
 first fault. Two readings for us: the split we have is the split they have, so **no parse-time
 validation flag is needed** — their flag covers what we refuse unconditionally anyway — and the
 list of findings against their one exception is where we are better, which is worth its cost.
+
+**A finding cannot locate its message in a log, and nothing here changes that.** Positions are
+within a message, because streaming parses each from its own frame, and no message carries the
+offset it was read from. That is a question for the message, not for the finding, and it is not
+answered here.
 
 **What is not decided:** how the factories are arranged, and therefore whether `FixField.Custom`
 survives at all. As Igor describes them — the consumer's factory accepts and builds, or the base
