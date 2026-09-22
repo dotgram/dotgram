@@ -1105,7 +1105,14 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
 
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -1122,7 +1129,14 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
 
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -1519,7 +1533,14 @@ public abstract partial class FixMessage
 							InstrmtLegIOIGrp![^1].LegIOIQty = (FixField.LegIOIQty)field;
 						break;
 
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegIOIGrp is null || InstrmtLegIOIGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegIOIGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegIOIGrp!.Count - 1));
+						else
+							InstrmtLegIOIGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegIOIGrp is null || InstrmtLegIOIGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -1536,7 +1557,14 @@ public abstract partial class FixMessage
 							InstrmtLegIOIGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (InstrmtLegIOIGrp is null || InstrmtLegIOIGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegIOIGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegIOIGrp!.Count - 1));
+						else
+							InstrmtLegIOIGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (InstrmtLegIOIGrp is null || InstrmtLegIOIGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -1957,18 +1985,10 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegIOIGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
 		/// <summary>The FIX NoIOIQualifiers, tag 199; how many entries of IOIQualGrp follow.</summary>
 		public FixField.NoIOIQualifiers?            NoIOIQualifiers            { get; private set; }
 		/// <summary>The FIX NoRoutingIDs, tag 215; how many entries of RoutingGrp follow.</summary>
@@ -2407,7 +2427,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -2776,7 +2803,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -2791,7 +2825,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -3070,15 +3111,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -3323,7 +3357,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -3762,7 +3803,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -3777,7 +3825,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -4214,7 +4269,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegExecGrp![^1].LegLastPx = (FixField.LegLastPx)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegExecGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegExecGrp!.Count - 1));
+						else
+							InstrmtLegExecGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -4229,7 +4291,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegExecGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegExecGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegExecGrp!.Count - 1));
+						else
+							InstrmtLegExecGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -4244,7 +4313,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegExecGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegExecGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegExecGrp!.Count - 1));
+						else
+							InstrmtLegExecGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -4267,7 +4343,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegExecGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0 || InstrmtLegExecGrp![^1].NestedParties is null || InstrmtLegExecGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegExecGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegExecGrp![^1].NestedParties!.Count - 1));
+						else
+							InstrmtLegExecGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (InstrmtLegExecGrp is null || InstrmtLegExecGrp.Count == 0 || InstrmtLegExecGrp![^1].NestedParties is null || InstrmtLegExecGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -5192,8 +5275,6 @@ public abstract partial class FixMessage
 		public List<MiscFeesGrp>?                   MiscFeesGrp                { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoContraBrokers, tag 382; how many entries of ContraGrp follow.</summary>
 		public FixField.NoContraBrokers?            NoContraBrokers            { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -5202,24 +5283,12 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoContAmts, tag 518; how many entries of ContAmtGrp follow.</summary>
 		public FixField.NoContAmts?                 NoContAmts                 { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegExecGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
 		public FixField.NoMiscFees?                 NoMiscFees                 { get; private set; }
 
@@ -5806,7 +5875,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtGrp![^1].InterestAccrualDate = (FixField.InterestAccrualDate)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtGrp!.Count - 1));
+						else
+							InstrmtGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -5821,7 +5897,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtGrp!.Count - 1));
+						else
+							InstrmtGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -6174,7 +6257,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -6543,7 +6633,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -6558,7 +6655,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -6657,20 +6761,10 @@ public abstract partial class FixMessage
 		public FixField.NoRoutingIDs?              NoRoutingIDs              { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of InstrmtGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
 		/// <summary>The FIX NoLinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
 		public FixField.NoLinesOfText?             NoLinesOfText             { get; private set; }
 
@@ -7033,7 +7127,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtGrp![^1].InterestAccrualDate = (FixField.InterestAccrualDate)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtGrp!.Count - 1));
+						else
+							InstrmtGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -7048,7 +7149,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtGrp!.Count - 1));
+						else
+							InstrmtGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (InstrmtGrp is null || InstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -7433,7 +7541,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -7448,7 +7563,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -7785,7 +7907,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -7892,20 +8021,10 @@ public abstract partial class FixMessage
 		public FixField.NoRoutingIDs?              NoRoutingIDs              { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of InstrmtGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
 		/// <summary>The FIX NoLinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
 		public FixField.NoLinesOfText?             NoLinesOfText             { get; private set; }
 
@@ -8093,7 +8212,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -8142,7 +8268,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PreAllocGrp is null || PreAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocGrp!.Count - 1));
+						else
+							PreAllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PreAllocGrp is null || PreAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -8165,7 +8298,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PreAllocGrp is null || PreAllocGrp.Count == 0 || PreAllocGrp![^1].NestedParties is null || PreAllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocGrp![^1].NestedParties!.Count - 1));
+						else
+							PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PreAllocGrp is null || PreAllocGrp.Count == 0 || PreAllocGrp![^1].NestedParties is null || PreAllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -8580,7 +8720,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -8595,7 +8742,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -9256,14 +9410,8 @@ public abstract partial class FixMessage
 		public FixField.Designation?                Designation                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -9272,10 +9420,6 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 
@@ -10428,7 +10572,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].Designation = (FixField.Designation)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10451,7 +10602,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].Parties is null || ListOrdGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp![^1].Parties!.Count - 1));
+						else
+							ListOrdGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].Parties is null || ListOrdGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10466,7 +10624,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
-					case  78: NoAllocs = (FixField.NoAllocs)field; break;
+					case 78:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoAllocs = (FixField.NoAllocs)field;
+						break;
 					case  79:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10505,7 +10670,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].PreAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].PreAllocGrp is null || ListOrdGrp![^1].PreAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp![^1].PreAllocGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].PreAllocGrp is null || ListOrdGrp![^1].PreAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10528,7 +10700,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].PreAllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].PreAllocGrp is null || ListOrdGrp![^1].PreAllocGrp!.Count == 0 || ListOrdGrp![^1].PreAllocGrp![^1].NestedParties is null || ListOrdGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp![^1].PreAllocGrp![^1].NestedParties!.Count - 1));
+						else
+							ListOrdGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].PreAllocGrp is null || ListOrdGrp![^1].PreAllocGrp!.Count == 0 || ListOrdGrp![^1].PreAllocGrp![^1].NestedParties is null || ListOrdGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10543,7 +10722,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].PreAllocGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
-					case 386: NoTradingSessions = (FixField.NoTradingSessions)field; break;
+					case 386:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoTradingSessions is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoTradingSessions = (FixField.NoTradingSessions)field;
+						break;
 					case 336:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10558,7 +10744,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].TrdgSesGrp![^1].TradingSessionSubID = (FixField.TradingSessionSubID)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10573,7 +10766,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10604,7 +10804,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10963,7 +11170,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].UndInstrmtGrp is null || ListOrdGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].UndInstrmtGrp is null || ListOrdGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10978,7 +11192,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].UndInstrmtGrp is null || ListOrdGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0 || ListOrdGrp![^1].UndInstrmtGrp is null || ListOrdGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -10993,7 +11214,14 @@ public abstract partial class FixMessage
 						else
 							ListOrdGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 232: NoStipulations = (FixField.NoStipulations)field; break;
+					case 232:
+						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (ListOrdGrp![^1].NoStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
+						else
+							ListOrdGrp![^1].NoStipulations = (FixField.NoStipulations)field;
+						break;
 					case 233:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -11096,31 +11324,6 @@ public abstract partial class FixMessage
 		public List<ListOrdGrp>?                    ListOrdGrp                 { get; internal set; }
 		/// <summary>The FIX NoOrders, tag 73; how many entries of ListOrdGrp follow.</summary>
 		public FixField.NoOrders?                   NoOrders                   { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
-		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocGrp follow.</summary>
-		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
-		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                   NoEvents                   { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
-		public FixField.NoStipulations?             NoStipulations             { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -11227,7 +11430,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -11632,7 +11842,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -11647,7 +11864,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -11974,19 +12198,12 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -12172,7 +12389,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -12221,7 +12445,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PreAllocGrp is null || PreAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocGrp!.Count - 1));
+						else
+							PreAllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PreAllocGrp is null || PreAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -12244,7 +12475,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PreAllocGrp is null || PreAllocGrp.Count == 0 || PreAllocGrp![^1].NestedParties is null || PreAllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocGrp![^1].NestedParties!.Count - 1));
+						else
+							PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PreAllocGrp is null || PreAllocGrp.Count == 0 || PreAllocGrp![^1].NestedParties is null || PreAllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -12659,7 +12897,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -12674,7 +12919,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -13321,14 +13573,8 @@ public abstract partial class FixMessage
 		public FixField.Designation?                Designation                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -13337,11 +13583,6 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -13436,7 +13677,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -13841,7 +14089,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -13856,7 +14111,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -14131,19 +14393,12 @@ public abstract partial class FixMessage
 		public FixField.Side?                       Side                       { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -14337,7 +14592,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].OrderBookingQty = (FixField.OrderBookingQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp!.Count - 1));
+						else
+							OrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -14360,7 +14622,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -14817,7 +15086,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -14832,7 +15108,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15169,7 +15452,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15202,7 +15492,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15469,7 +15766,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].StandInstDbID = (FixField.StandInstDbID)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15492,7 +15796,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].NestedParties is null || AllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].NestedParties!.Count - 1));
+						else
+							AllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].NestedParties is null || AllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15507,7 +15818,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
-					case 136: NoMiscFees = (FixField.NoMiscFees)field; break;
+					case 136:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoMiscFees is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoMiscFees = (FixField.NoMiscFees)field;
+						break;
 					case 137:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15538,14 +15856,28 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].MiscFeesGrp![^1].MiscFeeBasis = (FixField.MiscFeeBasis)field;
 						break;
-					case 576: NoClearingInstructions = (FixField.NoClearingInstructions)field; break;
+					case 576:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoClearingInstructions is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoClearingInstructions = (FixField.NoClearingInstructions)field;
+						break;
 					case 577:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else
 							(AllocGrp![^1].ClrInstGrp ??= []).Add(new () { ClearingInstruction = (FixField.ClearingInstruction)field });
 						break;
-					case  85: NoDlvyInst = (FixField.NoDlvyInst)field; break;
+					case 85:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoDlvyInst is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoDlvyInst = (FixField.NoDlvyInst)field;
+						break;
 					case 165:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15560,7 +15892,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].DlvyInstGrp!.Count - 1));
+						else
+							AllocGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -15583,7 +15922,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0 || AllocGrp![^1].DlvyInstGrp![^1].SettlParties is null || AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0 || AllocGrp![^1].DlvyInstGrp![^1].SettlParties is null || AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -16126,43 +16472,16 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of AllocGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
-		public FixField.NoMiscFees?                 NoMiscFees                 { get; private set; }
-		/// <summary>The FIX NoClearingInstructions, tag 576; how many entries of ClrInstGrp follow.</summary>
-		public FixField.NoClearingInstructions?     NoClearingInstructions     { get; private set; }
-		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
-		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
 		/// <summary>The FIX NoOrders, tag 73; how many entries of OrdAllocGrp follow.</summary>
 		public FixField.NoOrders?                   NoOrders                   { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -16567,7 +16886,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -16716,8 +17042,6 @@ public abstract partial class FixMessage
 		public List<AllocAckGrp>?             AllocAckGrp          { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?           NoPartyIDs           { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?        NoPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of AllocAckGrp follow.</summary>
 		public FixField.NoAllocs?             NoAllocs             { get; private set; }
 
@@ -17185,7 +17509,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -17200,7 +17531,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -17537,7 +17875,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -17808,15 +18153,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -18580,7 +18918,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].YieldRedemptionPriceType = (FixField.YieldRedemptionPriceType)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -18595,7 +18940,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -18626,7 +18978,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -18985,7 +19344,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].UndInstrmtGrp is null || QuotReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].UndInstrmtGrp is null || QuotReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19000,7 +19366,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].UndInstrmtGrp is null || QuotReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].UndInstrmtGrp is null || QuotReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19015,7 +19388,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 232: NoStipulations = (FixField.NoStipulations)field; break;
+					case 232:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoStipulations = (FixField.NoStipulations)field;
+						break;
 					case 233:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19030,7 +19410,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19429,7 +19816,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].QuotReqLegsGrp![^1].LegBenchmarkPriceType = (FixField.LegBenchmarkPriceType)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].QuotReqLegsGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].QuotReqLegsGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19444,7 +19838,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].QuotReqLegsGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].QuotReqLegsGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].QuotReqLegsGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19459,7 +19860,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].QuotReqLegsGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].QuotReqLegsGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].QuotReqLegsGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19482,7 +19890,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties is null || QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count - 1));
+						else
+							QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp is null || QuotReqGrp![^1].QuotReqLegsGrp!.Count == 0 || QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties is null || QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19497,14 +19912,28 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
-					case 735: NoQuoteQualifiers = (FixField.NoQuoteQualifiers)field; break;
+					case 735:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoQuoteQualifiers is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoQuoteQualifiers = (FixField.NoQuoteQualifiers)field;
+						break;
 					case 695:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else
 							(QuotReqGrp![^1].QuotQualGrp ??= []).Add(new () { QuoteQualifier = (FixField.QuoteQualifier)field });
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp!.Count - 1));
+						else
+							QuotReqGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19527,7 +19956,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].Parties is null || QuotReqGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqGrp![^1].Parties!.Count - 1));
+						else
+							QuotReqGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (QuotReqGrp is null || QuotReqGrp.Count == 0 || QuotReqGrp![^1].Parties is null || QuotReqGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -19586,35 +20022,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?               EncodedText               { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of QuotReqGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
-		public FixField.NoStipulations?            NoStipulations            { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of QuotReqLegsGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?         NoLegStipulations         { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?          NoNestedPartyIDs          { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?       NoNestedPartySubIDs       { get; private set; }
-		/// <summary>The FIX NoQuoteQualifiers, tag 735; how many entries of QuotQualGrp follow.</summary>
-		public FixField.NoQuoteQualifiers?         NoQuoteQualifiers         { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                NoPartyIDs                { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?             NoPartySubIDs             { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -19771,7 +20178,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20176,7 +20590,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20191,7 +20612,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20634,7 +21062,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegBenchmarkPriceType = (FixField.LegBenchmarkPriceType)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20649,7 +21084,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20664,7 +21106,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -20687,7 +21136,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0 || LegQuotGrp![^1].NestedParties is null || LegQuotGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp![^1].NestedParties!.Count - 1));
+						else
+							LegQuotGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0 || LegQuotGrp![^1].NestedParties is null || LegQuotGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21216,31 +21672,16 @@ public abstract partial class FixMessage
 		public FixField.NoQuoteQualifiers?          NoQuoteQualifiers          { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of LegQuotGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -21446,7 +21887,14 @@ public abstract partial class FixMessage
 						else
 							SettlInstGrp![^1].PaymentRemitterID = (FixField.PaymentRemitterID)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (SettlInstGrp is null || SettlInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SettlInstGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SettlInstGrp!.Count - 1));
+						else
+							SettlInstGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (SettlInstGrp is null || SettlInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21469,7 +21917,14 @@ public abstract partial class FixMessage
 						else
 							SettlInstGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].Parties is null || SettlInstGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SettlInstGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SettlInstGrp![^1].Parties!.Count - 1));
+						else
+							SettlInstGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].Parties is null || SettlInstGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21484,7 +21939,14 @@ public abstract partial class FixMessage
 						else
 							SettlInstGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
-					case  85: NoDlvyInst = (FixField.NoDlvyInst)field; break;
+					case 85:
+						if (SettlInstGrp is null || SettlInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SettlInstGrp![^1].NoDlvyInst is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SettlInstGrp!.Count - 1));
+						else
+							SettlInstGrp![^1].NoDlvyInst = (FixField.NoDlvyInst)field;
+						break;
 					case 165:
 						if (SettlInstGrp is null || SettlInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21499,7 +21961,14 @@ public abstract partial class FixMessage
 						else
 							SettlInstGrp![^1].DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].DlvyInstGrp is null || SettlInstGrp![^1].DlvyInstGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SettlInstGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SettlInstGrp![^1].DlvyInstGrp!.Count - 1));
+						else
+							SettlInstGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].DlvyInstGrp is null || SettlInstGrp![^1].DlvyInstGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21522,7 +21991,14 @@ public abstract partial class FixMessage
 						else
 							SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].DlvyInstGrp is null || SettlInstGrp![^1].DlvyInstGrp!.Count == 0 || SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties is null || SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (SettlInstGrp is null || SettlInstGrp.Count == 0 || SettlInstGrp![^1].DlvyInstGrp is null || SettlInstGrp![^1].DlvyInstGrp!.Count == 0 || SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties is null || SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21589,17 +22065,6 @@ public abstract partial class FixMessage
 		public List<SettlInstGrp>?           SettlInstGrp        { get; internal set; }
 		/// <summary>The FIX NoSettlInst, tag 778; how many entries of SettlInstGrp follow.</summary>
 		public FixField.NoSettlInst?         NoSettlInst         { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?          NoPartyIDs          { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?       NoPartySubIDs       { get; private set; }
-		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
-		public FixField.NoDlvyInst?          NoDlvyInst          { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?     NoSettlPartyIDs     { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?  NoSettlPartySubIDs  { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -21952,7 +22417,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].InterestAccrualDate = (FixField.InterestAccrualDate)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21967,7 +22439,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -21998,7 +22477,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -22357,7 +22843,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].UndInstrmtGrp is null || InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].UndInstrmtGrp is null || InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -22372,7 +22865,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].UndInstrmtGrp is null || InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].UndInstrmtGrp is null || InstrmtMDReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -22387,7 +22887,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -22714,7 +23221,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtMDReqGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].InstrmtLegGrp is null || InstrmtMDReqGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtMDReqGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtMDReqGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtMDReqGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtMDReqGrp is null || InstrmtMDReqGrp.Count == 0 || InstrmtMDReqGrp![^1].InstrmtLegGrp is null || InstrmtMDReqGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -22805,20 +23319,6 @@ public abstract partial class FixMessage
 		public FixField.NoMDEntryTypes?            NoMDEntryTypes            { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of InstrmtMDReqGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?         NoTradingSessions         { get; private set; }
 
@@ -23277,7 +23777,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -23292,7 +23799,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -23629,7 +24143,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -24126,14 +24647,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoMDEntries, tag 268; how many entries of MDFullGrp follow.</summary>
 		public FixField.NoMDEntries?                NoMDEntries                { get; private set; }
 
@@ -24800,7 +25315,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (MDIncGrp is null || MDIncGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp!.Count - 1));
+						else
+							MDIncGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (MDIncGrp is null || MDIncGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -24815,7 +25337,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (MDIncGrp is null || MDIncGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp!.Count - 1));
+						else
+							MDIncGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (MDIncGrp is null || MDIncGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -24846,7 +25375,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (MDIncGrp is null || MDIncGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp!.Count - 1));
+						else
+							MDIncGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (MDIncGrp is null || MDIncGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -25205,7 +25741,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].UndInstrmtGrp is null || MDIncGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							MDIncGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].UndInstrmtGrp is null || MDIncGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -25220,7 +25763,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].UndInstrmtGrp is null || MDIncGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							MDIncGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].UndInstrmtGrp is null || MDIncGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -25235,7 +25785,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (MDIncGrp is null || MDIncGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp!.Count - 1));
+						else
+							MDIncGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (MDIncGrp is null || MDIncGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -25562,7 +26119,14 @@ public abstract partial class FixMessage
 						else
 							MDIncGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].InstrmtLegGrp is null || MDIncGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (MDIncGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, MDIncGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							MDIncGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (MDIncGrp is null || MDIncGrp.Count == 0 || MDIncGrp![^1].InstrmtLegGrp is null || MDIncGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -25605,21 +26169,6 @@ public abstract partial class FixMessage
 		public FixField.ApplQueueResolution?       ApplQueueResolution       { get; private set; }
 		/// <summary>The FIX NoMDEntries, tag 268; how many entries of MDIncGrp follow.</summary>
 		public FixField.NoMDEntries?               NoMDEntries               { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -25727,7 +26276,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26136,7 +26692,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].MarginRatio = (FixField.MarginRatio)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26151,7 +26714,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26182,7 +26752,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26541,7 +27118,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].UndInstrmtGrp is null || QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].UndInstrmtGrp is null || QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26556,7 +27140,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].UndInstrmtGrp is null || QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].UndInstrmtGrp is null || QuotCxlEntriesGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26571,7 +27162,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26898,7 +27496,14 @@ public abstract partial class FixMessage
 						else
 							QuotCxlEntriesGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].InstrmtLegGrp is null || QuotCxlEntriesGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotCxlEntriesGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotCxlEntriesGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							QuotCxlEntriesGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (QuotCxlEntriesGrp is null || QuotCxlEntriesGrp.Count == 0 || QuotCxlEntriesGrp![^1].InstrmtLegGrp is null || QuotCxlEntriesGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -26969,25 +27574,8 @@ public abstract partial class FixMessage
 		public List<QuotCxlEntriesGrp>?            QuotCxlEntriesGrp         { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                NoPartyIDs                { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?             NoPartySubIDs             { get; private set; }
 		/// <summary>The FIX NoQuoteEntries, tag 295; how many entries of QuotCxlEntriesGrp follow.</summary>
 		public FixField.NoQuoteEntries?            NoQuoteEntries            { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -27454,7 +28042,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -27469,7 +28064,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -27806,7 +28408,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -27839,7 +28448,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -28122,19 +28738,10 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -28183,7 +28790,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -28576,7 +29190,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].LastFragment = (FixField.LastFragment)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -28591,7 +29212,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -28606,7 +29234,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 295: NoQuoteEntries = (FixField.NoQuoteEntries)field; break;
+					case 295:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].NoQuoteEntries is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].NoQuoteEntries = (FixField.NoQuoteEntries)field;
+						break;
 					case 299:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -29133,7 +29768,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].QuoteEntryRejectReason = (FixField.QuoteEntryRejectReason)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp![^1].QuotEntryAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -29148,7 +29790,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp![^1].QuotEntryAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -29179,7 +29828,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp![^1].QuotEntryAckGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -29506,7 +30162,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (QuotSetAckGrp is null || QuotSetAckGrp.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp!.Count == 0 || QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp is null || QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -29589,25 +30252,8 @@ public abstract partial class FixMessage
 		public List<QuotSetAckGrp>?                QuotSetAckGrp             { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                NoPartyIDs                { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?             NoPartySubIDs             { get; private set; }
 		/// <summary>The FIX NoQuoteSets, tag 296; how many entries of QuotSetAckGrp follow.</summary>
 		public FixField.NoQuoteSets?               NoQuoteSets               { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoQuoteEntries, tag 295; how many entries of QuotEntryAckGrp follow.</summary>
-		public FixField.NoQuoteEntries?            NoQuoteEntries            { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -30079,7 +30725,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -30094,7 +30747,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -30431,7 +31091,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -30696,15 +31363,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -31178,7 +31838,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -31193,7 +31860,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -31530,7 +32204,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -31803,15 +32484,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -32278,7 +32952,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -32293,7 +32974,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -32630,7 +33318,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -32875,15 +33570,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -33366,7 +34054,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -33381,7 +34076,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -33718,7 +34420,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -34027,15 +34736,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -34252,7 +34954,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -34653,7 +35362,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].LastFragment = (FixField.LastFragment)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -34668,7 +35384,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -34683,7 +35406,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 295: NoQuoteEntries = (FixField.NoQuoteEntries)field; break;
+					case 295:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].NoQuoteEntries is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].NoQuoteEntries = (FixField.NoQuoteEntries)field;
+						break;
 					case 299:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -35202,7 +35932,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].QuotEntryGrp![^1].Currency = (FixField.Currency)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].QuotEntryGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp![^1].QuotEntryGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].QuotEntryGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -35217,7 +35954,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].QuotEntryGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].QuotEntryGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp![^1].QuotEntryGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].QuotEntryGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -35248,7 +35992,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].QuotEntryGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].QuotEntryGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp![^1].QuotEntryGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].QuotEntryGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -35575,7 +36326,14 @@ public abstract partial class FixMessage
 						else
 							QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0 || QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp is null || QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (QuotSetGrp is null || QuotSetGrp.Count == 0 || QuotSetGrp![^1].QuotEntryGrp is null || QuotSetGrp![^1].QuotEntryGrp!.Count == 0 || QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp is null || QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -35646,25 +36404,8 @@ public abstract partial class FixMessage
 		public List<QuotSetGrp>?                   QuotSetGrp                { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                NoPartyIDs                { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?             NoPartySubIDs             { get; private set; }
 		/// <summary>The FIX NoQuoteSets, tag 296; how many entries of QuotSetGrp follow.</summary>
 		public FixField.NoQuoteSets?               NoQuoteSets               { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoQuoteEntries, tag 295; how many entries of QuotEntryGrp follow.</summary>
-		public FixField.NoQuoteEntries?            NoQuoteEntries            { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -36578,7 +37319,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtStrkPxGrp![^1].InterestAccrualDate = (FixField.InterestAccrualDate)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (InstrmtStrkPxGrp is null || InstrmtStrkPxGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtStrkPxGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtStrkPxGrp!.Count - 1));
+						else
+							InstrmtStrkPxGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (InstrmtStrkPxGrp is null || InstrmtStrkPxGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -36593,7 +37341,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtStrkPxGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (InstrmtStrkPxGrp is null || InstrmtStrkPxGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtStrkPxGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtStrkPxGrp!.Count - 1));
+						else
+							InstrmtStrkPxGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (InstrmtStrkPxGrp is null || InstrmtStrkPxGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37050,7 +37805,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtStrkPxGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtStrkPxGrp is null || UndInstrmtStrkPxGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtStrkPxGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtStrkPxGrp!.Count - 1));
+						else
+							UndInstrmtStrkPxGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtStrkPxGrp is null || UndInstrmtStrkPxGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37065,7 +37827,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtStrkPxGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtStrkPxGrp is null || UndInstrmtStrkPxGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtStrkPxGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtStrkPxGrp!.Count - 1));
+						else
+							UndInstrmtStrkPxGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtStrkPxGrp is null || UndInstrmtStrkPxGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37112,17 +37881,8 @@ public abstract partial class FixMessage
 		public List<UndInstrmtStrkPxGrp>?          UndInstrmtStrkPxGrp       { get; internal set; }
 		/// <summary>The FIX NoStrikes, tag 428; how many entries of InstrmtStrkPxGrp follow.</summary>
 		public FixField.NoStrikes?                 NoStrikes                 { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtStrkPxGrp follow.</summary>
 		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -37188,7 +37948,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37253,7 +38020,14 @@ public abstract partial class FixMessage
 						else
 							RgstDtlsGrp![^1].InvestorCountryOfResidence = (FixField.InvestorCountryOfResidence)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (RgstDtlsGrp is null || RgstDtlsGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RgstDtlsGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RgstDtlsGrp!.Count - 1));
+						else
+							RgstDtlsGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (RgstDtlsGrp is null || RgstDtlsGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37276,7 +38050,14 @@ public abstract partial class FixMessage
 						else
 							RgstDtlsGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (RgstDtlsGrp is null || RgstDtlsGrp.Count == 0 || RgstDtlsGrp![^1].NestedParties is null || RgstDtlsGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RgstDtlsGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RgstDtlsGrp![^1].NestedParties!.Count - 1));
+						else
+							RgstDtlsGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (RgstDtlsGrp is null || RgstDtlsGrp.Count == 0 || RgstDtlsGrp![^1].NestedParties is null || RgstDtlsGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37409,14 +38190,8 @@ public abstract partial class FixMessage
 		public List<RgstDistInstGrp>?        RgstDistInstGrp     { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?          NoPartyIDs          { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?       NoPartySubIDs       { get; private set; }
 		/// <summary>The FIX NoRegistDtls, tag 473; how many entries of RgstDtlsGrp follow.</summary>
 		public FixField.NoRegistDtls?        NoRegistDtls        { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?    NoNestedPartyIDs    { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs? NoNestedPartySubIDs { get; private set; }
 		/// <summary>The FIX NoDistribInsts, tag 510; how many entries of RgstDistInstGrp follow.</summary>
 		public FixField.NoDistribInsts?      NoDistribInsts      { get; private set; }
 
@@ -37465,7 +38240,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -37532,9 +38314,6 @@ public abstract partial class FixMessage
 		public FixField.RegistRejReasonText? RegistRejReasonText { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?          NoPartyIDs          { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?       NoPartySubIDs       { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -39181,7 +39960,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].SideComplianceID = (FixField.SideComplianceID)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39204,7 +39990,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].Parties is null || SideCrossOrdModGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].Parties!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].Parties is null || SideCrossOrdModGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39219,7 +40012,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
-					case  78: NoAllocs = (FixField.NoAllocs)field; break;
+					case 78:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].NoAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].NoAllocs = (FixField.NoAllocs)field;
+						break;
 					case  79:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39258,7 +40058,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].PreAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].PreAllocGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39281,7 +40088,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties is null || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties is null || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39686,7 +40500,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -39701,7 +40522,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -40038,7 +40866,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -40525,30 +41360,14 @@ public abstract partial class FixMessage
 		public FixField.Designation?                Designation                { get; private set; }
 		/// <summary>The FIX NoSides, tag 552; how many entries of SideCrossOrdModGrp follow.</summary>
 		public FixField.NoSides?                    NoSides                    { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
-		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocGrp follow.</summary>
-		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
@@ -40975,7 +41794,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].SideComplianceID = (FixField.SideComplianceID)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -40998,7 +41824,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].Parties is null || SideCrossOrdModGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].Parties!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].Parties is null || SideCrossOrdModGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41013,7 +41846,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
-					case  78: NoAllocs = (FixField.NoAllocs)field; break;
+					case 78:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].NoAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].NoAllocs = (FixField.NoAllocs)field;
+						break;
 					case  79:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41052,7 +41892,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].PreAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].PreAllocGrp!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41075,7 +41922,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties is null || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count - 1));
+						else
+							SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (SideCrossOrdModGrp is null || SideCrossOrdModGrp.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp is null || SideCrossOrdModGrp![^1].PreAllocGrp!.Count == 0 || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties is null || SideCrossOrdModGrp![^1].PreAllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41480,7 +42334,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41495,7 +42356,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -41832,7 +42700,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -42327,30 +43202,14 @@ public abstract partial class FixMessage
 		public FixField.Designation?                Designation                { get; private set; }
 		/// <summary>The FIX NoSides, tag 552; how many entries of SideCrossOrdModGrp follow.</summary>
 		public FixField.NoSides?                    NoSides                    { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
-		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocGrp follow.</summary>
-		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
@@ -42551,7 +43410,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdCxlGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (SideCrossOrdCxlGrp is null || SideCrossOrdCxlGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdCxlGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdCxlGrp!.Count - 1));
+						else
+							SideCrossOrdCxlGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (SideCrossOrdCxlGrp is null || SideCrossOrdCxlGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -42574,7 +43440,14 @@ public abstract partial class FixMessage
 						else
 							SideCrossOrdCxlGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (SideCrossOrdCxlGrp is null || SideCrossOrdCxlGrp.Count == 0 || SideCrossOrdCxlGrp![^1].Parties is null || SideCrossOrdCxlGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SideCrossOrdCxlGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SideCrossOrdCxlGrp![^1].Parties!.Count - 1));
+						else
+							SideCrossOrdCxlGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (SideCrossOrdCxlGrp is null || SideCrossOrdCxlGrp.Count == 0 || SideCrossOrdCxlGrp![^1].Parties is null || SideCrossOrdCxlGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -42979,7 +43852,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -42994,7 +43874,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -43331,7 +44218,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -43566,25 +44460,14 @@ public abstract partial class FixMessage
 		public FixField.TransactTime?               TransactTime               { get; private set; }
 		/// <summary>The FIX NoSides, tag 552; how many entries of SideCrossOrdCxlGrp follow.</summary>
 		public FixField.NoSides?                    NoSides                    { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -44253,7 +45136,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -44268,7 +45158,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -44605,7 +45502,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -44902,15 +45806,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -45528,7 +46425,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45543,7 +46447,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45574,7 +46485,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 870: NoInstrAttrib = (FixField.NoInstrAttrib)field; break;
+					case 870:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoInstrAttrib is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoInstrAttrib = (FixField.NoInstrAttrib)field;
+						break;
 					case 871:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45589,7 +46507,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].AttrbGrp![^1].InstrAttribValue = (FixField.InstrAttribValue)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45948,7 +46873,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].UndInstrmtGrp is null || SecListGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							SecListGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].UndInstrmtGrp is null || SecListGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45963,7 +46895,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].UndInstrmtGrp is null || SecListGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							SecListGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].UndInstrmtGrp is null || SecListGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45978,7 +46917,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 232: NoStipulations = (FixField.NoStipulations)field; break;
+					case 232:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoStipulations = (FixField.NoStipulations)field;
+						break;
 					case 233:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -45993,7 +46939,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (SecListGrp is null || SecListGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (SecListGrp is null || SecListGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -46376,7 +47329,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].InstrmtLegSecListGrp![^1].LegBenchmarkPriceType = (FixField.LegBenchmarkPriceType)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].InstrmtLegSecListGrp is null || SecListGrp![^1].InstrmtLegSecListGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].InstrmtLegSecListGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp![^1].InstrmtLegSecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].InstrmtLegSecListGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].InstrmtLegSecListGrp is null || SecListGrp![^1].InstrmtLegSecListGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -46391,7 +47351,14 @@ public abstract partial class FixMessage
 						else
 							SecListGrp![^1].InstrmtLegSecListGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].InstrmtLegSecListGrp is null || SecListGrp![^1].InstrmtLegSecListGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (SecListGrp![^1].InstrmtLegSecListGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, SecListGrp![^1].InstrmtLegSecListGrp!.Count - 1));
+						else
+							SecListGrp![^1].InstrmtLegSecListGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (SecListGrp is null || SecListGrp.Count == 0 || SecListGrp![^1].InstrmtLegSecListGrp is null || SecListGrp![^1].InstrmtLegSecListGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -46442,27 +47409,6 @@ public abstract partial class FixMessage
 		public List<SecListGrp>?                   SecListGrp                { get; internal set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of SecListGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoInstrAttrib, tag 870; how many entries of AttrbGrp follow.</summary>
-		public FixField.NoInstrAttrib?             NoInstrAttrib             { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
-		public FixField.NoStipulations?            NoStipulations            { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegSecListGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?         NoLegStipulations         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -47281,7 +48227,14 @@ public abstract partial class FixMessage
 						else
 							RelSymDerivSecGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RelSymDerivSecGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RelSymDerivSecGrp!.Count - 1));
+						else
+							RelSymDerivSecGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -47296,7 +48249,14 @@ public abstract partial class FixMessage
 						else
 							RelSymDerivSecGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RelSymDerivSecGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RelSymDerivSecGrp!.Count - 1));
+						else
+							RelSymDerivSecGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -47327,7 +48287,14 @@ public abstract partial class FixMessage
 						else
 							RelSymDerivSecGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 870: NoInstrAttrib = (FixField.NoInstrAttrib)field; break;
+					case 870:
+						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RelSymDerivSecGrp![^1].NoInstrAttrib is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RelSymDerivSecGrp!.Count - 1));
+						else
+							RelSymDerivSecGrp![^1].NoInstrAttrib = (FixField.NoInstrAttrib)field;
+						break;
 					case 871:
 						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -47342,7 +48309,14 @@ public abstract partial class FixMessage
 						else
 							RelSymDerivSecGrp![^1].AttrbGrp![^1].InstrAttribValue = (FixField.InstrAttribValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RelSymDerivSecGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RelSymDerivSecGrp!.Count - 1));
+						else
+							RelSymDerivSecGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -47669,7 +48643,14 @@ public abstract partial class FixMessage
 						else
 							RelSymDerivSecGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0 || RelSymDerivSecGrp![^1].InstrmtLegGrp is null || RelSymDerivSecGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RelSymDerivSecGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RelSymDerivSecGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							RelSymDerivSecGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (RelSymDerivSecGrp is null || RelSymDerivSecGrp.Count == 0 || RelSymDerivSecGrp![^1].InstrmtLegGrp is null || RelSymDerivSecGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -47912,17 +48893,6 @@ public abstract partial class FixMessage
 		public FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of RelSymDerivSecGrp follow.</summary>
 		public FixField.NoRelatedSym?                         NoRelatedSym                         { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?                      NoSecurityAltID                      { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                             NoEvents                             { get; private set; }
-		/// <summary>The FIX NoInstrAttrib, tag 870; how many entries of AttrbGrp follow.</summary>
-		public FixField.NoInstrAttrib?                        NoInstrAttrib                        { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                               NoLegs                               { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?                   NoLegSecurityAltID                   { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -48083,7 +49053,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -48132,7 +49109,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocMlegGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 948: NoNested3PartyIDs = (FixField.NoNested3PartyIDs)field; break;
+					case 948:
+						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocMlegGrp![^1].NoNested3PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocMlegGrp!.Count - 1));
+						else
+							PreAllocMlegGrp![^1].NoNested3PartyIDs = (FixField.NoNested3PartyIDs)field;
+						break;
 					case 949:
 						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -48155,7 +49139,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocMlegGrp![^1].NestedParties3![^1].Nested3PartyRole = (FixField.Nested3PartyRole)field;
 						break;
-					case 952: NoNested3PartySubIDs = (FixField.NoNested3PartySubIDs)field; break;
+					case 952:
+						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0 || PreAllocMlegGrp![^1].NestedParties3 is null || PreAllocMlegGrp![^1].NestedParties3!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocMlegGrp![^1].NestedParties3![^1].NoNested3PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocMlegGrp![^1].NestedParties3!.Count - 1));
+						else
+							PreAllocMlegGrp![^1].NestedParties3![^1].NoNested3PartySubIDs = (FixField.NoNested3PartySubIDs)field;
+						break;
 					case 953:
 						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0 || PreAllocMlegGrp![^1].NestedParties3 is null || PreAllocMlegGrp![^1].NestedParties3!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -48570,7 +49561,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -48585,7 +49583,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -48986,7 +49991,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegSettlDate = (FixField.LegSettlDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49001,7 +50013,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49016,7 +50035,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 670: NoLegAllocs = (FixField.NoLegAllocs)field; break;
+					case 670:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegAllocs = (FixField.NoLegAllocs)field;
+						break;
 					case 671:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49055,7 +50081,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].LegSettlCurrency = (FixField.LegSettlCurrency)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].LegPreAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].LegPreAllocGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].LegPreAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49078,7 +50111,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2 is null || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2 is null || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49093,7 +50133,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NstdPtys2SubGrp![^1].Nested2PartySubIDType = (FixField.Nested2PartySubIDType)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49116,7 +50163,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].NestedParties is null || LegOrdGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].NestedParties!.Count - 1));
+						else
+							LegOrdGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].NestedParties is null || LegOrdGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49667,14 +50721,8 @@ public abstract partial class FixMessage
 		public FixField.MultiLegRptTypeReq?         MultiLegRptTypeReq         { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocMlegGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNested3PartyIDs, tag 948; how many entries of NestedParties3 follow.</summary>
-		public FixField.NoNested3PartyIDs?          NoNested3PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested3PartySubIDs, tag 952; how many entries of NstdPtys3SubGrp follow.</summary>
-		public FixField.NoNested3PartySubIDs?       NoNested3PartySubIDs       { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -49683,27 +50731,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of LegOrdGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoLegAllocs, tag 670; how many entries of LegPreAllocGrp follow.</summary>
-		public FixField.NoLegAllocs?                NoLegAllocs                { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -49867,7 +50896,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49916,7 +50952,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocMlegGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 948: NoNested3PartyIDs = (FixField.NoNested3PartyIDs)field; break;
+					case 948:
+						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocMlegGrp![^1].NoNested3PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocMlegGrp!.Count - 1));
+						else
+							PreAllocMlegGrp![^1].NoNested3PartyIDs = (FixField.NoNested3PartyIDs)field;
+						break;
 					case 949:
 						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -49939,7 +50982,14 @@ public abstract partial class FixMessage
 						else
 							PreAllocMlegGrp![^1].NestedParties3![^1].Nested3PartyRole = (FixField.Nested3PartyRole)field;
 						break;
-					case 952: NoNested3PartySubIDs = (FixField.NoNested3PartySubIDs)field; break;
+					case 952:
+						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0 || PreAllocMlegGrp![^1].NestedParties3 is null || PreAllocMlegGrp![^1].NestedParties3!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PreAllocMlegGrp![^1].NestedParties3![^1].NoNested3PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PreAllocMlegGrp![^1].NestedParties3!.Count - 1));
+						else
+							PreAllocMlegGrp![^1].NestedParties3![^1].NoNested3PartySubIDs = (FixField.NoNested3PartySubIDs)field;
+						break;
 					case 953:
 						if (PreAllocMlegGrp is null || PreAllocMlegGrp.Count == 0 || PreAllocMlegGrp![^1].NestedParties3 is null || PreAllocMlegGrp![^1].NestedParties3!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50354,7 +51404,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50369,7 +51426,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50770,7 +51834,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegSettlDate = (FixField.LegSettlDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50785,7 +51856,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50800,7 +51878,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 670: NoLegAllocs = (FixField.NoLegAllocs)field; break;
+					case 670:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoLegAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoLegAllocs = (FixField.NoLegAllocs)field;
+						break;
 					case 671:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50839,7 +51924,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].LegSettlCurrency = (FixField.LegSettlCurrency)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].LegPreAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].LegPreAllocGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].LegPreAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50862,7 +51954,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2 is null || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp is null || LegOrdGrp![^1].LegPreAllocGrp!.Count == 0 || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2 is null || LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50877,7 +51976,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].LegPreAllocGrp![^1].NestedParties2![^1].NstdPtys2SubGrp![^1].Nested2PartySubIDType = (FixField.Nested2PartySubIDType)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp!.Count - 1));
+						else
+							LegOrdGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -50900,7 +52006,14 @@ public abstract partial class FixMessage
 						else
 							LegOrdGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].NestedParties is null || LegOrdGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegOrdGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegOrdGrp![^1].NestedParties!.Count - 1));
+						else
+							LegOrdGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (LegOrdGrp is null || LegOrdGrp.Count == 0 || LegOrdGrp![^1].NestedParties is null || LegOrdGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -51463,14 +52576,8 @@ public abstract partial class FixMessage
 		public FixField.MultiLegRptTypeReq?         MultiLegRptTypeReq         { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of PreAllocMlegGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNested3PartyIDs, tag 948; how many entries of NestedParties3 follow.</summary>
-		public FixField.NoNested3PartyIDs?          NoNested3PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested3PartySubIDs, tag 952; how many entries of NstdPtys3SubGrp follow.</summary>
-		public FixField.NoNested3PartySubIDs?       NoNested3PartySubIDs       { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -51479,27 +52586,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of LegOrdGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoLegAllocs, tag 670; how many entries of LegPreAllocGrp follow.</summary>
-		public FixField.NoLegAllocs?                NoLegAllocs                { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -51617,7 +52705,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -52032,7 +53127,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -52047,7 +53149,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -52384,7 +53493,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -52773,8 +53889,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
@@ -52783,14 +53897,8 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoDates, tag 580; how many entries of TrdCapDtGrp follow.</summary>
 		public FixField.NoDates?                    NoDates                    { get; private set; }
 
@@ -53318,7 +54426,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -53333,7 +54448,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -53752,7 +54874,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegLastPx = (FixField.LegLastPx)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -53767,7 +54896,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -53782,7 +54918,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -53805,7 +54948,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0 || TrdInstrmtLegGrp![^1].NestedParties is null || TrdInstrmtLegGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp![^1].NestedParties!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0 || TrdInstrmtLegGrp![^1].NestedParties is null || TrdInstrmtLegGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54272,7 +55422,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].AllocID = (FixField.AllocID)field;
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54295,7 +55452,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].Parties is null || TrdCapRptSideGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp![^1].Parties!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].Parties is null || TrdCapRptSideGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54310,14 +55474,28 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
-					case 576: NoClearingInstructions = (FixField.NoClearingInstructions)field; break;
+					case 576:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoClearingInstructions is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoClearingInstructions = (FixField.NoClearingInstructions)field;
+						break;
 					case 577:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else
 							(TrdCapRptSideGrp![^1].ClrInstGrp ??= []).Add(new () { ClearingInstruction = (FixField.ClearingInstruction)field });
 						break;
-					case 518: NoContAmts = (FixField.NoContAmts)field; break;
+					case 518:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoContAmts is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoContAmts = (FixField.NoContAmts)field;
+						break;
 					case 519:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54340,7 +55518,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].ContAmtGrp![^1].ContAmtCurr = (FixField.ContAmtCurr)field;
 						break;
-					case 232: NoStipulations = (FixField.NoStipulations)field; break;
+					case 232:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoStipulations = (FixField.NoStipulations)field;
+						break;
 					case 233:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54355,7 +55540,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
-					case 136: NoMiscFees = (FixField.NoMiscFees)field; break;
+					case 136:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoMiscFees is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoMiscFees = (FixField.NoMiscFees)field;
+						break;
 					case 137:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54386,7 +55578,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].MiscFeesGrp![^1].MiscFeeBasis = (FixField.MiscFeeBasis)field;
 						break;
-					case  78: NoAllocs = (FixField.NoAllocs)field; break;
+					case 78:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].NoAllocs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].NoAllocs = (FixField.NoAllocs)field;
+						break;
 					case  79:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54425,7 +55624,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].TrdAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp is null || TrdCapRptSideGrp![^1].TrdAllocGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp![^1].TrdAllocGrp!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp is null || TrdCapRptSideGrp![^1].TrdAllocGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54448,7 +55654,14 @@ public abstract partial class FixMessage
 						else
 							TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp is null || TrdCapRptSideGrp![^1].TrdAllocGrp!.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2 is null || TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (TrdCapRptSideGrp is null || TrdCapRptSideGrp.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp is null || TrdCapRptSideGrp![^1].TrdAllocGrp!.Count == 0 || TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2 is null || TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -54971,45 +56184,14 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                      NoEvents                      { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?                 NoUnderlyings                 { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?     NoUnderlyingSecurityAltID     { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?             NoUnderlyingStips             { get; private set; }
 		/// <summary>The FIX NoPosAmt, tag 753; how many entries of PositionAmountData follow.</summary>
 		public FixField.NoPosAmt?                      NoPosAmt                      { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of TrdInstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                        NoLegs                        { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?             NoLegStipulations             { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?           NoNestedPartySubIDs           { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?            NoTrdRegTimestamps            { get; private set; }
 		/// <summary>The FIX NoSides, tag 552; how many entries of TrdCapRptSideGrp follow.</summary>
 		public FixField.NoSides?                       NoSides                       { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                    NoPartyIDs                    { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?                 NoPartySubIDs                 { get; private set; }
-		/// <summary>The FIX NoClearingInstructions, tag 576; how many entries of ClrInstGrp follow.</summary>
-		public FixField.NoClearingInstructions?        NoClearingInstructions        { get; private set; }
-		/// <summary>The FIX NoContAmts, tag 518; how many entries of ContAmtGrp follow.</summary>
-		public FixField.NoContAmts?                    NoContAmts                    { get; private set; }
-		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
-		public FixField.NoStipulations?                NoStipulations                { get; private set; }
-		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
-		public FixField.NoMiscFees?                    NoMiscFees                    { get; private set; }
-		/// <summary>The FIX NoAllocs, tag 78; how many entries of TrdAllocGrp follow.</summary>
-		public FixField.NoAllocs?                      NoAllocs                      { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?             NoNested2PartyIDs             { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?          NoNested2PartySubIDs          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -55139,7 +56321,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -55614,8 +56803,6 @@ public abstract partial class FixMessage
 		public FixField.Side?                                 Side                                 { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                           NoPartyIDs                           { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?                        NoPartySubIDs                        { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?                      NoSecurityAltID                      { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
@@ -56379,7 +57566,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].YieldRedemptionPriceType = (FixField.YieldRedemptionPriceType)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56394,7 +57588,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56425,7 +57626,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56784,7 +57992,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].UndInstrmtGrp is null || QuotReqRjctGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].UndInstrmtGrp is null || QuotReqRjctGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56799,7 +58014,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].UndInstrmtGrp is null || QuotReqRjctGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].UndInstrmtGrp is null || QuotReqRjctGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56814,7 +58036,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 232: NoStipulations = (FixField.NoStipulations)field; break;
+					case 232:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoStipulations = (FixField.NoStipulations)field;
+						break;
 					case 233:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -56829,7 +58058,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57228,7 +58464,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].LegBenchmarkPriceType = (FixField.LegBenchmarkPriceType)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57243,7 +58486,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57258,7 +58508,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57281,7 +58538,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties is null || QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp is null || QuotReqRjctGrp![^1].QuotReqLegsGrp!.Count == 0 || QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties is null || QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57296,14 +58560,28 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].QuotReqLegsGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
-					case 735: NoQuoteQualifiers = (FixField.NoQuoteQualifiers)field; break;
+					case 735:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoQuoteQualifiers is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoQuoteQualifiers = (FixField.NoQuoteQualifiers)field;
+						break;
 					case 695:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else
 							(QuotReqRjctGrp![^1].QuotQualGrp ??= []).Add(new () { QuoteQualifier = (FixField.QuoteQualifier)field });
 						break;
-					case 453: NoPartyIDs = (FixField.NoPartyIDs)field; break;
+					case 453:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].NoPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].NoPartyIDs = (FixField.NoPartyIDs)field;
+						break;
 					case 448:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57326,7 +58604,14 @@ public abstract partial class FixMessage
 						else
 							QuotReqRjctGrp![^1].Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].Parties is null || QuotReqRjctGrp![^1].Parties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (QuotReqRjctGrp![^1].Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, QuotReqRjctGrp![^1].Parties!.Count - 1));
+						else
+							QuotReqRjctGrp![^1].Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (QuotReqRjctGrp is null || QuotReqRjctGrp.Count == 0 || QuotReqRjctGrp![^1].Parties is null || QuotReqRjctGrp![^1].Parties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57381,35 +58666,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?               EncodedText               { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of QuotReqRjctGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
-		public FixField.NoStipulations?            NoStipulations            { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of QuotReqLegsGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?         NoLegStipulations         { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?          NoNestedPartyIDs          { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?       NoNestedPartySubIDs       { get; private set; }
-		/// <summary>The FIX NoQuoteQualifiers, tag 735; how many entries of QuotQualGrp follow.</summary>
-		public FixField.NoQuoteQualifiers?         NoQuoteQualifiers         { get; private set; }
-		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
-		public FixField.NoPartyIDs?                NoPartyIDs                { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?             NoPartySubIDs             { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -57792,7 +59048,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].TradingSessionSubID = (FixField.TradingSessionSubID)field;
 						break;
-					case 454: NoSecurityAltID = (FixField.NoSecurityAltID)field; break;
+					case 454:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].NoSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].NoSecurityAltID = (FixField.NoSecurityAltID)field;
+						break;
 					case 455:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57807,7 +59070,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].SecAltIDGrp![^1].SecurityAltIDSource = (FixField.SecurityAltIDSource)field;
 						break;
-					case 864: NoEvents = (FixField.NoEvents)field; break;
+					case 864:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].NoEvents is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].NoEvents = (FixField.NoEvents)field;
+						break;
 					case 865:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -57838,7 +59108,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].EvntGrp![^1].EventText = (FixField.EventText)field;
 						break;
-					case 711: NoUnderlyings = (FixField.NoUnderlyings)field; break;
+					case 711:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].NoUnderlyings is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].NoUnderlyings = (FixField.NoUnderlyings)field;
+						break;
 					case 311:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -58197,7 +59474,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].UndInstrmtGrp is null || RFQReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].UndInstrmtGrp is null || RFQReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -58212,7 +59496,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].UndInstrmtGrp is null || RFQReqGrp![^1].UndInstrmtGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp![^1].UndInstrmtGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].UndInstrmtGrp is null || RFQReqGrp![^1].UndInstrmtGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -58227,7 +59518,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 555: NoLegs = (FixField.NoLegs)field; break;
+					case 555:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].NoLegs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].NoLegs = (FixField.NoLegs)field;
+						break;
 					case 600:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -58554,7 +59852,14 @@ public abstract partial class FixMessage
 						else
 							RFQReqGrp![^1].InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].InstrmtLegGrp is null || RFQReqGrp![^1].InstrmtLegGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (RFQReqGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, RFQReqGrp![^1].InstrmtLegGrp!.Count - 1));
+						else
+							RFQReqGrp![^1].InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (RFQReqGrp is null || RFQReqGrp.Count == 0 || RFQReqGrp![^1].InstrmtLegGrp is null || RFQReqGrp![^1].InstrmtLegGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -58593,21 +59898,6 @@ public abstract partial class FixMessage
 		public FixField.SubscriptionRequestType?   SubscriptionRequestType   { get; private set; }
 		/// <summary>The FIX NoRelatedSym, tag 146; how many entries of RFQReqGrp follow.</summary>
 		public FixField.NoRelatedSym?              NoRelatedSym              { get; private set; }
-		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
-		public FixField.NoSecurityAltID?           NoSecurityAltID           { get; private set; }
-		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
-		public FixField.NoEvents?                  NoEvents                  { get; private set; }
-		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
-		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID? NoUnderlyingSecurityAltID { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?         NoUnderlyingStips         { get; private set; }
-		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
-		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?        NoLegSecurityAltID        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -58764,7 +60054,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59169,7 +60466,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59184,7 +60488,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59563,7 +60874,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotStatGrp![^1].LegSettlDate = (FixField.LegSettlDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotStatGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotStatGrp!.Count - 1));
+						else
+							LegQuotStatGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59578,7 +60896,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotStatGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotStatGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotStatGrp!.Count - 1));
+						else
+							LegQuotStatGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59593,7 +60918,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotStatGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotStatGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotStatGrp!.Count - 1));
+						else
+							LegQuotStatGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -59616,7 +60948,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotStatGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0 || LegQuotStatGrp![^1].NestedParties is null || LegQuotStatGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotStatGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotStatGrp![^1].NestedParties!.Count - 1));
+						else
+							LegQuotStatGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (LegQuotStatGrp is null || LegQuotStatGrp.Count == 0 || LegQuotStatGrp![^1].NestedParties is null || LegQuotStatGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -60153,30 +61492,16 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of LegQuotStatGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoQuoteQualifiers, tag 735; how many entries of QuotQualGrp follow.</summary>
 		public FixField.NoQuoteQualifiers?          NoQuoteQualifiers          { get; private set; }
 
@@ -60338,7 +61663,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -60743,7 +62075,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -60758,7 +62097,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -61201,7 +62547,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegBenchmarkPriceType = (FixField.LegBenchmarkPriceType)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -61216,7 +62569,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -61231,7 +62591,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp!.Count - 1));
+						else
+							LegQuotGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -61254,7 +62621,14 @@ public abstract partial class FixMessage
 						else
 							LegQuotGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (LegQuotGrp is null || LegQuotGrp.Count == 0 || LegQuotGrp![^1].NestedParties is null || LegQuotGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (LegQuotGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, LegQuotGrp![^1].NestedParties!.Count - 1));
+						else
+							LegQuotGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (LegQuotGrp is null || LegQuotGrp.Count == 0 || LegQuotGrp![^1].NestedParties is null || LegQuotGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -61791,31 +63165,16 @@ public abstract partial class FixMessage
 		public FixField.NoQuoteQualifiers?          NoQuoteQualifiers          { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of LegQuotGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -61976,7 +63335,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62049,7 +63415,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].OrderBookingQty = (FixField.OrderBookingQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp!.Count - 1));
+						else
+							OrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62072,7 +63445,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62505,7 +63885,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62520,7 +63907,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62857,7 +64251,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62900,7 +64301,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp!.Count - 1));
+						else
+							DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -62923,7 +64331,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -63530,8 +64945,6 @@ public abstract partial class FixMessage
 		public List<MiscFeesGrp>?                   MiscFeesGrp                { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
@@ -63542,33 +64955,18 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoCapacities, tag 862; how many entries of CpctyConfGrp follow.</summary>
 		public FixField.NoCapacities?               NoCapacities               { get; private set; }
 		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
 		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
 		public FixField.NoMiscFees?                 NoMiscFees                 { get; private set; }
 		/// <summary>The FIX NoOrders, tag 73; how many entries of OrdAllocGrp follow.</summary>
 		public FixField.NoOrders?                   NoOrders                   { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -63666,7 +65064,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64039,7 +65444,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64408,7 +65820,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64423,7 +65842,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64474,7 +65900,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].PosQtyStatus = (FixField.PosQtyStatus)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PositionQty is null || PositionQty.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty!.Count - 1));
+						else
+							PositionQty![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PositionQty is null || PositionQty.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64497,7 +65930,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty![^1].NestedParties!.Count - 1));
+						else
+							PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -64796,31 +66236,18 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                  EncodedText                  { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                   NoPartyIDs                   { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?                NoPartySubIDs                { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?              NoSecurityAltID              { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                     NoEvents                     { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                       NoLegs                       { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?           NoLegSecurityAltID           { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?                NoUnderlyings                { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?    NoUnderlyingSecurityAltID    { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?            NoUnderlyingStips            { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?            NoTradingSessions            { get; private set; }
 		/// <summary>The FIX NoPositions, tag 702; how many entries of PositionQty follow.</summary>
 		public FixField.NoPositions?                  NoPositions                  { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?             NoNestedPartyIDs             { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?          NoNestedPartySubIDs          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -64918,7 +66345,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -65291,7 +66725,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -65660,7 +67101,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -65675,7 +67123,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -65726,7 +67181,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].PosQtyStatus = (FixField.PosQtyStatus)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PositionQty is null || PositionQty.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty!.Count - 1));
+						else
+							PositionQty![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PositionQty is null || PositionQty.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -65749,7 +67211,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty![^1].NestedParties!.Count - 1));
+						else
+							PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -66062,30 +67531,18 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 		/// <summary>The FIX NoPositions, tag 702; how many entries of PositionQty follow.</summary>
 		public FixField.NoPositions?                NoPositions                { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoPosAmt, tag 753; how many entries of PositionAmountData follow.</summary>
 		public FixField.NoPosAmt?                   NoPosAmt                   { get; private set; }
 
@@ -66183,7 +67640,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -66556,7 +68020,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -66925,7 +68396,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -66940,7 +68418,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -67233,22 +68718,14 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of TrdgSesGrp follow.</summary>
 		public FixField.NoTradingSessions?          NoTradingSessions          { get; private set; }
 
@@ -67344,7 +68821,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -67717,7 +69201,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -68086,7 +69577,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -68101,7 +69599,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -68372,23 +69877,14 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -68488,7 +69984,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -68861,7 +70364,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -69246,7 +70756,14 @@ public abstract partial class FixMessage
 						else
 							PosUndInstrmtGrp![^1].UnderlyingSettlPriceType = (FixField.UnderlyingSettlPriceType)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (PosUndInstrmtGrp is null || PosUndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PosUndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PosUndInstrmtGrp!.Count - 1));
+						else
+							PosUndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (PosUndInstrmtGrp is null || PosUndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -69261,7 +70778,14 @@ public abstract partial class FixMessage
 						else
 							PosUndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (PosUndInstrmtGrp is null || PosUndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PosUndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PosUndInstrmtGrp!.Count - 1));
+						else
+							PosUndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (PosUndInstrmtGrp is null || PosUndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -69302,7 +70826,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].PosQtyStatus = (FixField.PosQtyStatus)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PositionQty is null || PositionQty.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty!.Count - 1));
+						else
+							PositionQty![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PositionQty is null || PositionQty.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -69325,7 +70856,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty![^1].NestedParties!.Count - 1));
+						else
+							PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -69642,28 +71180,16 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of PosUndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoPositions, tag 702; how many entries of PositionQty follow.</summary>
 		public FixField.NoPositions?                NoPositions                { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoPosAmt, tag 753; how many entries of PositionAmountData follow.</summary>
 		public FixField.NoPosAmt?                   NoPosAmt                   { get; private set; }
 
@@ -70128,7 +71654,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -70143,7 +71676,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -70480,7 +72020,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -70739,15 +72286,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -71288,7 +72828,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegLastPx = (FixField.LegLastPx)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71303,7 +72850,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 683: NoLegStipulations = (FixField.NoLegStipulations)field; break;
+					case 683:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoLegStipulations is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoLegStipulations = (FixField.NoLegStipulations)field;
+						break;
 					case 688:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71318,7 +72872,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71341,7 +72902,14 @@ public abstract partial class FixMessage
 						else
 							TrdInstrmtLegGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0 || TrdInstrmtLegGrp![^1].NestedParties is null || TrdInstrmtLegGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdInstrmtLegGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdInstrmtLegGrp![^1].NestedParties!.Count - 1));
+						else
+							TrdInstrmtLegGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (TrdInstrmtLegGrp is null || TrdInstrmtLegGrp.Count == 0 || TrdInstrmtLegGrp![^1].NestedParties is null || TrdInstrmtLegGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71390,7 +72958,14 @@ public abstract partial class FixMessage
 						else
 							TrdAllocGrp![^1].AllocQty = (FixField.AllocQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (TrdAllocGrp is null || TrdAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdAllocGrp!.Count - 1));
+						else
+							TrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (TrdAllocGrp is null || TrdAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71413,7 +72988,14 @@ public abstract partial class FixMessage
 						else
 							TrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (TrdAllocGrp is null || TrdAllocGrp.Count == 0 || TrdAllocGrp![^1].NestedParties2 is null || TrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (TrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, TrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							TrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (TrdAllocGrp is null || TrdAllocGrp.Count == 0 || TrdAllocGrp![^1].NestedParties2 is null || TrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71762,21 +73344,8 @@ public abstract partial class FixMessage
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of TrdInstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
-		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of LegStipulations follow.</summary>
-		public FixField.NoLegStipulations?          NoLegStipulations          { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of TrdAllocGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -71974,7 +73543,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].OrderBookingQty = (FixField.OrderBookingQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp!.Count - 1));
+						else
+							OrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -71997,7 +73573,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -72454,7 +74037,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -72469,7 +74059,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -72806,7 +74403,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -72839,7 +74443,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73106,7 +74717,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].StandInstDbID = (FixField.StandInstDbID)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73129,7 +74747,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].NestedParties is null || AllocGrp![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].NestedParties!.Count - 1));
+						else
+							AllocGrp![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].NestedParties is null || AllocGrp![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73144,7 +74769,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
-					case 136: NoMiscFees = (FixField.NoMiscFees)field; break;
+					case 136:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoMiscFees is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoMiscFees = (FixField.NoMiscFees)field;
+						break;
 					case 137:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73175,14 +74807,28 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].MiscFeesGrp![^1].MiscFeeBasis = (FixField.MiscFeeBasis)field;
 						break;
-					case 576: NoClearingInstructions = (FixField.NoClearingInstructions)field; break;
+					case 576:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoClearingInstructions is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoClearingInstructions = (FixField.NoClearingInstructions)field;
+						break;
 					case 577:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else
 							(AllocGrp![^1].ClrInstGrp ??= []).Add(new () { ClearingInstruction = (FixField.ClearingInstruction)field });
 						break;
-					case  85: NoDlvyInst = (FixField.NoDlvyInst)field; break;
+					case 85:
+						if (AllocGrp is null || AllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].NoDlvyInst is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp!.Count - 1));
+						else
+							AllocGrp![^1].NoDlvyInst = (FixField.NoDlvyInst)field;
+						break;
 					case 165:
 						if (AllocGrp is null || AllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73197,7 +74843,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].DlvyInstGrp!.Count - 1));
+						else
+							AllocGrp![^1].DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73220,7 +74873,14 @@ public abstract partial class FixMessage
 						else
 							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0 || AllocGrp![^1].DlvyInstGrp![^1].SettlParties is null || AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (AllocGrp is null || AllocGrp.Count == 0 || AllocGrp![^1].DlvyInstGrp is null || AllocGrp![^1].DlvyInstGrp!.Count == 0 || AllocGrp![^1].DlvyInstGrp![^1].SettlParties is null || AllocGrp![^1].DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -73779,43 +75439,16 @@ public abstract partial class FixMessage
 		public FixField.NoInstrAttrib?              NoInstrAttrib              { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of AllocGrp follow.</summary>
 		public FixField.NoAllocs?                   NoAllocs                   { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
-		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
-		public FixField.NoMiscFees?                 NoMiscFees                 { get; private set; }
-		/// <summary>The FIX NoClearingInstructions, tag 576; how many entries of ClrInstGrp follow.</summary>
-		public FixField.NoClearingInstructions?     NoClearingInstructions     { get; private set; }
-		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
-		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
 		/// <summary>The FIX NoOrders, tag 73; how many entries of OrdAllocGrp follow.</summary>
 		public FixField.NoOrders?                   NoOrders                   { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?          NoNested2PartyIDs          { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs?       NoNested2PartySubIDs       { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -73867,7 +75500,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -74020,8 +75660,6 @@ public abstract partial class FixMessage
 		public List<AllocAckGrp>?             AllocAckGrp          { get; internal set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?           NoPartyIDs           { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?        NoPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoAllocs, tag 78; how many entries of AllocAckGrp follow.</summary>
 		public FixField.NoAllocs?             NoAllocs             { get; private set; }
 
@@ -74148,7 +75786,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -74235,9 +75880,6 @@ public abstract partial class FixMessage
 		public FixField.StandInstDbID?     StandInstDbID     { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?        NoPartyIDs        { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?     NoPartySubIDs     { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -74336,7 +75978,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -74709,7 +76358,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -75078,7 +76734,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -75093,7 +76756,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -75134,7 +76804,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].PosQtyStatus = (FixField.PosQtyStatus)field;
 						break;
-					case 539: NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field; break;
+					case 539:
+						if (PositionQty is null || PositionQty.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NoNestedPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty!.Count - 1));
+						else
+							PositionQty![^1].NoNestedPartyIDs = (FixField.NoNestedPartyIDs)field;
+						break;
 					case 524:
 						if (PositionQty is null || PositionQty.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -75157,7 +76834,14 @@ public abstract partial class FixMessage
 						else
 							PositionQty![^1].NestedParties![^1].NestedPartyRole = (FixField.NestedPartyRole)field;
 						break;
-					case 804: NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field; break;
+					case 804:
+						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, PositionQty![^1].NestedParties!.Count - 1));
+						else
+							PositionQty![^1].NestedParties![^1].NoNestedPartySubIDs = (FixField.NoNestedPartySubIDs)field;
+						break;
 					case 545:
 						if (PositionQty is null || PositionQty.Count == 0 || PositionQty![^1].NestedParties is null || PositionQty![^1].NestedParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -75470,28 +77154,16 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of SecAltIDGrp follow.</summary>
 		public FixField.NoSecurityAltID?            NoSecurityAltID            { get; private set; }
 		/// <summary>The FIX NoEvents, tag 864; how many entries of EvntGrp follow.</summary>
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoPositions, tag 702; how many entries of PositionQty follow.</summary>
 		public FixField.NoPositions?                NoPositions                { get; private set; }
-		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of NestedParties follow.</summary>
-		public FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; private set; }
-		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of NstdPtysSubGrp follow.</summary>
-		public FixField.NoNestedPartySubIDs?        NoNestedPartySubIDs        { get; private set; }
 		/// <summary>The FIX NoPosAmt, tag 753; how many entries of PositionAmountData follow.</summary>
 		public FixField.NoPosAmt?                   NoPosAmt                   { get; private set; }
 
@@ -75621,7 +77293,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -76006,7 +77685,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -76383,7 +78069,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].CollAction = (FixField.CollAction)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -76398,7 +78091,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -76879,8 +78579,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -76891,14 +78589,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtCollGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
@@ -77039,7 +78731,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -77424,7 +79123,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -77801,7 +79507,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].CollAction = (FixField.CollAction)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -77816,7 +79529,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -77895,7 +79615,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp!.Count - 1));
+						else
+							DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -77918,7 +79645,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -78377,8 +80111,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -78389,14 +80121,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtCollGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
@@ -78405,11 +80131,6 @@ public abstract partial class FixMessage
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
 		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -78535,7 +80256,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -78920,7 +80648,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -79297,7 +81032,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].CollAction = (FixField.CollAction)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -79312,7 +81054,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtCollGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtCollGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtCollGrp!.Count - 1));
+						else
+							UndInstrmtCollGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtCollGrp is null || UndInstrmtCollGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -79789,8 +81538,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -79801,14 +81548,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtCollGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
@@ -79947,7 +81688,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -80332,7 +82080,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -80701,7 +82456,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -80716,7 +82478,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -80795,7 +82564,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp!.Count - 1));
+						else
+							DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -80818,7 +82594,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -81269,8 +83052,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?                EncodedText                { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -81281,14 +83062,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoMiscFees, tag 136; how many entries of MiscFeesGrp follow.</summary>
@@ -81297,11 +83072,6 @@ public abstract partial class FixMessage
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
 		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -81434,7 +83204,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -81819,7 +83596,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -82188,7 +83972,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -82203,7 +83994,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -82256,7 +84054,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].DlvyInstType = (FixField.DlvyInstType)field;
 						break;
-					case 781: NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field; break;
+					case 781:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].NoSettlPartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp!.Count - 1));
+						else
+							DlvyInstGrp![^1].NoSettlPartyIDs = (FixField.NoSettlPartyIDs)field;
+						break;
 					case 782:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -82279,7 +84084,14 @@ public abstract partial class FixMessage
 						else
 							DlvyInstGrp![^1].SettlParties![^1].SettlPartyRole = (FixField.SettlPartyRole)field;
 						break;
-					case 801: NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field; break;
+					case 801:
+						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, DlvyInstGrp![^1].SettlParties!.Count - 1));
+						else
+							DlvyInstGrp![^1].SettlParties![^1].NoSettlPartySubIDs = (FixField.NoSettlPartySubIDs)field;
+						break;
 					case 785:
 						if (DlvyInstGrp is null || DlvyInstGrp.Count == 0 || DlvyInstGrp![^1].SettlParties is null || DlvyInstGrp![^1].SettlParties!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -82728,8 +84540,6 @@ public abstract partial class FixMessage
 		public FixField.NoCollInquiryQualifier?     NoCollInquiryQualifier     { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -82740,25 +84550,14 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
 		/// <summary>The FIX NoTrdRegTimestamps, tag 768; how many entries of TrdRegTimestamps follow.</summary>
 		public FixField.NoTrdRegTimestamps?         NoTrdRegTimestamps         { get; private set; }
 		/// <summary>The FIX NoStipulations, tag 232; how many entries of Stipulations follow.</summary>
 		public FixField.NoStipulations?             NoStipulations             { get; private set; }
 		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of DlvyInstGrp follow.</summary>
 		public FixField.NoDlvyInst?                 NoDlvyInst                 { get; private set; }
-		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of SettlParties follow.</summary>
-		public FixField.NoSettlPartyIDs?            NoSettlPartyIDs            { get; private set; }
-		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of SettlPtysSubGrp follow.</summary>
-		public FixField.NoSettlPartySubIDs?         NoSettlPartySubIDs         { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -83150,7 +84949,14 @@ public abstract partial class FixMessage
 						else
 							Parties![^1].PartyRole = (FixField.PartyRole)field;
 						break;
-					case 802: NoPartySubIDs = (FixField.NoPartySubIDs)field; break;
+					case 802:
+						if (Parties is null || Parties.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (Parties![^1].NoPartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Parties!.Count - 1));
+						else
+							Parties![^1].NoPartySubIDs = (FixField.NoPartySubIDs)field;
+						break;
 					case 523:
 						if (Parties is null || Parties.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -83535,7 +85341,14 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegInterestAccrualDate = (FixField.LegInterestAccrualDate)field;
 						break;
-					case 604: NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field; break;
+					case 604:
+						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (InstrmtLegGrp![^1].NoLegSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, InstrmtLegGrp!.Count - 1));
+						else
+							InstrmtLegGrp![^1].NoLegSecurityAltID = (FixField.NoLegSecurityAltID)field;
+						break;
 					case 605:
 						if (InstrmtLegGrp is null || InstrmtLegGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -83904,7 +85717,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingEndValue = (FixField.UnderlyingEndValue)field;
 						break;
-					case 457: NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field; break;
+					case 457:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingSecurityAltID is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingSecurityAltID = (FixField.NoUnderlyingSecurityAltID)field;
+						break;
 					case 458:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -83919,7 +85739,14 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UndSecAltIDGrp![^1].UnderlyingSecurityAltIDSource = (FixField.UnderlyingSecurityAltIDSource)field;
 						break;
-					case 887: NoUnderlyingStips = (FixField.NoUnderlyingStips)field; break;
+					case 887:
+						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (UndInstrmtGrp![^1].NoUnderlyingStips is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, UndInstrmtGrp!.Count - 1));
+						else
+							UndInstrmtGrp![^1].NoUnderlyingStips = (FixField.NoUnderlyingStips)field;
+						break;
 					case 888:
 						if (UndInstrmtGrp is null || UndInstrmtGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -84276,8 +86103,6 @@ public abstract partial class FixMessage
 		public FixField.NoCollInquiryQualifier?     NoCollInquiryQualifier     { get; private set; }
 		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of Parties follow.</summary>
 		public FixField.NoPartyIDs?                 NoPartyIDs                 { get; private set; }
-		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of PtysSubGrp follow.</summary>
-		public FixField.NoPartySubIDs?              NoPartySubIDs              { get; private set; }
 		/// <summary>The FIX NoExecs, tag 124; how many entries of ExecCollGrp follow.</summary>
 		public FixField.NoExecs?                    NoExecs                    { get; private set; }
 		/// <summary>The FIX NoTrades, tag 897; how many entries of TrdCollGrp follow.</summary>
@@ -84288,15 +86113,8 @@ public abstract partial class FixMessage
 		public FixField.NoEvents?                   NoEvents                   { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                     NoLegs                     { get; private set; }
-		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of LegSecAltIDGrp follow.</summary>
-		public FixField.NoLegSecurityAltID?         NoLegSecurityAltID         { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?              NoUnderlyings              { get; private set; }
-		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of UndSecAltIDGrp follow.</summary>
-		public FixField.NoUnderlyingSecurityAltID?  NoUnderlyingSecurityAltID  { get; private set; }
-		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of UnderlyingStipulations follow.</summary>
-		public FixField.NoUnderlyingStips?          NoUnderlyingStips          { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
@@ -84384,7 +86202,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].OrderBookingQty = (FixField.OrderBookingQty)field;
 						break;
-					case 756: NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field; break;
+					case 756:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NoNested2PartyIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp!.Count - 1));
+						else
+							OrdAllocGrp![^1].NoNested2PartyIDs = (FixField.NoNested2PartyIDs)field;
+						break;
 					case 757:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -84407,7 +86232,14 @@ public abstract partial class FixMessage
 						else
 							OrdAllocGrp![^1].NestedParties2![^1].Nested2PartyRole = (FixField.Nested2PartyRole)field;
 						break;
-					case 806: NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field; break;
+					case 806:
+						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
+							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+						else if (OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs is not null)
+							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, OrdAllocGrp![^1].NestedParties2!.Count - 1));
+						else
+							OrdAllocGrp![^1].NestedParties2![^1].NoNested2PartySubIDs = (FixField.NoNested2PartySubIDs)field;
+						break;
 					case 760:
 						if (OrdAllocGrp is null || OrdAllocGrp.Count == 0 || OrdAllocGrp![^1].NestedParties2 is null || OrdAllocGrp![^1].NestedParties2!.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
@@ -84486,11 +86318,6 @@ public abstract partial class FixMessage
 		public FixField.EncodedText?          EncodedText          { get; private set; }
 		/// <summary>The FIX NoOrders, tag 73; how many entries of OrdAllocGrp follow.</summary>
 		public FixField.NoOrders?             NoOrders             { get; private set; }
-		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of NestedParties2 follow.</summary>
-		public FixField.NoNested2PartyIDs?    NoNested2PartyIDs    { get; private set; }
-		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of NstdPtys2SubGrp follow.</summary>
-		public FixField.NoNested2PartySubIDs? NoNested2PartySubIDs { get; private set; }
-
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{

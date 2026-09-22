@@ -79,6 +79,9 @@ public static class FixGroup
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public          FixField.ProcessCode?             ProcessCode             { get; internal set; }
 
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?        NoNestedPartyIDs        { get; internal set; }
+
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?              NestedParties           { get; internal set; }
 
@@ -139,8 +142,14 @@ public static class FixGroup
 		/// <summary>The FIX AllocInterestAtMaturity, tag 741, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.AllocInterestAtMaturity? AllocInterestAtMaturity { get; internal set; }
 
+		/// <summary>The FIX NoMiscFees, tag 136; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoMiscFees?              NoMiscFees              { get; internal set; }
+
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
 		public          List<MiscFeesGrp>?                MiscFeesGrp             { get; internal set; }
+
+		/// <summary>The FIX NoClearingInstructions, tag 576; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoClearingInstructions?  NoClearingInstructions  { get; internal set; }
 
 		/// <summary>The entries counted by NoClearingInstructions, tag 576; null when the group is absent.</summary>
 		public          List<ClrInstGrp>?                 ClrInstGrp              { get; internal set; }
@@ -159,6 +168,9 @@ public static class FixGroup
 
 		/// <summary>The FIX StandInstDbID, tag 171, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.StandInstDbID?           StandInstDbID           { get; internal set; }
+
+		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoDlvyInst?              NoDlvyInst              { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
 		public          List<DlvyInstGrp>?                DlvyInstGrp             { get; internal set; }
@@ -401,13 +413,16 @@ public static class FixGroup
 	public sealed class DlvyInstGrp
 	{
 		/// <summary>The FIX SettlInstSource, tag 165, wire type <c>char</c>; null when the field is absent.</summary>
-		public required FixField.SettlInstSource SettlInstSource { get; init; }
+		public required FixField.SettlInstSource  SettlInstSource { get; init; }
 
 		/// <summary>The FIX DlvyInstType, tag 787, wire type <c>char</c>; null when the field is absent.</summary>
-		public          FixField.DlvyInstType?   DlvyInstType    { get; internal set; }
+		public          FixField.DlvyInstType?    DlvyInstType    { get; internal set; }
+
+		/// <summary>The FIX NoSettlPartyIDs, tag 781; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSettlPartyIDs? NoSettlPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
-		public          List<SettlParties>?      SettlParties    { get; internal set; }
+		public          List<SettlParties>?       SettlParties    { get; internal set; }
 	}
 
 	/// <summary>One entry of the FIX 4.4 EvntGrp, counted by NoEvents, tag 864.</summary>
@@ -459,20 +474,20 @@ public static class FixGroup
 	public sealed class ExecsGrp
 	{
 		/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.ExecID? ExecID { get; internal set; }
+		public          FixField.ExecID? ExecID { get; internal set; }
 	}
 
 	/// <summary>One entry of the FIX 4.4 Hop, counted by NoHops, tag 627.</summary>
 	public sealed class Hop
 	{
 		/// <summary>The FIX HopCompID, tag 628, wire type <c>String</c>; it opens the entry.</summary>
-		public required FixField.HopCompID HopCompID { get; init; }
+		public required FixField.HopCompID       HopCompID      { get; init; }
 
 		/// <summary>The FIX HopSendingTime, tag 629, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.HopSendingTime? HopSendingTime { get; internal set; }
+		public          FixField.HopSendingTime? HopSendingTime { get; internal set; }
 
 		/// <summary>The FIX HopRefID, tag 630, wire type <c>SeqNum</c>; null when the field is absent.</summary>
-		public FixField.HopRefID?       HopRefID       { get; internal set; }
+		public          FixField.HopRefID?       HopRefID       { get; internal set; }
 	}
 
 	/// <summary>One entry of the FIX 4.4 IOIQualGrp, counted by NoIOIQualifiers, tag 199.</summary>
@@ -496,6 +511,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -605,6 +623,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -629,6 +650,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -750,6 +774,9 @@ public static class FixGroup
 		/// <summary>The FIX LegSwapType, tag 690, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegSwapType?                   LegSwapType                   { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
 
@@ -758,6 +785,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegCoveredOrUncovered, tag 565, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegCoveredOrUncovered?         LegCoveredOrUncovered         { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -792,6 +822,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -923,6 +956,9 @@ public static class FixGroup
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
 
@@ -1040,6 +1076,9 @@ public static class FixGroup
 		/// <summary>The FIX LegIOIQty, tag 682, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegIOIQty?                     LegIOIQty                     { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
 	}
@@ -1058,6 +1097,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -1178,6 +1220,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSettlType, tag 587, wire type <c>char</c>; null when the field is absent.</summary>
 		public          FixField.LegSettlType?                  LegSettlType                  { get; internal set; }
+
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
 
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
@@ -1213,6 +1258,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -1321,6 +1369,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -1330,8 +1381,14 @@ public static class FixGroup
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -1352,6 +1409,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -1459,6 +1519,9 @@ public static class FixGroup
 
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
+
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
@@ -1484,6 +1547,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -1605,8 +1671,14 @@ public static class FixGroup
 		/// <summary>The FIX LegSwapType, tag 690, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegSwapType?                   LegSwapType                   { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
+
+		/// <summary>The FIX NoLegAllocs, tag 670; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegAllocs?                   NoLegAllocs                   { get; internal set; }
 
 		/// <summary>The entries counted by NoLegAllocs, tag 670; null when the group is absent.</summary>
 		public          List<LegPreAllocGrp>?                   LegPreAllocGrp                { get; internal set; }
@@ -1616,6 +1688,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegCoveredOrUncovered, tag 565, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegCoveredOrUncovered?         LegCoveredOrUncovered         { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -1641,6 +1716,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegIndividualAllocID, tag 672, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegIndividualAllocID? LegIndividualAllocID { get; internal set; }
+
+		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested2PartyIDs?    NoNested2PartyIDs    { get; internal set; }
 
 		/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
 		public          List<NestedParties2>?          NestedParties2       { get; internal set; }
@@ -1670,6 +1748,9 @@ public static class FixGroup
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
 
@@ -1796,8 +1877,14 @@ public static class FixGroup
 		/// <summary>The FIX LegSettlDate, tag 588, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.LegSettlDate?                  LegSettlDate                  { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -1842,6 +1929,9 @@ public static class FixGroup
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
 
@@ -1968,8 +2058,14 @@ public static class FixGroup
 		/// <summary>The FIX LegSettlDate, tag 588, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.LegSettlDate?                  LegSettlDate                  { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -2026,6 +2122,9 @@ public static class FixGroup
 		/// <summary>The FIX SettlInstMode, tag 160, wire type <c>char</c>; null when the field is absent.</summary>
 		public          FixField.SettlInstMode?              SettlInstMode              { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?                 NoPartyIDs                 { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                       Parties                    { get; internal set; }
 
@@ -2055,6 +2154,9 @@ public static class FixGroup
 
 		/// <summary>The FIX PreallocMethod, tag 591, wire type <c>char</c>; null when the field is absent.</summary>
 		public          FixField.PreallocMethod?             PreallocMethod             { get; internal set; }
+
+		/// <summary>The FIX NoAllocs, tag 78; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoAllocs?                   NoAllocs                   { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public          List<PreAllocGrp>?                   PreAllocGrp                { get; internal set; }
@@ -2086,6 +2188,9 @@ public static class FixGroup
 		/// <summary>The FIX ExDestination, tag 100, wire type <c>Exchange</c>; null when the field is absent.</summary>
 		public          FixField.ExDestination?              ExDestination              { get; internal set; }
 
+		/// <summary>The FIX NoTradingSessions, tag 386; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoTradingSessions?          NoTradingSessions          { get; internal set; }
+
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
 		public          List<TrdgSesGrp>?                    TrdgSesGrp                 { get; internal set; }
 
@@ -2103,6 +2208,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -2212,6 +2320,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -2220,6 +2331,9 @@ public static class FixGroup
 
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
@@ -2238,6 +2352,9 @@ public static class FixGroup
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public          FixField.TransactTime?               TransactTime               { get; internal set; }
+
+		/// <summary>The FIX NoStipulations, tag 232; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoStipulations?             NoStipulations             { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
 		public          List<Stipulations>?                  Stipulations               { get; internal set; }
@@ -2586,6 +2703,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -2694,6 +2814,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -2703,8 +2826,14 @@ public static class FixGroup
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -2871,6 +3000,9 @@ public static class FixGroup
 		/// <summary>The FIX NestedPartyRole, tag 538, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.NestedPartyRole?     NestedPartyRole     { get; internal set; }
 
+		/// <summary>The FIX NoNestedPartySubIDs, tag 804; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartySubIDs? NoNestedPartySubIDs { get; internal set; }
+
 		/// <summary>The entries counted by NoNestedPartySubIDs, tag 804; null when the group is absent.</summary>
 		public          List<NstdPtysSubGrp>?         NstdPtysSubGrp      { get; internal set; }
 	}
@@ -2887,6 +3019,9 @@ public static class FixGroup
 		/// <summary>The FIX Nested2PartyRole, tag 759, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.Nested2PartyRole?     Nested2PartyRole     { get; internal set; }
 
+		/// <summary>The FIX NoNested2PartySubIDs, tag 806; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested2PartySubIDs? NoNested2PartySubIDs { get; internal set; }
+
 		/// <summary>The entries counted by NoNested2PartySubIDs, tag 806; null when the group is absent.</summary>
 		public          List<NstdPtys2SubGrp>?         NstdPtys2SubGrp      { get; internal set; }
 	}
@@ -2902,6 +3037,9 @@ public static class FixGroup
 
 		/// <summary>The FIX Nested3PartyRole, tag 951, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.Nested3PartyRole?     Nested3PartyRole     { get; internal set; }
+
+		/// <summary>The FIX NoNested3PartySubIDs, tag 952; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested3PartySubIDs? NoNested3PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested3PartySubIDs, tag 952; null when the group is absent.</summary>
 		public          List<NstdPtys3SubGrp>?         NstdPtys3SubGrp      { get; internal set; }
@@ -2941,31 +3079,34 @@ public static class FixGroup
 	public sealed class OrdAllocGrp
 	{
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.ClOrdID           ClOrdID          { get; init; }
+		public required FixField.ClOrdID            ClOrdID           { get; init; }
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public          FixField.OrderID?          OrderID          { get; internal set; }
+		public          FixField.OrderID?           OrderID           { get; internal set; }
 
 		/// <summary>The FIX SecondaryOrderID, tag 198, wire type <c>String</c>; null when the field is absent.</summary>
-		public          FixField.SecondaryOrderID? SecondaryOrderID { get; internal set; }
+		public          FixField.SecondaryOrderID?  SecondaryOrderID  { get; internal set; }
 
 		/// <summary>The FIX SecondaryClOrdID, tag 526, wire type <c>String</c>; null when the field is absent.</summary>
-		public          FixField.SecondaryClOrdID? SecondaryClOrdID { get; internal set; }
+		public          FixField.SecondaryClOrdID?  SecondaryClOrdID  { get; internal set; }
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public          FixField.ListID?           ListID           { get; internal set; }
+		public          FixField.ListID?            ListID            { get; internal set; }
+
+		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested2PartyIDs? NoNested2PartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-		public          List<NestedParties2>?      NestedParties2   { get; internal set; }
+		public          List<NestedParties2>?       NestedParties2    { get; internal set; }
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public          FixField.OrderQty?         OrderQty         { get; internal set; }
+		public          FixField.OrderQty?          OrderQty          { get; internal set; }
 
 		/// <summary>The FIX OrderAvgPx, tag 799, wire type <c>Price</c>; null when the field is absent.</summary>
-		public          FixField.OrderAvgPx?       OrderAvgPx       { get; internal set; }
+		public          FixField.OrderAvgPx?        OrderAvgPx        { get; internal set; }
 
 		/// <summary>The FIX OrderBookingQty, tag 800, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public          FixField.OrderBookingQty?  OrderBookingQty  { get; internal set; }
+		public          FixField.OrderBookingQty?   OrderBookingQty   { get; internal set; }
 	}
 
 	/// <summary>One entry of the FIX 4.4 OrdListStatGrp, counted by NoOrders, tag 73.</summary>
@@ -3020,6 +3161,9 @@ public static class FixGroup
 		/// <summary>The FIX PartyRole, tag 452, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.PartyRole?     PartyRole     { get; internal set; }
 
+		/// <summary>The FIX NoPartySubIDs, tag 802; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartySubIDs? NoPartySubIDs { get; internal set; }
+
 		/// <summary>The entries counted by NoPartySubIDs, tag 802; null when the group is absent.</summary>
 		public          List<PtysSubGrp>?       PtysSubGrp    { get; internal set; }
 	}
@@ -3038,6 +3182,9 @@ public static class FixGroup
 
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
@@ -3165,6 +3312,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }
 
@@ -3189,19 +3339,22 @@ public static class FixGroup
 	public sealed class PositionQty
 	{
 		/// <summary>The FIX PosType, tag 703, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.PosType       PosType       { get; init; }
+		public required FixField.PosType           PosType          { get; init; }
 
 		/// <summary>The FIX LongQty, tag 704, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public          FixField.LongQty?      LongQty       { get; internal set; }
+		public          FixField.LongQty?          LongQty          { get; internal set; }
 
 		/// <summary>The FIX ShortQty, tag 705, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public          FixField.ShortQty?     ShortQty      { get; internal set; }
+		public          FixField.ShortQty?         ShortQty         { get; internal set; }
 
 		/// <summary>The FIX PosQtyStatus, tag 706, wire type <c>int</c>; null when the field is absent.</summary>
-		public          FixField.PosQtyStatus? PosQtyStatus  { get; internal set; }
+		public          FixField.PosQtyStatus?     PosQtyStatus     { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs? NoNestedPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-		public          List<NestedParties>?   NestedParties { get; internal set; }
+		public          List<NestedParties>?       NestedParties    { get; internal set; }
 	}
 
 	/// <summary>One entry of the FIX 4.4 PreAllocGrp, counted by NoAllocs, tag 78.</summary>
@@ -3218,6 +3371,9 @@ public static class FixGroup
 
 		/// <summary>The FIX IndividualAllocID, tag 467, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.IndividualAllocID?  IndividualAllocID  { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?   NoNestedPartyIDs   { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?         NestedParties      { get; internal set; }
@@ -3240,6 +3396,9 @@ public static class FixGroup
 
 		/// <summary>The FIX IndividualAllocID, tag 467, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.IndividualAllocID?  IndividualAllocID  { get; internal set; }
+
+		/// <summary>The FIX NoNested3PartyIDs, tag 948; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested3PartyIDs?  NoNested3PartyIDs  { get; internal set; }
 
 		/// <summary>The entries counted by NoNested3PartyIDs, tag 948; null when the group is absent.</summary>
 		public          List<NestedParties3>?        NestedParties3     { get; internal set; }
@@ -3272,6 +3431,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -3380,6 +3542,9 @@ public static class FixGroup
 
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
+
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
@@ -3417,8 +3582,14 @@ public static class FixGroup
 		/// <summary>The FIX MarginRatio, tag 898, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.MarginRatio?                MarginRatio                { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -3441,6 +3612,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -3550,6 +3724,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -3558,6 +3735,9 @@ public static class FixGroup
 
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -3653,6 +3833,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -3761,6 +3944,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -3769,6 +3955,9 @@ public static class FixGroup
 
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -3865,6 +4054,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -3973,6 +4165,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -4008,6 +4203,9 @@ public static class FixGroup
 
 		/// <summary>The FIX MarginRatio, tag 898, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.MarginRatio?                MarginRatio                { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
@@ -4066,6 +4264,9 @@ public static class FixGroup
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public          FixField.Currency?                   Currency                   { get; internal set; }
 
+		/// <summary>The FIX NoStipulations, tag 232; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoStipulations?             NoStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
 		public          List<Stipulations>?                  Stipulations               { get; internal set; }
 
@@ -4078,8 +4279,14 @@ public static class FixGroup
 		/// <summary>The FIX AccountType, tag 581, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.AccountType?                AccountType                { get; internal set; }
 
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
+
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<QuotReqLegsGrp>?                QuotReqLegsGrp             { get; internal set; }
+
+		/// <summary>The FIX NoQuoteQualifiers, tag 735; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoQuoteQualifiers?          NoQuoteQualifiers          { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
 		public          List<QuotQualGrp>?                   QuotQualGrp                { get; internal set; }
@@ -4150,6 +4357,9 @@ public static class FixGroup
 		/// <summary>The FIX YieldRedemptionPriceType, tag 698, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.YieldRedemptionPriceType?   YieldRedemptionPriceType   { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?                 NoPartyIDs                 { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                       Parties                    { get; internal set; }
 	}
@@ -4168,6 +4378,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -4295,8 +4508,14 @@ public static class FixGroup
 		/// <summary>The FIX LegSettlDate, tag 588, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.LegSettlDate?                  LegSettlDate                  { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -4331,6 +4550,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -4440,6 +4662,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -4475,6 +4700,9 @@ public static class FixGroup
 
 		/// <summary>The FIX MarginRatio, tag 898, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.MarginRatio?                MarginRatio                { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
@@ -4533,6 +4761,9 @@ public static class FixGroup
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public          FixField.Currency?                   Currency                   { get; internal set; }
 
+		/// <summary>The FIX NoStipulations, tag 232; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoStipulations?             NoStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
 		public          List<Stipulations>?                  Stipulations               { get; internal set; }
 
@@ -4545,8 +4776,14 @@ public static class FixGroup
 		/// <summary>The FIX AccountType, tag 581, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.AccountType?                AccountType                { get; internal set; }
 
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
+
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<QuotReqLegsGrp>?                QuotReqLegsGrp             { get; internal set; }
+
+		/// <summary>The FIX NoQuoteQualifiers, tag 735; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoQuoteQualifiers?          NoQuoteQualifiers          { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
 		public          List<QuotQualGrp>?                   QuotQualGrp                { get; internal set; }
@@ -4614,6 +4851,9 @@ public static class FixGroup
 		/// <summary>The FIX YieldRedemptionPriceType, tag 698, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.YieldRedemptionPriceType?   YieldRedemptionPriceType   { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?                 NoPartyIDs                 { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                       Parties                    { get; internal set; }
 	}
@@ -4635,6 +4875,9 @@ public static class FixGroup
 
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
@@ -4762,6 +5005,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }
 
@@ -4770,6 +5016,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LastFragment, tag 893, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public          FixField.LastFragment?                         LastFragment                         { get; internal set; }
+
+		/// <summary>The FIX NoQuoteEntries, tag 295; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoQuoteEntries?                       NoQuoteEntries                       { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
 		public          List<QuotEntryAckGrp>?                         QuotEntryAckGrp                      { get; internal set; }
@@ -4793,6 +5042,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
 
@@ -4919,6 +5171,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }
 
@@ -4930,6 +5185,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LastFragment, tag 893, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public          FixField.LastFragment?                         LastFragment                         { get; internal set; }
+
+		/// <summary>The FIX NoQuoteEntries, tag 295; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoQuoteEntries?                       NoQuoteEntries                       { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
 		public          List<QuotEntryGrp>?                            QuotEntryGrp                         { get; internal set; }
@@ -4949,6 +5207,9 @@ public static class FixGroup
 
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
@@ -5058,6 +5319,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -5067,8 +5331,14 @@ public static class FixGroup
 		/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public          FixField.InterestAccrualDate?        InterestAccrualDate        { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -5104,6 +5374,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -5212,6 +5485,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -5233,8 +5509,14 @@ public static class FixGroup
 		/// <summary>The FIX PctAtRisk, tag 869, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.PctAtRisk?                  PctAtRisk                  { get; internal set; }
 
+		/// <summary>The FIX NoInstrAttrib, tag 870; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoInstrAttrib?              NoInstrAttrib              { get; internal set; }
+
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
 		public          List<AttrbGrp>?                      AttrbGrp                   { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegGrp>?                 InstrmtLegGrp              { get; internal set; }
@@ -5297,6 +5579,9 @@ public static class FixGroup
 
 		/// <summary>The FIX MailingInst, tag 482, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.MailingInst?                MailingInst                { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?           NoNestedPartyIDs           { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                 NestedParties              { get; internal set; }
@@ -5369,6 +5654,9 @@ public static class FixGroup
 		/// <summary>The FIX SecurityIDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SecurityIDSource?           SecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoSecurityAltID, tag 454; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSecurityAltID?            NoSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
 		public          List<SecAltIDGrp>?                   SecAltIDGrp                { get; internal set; }
 
@@ -5477,6 +5765,9 @@ public static class FixGroup
 		/// <summary>The FIX CPRegType, tag 876, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.CPRegType?                  CPRegType                  { get; internal set; }
 
+		/// <summary>The FIX NoEvents, tag 864; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoEvents?                   NoEvents                   { get; internal set; }
+
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
 		public          List<EvntGrp>?                       EvntGrp                    { get; internal set; }
 
@@ -5491,6 +5782,9 @@ public static class FixGroup
 
 		/// <summary>The FIX PctAtRisk, tag 869, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.PctAtRisk?                  PctAtRisk                  { get; internal set; }
+
+		/// <summary>The FIX NoInstrAttrib, tag 870; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoInstrAttrib?              NoInstrAttrib              { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
 		public          List<AttrbGrp>?                      AttrbGrp                   { get; internal set; }
@@ -5522,14 +5816,23 @@ public static class FixGroup
 		/// <summary>The FIX MarginRatio, tag 898, wire type <c>Percentage</c>; null when the field is absent.</summary>
 		public          FixField.MarginRatio?                MarginRatio                { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyings?              NoUnderlyings              { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
 		public          List<UndInstrmtGrp>?                 UndInstrmtGrp              { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public          FixField.Currency?                   Currency                   { get; internal set; }
 
+		/// <summary>The FIX NoStipulations, tag 232; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoStipulations?             NoStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
 		public          List<Stipulations>?                  Stipulations               { get; internal set; }
+
+		/// <summary>The FIX NoLegs, tag 555; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegs?                     NoLegs                     { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
 		public          List<InstrmtLegSecListGrp>?          InstrmtLegSecListGrp       { get; internal set; }
@@ -5629,6 +5932,9 @@ public static class FixGroup
 		/// <summary>The FIX SettlInstRefID, tag 214, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.SettlInstRefID?     SettlInstRefID     { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?         NoPartyIDs         { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?               Parties            { get; internal set; }
 
@@ -5664,6 +5970,9 @@ public static class FixGroup
 
 		/// <summary>The FIX StandInstDbID, tag 171, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.StandInstDbID?      StandInstDbID      { get; internal set; }
+
+		/// <summary>The FIX NoDlvyInst, tag 85; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoDlvyInst?         NoDlvyInst         { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
 		public          List<DlvyInstGrp>?           DlvyInstGrp        { get; internal set; }
@@ -5708,6 +6017,9 @@ public static class FixGroup
 		/// <summary>The FIX SettlPartyRole, tag 784, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.SettlPartyRole?     SettlPartyRole     { get; internal set; }
 
+		/// <summary>The FIX NoSettlPartySubIDs, tag 801; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoSettlPartySubIDs? NoSettlPartySubIDs { get; internal set; }
+
 		/// <summary>The entries counted by NoSettlPartySubIDs, tag 801; null when the group is absent.</summary>
 		public          List<SettlPtysSubGrp>?       SettlPtysSubGrp    { get; internal set; }
 	}
@@ -5742,6 +6054,9 @@ public static class FixGroup
 
 		/// <summary>The FIX OrigOrdModTime, tag 586, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public          FixField.OrigOrdModTime?       OrigOrdModTime       { get; internal set; }
+
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?           NoPartyIDs           { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                 Parties              { get; internal set; }
@@ -5795,6 +6110,9 @@ public static class FixGroup
 		/// <summary>The FIX ClOrdLinkID, tag 583, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.ClOrdLinkID?          ClOrdLinkID          { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?           NoPartyIDs           { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                 Parties              { get; internal set; }
 
@@ -5824,6 +6142,9 @@ public static class FixGroup
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.AllocID?              AllocID              { get; internal set; }
+
+		/// <summary>The FIX NoAllocs, tag 78; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoAllocs?             NoAllocs             { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public          List<PreAllocGrp>?             PreAllocGrp          { get; internal set; }
@@ -5929,6 +6250,9 @@ public static class FixGroup
 		/// <summary>The FIX IndividualAllocID, tag 467, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.IndividualAllocID?  IndividualAllocID  { get; internal set; }
 
+		/// <summary>The FIX NoNested2PartyIDs, tag 756; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNested2PartyIDs?  NoNested2PartyIDs  { get; internal set; }
+
 		/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
 		public          List<NestedParties2>?        NestedParties2     { get; internal set; }
 
@@ -5967,6 +6291,9 @@ public static class FixGroup
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.ListID?                    ListID                    { get; internal set; }
 
+		/// <summary>The FIX NoPartyIDs, tag 453; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoPartyIDs?                NoPartyIDs                { get; internal set; }
+
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
 		public          List<Parties>?                      Parties                   { get; internal set; }
 
@@ -5984,6 +6311,9 @@ public static class FixGroup
 
 		/// <summary>The FIX OddLot, tag 575, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public          FixField.OddLot?                    OddLot                    { get; internal set; }
+
+		/// <summary>The FIX NoClearingInstructions, tag 576; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoClearingInstructions?    NoClearingInstructions    { get; internal set; }
 
 		/// <summary>The entries counted by NoClearingInstructions, tag 576; null when the group is absent.</summary>
 		public          List<ClrInstGrp>?                   ClrInstGrp                { get; internal set; }
@@ -6108,11 +6438,20 @@ public static class FixGroup
 		/// <summary>The FIX SideMultiLegReportingType, tag 752, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.SideMultiLegReportingType? SideMultiLegReportingType { get; internal set; }
 
+		/// <summary>The FIX NoContAmts, tag 518; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoContAmts?                NoContAmts                { get; internal set; }
+
 		/// <summary>The entries counted by NoContAmts, tag 518; null when the group is absent.</summary>
 		public          List<ContAmtGrp>?                   ContAmtGrp                { get; internal set; }
 
+		/// <summary>The FIX NoStipulations, tag 232; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoStipulations?            NoStipulations            { get; internal set; }
+
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
 		public          List<Stipulations>?                 Stipulations              { get; internal set; }
+
+		/// <summary>The FIX NoMiscFees, tag 136; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoMiscFees?                NoMiscFees                { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
 		public          List<MiscFeesGrp>?                  MiscFeesGrp               { get; internal set; }
@@ -6128,6 +6467,9 @@ public static class FixGroup
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.AllocID?                   AllocID                   { get; internal set; }
+
+		/// <summary>The FIX NoAllocs, tag 78; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoAllocs?                  NoAllocs                  { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public          List<TrdAllocGrp>?                  TrdAllocGrp               { get; internal set; }
@@ -6157,6 +6499,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegSecurityIDSource, tag 603, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.LegSecurityIDSource?           LegSecurityIDSource           { get; internal set; }
+
+		/// <summary>The FIX NoLegSecurityAltID, tag 604; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegSecurityAltID?            NoLegSecurityAltID            { get; internal set; }
 
 		/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
 		public          List<LegSecAltIDGrp>?                   LegSecAltIDGrp                { get; internal set; }
@@ -6278,6 +6623,9 @@ public static class FixGroup
 		/// <summary>The FIX LegSwapType, tag 690, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegSwapType?                   LegSwapType                   { get; internal set; }
 
+		/// <summary>The FIX NoLegStipulations, tag 683; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoLegStipulations?             NoLegStipulations             { get; internal set; }
+
 		/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
 		public          List<LegStipulations>?                  LegStipulations               { get; internal set; }
 
@@ -6286,6 +6634,9 @@ public static class FixGroup
 
 		/// <summary>The FIX LegCoveredOrUncovered, tag 565, wire type <c>int</c>; null when the field is absent.</summary>
 		public          FixField.LegCoveredOrUncovered?         LegCoveredOrUncovered         { get; internal set; }
+
+		/// <summary>The FIX NoNestedPartyIDs, tag 539; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoNestedPartyIDs?              NoNestedPartyIDs              { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public          List<NestedParties>?                    NestedParties                 { get; internal set; }
@@ -6344,6 +6695,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
 
@@ -6469,6 +6823,9 @@ public static class FixGroup
 
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }
@@ -6492,6 +6849,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
 
@@ -6617,6 +6977,9 @@ public static class FixGroup
 
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }
@@ -6637,6 +7000,9 @@ public static class FixGroup
 		/// <summary>The FIX UnderlyingSecurityIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingSecurityIDSource?           UnderlyingSecurityIDSource           { get; internal set; }
 
+		/// <summary>The FIX NoUnderlyingSecurityAltID, tag 457; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingSecurityAltID?            NoUnderlyingSecurityAltID            { get; internal set; }
+
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
 		public          List<UndSecAltIDGrp>?                          UndSecAltIDGrp                       { get; internal set; }
 
@@ -6762,6 +7128,9 @@ public static class FixGroup
 
 		/// <summary>The FIX UnderlyingEndValue, tag 886, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public          FixField.UnderlyingEndValue?                   UnderlyingEndValue                   { get; internal set; }
+
+		/// <summary>The FIX NoUnderlyingStips, tag 887; how many entries of the group it counts follow in this entry.</summary>
+		public          FixField.NoUnderlyingStips?                    NoUnderlyingStips                    { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
 		public          List<UnderlyingStipulations>?                  UnderlyingStipulations               { get; internal set; }

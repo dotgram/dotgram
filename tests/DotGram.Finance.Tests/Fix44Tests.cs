@@ -104,6 +104,23 @@ public sealed class Fix44Tests
 		Assert.Equal("S2", order.Parties[0].PtysSubGrp![1].PartySubID.Value);
 	}
 
+	/// <summary>
+	/// The counter of a group inside a group belongs to the entry that holds it, so two entries
+	/// carrying the same nested group each keep their own count.
+	/// </summary>
+	[Fact]
+	public void A_nested_count_belongs_to_the_entry_it_counts_in()
+	{
+		var order = Assert.IsType<FixMessage.NewOrderSingle>(FixParser.ParseMessage(
+			FixFixtures.Wire("D", "11=ORDER|453=2|448=P1|802=2|523=S1|803=1|523=S2|803=2|448=P2|802=1|523=S3|803=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|")));
+
+		Assert.Equal(2, (int)order.Parties![0].NoPartySubIDs!.Value);
+		Assert.Equal(1, (int)order.Parties[1].NoPartySubIDs!.Value);
+		Assert.Equal(2, order.Parties[0].PtysSubGrp!.Count);
+		Assert.Single(order.Parties[1].PtysSubGrp!);
+		Assert.Equal("S3", order.Parties[1].PtysSubGrp![0].PartySubID.Value);
+	}
+
 	[Fact]
 	public void Every_truncated_prefix_is_rejected_without_throwing()
 	{
