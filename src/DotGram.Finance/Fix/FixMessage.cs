@@ -256,6 +256,10 @@ public abstract partial class FixMessage
 		/// <param name="fields">The list of FIX fields.</param>
 		public Custom(string type, List<FixField> fields) : base(type, fields)
 		{
+			// The schema says nothing about this type, so nothing is placed by it. The standard header
+			// and trailer are the standard's and are read as themselves, as in every other message.
+			foreach (var field in fields)
+				SetStandardField(field);
 		}
 
 	}

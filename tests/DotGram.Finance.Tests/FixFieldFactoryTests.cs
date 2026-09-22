@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Text;
+using System.Xml.Linq;
 
 using DotGram.Finance.Fix;
 
@@ -42,12 +45,11 @@ public sealed class FixFieldFactoryTests
 	{
 		var custom = new FixFieldOptions().CustomFields;
 		var wrong  = new List<string>();
+		var named  = Named();
 
 		for (var tag = 1; tag <= 1100; tag++)
 		{
-			var expected = Enum.IsDefined(typeof(FixFieldType), tag)
-				? Enum.GetName(typeof(FixFieldType), tag)!
-				: nameof(FixField.Custom);
+			var expected = named.TryGetValue(tag, out var name) ? name : nameof(FixField.Custom);
 
 			foreach (var (door, field) in Both(tag, custom))
 			{
@@ -103,4 +105,17 @@ public sealed class FixFieldFactoryTests
 		yield return ("characters", FixFieldFactory.Value(tag, "1".AsSpan(), custom));
 		yield return ("octets",     FixFieldFactory.Value(tag, Encoding.Latin1.GetBytes("1").AsSpan(), custom));
 	}
+	/// <summary>What the published repository calls each tag, which is what the classes are named after.</summary>
+	static Dictionary<int, string> Named()
+	{
+		var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository", "FIX.4.4", "Base", "Fields.xml");
+		var named = new Dictionary<int, string>();
+
+		foreach (var field in XDocument.Load(path).Root!.Elements())
+			named[int.Parse(field.Element(field.Name.Namespace + "Tag")!.Value, CultureInfo.InvariantCulture)] =
+				field.Element(field.Name.Namespace + "Name")!.Value;
+
+		return named;
+	}
+
 }
