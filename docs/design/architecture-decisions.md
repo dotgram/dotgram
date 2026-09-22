@@ -9333,6 +9333,16 @@ within a message, because streaming parses each from its own frame, and no messa
 offset it was read from. That is a question for the message, not for the finding, and it is not
 answered here.
 
+**Four refusals became readings, and the pinned contract says so.** `FixBuilderContractTests` was
+written before the rewrite to record what the reader promised, word for word, because those
+sentences reach a consumer in a `FormatException`. Four changed: a NumInGroup that is not a number,
+a NumInGroup larger than the fields that follow it, a group entry that does not open with its
+delimiter, and a field no scope would take. All four were refusals of the reading and are now read
+without complaint. The cause is single: a message was a scope of nodes held against the schema
+while the input was still being read, and is now its typed fields built by a switch over the tags,
+which has nothing to disagree with. Each is a rule of `FixRule` and returns with validation — which
+is what makes finishing validation a correctness matter and not only a feature.
+
 **What is not decided:** how the factories are arranged, and therefore whether `FixField.Custom`
 survives at all. As Igor describes them — the consumer's factory accepts and builds, or the base
 builds `Invalid` — nothing is left to build a `Custom`, but that is a consequence of the factory
