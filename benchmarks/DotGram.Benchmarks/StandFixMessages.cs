@@ -68,6 +68,24 @@ static partial class Stand
 	static readonly Lazy<QuickFix.DataDictionary.DataDictionary> QuickFixDictionary = new(static () => new QuickFix.DataDictionary.DataDictionary(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml")));
 
 	/// <summary>Whether QuickFIX/n accepts the wire as a session would take it: parsed with the dictionary and validated against it.</summary>
+	/// <summary>Whether QuickFIX/n reads the wire at all: parsed with the dictionary, BodyLength and CheckSum checked, and not held to the schema.</summary>
+	static bool QuickFixParses(string wire)
+	{
+		try
+		{
+			var dictionary = QuickFixDictionary.Value;
+			var message    = new QuickFix.Message();
+
+			message.FromString(wire, true, dictionary, dictionary, new QuickFix.FIX44.MessageFactory());
+
+			return true;
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
+
 	static bool QuickFixAccepts(string wire)
 	{
 		try
@@ -106,11 +124,26 @@ static partial class Stand
 		// The message layer against QuickFIX/n on a message both accept. The second reading is a reference: another library's reader, doing the work a
 		// session needs (a dictionary, BodyLength and CheckSum checked). It says how fast that reader is here, and not what this grammar costs against a hand
 		// reading; there is no field row, since QuickFIX/n's message is a sorted map that drops the order of the wire and folds a repeated tag.
+		// Two rows, so that each side is read doing the same work as the other. `.parse` is the reading of the wire
+		// alone, on both sides with the envelope checked; `.strict` is that and then the schema, ours through
+		// Validate(FixContext.Default) and theirs through DataDictionary.Validate. Until 2026-09-22 the generated
+		// reading of `.strict` was the parse alone against their parse and check, and read as 2.5x when it was not one.
+		yield return new Workload(
+			"fixmsg",
+			"Order44.parse",
+			[
+				new Reading("generated", () => FixParser.TryParseMessage(agreed, out _, out _, null) ? 1 : 0),
+				new Reading("reference-QuickFIXn", () => QuickFixParses(agreed) ? 1 : 0),
+			],
+			() => FixParser.TryParseMessage(agreed, out _, out var error, null)
+				? (QuickFixParses(agreed) ? null : "  the message layer reads the wire and QuickFIX/n does not")
+				: $"  the message layer refuses the wire: {error}");
+
 		yield return new Workload(
 			"fixmsg",
 			"Order44.strict",
 			[
-				new Reading("generated", () => FixParser.TryParseMessage(agreed, out _, out _, null) ? 1 : 0),
+				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(FixContext.Default) ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],
 			() => FixParser.TryParseMessage(agreed, out _, out var error, null)
