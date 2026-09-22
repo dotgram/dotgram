@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Finance.Fix;
@@ -20,6 +21,38 @@ public sealed class FixValidationTests
 		Assert.True(order.Validate(FixContext.Default));
 		Assert.True(order.IsValid);
 		Assert.Null(order.InvalidFindings);
+	}
+
+	/// <summary>Every fixture of the standard, held to the standard, reports these three and no more.</summary>
+	/// <remarks>
+	/// One hundred and eighty-six messages through every rule this package has: required fields,
+	/// required blocks, the values a field is limited to, and every group count against its entries.
+	/// What comes back is the three tags the fixtures place where the repository does not, which
+	/// Fix44Tests names and chases to the two published readings. Nothing else — which is what makes
+	/// this worth keeping: it is the whole layer asked at once, of input written before it existed.
+	/// </remarks>
+	[Fact]
+	public void The_standard_fixtures_report_what_they_report()
+	{
+		var found = new List<(string Type, FixRule Rule, int Tag)>();
+
+		foreach (var data in FixFixtures.Messages())
+		{
+			var message = FixParser.ParseMessage((string)data[1]);
+
+			message.Validate(FixContext.Default);
+
+			foreach (var one in message.InvalidFindings ?? [])
+				found.Add(((string)data[0], one.Rule, one.Tag));
+		}
+
+		Assert.Equal(
+			[
+				"FieldNotInScope 586 in CrossOrderCancelReplaceRequest",
+				"FieldNotInScope 586 in NewOrderCross",
+				"FieldNotInScope 635 in TradeCaptureReport",
+			],
+			found.Select(one => one.Rule + " " + one.Tag + " in " + one.Type).Distinct().Order().ToArray());
 	}
 
 	[Fact]
