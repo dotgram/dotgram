@@ -570,7 +570,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 IOI, MsgType 6.</summary>
-	public sealed partial class IOI : FixMessage
+	public sealed partial class IOI : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal IOI(List<FixField> fields) : base("6", fields)
 		{
@@ -2002,7 +2002,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Advertisement, MsgType 7.</summary>
-	public sealed partial class Advertisement : FixMessage
+	public sealed partial class Advertisement : FixMessage, IInstrument
 	{
 		internal Advertisement(List<FixField> fields) : base("7", fields)
 		{
@@ -3121,7 +3121,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 ExecutionReport, MsgType 8.</summary>
-	public sealed partial class ExecutionReport : FixMessage
+	public sealed partial class ExecutionReport : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal ExecutionReport(List<FixField> fields) : base("8", fields)
 		{
@@ -8036,7 +8036,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderSingle, MsgType D.</summary>
-	public sealed partial class NewOrderSingle : FixMessage
+	public sealed partial class NewOrderSingle : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal NewOrderSingle(List<FixField> fields) : base("D", fields)
 		{
@@ -11332,7 +11332,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
-	public sealed partial class OrderCancelRequest : FixMessage
+	public sealed partial class OrderCancelRequest : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData
 	{
 		internal OrderCancelRequest(List<FixField> fields) : base("F", fields)
 		{
@@ -12212,7 +12212,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderCancelReplaceRequest, MsgType G.</summary>
-	public sealed partial class OrderCancelReplaceRequest : FixMessage
+	public sealed partial class OrderCancelReplaceRequest : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal OrderCancelReplaceRequest(List<FixField> fields)
 			: base("G", fields)
@@ -13591,7 +13591,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderStatusRequest, MsgType H.</summary>
-	public sealed partial class OrderStatusRequest : FixMessage
+	public sealed partial class OrderStatusRequest : FixMessage, IFinancingDetails, IInstrument
 	{
 		internal OrderStatusRequest(List<FixField> fields)
 			: base("H", fields)
@@ -14407,7 +14407,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationInstruction, MsgType J.</summary>
-	public sealed partial class AllocationInstruction : FixMessage
+	public sealed partial class AllocationInstruction : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal AllocationInstruction(List<FixField> fields)
 			: base("J", fields)
@@ -17053,7 +17053,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
-	public sealed partial class DontKnowTrade : FixMessage
+	public sealed partial class DontKnowTrade : FixMessage, IInstrument, IOrderQtyData
 	{
 		internal DontKnowTrade(List<FixField> fields)
 			: base("Q", fields)
@@ -20030,7 +20030,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Quote, MsgType S.</summary>
-	public sealed partial class Quote : FixMessage
+	public sealed partial class Quote : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal Quote(List<FixField> fields)
 			: base("S", fields)
@@ -23330,7 +23330,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MarketDataSnapshotFullRefresh, MsgType W.</summary>
-	public sealed partial class MarketDataSnapshotFullRefresh : FixMessage
+	public sealed partial class MarketDataSnapshotFullRefresh : FixMessage, IInstrument
 	{
 		internal MarketDataSnapshotFullRefresh(List<FixField> fields)
 			: base("W", fields)
@@ -27584,7 +27584,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
-	public sealed partial class QuoteStatusRequest : FixMessage
+	public sealed partial class QuoteStatusRequest : FixMessage, IFinancingDetails, IInstrument
 	{
 		internal QuoteStatusRequest(List<FixField> fields)
 			: base("a", fields)
@@ -30262,7 +30262,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
-	public sealed partial class SecurityDefinitionRequest : FixMessage
+	public sealed partial class SecurityDefinitionRequest : FixMessage, IInstrument, IInstrumentExtension
 	{
 		internal SecurityDefinitionRequest(List<FixField> fields)
 			: base("c", fields)
@@ -31373,7 +31373,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityDefinition, MsgType d.</summary>
-	public sealed partial class SecurityDefinition : FixMessage
+	public sealed partial class SecurityDefinition : FixMessage, IInstrument, IInstrumentExtension
 	{
 		internal SecurityDefinition(List<FixField> fields)
 			: base("d", fields)
@@ -32494,7 +32494,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityStatusRequest, MsgType e.</summary>
-	public sealed partial class SecurityStatusRequest : FixMessage
+	public sealed partial class SecurityStatusRequest : FixMessage, IInstrument, IInstrumentExtension
 	{
 		internal SecurityStatusRequest(List<FixField> fields)
 			: base("e", fields)
@@ -33580,7 +33580,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityStatus, MsgType f.</summary>
-	public sealed partial class SecurityStatus : FixMessage
+	public sealed partial class SecurityStatus : FixMessage, IInstrument, IInstrumentExtension
 	{
 		internal SecurityStatus(List<FixField> fields)
 			: base("f", fields)
@@ -38322,7 +38322,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassCancelRequest, MsgType q.</summary>
-	public sealed partial class OrderMassCancelRequest : FixMessage
+	public sealed partial class OrderMassCancelRequest : FixMessage, IInstrument, IUnderlyingInstrument
 	{
 		internal OrderMassCancelRequest(List<FixField> fields)
 			: base("q", fields)
@@ -38911,7 +38911,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassCancelReport, MsgType r.</summary>
-	public sealed partial class OrderMassCancelReport : FixMessage
+	public sealed partial class OrderMassCancelReport : FixMessage, IInstrument, IUnderlyingInstrument
 	{
 		internal OrderMassCancelReport(List<FixField> fields)
 			: base("r", fields)
@@ -39549,7 +39549,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderCross, MsgType s.</summary>
-	public sealed partial class NewOrderCross : FixMessage
+	public sealed partial class NewOrderCross : FixMessage, IDiscretionInstructions, IInstrument, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal NewOrderCross(List<FixField> fields)
 			: base("s", fields)
@@ -41381,7 +41381,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CrossOrderCancelReplaceRequest, MsgType t.</summary>
-	public sealed partial class CrossOrderCancelReplaceRequest : FixMessage
+	public sealed partial class CrossOrderCancelReplaceRequest : FixMessage, IDiscretionInstructions, IInstrument, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal CrossOrderCancelReplaceRequest(List<FixField> fields)
 			: base("t", fields)
@@ -43223,7 +43223,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CrossOrderCancelRequest, MsgType u.</summary>
-	public sealed partial class CrossOrderCancelRequest : FixMessage
+	public sealed partial class CrossOrderCancelRequest : FixMessage, IInstrument
 	{
 		internal CrossOrderCancelRequest(List<FixField> fields)
 			: base("u", fields)
@@ -44665,7 +44665,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 SecurityListRequest, MsgType x.</summary>
-	public sealed partial class SecurityListRequest : FixMessage
+	public sealed partial class SecurityListRequest : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension
 	{
 		internal SecurityListRequest(List<FixField> fields)
 			: base("x", fields)
@@ -47417,7 +47417,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
-	public sealed partial class DerivativeSecurityListRequest : FixMessage
+	public sealed partial class DerivativeSecurityListRequest : FixMessage, IUnderlyingInstrument
 	{
 		internal DerivativeSecurityListRequest(List<FixField> fields)
 			: base("z", fields)
@@ -47753,7 +47753,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 DerivativeSecurityList, MsgType AA.</summary>
-	public sealed partial class DerivativeSecurityList : FixMessage
+	public sealed partial class DerivativeSecurityList : FixMessage, IUnderlyingInstrument
 	{
 		internal DerivativeSecurityList(List<FixField> fields)
 			: base("AA", fields)
@@ -48901,7 +48901,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
-	public sealed partial class NewOrderMultileg : FixMessage
+	public sealed partial class NewOrderMultileg : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IPegInstructions
 	{
 		internal NewOrderMultileg(List<FixField> fields)
 			: base("AB", fields)
@@ -50741,7 +50741,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 MultilegOrderCancelReplace, MsgType AC.</summary>
-	public sealed partial class MultilegOrderCancelReplace : FixMessage
+	public sealed partial class MultilegOrderCancelReplace : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IPegInstructions
 	{
 		internal MultilegOrderCancelReplace(List<FixField> fields)
 			: base("AC", fields)
@@ -52596,7 +52596,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportRequest, MsgType AD.</summary>
-	public sealed partial class TradeCaptureReportRequest : FixMessage
+	public sealed partial class TradeCaptureReportRequest : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension
 	{
 		internal TradeCaptureReportRequest(List<FixField> fields)
 			: base("AD", fields)
@@ -53910,7 +53910,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReport, MsgType AE.</summary>
-	public sealed partial class TradeCaptureReport : FixMessage
+	public sealed partial class TradeCaptureReport : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal TradeCaptureReport(List<FixField> fields)
 			: base("AE", fields)
@@ -56200,7 +56200,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 OrderMassStatusRequest, MsgType AF.</summary>
-	public sealed partial class OrderMassStatusRequest : FixMessage
+	public sealed partial class OrderMassStatusRequest : FixMessage, IInstrument, IUnderlyingInstrument
 	{
 		internal OrderMassStatusRequest(List<FixField> fields)
 			: base("AF", fields)
@@ -59906,7 +59906,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteStatusReport, MsgType AI.</summary>
-	public sealed partial class QuoteStatusReport : FixMessage
+	public sealed partial class QuoteStatusReport : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal QuoteStatusReport(List<FixField> fields)
 			: base("AI", fields)
@@ -61513,7 +61513,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 QuoteResponse, MsgType AJ.</summary>
-	public sealed partial class QuoteResponse : FixMessage
+	public sealed partial class QuoteResponse : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal QuoteResponse(List<FixField> fields)
 			: base("AJ", fields)
@@ -63183,7 +63183,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 Confirmation, MsgType AK.</summary>
-	public sealed partial class Confirmation : FixMessage
+	public sealed partial class Confirmation : FixMessage, ICommissionData, IFinancingDetails, IInstrument, IInstrumentExtension, ISettlInstructionsData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal Confirmation(List<FixField> fields)
 			: base("AK", fields)
@@ -64975,7 +64975,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
-	public sealed partial class PositionMaintenanceRequest : FixMessage
+	public sealed partial class PositionMaintenanceRequest : FixMessage, IInstrument
 	{
 		internal PositionMaintenanceRequest(List<FixField> fields)
 			: base("AL", fields)
@@ -66256,7 +66256,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionMaintenanceReport, MsgType AM.</summary>
-	public sealed partial class PositionMaintenanceReport : FixMessage
+	public sealed partial class PositionMaintenanceReport : FixMessage, IInstrument
 	{
 		internal PositionMaintenanceReport(List<FixField> fields)
 			: base("AM", fields)
@@ -67554,7 +67554,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RequestForPositions, MsgType AN.</summary>
-	public sealed partial class RequestForPositions : FixMessage
+	public sealed partial class RequestForPositions : FixMessage, IInstrument
 	{
 		internal RequestForPositions(List<FixField> fields)
 			: base("AN", fields)
@@ -68737,7 +68737,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 RequestForPositionsAck, MsgType AO.</summary>
-	public sealed partial class RequestForPositionsAck : FixMessage
+	public sealed partial class RequestForPositionsAck : FixMessage, IInstrument
 	{
 		internal RequestForPositionsAck(List<FixField> fields)
 			: base("AO", fields)
@@ -69893,7 +69893,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 PositionReport, MsgType AP.</summary>
-	public sealed partial class PositionReport : FixMessage
+	public sealed partial class PositionReport : FixMessage, IInstrument
 	{
 		internal PositionReport(List<FixField> fields)
 			: base("AP", fields)
@@ -71201,7 +71201,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportRequestAck, MsgType AQ.</summary>
-	public sealed partial class TradeCaptureReportRequestAck : FixMessage
+	public sealed partial class TradeCaptureReportRequestAck : FixMessage, IInstrument
 	{
 		internal TradeCaptureReportRequestAck(List<FixField> fields)
 			: base("AQ", fields)
@@ -72296,7 +72296,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 TradeCaptureReportAck, MsgType AR.</summary>
-	public sealed partial class TradeCaptureReportAck : FixMessage
+	public sealed partial class TradeCaptureReportAck : FixMessage, IInstrument
 	{
 		internal TradeCaptureReportAck(List<FixField> fields)
 			: base("AR", fields)
@@ -73354,7 +73354,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
-	public sealed partial class AllocationReport : FixMessage
+	public sealed partial class AllocationReport : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		internal AllocationReport(List<FixField> fields)
 			: base("AS", fields)
@@ -75888,7 +75888,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 AssignmentReport, MsgType AW.</summary>
-	public sealed partial class AssignmentReport : FixMessage
+	public sealed partial class AssignmentReport : FixMessage, IInstrument
 	{
 		internal AssignmentReport(List<FixField> fields)
 			: base("AW", fields)
@@ -77175,7 +77175,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralRequest, MsgType AX.</summary>
-	public sealed partial class CollateralRequest : FixMessage
+	public sealed partial class CollateralRequest : FixMessage, IFinancingDetails, IInstrument, ISpreadOrBenchmarkCurveData
 	{
 		internal CollateralRequest(List<FixField> fields)
 			: base("AX", fields)
@@ -78606,7 +78606,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralAssignment, MsgType AY.</summary>
-	public sealed partial class CollateralAssignment : FixMessage
+	public sealed partial class CollateralAssignment : FixMessage, IFinancingDetails, IInstrument, ISettlInstructionsData, ISpreadOrBenchmarkCurveData
 	{
 		internal CollateralAssignment(List<FixField> fields)
 			: base("AY", fields)
@@ -80139,7 +80139,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralResponse, MsgType AZ.</summary>
-	public sealed partial class CollateralResponse : FixMessage
+	public sealed partial class CollateralResponse : FixMessage, IFinancingDetails, IInstrument, ISpreadOrBenchmarkCurveData
 	{
 		internal CollateralResponse(List<FixField> fields)
 			: base("AZ", fields)
@@ -81565,7 +81565,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralReport, MsgType BA.</summary>
-	public sealed partial class CollateralReport : FixMessage
+	public sealed partial class CollateralReport : FixMessage, IFinancingDetails, IInstrument, ISettlInstructionsData, ISpreadOrBenchmarkCurveData
 	{
 		internal CollateralReport(List<FixField> fields)
 			: base("BA", fields)
@@ -83080,7 +83080,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralInquiry, MsgType BB.</summary>
-	public sealed partial class CollateralInquiry : FixMessage
+	public sealed partial class CollateralInquiry : FixMessage, IFinancingDetails, IInstrument, ISettlInstructionsData, ISpreadOrBenchmarkCurveData
 	{
 		internal CollateralInquiry(List<FixField> fields)
 			: base("BB", fields)
@@ -84845,7 +84845,7 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>FIX 4.4 CollateralInquiryAck, MsgType BG.</summary>
-	public sealed partial class CollateralInquiryAck : FixMessage
+	public sealed partial class CollateralInquiryAck : FixMessage, IFinancingDetails, IInstrument
 	{
 		internal CollateralInquiryAck(List<FixField> fields)
 			: base("BG", fields)

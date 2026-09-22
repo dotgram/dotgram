@@ -56,7 +56,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 AllocGrp, counted by NoAllocs, tag 78.</summary>
-	public sealed class AllocGrp
+	public sealed class AllocGrp : ICommissionData, ISettlInstructionsData
 	{
 		/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.AllocAccount             AllocAccount            { get; init; }
@@ -218,7 +218,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 BidCompRspGrp, counted by NoBidComponents, tag 420.</summary>
-	public sealed class BidCompRspGrp
+	public sealed class BidCompRspGrp : ICommissionData
 	{
 		/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public required FixField.Commission           Commission          { get; init; }
@@ -498,7 +498,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class InstrmtGrp
+	public sealed class InstrmtGrp : IInstrument
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -637,7 +637,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtLegExecGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class InstrmtLegExecGrp
+	public sealed class InstrmtLegExecGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -809,7 +809,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtLegGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class InstrmtLegGrp
+	public sealed class InstrmtLegGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -942,7 +942,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtLegIOIGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class InstrmtLegIOIGrp
+	public sealed class InstrmtLegIOIGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -1084,7 +1084,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtLegSecListGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class InstrmtLegSecListGrp
+	public sealed class InstrmtLegSecListGrp : IInstrumentLeg, ILegBenchmarkCurveData
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -1244,7 +1244,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtMDReqGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class InstrmtMDReqGrp
+	public sealed class InstrmtMDReqGrp : IInstrument
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -1395,7 +1395,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 InstrmtStrkPxGrp, counted by NoStrikes, tag 428.</summary>
-	public sealed class InstrmtStrkPxGrp
+	public sealed class InstrmtStrkPxGrp : IInstrument
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -1534,7 +1534,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 LegOrdGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class LegOrdGrp
+	public sealed class LegOrdGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -1734,7 +1734,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 LegQuotGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class LegQuotGrp
+	public sealed class LegQuotGrp : IInstrumentLeg, ILegBenchmarkCurveData
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -1915,7 +1915,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 LegQuotStatGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class LegQuotStatGrp
+	public sealed class LegQuotStatGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -2105,7 +2105,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 ListOrdGrp, counted by NoOrders, tag 73.</summary>
-	public sealed class ListOrdGrp
+	public sealed class ListOrdGrp : ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.ClOrdID                     ClOrdID                    { get; init; }
@@ -2674,7 +2674,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 MDIncGrp, counted by NoMDEntries, tag 268.</summary>
-	public sealed class MDIncGrp
+	public sealed class MDIncGrp : IInstrument
 	{
 		/// <summary>The FIX MDUpdateAction, tag 279, wire type <c>char</c>; null when the field is absent.</summary>
 		public required FixField.MDUpdateAction              MDUpdateAction             { get; init; }
@@ -3169,7 +3169,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 PosUndInstrmtGrp, counted by NoUnderlyings, tag 711.</summary>
-	public sealed class PosUndInstrmtGrp
+	public sealed class PosUndInstrmtGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.UnderlyingSymbol                      UnderlyingSymbol                     { get; init; }
@@ -3418,7 +3418,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotCxlEntriesGrp, counted by NoQuoteEntries, tag 295.</summary>
-	public sealed class QuotCxlEntriesGrp
+	public sealed class QuotCxlEntriesGrp : IFinancingDetails, IInstrument
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -3596,7 +3596,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotEntryAckGrp, counted by NoQuoteEntries, tag 295.</summary>
-	public sealed class QuotEntryAckGrp
+	public sealed class QuotEntryAckGrp : IInstrument
 	{
 		/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.QuoteEntryID                QuoteEntryID               { get; init; }
@@ -3816,7 +3816,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotEntryGrp, counted by NoQuoteEntries, tag 295.</summary>
-	public sealed class QuotEntryGrp
+	public sealed class QuotEntryGrp : IInstrument
 	{
 		/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.QuoteEntryID                QuoteEntryID               { get; init; }
@@ -4040,7 +4040,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotReqGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class QuotReqGrp
+	public sealed class QuotReqGrp : IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -4365,7 +4365,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotReqLegsGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class QuotReqLegsGrp
+	public sealed class QuotReqLegsGrp : IInstrumentLeg, ILegBenchmarkCurveData
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -4537,7 +4537,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotReqRjctGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class QuotReqRjctGrp
+	public sealed class QuotReqRjctGrp : IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -4859,7 +4859,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotSetAckGrp, counted by NoQuoteSets, tag 296.</summary>
-	public sealed class QuotSetAckGrp
+	public sealed class QuotSetAckGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.QuoteSetID                            QuoteSetID                           { get; init; }
@@ -5025,7 +5025,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 QuotSetGrp, counted by NoQuoteSets, tag 296.</summary>
-	public sealed class QuotSetGrp
+	public sealed class QuotSetGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.QuoteSetID                            QuoteSetID                           { get; init; }
@@ -5194,7 +5194,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 RFQReqGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class RFQReqGrp
+	public sealed class RFQReqGrp : IInstrument
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -5360,7 +5360,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 RelSymDerivSecGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class RelSymDerivSecGrp
+	public sealed class RelSymDerivSecGrp : IInstrument, IInstrumentExtension
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -5640,7 +5640,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 SecListGrp, counted by NoRelatedSym, tag 146.</summary>
-	public sealed class SecListGrp
+	public sealed class SecListGrp : IFinancingDetails, IInstrument, IInstrumentExtension, ISpreadOrBenchmarkCurveData, IYieldData
 	{
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.Symbol                      Symbol                     { get; init; }
@@ -5921,7 +5921,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 SettlInstGrp, counted by NoSettlInst, tag 778.</summary>
-	public sealed class SettlInstGrp
+	public sealed class SettlInstGrp : ISettlInstructionsData
 	{
 		/// <summary>The FIX SettlInstID, tag 162, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.SettlInstID         SettlInstID        { get; init; }
@@ -6035,7 +6035,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 SideCrossOrdCxlGrp, counted by NoSides, tag 552.</summary>
-	public sealed class SideCrossOrdCxlGrp
+	public sealed class SideCrossOrdCxlGrp : IOrderQtyData
 	{
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public required FixField.Side                  Side                 { get; init; }
@@ -6096,7 +6096,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 SideCrossOrdModGrp, counted by NoSides, tag 552.</summary>
-	public sealed class SideCrossOrdModGrp
+	public sealed class SideCrossOrdModGrp : ICommissionData, IOrderQtyData
 	{
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public required FixField.Side                  Side                 { get; init; }
@@ -6271,7 +6271,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 TrdCapRptSideGrp, counted by NoSides, tag 552.</summary>
-	public sealed class TrdCapRptSideGrp
+	public sealed class TrdCapRptSideGrp : ICommissionData
 	{
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public required FixField.Side                       Side                      { get; init; }
@@ -6486,7 +6486,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 TrdInstrmtLegGrp, counted by NoLegs, tag 555.</summary>
-	public sealed class TrdInstrmtLegGrp
+	public sealed class TrdInstrmtLegGrp : IInstrumentLeg
 	{
 		/// <summary>The FIX LegSymbol, tag 600, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.LegSymbol                      LegSymbol                     { get; init; }
@@ -6681,7 +6681,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 UndInstrmtCollGrp, counted by NoUnderlyings, tag 711.</summary>
-	public sealed class UndInstrmtCollGrp
+	public sealed class UndInstrmtCollGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.UnderlyingSymbol                      UnderlyingSymbol                     { get; init; }
@@ -6835,7 +6835,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 UndInstrmtGrp, counted by NoUnderlyings, tag 711.</summary>
-	public sealed class UndInstrmtGrp
+	public sealed class UndInstrmtGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.UnderlyingSymbol                      UnderlyingSymbol                     { get; init; }
@@ -6986,7 +6986,7 @@ public static class FixGroup
 	}
 
 	/// <summary>One entry of the FIX 4.4 UndInstrmtStrkPxGrp, counted by NoUnderlyings, tag 711.</summary>
-	public sealed class UndInstrmtStrkPxGrp
+	public sealed class UndInstrmtStrkPxGrp : IUnderlyingInstrument
 	{
 		/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 		public required FixField.UnderlyingSymbol                      UnderlyingSymbol                     { get; init; }

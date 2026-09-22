@@ -10,7 +10,13 @@ namespace DotGram.Finance.Fix;
 /// Straight-line checks written against the fields of the class they are about, and nothing
 /// else: no tables, no schema read at run time, no question asked of anything but the message.
 /// What each one asks is what the published repository requires of that type — a field it marks
-/// required, and the counter of a repeating component it marks required.
+/// required, the counter of a repeating component it marks required, and a block it marks
+/// required and the message left empty.
+/// </para>
+/// <para>
+/// What a block requires is asked of the block, once, through the interface every carrier of it
+/// implements. <c>Instrument</c> is required by twenty-eight of the ninety-three types; the
+/// question is written here once and each of the twenty-eight asks it.
 /// </para>
 /// <para>
 /// One instance a context, and a context takes <see cref="Default"/> unless it is given another.
@@ -19,9 +25,8 @@ namespace DotGram.Finance.Fix;
 /// it checks, so a check cannot be put in the wrong slot.
 /// </para>
 /// <para>
-/// What is not here yet: the components the repository marks required, which are two hundred and
-/// twenty non-repeating blocks across the ninety-three types, and the checks that belong to a
-/// component rather than to a message — written once and asked of every type that carries it.
+/// What is not here yet: what a group entry requires of itself, which is the same question one
+/// level down and wants the same treatment.
 /// </para>
 /// </remarks>
 class FixValidators
@@ -318,6 +323,8 @@ class FixValidators
 		if (message.AdvTransType is null) Missing(message, 5);
 		if (message.Quantity     is null) Missing(message, 53);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -336,6 +343,8 @@ class FixValidators
 		if (message.TradeDate         is null) Missing(message, 75);
 		if (message.AllocType         is null) Missing(message, 626);
 		if (message.AllocNoOrdersType is null) Missing(message, 857);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoAllocs, message.AllocGrp);
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
@@ -374,6 +383,8 @@ class FixValidators
 		if (message.AllocReportID     is null) Missing(message, 755);
 		if (message.AllocReportType   is null) Missing(message, 794);
 		if (message.AllocNoOrdersType is null) Missing(message, 857);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoAllocs, message.AllocGrp);
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
@@ -598,6 +609,8 @@ class FixValidators
 		if (message.ConfirmType      is null) Missing(message, 773);
 		if (message.NoCapacities     is null) Missing(message, 862);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoCapacities, message.CpctyConfGrp);
 		Counted(message, message.NoDlvyInst, message.DlvyInstGrp);
@@ -645,6 +658,8 @@ class FixValidators
 		if (message.OrigCrossID         is null) Missing(message, 551);
 		if (message.NoSides             is null) Missing(message, 552);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -664,6 +679,8 @@ class FixValidators
 		if (message.CrossPrioritization is null) Missing(message, 550);
 		if (message.OrigCrossID         is null) Missing(message, 551);
 		if (message.NoSides             is null) Missing(message, 552);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -705,6 +722,9 @@ class FixValidators
 		if (message.Side     is null) Missing(message, 54);
 		if (message.DKReason is null) Missing(message, 127);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -740,6 +760,8 @@ class FixValidators
 		if (message.ExecType  is null) Missing(message, 150);
 		if (message.LeavesQty is null) Missing(message, 151);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoContAmts, message.ContAmtGrp);
 		Counted(message, message.NoContraBrokers, message.ContraGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -766,6 +788,8 @@ class FixValidators
 		if (message.IOIQty       is null) Missing(message, 27);
 		if (message.IOITransType is null) Missing(message, 28);
 		if (message.Side         is null) Missing(message, 54);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoIOIQualifiers, message.IOIQualGrp);
@@ -882,6 +906,8 @@ class FixValidators
 	{
 		if (message.NoMDEntries is null) Missing(message, 268);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoMDEntries, message.MDFullGrp);
@@ -920,6 +946,9 @@ class FixValidators
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
 		if (message.NoLegs       is null) Missing(message, 555);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegOrdGrp);
@@ -962,6 +991,8 @@ class FixValidators
 		if (message.CrossPrioritization is null) Missing(message, 550);
 		if (message.NoSides             is null) Missing(message, 552);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -993,6 +1024,9 @@ class FixValidators
 		if (message.TransactTime is null) Missing(message, 60);
 		if (message.NoLegs       is null) Missing(message, 555);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegOrdGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1010,6 +1044,9 @@ class FixValidators
 		if (message.OrdType      is null) Missing(message, 40);
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1055,6 +1092,9 @@ class FixValidators
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoAllocs, message.PreAllocGrp);
@@ -1071,6 +1111,9 @@ class FixValidators
 		if (message.OrigClOrdID  is null) Missing(message, 41);
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IOrderQtyData)message)) Absent(message, 38);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1128,6 +1171,8 @@ class FixValidators
 		if (message.ClOrdID is null) Missing(message, 11);
 		if (message.Side    is null) Missing(message, 54);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -1149,6 +1194,8 @@ class FixValidators
 		if (message.PosMaintRptID        is null) Missing(message, 721);
 		if (message.PosMaintStatus       is null) Missing(message, 722);
 		if (message.NoPosAmt             is null) Missing(message, 753);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1173,6 +1220,8 @@ class FixValidators
 		if (message.PosReqID             is null) Missing(message, 710);
 		if (message.PosMaintAction       is null) Missing(message, 712);
 		if (message.ClearingBusinessDate is null) Missing(message, 715);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1213,6 +1262,8 @@ class FixValidators
 	static bool ValidateQuote(FixContext context, FixMessage.Quote message)
 	{
 		if (message.QuoteID is null) Missing(message, 117);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotGrp);
@@ -1262,6 +1313,8 @@ class FixValidators
 		if (message.QuoteRespID   is null) Missing(message, 693);
 		if (message.QuoteRespType is null) Missing(message, 694);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1277,6 +1330,8 @@ class FixValidators
 	{
 		if (message.QuoteID is null) Missing(message, 117);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotStatGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1290,6 +1345,8 @@ class FixValidators
 
 	static bool ValidateQuoteStatusRequest(FixContext context, FixMessage.QuoteStatusRequest message)
 	{
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1443,6 +1500,8 @@ class FixValidators
 
 	static bool ValidateSecurityStatus(FixContext context, FixMessage.SecurityStatus message)
 	{
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1456,6 +1515,8 @@ class FixValidators
 	{
 		if (message.SubscriptionRequestType is null) Missing(message, 263);
 		if (message.SecurityStatusReqID     is null) Missing(message, 324);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1529,6 +1590,8 @@ class FixValidators
 		if (message.PreviouslyReported is null) Missing(message, 570);
 		if (message.TradeReportID      is null) Missing(message, 571);
 
+		if (Empty((IInstrument)message)) Absent(message, 55);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPosAmt, message.PositionAmountData);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -1544,6 +1607,8 @@ class FixValidators
 	{
 		if (message.ExecType      is null) Missing(message, 150);
 		if (message.TradeReportID is null) Missing(message, 571);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -1576,6 +1641,8 @@ class FixValidators
 		if (message.TradeRequestType   is null) Missing(message, 569);
 		if (message.TradeRequestResult is null) Missing(message, 749);
 		if (message.TradeRequestStatus is null) Missing(message, 750);
+
+		if (Empty((IInstrument)message)) Absent(message, 55);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1633,10 +1700,279 @@ class FixValidators
 		return message.IsValid;
 	}
 
+	/// <summary>Whether a carrier of the FIX 4.4 CommissionData block has none of its fields.</summary>
+	static bool Empty(ICommissionData block)
+	{
+		return block.Commission is null &&
+			block.CommType is null &&
+			block.CommCurrency is null &&
+			block.FundRenewWaiv is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 DiscretionInstructions block has none of its fields.</summary>
+	static bool Empty(IDiscretionInstructions block)
+	{
+		return block.DiscretionInst is null &&
+			block.DiscretionOffsetValue is null &&
+			block.DiscretionMoveType is null &&
+			block.DiscretionOffsetType is null &&
+			block.DiscretionLimitType is null &&
+			block.DiscretionRoundDirection is null &&
+			block.DiscretionScope is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 FinancingDetails block has none of its fields.</summary>
+	static bool Empty(IFinancingDetails block)
+	{
+		return block.AgreementDesc is null &&
+			block.AgreementID is null &&
+			block.AgreementDate is null &&
+			block.AgreementCurrency is null &&
+			block.TerminationType is null &&
+			block.StartDate is null &&
+			block.EndDate is null &&
+			block.DeliveryType is null &&
+			block.MarginRatio is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 Instrument block has none of its fields.</summary>
+	static bool Empty(IInstrument block)
+	{
+		return block.Symbol is null &&
+			block.SymbolSfx is null &&
+			block.SecurityID is null &&
+			block.SecurityIDSource is null &&
+			block.NoSecurityAltID is null &&
+			block.SecAltIDGrp is null &&
+			block.Product is null &&
+			block.CFICode is null &&
+			block.SecurityType is null &&
+			block.SecuritySubType is null &&
+			block.MaturityMonthYear is null &&
+			block.MaturityDate is null &&
+			block.PutOrCall is null &&
+			block.CouponPaymentDate is null &&
+			block.IssueDate is null &&
+			block.RepoCollateralSecurityType is null &&
+			block.RepurchaseTerm is null &&
+			block.RepurchaseRate is null &&
+			block.Factor is null &&
+			block.CreditRating is null &&
+			block.InstrRegistry is null &&
+			block.CountryOfIssue is null &&
+			block.StateOrProvinceOfIssue is null &&
+			block.LocaleOfIssue is null &&
+			block.RedemptionDate is null &&
+			block.StrikePrice is null &&
+			block.StrikeCurrency is null &&
+			block.OptAttribute is null &&
+			block.ContractMultiplier is null &&
+			block.CouponRate is null &&
+			block.SecurityExchange is null &&
+			block.Issuer is null &&
+			block.EncodedIssuerLen is null &&
+			block.EncodedIssuer is null &&
+			block.SecurityDesc is null &&
+			block.EncodedSecurityDescLen is null &&
+			block.EncodedSecurityDesc is null &&
+			block.Pool is null &&
+			block.ContractSettlMonth is null &&
+			block.CPProgram is null &&
+			block.CPRegType is null &&
+			block.NoEvents is null &&
+			block.EvntGrp is null &&
+			block.DatedDate is null &&
+			block.InterestAccrualDate is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 InstrumentExtension block has none of its fields.</summary>
+	static bool Empty(IInstrumentExtension block)
+	{
+		return block.DeliveryForm is null &&
+			block.PctAtRisk is null &&
+			block.NoInstrAttrib is null &&
+			block.AttrbGrp is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 InstrumentLeg block has none of its fields.</summary>
+	static bool Empty(IInstrumentLeg block)
+	{
+		return block.LegSymbol is null &&
+			block.LegSymbolSfx is null &&
+			block.LegSecurityID is null &&
+			block.LegSecurityIDSource is null &&
+			block.NoLegSecurityAltID is null &&
+			block.LegSecAltIDGrp is null &&
+			block.LegProduct is null &&
+			block.LegCFICode is null &&
+			block.LegSecurityType is null &&
+			block.LegSecuritySubType is null &&
+			block.LegMaturityMonthYear is null &&
+			block.LegMaturityDate is null &&
+			block.LegCouponPaymentDate is null &&
+			block.LegIssueDate is null &&
+			block.LegRepoCollateralSecurityType is null &&
+			block.LegRepurchaseTerm is null &&
+			block.LegRepurchaseRate is null &&
+			block.LegFactor is null &&
+			block.LegCreditRating is null &&
+			block.LegInstrRegistry is null &&
+			block.LegCountryOfIssue is null &&
+			block.LegStateOrProvinceOfIssue is null &&
+			block.LegLocaleOfIssue is null &&
+			block.LegRedemptionDate is null &&
+			block.LegStrikePrice is null &&
+			block.LegStrikeCurrency is null &&
+			block.LegOptAttribute is null &&
+			block.LegContractMultiplier is null &&
+			block.LegCouponRate is null &&
+			block.LegSecurityExchange is null &&
+			block.LegIssuer is null &&
+			block.EncodedLegIssuerLen is null &&
+			block.EncodedLegIssuer is null &&
+			block.LegSecurityDesc is null &&
+			block.EncodedLegSecurityDescLen is null &&
+			block.EncodedLegSecurityDesc is null &&
+			block.LegRatioQty is null &&
+			block.LegSide is null &&
+			block.LegCurrency is null &&
+			block.LegPool is null &&
+			block.LegDatedDate is null &&
+			block.LegContractSettlMonth is null &&
+			block.LegInterestAccrualDate is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 LegBenchmarkCurveData block has none of its fields.</summary>
+	static bool Empty(ILegBenchmarkCurveData block)
+	{
+		return block.LegBenchmarkCurveCurrency is null &&
+			block.LegBenchmarkCurveName is null &&
+			block.LegBenchmarkCurvePoint is null &&
+			block.LegBenchmarkPrice is null &&
+			block.LegBenchmarkPriceType is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 OrderQtyData block has none of its fields.</summary>
+	static bool Empty(IOrderQtyData block)
+	{
+		return block.OrderQty is null &&
+			block.CashOrderQty is null &&
+			block.OrderPercent is null &&
+			block.RoundingDirection is null &&
+			block.RoundingModulus is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 PegInstructions block has none of its fields.</summary>
+	static bool Empty(IPegInstructions block)
+	{
+		return block.PegOffsetValue is null &&
+			block.PegMoveType is null &&
+			block.PegOffsetType is null &&
+			block.PegLimitType is null &&
+			block.PegRoundDirection is null &&
+			block.PegScope is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 SettlInstructionsData block has none of its fields.</summary>
+	static bool Empty(ISettlInstructionsData block)
+	{
+		return block.SettlDeliveryType is null &&
+			block.StandInstDbType is null &&
+			block.StandInstDbName is null &&
+			block.StandInstDbID is null &&
+			block.NoDlvyInst is null &&
+			block.DlvyInstGrp is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 SpreadOrBenchmarkCurveData block has none of its fields.</summary>
+	static bool Empty(ISpreadOrBenchmarkCurveData block)
+	{
+		return block.Spread is null &&
+			block.BenchmarkCurveCurrency is null &&
+			block.BenchmarkCurveName is null &&
+			block.BenchmarkCurvePoint is null &&
+			block.BenchmarkPrice is null &&
+			block.BenchmarkPriceType is null &&
+			block.BenchmarkSecurityID is null &&
+			block.BenchmarkSecurityIDSource is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 UnderlyingInstrument block has none of its fields.</summary>
+	static bool Empty(IUnderlyingInstrument block)
+	{
+		return block.UnderlyingSymbol is null &&
+			block.UnderlyingSymbolSfx is null &&
+			block.UnderlyingSecurityID is null &&
+			block.UnderlyingSecurityIDSource is null &&
+			block.NoUnderlyingSecurityAltID is null &&
+			block.UndSecAltIDGrp is null &&
+			block.UnderlyingProduct is null &&
+			block.UnderlyingCFICode is null &&
+			block.UnderlyingSecurityType is null &&
+			block.UnderlyingSecuritySubType is null &&
+			block.UnderlyingMaturityMonthYear is null &&
+			block.UnderlyingMaturityDate is null &&
+			block.UnderlyingPutOrCall is null &&
+			block.UnderlyingCouponPaymentDate is null &&
+			block.UnderlyingIssueDate is null &&
+			block.UnderlyingRepoCollateralSecurityType is null &&
+			block.UnderlyingRepurchaseTerm is null &&
+			block.UnderlyingRepurchaseRate is null &&
+			block.UnderlyingFactor is null &&
+			block.UnderlyingCreditRating is null &&
+			block.UnderlyingInstrRegistry is null &&
+			block.UnderlyingCountryOfIssue is null &&
+			block.UnderlyingStateOrProvinceOfIssue is null &&
+			block.UnderlyingLocaleOfIssue is null &&
+			block.UnderlyingRedemptionDate is null &&
+			block.UnderlyingStrikePrice is null &&
+			block.UnderlyingStrikeCurrency is null &&
+			block.UnderlyingOptAttribute is null &&
+			block.UnderlyingContractMultiplier is null &&
+			block.UnderlyingCouponRate is null &&
+			block.UnderlyingSecurityExchange is null &&
+			block.UnderlyingIssuer is null &&
+			block.EncodedUnderlyingIssuerLen is null &&
+			block.EncodedUnderlyingIssuer is null &&
+			block.UnderlyingSecurityDesc is null &&
+			block.EncodedUnderlyingSecurityDescLen is null &&
+			block.EncodedUnderlyingSecurityDesc is null &&
+			block.UnderlyingCPProgram is null &&
+			block.UnderlyingCPRegType is null &&
+			block.UnderlyingCurrency is null &&
+			block.UnderlyingQty is null &&
+			block.UnderlyingPx is null &&
+			block.UnderlyingDirtyPrice is null &&
+			block.UnderlyingEndPrice is null &&
+			block.UnderlyingStartValue is null &&
+			block.UnderlyingCurrentValue is null &&
+			block.UnderlyingEndValue is null &&
+			block.NoUnderlyingStips is null &&
+			block.UnderlyingStipulations is null;
+	}
+
+	/// <summary>Whether a carrier of the FIX 4.4 YieldData block has none of its fields.</summary>
+	static bool Empty(IYieldData block)
+	{
+		return block.YieldType is null &&
+			block.Yield is null &&
+			block.YieldCalcDate is null &&
+			block.YieldRedemptionDate is null &&
+			block.YieldRedemptionPrice is null &&
+			block.YieldRedemptionPriceType is null;
+	}
+
 	/// <summary>A field the schema requires of this type, and the message does not have.</summary>
 	static void Missing(FixMessage message, int tag)
 	{
 		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, 0, null, -1));
+	}
+
+	/// <summary>A block the schema requires of this type, and the message has no field of.</summary>
+	/// <remarks>Named by the first tag it would have held, since a block has no tag of its own.</remarks>
+	static void Absent(FixMessage message, int tag)
+	{
+		message.AddFinding(new FixFinding(FixRule.RequiredComponentMissing, tag, 0, null, -1));
 	}
 
 	/// <summary>A counter and the entries that follow it, which have to be the same number.</summary>

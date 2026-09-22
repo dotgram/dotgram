@@ -76,10 +76,28 @@ public sealed class FixRepositoryAgreementTests
 		Assert.NotNull(name);
 	}
 
-	// A second test stood here, asking for exactly the components the repository marks required —
-	// two hundred and twenty non-repeating blocks across the ninety-three types. Those are not
-	// checked yet: a component is checked once, against the type it is, and that layer is unwritten.
-	// RequiredComponents() below is what it read, and is kept for it.
+	/// <summary>
+	/// And it is told about exactly the blocks the repository marks required, named by the first tag
+	/// each would have held.
+	/// </summary>
+	/// <remarks>
+	/// A block is written into its carrier field by field, so "the block is missing" is "the carrier
+	/// has no field of it" — asked once of the interface every carrier implements, and asked here of
+	/// all ninety-three types through the public call.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Messages))]
+	public void A_message_asks_for_the_components_the_repository_requires(string name, string type)
+	{
+		var message = Empty(type);
+
+		message.Validate(FixContext.Default);
+
+		var asked = (message.InvalidFindings ?? []).Count(one => one.Rule == FixRule.RequiredComponentMissing);
+
+		Assert.Equal(RequiredComponents(type), asked);
+		Assert.NotNull(name);
+	}
 
 	/// <summary>
 	/// The type this package gives a tag is the type the repository declares for it — except where
@@ -401,7 +419,8 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var row in Rows(ComponentId(type)))
 		{
-			if (Text(row, "Reqd") != "1")
+			// What the message itself requires, as in Required() above.
+			if (Text(row, "Reqd") != "1" || Text(row, "Indent") != "0")
 				continue;
 
 			var text = Text(row, "TagText");
