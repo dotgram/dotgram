@@ -15,8 +15,8 @@ namespace DotGram.Finance.Tests;
 /// </summary>
 public sealed class FixLoadTests
 {
-	const string Logon = "35=A|49=S|56=T|34=1|52=20260915-12:00:00|98=0|108=30|";
-	const string Order = "35=D|49=S|56=T|34=1|52=20260915-12:00:00|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|";
+	const string Logon = "98=0|108=30|";
+	const string Order = "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|";
 
 	/// <summary>A fragment that says what one venue adds, and nothing the standard already says.</summary>
 	const string LogonWantsReset =
@@ -36,7 +36,7 @@ public sealed class FixLoadTests
 		var context = FixContext.Default.Load(LogonWantsReset);
 
 		// The standard still asks for 98 and 108, and the venue asks for 141 as well.
-		var bare = FixParser.ParseMessage(FixFixtures.Wire("A", "35=A|49=S|56=T|34=1|52=20260915-12:00:00|".Substring(5)));
+		var bare = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
 
 		Assert.False(bare.Validate(context));
 		Assert.Equal(
@@ -44,7 +44,7 @@ public sealed class FixLoadTests
 			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A message that has what the venue wants is as valid as it was.
-		var full = FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5) + "141=Y|"));
+		var full = FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|"));
 
 		Assert.True(full.Validate(context));
 	}
@@ -54,11 +54,11 @@ public sealed class FixLoadTests
 	{
 		var before  = FixContext.Default;
 		var after   = before.Load(LogonWantsReset);
-		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5)));
+		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		Assert.NotSame(before, after);
 		Assert.True(message.Validate(before));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5))).Validate(after));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(after));
 	}
 
 	[Fact]
@@ -76,7 +76,7 @@ public sealed class FixLoadTests
 			""";
 
 		var context = FixContext.Default.Load(LogonWantsReset).Load(andHeartbeat);
-		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5)));
+		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		Assert.False(message.Validate(context));
 		Assert.Equal(
@@ -102,11 +102,11 @@ public sealed class FixLoadTests
 
 		var context = FixContext.Default.Load(ordType);
 
-		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Substring(5).Replace("40=1|", "40=Z|"))).Validate(context));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Substring(5).Replace("40=1|", "40=2|"))).Validate(context));
+		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(context));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=2|"))).Validate(context));
 
 		// And the standard is what it was.
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Substring(5).Replace("40=1|", "40=Z|"))).Validate(FixContext.Default));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(FixContext.Default));
 	}
 
 	[Fact]
@@ -124,7 +124,7 @@ public sealed class FixLoadTests
 			""";
 
 		var context = FixContext.Default.Load(instrument);
-		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order.Substring(5)));
+		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 		var quote   = FixParser.ParseMessage(FixFixtures.Wire("S", "117=Q|55=ABC|"));
 
 		Assert.False(order.Validate(context));
@@ -136,13 +136,13 @@ public sealed class FixLoadTests
 	[Fact]
 	public void A_reader_and_a_stream_load_what_a_string_does()
 	{
-		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5)));
+		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		using var reader = new StringReader(LogonWantsReset);
 		using var stream = new MemoryStream(Encoding.UTF8.GetBytes(LogonWantsReset));
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5))).Validate(FixContext.Default.Load(reader)));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon.Substring(5))).Validate(FixContext.Default.Load(stream)));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(FixContext.Default.Load(reader)));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(FixContext.Default.Load(stream)));
 		Assert.True(message.Validate(FixContext.Default));
 	}
 
@@ -173,7 +173,7 @@ public sealed class FixLoadTests
 		// refusal at the door.
 		var path    = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix", "FIX44.xml");
 		var context = FixContext.Default.Load(File.ReadAllText(path));
-		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order.Substring(5)));
+		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 
 		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
 	}
