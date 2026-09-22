@@ -27,6 +27,54 @@ public sealed class Fix44Tests
 		Assert.Equal(name, message!.GetType().Name);
 	}
 
+	/// <summary>
+	/// A tag the message has no place for is said so where it is read, and a standard message has
+	/// no such tag — except in three fixtures, which are listed here rather than passed over.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The three were found by this check and each was chased to the two published readings of FIX
+	/// 4.4 that the repository holds. They are named as (type, tag) so that a change on either side
+	/// fails: a fixture corrected, a case added, or a reading revised.
+	/// </para>
+	/// <para>
+	/// <c>586 OrigOrdModTime</c> in a <c>NewOrderCross</c> is placed by neither the FIX repository
+	/// nor QuickFIX, so that one is the fixture. The other two are a disagreement between them:
+	/// QuickFIX places <c>586</c> in the sides of a <c>CrossOrderCancelReplaceRequest</c> and
+	/// <c>635 ClearingFeeIndicator</c> in the sides of a <c>TradeCaptureReport</c>, and the
+	/// repository places neither. This package reads the repository.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void No_standard_fixture_carries_a_tag_its_message_cannot_place()
+	{
+		var unplaced = new List<(string Type, int Tag)>();
+
+		foreach (var data in FixFixtures.Messages())
+		{
+			var message = FixParser.ParseMessage((string)data[1]);
+
+			foreach (var finding in message.InvalidFindings ?? [])
+				if (finding.Rule == FixRule.FieldNotInScope)
+					unplaced.Add(((string)data[0], finding.Tag));
+		}
+
+		Assert.Equal(
+			[("CrossOrderCancelReplaceRequest", 586), ("NewOrderCross", 586), ("TradeCaptureReport", 635)],
+			unplaced.OrderBy(one => one.Tag).ThenBy(one => one.Type, StringComparer.Ordinal).ToArray());
+	}
+
+	[Fact]
+	public void A_tag_the_message_has_no_place_for_is_a_finding()
+	{
+		var message = FixParser.ParseMessage(FixFixtures.Wire("0", "112=TEST|9001=A|44=1.5|"));
+
+		Assert.False(message.IsValid);
+		Assert.Equal(
+			[9001, 44],
+			message.InvalidFindings!.Where(one => one.Rule == FixRule.FieldNotInScope).Select(one => one.Tag).ToArray());
+	}
+
 	[Fact]
 	public void Public_order_api_and_optional_values()
 	{

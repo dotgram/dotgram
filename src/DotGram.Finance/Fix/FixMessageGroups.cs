@@ -465,8 +465,8 @@ public static class FixGroup
 	/// <summary>One entry of the FIX 4.4 Hop, counted by NoHops, tag 627.</summary>
 	public sealed class Hop
 	{
-		/// <summary>The FIX HopCompID, tag 628, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.HopCompID?      HopCompID      { get; internal set; }
+		/// <summary>The FIX HopCompID, tag 628, wire type <c>String</c>; it opens the entry.</summary>
+		public required FixField.HopCompID HopCompID { get; init; }
 
 		/// <summary>The FIX HopSendingTime, tag 629, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.HopSendingTime? HopSendingTime { get; internal set; }

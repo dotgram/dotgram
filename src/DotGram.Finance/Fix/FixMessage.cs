@@ -64,6 +64,27 @@ public abstract partial class FixMessage
 			case 213: XmlData                = (FixField.XmlData)               field; break;
 			case 347: MessageEncoding        = (FixField.MessageEncoding)       field; break;
 			case 369: LastMsgSeqNumProcessed = (FixField.LastMsgSeqNumProcessed)field; break;
+
+			// The one repeating group of the standard header: where a message has been, hop by hop.
+			case 627: NoHops = (FixField.NoHops)field; break;
+			case 628: (Hop ??= []).Add(new () { HopCompID = (FixField.HopCompID)field }); break;
+			case 629:
+				if (Hop is null || Hop.Count == 0)
+					AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+				else if (Hop[^1].HopSendingTime is not null)
+					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Hop.Count - 1));
+				else
+					Hop[^1].HopSendingTime = (FixField.HopSendingTime)field;
+				break;
+			case 630:
+				if (Hop is null || Hop.Count == 0)
+					AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+				else if (Hop[^1].HopRefID is not null)
+					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, Hop.Count - 1));
+				else
+					Hop[^1].HopRefID = (FixField.HopRefID)field;
+				break;
+
 			default: return false;
 		}
 
@@ -120,6 +141,16 @@ public abstract partial class FixMessage
 	{
 		(InvalidFindings ??= []).Add(finding);
 	}
+
+	/// <summary>
+	/// The FIX NoHops, tag 627, of this message's StandardHeader; null when the field is absent.
+	/// </summary>
+	public FixField.NoHops?                 NoHops                 { get; protected set; }
+
+	/// <summary>
+	/// The entries of the Hop group of this message's StandardHeader; null when the group is absent.
+	/// </summary>
+	public List<Hop>?                       Hop                    { get; protected set; }
 
 	/// <summary>
 	/// The FIX BeginString, tag 8, of this message's StandardHeader; null when the field is absent.
@@ -281,8 +312,9 @@ public abstract partial class FixMessage
 		/// <param name="fields">The list of FIX fields.</param>
 		public Custom(string type, List<FixField> fields) : base(type, fields)
 		{
-			// The schema says nothing about this type, so nothing is placed by it. The standard header
-			// and trailer are the standard's and are read as themselves, as in every other message.
+			// The schema says nothing about this type, so nothing is placed by it and nothing is out of
+			// place either: what is wrong with this message is its type, which validation says once.
+			// The standard header and trailer are the standard's and are read as themselves.
 			foreach (var field in fields)
 				SetStandardField(field);
 		}
@@ -306,7 +338,11 @@ public abstract partial class FixMessage
 				{
 					case 112: TestReqID = (FixField.TestReqID)field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -334,7 +370,11 @@ public abstract partial class FixMessage
 				{
 					case 112: TestReqID = (FixField.TestReqID)field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -363,7 +403,11 @@ public abstract partial class FixMessage
 					case   7: BeginSeqNo = (FixField.BeginSeqNo)field; break;
 					case  16: EndSeqNo   = (FixField.EndSeqNo)  field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -401,7 +445,11 @@ public abstract partial class FixMessage
 					case 372: RefMsgType          = (FixField.RefMsgType)         field; break;
 					case 373: SessionRejectReason = (FixField.SessionRejectReason)field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -454,7 +502,11 @@ public abstract partial class FixMessage
 					case  36: NewSeqNo    = (FixField.NewSeqNo)   field; break;
 					case 123: GapFillFlag = (FixField.GapFillFlag)field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -488,7 +540,11 @@ public abstract partial class FixMessage
 					case 354: EncodedTextLen = (FixField.EncodedTextLen)field; break;
 					case 355: EncodedText    = (FixField.EncodedText)   field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -1510,7 +1566,11 @@ public abstract partial class FixMessage
 							RoutingGrp![^1].RoutingID = (FixField.RoutingID)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -2747,7 +2807,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -4245,7 +4309,11 @@ public abstract partial class FixMessage
 							MiscFeesGrp![^1].MiscFeeBasis = (FixField.MiscFeeBasis)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -5193,7 +5261,11 @@ public abstract partial class FixMessage
 					case 636: WorkingIndicator     = (FixField.WorkingIndicator)     field; break;
 					case 660: AcctIDSource         = (FixField.AcctIDSource)         field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -5321,7 +5393,11 @@ public abstract partial class FixMessage
 							MsgTypeGrp![^1].MsgDirection = (FixField.MsgDirection)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -6516,7 +6592,11 @@ public abstract partial class FixMessage
 							LinesOfTextGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -7739,7 +7819,11 @@ public abstract partial class FixMessage
 							LinesOfTextGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -8537,7 +8621,11 @@ public abstract partial class FixMessage
 							Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -10921,7 +11009,11 @@ public abstract partial class FixMessage
 							ListOrdGrp![^1].Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -11571,7 +11663,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -12594,7 +12690,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -13772,7 +13872,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -15495,7 +15599,11 @@ public abstract partial class FixMessage
 							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -16080,7 +16188,11 @@ public abstract partial class FixMessage
 					case 354: EncodedTextLen       = (FixField.EncodedTextLen)       field; break;
 					case 355: EncodedText          = (FixField.EncodedText)          field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -16139,7 +16251,11 @@ public abstract partial class FixMessage
 					case 390: BidID          = (FixField.BidID)          field; break;
 					case 391: ClientBidID    = (FixField.ClientBidID)    field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -16195,7 +16311,11 @@ public abstract partial class FixMessage
 					case 354: EncodedTextLen = (FixField.EncodedTextLen) field; break;
 					case 355: EncodedText    = (FixField.EncodedText)    field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -16337,7 +16457,11 @@ public abstract partial class FixMessage
 							OrdListStatGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -16517,7 +16641,11 @@ public abstract partial class FixMessage
 							AllocAckGrp![^1].EncodedAllocText = (FixField.EncodedAllocText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -17425,7 +17553,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -19411,7 +19543,11 @@ public abstract partial class FixMessage
 							QuotReqGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -20567,7 +20703,11 @@ public abstract partial class FixMessage
 							LegQuotGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -21398,7 +21538,11 @@ public abstract partial class FixMessage
 							SettlInstGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -22596,7 +22740,11 @@ public abstract partial class FixMessage
 							TrdgSesGrp![^1].TradingSessionSubID = (FixField.TradingSessionSubID)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -23755,7 +23903,11 @@ public abstract partial class FixMessage
 							MDFullGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -25426,7 +25578,11 @@ public abstract partial class FixMessage
 							MDIncGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -25490,7 +25646,11 @@ public abstract partial class FixMessage
 					case 816: NoAltMDSource = (FixField.NoAltMDSource)field; break;
 					case 817: (MDRjctGrp ??= []).Add(new () { AltMDSourceID = (FixField.AltMDSourceID)field }); break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -26754,7 +26914,11 @@ public abstract partial class FixMessage
 							QuotCxlEntriesGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -27691,7 +27855,11 @@ public abstract partial class FixMessage
 							Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -29354,7 +29522,11 @@ public abstract partial class FixMessage
 							QuotSetAckGrp![^1].QuotEntryAckGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -30275,7 +30447,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -31370,7 +31546,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -32466,7 +32646,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -33550,7 +33734,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -33872,7 +34060,11 @@ public abstract partial class FixMessage
 					case 339: TradSesMode             = (FixField.TradSesMode)             field; break;
 					case 625: TradingSessionSubID     = (FixField.TradingSessionSubID)     field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -33937,7 +34129,11 @@ public abstract partial class FixMessage
 					case 567: TradSesStatusRejReason = (FixField.TradSesStatusRejReason) field; break;
 					case 625: TradingSessionSubID    = (FixField.TradingSessionSubID)    field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -35395,7 +35591,11 @@ public abstract partial class FixMessage
 							QuotSetGrp![^1].QuotEntryGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -35490,7 +35690,11 @@ public abstract partial class FixMessage
 					case 379: BusinessRejectRefID  = (FixField.BusinessRejectRefID)  field; break;
 					case 380: BusinessRejectReason = (FixField.BusinessRejectReason) field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -35718,7 +35922,11 @@ public abstract partial class FixMessage
 							BidCompReqGrp![^1].AcctIDSource = (FixField.AcctIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -36003,7 +36211,11 @@ public abstract partial class FixMessage
 							BidCompRspGrp![^1].EncodedText = (FixField.EncodedText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -36869,7 +37081,11 @@ public abstract partial class FixMessage
 							UndInstrmtStrkPxGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -36919,8 +37135,11 @@ public abstract partial class FixMessage
 	{
 		internal XMLnonFIX(List<FixField> fields) : base("n", fields)
 		{
+			// The repository gives this type a standard header and a standard trailer and nothing
+			// else, so any other tag is one it has no place for.
 			foreach (var field in fields)
-				SetStandardField(field);
+				if (!SetStandardField(field))
+					AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
 		}
 
 
@@ -37131,7 +37350,11 @@ public abstract partial class FixMessage
 							RgstDistInstGrp![^1].CashDistribAgentAcctName = (FixField.CashDistribAgentAcctName)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -37258,7 +37481,11 @@ public abstract partial class FixMessage
 							Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -37479,7 +37706,11 @@ public abstract partial class FixMessage
 							UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -38087,7 +38318,11 @@ public abstract partial class FixMessage
 							UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -39839,7 +40074,11 @@ public abstract partial class FixMessage
 							Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -41629,7 +41868,11 @@ public abstract partial class FixMessage
 							Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -43104,7 +43347,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -43365,7 +43612,11 @@ public abstract partial class FixMessage
 					case 625: TradingSessionSubID = (FixField.TradingSessionSubID) field; break;
 					case 762: SecuritySubType     = (FixField.SecuritySubType)     field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -43463,7 +43714,11 @@ public abstract partial class FixMessage
 							SecTypesGrp![^1].CFICode = (FixField.CFICode)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -44366,7 +44621,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -46148,7 +46407,11 @@ public abstract partial class FixMessage
 							SecListGrp![^1].InstrmtLegSecListGrp![^1].LegStipulations![^1].LegStipulationValue = (FixField.LegStipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -46294,7 +46557,11 @@ public abstract partial class FixMessage
 							UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -47418,7 +47685,11 @@ public abstract partial class FixMessage
 							RelSymDerivSecGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -48861,7 +49132,11 @@ public abstract partial class FixMessage
 							LegOrdGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -50641,7 +50916,11 @@ public abstract partial class FixMessage
 							LegOrdGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -52131,7 +52410,11 @@ public abstract partial class FixMessage
 							TrdCapDtGrp![^1].TransactTime = (FixField.TransactTime)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -54181,7 +54464,11 @@ public abstract partial class FixMessage
 							TrdCapRptSideGrp![^1].TrdAllocGrp![^1].NestedParties2![^1].NstdPtys2SubGrp![^1].Nested2PartySubIDType = (FixField.Nested2PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -54924,7 +55211,11 @@ public abstract partial class FixMessage
 							UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -57051,7 +57342,11 @@ public abstract partial class FixMessage
 							QuotReqRjctGrp![^1].Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -58275,7 +58570,11 @@ public abstract partial class FixMessage
 							RFQReqGrp![^1].InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -59335,7 +59634,11 @@ public abstract partial class FixMessage
 					case 735: NoQuoteQualifiers = (FixField.NoQuoteQualifiers)field; break;
 					case 695: (QuotQualGrp ??= []).Add(new () { QuoteQualifier = (FixField.QuoteQualifier)field }); break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -60967,7 +61270,11 @@ public abstract partial class FixMessage
 							LegQuotGrp![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -62668,7 +62975,11 @@ public abstract partial class FixMessage
 							MiscFeesGrp![^1].MiscFeeBasis = (FixField.MiscFeeBasis)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -64202,7 +64513,11 @@ public abstract partial class FixMessage
 							PositionQty![^1].NestedParties![^1].NstdPtysSubGrp![^1].NestedPartySubIDType = (FixField.NestedPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -65460,7 +65775,11 @@ public abstract partial class FixMessage
 							PositionAmountData![^1].PosAmt = (FixField.PosAmt)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -66647,7 +66966,11 @@ public abstract partial class FixMessage
 							TrdgSesGrp![^1].TradingSessionSubID = (FixField.TradingSessionSubID)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -67794,7 +68117,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -69024,7 +69351,11 @@ public abstract partial class FixMessage
 							PositionAmountData![^1].PosAmt = (FixField.PosAmt)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -70165,7 +70496,11 @@ public abstract partial class FixMessage
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -71094,7 +71429,11 @@ public abstract partial class FixMessage
 							TrdAllocGrp![^1].NestedParties2![^1].NstdPtys2SubGrp![^1].Nested2PartySubIDType = (FixField.Nested2PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -72897,7 +73236,11 @@ public abstract partial class FixMessage
 							AllocGrp![^1].DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -73598,7 +73941,11 @@ public abstract partial class FixMessage
 							AllocAckGrp![^1].EncodedAllocText = (FixField.EncodedAllocText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -73705,7 +74052,11 @@ public abstract partial class FixMessage
 					case 774: ConfirmRejReason = (FixField.ConfirmRejReason) field; break;
 					case 940: AffirmStatus     = (FixField.AffirmStatus)     field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -73813,7 +74164,11 @@ public abstract partial class FixMessage
 							Parties![^1].PtysSubGrp![^1].PartySubIDType = (FixField.PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -74828,7 +75183,11 @@ public abstract partial class FixMessage
 							PositionAmountData![^1].PosAmt = (FixField.PosAmt)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -76109,7 +76468,11 @@ public abstract partial class FixMessage
 							Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -77571,7 +77934,11 @@ public abstract partial class FixMessage
 							DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -79015,7 +79382,11 @@ public abstract partial class FixMessage
 							Stipulations![^1].StipulationValue = (FixField.StipulationValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -80463,7 +80834,11 @@ public abstract partial class FixMessage
 							DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -81920,7 +82295,11 @@ public abstract partial class FixMessage
 							DlvyInstGrp![^1].SettlParties![^1].SettlPtysSubGrp![^1].SettlPartySubIDType = (FixField.SettlPartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -82427,7 +82806,11 @@ public abstract partial class FixMessage
 							CompIDReqGrp![^1].DeskID = (FixField.DeskID)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -82512,7 +82895,11 @@ public abstract partial class FixMessage
 							CompIDStatGrp![^1].StatusText = (FixField.StatusText)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -82565,7 +82952,11 @@ public abstract partial class FixMessage
 					case 924: UserRequestType = (FixField.UserRequestType) field; break;
 					case 925: NewPassword     = (FixField.NewPassword)     field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -82621,7 +83012,11 @@ public abstract partial class FixMessage
 					case 926: UserStatus     = (FixField.UserStatus)     field; break;
 					case 927: UserStatusText = (FixField.UserStatusText) field; break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -83540,7 +83935,11 @@ public abstract partial class FixMessage
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
@@ -84024,7 +84423,11 @@ public abstract partial class FixMessage
 							OrdAllocGrp![^1].NestedParties2![^1].NstdPtys2SubGrp![^1].Nested2PartySubIDType = (FixField.Nested2PartySubIDType)field;
 						break;
 
-					default: SetStandardField(field); break;
+					default:
+						if (!SetStandardField(field))
+							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+
+						break;
 				}
 			}
 		}
