@@ -9241,3 +9241,88 @@ near a half — say a jump table is emitted either way, so that argument support
 the case labels inside each part are the real tag numbers, so the readability it promised was
 already there. **1,824 cases were not regrouped for nothing, because the arithmetic was done
 before the regrouping and not after.**
+
+## D136 — FIX: the schema is a passed context, not a static field (Igor)
+
+D130 put a message type's validator in a static field on the class, and named the two consequences
+in the release notes: one configuration a process, and two counterparties with two schemas at once
+is not expressible. Igor is replacing that with a **context**, passed to the calls that need it.
+
+**The context is the grown `FixFieldOptions`, not a second object.** It is already immutable,
+already handed to every entry point, and already carries two of the three things a schema is: the
+custom field factory and the length/data pairs. It gains the message factory and the validators.
+A `readonly record` class, changed with `with`, which retires the hand-written `With(FixFraming)`.
+The name goes with it: "Options" stops being true of an object that IS the counterparty's schema.
+
+**Virtual methods where there is one, a table where there are ninety-three.** The three hooks —
+a tag outside the 912, a field the message does not place, a `MsgType` outside the 93 — are virtual
+methods on the context, overridden by deriving. The validators are a table, because what a loaded
+dictionary replaces is the check of *one message type*, and a virtual method would make the
+consumer write the ninety-three-armed switch we already have. One default table instance, held by
+reference, so `with` swaps a pointer and no 744 bytes of delegates are copied. Igor: without
+`Load` a single virtual method would have done — the table exists for the dictionary and for
+nothing else.
+
+**`message.Validate(context)`, returning a flag.** No parameterless overload. Findings are
+appended to the message, not returned, because the constructor already writes findings there and a
+second list would disagree with the first. `IsValid` is public; `_isValidated` is private and
+exists only so a second call does not fill the findings twice. **One run, one context:** Igor —
+a different context is a different pass over the input, and there is no scenario that validates one
+message by two schemas. So a second `Validate` doing nothing is a rule, not a defect.
+
+**The streaming step yields messages; it does not copy findings.** `Parse … Validate …` over a
+sequence is one lazy operator that hands on the messages that have findings. Copying the findings
+into a shared list would strip the owner — a `FixFinding` is about one message and holds no
+identity of it — and the message is what the consumer would have to re-attach.
+
+**A finding is four fields.** `FixRule Rule`, `int Tag`, `FixField? Field`, `int EntryIndex`.
+What was dropped and why, all four bought by Igor reading the type and asking what each field was
+for:
+
+- `Position` — `FixField` has carried `Position`, `Length` and `ValuePosition` since it was
+  written. A finding that holds the field holds them, and the value with them, which is what an
+  `InvalidValue` finding wants to show.
+- `GroupTag` — derivable. We established by exhaustive check that **no tag belongs to two scopes
+  within any of the ninety-three messages**, so the tag names the group. `EntryIndex` does not
+  follow from anything and stays.
+- `Reason` — composed in `ToString()` from the rule, the tag and the entry. As a stored string it
+  was an allocation per finding, paid whether anybody read it or not.
+- `Scope` — Header/Body/Trailer was a property of the three-scope node model. The new `FixMessage`
+  is one flat `Fields`.
+
+`Rule` survives because a session that turns a message away sends `Reject` with
+`SessionRejectReason` (373) and `RefTagID` (371): the kind of the fault and the tag it is about,
+machine-readable. Neither can be recovered from prose. `Tag` survives beside `Field` for the same
+reason, and because of the one case where there is no field at all: **`Field` is null exactly when
+the finding is about something that is not there** — `RequiredFieldMissing`,
+`RequiredComponentMissing`, `MessageEncodingMissing`, three of the eleven rules.
+
+**A tag read but not recognised becomes `FixField.Invalid` carrying its tag.** Igor's distinction:
+`Invalid` without a tag is input that did not parse, `Invalid` with one is input that parsed into
+something we cannot name. The octets survive in `RawText`/`RawBytes`, so a tag a counterparty
+explains six months later is still recoverable from a parsed log. Its diagnostic string has to be
+a literal, or a venue with its own tags pays a string per field.
+
+**What QuickFIX/n does, measured rather than remembered** (1.14.1, twelve inputs through their own
+`FIX44.xml`; the probe was thrown away):
+
+| input | `FromString(validate: true)` | then `DataDictionary.Validate` |
+| --- | --- | --- |
+| bad CheckSum, bad BodyLength, no 35 | refused | — |
+| tag not in this message type | accepted | refused |
+| undefined tag | accepted | refused |
+| required tag missing | accepted | refused |
+| value outside its code set | accepted | refused |
+| group count disagrees with the entries | accepted | refused |
+| a header field after the body | accepted | refused |
+
+Their `validate` flag is **framing only**; every schema check lives in the separate static
+`Validate(message, transport, app, beginString, msgType)`, which returns `void` and throws on the
+first fault. Two readings for us: the split we have is the split they have, so **no parse-time
+validation flag is needed** — their flag covers what we refuse unconditionally anyway — and the
+list of findings against their one exception is where we are better, which is worth its cost.
+
+**What is not decided:** how the factories are arranged, and therefore whether `FixField.Custom`
+survives at all. As Igor describes them — the consumer's factory accepts and builds, or the base
+builds `Invalid` — nothing is left to build a `Custom`, but that is a consequence of the factory
+design and is not settled ahead of it.
