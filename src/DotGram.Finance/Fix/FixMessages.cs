@@ -6,33 +6,15 @@ namespace DotGram.Finance.Fix;
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
 static partial class FixMessages
 {
-	/// <summary>
-	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
-	/// </summary>
-	/// <param name="input">The message.</param>
+	/// <summary>Tries to parse one complete message.</summary>
+	/// <param name="input">The message; null is refused with a diagnostic rather than thrown for.</param>
+	/// <param name="message">The message read, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
-	/// <remarks>
-	/// The options are one optional argument rather than a second method, which is the shape
-	/// <c>FixParser</c> beside it already uses. A pair of methods where one passes a default is ten
-	/// pairs across this class, and the tenth has to be written twice by whoever adds a setting.
-	/// </remarks>
-	public static FixMessage Parse(string input, FixFieldOptions? options = null)
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-		if (TryParse(input, out var message, out var error, options)) return message!;
-		throw new FormatException(error!.ToString());
-	}
-
-	/// <summary>Parses one complete message from a copy of the input.</summary>
-	/// <param name="input">The message.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
-	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
-	public static FixMessage Parse(ReadOnlySpan<char> input, FixFieldOptions? options = null)
-	{
-		return Parse(input.ToString(), options);
+		return TryParseCore(input, out message, out error, options);
 	}
 
 	/// <summary>Tries to parse one complete message from a copy of the input.</summary>
@@ -45,17 +27,6 @@ static partial class FixMessages
 	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
 		return TryParse(input.ToString(), out message, out error, options);
-	}
-
-	/// <summary>Tries to parse one complete message.</summary>
-	/// <param name="input">The message; null is refused with a diagnostic rather than thrown for.</param>
-	/// <param name="message">The message read, or null.</param>
-	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
-	{
-		return TryParseCore(input, out message, out error, options);
 	}
 
 	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -148,7 +119,8 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		return FixSemantics.TryBuild(input, type, Nodes(input, fields, Custom(options)), options, out message, out error);
+		
+		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -248,7 +220,10 @@ static partial class FixMessages
 	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
 	public static FixMessage Parse(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
 	{
-		return Parse(input.ToArray(), options);
+		if (TryParseBytes(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Tries to parse one complete message from the octets it arrived as.</summary>
@@ -276,7 +251,7 @@ static partial class FixMessages
 	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
 	public static bool TryParse(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
-		return TryParse(input.ToArray(), out message, out error, options);
+		return TryParseBytes(input, out message, out error, options);
 	}
 
 	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
@@ -298,7 +273,31 @@ static partial class FixMessages
 
 		var wire = FixConvert.Text(input);
 
-		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields, Custom(options)), options, out message, out error);
+		
+		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
+	}
+
+	static bool TryParseBytes(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
+	{
+		message = null;
+
+		var framing = options?.Framing ?? FixFraming.Wire;
+
+		if (!Envelope(input, framing, null, out var type, out error))
+			return false;
+
+		var fields = FixParser.ParseFields(input, options);
+
+		if (!CheckSyntax(fields, out error))
+			return false;
+
+		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
+			return false;
+
+		var wire = FixConvert.Text(input);
+
+		
+		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
 	}
 
 	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
@@ -372,7 +371,8 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error))
 			return false;
 
-		return FixSemantics.TryBuild(source, type, Nodes(source, fields, Custom(options)), options, out message, out error);
+		
+		throw new NotSupportedException("Building a message from wire nodes is out of service while the FIX message model is rebuilt: a message is now a record of typed fields, and this path has not been moved to it yet.");
 	}
 
 	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and

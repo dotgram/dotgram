@@ -7,6 +7,8 @@ namespace DotGram.Finance.Fix;
 /// </summary>
 public static partial class FixParser
 {
+	#region ParseFields
+
 	/// <summary>
 	/// The <c>maxRetained</c> a call gets when it gives none: 16 Mi characters from a reader, 16 MiB
 	/// from a stream.
@@ -69,19 +71,13 @@ public static partial class FixParser
 		if (limit <= 0)
 			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
-		return Read();
+		var settings = options ?? FixFieldOptions.Default;
+		var context  = new FixGrammar.FixContext(settings);
 
-		// A context per enumeration, since it holds a binary pair's state.
-		IEnumerable<FixField> Read()
-		{
-			var settings = options ?? FixFieldOptions.Default;
-			var context  = new FixGrammar.FixContext(settings);
-
-			foreach (var field in settings.Framing == FixFraming.Log
-				? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
-				: FixGrammar.ReadFields(input, context, bufferSize, limit))
-				yield return field;
-		}
+		foreach (var field in settings.Framing == FixFraming.Log
+			? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
+			: FixGrammar.ReadFields   (input, context, bufferSize, limit))
+			yield return field;
 	}
 
 	/// <summary>
@@ -99,7 +95,7 @@ public static partial class FixParser
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
 	public static IEnumerable<FixField> ReadFields(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
 	{
-		if (input == null)   throw new ArgumentNullException(nameof(input));
+		if (input == null)   throw new ArgumentNullException      (nameof(input));
 		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
 
 		var limit = maxRetained ?? DefaultMaxRetained;
@@ -107,19 +103,13 @@ public static partial class FixParser
 		if (limit <= 0)
 			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
-		return Read();
+		var settings = options ?? FixFieldOptions.Default;
+		var context  = new FixGrammar.FixContext(settings);
 
-		// A context per enumeration, since it holds a binary pair's state.
-		IEnumerable<FixField> Read()
-		{
-			var settings = options ?? FixFieldOptions.Default;
-			var context  = new FixGrammar.FixContext(settings);
-
-			foreach (var field in settings.Framing == FixFraming.Log
-				? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
-				: FixGrammar.ReadFields(input, context, bufferSize, limit))
-				yield return field;
-		}
+		foreach (var field in settings.Framing == FixFraming.Log
+			? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
+			: FixGrammar.ReadFields   (input, context, bufferSize, limit))
+			yield return field;
 	}
 
 	/// <summary>
@@ -138,7 +128,7 @@ public static partial class FixParser
 
 		return settings.Framing == FixFraming.Log
 			? FixGrammar.ParseLogFields(input, context)
-			: FixGrammar.ParseFields(input, context);
+			: FixGrammar.ParseFields   (input, context);
 	}
 
 	/// <summary>
@@ -152,4 +142,6 @@ public static partial class FixParser
 	{
 		return ParseFields(input.ToArray(), options);
 	}
+
+	#endregion
 }

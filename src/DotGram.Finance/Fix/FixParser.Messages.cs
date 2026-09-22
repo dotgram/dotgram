@@ -1,7 +1,6 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-
 namespace DotGram.Finance.Fix;
 
 /// <summary>
@@ -22,31 +21,50 @@ namespace DotGram.Finance.Fix;
 /// all. What the scheme buys beside that is a reader who can see the whole surface at once.
 /// </para>
 /// <para>
-/// Reading is one act and holding a message to a schema is another:
-/// <see cref="FixMessage.Validate()"/> is a call on the message, not an entry point here.
+/// Reading is one act and holding a message to a schema is another: what holds a message to the
+/// schema is asked of the message, not of an entry point here.
 /// </para>
 /// </remarks>
 public static partial class FixParser
 {
-	/// <summary>The largest message a streamed call will read, in octets, when none is given.</summary>
+	/// <summary>
+	/// The largest message a streamed call will read, in octets, when none is given.
+	/// </summary>
 	public const int DefaultMaxMessageLength = FixMessages.DefaultMaxMessageLength;
 
-	/// <summary>Reads one message from a buffer, checking framing, BodyLength and CheckSum.</summary>
-	/// <param name="input">The whole message, as octets held one to a character.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
-	/// <exception cref="FormatException">The input is not one readable message.</exception>
+	/// <summary>
+	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
+	/// </summary>
+	/// <param name="input">The message.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>
+	/// The options are one optional argument rather than a second method, which is the shape
+	/// <c>FixParser</c> beside it already uses. A pair of methods where one passes a default is ten
+	/// pairs across this class, and the tenth has to be written twice by whoever adds a setting.
+	/// </remarks>
 	public static FixMessage ParseMessage(string input, FixFieldOptions? options = null)
 	{
-		return FixMessages.Parse(input, options);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		if (TryParseMessage(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
-	/// <summary>Reads one message from a buffer, checking framing, BodyLength and CheckSum.</summary>
-	/// <param name="input">The whole message, as octets held one to a character.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
-	/// <exception cref="FormatException">The input is not one readable message.</exception>
+	/// <summary>Parses one complete message from a copy of the input.</summary>
+	/// <param name="input">The message.</param>
+	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
 	public static FixMessage ParseMessage(ReadOnlySpan<char> input, FixFieldOptions? options = null)
 	{
-		return FixMessages.Parse(input, options);
+		if (TryParseMessage(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Reads one message from the octets it arrived as.</summary>
@@ -70,16 +88,21 @@ public static partial class FixParser
 	/// what an <c>Encoded</c> field's octets mean is the consumer's to decide.
 	/// </para>
 	/// <para>
-	/// <strong>What this road buys is correctness, not allocation.</strong> A message keeps its
-	/// source — <see cref="FixMessage.OriginalWire"/> is that source — so the octets are still
-	/// materialised into a string, one character to one octet. The difference is who decides how:
+	/// <strong>What this road buys is correctness, not allocation.</strong> Every field keeps the
+	/// value it was read from, so the octets are still materialised into strings, one character to
+	/// one octet. The difference is who decides how:
 	/// here it is the package, which knows that the specification counts octets, rather than a
 	/// consumer choosing an encoding for a file whose framing arithmetic that choice then changes.
 	/// </para>
 	/// </remarks>
 	public static FixMessage ParseMessage(byte[] input, FixFieldOptions? options = null)
 	{
-		return FixMessages.Parse(input, options);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		if (TryParseMessage(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Reads one message from a copy of the octets it arrived as.</summary>
@@ -92,7 +115,10 @@ public static partial class FixParser
 	/// </remarks>
 	public static FixMessage ParseMessage(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
 	{
-		return FixMessages.Parse(input, options);
+		if (TryParseMessage(input, out var message, out var error, options))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>
@@ -101,9 +127,190 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="options">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryParseMessage(string input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
 	{
-		return FixMessages.TryParse(input, out message, out error, options);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		return TryParseMessage(ParseFields(input, options), out message, out error);
+	}
+
+	static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error)
+	{
+		message = null;
+
+		var     started = false;
+		var     ended   = false;
+		var     fields  = new List<FixField>(input is ICollection c ? c.Count : 6);
+		string? type    = null;
+
+		foreach (var field in input)
+		{
+			fields.Add(field);
+
+			switch (field.Tag)
+			{
+				case 8:
+					if (started)
+					{
+						error = new FixParseError(field.Position, field.Tag, null, "Message has multiple BeginString (8)");
+						return false;
+					}
+
+					started = true;
+					break;
+
+				case 10:
+					if (!started)
+					{
+						error = new FixParseError(field.Position, field.Tag, null, "Message has CheckSum (10) before BeginString (8)");
+						return false;
+					}
+
+					if (ended)
+					{
+						error = new FixParseError(field.Position, field.Tag, null, "Message has multiple CheckSum (10)");
+						return false;
+					}
+
+					ended = true;
+					break;
+
+				case 35:
+					if (!started)
+					{
+						error = new FixParseError(field.Position, field.Tag, null, "Message has MsgType (35) before BeginString (8)");
+						return false;
+					}
+
+					type = ((FixField.MsgType)field).Value;
+
+					break;
+			}
+		}
+
+		if (!started)
+		{
+			error = new FixParseError(0, null, null, "Message has no BeginString (8)");
+			return false;
+		}
+
+		if (!ended)
+		{
+			error = new FixParseError(0, null, null, "Message has no CheckSum (10)");
+			return false;
+		}
+
+		if (type is null)
+		{
+			error = new FixParseError(0, null, null, "Message has no MsgType (35)");
+			return false;
+		}
+
+		message = CreateMessage();
+		error   = null;
+
+		return true;
+
+		FixMessage CreateMessage()
+		{
+			return (type.Length, type.Length > 0 ? type[0] : '\0', type.Length > 1 ? type[1] : '\0') switch
+			{
+				(1, '0', _  ) => new FixMessage.Heartbeat                              (fields),
+				(1, '1', _  ) => new FixMessage.TestRequest                            (fields),
+				(1, '2', _  ) => new FixMessage.ResendRequest                          (fields),
+				(1, '3', _  ) => new FixMessage.Reject                                 (fields),
+				(1, '4', _  ) => new FixMessage.SequenceReset                          (fields),
+				(1, '5', _  ) => new FixMessage.Logout                                 (fields),
+				(1, '6', _  ) => new FixMessage.IOI                                    (fields),
+				(1, '7', _  ) => new FixMessage.Advertisement                          (fields),
+				(1, '8', _  ) => new FixMessage.ExecutionReport                        (fields),
+				(1, '9', _  ) => new FixMessage.OrderCancelReject                      (fields),
+				(1, 'A', _  ) => new FixMessage.Logon                                  (fields),
+				(1, 'B', _  ) => new FixMessage.News                                   (fields),
+				(1, 'C', _  ) => new FixMessage.Email                                  (fields),
+				(1, 'D', _  ) => new FixMessage.NewOrderSingle                         (fields),
+				(1, 'E', _  ) => new FixMessage.NewOrderList                           (fields),
+				(1, 'F', _  ) => new FixMessage.OrderCancelRequest                     (fields),
+				(1, 'G', _  ) => new FixMessage.OrderCancelReplaceRequest              (fields),
+				(1, 'H', _  ) => new FixMessage.OrderStatusRequest                     (fields),
+				(1, 'J', _  ) => new FixMessage.AllocationInstruction                  (fields),
+				(1, 'K', _  ) => new FixMessage.ListCancelRequest                      (fields),
+				(1, 'L', _  ) => new FixMessage.ListExecute                            (fields),
+				(1, 'M', _  ) => new FixMessage.ListStatusRequest                      (fields),
+				(1, 'N', _  ) => new FixMessage.ListStatus                             (fields),
+				(1, 'P', _  ) => new FixMessage.AllocationInstructionAck               (fields),
+				(1, 'Q', _  ) => new FixMessage.DontKnowTrade                          (fields),
+				(1, 'R', _  ) => new FixMessage.QuoteRequest                           (fields),
+				(1, 'S', _  ) => new FixMessage.Quote                                  (fields),
+				(1, 'T', _  ) => new FixMessage.SettlementInstructions                 (fields),
+				(1, 'V', _  ) => new FixMessage.MarketDataRequest                      (fields),
+				(1, 'W', _  ) => new FixMessage.MarketDataSnapshotFullRefresh          (fields),
+				(1, 'X', _  ) => new FixMessage.MarketDataIncrementalRefresh           (fields),
+				(1, 'Y', _  ) => new FixMessage.MarketDataRequestReject                (fields),
+				(1, 'Z', _  ) => new FixMessage.QuoteCancel                            (fields),
+				(1, 'a', _  ) => new FixMessage.QuoteStatusRequest                     (fields),
+				(1, 'b', _  ) => new FixMessage.MassQuoteAcknowledgement               (fields),
+				(1, 'c', _  ) => new FixMessage.SecurityDefinitionRequest              (fields),
+				(1, 'd', _  ) => new FixMessage.SecurityDefinition                     (fields),
+				(1, 'e', _  ) => new FixMessage.SecurityStatusRequest                  (fields),
+				(1, 'f', _  ) => new FixMessage.SecurityStatus                         (fields),
+				(1, 'g', _  ) => new FixMessage.TradingSessionStatusRequest            (fields),
+				(1, 'h', _  ) => new FixMessage.TradingSessionStatus                   (fields),
+				(1, 'i', _  ) => new FixMessage.MassQuote                              (fields),
+				(1, 'j', _  ) => new FixMessage.BusinessMessageReject                  (fields),
+				(1, 'k', _  ) => new FixMessage.BidRequest                             (fields),
+				(1, 'l', _  ) => new FixMessage.BidResponse                            (fields),
+				(1, 'm', _  ) => new FixMessage.ListStrikePrice                        (fields),
+				(1, 'n', _  ) => new FixMessage.XMLnonFIX                              (fields),
+				(1, 'o', _  ) => new FixMessage.RegistrationInstructions               (fields),
+				(1, 'p', _  ) => new FixMessage.RegistrationInstructionsResponse       (fields),
+				(1, 'q', _  ) => new FixMessage.OrderMassCancelRequest                 (fields),
+				(1, 'r', _  ) => new FixMessage.OrderMassCancelReport                  (fields),
+				(1, 's', _  ) => new FixMessage.NewOrderCross                          (fields),
+				(1, 't', _  ) => new FixMessage.CrossOrderCancelReplaceRequest         (fields),
+				(1, 'u', _  ) => new FixMessage.CrossOrderCancelRequest                (fields),
+				(1, 'v', _  ) => new FixMessage.SecurityTypeRequest                    (fields),
+				(1, 'w', _  ) => new FixMessage.SecurityTypes                          (fields),
+				(1, 'x', _  ) => new FixMessage.SecurityListRequest                    (fields),
+				(1, 'y', _  ) => new FixMessage.SecurityList                           (fields),
+				(1, 'z', _  ) => new FixMessage.DerivativeSecurityListRequest          (fields),
+				(2, 'A', 'A') => new FixMessage.DerivativeSecurityList                 (fields),
+				(2, 'A', 'B') => new FixMessage.NewOrderMultileg                       (fields),
+				(2, 'A', 'C') => new FixMessage.MultilegOrderCancelReplace             (fields),
+				(2, 'A', 'D') => new FixMessage.TradeCaptureReportRequest              (fields),
+				(2, 'A', 'E') => new FixMessage.TradeCaptureReport                     (fields),
+				(2, 'A', 'F') => new FixMessage.OrderMassStatusRequest                 (fields),
+				(2, 'A', 'G') => new FixMessage.QuoteRequestReject                     (fields),
+				(2, 'A', 'H') => new FixMessage.RFQRequest                             (fields),
+				(2, 'A', 'I') => new FixMessage.QuoteStatusReport                      (fields),
+				(2, 'A', 'J') => new FixMessage.QuoteResponse                          (fields),
+				(2, 'A', 'K') => new FixMessage.Confirmation                           (fields),
+				(2, 'A', 'L') => new FixMessage.PositionMaintenanceRequest             (fields),
+				(2, 'A', 'M') => new FixMessage.PositionMaintenanceReport              (fields),
+				(2, 'A', 'N') => new FixMessage.RequestForPositions                    (fields),
+				(2, 'A', 'O') => new FixMessage.RequestForPositionsAck                 (fields),
+				(2, 'A', 'P') => new FixMessage.PositionReport                         (fields),
+				(2, 'A', 'Q') => new FixMessage.TradeCaptureReportRequestAck           (fields),
+				(2, 'A', 'R') => new FixMessage.TradeCaptureReportAck                  (fields),
+				(2, 'A', 'S') => new FixMessage.AllocationReport                       (fields),
+				(2, 'A', 'T') => new FixMessage.AllocationReportAck                    (fields),
+				(2, 'A', 'U') => new FixMessage.ConfirmationAck                        (fields),
+				(2, 'A', 'V') => new FixMessage.SettlementInstructionRequest           (fields),
+				(2, 'A', 'W') => new FixMessage.AssignmentReport                       (fields),
+				(2, 'A', 'X') => new FixMessage.CollateralRequest                      (fields),
+				(2, 'A', 'Y') => new FixMessage.CollateralAssignment                   (fields),
+				(2, 'A', 'Z') => new FixMessage.CollateralResponse                     (fields),
+				(2, 'B', 'A') => new FixMessage.CollateralReport                       (fields),
+				(2, 'B', 'B') => new FixMessage.CollateralInquiry                      (fields),
+				(2, 'B', 'C') => new FixMessage.NetworkCounterpartySystemStatusRequest (fields),
+				(2, 'B', 'D') => new FixMessage.NetworkCounterpartySystemStatusResponse(fields),
+				(2, 'B', 'E') => new FixMessage.UserRequest                            (fields),
+				(2, 'B', 'F') => new FixMessage.UserResponse                           (fields),
+				(2, 'B', 'G') => new FixMessage.CollateralInquiryAck                   (fields),
+				(2, 'B', 'H') => new FixMessage.ConfirmationRequest                    (fields),
+				_             => new FixMessage.Custom                                 (type, fields),
+			};
+		}
 	}
 
 	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>

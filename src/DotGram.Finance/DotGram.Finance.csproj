@@ -45,4 +45,5 @@
 		<PackageReference Include="System.Memory" />
 		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
 	</ItemGroup>
+
 </Project>

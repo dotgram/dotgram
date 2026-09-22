@@ -17,7 +17,7 @@ public sealed class FixFieldGrammarTests
 	public void All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms(string name, string wire)
 	{
 		var expected = FixParser.ParseMessage(wire);
-		var log = FixFieldReaderTests.Log(expected);
+		var log = FixFieldReaderTests.Log(wire, expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
 		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixFieldOptions.Log), FixParser.ReadMessage(logBytes, FixFieldOptions.Log) })
@@ -68,7 +68,7 @@ public sealed class FixFieldGrammarTests
 	public void Log_checksum_still_detects_damage()
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
-		var log = FixFieldReaderTests.Log(FixParser.ParseMessage(wire));
+		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
 		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixFieldOptions.Log));
 	}
 

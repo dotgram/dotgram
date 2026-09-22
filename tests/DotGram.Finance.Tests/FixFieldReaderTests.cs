@@ -66,10 +66,10 @@ public abstract class FixFieldReaderTests
 			var message = FixParser.BuildMessage(wire, fields);
 
 			Assert.Equal(name, message.GetType().Name);
-			Assert.Equal(fields.Length, message.AllFields.Count(f => fields.Contains(f.TypedValue!)));
 
-			foreach (var pair in fields.Zip(message.AllFields.Where(f => fields.Contains(f.TypedValue!))))
-				Assert.Same(pair.First, pair.Second.TypedValue);
+			// The message holds the objects the reader built, not copies of them.
+			foreach (var field in fields)
+				Assert.Contains(message.Fields, held => ReferenceEquals(held, field));
 
 			var corrupt       = wire.Substring(0, wire.Length - 4) + "999" + wire[^1];
 			var corruptFields = parser.Parse(corrupt);
@@ -497,11 +497,11 @@ public abstract class FixFieldReaderTests
 	/// <summary>
 	/// A message's wire text with the separator after each field turned into '|'.
 	/// </summary>
-	internal static string Log(FixMessage message)
+	internal static string Log(string wire, FixMessage message)
 	{
-		var text = message.OriginalWire.ToCharArray();
+		var text = wire.ToCharArray();
 
-		foreach (var field in message.AllFields)
+		foreach (var field in message.Fields)
 			text[field.ValuePosition + field.Length] = '|';
 
 		return new string(text);
