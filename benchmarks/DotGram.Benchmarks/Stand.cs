@@ -978,14 +978,26 @@ static partial class Stand
 		{
 			var message  = _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage");
 			var validate = message?.GetMethod("Validate", Type.EmptyTypes);
-
-			if (validate is null)
-				return null;
-
 			var parameter = System.Linq.Expressions.Expression.Parameter(typeof(object));
 
+			if (validate is not null)
+				return System.Linq.Expressions.Expression.Lambda<Func<object, object?>>(
+					System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression.Convert(parameter, message!), validate), typeof(object)),
+					parameter).Compile();
+
+			// Form 5 (2026-09-22): the schema is a context passed in, Validate(FixContext), and a consumer
+			// that names none holds a message to FixContext.Default. That is what this side is asked, so
+			// that a pair of form 4 against form 5 compares parse-and-check with parse-and-check.
+			var context = _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixContext");
+			var withContext = context is null ? null : message?.GetMethod("Validate", [context]);
+
+			if (withContext is null)
+				return null;
+
+			var standard = System.Linq.Expressions.Expression.Property(null, context!.GetProperty("Default", BindingFlags.Public | BindingFlags.Static)!);
+
 			return System.Linq.Expressions.Expression.Lambda<Func<object, object?>>(
-				System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression.Convert(parameter, message!), validate), typeof(object)),
+				System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression.Convert(parameter, message!), withContext, standard), typeof(object)),
 				parameter).Compile();
 		}
 
