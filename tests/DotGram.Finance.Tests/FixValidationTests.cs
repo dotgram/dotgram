@@ -81,6 +81,34 @@ public sealed class FixValidationTests
 		Assert.Same(order.Fields.First(field => field.Tag == 453), finding.Field);
 	}
 
+	/// <summary>An entry is held to what the repository requires of it, and the finding names the entry.</summary>
+	[Fact]
+	public void A_required_field_of_an_entry_is_named_with_the_entry_and_where_it_began()
+	{
+		// A NewOrderList: each order in the list must carry a Side and a ListSeqNo; the second has neither.
+		var list = (FixMessage.NewOrderList)FixParser.ParseMessage(FixFixtures.Wire("E",
+			"66=L1|394=1|68=2|73=2|11=O1|67=1|54=1|55=ABC|38=1|40=1|60=20260915-12:00:00|11=O2|55=ABC|38=1|40=1|60=20260915-12:00:00|"));
+
+		Assert.False(list.Validate(FixContext.Default));
+		Assert.Equal(
+			[(FixRule.RequiredFieldMissing, 54, 1), (FixRule.RequiredFieldMissing, 67, 1)],
+			list.InvalidFindings!.Select(one => (one.Rule, one.Tag, one.EntryIndex)).OrderBy(one => one.Tag).ToArray());
+		Assert.All(list.InvalidFindings!, one => Assert.Equal(list.ListOrdGrp![1].ClOrdID.Position, one.Position));
+	}
+
+	/// <summary>A count inside an entry is held to the entries that follow it there.</summary>
+	[Fact]
+	public void A_nested_count_is_held_within_its_entry()
+	{
+		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=1|448=P1|802=2|523=S1|"));
+
+		Assert.False(order.Validate(FixContext.Default));
+
+		var finding = Assert.Single(order.InvalidFindings!);
+
+		Assert.Equal(FixRule.GroupCountMismatch, finding.Rule);
+		Assert.Equal(802, finding.Tag);
+	}
 	/// <summary>
 	/// A block is checked once and the check reaches every type that carries it: this replaces what
 	/// an Instrument must have, and two message types that were not touched answer differently.

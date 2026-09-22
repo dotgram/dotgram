@@ -5,23 +5,26 @@ using System.Numerics;
 namespace DotGram.Finance.Fix;
 
 /// <summary>
-/// The check of every FIX 4.4 message type, of every block it reuses, and of every field.
+/// The check of every FIX 4.4 message type, of every block it reuses, of every entry of every
+/// repeating group, and of every field.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Straight-line checks written against the fields of the class they are about, and nothing
 /// else: no tables, no schema read at run time, no question asked of anything but the message.
 /// What each one asks is what the published repository says — a field it marks required, the
-/// counter of a repeating component it marks required, a block it marks required and the message
-/// left empty, and the values it lists for a field that has a set of them.
+/// counter of a repeating component it marks required, a block it marks required and the carrier
+/// left empty, the values it lists for a field that has a set of them, and every count held to
+/// the entries that follow it.
 /// </para>
 /// <para>
-/// Three kinds of slot, every one typed on what it checks, so a check cannot be put in the wrong
-/// one: ninety-four message types, thirteen blocks through the interface their carriers
-/// implement, and every field. A carrier asks the block slot; a message asks the field slot of
-/// every field it holds. That is what makes a loaded dictionary small: a venue that adds a value
-/// to OrdType replaces one slot, not the forty-one message types that carry an OrdType, and a
-/// venue that limits a field the standard leaves free finds the slot already there.
+/// Four kinds of slot, every one typed on what it checks, so a check cannot be put in the wrong
+/// one: ninety-four message types; thirteen blocks, through the interface their carriers
+/// implement; ninety-two group entries, each asked with its index so that a finding says which
+/// entry it is in and where that entry began; and every field. A message asks the slots of what
+/// it holds, an entry asks the slots of what it holds, and a field is asked once by whichever
+/// holds it. That is what makes a loaded dictionary small: what it says of one thing replaces
+/// one slot.
 /// </para>
 /// <para>
 /// A field the specification does not limit asks one thing of itself, whether its characters
@@ -30,10 +33,6 @@ namespace DotGram.Finance.Fix;
 /// </para>
 /// <para>
 /// One instance a context, and a context takes <see cref="Default"/> unless it is given another.
-/// </para>
-/// <para>
-/// What is not here yet: what a group entry requires of itself, and the fields an entry carries,
-/// which are the same two questions one level down.
 /// </para>
 /// </remarks>
 partial class FixValidators
@@ -364,6 +363,285 @@ partial class FixValidators
 
 	/// <summary>Holds a FIX 4.4 YieldData block to the schema, wherever it is carried.</summary>
 	public Func<FixContext, FixMessage, IYieldData, bool> YieldData                               { get; set; } = ValidateYieldData;
+
+	// The entries of the repeating groups, asked one at a time with the index of the entry, so that
+	// a finding names the entry it is in and where that entry began on the wire.
+
+	/// <summary>Holds one entry of the FIX 4.4 AffectedOrdGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.AffectedOrdGrp, int, bool> AffectedOrdGrp                          { get; set; } = ValidateAffectedOrdGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 AllocAckGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.AllocAckGrp, int, bool> AllocAckGrp                             { get; set; } = ValidateAllocAckGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 AllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.AllocGrp, int, bool> AllocGrp                                { get; set; } = ValidateAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 AttrbGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.AttrbGrp, int, bool> AttrbGrp                                { get; set; } = ValidateAttrbGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 BidCompReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.BidCompReqGrp, int, bool> BidCompReqGrp                           { get; set; } = ValidateBidCompReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 BidCompRspGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.BidCompRspGrp, int, bool> BidCompRspGrp                           { get; set; } = ValidateBidCompRspGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 BidDescReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.BidDescReqGrp, int, bool> BidDescReqGrp                           { get; set; } = ValidateBidDescReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ClrInstGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ClrInstGrp, int, bool> ClrInstGrp                              { get; set; } = ValidateClrInstGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 CollInqQualGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.CollInqQualGrp, int, bool> CollInqQualGrp                          { get; set; } = ValidateCollInqQualGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 CompIDReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.CompIDReqGrp, int, bool> CompIDReqGrp                            { get; set; } = ValidateCompIDReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 CompIDStatGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.CompIDStatGrp, int, bool> CompIDStatGrp                           { get; set; } = ValidateCompIDStatGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ContAmtGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ContAmtGrp, int, bool> ContAmtGrp                              { get; set; } = ValidateContAmtGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ContraGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ContraGrp, int, bool> ContraGrp                               { get; set; } = ValidateContraGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 CpctyConfGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.CpctyConfGrp, int, bool> CpctyConfGrp                            { get; set; } = ValidateCpctyConfGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 DlvyInstGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.DlvyInstGrp, int, bool> DlvyInstGrp                             { get; set; } = ValidateDlvyInstGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 EvntGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.EvntGrp, int, bool> EvntGrp                                 { get; set; } = ValidateEvntGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ExecAllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ExecAllocGrp, int, bool> ExecAllocGrp                            { get; set; } = ValidateExecAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ExecCollGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ExecCollGrp, int, bool> ExecCollGrp                             { get; set; } = ValidateExecCollGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ExecsGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ExecsGrp, int, bool> ExecsGrp                                { get; set; } = ValidateExecsGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 Hop to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.Hop, int, bool> Hop                                     { get; set; } = ValidateHop;
+
+	/// <summary>Holds one entry of the FIX 4.4 IOIQualGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.IOIQualGrp, int, bool> IOIQualGrp                              { get; set; } = ValidateIOIQualGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtGrp, int, bool> InstrmtGrp                              { get; set; } = ValidateInstrmtGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtLegExecGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtLegExecGrp, int, bool> InstrmtLegExecGrp                       { get; set; } = ValidateInstrmtLegExecGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtLegGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtLegGrp, int, bool> InstrmtLegGrp                           { get; set; } = ValidateInstrmtLegGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtLegIOIGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtLegIOIGrp, int, bool> InstrmtLegIOIGrp                        { get; set; } = ValidateInstrmtLegIOIGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtLegSecListGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtLegSecListGrp, int, bool> InstrmtLegSecListGrp                    { get; set; } = ValidateInstrmtLegSecListGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtMDReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtMDReqGrp, int, bool> InstrmtMDReqGrp                         { get; set; } = ValidateInstrmtMDReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 InstrmtStrkPxGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.InstrmtStrkPxGrp, int, bool> InstrmtStrkPxGrp                        { get; set; } = ValidateInstrmtStrkPxGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegOrdGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegOrdGrp, int, bool> LegOrdGrp                               { get; set; } = ValidateLegOrdGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegPreAllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegPreAllocGrp, int, bool> LegPreAllocGrp                          { get; set; } = ValidateLegPreAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegQuotGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegQuotGrp, int, bool> LegQuotGrp                              { get; set; } = ValidateLegQuotGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegQuotStatGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegQuotStatGrp, int, bool> LegQuotStatGrp                          { get; set; } = ValidateLegQuotStatGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegSecAltIDGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegSecAltIDGrp, int, bool> LegSecAltIDGrp                          { get; set; } = ValidateLegSecAltIDGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 LegStipulations to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LegStipulations, int, bool> LegStipulations                         { get; set; } = ValidateLegStipulations;
+
+	/// <summary>Holds one entry of the FIX 4.4 LinesOfTextGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.LinesOfTextGrp, int, bool> LinesOfTextGrp                          { get; set; } = ValidateLinesOfTextGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 ListOrdGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.ListOrdGrp, int, bool> ListOrdGrp                              { get; set; } = ValidateListOrdGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MDFullGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MDFullGrp, int, bool> MDFullGrp                               { get; set; } = ValidateMDFullGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MDIncGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MDIncGrp, int, bool> MDIncGrp                                { get; set; } = ValidateMDIncGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MDReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MDReqGrp, int, bool> MDReqGrp                                { get; set; } = ValidateMDReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MDRjctGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MDRjctGrp, int, bool> MDRjctGrp                               { get; set; } = ValidateMDRjctGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MiscFeesGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MiscFeesGrp, int, bool> MiscFeesGrp                             { get; set; } = ValidateMiscFeesGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 MsgTypeGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.MsgTypeGrp, int, bool> MsgTypeGrp                              { get; set; } = ValidateMsgTypeGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 NestedParties to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NestedParties, int, bool> NestedParties                           { get; set; } = ValidateNestedParties;
+
+	/// <summary>Holds one entry of the FIX 4.4 NestedParties2 to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NestedParties2, int, bool> NestedParties2                          { get; set; } = ValidateNestedParties2;
+
+	/// <summary>Holds one entry of the FIX 4.4 NestedParties3 to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NestedParties3, int, bool> NestedParties3                          { get; set; } = ValidateNestedParties3;
+
+	/// <summary>Holds one entry of the FIX 4.4 NstdPtys2SubGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NstdPtys2SubGrp, int, bool> NstdPtys2SubGrp                         { get; set; } = ValidateNstdPtys2SubGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 NstdPtys3SubGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NstdPtys3SubGrp, int, bool> NstdPtys3SubGrp                         { get; set; } = ValidateNstdPtys3SubGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 NstdPtysSubGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.NstdPtysSubGrp, int, bool> NstdPtysSubGrp                          { get; set; } = ValidateNstdPtysSubGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 OrdAllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.OrdAllocGrp, int, bool> OrdAllocGrp                             { get; set; } = ValidateOrdAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 OrdListStatGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.OrdListStatGrp, int, bool> OrdListStatGrp                          { get; set; } = ValidateOrdListStatGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 Parties to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.Parties, int, bool> Parties                                 { get; set; } = ValidateParties;
+
+	/// <summary>Holds one entry of the FIX 4.4 PosUndInstrmtGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PosUndInstrmtGrp, int, bool> PosUndInstrmtGrp                        { get; set; } = ValidatePosUndInstrmtGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 PositionAmountData to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PositionAmountData, int, bool> PositionAmountData                      { get; set; } = ValidatePositionAmountData;
+
+	/// <summary>Holds one entry of the FIX 4.4 PositionQty to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PositionQty, int, bool> PositionQty                             { get; set; } = ValidatePositionQty;
+
+	/// <summary>Holds one entry of the FIX 4.4 PreAllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PreAllocGrp, int, bool> PreAllocGrp                             { get; set; } = ValidatePreAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 PreAllocMlegGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PreAllocMlegGrp, int, bool> PreAllocMlegGrp                         { get; set; } = ValidatePreAllocMlegGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 PtysSubGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.PtysSubGrp, int, bool> PtysSubGrp                              { get; set; } = ValidatePtysSubGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotCxlEntriesGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotCxlEntriesGrp, int, bool> QuotCxlEntriesGrp                       { get; set; } = ValidateQuotCxlEntriesGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotEntryAckGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotEntryAckGrp, int, bool> QuotEntryAckGrp                         { get; set; } = ValidateQuotEntryAckGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotEntryGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotEntryGrp, int, bool> QuotEntryGrp                            { get; set; } = ValidateQuotEntryGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotQualGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotQualGrp, int, bool> QuotQualGrp                             { get; set; } = ValidateQuotQualGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotReqGrp, int, bool> QuotReqGrp                              { get; set; } = ValidateQuotReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotReqLegsGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotReqLegsGrp, int, bool> QuotReqLegsGrp                          { get; set; } = ValidateQuotReqLegsGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotReqRjctGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotReqRjctGrp, int, bool> QuotReqRjctGrp                          { get; set; } = ValidateQuotReqRjctGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotSetAckGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotSetAckGrp, int, bool> QuotSetAckGrp                           { get; set; } = ValidateQuotSetAckGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 QuotSetGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.QuotSetGrp, int, bool> QuotSetGrp                              { get; set; } = ValidateQuotSetGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 RFQReqGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.RFQReqGrp, int, bool> RFQReqGrp                               { get; set; } = ValidateRFQReqGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 RelSymDerivSecGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.RelSymDerivSecGrp, int, bool> RelSymDerivSecGrp                       { get; set; } = ValidateRelSymDerivSecGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 RgstDistInstGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.RgstDistInstGrp, int, bool> RgstDistInstGrp                         { get; set; } = ValidateRgstDistInstGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 RgstDtlsGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.RgstDtlsGrp, int, bool> RgstDtlsGrp                             { get; set; } = ValidateRgstDtlsGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 RoutingGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.RoutingGrp, int, bool> RoutingGrp                              { get; set; } = ValidateRoutingGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SecAltIDGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SecAltIDGrp, int, bool> SecAltIDGrp                             { get; set; } = ValidateSecAltIDGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SecListGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SecListGrp, int, bool> SecListGrp                              { get; set; } = ValidateSecListGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SecTypesGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SecTypesGrp, int, bool> SecTypesGrp                             { get; set; } = ValidateSecTypesGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SettlInstGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SettlInstGrp, int, bool> SettlInstGrp                            { get; set; } = ValidateSettlInstGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SettlParties to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SettlParties, int, bool> SettlParties                            { get; set; } = ValidateSettlParties;
+
+	/// <summary>Holds one entry of the FIX 4.4 SettlPtysSubGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SettlPtysSubGrp, int, bool> SettlPtysSubGrp                         { get; set; } = ValidateSettlPtysSubGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SideCrossOrdCxlGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SideCrossOrdCxlGrp, int, bool> SideCrossOrdCxlGrp                      { get; set; } = ValidateSideCrossOrdCxlGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 SideCrossOrdModGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.SideCrossOrdModGrp, int, bool> SideCrossOrdModGrp                      { get; set; } = ValidateSideCrossOrdModGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 Stipulations to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.Stipulations, int, bool> Stipulations                            { get; set; } = ValidateStipulations;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdAllocGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdAllocGrp, int, bool> TrdAllocGrp                             { get; set; } = ValidateTrdAllocGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdCapDtGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdCapDtGrp, int, bool> TrdCapDtGrp                             { get; set; } = ValidateTrdCapDtGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdCapRptSideGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdCapRptSideGrp, int, bool> TrdCapRptSideGrp                        { get; set; } = ValidateTrdCapRptSideGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdCollGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdCollGrp, int, bool> TrdCollGrp                              { get; set; } = ValidateTrdCollGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdInstrmtLegGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdInstrmtLegGrp, int, bool> TrdInstrmtLegGrp                        { get; set; } = ValidateTrdInstrmtLegGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdRegTimestamps to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdRegTimestamps, int, bool> TrdRegTimestamps                        { get; set; } = ValidateTrdRegTimestamps;
+
+	/// <summary>Holds one entry of the FIX 4.4 TrdgSesGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.TrdgSesGrp, int, bool> TrdgSesGrp                              { get; set; } = ValidateTrdgSesGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 UndInstrmtCollGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.UndInstrmtCollGrp, int, bool> UndInstrmtCollGrp                       { get; set; } = ValidateUndInstrmtCollGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 UndInstrmtGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.UndInstrmtGrp, int, bool> UndInstrmtGrp                           { get; set; } = ValidateUndInstrmtGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 UndInstrmtStrkPxGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.UndInstrmtStrkPxGrp, int, bool> UndInstrmtStrkPxGrp                     { get; set; } = ValidateUndInstrmtStrkPxGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 UndSecAltIDGrp to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.UndSecAltIDGrp, int, bool> UndSecAltIDGrp                          { get; set; } = ValidateUndSecAltIDGrp;
+
+	/// <summary>Holds one entry of the FIX 4.4 UnderlyingStipulations to the schema.</summary>
+	public Func<FixContext, FixMessage, FixGroup.UnderlyingStipulations, int, bool> UnderlyingStipulations                  { get; set; } = ValidateUnderlyingStipulations;
 
 	// The fields, every one, so that a dictionary has a slot for whatever it limits.
 
@@ -3181,6 +3459,19 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -3341,6 +3632,37 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AllocGrp is not null)
+			for (var i = 0; i < message.AllocGrp.Count; i++)
+				context.Validators.AllocGrp(context, message, message.AllocGrp[i], i);
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecAllocGrp is not null)
+			for (var i = 0; i < message.ExecAllocGrp.Count; i++)
+				context.Validators.ExecAllocGrp(context, message, message.ExecAllocGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.OrdAllocGrp is not null)
+			for (var i = 0; i < message.OrdAllocGrp.Count; i++)
+				context.Validators.OrdAllocGrp(context, message, message.OrdAllocGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -3369,6 +3691,13 @@ partial class FixValidators
 
 		Counted(message, message.NoAllocs, message.AllocAckGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
+
+		if (message.AllocAckGrp is not null)
+			for (var i = 0; i < message.AllocAckGrp.Count; i++)
+				context.Validators.AllocAckGrp(context, message, message.AllocAckGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
 
 		return message.IsValid;
 	}
@@ -3535,6 +3864,37 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AllocGrp is not null)
+			for (var i = 0; i < message.AllocGrp.Count; i++)
+				context.Validators.AllocGrp(context, message, message.AllocGrp[i], i);
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecAllocGrp is not null)
+			for (var i = 0; i < message.ExecAllocGrp.Count; i++)
+				context.Validators.ExecAllocGrp(context, message, message.ExecAllocGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.OrdAllocGrp is not null)
+			for (var i = 0; i < message.OrdAllocGrp.Count; i++)
+				context.Validators.OrdAllocGrp(context, message, message.OrdAllocGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -3565,6 +3925,13 @@ partial class FixValidators
 
 		Counted(message, message.NoAllocs, message.AllocAckGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
+
+		if (message.AllocAckGrp is not null)
+			for (var i = 0; i < message.AllocAckGrp.Count; i++)
+				context.Validators.AllocAckGrp(context, message, message.AllocAckGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
 
 		return message.IsValid;
 	}
@@ -3666,6 +4033,28 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PositionAmountData is not null)
+			for (var i = 0; i < message.PositionAmountData.Count; i++)
+				context.Validators.PositionAmountData(context, message, message.PositionAmountData[i], i);
+		if (message.PositionQty is not null)
+			for (var i = 0; i < message.PositionQty.Count; i++)
+				context.Validators.PositionQty(context, message, message.PositionQty[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -3711,6 +4100,13 @@ partial class FixValidators
 		Counted(message, message.NoBidComponents, message.BidCompReqGrp);
 		Counted(message, message.NoBidDescriptors, message.BidDescReqGrp);
 
+		if (message.BidCompReqGrp is not null)
+			for (var i = 0; i < message.BidCompReqGrp.Count; i++)
+				context.Validators.BidCompReqGrp(context, message, message.BidCompReqGrp[i], i);
+		if (message.BidDescReqGrp is not null)
+			for (var i = 0; i < message.BidDescReqGrp.Count; i++)
+				context.Validators.BidDescReqGrp(context, message, message.BidDescReqGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -3723,6 +4119,10 @@ partial class FixValidators
 		if (message.NoBidComponents is not null) context.Validators.NoBidComponents(context, message, message.NoBidComponents);
 
 		Counted(message, message.NoBidComponents, message.BidCompRspGrp);
+
+		if (message.BidCompRspGrp is not null)
+			for (var i = 0; i < message.BidCompRspGrp.Count; i++)
+				context.Validators.BidCompRspGrp(context, message, message.BidCompRspGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -3876,6 +4276,40 @@ partial class FixValidators
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtCollGrp);
 
+		if (message.DlvyInstGrp is not null)
+			for (var i = 0; i < message.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, message.DlvyInstGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtCollGrp is not null)
+			for (var i = 0; i < message.UndInstrmtCollGrp.Count; i++)
+				context.Validators.UndInstrmtCollGrp(context, message, message.UndInstrmtCollGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4004,6 +4438,40 @@ partial class FixValidators
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.CollInqQualGrp is not null)
+			for (var i = 0; i < message.CollInqQualGrp.Count; i++)
+				context.Validators.CollInqQualGrp(context, message, message.CollInqQualGrp[i], i);
+		if (message.DlvyInstGrp is not null)
+			for (var i = 0; i < message.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, message.DlvyInstGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4106,6 +4574,31 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoTrades, message.TrdCollGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.CollInqQualGrp is not null)
+			for (var i = 0; i < message.CollInqQualGrp.Count; i++)
+				context.Validators.CollInqQualGrp(context, message, message.CollInqQualGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -4239,6 +4732,40 @@ partial class FixValidators
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.DlvyInstGrp is not null)
+			for (var i = 0; i < message.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, message.DlvyInstGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4363,6 +4890,37 @@ partial class FixValidators
 		Counted(message, message.NoTrades, message.TrdCollGrp);
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtCollGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtCollGrp is not null)
+			for (var i = 0; i < message.UndInstrmtCollGrp.Count; i++)
+				context.Validators.UndInstrmtCollGrp(context, message, message.UndInstrmtCollGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -4489,6 +5047,37 @@ partial class FixValidators
 		Counted(message, message.NoTrades, message.TrdCollGrp);
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtCollGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.ExecCollGrp is not null)
+			for (var i = 0; i < message.ExecCollGrp.Count; i++)
+				context.Validators.ExecCollGrp(context, message, message.ExecCollGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdCollGrp is not null)
+			for (var i = 0; i < message.TrdCollGrp.Count; i++)
+				context.Validators.TrdCollGrp(context, message, message.TrdCollGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtCollGrp is not null)
+			for (var i = 0; i < message.UndInstrmtCollGrp.Count; i++)
+				context.Validators.UndInstrmtCollGrp(context, message, message.UndInstrmtCollGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -4670,6 +5259,43 @@ partial class FixValidators
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.CpctyConfGrp is not null)
+			for (var i = 0; i < message.CpctyConfGrp.Count; i++)
+				context.Validators.CpctyConfGrp(context, message, message.CpctyConfGrp[i], i);
+		if (message.DlvyInstGrp is not null)
+			for (var i = 0; i < message.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, message.DlvyInstGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.OrdAllocGrp is not null)
+			for (var i = 0; i < message.OrdAllocGrp.Count; i++)
+				context.Validators.OrdAllocGrp(context, message, message.OrdAllocGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4714,6 +5340,10 @@ partial class FixValidators
 		if (message.ConfirmReqID      is not null) context.Validators.ConfirmReqID(context, message, message.ConfirmReqID);
 
 		Counted(message, message.NoOrders, message.OrdAllocGrp);
+
+		if (message.OrdAllocGrp is not null)
+			for (var i = 0; i < message.OrdAllocGrp.Count; i++)
+				context.Validators.OrdAllocGrp(context, message, message.OrdAllocGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -4856,6 +5486,28 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.SideCrossOrdModGrp is not null)
+			for (var i = 0; i < message.SideCrossOrdModGrp.Count; i++)
+				context.Validators.SideCrossOrdModGrp(context, message, message.SideCrossOrdModGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4930,6 +5582,22 @@ partial class FixValidators
 		Counted(message, message.NoSides, message.SideCrossOrdCxlGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.SideCrossOrdCxlGrp is not null)
+			for (var i = 0; i < message.SideCrossOrdCxlGrp.Count; i++)
+				context.Validators.SideCrossOrdCxlGrp(context, message, message.SideCrossOrdCxlGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -4998,6 +5666,16 @@ partial class FixValidators
 		Counted(message, message.NoRelatedSym, message.RelSymDerivSecGrp);
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
+
+		if (message.RelSymDerivSecGrp is not null)
+			for (var i = 0; i < message.RelSymDerivSecGrp.Count; i++)
+				context.Validators.RelSymDerivSecGrp(context, message, message.RelSymDerivSecGrp[i], i);
+		if (message.UndSecAltIDGrp is not null)
+			for (var i = 0; i < message.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, message.UndSecAltIDGrp[i], i);
+		if (message.UnderlyingStipulations is not null)
+			for (var i = 0; i < message.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, message.UnderlyingStipulations[i], i);
 
 		return message.IsValid;
 	}
@@ -5069,6 +5747,13 @@ partial class FixValidators
 
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
+
+		if (message.UndSecAltIDGrp is not null)
+			for (var i = 0; i < message.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, message.UndSecAltIDGrp[i], i);
+		if (message.UnderlyingStipulations is not null)
+			for (var i = 0; i < message.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, message.UnderlyingStipulations[i], i);
 
 		return message.IsValid;
 	}
@@ -5151,6 +5836,19 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5182,6 +5880,22 @@ partial class FixValidators
 		Counted(message, message.NoLinesOfText, message.LinesOfTextGrp);
 		Counted(message, message.NoRoutingIDs, message.RoutingGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.InstrmtGrp is not null)
+			for (var i = 0; i < message.InstrmtGrp.Count; i++)
+				context.Validators.InstrmtGrp(context, message, message.InstrmtGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.LinesOfTextGrp is not null)
+			for (var i = 0; i < message.LinesOfTextGrp.Count; i++)
+				context.Validators.LinesOfTextGrp(context, message, message.LinesOfTextGrp[i], i);
+		if (message.RoutingGrp is not null)
+			for (var i = 0; i < message.RoutingGrp.Count; i++)
+				context.Validators.RoutingGrp(context, message, message.RoutingGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -5436,6 +6150,34 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.ContAmtGrp is not null)
+			for (var i = 0; i < message.ContAmtGrp.Count; i++)
+				context.Validators.ContAmtGrp(context, message, message.ContAmtGrp[i], i);
+		if (message.ContraGrp is not null)
+			for (var i = 0; i < message.ContraGrp.Count; i++)
+				context.Validators.ContraGrp(context, message, message.ContraGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegExecGrp is not null)
+			for (var i = 0; i < message.InstrmtLegExecGrp.Count; i++)
+				context.Validators.InstrmtLegExecGrp(context, message, message.InstrmtLegExecGrp[i], i);
+		if (message.MiscFeesGrp is not null)
+			for (var i = 0; i < message.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, message.MiscFeesGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5562,6 +6304,28 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.IOIQualGrp is not null)
+			for (var i = 0; i < message.IOIQualGrp.Count; i++)
+				context.Validators.IOIQualGrp(context, message, message.IOIQualGrp[i], i);
+		if (message.InstrmtLegIOIGrp is not null)
+			for (var i = 0; i < message.InstrmtLegIOIGrp.Count; i++)
+				context.Validators.InstrmtLegIOIGrp(context, message, message.InstrmtLegIOIGrp[i], i);
+		if (message.RoutingGrp is not null)
+			for (var i = 0; i < message.RoutingGrp.Count; i++)
+				context.Validators.RoutingGrp(context, message, message.RoutingGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5622,6 +6386,10 @@ partial class FixValidators
 
 		Counted(message, message.NoOrders, message.OrdListStatGrp);
 
+		if (message.OrdListStatGrp is not null)
+			for (var i = 0; i < message.OrdListStatGrp.Count; i++)
+				context.Validators.OrdListStatGrp(context, message, message.OrdListStatGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5652,6 +6420,13 @@ partial class FixValidators
 		Counted(message, message.NoStrikes, message.InstrmtStrkPxGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtStrkPxGrp);
 
+		if (message.InstrmtStrkPxGrp is not null)
+			for (var i = 0; i < message.InstrmtStrkPxGrp.Count; i++)
+				context.Validators.InstrmtStrkPxGrp(context, message, message.InstrmtStrkPxGrp[i], i);
+		if (message.UndInstrmtStrkPxGrp is not null)
+			for (var i = 0; i < message.UndInstrmtStrkPxGrp.Count; i++)
+				context.Validators.UndInstrmtStrkPxGrp(context, message, message.UndInstrmtStrkPxGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5673,6 +6448,10 @@ partial class FixValidators
 		if (message.NextExpectedMsgSeqNum is not null) context.Validators.NextExpectedMsgSeqNum(context, message, message.NextExpectedMsgSeqNum);
 
 		Counted(message, message.NoMsgTypes, message.MsgTypeGrp);
+
+		if (message.MsgTypeGrp is not null)
+			for (var i = 0; i < message.MsgTypeGrp.Count; i++)
+				context.Validators.MsgTypeGrp(context, message, message.MsgTypeGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -5696,6 +6475,10 @@ partial class FixValidators
 		if (message.ApplQueueResolution is not null) context.Validators.ApplQueueResolution(context, message, message.ApplQueueResolution);
 
 		Counted(message, message.NoMDEntries, message.MDIncGrp);
+
+		if (message.MDIncGrp is not null)
+			for (var i = 0; i < message.MDIncGrp.Count; i++)
+				context.Validators.MDIncGrp(context, message, message.MDIncGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -5726,6 +6509,16 @@ partial class FixValidators
 		Counted(message, message.NoMDEntryTypes, message.MDReqGrp);
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 
+		if (message.InstrmtMDReqGrp is not null)
+			for (var i = 0; i < message.InstrmtMDReqGrp.Count; i++)
+				context.Validators.InstrmtMDReqGrp(context, message, message.InstrmtMDReqGrp[i], i);
+		if (message.MDReqGrp is not null)
+			for (var i = 0; i < message.MDReqGrp.Count; i++)
+				context.Validators.MDReqGrp(context, message, message.MDReqGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5741,6 +6534,10 @@ partial class FixValidators
 		if (message.NoAltMDSource  is not null) context.Validators.NoAltMDSource(context, message, message.NoAltMDSource);
 
 		Counted(message, message.NoAltMDSource, message.MDRjctGrp);
+
+		if (message.MDRjctGrp is not null)
+			for (var i = 0; i < message.MDRjctGrp.Count; i++)
+				context.Validators.MDRjctGrp(context, message, message.MDRjctGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -5811,6 +6608,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.MDFullGrp is not null)
+			for (var i = 0; i < message.MDFullGrp.Count; i++)
+				context.Validators.MDFullGrp(context, message, message.MDFullGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -5833,6 +6646,13 @@ partial class FixValidators
 
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoQuoteSets, message.QuotSetGrp);
+
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotSetGrp is not null)
+			for (var i = 0; i < message.QuotSetGrp.Count; i++)
+				context.Validators.QuotSetGrp(context, message, message.QuotSetGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -5858,6 +6678,13 @@ partial class FixValidators
 
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoQuoteSets, message.QuotSetAckGrp);
+
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotSetAckGrp is not null)
+			for (var i = 0; i < message.QuotSetAckGrp.Count; i++)
+				context.Validators.QuotSetAckGrp(context, message, message.QuotSetAckGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6022,6 +6849,28 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.LegOrdGrp is not null)
+			for (var i = 0; i < message.LegOrdGrp.Count; i++)
+				context.Validators.LegOrdGrp(context, message, message.LegOrdGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PreAllocMlegGrp is not null)
+			for (var i = 0; i < message.PreAllocMlegGrp.Count; i++)
+				context.Validators.PreAllocMlegGrp(context, message, message.PreAllocMlegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -6035,6 +6884,10 @@ partial class FixValidators
 		if (message.NoCompIDs          is not null) context.Validators.NoCompIDs(context, message, message.NoCompIDs);
 
 		Counted(message, message.NoCompIDs, message.CompIDReqGrp);
+
+		if (message.CompIDReqGrp is not null)
+			for (var i = 0; i < message.CompIDReqGrp.Count; i++)
+				context.Validators.CompIDReqGrp(context, message, message.CompIDReqGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6052,6 +6905,10 @@ partial class FixValidators
 		if (message.NetworkStatusResponseType is not null) context.Validators.NetworkStatusResponseType(context, message, message.NetworkStatusResponseType);
 
 		Counted(message, message.NoCompIDs, message.CompIDStatGrp);
+
+		if (message.CompIDStatGrp is not null)
+			for (var i = 0; i < message.CompIDStatGrp.Count; i++)
+				context.Validators.CompIDStatGrp(context, message, message.CompIDStatGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6191,6 +7048,28 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.SideCrossOrdModGrp is not null)
+			for (var i = 0; i < message.SideCrossOrdModGrp.Count; i++)
+				context.Validators.SideCrossOrdModGrp(context, message, message.SideCrossOrdModGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -6222,6 +7101,10 @@ partial class FixValidators
 		if (message.LastFragment               is not null) context.Validators.LastFragment(context, message, message.LastFragment);
 
 		Counted(message, message.NoOrders, message.ListOrdGrp);
+
+		if (message.ListOrdGrp is not null)
+			for (var i = 0; i < message.ListOrdGrp.Count; i++)
+				context.Validators.ListOrdGrp(context, message, message.ListOrdGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6381,6 +7264,28 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.LegOrdGrp is not null)
+			for (var i = 0; i < message.LegOrdGrp.Count; i++)
+				context.Validators.LegOrdGrp(context, message, message.LegOrdGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PreAllocMlegGrp is not null)
+			for (var i = 0; i < message.PreAllocMlegGrp.Count; i++)
+				context.Validators.PreAllocMlegGrp(context, message, message.PreAllocMlegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6568,6 +7473,28 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PreAllocGrp is not null)
+			for (var i = 0; i < message.PreAllocGrp.Count; i++)
+				context.Validators.PreAllocGrp(context, message, message.PreAllocGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -6595,6 +7522,22 @@ partial class FixValidators
 		Counted(message, message.NoLinesOfText, message.LinesOfTextGrp);
 		Counted(message, message.NoRoutingIDs, message.RoutingGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.InstrmtGrp is not null)
+			for (var i = 0; i < message.InstrmtGrp.Count; i++)
+				context.Validators.InstrmtGrp(context, message, message.InstrmtGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.LinesOfTextGrp is not null)
+			for (var i = 0; i < message.LinesOfTextGrp.Count; i++)
+				context.Validators.LinesOfTextGrp(context, message, message.LinesOfTextGrp[i], i);
+		if (message.RoutingGrp is not null)
+			for (var i = 0; i < message.RoutingGrp.Count; i++)
+				context.Validators.RoutingGrp(context, message, message.RoutingGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -6814,6 +7757,25 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PreAllocGrp is not null)
+			for (var i = 0; i < message.PreAllocGrp.Count; i++)
+				context.Validators.PreAllocGrp(context, message, message.PreAllocGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -6910,6 +7872,19 @@ partial class FixValidators
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -7036,6 +8011,22 @@ partial class FixValidators
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
 
+		if (message.AffectedOrdGrp is not null)
+			for (var i = 0; i < message.AffectedOrdGrp.Count; i++)
+				context.Validators.AffectedOrdGrp(context, message, message.AffectedOrdGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndSecAltIDGrp is not null)
+			for (var i = 0; i < message.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, message.UndSecAltIDGrp[i], i);
+		if (message.UnderlyingStipulations is not null)
+			for (var i = 0; i < message.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, message.UnderlyingStipulations[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7154,6 +8145,19 @@ partial class FixValidators
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndSecAltIDGrp is not null)
+			for (var i = 0; i < message.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, message.UndSecAltIDGrp[i], i);
+		if (message.UnderlyingStipulations is not null)
+			for (var i = 0; i < message.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, message.UnderlyingStipulations[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7270,6 +8274,22 @@ partial class FixValidators
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndSecAltIDGrp is not null)
+			for (var i = 0; i < message.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, message.UndSecAltIDGrp[i], i);
+		if (message.UnderlyingStipulations is not null)
+			for (var i = 0; i < message.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, message.UnderlyingStipulations[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7349,6 +8369,19 @@ partial class FixValidators
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -7449,6 +8482,31 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PositionAmountData is not null)
+			for (var i = 0; i < message.PositionAmountData.Count; i++)
+				context.Validators.PositionAmountData(context, message, message.PositionAmountData[i], i);
+		if (message.PositionQty is not null)
+			for (var i = 0; i < message.PositionQty.Count; i++)
+				context.Validators.PositionQty(context, message, message.PositionQty[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7543,6 +8601,28 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PositionQty is not null)
+			for (var i = 0; i < message.PositionQty.Count; i++)
+				context.Validators.PositionQty(context, message, message.PositionQty[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -7641,6 +8721,28 @@ partial class FixValidators
 		Counted(message, message.NoPosAmt, message.PositionAmountData);
 		Counted(message, message.NoPositions, message.PositionQty);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.PosUndInstrmtGrp is not null)
+			for (var i = 0; i < message.PosUndInstrmtGrp.Count; i++)
+				context.Validators.PosUndInstrmtGrp(context, message, message.PosUndInstrmtGrp[i], i);
+		if (message.PositionAmountData is not null)
+			for (var i = 0; i < message.PositionAmountData.Count; i++)
+				context.Validators.PositionAmountData(context, message, message.PositionAmountData[i], i);
+		if (message.PositionQty is not null)
+			for (var i = 0; i < message.PositionQty.Count; i++)
+				context.Validators.PositionQty(context, message, message.PositionQty[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -7790,6 +8892,28 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.LegQuotGrp is not null)
+			for (var i = 0; i < message.LegQuotGrp.Count; i++)
+				context.Validators.LegQuotGrp(context, message, message.LegQuotGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotQualGrp is not null)
+			for (var i = 0; i < message.QuotQualGrp.Count; i++)
+				context.Validators.QuotQualGrp(context, message, message.QuotQualGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7813,6 +8937,13 @@ partial class FixValidators
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoQuoteEntries, message.QuotCxlEntriesGrp);
 
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotCxlEntriesGrp is not null)
+			for (var i = 0; i < message.QuotCxlEntriesGrp.Count; i++)
+				context.Validators.QuotCxlEntriesGrp(context, message, message.QuotCxlEntriesGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7832,6 +8963,10 @@ partial class FixValidators
 
 		Counted(message, message.NoRelatedSym, message.QuotReqGrp);
 
+		if (message.QuotReqGrp is not null)
+			for (var i = 0; i < message.QuotReqGrp.Count; i++)
+				context.Validators.QuotReqGrp(context, message, message.QuotReqGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -7850,6 +8985,10 @@ partial class FixValidators
 		if (message.QuoteRequestRejectReason is not null) context.Validators.QuoteRequestRejectReason(context, message, message.QuoteRequestRejectReason);
 
 		Counted(message, message.NoRelatedSym, message.QuotReqRjctGrp);
+
+		if (message.QuotReqRjctGrp is not null)
+			for (var i = 0; i < message.QuotReqRjctGrp.Count; i++)
+				context.Validators.QuotReqRjctGrp(context, message, message.QuotReqRjctGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -8002,6 +9141,28 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.LegQuotGrp is not null)
+			for (var i = 0; i < message.LegQuotGrp.Count; i++)
+				context.Validators.LegQuotGrp(context, message, message.LegQuotGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotQualGrp is not null)
+			for (var i = 0; i < message.QuotQualGrp.Count; i++)
+				context.Validators.QuotQualGrp(context, message, message.QuotQualGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8152,6 +9313,28 @@ partial class FixValidators
 		Counted(message, message.NoStipulations, message.Stipulations);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.LegQuotStatGrp is not null)
+			for (var i = 0; i < message.LegQuotStatGrp.Count; i++)
+				context.Validators.LegQuotStatGrp(context, message, message.LegQuotStatGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.QuotQualGrp is not null)
+			for (var i = 0; i < message.QuotQualGrp.Count; i++)
+				context.Validators.QuotQualGrp(context, message, message.QuotQualGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.Stipulations is not null)
+			for (var i = 0; i < message.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, message.Stipulations[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8231,6 +9414,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8244,6 +9443,10 @@ partial class FixValidators
 		if (message.RFQReqID                is not null) context.Validators.RFQReqID(context, message, message.RFQReqID);
 
 		Counted(message, message.NoRelatedSym, message.RFQReqGrp);
+
+		if (message.RFQReqGrp is not null)
+			for (var i = 0; i < message.RFQReqGrp.Count; i++)
+				context.Validators.RFQReqGrp(context, message, message.RFQReqGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -8271,6 +9474,16 @@ partial class FixValidators
 		Counted(message, message.NoDistribInsts, message.RgstDistInstGrp);
 		Counted(message, message.NoRegistDtls, message.RgstDtlsGrp);
 
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.RgstDistInstGrp is not null)
+			for (var i = 0; i < message.RgstDistInstGrp.Count; i++)
+				context.Validators.RgstDistInstGrp(context, message, message.RgstDistInstGrp[i], i);
+		if (message.RgstDtlsGrp is not null)
+			for (var i = 0; i < message.RgstDtlsGrp.Count; i++)
+				context.Validators.RgstDtlsGrp(context, message, message.RgstDtlsGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8293,6 +9506,10 @@ partial class FixValidators
 		if (message.AcctIDSource        is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
 
 		Counted(message, message.NoPartyIDs, message.Parties);
+
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
 
 		return message.IsValid;
 	}
@@ -8396,6 +9613,25 @@ partial class FixValidators
 		Counted(message, message.NoTradingSessions, message.TrdgSesGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdgSesGrp is not null)
+			for (var i = 0; i < message.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, message.TrdgSesGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8477,6 +9713,22 @@ partial class FixValidators
 		Counted(message, message.NoPartyIDs, message.Parties);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -8568,6 +9820,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8644,6 +9912,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8661,6 +9945,10 @@ partial class FixValidators
 		if (message.LastFragment          is not null) context.Validators.LastFragment(context, message, message.LastFragment);
 
 		Counted(message, message.NoRelatedSym, message.SecListGrp);
+
+		if (message.SecListGrp is not null)
+			for (var i = 0; i < message.SecListGrp.Count; i++)
+				context.Validators.SecListGrp(context, message, message.SecListGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -8747,6 +10035,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8832,6 +10136,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8904,6 +10224,22 @@ partial class FixValidators
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8945,6 +10281,10 @@ partial class FixValidators
 
 		Counted(message, message.NoSecurityTypes, message.SecTypesGrp);
 
+		if (message.SecTypesGrp is not null)
+			for (var i = 0; i < message.SecTypesGrp.Count; i++)
+				context.Validators.SecTypesGrp(context, message, message.SecTypesGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -8981,6 +10321,10 @@ partial class FixValidators
 
 		Counted(message, message.NoPartyIDs, message.Parties);
 
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+
 		return message.IsValid;
 	}
 
@@ -9002,6 +10346,10 @@ partial class FixValidators
 		if (message.SettlInstReqRejCode is not null) context.Validators.SettlInstReqRejCode(context, message, message.SettlInstReqRejCode);
 
 		Counted(message, message.NoSettlInst, message.SettlInstGrp);
+
+		if (message.SettlInstGrp is not null)
+			for (var i = 0; i < message.SettlInstGrp.Count; i++)
+				context.Validators.SettlInstGrp(context, message, message.SettlInstGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -9164,6 +10512,28 @@ partial class FixValidators
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.PositionAmountData is not null)
+			for (var i = 0; i < message.PositionAmountData.Count; i++)
+				context.Validators.PositionAmountData(context, message, message.PositionAmountData[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdCapRptSideGrp is not null)
+			for (var i = 0; i < message.TrdCapRptSideGrp.Count; i++)
+				context.Validators.TrdCapRptSideGrp(context, message, message.TrdCapRptSideGrp[i], i);
+		if (message.TrdInstrmtLegGrp is not null)
+			for (var i = 0; i < message.TrdInstrmtLegGrp.Count; i++)
+				context.Validators.TrdInstrmtLegGrp(context, message, message.TrdInstrmtLegGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -9260,6 +10630,22 @@ partial class FixValidators
 		Counted(message, message.NoAllocs, message.TrdAllocGrp);
 		Counted(message, message.NoLegs, message.TrdInstrmtLegGrp);
 		Counted(message, message.NoTrdRegTimestamps, message.TrdRegTimestamps);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdAllocGrp is not null)
+			for (var i = 0; i < message.TrdAllocGrp.Count; i++)
+				context.Validators.TrdAllocGrp(context, message, message.TrdAllocGrp[i], i);
+		if (message.TrdInstrmtLegGrp is not null)
+			for (var i = 0; i < message.TrdInstrmtLegGrp.Count; i++)
+				context.Validators.TrdInstrmtLegGrp(context, message, message.TrdInstrmtLegGrp[i], i);
+		if (message.TrdRegTimestamps is not null)
+			for (var i = 0; i < message.TrdRegTimestamps.Count; i++)
+				context.Validators.TrdRegTimestamps(context, message, message.TrdRegTimestamps[i], i);
 
 		return message.IsValid;
 	}
@@ -9370,6 +10756,28 @@ partial class FixValidators
 		Counted(message, message.NoDates, message.TrdCapDtGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
+		if (message.AttrbGrp is not null)
+			for (var i = 0; i < message.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, message.AttrbGrp[i], i);
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.Parties is not null)
+			for (var i = 0; i < message.Parties.Count; i++)
+				context.Validators.Parties(context, message, message.Parties[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.TrdCapDtGrp is not null)
+			for (var i = 0; i < message.TrdCapDtGrp.Count; i++)
+				context.Validators.TrdCapDtGrp(context, message, message.TrdCapDtGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
+
 		return message.IsValid;
 	}
 
@@ -9445,6 +10853,19 @@ partial class FixValidators
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
+
+		if (message.EvntGrp is not null)
+			for (var i = 0; i < message.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, message.EvntGrp[i], i);
+		if (message.InstrmtLegGrp is not null)
+			for (var i = 0; i < message.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, message.InstrmtLegGrp[i], i);
+		if (message.SecAltIDGrp is not null)
+			for (var i = 0; i < message.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, message.SecAltIDGrp[i], i);
+		if (message.UndInstrmtGrp is not null)
+			for (var i = 0; i < message.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, message.UndInstrmtGrp[i], i);
 
 		return message.IsValid;
 	}
@@ -9522,7 +10943,7 @@ partial class FixValidators
 
 	static bool ValidateXMLnonFIX(FixContext context, FixMessage.XMLnonFIX message)
 	{
-		// The repository requires nothing of this type beyond the standard header and trailer.
+		// The repository requires nothing of this beyond what its fields answered when read.
 
 		return message.IsValid;
 	}
@@ -9610,6 +11031,3406 @@ partial class FixValidators
 	static bool ValidateYieldData(FixContext context, FixMessage message, IYieldData block)
 	{
 		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateAffectedOrdGrp(FixContext context, FixMessage message, FixGroup.AffectedOrdGrp entry, int index)
+	{
+		if (entry.OrigClOrdID              is not null) context.Validators.OrigClOrdID(context, message, entry.OrigClOrdID);
+		if (entry.AffectedOrderID          is not null) context.Validators.AffectedOrderID(context, message, entry.AffectedOrderID);
+		if (entry.AffectedSecondaryOrderID is not null) context.Validators.AffectedSecondaryOrderID(context, message, entry.AffectedSecondaryOrderID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateAllocAckGrp(FixContext context, FixMessage message, FixGroup.AllocAckGrp entry, int index)
+	{
+		if (entry.AllocAccount           is not null) context.Validators.AllocAccount(context, message, entry.AllocAccount);
+		if (entry.AllocText              is not null) context.Validators.AllocText(context, message, entry.AllocText);
+		if (entry.EncodedAllocTextLen    is not null) context.Validators.EncodedAllocTextLen(context, message, entry.EncodedAllocTextLen);
+		if (entry.EncodedAllocText       is not null) context.Validators.EncodedAllocText(context, message, entry.EncodedAllocText);
+		if (entry.AllocPrice             is not null) context.Validators.AllocPrice(context, message, entry.AllocPrice);
+		if (entry.IndividualAllocID      is not null) context.Validators.IndividualAllocID(context, message, entry.IndividualAllocID);
+		if (entry.AllocAcctIDSource      is not null) context.Validators.AllocAcctIDSource(context, message, entry.AllocAcctIDSource);
+		if (entry.IndividualAllocRejCode is not null) context.Validators.IndividualAllocRejCode(context, message, entry.IndividualAllocRejCode);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateAllocGrp(FixContext context, FixMessage message, FixGroup.AllocGrp entry, int index)
+	{
+		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
+		if (!Empty((ISettlInstructionsData)entry)) context.Validators.SettlInstructionsData(context, message, entry);
+
+		if (entry.Commission              is not null) context.Validators.Commission(context, message, entry.Commission);
+		if (entry.CommType                is not null) context.Validators.CommType(context, message, entry.CommType);
+		if (entry.AllocAccount            is not null) context.Validators.AllocAccount(context, message, entry.AllocAccount);
+		if (entry.AllocQty                is not null) context.Validators.AllocQty(context, message, entry.AllocQty);
+		if (entry.ProcessCode             is not null) context.Validators.ProcessCode(context, message, entry.ProcessCode);
+		if (entry.NoDlvyInst              is not null) context.Validators.NoDlvyInst(context, message, entry.NoDlvyInst);
+		if (entry.SettlCurrAmt            is not null) context.Validators.SettlCurrAmt(context, message, entry.SettlCurrAmt);
+		if (entry.SettlCurrency           is not null) context.Validators.SettlCurrency(context, message, entry.SettlCurrency);
+		if (entry.NoMiscFees              is not null) context.Validators.NoMiscFees(context, message, entry.NoMiscFees);
+		if (entry.AllocAvgPx              is not null) context.Validators.AllocAvgPx(context, message, entry.AllocAvgPx);
+		if (entry.AllocNetMoney           is not null) context.Validators.AllocNetMoney(context, message, entry.AllocNetMoney);
+		if (entry.SettlCurrFxRate         is not null) context.Validators.SettlCurrFxRate(context, message, entry.SettlCurrFxRate);
+		if (entry.SettlCurrFxRateCalc     is not null) context.Validators.SettlCurrFxRateCalc(context, message, entry.SettlCurrFxRateCalc);
+		if (entry.AllocText               is not null) context.Validators.AllocText(context, message, entry.AllocText);
+		if (entry.StandInstDbType         is not null) context.Validators.StandInstDbType(context, message, entry.StandInstDbType);
+		if (entry.StandInstDbName         is not null) context.Validators.StandInstDbName(context, message, entry.StandInstDbName);
+		if (entry.StandInstDbID           is not null) context.Validators.StandInstDbID(context, message, entry.StandInstDbID);
+		if (entry.SettlDeliveryType       is not null) context.Validators.SettlDeliveryType(context, message, entry.SettlDeliveryType);
+		if (entry.NotifyBrokerOfCredit    is not null) context.Validators.NotifyBrokerOfCredit(context, message, entry.NotifyBrokerOfCredit);
+		if (entry.AllocHandlInst          is not null) context.Validators.AllocHandlInst(context, message, entry.AllocHandlInst);
+		if (entry.EncodedAllocTextLen     is not null) context.Validators.EncodedAllocTextLen(context, message, entry.EncodedAllocTextLen);
+		if (entry.EncodedAllocText        is not null) context.Validators.EncodedAllocText(context, message, entry.EncodedAllocText);
+		if (entry.AllocPrice              is not null) context.Validators.AllocPrice(context, message, entry.AllocPrice);
+		if (entry.IndividualAllocID       is not null) context.Validators.IndividualAllocID(context, message, entry.IndividualAllocID);
+		if (entry.CommCurrency            is not null) context.Validators.CommCurrency(context, message, entry.CommCurrency);
+		if (entry.FundRenewWaiv           is not null) context.Validators.FundRenewWaiv(context, message, entry.FundRenewWaiv);
+		if (entry.NoNestedPartyIDs        is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.MatchStatus             is not null) context.Validators.MatchStatus(context, message, entry.MatchStatus);
+		if (entry.NoClearingInstructions  is not null) context.Validators.NoClearingInstructions(context, message, entry.NoClearingInstructions);
+		if (entry.AllocAcctIDSource       is not null) context.Validators.AllocAcctIDSource(context, message, entry.AllocAcctIDSource);
+		if (entry.AllocSettlCurrency      is not null) context.Validators.AllocSettlCurrency(context, message, entry.AllocSettlCurrency);
+		if (entry.AllocSettlCurrAmt       is not null) context.Validators.AllocSettlCurrAmt(context, message, entry.AllocSettlCurrAmt);
+		if (entry.AllocInterestAtMaturity is not null) context.Validators.AllocInterestAtMaturity(context, message, entry.AllocInterestAtMaturity);
+		if (entry.AllocAccruedInterestAmt is not null) context.Validators.AllocAccruedInterestAmt(context, message, entry.AllocAccruedInterestAmt);
+		if (entry.AllocSettlInstType      is not null) context.Validators.AllocSettlInstType(context, message, entry.AllocSettlInstType);
+
+		Counted(message, entry.NoClearingInstructions, entry.ClrInstGrp);
+		Counted(message, entry.NoDlvyInst, entry.DlvyInstGrp);
+		Counted(message, entry.NoMiscFees, entry.MiscFeesGrp);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.ClrInstGrp is not null)
+			for (var i = 0; i < entry.ClrInstGrp.Count; i++)
+				context.Validators.ClrInstGrp(context, message, entry.ClrInstGrp[i], i);
+		if (entry.DlvyInstGrp is not null)
+			for (var i = 0; i < entry.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, entry.DlvyInstGrp[i], i);
+		if (entry.MiscFeesGrp is not null)
+			for (var i = 0; i < entry.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, entry.MiscFeesGrp[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateAttrbGrp(FixContext context, FixMessage message, FixGroup.AttrbGrp entry, int index)
+	{
+		if (entry.InstrAttribType  is not null) context.Validators.InstrAttribType(context, message, entry.InstrAttribType);
+		if (entry.InstrAttribValue is not null) context.Validators.InstrAttribValue(context, message, entry.InstrAttribValue);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateBidCompReqGrp(FixContext context, FixMessage message, FixGroup.BidCompReqGrp entry, int index)
+	{
+		if (entry.Account             is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.Side                is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.SettlType           is not null) context.Validators.SettlType(context, message, entry.SettlType);
+		if (entry.SettlDate           is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.ListID              is not null) context.Validators.ListID(context, message, entry.ListID);
+		if (entry.TradingSessionID    is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.NetGrossInd         is not null) context.Validators.NetGrossInd(context, message, entry.NetGrossInd);
+		if (entry.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.AcctIDSource        is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateBidCompRspGrp(FixContext context, FixMessage message, FixGroup.BidCompRspGrp entry, int index)
+	{
+		if (Empty((ICommissionData)entry)) Absent(message, 12);
+		else context.Validators.CommissionData(context, message, entry);
+
+		if (entry.Commission          is not null) context.Validators.Commission(context, message, entry.Commission);
+		if (entry.CommType            is not null) context.Validators.CommType(context, message, entry.CommType);
+		if (entry.Price               is not null) context.Validators.Price(context, message, entry.Price);
+		if (entry.Side                is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Text                is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.SettlType           is not null) context.Validators.SettlType(context, message, entry.SettlType);
+		if (entry.SettlDate           is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.ListID              is not null) context.Validators.ListID(context, message, entry.ListID);
+		if (entry.TradingSessionID    is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedTextLen      is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText         is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.FairValue           is not null) context.Validators.FairValue(context, message, entry.FairValue);
+		if (entry.Country             is not null) context.Validators.Country(context, message, entry.Country);
+		if (entry.PriceType           is not null) context.Validators.PriceType(context, message, entry.PriceType);
+		if (entry.NetGrossInd         is not null) context.Validators.NetGrossInd(context, message, entry.NetGrossInd);
+		if (entry.CommCurrency        is not null) context.Validators.CommCurrency(context, message, entry.CommCurrency);
+		if (entry.FundRenewWaiv       is not null) context.Validators.FundRenewWaiv(context, message, entry.FundRenewWaiv);
+		if (entry.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateBidDescReqGrp(FixContext context, FixMessage message, FixGroup.BidDescReqGrp entry, int index)
+	{
+		if (entry.BidDescriptorType      is not null) context.Validators.BidDescriptorType(context, message, entry.BidDescriptorType);
+		if (entry.BidDescriptor          is not null) context.Validators.BidDescriptor(context, message, entry.BidDescriptor);
+		if (entry.SideValueInd           is not null) context.Validators.SideValueInd(context, message, entry.SideValueInd);
+		if (entry.LiquidityPctLow        is not null) context.Validators.LiquidityPctLow(context, message, entry.LiquidityPctLow);
+		if (entry.LiquidityPctHigh       is not null) context.Validators.LiquidityPctHigh(context, message, entry.LiquidityPctHigh);
+		if (entry.LiquidityValue         is not null) context.Validators.LiquidityValue(context, message, entry.LiquidityValue);
+		if (entry.EFPTrackingError       is not null) context.Validators.EFPTrackingError(context, message, entry.EFPTrackingError);
+		if (entry.FairValue              is not null) context.Validators.FairValue(context, message, entry.FairValue);
+		if (entry.OutsideIndexPct        is not null) context.Validators.OutsideIndexPct(context, message, entry.OutsideIndexPct);
+		if (entry.ValueOfFutures         is not null) context.Validators.ValueOfFutures(context, message, entry.ValueOfFutures);
+		if (entry.LiquidityNumSecurities is not null) context.Validators.LiquidityNumSecurities(context, message, entry.LiquidityNumSecurities);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateClrInstGrp(FixContext context, FixMessage message, FixGroup.ClrInstGrp entry, int index)
+	{
+		if (entry.ClearingInstruction is not null) context.Validators.ClearingInstruction(context, message, entry.ClearingInstruction);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateCollInqQualGrp(FixContext context, FixMessage message, FixGroup.CollInqQualGrp entry, int index)
+	{
+		if (entry.CollInquiryQualifier is not null) context.Validators.CollInquiryQualifier(context, message, entry.CollInquiryQualifier);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateCompIDReqGrp(FixContext context, FixMessage message, FixGroup.CompIDReqGrp entry, int index)
+	{
+		if (entry.LocationID is not null) context.Validators.LocationID(context, message, entry.LocationID);
+		if (entry.DeskID     is not null) context.Validators.DeskID(context, message, entry.DeskID);
+		if (entry.RefCompID  is not null) context.Validators.RefCompID(context, message, entry.RefCompID);
+		if (entry.RefSubID   is not null) context.Validators.RefSubID(context, message, entry.RefSubID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateCompIDStatGrp(FixContext context, FixMessage message, FixGroup.CompIDStatGrp entry, int index)
+	{
+		if (entry.LocationID  is not null) context.Validators.LocationID(context, message, entry.LocationID);
+		if (entry.DeskID      is not null) context.Validators.DeskID(context, message, entry.DeskID);
+		if (entry.StatusValue is not null) context.Validators.StatusValue(context, message, entry.StatusValue);
+		if (entry.StatusText  is not null) context.Validators.StatusText(context, message, entry.StatusText);
+		if (entry.RefCompID   is not null) context.Validators.RefCompID(context, message, entry.RefCompID);
+		if (entry.RefSubID    is not null) context.Validators.RefSubID(context, message, entry.RefSubID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateContAmtGrp(FixContext context, FixMessage message, FixGroup.ContAmtGrp entry, int index)
+	{
+		if (entry.ContAmtType  is not null) context.Validators.ContAmtType(context, message, entry.ContAmtType);
+		if (entry.ContAmtValue is not null) context.Validators.ContAmtValue(context, message, entry.ContAmtValue);
+		if (entry.ContAmtCurr  is not null) context.Validators.ContAmtCurr(context, message, entry.ContAmtCurr);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateContraGrp(FixContext context, FixMessage message, FixGroup.ContraGrp entry, int index)
+	{
+		if (entry.ContraTrader    is not null) context.Validators.ContraTrader(context, message, entry.ContraTrader);
+		if (entry.ContraBroker    is not null) context.Validators.ContraBroker(context, message, entry.ContraBroker);
+		if (entry.ContraTradeQty  is not null) context.Validators.ContraTradeQty(context, message, entry.ContraTradeQty);
+		if (entry.ContraTradeTime is not null) context.Validators.ContraTradeTime(context, message, entry.ContraTradeTime);
+		if (entry.ContraLegRefID  is not null) context.Validators.ContraLegRefID(context, message, entry.ContraLegRefID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateCpctyConfGrp(FixContext context, FixMessage message, FixGroup.CpctyConfGrp entry, int index)
+	{
+		if (entry.OrderCapacityQty is null) Missing(message, 863, entry.OrderCapacity.Position, index);
+
+		if (entry.OrderCapacity     is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
+		if (entry.OrderRestrictions is not null) context.Validators.OrderRestrictions(context, message, entry.OrderRestrictions);
+		if (entry.OrderCapacityQty  is not null) context.Validators.OrderCapacityQty(context, message, entry.OrderCapacityQty);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateDlvyInstGrp(FixContext context, FixMessage message, FixGroup.DlvyInstGrp entry, int index)
+	{
+		if (entry.SettlInstSource is not null) context.Validators.SettlInstSource(context, message, entry.SettlInstSource);
+		if (entry.NoSettlPartyIDs is not null) context.Validators.NoSettlPartyIDs(context, message, entry.NoSettlPartyIDs);
+		if (entry.DlvyInstType    is not null) context.Validators.DlvyInstType(context, message, entry.DlvyInstType);
+
+		Counted(message, entry.NoSettlPartyIDs, entry.SettlParties);
+
+		if (entry.SettlParties is not null)
+			for (var i = 0; i < entry.SettlParties.Count; i++)
+				context.Validators.SettlParties(context, message, entry.SettlParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateEvntGrp(FixContext context, FixMessage message, FixGroup.EvntGrp entry, int index)
+	{
+		if (entry.EventType is not null) context.Validators.EventType(context, message, entry.EventType);
+		if (entry.EventDate is not null) context.Validators.EventDate(context, message, entry.EventDate);
+		if (entry.EventPx   is not null) context.Validators.EventPx(context, message, entry.EventPx);
+		if (entry.EventText is not null) context.Validators.EventText(context, message, entry.EventText);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateExecAllocGrp(FixContext context, FixMessage message, FixGroup.ExecAllocGrp entry, int index)
+	{
+		if (entry.ExecID          is not null) context.Validators.ExecID(context, message, entry.ExecID);
+		if (entry.LastCapacity    is not null) context.Validators.LastCapacity(context, message, entry.LastCapacity);
+		if (entry.LastPx          is not null) context.Validators.LastPx(context, message, entry.LastPx);
+		if (entry.LastQty         is not null) context.Validators.LastQty(context, message, entry.LastQty);
+		if (entry.SecondaryExecID is not null) context.Validators.SecondaryExecID(context, message, entry.SecondaryExecID);
+		if (entry.LastParPx       is not null) context.Validators.LastParPx(context, message, entry.LastParPx);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateExecCollGrp(FixContext context, FixMessage message, FixGroup.ExecCollGrp entry, int index)
+	{
+		if (entry.ExecID is not null) context.Validators.ExecID(context, message, entry.ExecID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateExecsGrp(FixContext context, FixMessage message, FixGroup.ExecsGrp entry, int index)
+	{
+		if (entry.ExecID is not null) context.Validators.ExecID(context, message, entry.ExecID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateHop(FixContext context, FixMessage message, FixGroup.Hop entry, int index)
+	{
+		if (entry.HopCompID      is not null) context.Validators.HopCompID(context, message, entry.HopCompID);
+		if (entry.HopSendingTime is not null) context.Validators.HopSendingTime(context, message, entry.HopSendingTime);
+		if (entry.HopRefID       is not null) context.Validators.HopRefID(context, message, entry.HopRefID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateIOIQualGrp(FixContext context, FixMessage message, FixGroup.IOIQualGrp entry, int index)
+	{
+		if (entry.IOIQualifier is not null) context.Validators.IOIQualifier(context, message, entry.IOIQualifier);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtGrp(FixContext context, FixMessage message, FixGroup.InstrmtGrp entry, int index)
+	{
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtLegExecGrp(FixContext context, FixMessage message, FixGroup.InstrmtLegExecGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegPositionEffect             is not null) context.Validators.LegPositionEffect(context, message, entry.LegPositionEffect);
+		if (entry.LegCoveredOrUncovered         is not null) context.Validators.LegCoveredOrUncovered(context, message, entry.LegCoveredOrUncovered);
+		if (entry.LegPrice                      is not null) context.Validators.LegPrice(context, message, entry.LegPrice);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegLastPx                     is not null) context.Validators.LegLastPx(context, message, entry.LegLastPx);
+		if (entry.LegRefID                      is not null) context.Validators.LegRefID(context, message, entry.LegRefID);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtLegGrp(FixContext context, FixMessage message, FixGroup.InstrmtLegGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtLegIOIGrp(FixContext context, FixMessage message, FixGroup.InstrmtLegIOIGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegIOIQty                     is not null) context.Validators.LegIOIQty(context, message, entry.LegIOIQty);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtLegSecListGrp(FixContext context, FixMessage message, FixGroup.InstrmtLegSecListGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+		if (!Empty((ILegBenchmarkCurveData)entry)) context.Validators.LegBenchmarkCurveData(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegBenchmarkCurveCurrency     is not null) context.Validators.LegBenchmarkCurveCurrency(context, message, entry.LegBenchmarkCurveCurrency);
+		if (entry.LegBenchmarkCurveName         is not null) context.Validators.LegBenchmarkCurveName(context, message, entry.LegBenchmarkCurveName);
+		if (entry.LegBenchmarkCurvePoint        is not null) context.Validators.LegBenchmarkCurvePoint(context, message, entry.LegBenchmarkCurvePoint);
+		if (entry.LegBenchmarkPrice             is not null) context.Validators.LegBenchmarkPrice(context, message, entry.LegBenchmarkPrice);
+		if (entry.LegBenchmarkPriceType         is not null) context.Validators.LegBenchmarkPriceType(context, message, entry.LegBenchmarkPriceType);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtMDReqGrp(FixContext context, FixMessage message, FixGroup.InstrmtMDReqGrp entry, int index)
+	{
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrmtStrkPxGrp(FixContext context, FixMessage message, FixGroup.InstrmtStrkPxGrp entry, int index)
+	{
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegOrdGrp(FixContext context, FixMessage message, FixGroup.LegOrdGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegPositionEffect             is not null) context.Validators.LegPositionEffect(context, message, entry.LegPositionEffect);
+		if (entry.LegCoveredOrUncovered         is not null) context.Validators.LegCoveredOrUncovered(context, message, entry.LegCoveredOrUncovered);
+		if (entry.LegPrice                      is not null) context.Validators.LegPrice(context, message, entry.LegPrice);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegRefID                      is not null) context.Validators.LegRefID(context, message, entry.LegRefID);
+		if (entry.NoLegAllocs                   is not null) context.Validators.NoLegAllocs(context, message, entry.NoLegAllocs);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegAllocs, entry.LegPreAllocGrp);
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegPreAllocGrp is not null)
+			for (var i = 0; i < entry.LegPreAllocGrp.Count; i++)
+				context.Validators.LegPreAllocGrp(context, message, entry.LegPreAllocGrp[i], i);
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegPreAllocGrp(FixContext context, FixMessage message, FixGroup.LegPreAllocGrp entry, int index)
+	{
+		if (entry.LegAllocAccount      is not null) context.Validators.LegAllocAccount(context, message, entry.LegAllocAccount);
+		if (entry.LegIndividualAllocID is not null) context.Validators.LegIndividualAllocID(context, message, entry.LegIndividualAllocID);
+		if (entry.LegAllocQty          is not null) context.Validators.LegAllocQty(context, message, entry.LegAllocQty);
+		if (entry.LegAllocAcctIDSource is not null) context.Validators.LegAllocAcctIDSource(context, message, entry.LegAllocAcctIDSource);
+		if (entry.LegSettlCurrency     is not null) context.Validators.LegSettlCurrency(context, message, entry.LegSettlCurrency);
+		if (entry.NoNested2PartyIDs    is not null) context.Validators.NoNested2PartyIDs(context, message, entry.NoNested2PartyIDs);
+
+		Counted(message, entry.NoNested2PartyIDs, entry.NestedParties2);
+
+		if (entry.NestedParties2 is not null)
+			for (var i = 0; i < entry.NestedParties2.Count; i++)
+				context.Validators.NestedParties2(context, message, entry.NestedParties2[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegQuotGrp(FixContext context, FixMessage message, FixGroup.LegQuotGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+		if (!Empty((ILegBenchmarkCurveData)entry)) context.Validators.LegBenchmarkCurveData(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegBenchmarkCurveCurrency     is not null) context.Validators.LegBenchmarkCurveCurrency(context, message, entry.LegBenchmarkCurveCurrency);
+		if (entry.LegBenchmarkCurveName         is not null) context.Validators.LegBenchmarkCurveName(context, message, entry.LegBenchmarkCurveName);
+		if (entry.LegBenchmarkCurvePoint        is not null) context.Validators.LegBenchmarkCurvePoint(context, message, entry.LegBenchmarkCurvePoint);
+		if (entry.LegBenchmarkPrice             is not null) context.Validators.LegBenchmarkPrice(context, message, entry.LegBenchmarkPrice);
+		if (entry.LegBenchmarkPriceType         is not null) context.Validators.LegBenchmarkPriceType(context, message, entry.LegBenchmarkPriceType);
+		if (entry.LegBidPx                      is not null) context.Validators.LegBidPx(context, message, entry.LegBidPx);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegOfferPx                    is not null) context.Validators.LegOfferPx(context, message, entry.LegOfferPx);
+		if (entry.LegPriceType                  is not null) context.Validators.LegPriceType(context, message, entry.LegPriceType);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegQuotStatGrp(FixContext context, FixMessage message, FixGroup.LegQuotStatGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegSecAltIDGrp(FixContext context, FixMessage message, FixGroup.LegSecAltIDGrp entry, int index)
+	{
+		if (entry.LegSecurityAltID       is not null) context.Validators.LegSecurityAltID(context, message, entry.LegSecurityAltID);
+		if (entry.LegSecurityAltIDSource is not null) context.Validators.LegSecurityAltIDSource(context, message, entry.LegSecurityAltIDSource);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLegStipulations(FixContext context, FixMessage message, FixGroup.LegStipulations entry, int index)
+	{
+		if (entry.LegStipulationType  is not null) context.Validators.LegStipulationType(context, message, entry.LegStipulationType);
+		if (entry.LegStipulationValue is not null) context.Validators.LegStipulationValue(context, message, entry.LegStipulationValue);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateLinesOfTextGrp(FixContext context, FixMessage message, FixGroup.LinesOfTextGrp entry, int index)
+	{
+		if (entry.Text           is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText    is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateListOrdGrp(FixContext context, FixMessage message, FixGroup.ListOrdGrp entry, int index)
+	{
+		if (entry.Side      is null) Missing(message, 54, entry.ClOrdID.Position, index);
+		if (entry.ListSeqNo is null) Missing(message, 67, entry.ClOrdID.Position, index);
+
+		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
+		if (!Empty((IDiscretionInstructions)entry)) context.Validators.DiscretionInstructions(context, message, entry);
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, entry);
+		if (!Empty((IPegInstructions)entry)) context.Validators.PegInstructions(context, message, entry);
+		if (!Empty((ISpreadOrBenchmarkCurveData)entry)) context.Validators.SpreadOrBenchmarkCurveData(context, message, entry);
+		if (!Empty((IYieldData)entry)) context.Validators.YieldData(context, message, entry);
+
+		if (entry.Account                    is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.ClOrdID                    is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.Commission                 is not null) context.Validators.Commission(context, message, entry.Commission);
+		if (entry.CommType                   is not null) context.Validators.CommType(context, message, entry.CommType);
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.ExecInst                   is not null) context.Validators.ExecInst(context, message, entry.ExecInst);
+		if (entry.HandlInst                  is not null) context.Validators.HandlInst(context, message, entry.HandlInst);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.IOIID                      is not null) context.Validators.IOIID(context, message, entry.IOIID);
+		if (entry.OrderQty                   is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.Price                      is not null) context.Validators.Price(context, message, entry.Price);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Side                       is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.Text                       is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.TimeInForce                is not null) context.Validators.TimeInForce(context, message, entry.TimeInForce);
+		if (entry.TransactTime               is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.SettlType                  is not null) context.Validators.SettlType(context, message, entry.SettlType);
+		if (entry.SettlDate                  is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.ListSeqNo                  is not null) context.Validators.ListSeqNo(context, message, entry.ListSeqNo);
+		if (entry.AllocID                    is not null) context.Validators.AllocID(context, message, entry.AllocID);
+		if (entry.TradeDate                  is not null) context.Validators.TradeDate(context, message, entry.TradeDate);
+		if (entry.PositionEffect             is not null) context.Validators.PositionEffect(context, message, entry.PositionEffect);
+		if (entry.NoAllocs                   is not null) context.Validators.NoAllocs(context, message, entry.NoAllocs);
+		if (entry.ProcessCode                is not null) context.Validators.ProcessCode(context, message, entry.ProcessCode);
+		if (entry.StopPx                     is not null) context.Validators.StopPx(context, message, entry.StopPx);
+		if (entry.ExDestination              is not null) context.Validators.ExDestination(context, message, entry.ExDestination);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.MinQty                     is not null) context.Validators.MinQty(context, message, entry.MinQty);
+		if (entry.MaxFloor                   is not null) context.Validators.MaxFloor(context, message, entry.MaxFloor);
+		if (entry.LocateReqd                 is not null) context.Validators.LocateReqd(context, message, entry.LocateReqd);
+		if (entry.QuoteID                    is not null) context.Validators.QuoteID(context, message, entry.QuoteID);
+		if (entry.SettlCurrency              is not null) context.Validators.SettlCurrency(context, message, entry.SettlCurrency);
+		if (entry.ForexReq                   is not null) context.Validators.ForexReq(context, message, entry.ForexReq);
+		if (entry.ExpireTime                 is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.PrevClosePx                is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
+		if (entry.CashOrderQty               is not null) context.Validators.CashOrderQty(context, message, entry.CashOrderQty);
+		if (entry.SettlInstMode              is not null) context.Validators.SettlInstMode(context, message, entry.SettlInstMode);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.EffectiveTime              is not null) context.Validators.EffectiveTime(context, message, entry.EffectiveTime);
+		if (entry.OrderQty2                  is not null) context.Validators.OrderQty2(context, message, entry.OrderQty2);
+		if (entry.SettlDate2                 is not null) context.Validators.SettlDate2(context, message, entry.SettlDate2);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.CoveredOrUncovered         is not null) context.Validators.CoveredOrUncovered(context, message, entry.CoveredOrUncovered);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.MaxShow                    is not null) context.Validators.MaxShow(context, message, entry.MaxShow);
+		if (entry.PegOffsetValue             is not null) context.Validators.PegOffsetValue(context, message, entry.PegOffsetValue);
+		if (entry.Spread                     is not null) context.Validators.Spread(context, message, entry.Spread);
+		if (entry.BenchmarkCurveCurrency     is not null) context.Validators.BenchmarkCurveCurrency(context, message, entry.BenchmarkCurveCurrency);
+		if (entry.BenchmarkCurveName         is not null) context.Validators.BenchmarkCurveName(context, message, entry.BenchmarkCurveName);
+		if (entry.BenchmarkCurvePoint        is not null) context.Validators.BenchmarkCurvePoint(context, message, entry.BenchmarkCurvePoint);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.TradeOriginationDate       is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.NoStipulations             is not null) context.Validators.NoStipulations(context, message, entry.NoStipulations);
+		if (entry.YieldType                  is not null) context.Validators.YieldType(context, message, entry.YieldType);
+		if (entry.Yield                      is not null) context.Validators.Yield(context, message, entry.Yield);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.EncodedTextLen             is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText                is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.ComplianceID               is not null) context.Validators.ComplianceID(context, message, entry.ComplianceID);
+		if (entry.SolicitedFlag              is not null) context.Validators.SolicitedFlag(context, message, entry.SolicitedFlag);
+		if (entry.NoTradingSessions          is not null) context.Validators.NoTradingSessions(context, message, entry.NoTradingSessions);
+		if (entry.DiscretionInst             is not null) context.Validators.DiscretionInst(context, message, entry.DiscretionInst);
+		if (entry.DiscretionOffsetValue      is not null) context.Validators.DiscretionOffsetValue(context, message, entry.DiscretionOffsetValue);
+		if (entry.SideValueInd               is not null) context.Validators.SideValueInd(context, message, entry.SideValueInd);
+		if (entry.PriceType                  is not null) context.Validators.PriceType(context, message, entry.PriceType);
+		if (entry.GTBookingInst              is not null) context.Validators.GTBookingInst(context, message, entry.GTBookingInst);
+		if (entry.ExpireDate                 is not null) context.Validators.ExpireDate(context, message, entry.ExpireDate);
+		if (entry.NoPartyIDs                 is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.RoundingDirection          is not null) context.Validators.RoundingDirection(context, message, entry.RoundingDirection);
+		if (entry.RoundingModulus            is not null) context.Validators.RoundingModulus(context, message, entry.RoundingModulus);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.CommCurrency               is not null) context.Validators.CommCurrency(context, message, entry.CommCurrency);
+		if (entry.Designation                is not null) context.Validators.Designation(context, message, entry.Designation);
+		if (entry.FundRenewWaiv              is not null) context.Validators.FundRenewWaiv(context, message, entry.FundRenewWaiv);
+		if (entry.OrderPercent               is not null) context.Validators.OrderPercent(context, message, entry.OrderPercent);
+		if (entry.SecondaryClOrdID           is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.OrderCapacity              is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
+		if (entry.OrderRestrictions          is not null) context.Validators.OrderRestrictions(context, message, entry.OrderRestrictions);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.CashMargin                 is not null) context.Validators.CashMargin(context, message, entry.CashMargin);
+		if (entry.AccountType                is not null) context.Validators.AccountType(context, message, entry.AccountType);
+		if (entry.CustOrderCapacity          is not null) context.Validators.CustOrderCapacity(context, message, entry.CustOrderCapacity);
+		if (entry.ClOrdLinkID                is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
+		if (entry.DayBookingInst             is not null) context.Validators.DayBookingInst(context, message, entry.DayBookingInst);
+		if (entry.BookingUnit                is not null) context.Validators.BookingUnit(context, message, entry.BookingUnit);
+		if (entry.PreallocMethod             is not null) context.Validators.PreallocMethod(context, message, entry.PreallocMethod);
+		if (entry.ClearingFeeIndicator       is not null) context.Validators.ClearingFeeIndicator(context, message, entry.ClearingFeeIndicator);
+		if (entry.Price2                     is not null) context.Validators.Price2(context, message, entry.Price2);
+		if (entry.AcctIDSource               is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+		if (entry.BenchmarkPrice             is not null) context.Validators.BenchmarkPrice(context, message, entry.BenchmarkPrice);
+		if (entry.BenchmarkPriceType         is not null) context.Validators.BenchmarkPriceType(context, message, entry.BenchmarkPriceType);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.YieldRedemptionDate        is not null) context.Validators.YieldRedemptionDate(context, message, entry.YieldRedemptionDate);
+		if (entry.YieldRedemptionPrice       is not null) context.Validators.YieldRedemptionPrice(context, message, entry.YieldRedemptionPrice);
+		if (entry.YieldRedemptionPriceType   is not null) context.Validators.YieldRedemptionPriceType(context, message, entry.YieldRedemptionPriceType);
+		if (entry.BenchmarkSecurityID        is not null) context.Validators.BenchmarkSecurityID(context, message, entry.BenchmarkSecurityID);
+		if (entry.YieldCalcDate              is not null) context.Validators.YieldCalcDate(context, message, entry.YieldCalcDate);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.BenchmarkSecurityIDSource  is not null) context.Validators.BenchmarkSecurityIDSource(context, message, entry.BenchmarkSecurityIDSource);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.BookingType                is not null) context.Validators.BookingType(context, message, entry.BookingType);
+		if (entry.PegMoveType                is not null) context.Validators.PegMoveType(context, message, entry.PegMoveType);
+		if (entry.PegOffsetType              is not null) context.Validators.PegOffsetType(context, message, entry.PegOffsetType);
+		if (entry.PegLimitType               is not null) context.Validators.PegLimitType(context, message, entry.PegLimitType);
+		if (entry.PegRoundDirection          is not null) context.Validators.PegRoundDirection(context, message, entry.PegRoundDirection);
+		if (entry.PegScope                   is not null) context.Validators.PegScope(context, message, entry.PegScope);
+		if (entry.DiscretionMoveType         is not null) context.Validators.DiscretionMoveType(context, message, entry.DiscretionMoveType);
+		if (entry.DiscretionOffsetType       is not null) context.Validators.DiscretionOffsetType(context, message, entry.DiscretionOffsetType);
+		if (entry.DiscretionLimitType        is not null) context.Validators.DiscretionLimitType(context, message, entry.DiscretionLimitType);
+		if (entry.DiscretionRoundDirection   is not null) context.Validators.DiscretionRoundDirection(context, message, entry.DiscretionRoundDirection);
+		if (entry.DiscretionScope            is not null) context.Validators.DiscretionScope(context, message, entry.DiscretionScope);
+		if (entry.TargetStrategy             is not null) context.Validators.TargetStrategy(context, message, entry.TargetStrategy);
+		if (entry.TargetStrategyParameters   is not null) context.Validators.TargetStrategyParameters(context, message, entry.TargetStrategyParameters);
+		if (entry.ParticipationRate          is not null) context.Validators.ParticipationRate(context, message, entry.ParticipationRate);
+		if (entry.QtyType                    is not null) context.Validators.QtyType(context, message, entry.QtyType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+		Counted(message, entry.NoAllocs, entry.PreAllocGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoStipulations, entry.Stipulations);
+		Counted(message, entry.NoTradingSessions, entry.TrdgSesGrp);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+		if (entry.PreAllocGrp is not null)
+			for (var i = 0; i < entry.PreAllocGrp.Count; i++)
+				context.Validators.PreAllocGrp(context, message, entry.PreAllocGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.Stipulations is not null)
+			for (var i = 0; i < entry.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, entry.Stipulations[i], i);
+		if (entry.TrdgSesGrp is not null)
+			for (var i = 0; i < entry.TrdgSesGrp.Count; i++)
+				context.Validators.TrdgSesGrp(context, message, entry.TrdgSesGrp[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMDFullGrp(FixContext context, FixMessage message, FixGroup.MDFullGrp entry, int index)
+	{
+		if (entry.Currency            is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.ExecInst            is not null) context.Validators.ExecInst(context, message, entry.ExecInst);
+		if (entry.OrderID             is not null) context.Validators.OrderID(context, message, entry.OrderID);
+		if (entry.Text                is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.TimeInForce         is not null) context.Validators.TimeInForce(context, message, entry.TimeInForce);
+		if (entry.MinQty              is not null) context.Validators.MinQty(context, message, entry.MinQty);
+		if (entry.ExpireTime          is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.MDEntryType         is not null) context.Validators.MDEntryType(context, message, entry.MDEntryType);
+		if (entry.MDEntryPx           is not null) context.Validators.MDEntryPx(context, message, entry.MDEntryPx);
+		if (entry.MDEntrySize         is not null) context.Validators.MDEntrySize(context, message, entry.MDEntrySize);
+		if (entry.MDEntryDate         is not null) context.Validators.MDEntryDate(context, message, entry.MDEntryDate);
+		if (entry.MDEntryTime         is not null) context.Validators.MDEntryTime(context, message, entry.MDEntryTime);
+		if (entry.TickDirection       is not null) context.Validators.TickDirection(context, message, entry.TickDirection);
+		if (entry.MDMkt               is not null) context.Validators.MDMkt(context, message, entry.MDMkt);
+		if (entry.QuoteCondition      is not null) context.Validators.QuoteCondition(context, message, entry.QuoteCondition);
+		if (entry.TradeCondition      is not null) context.Validators.TradeCondition(context, message, entry.TradeCondition);
+		if (entry.MDEntryOriginator   is not null) context.Validators.MDEntryOriginator(context, message, entry.MDEntryOriginator);
+		if (entry.LocationID          is not null) context.Validators.LocationID(context, message, entry.LocationID);
+		if (entry.DeskID              is not null) context.Validators.DeskID(context, message, entry.DeskID);
+		if (entry.OpenCloseSettlFlag  is not null) context.Validators.OpenCloseSettlFlag(context, message, entry.OpenCloseSettlFlag);
+		if (entry.SellerDays          is not null) context.Validators.SellerDays(context, message, entry.SellerDays);
+		if (entry.MDEntryBuyer        is not null) context.Validators.MDEntryBuyer(context, message, entry.MDEntryBuyer);
+		if (entry.MDEntrySeller       is not null) context.Validators.MDEntrySeller(context, message, entry.MDEntrySeller);
+		if (entry.MDEntryPositionNo   is not null) context.Validators.MDEntryPositionNo(context, message, entry.MDEntryPositionNo);
+		if (entry.QuoteEntryID        is not null) context.Validators.QuoteEntryID(context, message, entry.QuoteEntryID);
+		if (entry.TradingSessionID    is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.NumberOfOrders      is not null) context.Validators.NumberOfOrders(context, message, entry.NumberOfOrders);
+		if (entry.EncodedTextLen      is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText         is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.ExpireDate          is not null) context.Validators.ExpireDate(context, message, entry.ExpireDate);
+		if (entry.Scope               is not null) context.Validators.Scope(context, message, entry.Scope);
+		if (entry.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.PriceDelta          is not null) context.Validators.PriceDelta(context, message, entry.PriceDelta);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMDIncGrp(FixContext context, FixMessage message, FixGroup.MDIncGrp entry, int index)
+	{
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.ExecInst                   is not null) context.Validators.ExecInst(context, message, entry.ExecInst);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.OrderID                    is not null) context.Validators.OrderID(context, message, entry.OrderID);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.Text                       is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.TimeInForce                is not null) context.Validators.TimeInForce(context, message, entry.TimeInForce);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.MinQty                     is not null) context.Validators.MinQty(context, message, entry.MinQty);
+		if (entry.ExpireTime                 is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.MDEntryType                is not null) context.Validators.MDEntryType(context, message, entry.MDEntryType);
+		if (entry.MDEntryPx                  is not null) context.Validators.MDEntryPx(context, message, entry.MDEntryPx);
+		if (entry.MDEntrySize                is not null) context.Validators.MDEntrySize(context, message, entry.MDEntrySize);
+		if (entry.MDEntryDate                is not null) context.Validators.MDEntryDate(context, message, entry.MDEntryDate);
+		if (entry.MDEntryTime                is not null) context.Validators.MDEntryTime(context, message, entry.MDEntryTime);
+		if (entry.TickDirection              is not null) context.Validators.TickDirection(context, message, entry.TickDirection);
+		if (entry.MDMkt                      is not null) context.Validators.MDMkt(context, message, entry.MDMkt);
+		if (entry.QuoteCondition             is not null) context.Validators.QuoteCondition(context, message, entry.QuoteCondition);
+		if (entry.TradeCondition             is not null) context.Validators.TradeCondition(context, message, entry.TradeCondition);
+		if (entry.MDEntryID                  is not null) context.Validators.MDEntryID(context, message, entry.MDEntryID);
+		if (entry.MDUpdateAction             is not null) context.Validators.MDUpdateAction(context, message, entry.MDUpdateAction);
+		if (entry.MDEntryRefID               is not null) context.Validators.MDEntryRefID(context, message, entry.MDEntryRefID);
+		if (entry.MDEntryOriginator          is not null) context.Validators.MDEntryOriginator(context, message, entry.MDEntryOriginator);
+		if (entry.LocationID                 is not null) context.Validators.LocationID(context, message, entry.LocationID);
+		if (entry.DeskID                     is not null) context.Validators.DeskID(context, message, entry.DeskID);
+		if (entry.DeleteReason               is not null) context.Validators.DeleteReason(context, message, entry.DeleteReason);
+		if (entry.OpenCloseSettlFlag         is not null) context.Validators.OpenCloseSettlFlag(context, message, entry.OpenCloseSettlFlag);
+		if (entry.SellerDays                 is not null) context.Validators.SellerDays(context, message, entry.SellerDays);
+		if (entry.MDEntryBuyer               is not null) context.Validators.MDEntryBuyer(context, message, entry.MDEntryBuyer);
+		if (entry.MDEntrySeller              is not null) context.Validators.MDEntrySeller(context, message, entry.MDEntrySeller);
+		if (entry.MDEntryPositionNo          is not null) context.Validators.MDEntryPositionNo(context, message, entry.MDEntryPositionNo);
+		if (entry.FinancialStatus            is not null) context.Validators.FinancialStatus(context, message, entry.FinancialStatus);
+		if (entry.CorporateAction            is not null) context.Validators.CorporateAction(context, message, entry.CorporateAction);
+		if (entry.QuoteEntryID               is not null) context.Validators.QuoteEntryID(context, message, entry.QuoteEntryID);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.NumberOfOrders             is not null) context.Validators.NumberOfOrders(context, message, entry.NumberOfOrders);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.EncodedTextLen             is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText                is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.ExpireDate                 is not null) context.Validators.ExpireDate(context, message, entry.ExpireDate);
+		if (entry.NetChgPrevDay              is not null) context.Validators.NetChgPrevDay(context, message, entry.NetChgPrevDay);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.Scope                      is not null) context.Validators.Scope(context, message, entry.Scope);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.PriceDelta                 is not null) context.Validators.PriceDelta(context, message, entry.PriceDelta);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMDReqGrp(FixContext context, FixMessage message, FixGroup.MDReqGrp entry, int index)
+	{
+		if (entry.MDEntryType is not null) context.Validators.MDEntryType(context, message, entry.MDEntryType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMDRjctGrp(FixContext context, FixMessage message, FixGroup.MDRjctGrp entry, int index)
+	{
+		if (entry.AltMDSourceID is not null) context.Validators.AltMDSourceID(context, message, entry.AltMDSourceID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMiscFeesGrp(FixContext context, FixMessage message, FixGroup.MiscFeesGrp entry, int index)
+	{
+		if (entry.MiscFeeAmt   is not null) context.Validators.MiscFeeAmt(context, message, entry.MiscFeeAmt);
+		if (entry.MiscFeeCurr  is not null) context.Validators.MiscFeeCurr(context, message, entry.MiscFeeCurr);
+		if (entry.MiscFeeType  is not null) context.Validators.MiscFeeType(context, message, entry.MiscFeeType);
+		if (entry.MiscFeeBasis is not null) context.Validators.MiscFeeBasis(context, message, entry.MiscFeeBasis);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateMsgTypeGrp(FixContext context, FixMessage message, FixGroup.MsgTypeGrp entry, int index)
+	{
+		if (entry.RefMsgType   is not null) context.Validators.RefMsgType(context, message, entry.RefMsgType);
+		if (entry.MsgDirection is not null) context.Validators.MsgDirection(context, message, entry.MsgDirection);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNestedParties(FixContext context, FixMessage message, FixGroup.NestedParties entry, int index)
+	{
+		if (entry.NestedPartyID       is not null) context.Validators.NestedPartyID(context, message, entry.NestedPartyID);
+		if (entry.NestedPartyIDSource is not null) context.Validators.NestedPartyIDSource(context, message, entry.NestedPartyIDSource);
+		if (entry.NestedPartyRole     is not null) context.Validators.NestedPartyRole(context, message, entry.NestedPartyRole);
+		if (entry.NoNestedPartySubIDs is not null) context.Validators.NoNestedPartySubIDs(context, message, entry.NoNestedPartySubIDs);
+
+		Counted(message, entry.NoNestedPartySubIDs, entry.NstdPtysSubGrp);
+
+		if (entry.NstdPtysSubGrp is not null)
+			for (var i = 0; i < entry.NstdPtysSubGrp.Count; i++)
+				context.Validators.NstdPtysSubGrp(context, message, entry.NstdPtysSubGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNestedParties2(FixContext context, FixMessage message, FixGroup.NestedParties2 entry, int index)
+	{
+		if (entry.Nested2PartyID       is not null) context.Validators.Nested2PartyID(context, message, entry.Nested2PartyID);
+		if (entry.Nested2PartyIDSource is not null) context.Validators.Nested2PartyIDSource(context, message, entry.Nested2PartyIDSource);
+		if (entry.Nested2PartyRole     is not null) context.Validators.Nested2PartyRole(context, message, entry.Nested2PartyRole);
+		if (entry.NoNested2PartySubIDs is not null) context.Validators.NoNested2PartySubIDs(context, message, entry.NoNested2PartySubIDs);
+
+		Counted(message, entry.NoNested2PartySubIDs, entry.NstdPtys2SubGrp);
+
+		if (entry.NstdPtys2SubGrp is not null)
+			for (var i = 0; i < entry.NstdPtys2SubGrp.Count; i++)
+				context.Validators.NstdPtys2SubGrp(context, message, entry.NstdPtys2SubGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNestedParties3(FixContext context, FixMessage message, FixGroup.NestedParties3 entry, int index)
+	{
+		if (entry.Nested3PartyID       is not null) context.Validators.Nested3PartyID(context, message, entry.Nested3PartyID);
+		if (entry.Nested3PartyIDSource is not null) context.Validators.Nested3PartyIDSource(context, message, entry.Nested3PartyIDSource);
+		if (entry.Nested3PartyRole     is not null) context.Validators.Nested3PartyRole(context, message, entry.Nested3PartyRole);
+		if (entry.NoNested3PartySubIDs is not null) context.Validators.NoNested3PartySubIDs(context, message, entry.NoNested3PartySubIDs);
+
+		Counted(message, entry.NoNested3PartySubIDs, entry.NstdPtys3SubGrp);
+
+		if (entry.NstdPtys3SubGrp is not null)
+			for (var i = 0; i < entry.NstdPtys3SubGrp.Count; i++)
+				context.Validators.NstdPtys3SubGrp(context, message, entry.NstdPtys3SubGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNstdPtys2SubGrp(FixContext context, FixMessage message, FixGroup.NstdPtys2SubGrp entry, int index)
+	{
+		if (entry.Nested2PartySubID     is not null) context.Validators.Nested2PartySubID(context, message, entry.Nested2PartySubID);
+		if (entry.Nested2PartySubIDType is not null) context.Validators.Nested2PartySubIDType(context, message, entry.Nested2PartySubIDType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNstdPtys3SubGrp(FixContext context, FixMessage message, FixGroup.NstdPtys3SubGrp entry, int index)
+	{
+		if (entry.Nested3PartySubID     is not null) context.Validators.Nested3PartySubID(context, message, entry.Nested3PartySubID);
+		if (entry.Nested3PartySubIDType is not null) context.Validators.Nested3PartySubIDType(context, message, entry.Nested3PartySubIDType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateNstdPtysSubGrp(FixContext context, FixMessage message, FixGroup.NstdPtysSubGrp entry, int index)
+	{
+		if (entry.NestedPartySubID     is not null) context.Validators.NestedPartySubID(context, message, entry.NestedPartySubID);
+		if (entry.NestedPartySubIDType is not null) context.Validators.NestedPartySubIDType(context, message, entry.NestedPartySubIDType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateOrdAllocGrp(FixContext context, FixMessage message, FixGroup.OrdAllocGrp entry, int index)
+	{
+		if (entry.ClOrdID           is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.OrderID           is not null) context.Validators.OrderID(context, message, entry.OrderID);
+		if (entry.OrderQty          is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.ListID            is not null) context.Validators.ListID(context, message, entry.ListID);
+		if (entry.SecondaryOrderID  is not null) context.Validators.SecondaryOrderID(context, message, entry.SecondaryOrderID);
+		if (entry.SecondaryClOrdID  is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.NoNested2PartyIDs is not null) context.Validators.NoNested2PartyIDs(context, message, entry.NoNested2PartyIDs);
+		if (entry.OrderAvgPx        is not null) context.Validators.OrderAvgPx(context, message, entry.OrderAvgPx);
+		if (entry.OrderBookingQty   is not null) context.Validators.OrderBookingQty(context, message, entry.OrderBookingQty);
+
+		Counted(message, entry.NoNested2PartyIDs, entry.NestedParties2);
+
+		if (entry.NestedParties2 is not null)
+			for (var i = 0; i < entry.NestedParties2.Count; i++)
+				context.Validators.NestedParties2(context, message, entry.NestedParties2[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateOrdListStatGrp(FixContext context, FixMessage message, FixGroup.OrdListStatGrp entry, int index)
+	{
+		if (entry.AvgPx     is null) Missing(message, 6, entry.ClOrdID.Position, index);
+		if (entry.CumQty    is null) Missing(message, 14, entry.ClOrdID.Position, index);
+		if (entry.OrdStatus is null) Missing(message, 39, entry.ClOrdID.Position, index);
+		if (entry.CxlQty    is null) Missing(message, 84, entry.ClOrdID.Position, index);
+		if (entry.LeavesQty is null) Missing(message, 151, entry.ClOrdID.Position, index);
+
+		if (entry.AvgPx            is not null) context.Validators.AvgPx(context, message, entry.AvgPx);
+		if (entry.ClOrdID          is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.CumQty           is not null) context.Validators.CumQty(context, message, entry.CumQty);
+		if (entry.OrdStatus        is not null) context.Validators.OrdStatus(context, message, entry.OrdStatus);
+		if (entry.Text             is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.CxlQty           is not null) context.Validators.CxlQty(context, message, entry.CxlQty);
+		if (entry.OrdRejReason     is not null) context.Validators.OrdRejReason(context, message, entry.OrdRejReason);
+		if (entry.LeavesQty        is not null) context.Validators.LeavesQty(context, message, entry.LeavesQty);
+		if (entry.EncodedTextLen   is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText      is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.WorkingIndicator is not null) context.Validators.WorkingIndicator(context, message, entry.WorkingIndicator);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateParties(FixContext context, FixMessage message, FixGroup.Parties entry, int index)
+	{
+		if (entry.PartyIDSource is not null) context.Validators.PartyIDSource(context, message, entry.PartyIDSource);
+		if (entry.PartyID       is not null) context.Validators.PartyID(context, message, entry.PartyID);
+		if (entry.PartyRole     is not null) context.Validators.PartyRole(context, message, entry.PartyRole);
+		if (entry.NoPartySubIDs is not null) context.Validators.NoPartySubIDs(context, message, entry.NoPartySubIDs);
+
+		Counted(message, entry.NoPartySubIDs, entry.PtysSubGrp);
+
+		if (entry.PtysSubGrp is not null)
+			for (var i = 0; i < entry.PtysSubGrp.Count; i++)
+				context.Validators.PtysSubGrp(context, message, entry.PtysSubGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePosUndInstrmtGrp(FixContext context, FixMessage message, FixGroup.PosUndInstrmtGrp entry, int index)
+	{
+		if (entry.UnderlyingSettlPrice     is null) Missing(message, 732, entry.UnderlyingSymbol.Position, index);
+		if (entry.UnderlyingSettlPriceType is null) Missing(message, 733, entry.UnderlyingSymbol.Position, index);
+
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSettlPrice                 is not null) context.Validators.UnderlyingSettlPrice(context, message, entry.UnderlyingSettlPrice);
+		if (entry.UnderlyingSettlPriceType             is not null) context.Validators.UnderlyingSettlPriceType(context, message, entry.UnderlyingSettlPriceType);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePositionAmountData(FixContext context, FixMessage message, FixGroup.PositionAmountData entry, int index)
+	{
+		if (entry.PosAmtType is not null) context.Validators.PosAmtType(context, message, entry.PosAmtType);
+		if (entry.PosAmt     is not null) context.Validators.PosAmt(context, message, entry.PosAmt);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePositionQty(FixContext context, FixMessage message, FixGroup.PositionQty entry, int index)
+	{
+		if (entry.NoNestedPartyIDs is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.PosType          is not null) context.Validators.PosType(context, message, entry.PosType);
+		if (entry.LongQty          is not null) context.Validators.LongQty(context, message, entry.LongQty);
+		if (entry.ShortQty         is not null) context.Validators.ShortQty(context, message, entry.ShortQty);
+		if (entry.PosQtyStatus     is not null) context.Validators.PosQtyStatus(context, message, entry.PosQtyStatus);
+
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePreAllocGrp(FixContext context, FixMessage message, FixGroup.PreAllocGrp entry, int index)
+	{
+		if (entry.AllocAccount       is not null) context.Validators.AllocAccount(context, message, entry.AllocAccount);
+		if (entry.AllocQty           is not null) context.Validators.AllocQty(context, message, entry.AllocQty);
+		if (entry.IndividualAllocID  is not null) context.Validators.IndividualAllocID(context, message, entry.IndividualAllocID);
+		if (entry.NoNestedPartyIDs   is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.AllocAcctIDSource  is not null) context.Validators.AllocAcctIDSource(context, message, entry.AllocAcctIDSource);
+		if (entry.AllocSettlCurrency is not null) context.Validators.AllocSettlCurrency(context, message, entry.AllocSettlCurrency);
+
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePreAllocMlegGrp(FixContext context, FixMessage message, FixGroup.PreAllocMlegGrp entry, int index)
+	{
+		if (entry.AllocAccount       is not null) context.Validators.AllocAccount(context, message, entry.AllocAccount);
+		if (entry.AllocQty           is not null) context.Validators.AllocQty(context, message, entry.AllocQty);
+		if (entry.IndividualAllocID  is not null) context.Validators.IndividualAllocID(context, message, entry.IndividualAllocID);
+		if (entry.AllocAcctIDSource  is not null) context.Validators.AllocAcctIDSource(context, message, entry.AllocAcctIDSource);
+		if (entry.AllocSettlCurrency is not null) context.Validators.AllocSettlCurrency(context, message, entry.AllocSettlCurrency);
+		if (entry.NoNested3PartyIDs  is not null) context.Validators.NoNested3PartyIDs(context, message, entry.NoNested3PartyIDs);
+
+		Counted(message, entry.NoNested3PartyIDs, entry.NestedParties3);
+
+		if (entry.NestedParties3 is not null)
+			for (var i = 0; i < entry.NestedParties3.Count; i++)
+				context.Validators.NestedParties3(context, message, entry.NestedParties3[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidatePtysSubGrp(FixContext context, FixMessage message, FixGroup.PtysSubGrp entry, int index)
+	{
+		if (entry.PartySubID     is not null) context.Validators.PartySubID(context, message, entry.PartySubID);
+		if (entry.PartySubIDType is not null) context.Validators.PartySubIDType(context, message, entry.PartySubIDType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotCxlEntriesGrp(FixContext context, FixMessage message, FixGroup.QuotCxlEntriesGrp entry, int index)
+	{
+		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.TerminationType            is not null) context.Validators.TerminationType(context, message, entry.TerminationType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.MarginRatio                is not null) context.Validators.MarginRatio(context, message, entry.MarginRatio);
+		if (entry.AgreementDesc              is not null) context.Validators.AgreementDesc(context, message, entry.AgreementDesc);
+		if (entry.AgreementID                is not null) context.Validators.AgreementID(context, message, entry.AgreementID);
+		if (entry.AgreementDate              is not null) context.Validators.AgreementDate(context, message, entry.AgreementDate);
+		if (entry.StartDate                  is not null) context.Validators.StartDate(context, message, entry.StartDate);
+		if (entry.EndDate                    is not null) context.Validators.EndDate(context, message, entry.EndDate);
+		if (entry.AgreementCurrency          is not null) context.Validators.AgreementCurrency(context, message, entry.AgreementCurrency);
+		if (entry.DeliveryType               is not null) context.Validators.DeliveryType(context, message, entry.DeliveryType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotEntryAckGrp(FixContext context, FixMessage message, FixGroup.QuotEntryAckGrp entry, int index)
+	{
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.TransactTime               is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.ValidUntilTime             is not null) context.Validators.ValidUntilTime(context, message, entry.ValidUntilTime);
+		if (entry.SettlDate                  is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.BidPx                      is not null) context.Validators.BidPx(context, message, entry.BidPx);
+		if (entry.OfferPx                    is not null) context.Validators.OfferPx(context, message, entry.OfferPx);
+		if (entry.BidSize                    is not null) context.Validators.BidSize(context, message, entry.BidSize);
+		if (entry.OfferSize                  is not null) context.Validators.OfferSize(context, message, entry.OfferSize);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.BidSpotRate                is not null) context.Validators.BidSpotRate(context, message, entry.BidSpotRate);
+		if (entry.BidForwardPoints           is not null) context.Validators.BidForwardPoints(context, message, entry.BidForwardPoints);
+		if (entry.OfferSpotRate              is not null) context.Validators.OfferSpotRate(context, message, entry.OfferSpotRate);
+		if (entry.OfferForwardPoints         is not null) context.Validators.OfferForwardPoints(context, message, entry.OfferForwardPoints);
+		if (entry.OrderQty2                  is not null) context.Validators.OrderQty2(context, message, entry.OrderQty2);
+		if (entry.SettlDate2                 is not null) context.Validators.SettlDate2(context, message, entry.SettlDate2);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.QuoteEntryID               is not null) context.Validators.QuoteEntryID(context, message, entry.QuoteEntryID);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.QuoteEntryRejectReason     is not null) context.Validators.QuoteEntryRejectReason(context, message, entry.QuoteEntryRejectReason);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.MidPx                      is not null) context.Validators.MidPx(context, message, entry.MidPx);
+		if (entry.BidYield                   is not null) context.Validators.BidYield(context, message, entry.BidYield);
+		if (entry.MidYield                   is not null) context.Validators.MidYield(context, message, entry.MidYield);
+		if (entry.OfferYield                 is not null) context.Validators.OfferYield(context, message, entry.OfferYield);
+		if (entry.BidForwardPoints2          is not null) context.Validators.BidForwardPoints2(context, message, entry.BidForwardPoints2);
+		if (entry.OfferForwardPoints2        is not null) context.Validators.OfferForwardPoints2(context, message, entry.OfferForwardPoints2);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotEntryGrp(FixContext context, FixMessage message, FixGroup.QuotEntryGrp entry, int index)
+	{
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.TransactTime               is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.ValidUntilTime             is not null) context.Validators.ValidUntilTime(context, message, entry.ValidUntilTime);
+		if (entry.SettlDate                  is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.BidPx                      is not null) context.Validators.BidPx(context, message, entry.BidPx);
+		if (entry.OfferPx                    is not null) context.Validators.OfferPx(context, message, entry.OfferPx);
+		if (entry.BidSize                    is not null) context.Validators.BidSize(context, message, entry.BidSize);
+		if (entry.OfferSize                  is not null) context.Validators.OfferSize(context, message, entry.OfferSize);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.BidSpotRate                is not null) context.Validators.BidSpotRate(context, message, entry.BidSpotRate);
+		if (entry.BidForwardPoints           is not null) context.Validators.BidForwardPoints(context, message, entry.BidForwardPoints);
+		if (entry.OfferSpotRate              is not null) context.Validators.OfferSpotRate(context, message, entry.OfferSpotRate);
+		if (entry.OfferForwardPoints         is not null) context.Validators.OfferForwardPoints(context, message, entry.OfferForwardPoints);
+		if (entry.OrderQty2                  is not null) context.Validators.OrderQty2(context, message, entry.OrderQty2);
+		if (entry.SettlDate2                 is not null) context.Validators.SettlDate2(context, message, entry.SettlDate2);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.QuoteEntryID               is not null) context.Validators.QuoteEntryID(context, message, entry.QuoteEntryID);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.MidPx                      is not null) context.Validators.MidPx(context, message, entry.MidPx);
+		if (entry.BidYield                   is not null) context.Validators.BidYield(context, message, entry.BidYield);
+		if (entry.MidYield                   is not null) context.Validators.MidYield(context, message, entry.MidYield);
+		if (entry.OfferYield                 is not null) context.Validators.OfferYield(context, message, entry.OfferYield);
+		if (entry.BidForwardPoints2          is not null) context.Validators.BidForwardPoints2(context, message, entry.BidForwardPoints2);
+		if (entry.OfferForwardPoints2        is not null) context.Validators.OfferForwardPoints2(context, message, entry.OfferForwardPoints2);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotQualGrp(FixContext context, FixMessage message, FixGroup.QuotQualGrp entry, int index)
+	{
+		if (entry.QuoteQualifier is not null) context.Validators.QuoteQualifier(context, message, entry.QuoteQualifier);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotReqGrp(FixContext context, FixMessage message, FixGroup.QuotReqGrp entry, int index)
+	{
+		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+		if (!Empty((IOrderQtyData)entry)) context.Validators.OrderQtyData(context, message, entry);
+		if (!Empty((ISpreadOrBenchmarkCurveData)entry)) context.Validators.SpreadOrBenchmarkCurveData(context, message, entry);
+		if (!Empty((IYieldData)entry)) context.Validators.YieldData(context, message, entry);
+
+		if (entry.Account                    is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.OrderQty                   is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.Price                      is not null) context.Validators.Price(context, message, entry.Price);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Side                       is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.TransactTime               is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.ValidUntilTime             is not null) context.Validators.ValidUntilTime(context, message, entry.ValidUntilTime);
+		if (entry.SettlType                  is not null) context.Validators.SettlType(context, message, entry.SettlType);
+		if (entry.SettlDate                  is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.ExpireTime                 is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.PrevClosePx                is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
+		if (entry.CashOrderQty               is not null) context.Validators.CashOrderQty(context, message, entry.CashOrderQty);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.OrderQty2                  is not null) context.Validators.OrderQty2(context, message, entry.OrderQty2);
+		if (entry.SettlDate2                 is not null) context.Validators.SettlDate2(context, message, entry.SettlDate2);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.Spread                     is not null) context.Validators.Spread(context, message, entry.Spread);
+		if (entry.BenchmarkCurveCurrency     is not null) context.Validators.BenchmarkCurveCurrency(context, message, entry.BenchmarkCurveCurrency);
+		if (entry.BenchmarkCurveName         is not null) context.Validators.BenchmarkCurveName(context, message, entry.BenchmarkCurveName);
+		if (entry.BenchmarkCurvePoint        is not null) context.Validators.BenchmarkCurvePoint(context, message, entry.BenchmarkCurvePoint);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.TradeOriginationDate       is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.NoStipulations             is not null) context.Validators.NoStipulations(context, message, entry.NoStipulations);
+		if (entry.YieldType                  is not null) context.Validators.YieldType(context, message, entry.YieldType);
+		if (entry.Yield                      is not null) context.Validators.Yield(context, message, entry.Yield);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.QuoteRequestType           is not null) context.Validators.QuoteRequestType(context, message, entry.QuoteRequestType);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.PriceType                  is not null) context.Validators.PriceType(context, message, entry.PriceType);
+		if (entry.NoPartyIDs                 is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.RoundingDirection          is not null) context.Validators.RoundingDirection(context, message, entry.RoundingDirection);
+		if (entry.RoundingModulus            is not null) context.Validators.RoundingModulus(context, message, entry.RoundingModulus);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.OrderPercent               is not null) context.Validators.OrderPercent(context, message, entry.OrderPercent);
+		if (entry.QuoteType                  is not null) context.Validators.QuoteType(context, message, entry.QuoteType);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.AccountType                is not null) context.Validators.AccountType(context, message, entry.AccountType);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.Price2                     is not null) context.Validators.Price2(context, message, entry.Price2);
+		if (entry.AcctIDSource               is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+		if (entry.BenchmarkPrice             is not null) context.Validators.BenchmarkPrice(context, message, entry.BenchmarkPrice);
+		if (entry.BenchmarkPriceType         is not null) context.Validators.BenchmarkPriceType(context, message, entry.BenchmarkPriceType);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.QuotePriceType             is not null) context.Validators.QuotePriceType(context, message, entry.QuotePriceType);
+		if (entry.YieldRedemptionDate        is not null) context.Validators.YieldRedemptionDate(context, message, entry.YieldRedemptionDate);
+		if (entry.YieldRedemptionPrice       is not null) context.Validators.YieldRedemptionPrice(context, message, entry.YieldRedemptionPrice);
+		if (entry.YieldRedemptionPriceType   is not null) context.Validators.YieldRedemptionPriceType(context, message, entry.YieldRedemptionPriceType);
+		if (entry.BenchmarkSecurityID        is not null) context.Validators.BenchmarkSecurityID(context, message, entry.BenchmarkSecurityID);
+		if (entry.YieldCalcDate              is not null) context.Validators.YieldCalcDate(context, message, entry.YieldCalcDate);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.NoQuoteQualifiers          is not null) context.Validators.NoQuoteQualifiers(context, message, entry.NoQuoteQualifiers);
+		if (entry.BenchmarkSecurityIDSource  is not null) context.Validators.BenchmarkSecurityIDSource(context, message, entry.BenchmarkSecurityIDSource);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.TerminationType            is not null) context.Validators.TerminationType(context, message, entry.TerminationType);
+		if (entry.QtyType                    is not null) context.Validators.QtyType(context, message, entry.QtyType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.MarginRatio                is not null) context.Validators.MarginRatio(context, message, entry.MarginRatio);
+		if (entry.AgreementDesc              is not null) context.Validators.AgreementDesc(context, message, entry.AgreementDesc);
+		if (entry.AgreementID                is not null) context.Validators.AgreementID(context, message, entry.AgreementID);
+		if (entry.AgreementDate              is not null) context.Validators.AgreementDate(context, message, entry.AgreementDate);
+		if (entry.StartDate                  is not null) context.Validators.StartDate(context, message, entry.StartDate);
+		if (entry.EndDate                    is not null) context.Validators.EndDate(context, message, entry.EndDate);
+		if (entry.AgreementCurrency          is not null) context.Validators.AgreementCurrency(context, message, entry.AgreementCurrency);
+		if (entry.DeliveryType               is not null) context.Validators.DeliveryType(context, message, entry.DeliveryType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+		Counted(message, entry.NoQuoteQualifiers, entry.QuotQualGrp);
+		Counted(message, entry.NoLegs, entry.QuotReqLegsGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoStipulations, entry.Stipulations);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+		if (entry.QuotQualGrp is not null)
+			for (var i = 0; i < entry.QuotQualGrp.Count; i++)
+				context.Validators.QuotQualGrp(context, message, entry.QuotQualGrp[i], i);
+		if (entry.QuotReqLegsGrp is not null)
+			for (var i = 0; i < entry.QuotReqLegsGrp.Count; i++)
+				context.Validators.QuotReqLegsGrp(context, message, entry.QuotReqLegsGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.Stipulations is not null)
+			for (var i = 0; i < entry.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, entry.Stipulations[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotReqLegsGrp(FixContext context, FixMessage message, FixGroup.QuotReqLegsGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+		if (!Empty((ILegBenchmarkCurveData)entry)) context.Validators.LegBenchmarkCurveData(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegBenchmarkCurveCurrency     is not null) context.Validators.LegBenchmarkCurveCurrency(context, message, entry.LegBenchmarkCurveCurrency);
+		if (entry.LegBenchmarkCurveName         is not null) context.Validators.LegBenchmarkCurveName(context, message, entry.LegBenchmarkCurveName);
+		if (entry.LegBenchmarkCurvePoint        is not null) context.Validators.LegBenchmarkCurvePoint(context, message, entry.LegBenchmarkCurvePoint);
+		if (entry.LegBenchmarkPrice             is not null) context.Validators.LegBenchmarkPrice(context, message, entry.LegBenchmarkPrice);
+		if (entry.LegBenchmarkPriceType         is not null) context.Validators.LegBenchmarkPriceType(context, message, entry.LegBenchmarkPriceType);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotReqRjctGrp(FixContext context, FixMessage message, FixGroup.QuotReqRjctGrp entry, int index)
+	{
+		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+		if (!Empty((IOrderQtyData)entry)) context.Validators.OrderQtyData(context, message, entry);
+		if (!Empty((ISpreadOrBenchmarkCurveData)entry)) context.Validators.SpreadOrBenchmarkCurveData(context, message, entry);
+		if (!Empty((IYieldData)entry)) context.Validators.YieldData(context, message, entry);
+
+		if (entry.Account                    is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.OrderQty                   is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.Price                      is not null) context.Validators.Price(context, message, entry.Price);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Side                       is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.TransactTime               is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.SettlType                  is not null) context.Validators.SettlType(context, message, entry.SettlType);
+		if (entry.SettlDate                  is not null) context.Validators.SettlDate(context, message, entry.SettlDate);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.ExpireTime                 is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.PrevClosePx                is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
+		if (entry.CashOrderQty               is not null) context.Validators.CashOrderQty(context, message, entry.CashOrderQty);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.OrderQty2                  is not null) context.Validators.OrderQty2(context, message, entry.OrderQty2);
+		if (entry.SettlDate2                 is not null) context.Validators.SettlDate2(context, message, entry.SettlDate2);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.Spread                     is not null) context.Validators.Spread(context, message, entry.Spread);
+		if (entry.BenchmarkCurveCurrency     is not null) context.Validators.BenchmarkCurveCurrency(context, message, entry.BenchmarkCurveCurrency);
+		if (entry.BenchmarkCurveName         is not null) context.Validators.BenchmarkCurveName(context, message, entry.BenchmarkCurveName);
+		if (entry.BenchmarkCurvePoint        is not null) context.Validators.BenchmarkCurvePoint(context, message, entry.BenchmarkCurvePoint);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.TradeOriginationDate       is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.NoStipulations             is not null) context.Validators.NoStipulations(context, message, entry.NoStipulations);
+		if (entry.YieldType                  is not null) context.Validators.YieldType(context, message, entry.YieldType);
+		if (entry.Yield                      is not null) context.Validators.Yield(context, message, entry.Yield);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.QuoteRequestType           is not null) context.Validators.QuoteRequestType(context, message, entry.QuoteRequestType);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.PriceType                  is not null) context.Validators.PriceType(context, message, entry.PriceType);
+		if (entry.NoPartyIDs                 is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.RoundingDirection          is not null) context.Validators.RoundingDirection(context, message, entry.RoundingDirection);
+		if (entry.RoundingModulus            is not null) context.Validators.RoundingModulus(context, message, entry.RoundingModulus);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.OrderPercent               is not null) context.Validators.OrderPercent(context, message, entry.OrderPercent);
+		if (entry.QuoteType                  is not null) context.Validators.QuoteType(context, message, entry.QuoteType);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.AccountType                is not null) context.Validators.AccountType(context, message, entry.AccountType);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.Price2                     is not null) context.Validators.Price2(context, message, entry.Price2);
+		if (entry.AcctIDSource               is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+		if (entry.BenchmarkPrice             is not null) context.Validators.BenchmarkPrice(context, message, entry.BenchmarkPrice);
+		if (entry.BenchmarkPriceType         is not null) context.Validators.BenchmarkPriceType(context, message, entry.BenchmarkPriceType);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.QuotePriceType             is not null) context.Validators.QuotePriceType(context, message, entry.QuotePriceType);
+		if (entry.YieldRedemptionDate        is not null) context.Validators.YieldRedemptionDate(context, message, entry.YieldRedemptionDate);
+		if (entry.YieldRedemptionPrice       is not null) context.Validators.YieldRedemptionPrice(context, message, entry.YieldRedemptionPrice);
+		if (entry.YieldRedemptionPriceType   is not null) context.Validators.YieldRedemptionPriceType(context, message, entry.YieldRedemptionPriceType);
+		if (entry.BenchmarkSecurityID        is not null) context.Validators.BenchmarkSecurityID(context, message, entry.BenchmarkSecurityID);
+		if (entry.YieldCalcDate              is not null) context.Validators.YieldCalcDate(context, message, entry.YieldCalcDate);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.NoQuoteQualifiers          is not null) context.Validators.NoQuoteQualifiers(context, message, entry.NoQuoteQualifiers);
+		if (entry.BenchmarkSecurityIDSource  is not null) context.Validators.BenchmarkSecurityIDSource(context, message, entry.BenchmarkSecurityIDSource);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.TerminationType            is not null) context.Validators.TerminationType(context, message, entry.TerminationType);
+		if (entry.QtyType                    is not null) context.Validators.QtyType(context, message, entry.QtyType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.MarginRatio                is not null) context.Validators.MarginRatio(context, message, entry.MarginRatio);
+		if (entry.AgreementDesc              is not null) context.Validators.AgreementDesc(context, message, entry.AgreementDesc);
+		if (entry.AgreementID                is not null) context.Validators.AgreementID(context, message, entry.AgreementID);
+		if (entry.AgreementDate              is not null) context.Validators.AgreementDate(context, message, entry.AgreementDate);
+		if (entry.StartDate                  is not null) context.Validators.StartDate(context, message, entry.StartDate);
+		if (entry.EndDate                    is not null) context.Validators.EndDate(context, message, entry.EndDate);
+		if (entry.AgreementCurrency          is not null) context.Validators.AgreementCurrency(context, message, entry.AgreementCurrency);
+		if (entry.DeliveryType               is not null) context.Validators.DeliveryType(context, message, entry.DeliveryType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+		Counted(message, entry.NoQuoteQualifiers, entry.QuotQualGrp);
+		Counted(message, entry.NoLegs, entry.QuotReqLegsGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoStipulations, entry.Stipulations);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+		if (entry.QuotQualGrp is not null)
+			for (var i = 0; i < entry.QuotQualGrp.Count; i++)
+				context.Validators.QuotQualGrp(context, message, entry.QuotQualGrp[i], i);
+		if (entry.QuotReqLegsGrp is not null)
+			for (var i = 0; i < entry.QuotReqLegsGrp.Count; i++)
+				context.Validators.QuotReqLegsGrp(context, message, entry.QuotReqLegsGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.Stipulations is not null)
+			for (var i = 0; i < entry.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, entry.Stipulations[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotSetAckGrp(FixContext context, FixMessage message, FixGroup.QuotSetAckGrp entry, int index)
+	{
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.NoQuoteEntries                       is not null) context.Validators.NoQuoteEntries(context, message, entry.NoQuoteEntries);
+		if (entry.QuoteSetID                           is not null) context.Validators.QuoteSetID(context, message, entry.QuoteSetID);
+		if (entry.TotNoQuoteEntries                    is not null) context.Validators.TotNoQuoteEntries(context, message, entry.TotNoQuoteEntries);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.LastFragment                         is not null) context.Validators.LastFragment(context, message, entry.LastFragment);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+
+		Counted(message, entry.NoQuoteEntries, entry.QuotEntryAckGrp);
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.QuotEntryAckGrp is not null)
+			for (var i = 0; i < entry.QuotEntryAckGrp.Count; i++)
+				context.Validators.QuotEntryAckGrp(context, message, entry.QuotEntryAckGrp[i], i);
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateQuotSetGrp(FixContext context, FixMessage message, FixGroup.QuotSetGrp entry, int index)
+	{
+		if (entry.NoQuoteEntries    is null) Missing(message, 295, entry.QuoteSetID.Position, index);
+		if (entry.TotNoQuoteEntries is null) Missing(message, 304, entry.QuoteSetID.Position, index);
+
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.NoQuoteEntries                       is not null) context.Validators.NoQuoteEntries(context, message, entry.NoQuoteEntries);
+		if (entry.QuoteSetID                           is not null) context.Validators.QuoteSetID(context, message, entry.QuoteSetID);
+		if (entry.TotNoQuoteEntries                    is not null) context.Validators.TotNoQuoteEntries(context, message, entry.TotNoQuoteEntries);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.QuoteSetValidUntilTime               is not null) context.Validators.QuoteSetValidUntilTime(context, message, entry.QuoteSetValidUntilTime);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.LastFragment                         is not null) context.Validators.LastFragment(context, message, entry.LastFragment);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+
+		Counted(message, entry.NoQuoteEntries, entry.QuotEntryGrp);
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.QuotEntryGrp is not null)
+			for (var i = 0; i < entry.QuotEntryGrp.Count; i++)
+				context.Validators.QuotEntryGrp(context, message, entry.QuotEntryGrp[i], i);
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateRFQReqGrp(FixContext context, FixMessage message, FixGroup.RFQReqGrp entry, int index)
+	{
+		if (Empty((IInstrument)entry)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, entry);
+
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.PrevClosePx                is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.QuoteRequestType           is not null) context.Validators.QuoteRequestType(context, message, entry.QuoteRequestType);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.QuoteType                  is not null) context.Validators.QuoteType(context, message, entry.QuoteType);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateRelSymDerivSecGrp(FixContext context, FixMessage message, FixGroup.RelSymDerivSecGrp entry, int index)
+	{
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+		if (!Empty((IInstrumentExtension)entry)) context.Validators.InstrumentExtension(context, message, entry);
+
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.Text                       is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.EncodedTextLen             is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText                is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.DeliveryForm               is not null) context.Validators.DeliveryForm(context, message, entry.DeliveryForm);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.ExpirationCycle            is not null) context.Validators.ExpirationCycle(context, message, entry.ExpirationCycle);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.PctAtRisk                  is not null) context.Validators.PctAtRisk(context, message, entry.PctAtRisk);
+		if (entry.NoInstrAttrib              is not null) context.Validators.NoInstrAttrib(context, message, entry.NoInstrAttrib);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoInstrAttrib, entry.AttrbGrp);
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+
+		if (entry.AttrbGrp is not null)
+			for (var i = 0; i < entry.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, entry.AttrbGrp[i], i);
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegGrp.Count; i++)
+				context.Validators.InstrmtLegGrp(context, message, entry.InstrmtLegGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateRgstDistInstGrp(FixContext context, FixMessage message, FixGroup.RgstDistInstGrp entry, int index)
+	{
+		if (entry.DistribPaymentMethod       is not null) context.Validators.DistribPaymentMethod(context, message, entry.DistribPaymentMethod);
+		if (entry.CashDistribCurr            is not null) context.Validators.CashDistribCurr(context, message, entry.CashDistribCurr);
+		if (entry.CashDistribAgentName       is not null) context.Validators.CashDistribAgentName(context, message, entry.CashDistribAgentName);
+		if (entry.CashDistribAgentCode       is not null) context.Validators.CashDistribAgentCode(context, message, entry.CashDistribAgentCode);
+		if (entry.CashDistribAgentAcctNumber is not null) context.Validators.CashDistribAgentAcctNumber(context, message, entry.CashDistribAgentAcctNumber);
+		if (entry.CashDistribPayRef          is not null) context.Validators.CashDistribPayRef(context, message, entry.CashDistribPayRef);
+		if (entry.CashDistribAgentAcctName   is not null) context.Validators.CashDistribAgentAcctName(context, message, entry.CashDistribAgentAcctName);
+		if (entry.DistribPercentage          is not null) context.Validators.DistribPercentage(context, message, entry.DistribPercentage);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateRgstDtlsGrp(FixContext context, FixMessage message, FixGroup.RgstDtlsGrp entry, int index)
+	{
+		if (entry.MailingDtls                is not null) context.Validators.MailingDtls(context, message, entry.MailingDtls);
+		if (entry.InvestorCountryOfResidence is not null) context.Validators.InvestorCountryOfResidence(context, message, entry.InvestorCountryOfResidence);
+		if (entry.MailingInst                is not null) context.Validators.MailingInst(context, message, entry.MailingInst);
+		if (entry.DateOfBirth                is not null) context.Validators.DateOfBirth(context, message, entry.DateOfBirth);
+		if (entry.RegistDtls                 is not null) context.Validators.RegistDtls(context, message, entry.RegistDtls);
+		if (entry.RegistEmail                is not null) context.Validators.RegistEmail(context, message, entry.RegistEmail);
+		if (entry.OwnerType                  is not null) context.Validators.OwnerType(context, message, entry.OwnerType);
+		if (entry.NoNestedPartyIDs           is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateRoutingGrp(FixContext context, FixMessage message, FixGroup.RoutingGrp entry, int index)
+	{
+		if (entry.RoutingType is not null) context.Validators.RoutingType(context, message, entry.RoutingType);
+		if (entry.RoutingID   is not null) context.Validators.RoutingID(context, message, entry.RoutingID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSecAltIDGrp(FixContext context, FixMessage message, FixGroup.SecAltIDGrp entry, int index)
+	{
+		if (entry.SecurityAltID       is not null) context.Validators.SecurityAltID(context, message, entry.SecurityAltID);
+		if (entry.SecurityAltIDSource is not null) context.Validators.SecurityAltIDSource(context, message, entry.SecurityAltIDSource);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSecListGrp(FixContext context, FixMessage message, FixGroup.SecListGrp entry, int index)
+	{
+		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
+		if (!Empty((IInstrument)entry)) context.Validators.Instrument(context, message, entry);
+		if (!Empty((IInstrumentExtension)entry)) context.Validators.InstrumentExtension(context, message, entry);
+		if (!Empty((ISpreadOrBenchmarkCurveData)entry)) context.Validators.SpreadOrBenchmarkCurveData(context, message, entry);
+		if (!Empty((IYieldData)entry)) context.Validators.YieldData(context, message, entry);
+
+		if (entry.Currency                   is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
+		if (entry.SecurityID                 is not null) context.Validators.SecurityID(context, message, entry.SecurityID);
+		if (entry.Symbol                     is not null) context.Validators.Symbol(context, message, entry.Symbol);
+		if (entry.Text                       is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.SymbolSfx                  is not null) context.Validators.SymbolSfx(context, message, entry.SymbolSfx);
+		if (entry.Issuer                     is not null) context.Validators.Issuer(context, message, entry.Issuer);
+		if (entry.SecurityDesc               is not null) context.Validators.SecurityDesc(context, message, entry.SecurityDesc);
+		if (entry.SecurityType               is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.MaturityMonthYear          is not null) context.Validators.MaturityMonthYear(context, message, entry.MaturityMonthYear);
+		if (entry.PutOrCall                  is not null) context.Validators.PutOrCall(context, message, entry.PutOrCall);
+		if (entry.StrikePrice                is not null) context.Validators.StrikePrice(context, message, entry.StrikePrice);
+		if (entry.OptAttribute               is not null) context.Validators.OptAttribute(context, message, entry.OptAttribute);
+		if (entry.SecurityExchange           is not null) context.Validators.SecurityExchange(context, message, entry.SecurityExchange);
+		if (entry.Spread                     is not null) context.Validators.Spread(context, message, entry.Spread);
+		if (entry.BenchmarkCurveCurrency     is not null) context.Validators.BenchmarkCurveCurrency(context, message, entry.BenchmarkCurveCurrency);
+		if (entry.BenchmarkCurveName         is not null) context.Validators.BenchmarkCurveName(context, message, entry.BenchmarkCurveName);
+		if (entry.BenchmarkCurvePoint        is not null) context.Validators.BenchmarkCurvePoint(context, message, entry.BenchmarkCurvePoint);
+		if (entry.CouponRate                 is not null) context.Validators.CouponRate(context, message, entry.CouponRate);
+		if (entry.CouponPaymentDate          is not null) context.Validators.CouponPaymentDate(context, message, entry.CouponPaymentDate);
+		if (entry.IssueDate                  is not null) context.Validators.IssueDate(context, message, entry.IssueDate);
+		if (entry.RepurchaseTerm             is not null) context.Validators.RepurchaseTerm(context, message, entry.RepurchaseTerm);
+		if (entry.RepurchaseRate             is not null) context.Validators.RepurchaseRate(context, message, entry.RepurchaseRate);
+		if (entry.Factor                     is not null) context.Validators.Factor(context, message, entry.Factor);
+		if (entry.ContractMultiplier         is not null) context.Validators.ContractMultiplier(context, message, entry.ContractMultiplier);
+		if (entry.NoStipulations             is not null) context.Validators.NoStipulations(context, message, entry.NoStipulations);
+		if (entry.YieldType                  is not null) context.Validators.YieldType(context, message, entry.YieldType);
+		if (entry.Yield                      is not null) context.Validators.Yield(context, message, entry.Yield);
+		if (entry.RepoCollateralSecurityType is not null) context.Validators.RepoCollateralSecurityType(context, message, entry.RepoCollateralSecurityType);
+		if (entry.RedemptionDate             is not null) context.Validators.RedemptionDate(context, message, entry.RedemptionDate);
+		if (entry.CreditRating               is not null) context.Validators.CreditRating(context, message, entry.CreditRating);
+		if (entry.TradingSessionID           is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedIssuerLen           is not null) context.Validators.EncodedIssuerLen(context, message, entry.EncodedIssuerLen);
+		if (entry.EncodedIssuer              is not null) context.Validators.EncodedIssuer(context, message, entry.EncodedIssuer);
+		if (entry.EncodedSecurityDescLen     is not null) context.Validators.EncodedSecurityDescLen(context, message, entry.EncodedSecurityDescLen);
+		if (entry.EncodedSecurityDesc        is not null) context.Validators.EncodedSecurityDesc(context, message, entry.EncodedSecurityDesc);
+		if (entry.EncodedTextLen             is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText                is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.NoSecurityAltID            is not null) context.Validators.NoSecurityAltID(context, message, entry.NoSecurityAltID);
+		if (entry.Product                    is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode                    is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.CountryOfIssue             is not null) context.Validators.CountryOfIssue(context, message, entry.CountryOfIssue);
+		if (entry.StateOrProvinceOfIssue     is not null) context.Validators.StateOrProvinceOfIssue(context, message, entry.StateOrProvinceOfIssue);
+		if (entry.LocaleOfIssue              is not null) context.Validators.LocaleOfIssue(context, message, entry.LocaleOfIssue);
+		if (entry.MaturityDate               is not null) context.Validators.MaturityDate(context, message, entry.MaturityDate);
+		if (entry.InstrRegistry              is not null) context.Validators.InstrRegistry(context, message, entry.InstrRegistry);
+		if (entry.NoLegs                     is not null) context.Validators.NoLegs(context, message, entry.NoLegs);
+		if (entry.RoundLot                   is not null) context.Validators.RoundLot(context, message, entry.RoundLot);
+		if (entry.MinTradeVol                is not null) context.Validators.MinTradeVol(context, message, entry.MinTradeVol);
+		if (entry.TradingSessionSubID        is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.BenchmarkPrice             is not null) context.Validators.BenchmarkPrice(context, message, entry.BenchmarkPrice);
+		if (entry.BenchmarkPriceType         is not null) context.Validators.BenchmarkPriceType(context, message, entry.BenchmarkPriceType);
+		if (entry.ContractSettlMonth         is not null) context.Validators.ContractSettlMonth(context, message, entry.ContractSettlMonth);
+		if (entry.DeliveryForm               is not null) context.Validators.DeliveryForm(context, message, entry.DeliveryForm);
+		if (entry.Pool                       is not null) context.Validators.Pool(context, message, entry.Pool);
+		if (entry.YieldRedemptionDate        is not null) context.Validators.YieldRedemptionDate(context, message, entry.YieldRedemptionDate);
+		if (entry.YieldRedemptionPrice       is not null) context.Validators.YieldRedemptionPrice(context, message, entry.YieldRedemptionPrice);
+		if (entry.YieldRedemptionPriceType   is not null) context.Validators.YieldRedemptionPriceType(context, message, entry.YieldRedemptionPriceType);
+		if (entry.BenchmarkSecurityID        is not null) context.Validators.BenchmarkSecurityID(context, message, entry.BenchmarkSecurityID);
+		if (entry.YieldCalcDate              is not null) context.Validators.YieldCalcDate(context, message, entry.YieldCalcDate);
+		if (entry.NoUnderlyings              is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
+		if (entry.BenchmarkSecurityIDSource  is not null) context.Validators.BenchmarkSecurityIDSource(context, message, entry.BenchmarkSecurityIDSource);
+		if (entry.SecuritySubType            is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+		if (entry.TerminationType            is not null) context.Validators.TerminationType(context, message, entry.TerminationType);
+		if (entry.ExpirationCycle            is not null) context.Validators.ExpirationCycle(context, message, entry.ExpirationCycle);
+		if (entry.NoEvents                   is not null) context.Validators.NoEvents(context, message, entry.NoEvents);
+		if (entry.PctAtRisk                  is not null) context.Validators.PctAtRisk(context, message, entry.PctAtRisk);
+		if (entry.NoInstrAttrib              is not null) context.Validators.NoInstrAttrib(context, message, entry.NoInstrAttrib);
+		if (entry.DatedDate                  is not null) context.Validators.DatedDate(context, message, entry.DatedDate);
+		if (entry.InterestAccrualDate        is not null) context.Validators.InterestAccrualDate(context, message, entry.InterestAccrualDate);
+		if (entry.CPProgram                  is not null) context.Validators.CPProgram(context, message, entry.CPProgram);
+		if (entry.CPRegType                  is not null) context.Validators.CPRegType(context, message, entry.CPRegType);
+		if (entry.MarginRatio                is not null) context.Validators.MarginRatio(context, message, entry.MarginRatio);
+		if (entry.AgreementDesc              is not null) context.Validators.AgreementDesc(context, message, entry.AgreementDesc);
+		if (entry.AgreementID                is not null) context.Validators.AgreementID(context, message, entry.AgreementID);
+		if (entry.AgreementDate              is not null) context.Validators.AgreementDate(context, message, entry.AgreementDate);
+		if (entry.StartDate                  is not null) context.Validators.StartDate(context, message, entry.StartDate);
+		if (entry.EndDate                    is not null) context.Validators.EndDate(context, message, entry.EndDate);
+		if (entry.AgreementCurrency          is not null) context.Validators.AgreementCurrency(context, message, entry.AgreementCurrency);
+		if (entry.DeliveryType               is not null) context.Validators.DeliveryType(context, message, entry.DeliveryType);
+		if (entry.StrikeCurrency             is not null) context.Validators.StrikeCurrency(context, message, entry.StrikeCurrency);
+
+		Counted(message, entry.NoInstrAttrib, entry.AttrbGrp);
+		Counted(message, entry.NoEvents, entry.EvntGrp);
+		Counted(message, entry.NoLegs, entry.InstrmtLegSecListGrp);
+		Counted(message, entry.NoSecurityAltID, entry.SecAltIDGrp);
+		Counted(message, entry.NoStipulations, entry.Stipulations);
+		Counted(message, entry.NoUnderlyings, entry.UndInstrmtGrp);
+
+		if (entry.AttrbGrp is not null)
+			for (var i = 0; i < entry.AttrbGrp.Count; i++)
+				context.Validators.AttrbGrp(context, message, entry.AttrbGrp[i], i);
+		if (entry.EvntGrp is not null)
+			for (var i = 0; i < entry.EvntGrp.Count; i++)
+				context.Validators.EvntGrp(context, message, entry.EvntGrp[i], i);
+		if (entry.InstrmtLegSecListGrp is not null)
+			for (var i = 0; i < entry.InstrmtLegSecListGrp.Count; i++)
+				context.Validators.InstrmtLegSecListGrp(context, message, entry.InstrmtLegSecListGrp[i], i);
+		if (entry.SecAltIDGrp is not null)
+			for (var i = 0; i < entry.SecAltIDGrp.Count; i++)
+				context.Validators.SecAltIDGrp(context, message, entry.SecAltIDGrp[i], i);
+		if (entry.Stipulations is not null)
+			for (var i = 0; i < entry.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, entry.Stipulations[i], i);
+		if (entry.UndInstrmtGrp is not null)
+			for (var i = 0; i < entry.UndInstrmtGrp.Count; i++)
+				context.Validators.UndInstrmtGrp(context, message, entry.UndInstrmtGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSecTypesGrp(FixContext context, FixMessage message, FixGroup.SecTypesGrp entry, int index)
+	{
+		if (entry.SecurityType    is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.Product         is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode         is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.SecuritySubType is not null) context.Validators.SecuritySubType(context, message, entry.SecuritySubType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSettlInstGrp(FixContext context, FixMessage message, FixGroup.SettlInstGrp entry, int index)
+	{
+		if (!Empty((ISettlInstructionsData)entry)) context.Validators.SettlInstructionsData(context, message, entry);
+
+		if (entry.Side               is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.NoDlvyInst         is not null) context.Validators.NoDlvyInst(context, message, entry.NoDlvyInst);
+		if (entry.ExpireTime         is not null) context.Validators.ExpireTime(context, message, entry.ExpireTime);
+		if (entry.SettlInstID        is not null) context.Validators.SettlInstID(context, message, entry.SettlInstID);
+		if (entry.SettlInstTransType is not null) context.Validators.SettlInstTransType(context, message, entry.SettlInstTransType);
+		if (entry.SecurityType       is not null) context.Validators.SecurityType(context, message, entry.SecurityType);
+		if (entry.EffectiveTime      is not null) context.Validators.EffectiveTime(context, message, entry.EffectiveTime);
+		if (entry.StandInstDbType    is not null) context.Validators.StandInstDbType(context, message, entry.StandInstDbType);
+		if (entry.StandInstDbName    is not null) context.Validators.StandInstDbName(context, message, entry.StandInstDbName);
+		if (entry.StandInstDbID      is not null) context.Validators.StandInstDbID(context, message, entry.StandInstDbID);
+		if (entry.SettlDeliveryType  is not null) context.Validators.SettlDeliveryType(context, message, entry.SettlDeliveryType);
+		if (entry.SettlInstRefID     is not null) context.Validators.SettlInstRefID(context, message, entry.SettlInstRefID);
+		if (entry.NoPartyIDs         is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.Product            is not null) context.Validators.Product(context, message, entry.Product);
+		if (entry.CFICode            is not null) context.Validators.CFICode(context, message, entry.CFICode);
+		if (entry.PaymentRef         is not null) context.Validators.PaymentRef(context, message, entry.PaymentRef);
+		if (entry.CardHolderName     is not null) context.Validators.CardHolderName(context, message, entry.CardHolderName);
+		if (entry.CardNumber         is not null) context.Validators.CardNumber(context, message, entry.CardNumber);
+		if (entry.CardExpDate        is not null) context.Validators.CardExpDate(context, message, entry.CardExpDate);
+		if (entry.CardIssNum         is not null) context.Validators.CardIssNum(context, message, entry.CardIssNum);
+		if (entry.PaymentMethod      is not null) context.Validators.PaymentMethod(context, message, entry.PaymentMethod);
+		if (entry.CardStartDate      is not null) context.Validators.CardStartDate(context, message, entry.CardStartDate);
+		if (entry.PaymentDate        is not null) context.Validators.PaymentDate(context, message, entry.PaymentDate);
+		if (entry.PaymentRemitterID  is not null) context.Validators.PaymentRemitterID(context, message, entry.PaymentRemitterID);
+		if (entry.LastUpdateTime     is not null) context.Validators.LastUpdateTime(context, message, entry.LastUpdateTime);
+
+		Counted(message, entry.NoDlvyInst, entry.DlvyInstGrp);
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+
+		if (entry.DlvyInstGrp is not null)
+			for (var i = 0; i < entry.DlvyInstGrp.Count; i++)
+				context.Validators.DlvyInstGrp(context, message, entry.DlvyInstGrp[i], i);
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSettlParties(FixContext context, FixMessage message, FixGroup.SettlParties entry, int index)
+	{
+		if (entry.SettlPartyID       is not null) context.Validators.SettlPartyID(context, message, entry.SettlPartyID);
+		if (entry.SettlPartyIDSource is not null) context.Validators.SettlPartyIDSource(context, message, entry.SettlPartyIDSource);
+		if (entry.SettlPartyRole     is not null) context.Validators.SettlPartyRole(context, message, entry.SettlPartyRole);
+		if (entry.NoSettlPartySubIDs is not null) context.Validators.NoSettlPartySubIDs(context, message, entry.NoSettlPartySubIDs);
+
+		Counted(message, entry.NoSettlPartySubIDs, entry.SettlPtysSubGrp);
+
+		if (entry.SettlPtysSubGrp is not null)
+			for (var i = 0; i < entry.SettlPtysSubGrp.Count; i++)
+				context.Validators.SettlPtysSubGrp(context, message, entry.SettlPtysSubGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSettlPtysSubGrp(FixContext context, FixMessage message, FixGroup.SettlPtysSubGrp entry, int index)
+	{
+		if (entry.SettlPartySubID     is not null) context.Validators.SettlPartySubID(context, message, entry.SettlPartySubID);
+		if (entry.SettlPartySubIDType is not null) context.Validators.SettlPartySubIDType(context, message, entry.SettlPartySubIDType);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSideCrossOrdCxlGrp(FixContext context, FixMessage message, FixGroup.SideCrossOrdCxlGrp entry, int index)
+	{
+		if (entry.ClOrdID     is null) Missing(message, 11, entry.Side.Position, index);
+		if (entry.OrigClOrdID is null) Missing(message, 41, entry.Side.Position, index);
+
+		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, entry);
+
+		if (entry.ClOrdID              is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.OrderQty             is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.OrigClOrdID          is not null) context.Validators.OrigClOrdID(context, message, entry.OrigClOrdID);
+		if (entry.Side                 is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Text                 is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.TradeDate            is not null) context.Validators.TradeDate(context, message, entry.TradeDate);
+		if (entry.CashOrderQty         is not null) context.Validators.CashOrderQty(context, message, entry.CashOrderQty);
+		if (entry.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
+		if (entry.EncodedTextLen       is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText          is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.ComplianceID         is not null) context.Validators.ComplianceID(context, message, entry.ComplianceID);
+		if (entry.NoPartyIDs           is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.RoundingDirection    is not null) context.Validators.RoundingDirection(context, message, entry.RoundingDirection);
+		if (entry.RoundingModulus      is not null) context.Validators.RoundingModulus(context, message, entry.RoundingModulus);
+		if (entry.OrderPercent         is not null) context.Validators.OrderPercent(context, message, entry.OrderPercent);
+		if (entry.SecondaryClOrdID     is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.ClOrdLinkID          is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
+		if (entry.OrigOrdModTime       is not null) context.Validators.OrigOrdModTime(context, message, entry.OrigOrdModTime);
+
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateSideCrossOrdModGrp(FixContext context, FixMessage message, FixGroup.SideCrossOrdModGrp entry, int index)
+	{
+		if (entry.ClOrdID is null) Missing(message, 11, entry.Side.Position, index);
+
+		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
+		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, entry);
+
+		if (entry.Account              is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.ClOrdID              is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.Commission           is not null) context.Validators.Commission(context, message, entry.Commission);
+		if (entry.CommType             is not null) context.Validators.CommType(context, message, entry.CommType);
+		if (entry.OrderQty             is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
+		if (entry.Side                 is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Text                 is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.AllocID              is not null) context.Validators.AllocID(context, message, entry.AllocID);
+		if (entry.TradeDate            is not null) context.Validators.TradeDate(context, message, entry.TradeDate);
+		if (entry.PositionEffect       is not null) context.Validators.PositionEffect(context, message, entry.PositionEffect);
+		if (entry.NoAllocs             is not null) context.Validators.NoAllocs(context, message, entry.NoAllocs);
+		if (entry.SettlCurrency        is not null) context.Validators.SettlCurrency(context, message, entry.SettlCurrency);
+		if (entry.ForexReq             is not null) context.Validators.ForexReq(context, message, entry.ForexReq);
+		if (entry.CashOrderQty         is not null) context.Validators.CashOrderQty(context, message, entry.CashOrderQty);
+		if (entry.CoveredOrUncovered   is not null) context.Validators.CoveredOrUncovered(context, message, entry.CoveredOrUncovered);
+		if (entry.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
+		if (entry.EncodedTextLen       is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText          is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.SolicitedFlag        is not null) context.Validators.SolicitedFlag(context, message, entry.SolicitedFlag);
+		if (entry.NoPartyIDs           is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.RoundingDirection    is not null) context.Validators.RoundingDirection(context, message, entry.RoundingDirection);
+		if (entry.RoundingModulus      is not null) context.Validators.RoundingModulus(context, message, entry.RoundingModulus);
+		if (entry.CommCurrency         is not null) context.Validators.CommCurrency(context, message, entry.CommCurrency);
+		if (entry.FundRenewWaiv        is not null) context.Validators.FundRenewWaiv(context, message, entry.FundRenewWaiv);
+		if (entry.OrderPercent         is not null) context.Validators.OrderPercent(context, message, entry.OrderPercent);
+		if (entry.SecondaryClOrdID     is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.OrderCapacity        is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
+		if (entry.OrderRestrictions    is not null) context.Validators.OrderRestrictions(context, message, entry.OrderRestrictions);
+		if (entry.CashMargin           is not null) context.Validators.CashMargin(context, message, entry.CashMargin);
+		if (entry.AccountType          is not null) context.Validators.AccountType(context, message, entry.AccountType);
+		if (entry.CustOrderCapacity    is not null) context.Validators.CustOrderCapacity(context, message, entry.CustOrderCapacity);
+		if (entry.ClOrdLinkID          is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
+		if (entry.DayBookingInst       is not null) context.Validators.DayBookingInst(context, message, entry.DayBookingInst);
+		if (entry.BookingUnit          is not null) context.Validators.BookingUnit(context, message, entry.BookingUnit);
+		if (entry.PreallocMethod       is not null) context.Validators.PreallocMethod(context, message, entry.PreallocMethod);
+		if (entry.ClearingFeeIndicator is not null) context.Validators.ClearingFeeIndicator(context, message, entry.ClearingFeeIndicator);
+		if (entry.SideComplianceID     is not null) context.Validators.SideComplianceID(context, message, entry.SideComplianceID);
+		if (entry.AcctIDSource         is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+		if (entry.BookingType          is not null) context.Validators.BookingType(context, message, entry.BookingType);
+		if (entry.QtyType              is not null) context.Validators.QtyType(context, message, entry.QtyType);
+
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+		Counted(message, entry.NoAllocs, entry.PreAllocGrp);
+
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+		if (entry.PreAllocGrp is not null)
+			for (var i = 0; i < entry.PreAllocGrp.Count; i++)
+				context.Validators.PreAllocGrp(context, message, entry.PreAllocGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateStipulations(FixContext context, FixMessage message, FixGroup.Stipulations entry, int index)
+	{
+		if (entry.StipulationType  is not null) context.Validators.StipulationType(context, message, entry.StipulationType);
+		if (entry.StipulationValue is not null) context.Validators.StipulationValue(context, message, entry.StipulationValue);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdAllocGrp(FixContext context, FixMessage message, FixGroup.TrdAllocGrp entry, int index)
+	{
+		if (entry.AllocAccount       is not null) context.Validators.AllocAccount(context, message, entry.AllocAccount);
+		if (entry.AllocQty           is not null) context.Validators.AllocQty(context, message, entry.AllocQty);
+		if (entry.IndividualAllocID  is not null) context.Validators.IndividualAllocID(context, message, entry.IndividualAllocID);
+		if (entry.AllocAcctIDSource  is not null) context.Validators.AllocAcctIDSource(context, message, entry.AllocAcctIDSource);
+		if (entry.AllocSettlCurrency is not null) context.Validators.AllocSettlCurrency(context, message, entry.AllocSettlCurrency);
+		if (entry.NoNested2PartyIDs  is not null) context.Validators.NoNested2PartyIDs(context, message, entry.NoNested2PartyIDs);
+
+		Counted(message, entry.NoNested2PartyIDs, entry.NestedParties2);
+
+		if (entry.NestedParties2 is not null)
+			for (var i = 0; i < entry.NestedParties2.Count; i++)
+				context.Validators.NestedParties2(context, message, entry.NestedParties2[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdCapDtGrp(FixContext context, FixMessage message, FixGroup.TrdCapDtGrp entry, int index)
+	{
+		if (entry.TransactTime is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
+		if (entry.TradeDate    is not null) context.Validators.TradeDate(context, message, entry.TradeDate);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdCapRptSideGrp(FixContext context, FixMessage message, FixGroup.TrdCapRptSideGrp entry, int index)
+	{
+		if (entry.OrderID is null) Missing(message, 37, entry.Side.Position, index);
+
+		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
+
+		if (entry.Account                   is not null) context.Validators.Account(context, message, entry.Account);
+		if (entry.ClOrdID                   is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.Commission                is not null) context.Validators.Commission(context, message, entry.Commission);
+		if (entry.CommType                  is not null) context.Validators.CommType(context, message, entry.CommType);
+		if (entry.Currency                  is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.ExecInst                  is not null) context.Validators.ExecInst(context, message, entry.ExecInst);
+		if (entry.OrderID                   is not null) context.Validators.OrderID(context, message, entry.OrderID);
+		if (entry.OrdType                   is not null) context.Validators.OrdType(context, message, entry.OrdType);
+		if (entry.Side                      is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Text                      is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.ListID                    is not null) context.Validators.ListID(context, message, entry.ListID);
+		if (entry.AllocID                   is not null) context.Validators.AllocID(context, message, entry.AllocID);
+		if (entry.PositionEffect            is not null) context.Validators.PositionEffect(context, message, entry.PositionEffect);
+		if (entry.NoAllocs                  is not null) context.Validators.NoAllocs(context, message, entry.NoAllocs);
+		if (entry.ProcessCode               is not null) context.Validators.ProcessCode(context, message, entry.ProcessCode);
+		if (entry.NetMoney                  is not null) context.Validators.NetMoney(context, message, entry.NetMoney);
+		if (entry.SettlCurrAmt              is not null) context.Validators.SettlCurrAmt(context, message, entry.SettlCurrAmt);
+		if (entry.SettlCurrency             is not null) context.Validators.SettlCurrency(context, message, entry.SettlCurrency);
+		if (entry.NoMiscFees                is not null) context.Validators.NoMiscFees(context, message, entry.NoMiscFees);
+		if (entry.SettlCurrFxRate           is not null) context.Validators.SettlCurrFxRate(context, message, entry.SettlCurrFxRate);
+		if (entry.SettlCurrFxRateCalc       is not null) context.Validators.SettlCurrFxRateCalc(context, message, entry.SettlCurrFxRateCalc);
+		if (entry.NumDaysInterest           is not null) context.Validators.NumDaysInterest(context, message, entry.NumDaysInterest);
+		if (entry.AccruedInterestRate       is not null) context.Validators.AccruedInterestRate(context, message, entry.AccruedInterestRate);
+		if (entry.AccruedInterestAmt        is not null) context.Validators.AccruedInterestAmt(context, message, entry.AccruedInterestAmt);
+		if (entry.SecondaryOrderID          is not null) context.Validators.SecondaryOrderID(context, message, entry.SecondaryOrderID);
+		if (entry.ExDate                    is not null) context.Validators.ExDate(context, message, entry.ExDate);
+		if (entry.NoStipulations            is not null) context.Validators.NoStipulations(context, message, entry.NoStipulations);
+		if (entry.TotalTakedown             is not null) context.Validators.TotalTakedown(context, message, entry.TotalTakedown);
+		if (entry.Concession                is not null) context.Validators.Concession(context, message, entry.Concession);
+		if (entry.TradingSessionID          is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.EncodedTextLen            is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText               is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.ComplianceID              is not null) context.Validators.ComplianceID(context, message, entry.ComplianceID);
+		if (entry.SolicitedFlag             is not null) context.Validators.SolicitedFlag(context, message, entry.SolicitedFlag);
+		if (entry.GrossTradeAmt             is not null) context.Validators.GrossTradeAmt(context, message, entry.GrossTradeAmt);
+		if (entry.NoPartyIDs                is not null) context.Validators.NoPartyIDs(context, message, entry.NoPartyIDs);
+		if (entry.CommCurrency              is not null) context.Validators.CommCurrency(context, message, entry.CommCurrency);
+		if (entry.TransBkdTime              is not null) context.Validators.TransBkdTime(context, message, entry.TransBkdTime);
+		if (entry.FundRenewWaiv             is not null) context.Validators.FundRenewWaiv(context, message, entry.FundRenewWaiv);
+		if (entry.NoContAmts                is not null) context.Validators.NoContAmts(context, message, entry.NoContAmts);
+		if (entry.SecondaryClOrdID          is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.OrderCapacity             is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
+		if (entry.OrderRestrictions         is not null) context.Validators.OrderRestrictions(context, message, entry.OrderRestrictions);
+		if (entry.OddLot                    is not null) context.Validators.OddLot(context, message, entry.OddLot);
+		if (entry.NoClearingInstructions    is not null) context.Validators.NoClearingInstructions(context, message, entry.NoClearingInstructions);
+		if (entry.TradeInputSource          is not null) context.Validators.TradeInputSource(context, message, entry.TradeInputSource);
+		if (entry.TradeInputDevice          is not null) context.Validators.TradeInputDevice(context, message, entry.TradeInputDevice);
+		if (entry.AccountType               is not null) context.Validators.AccountType(context, message, entry.AccountType);
+		if (entry.CustOrderCapacity         is not null) context.Validators.CustOrderCapacity(context, message, entry.CustOrderCapacity);
+		if (entry.PreallocMethod            is not null) context.Validators.PreallocMethod(context, message, entry.PreallocMethod);
+		if (entry.TradingSessionSubID       is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+		if (entry.AcctIDSource              is not null) context.Validators.AcctIDSource(context, message, entry.AcctIDSource);
+		if (entry.InterestAtMaturity        is not null) context.Validators.InterestAtMaturity(context, message, entry.InterestAtMaturity);
+		if (entry.SideMultiLegReportingType is not null) context.Validators.SideMultiLegReportingType(context, message, entry.SideMultiLegReportingType);
+		if (entry.OrderInputDevice          is not null) context.Validators.OrderInputDevice(context, message, entry.OrderInputDevice);
+		if (entry.ExchangeRule              is not null) context.Validators.ExchangeRule(context, message, entry.ExchangeRule);
+		if (entry.TradeAllocIndicator       is not null) context.Validators.TradeAllocIndicator(context, message, entry.TradeAllocIndicator);
+		if (entry.EndAccruedInterestAmt     is not null) context.Validators.EndAccruedInterestAmt(context, message, entry.EndAccruedInterestAmt);
+		if (entry.StartCash                 is not null) context.Validators.StartCash(context, message, entry.StartCash);
+		if (entry.EndCash                   is not null) context.Validators.EndCash(context, message, entry.EndCash);
+		if (entry.TimeBracket               is not null) context.Validators.TimeBracket(context, message, entry.TimeBracket);
+
+		Counted(message, entry.NoClearingInstructions, entry.ClrInstGrp);
+		Counted(message, entry.NoContAmts, entry.ContAmtGrp);
+		Counted(message, entry.NoMiscFees, entry.MiscFeesGrp);
+		Counted(message, entry.NoPartyIDs, entry.Parties);
+		Counted(message, entry.NoStipulations, entry.Stipulations);
+		Counted(message, entry.NoAllocs, entry.TrdAllocGrp);
+
+		if (entry.ClrInstGrp is not null)
+			for (var i = 0; i < entry.ClrInstGrp.Count; i++)
+				context.Validators.ClrInstGrp(context, message, entry.ClrInstGrp[i], i);
+		if (entry.ContAmtGrp is not null)
+			for (var i = 0; i < entry.ContAmtGrp.Count; i++)
+				context.Validators.ContAmtGrp(context, message, entry.ContAmtGrp[i], i);
+		if (entry.MiscFeesGrp is not null)
+			for (var i = 0; i < entry.MiscFeesGrp.Count; i++)
+				context.Validators.MiscFeesGrp(context, message, entry.MiscFeesGrp[i], i);
+		if (entry.Parties is not null)
+			for (var i = 0; i < entry.Parties.Count; i++)
+				context.Validators.Parties(context, message, entry.Parties[i], i);
+		if (entry.Stipulations is not null)
+			for (var i = 0; i < entry.Stipulations.Count; i++)
+				context.Validators.Stipulations(context, message, entry.Stipulations[i], i);
+		if (entry.TrdAllocGrp is not null)
+			for (var i = 0; i < entry.TrdAllocGrp.Count; i++)
+				context.Validators.TrdAllocGrp(context, message, entry.TrdAllocGrp[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdCollGrp(FixContext context, FixMessage message, FixGroup.TrdCollGrp entry, int index)
+	{
+		if (entry.TradeReportID          is not null) context.Validators.TradeReportID(context, message, entry.TradeReportID);
+		if (entry.SecondaryTradeReportID is not null) context.Validators.SecondaryTradeReportID(context, message, entry.SecondaryTradeReportID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdInstrmtLegGrp(FixContext context, FixMessage message, FixGroup.TrdInstrmtLegGrp entry, int index)
+	{
+		if (!Empty((IInstrumentLeg)entry)) context.Validators.InstrumentLeg(context, message, entry);
+
+		if (entry.LegCouponPaymentDate          is not null) context.Validators.LegCouponPaymentDate(context, message, entry.LegCouponPaymentDate);
+		if (entry.LegIssueDate                  is not null) context.Validators.LegIssueDate(context, message, entry.LegIssueDate);
+		if (entry.LegRepoCollateralSecurityType is not null) context.Validators.LegRepoCollateralSecurityType(context, message, entry.LegRepoCollateralSecurityType);
+		if (entry.LegRepurchaseTerm             is not null) context.Validators.LegRepurchaseTerm(context, message, entry.LegRepurchaseTerm);
+		if (entry.LegRepurchaseRate             is not null) context.Validators.LegRepurchaseRate(context, message, entry.LegRepurchaseRate);
+		if (entry.LegFactor                     is not null) context.Validators.LegFactor(context, message, entry.LegFactor);
+		if (entry.LegRedemptionDate             is not null) context.Validators.LegRedemptionDate(context, message, entry.LegRedemptionDate);
+		if (entry.LegCreditRating               is not null) context.Validators.LegCreditRating(context, message, entry.LegCreditRating);
+		if (entry.NoNestedPartyIDs              is not null) context.Validators.NoNestedPartyIDs(context, message, entry.NoNestedPartyIDs);
+		if (entry.LegCurrency                   is not null) context.Validators.LegCurrency(context, message, entry.LegCurrency);
+		if (entry.LegPositionEffect             is not null) context.Validators.LegPositionEffect(context, message, entry.LegPositionEffect);
+		if (entry.LegCoveredOrUncovered         is not null) context.Validators.LegCoveredOrUncovered(context, message, entry.LegCoveredOrUncovered);
+		if (entry.LegPrice                      is not null) context.Validators.LegPrice(context, message, entry.LegPrice);
+		if (entry.LegSettlType                  is not null) context.Validators.LegSettlType(context, message, entry.LegSettlType);
+		if (entry.LegSettlDate                  is not null) context.Validators.LegSettlDate(context, message, entry.LegSettlDate);
+		if (entry.LegCountryOfIssue             is not null) context.Validators.LegCountryOfIssue(context, message, entry.LegCountryOfIssue);
+		if (entry.LegStateOrProvinceOfIssue     is not null) context.Validators.LegStateOrProvinceOfIssue(context, message, entry.LegStateOrProvinceOfIssue);
+		if (entry.LegLocaleOfIssue              is not null) context.Validators.LegLocaleOfIssue(context, message, entry.LegLocaleOfIssue);
+		if (entry.LegInstrRegistry              is not null) context.Validators.LegInstrRegistry(context, message, entry.LegInstrRegistry);
+		if (entry.LegSymbol                     is not null) context.Validators.LegSymbol(context, message, entry.LegSymbol);
+		if (entry.LegSymbolSfx                  is not null) context.Validators.LegSymbolSfx(context, message, entry.LegSymbolSfx);
+		if (entry.LegSecurityID                 is not null) context.Validators.LegSecurityID(context, message, entry.LegSecurityID);
+		if (entry.LegSecurityIDSource           is not null) context.Validators.LegSecurityIDSource(context, message, entry.LegSecurityIDSource);
+		if (entry.NoLegSecurityAltID            is not null) context.Validators.NoLegSecurityAltID(context, message, entry.NoLegSecurityAltID);
+		if (entry.LegProduct                    is not null) context.Validators.LegProduct(context, message, entry.LegProduct);
+		if (entry.LegCFICode                    is not null) context.Validators.LegCFICode(context, message, entry.LegCFICode);
+		if (entry.LegSecurityType               is not null) context.Validators.LegSecurityType(context, message, entry.LegSecurityType);
+		if (entry.LegMaturityMonthYear          is not null) context.Validators.LegMaturityMonthYear(context, message, entry.LegMaturityMonthYear);
+		if (entry.LegMaturityDate               is not null) context.Validators.LegMaturityDate(context, message, entry.LegMaturityDate);
+		if (entry.LegStrikePrice                is not null) context.Validators.LegStrikePrice(context, message, entry.LegStrikePrice);
+		if (entry.LegOptAttribute               is not null) context.Validators.LegOptAttribute(context, message, entry.LegOptAttribute);
+		if (entry.LegContractMultiplier         is not null) context.Validators.LegContractMultiplier(context, message, entry.LegContractMultiplier);
+		if (entry.LegCouponRate                 is not null) context.Validators.LegCouponRate(context, message, entry.LegCouponRate);
+		if (entry.LegSecurityExchange           is not null) context.Validators.LegSecurityExchange(context, message, entry.LegSecurityExchange);
+		if (entry.LegIssuer                     is not null) context.Validators.LegIssuer(context, message, entry.LegIssuer);
+		if (entry.EncodedLegIssuerLen           is not null) context.Validators.EncodedLegIssuerLen(context, message, entry.EncodedLegIssuerLen);
+		if (entry.EncodedLegIssuer              is not null) context.Validators.EncodedLegIssuer(context, message, entry.EncodedLegIssuer);
+		if (entry.LegSecurityDesc               is not null) context.Validators.LegSecurityDesc(context, message, entry.LegSecurityDesc);
+		if (entry.EncodedLegSecurityDescLen     is not null) context.Validators.EncodedLegSecurityDescLen(context, message, entry.EncodedLegSecurityDescLen);
+		if (entry.EncodedLegSecurityDesc        is not null) context.Validators.EncodedLegSecurityDesc(context, message, entry.EncodedLegSecurityDesc);
+		if (entry.LegRatioQty                   is not null) context.Validators.LegRatioQty(context, message, entry.LegRatioQty);
+		if (entry.LegSide                       is not null) context.Validators.LegSide(context, message, entry.LegSide);
+		if (entry.LegLastPx                     is not null) context.Validators.LegLastPx(context, message, entry.LegLastPx);
+		if (entry.LegRefID                      is not null) context.Validators.LegRefID(context, message, entry.LegRefID);
+		if (entry.NoLegStipulations             is not null) context.Validators.NoLegStipulations(context, message, entry.NoLegStipulations);
+		if (entry.LegQty                        is not null) context.Validators.LegQty(context, message, entry.LegQty);
+		if (entry.LegSwapType                   is not null) context.Validators.LegSwapType(context, message, entry.LegSwapType);
+		if (entry.LegDatedDate                  is not null) context.Validators.LegDatedDate(context, message, entry.LegDatedDate);
+		if (entry.LegPool                       is not null) context.Validators.LegPool(context, message, entry.LegPool);
+		if (entry.LegSecuritySubType            is not null) context.Validators.LegSecuritySubType(context, message, entry.LegSecuritySubType);
+		if (entry.LegStrikeCurrency             is not null) context.Validators.LegStrikeCurrency(context, message, entry.LegStrikeCurrency);
+		if (entry.LegContractSettlMonth         is not null) context.Validators.LegContractSettlMonth(context, message, entry.LegContractSettlMonth);
+		if (entry.LegInterestAccrualDate        is not null) context.Validators.LegInterestAccrualDate(context, message, entry.LegInterestAccrualDate);
+
+		Counted(message, entry.NoLegSecurityAltID, entry.LegSecAltIDGrp);
+		Counted(message, entry.NoLegStipulations, entry.LegStipulations);
+		Counted(message, entry.NoNestedPartyIDs, entry.NestedParties);
+
+		if (entry.LegSecAltIDGrp is not null)
+			for (var i = 0; i < entry.LegSecAltIDGrp.Count; i++)
+				context.Validators.LegSecAltIDGrp(context, message, entry.LegSecAltIDGrp[i], i);
+		if (entry.LegStipulations is not null)
+			for (var i = 0; i < entry.LegStipulations.Count; i++)
+				context.Validators.LegStipulations(context, message, entry.LegStipulations[i], i);
+		if (entry.NestedParties is not null)
+			for (var i = 0; i < entry.NestedParties.Count; i++)
+				context.Validators.NestedParties(context, message, entry.NestedParties[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdRegTimestamps(FixContext context, FixMessage message, FixGroup.TrdRegTimestamps entry, int index)
+	{
+		if (entry.TrdRegTimestamp       is not null) context.Validators.TrdRegTimestamp(context, message, entry.TrdRegTimestamp);
+		if (entry.TrdRegTimestampType   is not null) context.Validators.TrdRegTimestampType(context, message, entry.TrdRegTimestampType);
+		if (entry.TrdRegTimestampOrigin is not null) context.Validators.TrdRegTimestampOrigin(context, message, entry.TrdRegTimestampOrigin);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateTrdgSesGrp(FixContext context, FixMessage message, FixGroup.TrdgSesGrp entry, int index)
+	{
+		if (entry.TradingSessionID    is not null) context.Validators.TradingSessionID(context, message, entry.TradingSessionID);
+		if (entry.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, entry.TradingSessionSubID);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateUndInstrmtCollGrp(FixContext context, FixMessage message, FixGroup.UndInstrmtCollGrp entry, int index)
+	{
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+		if (entry.CollAction                           is not null) context.Validators.CollAction(context, message, entry.CollAction);
+
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateUndInstrmtGrp(FixContext context, FixMessage message, FixGroup.UndInstrmtGrp entry, int index)
+	{
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateUndInstrmtStrkPxGrp(FixContext context, FixMessage message, FixGroup.UndInstrmtStrkPxGrp entry, int index)
+	{
+		if (entry.Price is null) Missing(message, 44, entry.UnderlyingSymbol.Position, index);
+
+		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
+
+		if (entry.ClOrdID                              is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
+		if (entry.Currency                             is not null) context.Validators.Currency(context, message, entry.Currency);
+		if (entry.Price                                is not null) context.Validators.Price(context, message, entry.Price);
+		if (entry.Side                                 is not null) context.Validators.Side(context, message, entry.Side);
+		if (entry.Text                                 is not null) context.Validators.Text(context, message, entry.Text);
+		if (entry.PrevClosePx                          is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
+		if (entry.UnderlyingCouponPaymentDate          is not null) context.Validators.UnderlyingCouponPaymentDate(context, message, entry.UnderlyingCouponPaymentDate);
+		if (entry.UnderlyingIssueDate                  is not null) context.Validators.UnderlyingIssueDate(context, message, entry.UnderlyingIssueDate);
+		if (entry.UnderlyingRepoCollateralSecurityType is not null) context.Validators.UnderlyingRepoCollateralSecurityType(context, message, entry.UnderlyingRepoCollateralSecurityType);
+		if (entry.UnderlyingRepurchaseTerm             is not null) context.Validators.UnderlyingRepurchaseTerm(context, message, entry.UnderlyingRepurchaseTerm);
+		if (entry.UnderlyingRepurchaseRate             is not null) context.Validators.UnderlyingRepurchaseRate(context, message, entry.UnderlyingRepurchaseRate);
+		if (entry.UnderlyingFactor                     is not null) context.Validators.UnderlyingFactor(context, message, entry.UnderlyingFactor);
+		if (entry.UnderlyingRedemptionDate             is not null) context.Validators.UnderlyingRedemptionDate(context, message, entry.UnderlyingRedemptionDate);
+		if (entry.UnderlyingCreditRating               is not null) context.Validators.UnderlyingCreditRating(context, message, entry.UnderlyingCreditRating);
+		if (entry.UnderlyingSecurityIDSource           is not null) context.Validators.UnderlyingSecurityIDSource(context, message, entry.UnderlyingSecurityIDSource);
+		if (entry.UnderlyingIssuer                     is not null) context.Validators.UnderlyingIssuer(context, message, entry.UnderlyingIssuer);
+		if (entry.UnderlyingSecurityDesc               is not null) context.Validators.UnderlyingSecurityDesc(context, message, entry.UnderlyingSecurityDesc);
+		if (entry.UnderlyingSecurityExchange           is not null) context.Validators.UnderlyingSecurityExchange(context, message, entry.UnderlyingSecurityExchange);
+		if (entry.UnderlyingSecurityID                 is not null) context.Validators.UnderlyingSecurityID(context, message, entry.UnderlyingSecurityID);
+		if (entry.UnderlyingSecurityType               is not null) context.Validators.UnderlyingSecurityType(context, message, entry.UnderlyingSecurityType);
+		if (entry.UnderlyingSymbol                     is not null) context.Validators.UnderlyingSymbol(context, message, entry.UnderlyingSymbol);
+		if (entry.UnderlyingSymbolSfx                  is not null) context.Validators.UnderlyingSymbolSfx(context, message, entry.UnderlyingSymbolSfx);
+		if (entry.UnderlyingMaturityMonthYear          is not null) context.Validators.UnderlyingMaturityMonthYear(context, message, entry.UnderlyingMaturityMonthYear);
+		if (entry.UnderlyingPutOrCall                  is not null) context.Validators.UnderlyingPutOrCall(context, message, entry.UnderlyingPutOrCall);
+		if (entry.UnderlyingStrikePrice                is not null) context.Validators.UnderlyingStrikePrice(context, message, entry.UnderlyingStrikePrice);
+		if (entry.UnderlyingOptAttribute               is not null) context.Validators.UnderlyingOptAttribute(context, message, entry.UnderlyingOptAttribute);
+		if (entry.UnderlyingCurrency                   is not null) context.Validators.UnderlyingCurrency(context, message, entry.UnderlyingCurrency);
+		if (entry.EncodedTextLen                       is not null) context.Validators.EncodedTextLen(context, message, entry.EncodedTextLen);
+		if (entry.EncodedText                          is not null) context.Validators.EncodedText(context, message, entry.EncodedText);
+		if (entry.EncodedUnderlyingIssuerLen           is not null) context.Validators.EncodedUnderlyingIssuerLen(context, message, entry.EncodedUnderlyingIssuerLen);
+		if (entry.EncodedUnderlyingIssuer              is not null) context.Validators.EncodedUnderlyingIssuer(context, message, entry.EncodedUnderlyingIssuer);
+		if (entry.EncodedUnderlyingSecurityDescLen     is not null) context.Validators.EncodedUnderlyingSecurityDescLen(context, message, entry.EncodedUnderlyingSecurityDescLen);
+		if (entry.EncodedUnderlyingSecurityDesc        is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
+		if (entry.UnderlyingCouponRate                 is not null) context.Validators.UnderlyingCouponRate(context, message, entry.UnderlyingCouponRate);
+		if (entry.UnderlyingContractMultiplier         is not null) context.Validators.UnderlyingContractMultiplier(context, message, entry.UnderlyingContractMultiplier);
+		if (entry.NoUnderlyingSecurityAltID            is not null) context.Validators.NoUnderlyingSecurityAltID(context, message, entry.NoUnderlyingSecurityAltID);
+		if (entry.UnderlyingProduct                    is not null) context.Validators.UnderlyingProduct(context, message, entry.UnderlyingProduct);
+		if (entry.UnderlyingCFICode                    is not null) context.Validators.UnderlyingCFICode(context, message, entry.UnderlyingCFICode);
+		if (entry.SecondaryClOrdID                     is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
+		if (entry.UnderlyingMaturityDate               is not null) context.Validators.UnderlyingMaturityDate(context, message, entry.UnderlyingMaturityDate);
+		if (entry.UnderlyingCountryOfIssue             is not null) context.Validators.UnderlyingCountryOfIssue(context, message, entry.UnderlyingCountryOfIssue);
+		if (entry.UnderlyingStateOrProvinceOfIssue     is not null) context.Validators.UnderlyingStateOrProvinceOfIssue(context, message, entry.UnderlyingStateOrProvinceOfIssue);
+		if (entry.UnderlyingLocaleOfIssue              is not null) context.Validators.UnderlyingLocaleOfIssue(context, message, entry.UnderlyingLocaleOfIssue);
+		if (entry.UnderlyingInstrRegistry              is not null) context.Validators.UnderlyingInstrRegistry(context, message, entry.UnderlyingInstrRegistry);
+		if (entry.UnderlyingSecuritySubType            is not null) context.Validators.UnderlyingSecuritySubType(context, message, entry.UnderlyingSecuritySubType);
+		if (entry.UnderlyingPx                         is not null) context.Validators.UnderlyingPx(context, message, entry.UnderlyingPx);
+		if (entry.UnderlyingCPProgram                  is not null) context.Validators.UnderlyingCPProgram(context, message, entry.UnderlyingCPProgram);
+		if (entry.UnderlyingCPRegType                  is not null) context.Validators.UnderlyingCPRegType(context, message, entry.UnderlyingCPRegType);
+		if (entry.UnderlyingQty                        is not null) context.Validators.UnderlyingQty(context, message, entry.UnderlyingQty);
+		if (entry.UnderlyingDirtyPrice                 is not null) context.Validators.UnderlyingDirtyPrice(context, message, entry.UnderlyingDirtyPrice);
+		if (entry.UnderlyingEndPrice                   is not null) context.Validators.UnderlyingEndPrice(context, message, entry.UnderlyingEndPrice);
+		if (entry.UnderlyingStartValue                 is not null) context.Validators.UnderlyingStartValue(context, message, entry.UnderlyingStartValue);
+		if (entry.UnderlyingCurrentValue               is not null) context.Validators.UnderlyingCurrentValue(context, message, entry.UnderlyingCurrentValue);
+		if (entry.UnderlyingEndValue                   is not null) context.Validators.UnderlyingEndValue(context, message, entry.UnderlyingEndValue);
+		if (entry.NoUnderlyingStips                    is not null) context.Validators.NoUnderlyingStips(context, message, entry.NoUnderlyingStips);
+		if (entry.UnderlyingStrikeCurrency             is not null) context.Validators.UnderlyingStrikeCurrency(context, message, entry.UnderlyingStrikeCurrency);
+
+		Counted(message, entry.NoUnderlyingSecurityAltID, entry.UndSecAltIDGrp);
+		Counted(message, entry.NoUnderlyingStips, entry.UnderlyingStipulations);
+
+		if (entry.UndSecAltIDGrp is not null)
+			for (var i = 0; i < entry.UndSecAltIDGrp.Count; i++)
+				context.Validators.UndSecAltIDGrp(context, message, entry.UndSecAltIDGrp[i], i);
+		if (entry.UnderlyingStipulations is not null)
+			for (var i = 0; i < entry.UnderlyingStipulations.Count; i++)
+				context.Validators.UnderlyingStipulations(context, message, entry.UnderlyingStipulations[i], i);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateUndSecAltIDGrp(FixContext context, FixMessage message, FixGroup.UndSecAltIDGrp entry, int index)
+	{
+		if (entry.UnderlyingSecurityAltID       is not null) context.Validators.UnderlyingSecurityAltID(context, message, entry.UnderlyingSecurityAltID);
+		if (entry.UnderlyingSecurityAltIDSource is not null) context.Validators.UnderlyingSecurityAltIDSource(context, message, entry.UnderlyingSecurityAltIDSource);
+
+		return message.IsValid;
+	}
+
+	static bool ValidateUnderlyingStipulations(FixContext context, FixMessage message, FixGroup.UnderlyingStipulations entry, int index)
+	{
+		if (entry.UnderlyingStipType  is not null) context.Validators.UnderlyingStipType(context, message, entry.UnderlyingStipType);
+		if (entry.UnderlyingStipValue is not null) context.Validators.UnderlyingStipValue(context, message, entry.UnderlyingStipValue);
+
 		return message.IsValid;
 	}
 
@@ -17541,7 +22362,13 @@ partial class FixValidators
 		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, 0, null, -1));
 	}
 
-	/// <summary>A block the schema requires of this type, and the message has no field of.</summary>
+	/// <summary>A field the schema requires of an entry, and the entry does not have: said at the field the entry opened with.</summary>
+	internal static void Missing(FixMessage message, int tag, int position, int index)
+	{
+		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, position, null, index));
+	}
+
+	/// <summary>A block the schema requires of this type, and the carrier has no field of.</summary>
 	/// <remarks>Named by the first tag it would have held, since a block has no tag of its own.</remarks>
 	internal static void Absent(FixMessage message, int tag)
 	{

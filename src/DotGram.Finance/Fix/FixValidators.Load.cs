@@ -65,7 +65,7 @@ partial class FixValidators
 			var name = FixNames.MessageName(type)
 				?? throw new FormatException($"The message '{spelled}' ({type}) is not a type this package has a class for.");
 
-			Replace(loaded, Slot(name), MessageText(name, members, dictionary, loaded.Unplaced));
+			Replace(loaded, Slot(name), MessageText(name, members, dictionary, loaded));
 		}
 
 		foreach (var (name, members) in dictionary.Components)
@@ -82,7 +82,7 @@ partial class FixValidators
 				continue;
 			}
 
-			Replace(loaded, Slot(name), BlockText(name, block, members, dictionary, loaded.Unplaced));
+			Replace(loaded, Slot(name), BlockText(name, block, members, dictionary, loaded));
 		}
 
 		foreach (var (tag, field) in dictionary.Fields)
@@ -147,20 +147,20 @@ partial class FixValidators
 
 	const string Using = "using DotGram.Finance.Fix;\n";
 
-	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, List<string> unplaced)
+	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, FixValidators loaded)
 	{
 		var body = new StringBuilder();
 
-		Members(body, "message", typeof(FixMessage).GetNestedType(name)!, members, dictionary, name, unplaced);
+		Members(body, "message", typeof(FixMessage).GetNestedType(name)!, members, dictionary, name, loaded);
 
 		return Using + "(FixContext context, FixMessage." + name + " message) => {\n" + body + "return message.IsValid; }";
 	}
 
-	static string BlockText(string name, Type block, List<FixDictionary.Member> members, FixDictionary dictionary, List<string> unplaced)
+	static string BlockText(string name, Type block, List<FixDictionary.Member> members, FixDictionary dictionary, FixValidators loaded)
 	{
 		var body = new StringBuilder();
 
-		Members(body, "block", block, members, dictionary, name, unplaced);
+		Members(body, "block", block, members, dictionary, name, loaded);
 
 		return Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" + body + "return message.IsValid; }";
 	}
@@ -168,8 +168,10 @@ partial class FixValidators
 	// The shape of a compiled-in check, one member at a time: a field is asked for when required
 	// and handed to its slot when present; a group's counter likewise, and its count held to its
 	// entries; a block is asked for when required and handed to its slot when present.
-	static void Members(StringBuilder body, string subject, Type carrier, List<FixDictionary.Member> members, FixDictionary dictionary, string where, List<string> unplaced)
+	static void Members(StringBuilder body, string subject, Type carrier, List<FixDictionary.Member> members, FixDictionary dictionary, string where, FixValidators loaded)
 	{
+		var unplaced = loaded.Unplaced;
+
 		foreach (var member in members)
 		{
 			switch (member.Kind)
@@ -185,7 +187,9 @@ partial class FixValidators
 						break;
 					}
 
-					if (member.Required)
+					if (member.Required && subject == "entry")
+						body.Append("if (entry.").Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(", ").Append(Opened(carrier)).Append(", index);\n");
+					else if (member.Required)
 						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(");\n");
 
 					body.Append("if (").Append(subject).Append('.').Append(ours).Append(" != null) context.Validators.").Append(ours)
@@ -194,7 +198,7 @@ partial class FixValidators
 				}
 
 				case FixDictionary.Member.Group:
-					Group(body, subject, carrier, member.Name, member.Required, member.Members, dictionary, where, unplaced);
+					Group(body, subject, carrier, member.Name, member.Required, member.Members, dictionary, where, loaded);
 					break;
 
 				case FixDictionary.Member.Component:
@@ -206,7 +210,7 @@ partial class FixValidators
 						// A repeating component is its group, declared once under its own name.
 						if (dictionary.Components.TryGetValue(member.Name, out var inner) && IsGroupComponent(inner))
 						{
-							Group(body, subject, carrier, inner[0].Name, member.Required, inner[0].Members, dictionary, where, unplaced);
+							Group(body, subject, carrier, inner[0].Name, member.Required, inner[0].Members, dictionary, where, loaded);
 							break;
 						}
 
@@ -242,8 +246,10 @@ partial class FixValidators
 
 	// A group: its counter is a field of the carrier, required or not, and its entries are the list
 	// whose entry type is opened by the group's first member, which is how the wire cuts them.
-	static void Group(StringBuilder body, string subject, Type carrier, string counterName, bool required, List<FixDictionary.Member> members, FixDictionary dictionary, string where, List<string> unplaced)
+	static void Group(StringBuilder body, string subject, Type carrier, string counterName, bool required, List<FixDictionary.Member> members, FixDictionary dictionary, string where, FixValidators loaded)
 	{
+		var unplaced = loaded.Unplaced;
+
 		var counterTag = Tag(counterName, dictionary);
 		var counter    = FixNames.Name(counterTag)!;
 
@@ -260,8 +266,24 @@ partial class FixValidators
 		var opener = Opener(members, dictionary);
 		var list   = opener is null ? null : EntriesOpenedBy(carrier, opener);
 
-		if (list is not null)
-			body.Append("FixValidators.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(subject).Append('.').Append(list).Append(");\n");
+		if (list is null)
+			return;
+
+		var entryType = carrier.GetProperty(list)!.PropertyType.GetGenericArguments()[0];
+
+		body.Append("FixValidators.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(subject).Append('.').Append(list).Append(");\n")
+			.Append("if (").Append(subject).Append('.').Append(list).Append(" != null) for (var i = 0; i < ").Append(subject).Append('.').Append(list).Append(".Count; i++) context.Validators.")
+			.Append(entryType.Name).Append(".Invoke(context, message, ").Append(subject).Append('.').Append(list).Append("[i], i);\n");
+
+		// What the file says of the entry is the entry's check, replaced like any other slot. A group
+		// named with no members says only that it is there.
+		if (members.Count > 0)
+		{
+			var entry = new StringBuilder();
+
+			Members(entry, "entry", entryType, members, dictionary, where + "/" + counterName, loaded);
+			Replace(loaded, Slot(entryType.Name), Using + "(FixContext context, FixMessage message, FixGroup." + entryType.Name + " entry, int index) => {\n" + entry + "return message.IsValid; }");
+		}
 	}
 
 	// The field an entry opens with: the first member of the group, through a block to its first
@@ -285,6 +307,17 @@ partial class FixValidators
 
 				return dictionary.Components.TryGetValue(first.Name, out var inner) ? Opener(inner, dictionary) : null;
 		}
+	}
+
+	// Where an entry began: the position of the field it opened with, or zero where the entry type
+	// names no such field.
+	static string Opened(Type entryType)
+	{
+		foreach (var property in entryType.GetProperties())
+			if (property.GetCustomAttribute<RequiredMemberAttribute>() is not null)
+				return "entry." + property.Name + ".Position";
+
+		return "0";
 	}
 
 	// The list property of a carrier whose entry type is opened by a field of that name: the

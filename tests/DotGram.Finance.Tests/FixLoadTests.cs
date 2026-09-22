@@ -165,6 +165,37 @@ public sealed class FixLoadTests
 	}
 
 	[Fact]
+	public void A_fragment_describing_a_group_replaces_the_check_of_its_entries()
+	{
+		// The venue wants a PartyRole in every party.
+		const string partiesWantRole =
+			"""
+			<fix>
+			  <messages>
+			    <message name="NewOrderSingle" msgtype="D">
+			      <field name="ClOrdID" required="Y" />
+			      <group name="NoPartyIDs" required="N">
+			        <field name="PartyID" required="Y" />
+			        <field name="PartyRole" required="Y" />
+			      </group>
+			    </message>
+			  </messages>
+			</fix>
+			""";
+
+		var context = FixContext.Default.Load(partiesWantRole);
+		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order + "453=2|448=P1|452=1|448=P2|"));
+
+		Assert.False(order.Validate(context));
+
+		var finding = Assert.Single(order.InvalidFindings!);
+
+		Assert.Equal(FixRule.RequiredFieldMissing, finding.Rule);
+		Assert.Equal(452, finding.Tag);
+		Assert.Equal(1, finding.EntryIndex);
+		Assert.Equal(((FixMessage.NewOrderSingle)order).Parties![1].PartyID.Position, finding.Position);
+	}
+	[Fact]
 	public void A_type_this_package_has_no_class_for_is_refused_by_name()
 	{
 		const string venueOnly =
@@ -197,11 +228,13 @@ public sealed class FixLoadTests
 
 		// And what that file says that this package has no place for, named. Each is a place where the
 		// two readings of FIX 4.4 disagree: QuickFIX/n puts the body of a QuoteRequestReject on the
-		// message where the repository puts it inside QuotReqRjctGrp, the InstrumentLeg block on seven
-		// messages where the repository has it inside InstrmtLegGrp, and SettlInstSource on a
-		// SettlementInstructions where the repository has it inside SettlInstGrp. This package reads
-		// the repository, so a rule about those is a rule with nothing to hold, and it is said here
-		// rather than passed over, so that a change on either side fails this.
+		// message where the repository puts it inside QuotReqRjctGrp; the InstrumentLeg block on seven
+		// messages where the repository has InstrmtLegGrp; SettlInstSource on a SettlementInstructions
+		// where the repository has it only inside SettlInstructionsData; and, inside the entries of
+		// four groups, eight fields the repository places elsewhere - among them 586 and 635, which the
+		// fixtures of Fix44Tests carry and the repository does not place there either. This package
+		// reads the repository, so a rule about those is a rule with nothing to hold, and it is said
+		// here rather than passed over, so that a change on either side fails this.
 		Assert.Equal(
 			[
 				"QuoteRequestReject: group NoQuoteQualifiers (735)",
@@ -215,7 +248,15 @@ public sealed class FixLoadTests
 				"QuoteRequestReject: field Price2 (640)",
 				"QuoteRequestReject: block YieldData",
 				"QuoteRequestReject: group NoPartyIDs (453)",
+				"CrossOrderCancelReplaceRequest/NoSides: field OrigClOrdID (41), required",
+				"CrossOrderCancelReplaceRequest/NoSides: field OrigOrdModTime (586)",
+				"AllocationInstruction/NoAllocs: field AccruedInterestAmt (159)",
+				"AllocationInstruction/NoAllocs: field SettlInstMode (160)",
+				"AllocationInstruction/NoAllocs: field ClearingInstruction (577)",
+				"AllocationInstruction/NoAllocs: field ClearingFeeIndicator (635)",
+				"AllocationReport/NoAllocs: field ClearingFeeIndicator (635)",
 				"SettlementInstructions: field SettlInstSource (165)",
+				"TradeCaptureReport/NoSides: field ClearingFeeIndicator (635)",
 				"AssignmentReport: block InstrumentLeg",
 				"CollateralRequest: block InstrumentLeg",
 				"CollateralAssignment: block InstrumentLeg",
