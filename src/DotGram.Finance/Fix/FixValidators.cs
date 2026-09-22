@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace DotGram.Finance.Fix;
 
-/// <summary>The check of every FIX 4.4 message type, one method each.</summary>
+/// <summary>The check of every FIX 4.4 message type and of every block it reuses.</summary>
 /// <remarks>
 /// <para>
 /// Straight-line checks written against the fields of the class they are about, and nothing
@@ -14,15 +14,21 @@ namespace DotGram.Finance.Fix;
 /// required and the message left empty.
 /// </para>
 /// <para>
-/// What a block requires is asked of the block, once, through the interface every carrier of it
-/// implements. <c>Instrument</c> is required by twenty-eight of the ninety-three types; the
-/// question is written here once and each of the twenty-eight asks it.
+/// A block has a slot of its own, typed on the interface its carriers implement, and a carrier
+/// that has the block asks that slot rather than repeating what the block requires. That is what
+/// makes a loaded dictionary small: a venue that requires a Symbol inside every Instrument
+/// replaces one slot, not the forty-seven message types that carry one.
+/// </para>
+/// <para>
+/// The repository requires nothing inside any of the thirteen blocks, so the thirteen compiled-in
+/// checks find nothing. They are here because the question belongs to the block, not because the
+/// answer is interesting today.
 /// </para>
 /// <para>
 /// One instance a context, and a context takes <see cref="Default"/> unless it is given another.
 /// The slots are properties rather than calls so that a dictionary loaded at run time can replace
-/// the check of one message type and leave the other ninety-three, and each is typed on the class
-/// it checks, so a check cannot be put in the wrong slot.
+/// one and leave the rest, and each is typed on what it checks, so a check cannot be put in the
+/// wrong slot.
 /// </para>
 /// <para>
 /// What is not here yet: what a group entry requires of itself, which is the same question one
@@ -316,6 +322,48 @@ class FixValidators
 	/// <summary>Holds a message of a type FIX 4.4 does not describe to the schema.</summary>
 	public Func<FixContext, FixMessage.Custom, bool> Custom                                  { get; set; } = ValidateCustom;
 
+	// The blocks. A carrier asks these of the block it has, and the message it belongs to is where
+	// a finding goes, since a block is not a thing a consumer holds on its own.
+
+	/// <summary>Holds a FIX 4.4 CommissionData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, ICommissionData, bool> CommissionData                          { get; set; } = ValidateCommissionData;
+
+	/// <summary>Holds a FIX 4.4 DiscretionInstructions block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IDiscretionInstructions, bool> DiscretionInstructions                  { get; set; } = ValidateDiscretionInstructions;
+
+	/// <summary>Holds a FIX 4.4 FinancingDetails block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IFinancingDetails, bool> FinancingDetails                        { get; set; } = ValidateFinancingDetails;
+
+	/// <summary>Holds a FIX 4.4 Instrument block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IInstrument, bool> Instrument                              { get; set; } = ValidateInstrument;
+
+	/// <summary>Holds a FIX 4.4 InstrumentExtension block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IInstrumentExtension, bool> InstrumentExtension                     { get; set; } = ValidateInstrumentExtension;
+
+	/// <summary>Holds a FIX 4.4 InstrumentLeg block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IInstrumentLeg, bool> InstrumentLeg                           { get; set; } = ValidateInstrumentLeg;
+
+	/// <summary>Holds a FIX 4.4 LegBenchmarkCurveData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, ILegBenchmarkCurveData, bool> LegBenchmarkCurveData                   { get; set; } = ValidateLegBenchmarkCurveData;
+
+	/// <summary>Holds a FIX 4.4 OrderQtyData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IOrderQtyData, bool> OrderQtyData                            { get; set; } = ValidateOrderQtyData;
+
+	/// <summary>Holds a FIX 4.4 PegInstructions block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IPegInstructions, bool> PegInstructions                         { get; set; } = ValidatePegInstructions;
+
+	/// <summary>Holds a FIX 4.4 SettlInstructionsData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, ISettlInstructionsData, bool> SettlInstructionsData                   { get; set; } = ValidateSettlInstructionsData;
+
+	/// <summary>Holds a FIX 4.4 SpreadOrBenchmarkCurveData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, ISpreadOrBenchmarkCurveData, bool> SpreadOrBenchmarkCurveData              { get; set; } = ValidateSpreadOrBenchmarkCurveData;
+
+	/// <summary>Holds a FIX 4.4 UnderlyingInstrument block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IUnderlyingInstrument, bool> UnderlyingInstrument                    { get; set; } = ValidateUnderlyingInstrument;
+
+	/// <summary>Holds a FIX 4.4 YieldData block to the schema, wherever it is carried.</summary>
+	public Func<FixContext, FixMessage, IYieldData, bool> YieldData                               { get; set; } = ValidateYieldData;
+
 	static bool ValidateAdvertisement(FixContext context, FixMessage.Advertisement message)
 	{
 		if (message.AdvId        is null) Missing(message, 2);
@@ -324,6 +372,7 @@ class FixValidators
 		if (message.Quantity     is null) Missing(message, 53);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -344,7 +393,12 @@ class FixValidators
 		if (message.AllocType         is null) Missing(message, 626);
 		if (message.AllocNoOrdersType is null) Missing(message, 857);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoAllocs, message.AllocGrp);
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
@@ -384,7 +438,12 @@ class FixValidators
 		if (message.AllocReportType   is null) Missing(message, 794);
 		if (message.AllocNoOrdersType is null) Missing(message, 857);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoAllocs, message.AllocGrp);
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
@@ -429,6 +488,8 @@ class FixValidators
 		if (message.ExerciseMethod       is null) Missing(message, 747);
 		if (message.NoPosAmt             is null) Missing(message, 753);
 		if (message.AsgnRptID            is null) Missing(message, 833);
+
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -480,6 +541,11 @@ class FixValidators
 		if (message.CollAsgnID        is null) Missing(message, 902);
 		if (message.CollAsgnTransType is null) Missing(message, 903);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((ISettlInstructionsData)message)) context.Validators.SettlInstructionsData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+
 		Counted(message, message.NoDlvyInst, message.DlvyInstGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoExecs, message.ExecCollGrp);
@@ -497,6 +563,11 @@ class FixValidators
 
 	static bool ValidateCollateralInquiry(FixContext context, FixMessage.CollateralInquiry message)
 	{
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((ISettlInstructionsData)message)) context.Validators.SettlInstructionsData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+
 		Counted(message, message.NoCollInquiryQualifier, message.CollInqQualGrp);
 		Counted(message, message.NoDlvyInst, message.DlvyInstGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -517,6 +588,9 @@ class FixValidators
 		if (message.CollInquiryID     is null) Missing(message, 909);
 		if (message.CollInquiryStatus is null) Missing(message, 945);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+
 		Counted(message, message.NoCollInquiryQualifier, message.CollInqQualGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoExecs, message.ExecCollGrp);
@@ -533,6 +607,11 @@ class FixValidators
 	{
 		if (message.CollRptID  is null) Missing(message, 908);
 		if (message.CollStatus is null) Missing(message, 910);
+
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((ISettlInstructionsData)message)) context.Validators.SettlInstructionsData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
 
 		Counted(message, message.NoDlvyInst, message.DlvyInstGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -555,6 +634,10 @@ class FixValidators
 		if (message.CollReqID      is null) Missing(message, 894);
 		if (message.CollAsgnReason is null) Missing(message, 895);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoExecs, message.ExecCollGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -576,6 +659,10 @@ class FixValidators
 		if (message.CollAsgnID       is null) Missing(message, 902);
 		if (message.CollRespID       is null) Missing(message, 904);
 		if (message.CollAsgnRespType is null) Missing(message, 905);
+
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoExecs, message.ExecCollGrp);
@@ -609,7 +696,14 @@ class FixValidators
 		if (message.ConfirmType      is null) Missing(message, 773);
 		if (message.NoCapacities     is null) Missing(message, 862);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
+		if (!Empty((ISettlInstructionsData)message)) context.Validators.SettlInstructionsData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoCapacities, message.CpctyConfGrp);
@@ -658,7 +752,12 @@ class FixValidators
 		if (message.OrigCrossID         is null) Missing(message, 551);
 		if (message.NoSides             is null) Missing(message, 552);
 
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -681,6 +780,7 @@ class FixValidators
 		if (message.NoSides             is null) Missing(message, 552);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -697,6 +797,8 @@ class FixValidators
 		if (message.SecurityResponseID    is null) Missing(message, 322);
 		if (message.SecurityRequestResult is null) Missing(message, 560);
 
+		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
+
 		Counted(message, message.NoRelatedSym, message.RelSymDerivSecGrp);
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
@@ -708,6 +810,8 @@ class FixValidators
 	{
 		if (message.SecurityReqID           is null) Missing(message, 320);
 		if (message.SecurityListRequestType is null) Missing(message, 559);
+
+		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
 		Counted(message, message.NoUnderlyingStips, message.UnderlyingStipulations);
@@ -723,7 +827,9 @@ class FixValidators
 		if (message.DKReason is null) Missing(message, 127);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -760,7 +866,15 @@ class FixValidators
 		if (message.ExecType  is null) Missing(message, 150);
 		if (message.LeavesQty is null) Missing(message, 151);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoContAmts, message.ContAmtGrp);
 		Counted(message, message.NoContraBrokers, message.ContraGrp);
@@ -789,7 +903,12 @@ class FixValidators
 		if (message.IOITransType is null) Missing(message, 28);
 		if (message.Side         is null) Missing(message, 54);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoIOIQualifiers, message.IOIQualGrp);
@@ -907,6 +1026,7 @@ class FixValidators
 		if (message.NoMDEntries is null) Missing(message, 268);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -947,8 +1067,13 @@ class FixValidators
 		if (message.TransactTime is null) Missing(message, 60);
 		if (message.NoLegs       is null) Missing(message, 555);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegOrdGrp);
@@ -991,7 +1116,12 @@ class FixValidators
 		if (message.CrossPrioritization is null) Missing(message, 550);
 		if (message.NoSides             is null) Missing(message, 552);
 
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1024,8 +1154,13 @@ class FixValidators
 		if (message.TransactTime is null) Missing(message, 60);
 		if (message.NoLegs       is null) Missing(message, 555);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegOrdGrp);
@@ -1045,8 +1180,16 @@ class FixValidators
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1092,8 +1235,16 @@ class FixValidators
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
 
+		if (!Empty((ICommissionData)message)) context.Validators.CommissionData(context, message, message);
+		if (!Empty((IDiscretionInstructions)message)) context.Validators.DiscretionInstructions(context, message, message);
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((IPegInstructions)message)) context.Validators.PegInstructions(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1112,8 +1263,11 @@ class FixValidators
 		if (message.Side         is null) Missing(message, 54);
 		if (message.TransactTime is null) Missing(message, 60);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		else context.Validators.OrderQtyData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1128,6 +1282,9 @@ class FixValidators
 		if (message.OrderID               is null) Missing(message, 37);
 		if (message.MassCancelRequestType is null) Missing(message, 530);
 		if (message.MassCancelResponse    is null) Missing(message, 531);
+
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 
 		Counted(message, message.NoAffectedOrders, message.AffectedOrdGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1144,6 +1301,9 @@ class FixValidators
 		if (message.TransactTime          is null) Missing(message, 60);
 		if (message.MassCancelRequestType is null) Missing(message, 530);
 
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
 		Counted(message, message.NoUnderlyingSecurityAltID, message.UndSecAltIDGrp);
@@ -1156,6 +1316,9 @@ class FixValidators
 	{
 		if (message.MassStatusReqID   is null) Missing(message, 584);
 		if (message.MassStatusReqType is null) Missing(message, 585);
+
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1171,7 +1334,9 @@ class FixValidators
 		if (message.ClOrdID is null) Missing(message, 11);
 		if (message.Side    is null) Missing(message, 54);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1196,6 +1361,7 @@ class FixValidators
 		if (message.NoPosAmt             is null) Missing(message, 753);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1222,6 +1388,7 @@ class FixValidators
 		if (message.ClearingBusinessDate is null) Missing(message, 715);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1248,6 +1415,8 @@ class FixValidators
 		if (message.PriorSettlPrice      is null) Missing(message, 734);
 		if (message.NoPosAmt             is null) Missing(message, 753);
 
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1263,7 +1432,12 @@ class FixValidators
 	{
 		if (message.QuoteID is null) Missing(message, 117);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotGrp);
@@ -1313,7 +1487,12 @@ class FixValidators
 		if (message.QuoteRespID   is null) Missing(message, 693);
 		if (message.QuoteRespType is null) Missing(message, 694);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotGrp);
@@ -1330,7 +1509,12 @@ class FixValidators
 	{
 		if (message.QuoteID is null) Missing(message, 117);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.LegQuotStatGrp);
@@ -1345,7 +1529,9 @@ class FixValidators
 
 	static bool ValidateQuoteStatusRequest(FixContext context, FixMessage.QuoteStatusRequest message)
 	{
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1408,6 +1594,8 @@ class FixValidators
 		if (message.ClearingBusinessDate is null) Missing(message, 715);
 		if (message.PosReqType           is null) Missing(message, 724);
 
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
 		Counted(message, message.NoPartyIDs, message.Parties);
@@ -1426,6 +1614,8 @@ class FixValidators
 		if (message.PosMaintRptID is null) Missing(message, 721);
 		if (message.PosReqResult  is null) Missing(message, 728);
 		if (message.PosReqStatus  is null) Missing(message, 729);
+
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1450,6 +1640,9 @@ class FixValidators
 		if (message.SecurityResponseID   is null) Missing(message, 322);
 		if (message.SecurityResponseType is null) Missing(message, 323);
 
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
+
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1463,6 +1656,9 @@ class FixValidators
 	{
 		if (message.SecurityReqID       is null) Missing(message, 320);
 		if (message.SecurityRequestType is null) Missing(message, 321);
+
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1489,6 +1685,10 @@ class FixValidators
 		if (message.SecurityReqID           is null) Missing(message, 320);
 		if (message.SecurityListRequestType is null) Missing(message, 559);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
+
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1501,6 +1701,8 @@ class FixValidators
 	static bool ValidateSecurityStatus(FixContext context, FixMessage.SecurityStatus message)
 	{
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1517,6 +1719,8 @@ class FixValidators
 		if (message.SecurityStatusReqID     is null) Missing(message, 324);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1590,7 +1794,12 @@ class FixValidators
 		if (message.PreviouslyReported is null) Missing(message, 570);
 		if (message.TradeReportID      is null) Missing(message, 571);
 
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
+		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
+		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
+		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoPosAmt, message.PositionAmountData);
@@ -1609,6 +1818,7 @@ class FixValidators
 		if (message.TradeReportID is null) Missing(message, 571);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoSecurityAltID, message.SecAltIDGrp);
@@ -1623,6 +1833,10 @@ class FixValidators
 	{
 		if (message.TradeRequestID   is null) Missing(message, 568);
 		if (message.TradeRequestType is null) Missing(message, 569);
+
+		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
+		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
+		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 
 		Counted(message, message.NoInstrAttrib, message.AttrbGrp);
 		Counted(message, message.NoEvents, message.EvntGrp);
@@ -1643,6 +1857,7 @@ class FixValidators
 		if (message.TradeRequestStatus is null) Missing(message, 750);
 
 		if (Empty((IInstrument)message)) Absent(message, 55);
+		else context.Validators.Instrument(context, message, message);
 
 		Counted(message, message.NoEvents, message.EvntGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
@@ -1697,6 +1912,84 @@ class FixValidators
 		// The type is not one the schema describes, which is the whole of what can be said about it.
 		message.AddFinding(new FixFinding(FixRule.UnknownMessageType, 35, message.MsgType?.Position ?? 0, message.MsgType, -1));
 
+		return message.IsValid;
+	}
+
+	static bool ValidateCommissionData(FixContext context, FixMessage message, ICommissionData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateDiscretionInstructions(FixContext context, FixMessage message, IDiscretionInstructions block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateFinancingDetails(FixContext context, FixMessage message, IFinancingDetails block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrument(FixContext context, FixMessage message, IInstrument block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrumentExtension(FixContext context, FixMessage message, IInstrumentExtension block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateInstrumentLeg(FixContext context, FixMessage message, IInstrumentLeg block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateLegBenchmarkCurveData(FixContext context, FixMessage message, ILegBenchmarkCurveData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateOrderQtyData(FixContext context, FixMessage message, IOrderQtyData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidatePegInstructions(FixContext context, FixMessage message, IPegInstructions block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateSettlInstructionsData(FixContext context, FixMessage message, ISettlInstructionsData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateSpreadOrBenchmarkCurveData(FixContext context, FixMessage message, ISpreadOrBenchmarkCurveData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateUnderlyingInstrument(FixContext context, FixMessage message, IUnderlyingInstrument block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
+		return message.IsValid;
+	}
+
+	static bool ValidateYieldData(FixContext context, FixMessage message, IYieldData block)
+	{
+		// The repository requires no field of this block. A dictionary that does replaces this slot.
 		return message.IsValid;
 	}
 
