@@ -141,12 +141,7 @@ public abstract partial class FixMessage
 	/// <param name="finding">What is wrong.</param>
 	protected internal void AddFinding(FixFinding finding)
 	{
-		// The same finding twice says nothing twice: a dictionary loaded over the schema may require
-		// what the schema already required, and both checks run.
-		if (InvalidFindings is null)
-			InvalidFindings = [finding];
-		else if (!InvalidFindings.Contains(finding))
-			InvalidFindings.Add(finding);
+		(InvalidFindings ??= []).Add(finding);
 	}
 
 	/// <summary>

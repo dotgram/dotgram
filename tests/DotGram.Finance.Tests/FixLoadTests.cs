@@ -31,22 +31,41 @@ public sealed class FixLoadTests
 		""";
 
 	[Fact]
-	public void A_fragment_adds_to_what_the_standard_asks()
+	public void A_fragment_replaces_what_the_standard_asks_of_a_type()
 	{
 		var context = FixContext.Default.Load(LogonWantsReset);
 
-		// The standard still asks for 98 and 108, and the venue asks for 141 as well.
+		// The fragment is the whole of what a Logon is now asked: 141, and no longer 98 or 108.
 		var bare = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
 
 		Assert.False(bare.Validate(context));
 		Assert.Equal(
-			[98, 108, 141],
+			[141],
 			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
-		// A message that has what the venue wants is as valid as it was.
-		var full = FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|"));
+		// A fragment that wants the standard as well says so.
+		const string logonWantsAll =
+			"""
+			<fix>
+			  <messages>
+			    <message name="Logon" msgtype="A">
+			      <field name="EncryptMethod" required="Y" />
+			      <field name="HeartBtInt" required="Y" />
+			      <field name="ResetSeqNumFlag" required="Y" />
+			    </message>
+			  </messages>
+			</fix>
+			""";
 
-		Assert.True(full.Validate(context));
+		var all = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
+
+		Assert.False(all.Validate(FixContext.Default.Load(logonWantsAll)));
+		Assert.Equal(
+			[98, 108, 141],
+			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+
+		// A message that has what the fragment wants is valid under it.
+		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|")).Validate(context));
 	}
 
 	[Fact]
@@ -62,9 +81,9 @@ public sealed class FixLoadTests
 	}
 
 	[Fact]
-	public void Loads_compose_one_over_another()
+	public void The_later_load_replaces_the_earlier_for_the_same_type()
 	{
-		const string andHeartbeat =
+		const string andMaxMessageSize =
 			"""
 			<fix>
 			  <messages>
@@ -75,13 +94,12 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var context = FixContext.Default.Load(LogonWantsReset).Load(andHeartbeat);
+		var context = FixContext.Default.Load(LogonWantsReset).Load(andMaxMessageSize);
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
+		// Only the second fragment speaks for a Logon now; the first spoke for it until then.
 		Assert.False(message.Validate(context));
-		Assert.Equal(
-			[141, 383],
-			message.InvalidFindings!.Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+		Assert.Equal([383], message.InvalidFindings!.Select(one => one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -176,5 +194,36 @@ public sealed class FixLoadTests
 		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 
 		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
+
+		// And what that file says that this package has no place for, named. Each is a place where the
+		// two readings of FIX 4.4 disagree: QuickFIX/n puts the body of a QuoteRequestReject on the
+		// message where the repository puts it inside QuotReqRjctGrp, the InstrumentLeg block on seven
+		// messages where the repository has it inside InstrmtLegGrp, and SettlInstSource on a
+		// SettlementInstructions where the repository has it inside SettlInstGrp. This package reads
+		// the repository, so a rule about those is a rule with nothing to hold, and it is said here
+		// rather than passed over, so that a change on either side fails this.
+		Assert.Equal(
+			[
+				"QuoteRequestReject: group NoQuoteQualifiers (735)",
+				"QuoteRequestReject: field QuotePriceType (692)",
+				"QuoteRequestReject: field OrdType (40)",
+				"QuoteRequestReject: field ExpireTime (126)",
+				"QuoteRequestReject: field TransactTime (60)",
+				"QuoteRequestReject: block SpreadOrBenchmarkCurveData",
+				"QuoteRequestReject: field PriceType (423)",
+				"QuoteRequestReject: field Price (44)",
+				"QuoteRequestReject: field Price2 (640)",
+				"QuoteRequestReject: block YieldData",
+				"QuoteRequestReject: group NoPartyIDs (453)",
+				"SettlementInstructions: field SettlInstSource (165)",
+				"AssignmentReport: block InstrumentLeg",
+				"CollateralRequest: block InstrumentLeg",
+				"CollateralAssignment: block InstrumentLeg",
+				"CollateralResponse: block InstrumentLeg",
+				"CollateralReport: block InstrumentLeg",
+				"CollateralInquiry: block InstrumentLeg",
+				"CollateralInquiryAck: block InstrumentLeg",
+			],
+			context.Validators.Unplaced);
 	}
 }
