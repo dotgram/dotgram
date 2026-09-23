@@ -186,7 +186,7 @@ public sealed class FixRepositoryAgreementTests
 		if (!field.IsValid)
 			return false;
 
-		var check = typeof(FixValidators).GetProperty(FixNames.Name(tag)!)!.GetValue(FixValidators.Default)!;
+		var check = typeof(FixValidators).GetProperty(field.GetType().Name)!.GetValue(FixValidators.Default)!;
 		var host  = new FixMessage.Custom("ZZ", []);
 
 		((Delegate)check).DynamicInvoke(FixContext.Default, host, field);
@@ -197,9 +197,9 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
 	static Type? Held(int tag)
 	{
-		var type = FixNames.Name(tag) is { } name ? typeof(FixField).GetNestedType(name) : null;
+		var field = FixFieldFactory.Value(tag, "0".AsSpan(), FixContext.Default.CustomFields);
 
-		return type?.BaseType is { IsGenericType: true } typed ? typed.GetGenericArguments()[0] : null;
+		return field is FixField.Custom ? null : field.GetType().BaseType!.GetGenericArguments()[0];
 	}
 
 	/// <summary>The CLR type this package holds a type of the repository's spelling in.</summary>

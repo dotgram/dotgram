@@ -31,7 +31,21 @@ sealed class Fix44Context
 
 	static bool IsUnknownText(int tag)
 	{
-		return tag > 0 && FixNames.Name(tag) is null;
+		return tag > 0 && ((uint)tag >= (uint)Known.Length || !Known[tag]);
+	}
+
+	// The tags the standard defines, one flag a tag, from the constants that name them.
+	static readonly bool[] Known = KnownTags();
+
+	static bool[] KnownTags()
+	{
+		var tags  = typeof(FixTag).GetFields().Select(one => (int)one.GetRawConstantValue()!).ToArray();
+		var known = new bool[tags.Max() + 1];
+
+		foreach (var tag in tags)
+			known[tag] = true;
+
+		return known;
 	}
 
 	public static bool IsUnknownText(ReadOnlySpan<char> tag)

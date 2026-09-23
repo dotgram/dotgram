@@ -29,7 +29,8 @@ namespace DotGram.Finance.Fix44;
 /// of a component, of a group's entries or of a field the file describes is the file's whole
 /// check, and what it does not say the slot no longer asks. A file that mentions no message,
 /// component or field leaves that slot as it was. A field the file lists values for and the
-/// package has no class for has no slot, and nothing is written for it.
+/// package has no class for has no slot, and nothing is written for it. A number is written as
+/// its name, <c>FixTag.ClOrdID</c>, so that nothing is looked up to write it.
 /// </para>
 /// </remarks>
 partial class FixValidators
@@ -65,16 +66,16 @@ partial class FixValidators
 			jobs.Add(writing => writing.Write(name, Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" +
 				Members(writing, "block", "I" + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
-		foreach (var (tag, field) in dictionary.Fields)
+		foreach (var field in dictionary.Fields.Values)
 		{
 			// A field the package has no class for has no slot, and nothing a check could hold.
-			if (field.Codes is not { } codes || FixNames.Name(tag) is not { } name)
+			if (field.Codes is not { } codes || typeof(FixField).GetNestedType(field.Name) is not { } type)
 				continue;
 
 			jobs.Add(writing =>
 			{
-				if (FieldText(name, codes) is { } text)
-					writing.Write(name, text);
+				if (FieldText(field.Name, type, codes) is { } text)
+					writing.Write(field.Name, text);
 			});
 		}
 
@@ -199,7 +200,7 @@ partial class FixValidators
 					var cast = "((I" + member.Name + ")" + subject + ")";
 
 					if (member.Required)
-						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixValidators.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
+						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixValidators.Absent(message, FixTag.").Append(First(member, dictionary)).Append(");\n")
 							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
 					else
 						body.Append("if (!FixValidators.Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
@@ -242,10 +243,10 @@ partial class FixValidators
 		if (name == opener)
 			body.Append(call);
 		else if (required && opener is not null)
-			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary))
+			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, FixTag.").Append(name)
 				.Append(", entry.").Append(opener).Append(".Position, index);\nelse ").Append(call);
 		else if (required)
-			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
+			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, FixTag.").Append(name).Append(");\nelse ").Append(call);
 		else
 			body.Append("if (").Append(value).Append(" != null) ").Append(call);
 	}
@@ -264,17 +265,9 @@ partial class FixValidators
 		return First(members[0], dictionary);
 	}
 
-	static int Tag(string name, FixDictionary dictionary)
+	static string? FieldText(string name, Type field, string[] codes)
 	{
-		if (dictionary.Tags.TryGetValue(name, out var tag) || (tag = FixNames.Tag(name)) != 0)
-			return tag;
-
-		throw new FormatException($"The field '{name}' has no number: the dictionary does not declare it, and the standard has no field of that name.");
-	}
-
-	static string? FieldText(string name, string[] codes)
-	{
-		var value = typeof(FixField).GetNestedType(name)!.BaseType!.GetGenericArguments()[0];
+		var value = field.BaseType!.GetGenericArguments()[0];
 		var body  = new StringBuilder();
 
 		if (value == typeof(bool))

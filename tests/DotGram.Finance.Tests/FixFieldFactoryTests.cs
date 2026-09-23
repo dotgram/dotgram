@@ -26,7 +26,7 @@ namespace DotGram.Finance.Tests;
 /// <para>
 /// So this asks for every tag from one to eleven hundred — past the last the standard defines, and
 /// past the last part's edge under any grouping — and holds the answer to what
-/// <see cref="FixFieldType"/> names. It is the whole table, so nothing can hide in the part that
+/// the published repository names, where QuickFIX does not name it otherwise. It is the whole table, so nothing can hide in the part that
 /// was not sampled.
 /// </para>
 /// <para>

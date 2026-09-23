@@ -61,7 +61,7 @@ public sealed record FixContext
 
 		static sbyte[] Settled()
 		{
-			var kinds = new sbyte[FixNames.Limit];
+			var kinds = new sbyte[StandardTop];
 
 			for (var tag = 1; tag < kinds.Length; tag++)
 				kinds[tag] = StandardDataTag(tag) != 0 ? Length : StandardLengthTag(tag) != 0 ? Data : Ordinary;
@@ -287,9 +287,9 @@ public sealed record FixContext
 			// The standard's meaning for a tag stands. A pair that contradicts it could only be
 			// ignored, and a caller who believes something that is not true is worse served by
 			// silence than by this.
-			if (FixNames.Name(pair.Key) is not null || FixNames.Name(pair.Value) is not null)
+			if (Defines(pair.Key) || Defines(pair.Value))
 				throw new ArgumentException(
-					$"Tag {(FixNames.Name(pair.Key) is not null ? pair.Key : pair.Value)} is one the standard defines; " +
+					$"Tag {(Defines(pair.Key) ? pair.Key : pair.Value)} is one the standard defines; " +
 					"the standard's pairs are added to, not replaced.", nameof(LengthDataPairs));
 
 			if (!data.Add(pair.Value) || !copied.TryAdd(pair.Key, pair.Value))
@@ -333,6 +333,17 @@ public sealed record FixContext
 				(far ??= [])[tag] = kind;
 		}
 	}
+
+	// Whether the standard defines a tag: whether the field it builds is the standard's own class and
+	// not the one built for a tag nobody defined. Asked when a context is made, of a consumer's pairs.
+	static bool Defines(int tag)
+	{
+		return FixFieldFactory.Value(tag, "0".AsSpan(), FixSpareFields.Instance) is not FixField.Custom;
+	}
+
+	// One past the largest tag of the sixteen pairs: every tag the reader's table answers other than
+	// ordinary, which is what it holds for any tag past it.
+	const int StandardTop = 623;
 
 	// The sixteen length/data pairs of FIX 4.4, both ways.
 	static int StandardLengthTag(int dataTag)

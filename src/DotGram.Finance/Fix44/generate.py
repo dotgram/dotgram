@@ -3,9 +3,11 @@
 #     FixMessage.Types.cs   a class a message type, its fields read in one switch
 #     FixComponents.cs      an interface a component, its repeating groups nested in it
 #     FixValidators.cs      the check of every message type, component and group entry
+#     FixTag.cs             the number of every field, as a constant named for it
 #
-# The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as FixNames names
-# it (QuickFIX's name where the two differ). Groups are named as QuickFIX names them: a group is the
+# The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as its class in
+# FixField.cs is named (QuickFIX's name where the two differ). FixTag.cs is written from the same
+# classes: a constant a tag, which is what a check written at run time says a tag with. Groups are named as QuickFIX names them: a group is the
 # class <Counter>Group, nested in whatever carries it — a message, a component's interface, or the
 # entry of another group — and its entries are the list <Counter>Groups beside the counter. So the
 # names a QuickFIX dictionary uses are the names of the code, and a dictionary loaded at run time
@@ -33,12 +35,9 @@ def rows(name):
 
 # ── what the repository says ───────────────────────────────────────────────────────────────────
 
-# The names of the fields, as the field classes are named: FixNames holds them by tag.
-names_source = open(os.path.join(here, "FixNames.cs"), encoding="utf-8-sig").read()
-names_array  = names_source[names_source.index("_names ="):]
-names_array  = names_array[names_array.index("[") + 1:names_array.index("];")]
-tag_names    = [None if one.strip() == "null" else one.strip().strip('"') for one in names_array.split(",") if one.strip()]
-field_name   = {tag: name for tag, name in enumerate(tag_names) if name}
+# The names of the fields, as the field classes are named: each class passes its tag to its base.
+field_source = open(os.path.join(here, "FixField.cs"), encoding="utf-8-sig").read()
+field_name   = {int(tag): name for name, tag in re.findall(r"public sealed class (\w+)\([^\n]*\)\r?\n\s*:\s*Typed<.+?>\((\d+),", field_source)}
 
 field_type = {int(f["Tag"]): f["Type"] for f in rows("Fields.xml")}
 
@@ -545,6 +544,22 @@ component_lines = [
 for i in interfaces.values():
     component_lines.extend(interface_text(i))
 
+tag_lines = [
+    "namespace DotGram.Finance.Fix44;",
+    "",
+    "// Written by generate.py from the field classes of FixField.cs; not edited by hand.",
+    "",
+    "/// <summary>The number of every field of FIX 4.4, named for the field: <c>case FixTag.ClOrdID:</c> rather than <c>case 11:</c>.</summary>",
+    "public static class FixTag",
+    "{",
+]
+
+for tag, name in sorted(field_name.items()):
+    tag_lines += [f"\t/// <summary>The tag of <see cref=\"FixField.{name}\"/>.</summary>", f"\tpublic const int {name} = {tag};", ""]
+
+tag_lines[-1:] = ["}", ""]
+
+write("FixTag.cs", tag_lines)
 write("FixMessage.Types.cs", types)
 write("FixComponents.cs", component_lines[:-1] + [""])
 write("FixValidators.cs", validators_text())

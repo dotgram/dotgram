@@ -401,7 +401,8 @@ what it says about the pass.
 machine-readable form — and writes three files beside itself: `FixMessage.Types.cs`, the class of
 each of the ninety-three message types with the switch that reads its fields; `FixComponents.cs`,
 an interface a component; and `FixValidators.cs`, the check of every message type, component and
-group entry. **The build does not run it.** Its output is checked in and read as ordinary source, so
+group entry; and `FixTag.cs`, the number of every field as a constant.
+**The build does not run it.** Its output is checked in and read as ordinary source, so
 nobody needs Python to build, test or ship this repository; it is needed only by whoever changes the
 script or the repository under it.
 
@@ -410,7 +411,7 @@ python src/DotGram.Finance/Fix44/generate.py
 ```
 
 Names are QuickFIX's, so that a QuickFIX dictionary loaded at run time is written into checks by
-putting its names in place: a field as `FixNames` names it, a message by the repository's name
+putting its names in place: a field as its class in `FixField.cs` is named, a message by the repository's name
 except the four QuickFIX names otherwise, a component as the interface `I` and its name, and a group
 as the class `<Counter>Group` nested in whatever carries it, its entries the list `<Counter>Groups`.
 What it does not write is written by hand: the base class and the standard header
