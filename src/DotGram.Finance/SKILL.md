@@ -89,7 +89,7 @@ foreach (var field in FixParser.ParseFields(wire))
 
 - Each of the 912 standard tags has its own case, `FixField.<Name>`, with a typed
   `Value`: text as `string`, numbers as `decimal` or `long`, dates and times as
-  `FixDate`, `FixTime`, `FixTimestamp` and `FixMonthYear`. `field.FieldType` gives the
+  `DateOnly`, `TimeOnly` and `DateTimeOffset` (a MonthYear stays a `string`). `field.FieldType` gives the
   tag as a `FixFieldType`, for code that should not spell numbers.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it

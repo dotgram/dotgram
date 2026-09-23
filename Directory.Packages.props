@@ -61,6 +61,12 @@
 		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
 		     Meziantou.Polyfill is a generator and emits them as internal. -->
 		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.165" />
+
+		<!-- DateOnly and TimeOnly, which a FIX date and time of day are held in: on net6.0 and later the
+		     package forwards the two to the runtime's own, on netstandard2.0 and net462 it defines them under
+		     the same names. So the type a field's Value has is System.DateOnly on every framework, which
+		     a polyfill, being internal to this assembly, could not give. -->
+		<PackageVersion Include="Portable.System.DateTimeOnly" Version="9.0.1" />
 	</ItemGroup>
 
 </Project>

@@ -572,8 +572,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrigTime, FIX tag 42, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrigTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(42, value);
+	public sealed class OrigTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(42, value);
 
 	/// <summary>
 	/// Represents PossDupFlag, FIX tag 43, with wire type <c>Boolean</c>.
@@ -621,8 +621,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SendingTime, FIX tag 52, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SendingTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(52, value);
+	public sealed class SendingTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(52, value);
 
 	/// <summary>
 	/// Represents Quantity, FIX tag 53, with wire type <c>Qty</c>.
@@ -677,8 +677,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TransactTime, FIX tag 60, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TransactTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(60, value);
+	public sealed class TransactTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(60, value);
 
 	/// <summary>
 	/// Represents Urgency, FIX tag 61, with wire type <c>char</c>.
@@ -691,8 +691,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ValidUntilTime, FIX tag 62, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ValidUntilTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(62, value);
+	public sealed class ValidUntilTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(62, value);
 
 	/// <summary>
 	/// Represents SettlType, FIX tag 63, with wire type <c>char</c>.
@@ -705,8 +705,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlDate, FIX tag 64, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(64, value);
+	public sealed class SettlDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(64, value);
 
 	/// <summary>
 	/// Represents SymbolSfx, FIX tag 65, with wire type <c>String</c>.
@@ -782,8 +782,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TradeDate, FIX tag 75, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(75, value);
+	public sealed class TradeDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(75, value);
 
 	/// <summary>
 	/// Represents PositionEffect, FIX tag 77, with wire type <c>char</c>.
@@ -1093,8 +1093,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrigSendingTime, FIX tag 122, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrigSendingTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(122, value);
+	public sealed class OrigSendingTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(122, value);
 
 	/// <summary>
 	/// Represents GapFillFlag, FIX tag 123, with wire type <c>Boolean</c>.
@@ -1114,8 +1114,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ExpireTime, FIX tag 126, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExpireTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(126, value);
+	public sealed class ExpireTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(126, value);
 
 	/// <summary>
 	/// Represents DKReason, FIX tag 127, with wire type <c>char</c>.
@@ -1408,8 +1408,8 @@ public abstract class FixField : IFixLocation
 	/// Represents EffectiveTime, FIX tag 168, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EffectiveTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(168, value);
+	public sealed class EffectiveTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(168, value);
 
 	/// <summary>
 	/// Represents StandInstDbType, FIX tag 169, with wire type <c>int</c>.
@@ -1478,8 +1478,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlDate2, FIX tag 193, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlDate2((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(193, value);
+	public sealed class SettlDate2((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(193, value);
 
 	/// <summary>
 	/// Represents LastSpotRate, FIX tag 194, with wire type <c>Price</c>.
@@ -1527,8 +1527,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MaturityMonthYear, FIX tag 200, with wire type <c>MonthYear</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: Typed<FixMonthYear>(200, value);
+	public sealed class MaturityMonthYear((bool Valid, string Value) value)
+		: Typed<string>(200, value);
 
 	/// <summary>
 	/// Represents PutOrCall, FIX tag 201, with wire type <c>int</c>.
@@ -1682,15 +1682,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CouponPaymentDate, FIX tag 224, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CouponPaymentDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(224, value);
+	public sealed class CouponPaymentDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(224, value);
 
 	/// <summary>
 	/// Represents IssueDate, FIX tag 225, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class IssueDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(225, value);
+	public sealed class IssueDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(225, value);
 
 	/// <summary>
 	/// Represents RepurchaseTerm, FIX tag 226, with wire type <c>int</c>.
@@ -1717,15 +1717,15 @@ public abstract class FixField : IFixLocation
 	/// Represents TradeOriginationDate, FIX tag 229, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeOriginationDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(229, value);
+	public sealed class TradeOriginationDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(229, value);
 
 	/// <summary>
 	/// Represents ExDate, FIX tag 230, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(230, value);
+	public sealed class ExDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(230, value);
 
 	/// <summary>
 	/// Represents ContractMultiplier, FIX tag 231, with wire type <c>float</c>.
@@ -1794,22 +1794,22 @@ public abstract class FixField : IFixLocation
 	/// Represents RedemptionDate, FIX tag 240, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RedemptionDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(240, value);
+	public sealed class RedemptionDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(240, value);
 
 	/// <summary>
 	/// Represents UnderlyingCouponPaymentDate, FIX tag 241, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingCouponPaymentDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(241, value);
+	public sealed class UnderlyingCouponPaymentDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(241, value);
 
 	/// <summary>
 	/// Represents UnderlyingIssueDate, FIX tag 242, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingIssueDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(242, value);
+	public sealed class UnderlyingIssueDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(242, value);
 
 	/// <summary>
 	/// Represents UnderlyingRepoCollateralSecurityType, FIX tag 243, with wire type <c>String</c>.
@@ -1843,22 +1843,22 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingRedemptionDate, FIX tag 247, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingRedemptionDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(247, value);
+	public sealed class UnderlyingRedemptionDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(247, value);
 
 	/// <summary>
 	/// Represents LegCouponPaymentDate, FIX tag 248, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegCouponPaymentDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(248, value);
+	public sealed class LegCouponPaymentDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(248, value);
 
 	/// <summary>
 	/// Represents LegIssueDate, FIX tag 249, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegIssueDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(249, value);
+	public sealed class LegIssueDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(249, value);
 
 	/// <summary>
 	/// Represents LegRepoCollateralSecurityType, FIX tag 250, with wire type <c>String</c>.
@@ -1892,8 +1892,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegRedemptionDate, FIX tag 254, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegRedemptionDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(254, value);
+	public sealed class LegRedemptionDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(254, value);
 
 	/// <summary>
 	/// Represents CreditRating, FIX tag 255, with wire type <c>String</c>.
@@ -1927,8 +1927,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BasisFeatureDate, FIX tag 259, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BasisFeatureDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(259, value);
+	public sealed class BasisFeatureDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(259, value);
 
 	/// <summary>
 	/// Represents BasisFeaturePrice, FIX tag 260, with wire type <c>Price</c>.
@@ -2011,15 +2011,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MDEntryDate, FIX tag 272, with wire type <c>UTCDateOnly</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDEntryDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(272, value);
+	public sealed class MDEntryDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(272, value);
 
 	/// <summary>
 	/// Represents MDEntryTime, FIX tag 273, with wire type <c>UTCTimeOnly</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDEntryTime((bool Valid, FixTime Value) value)
-		: Typed<FixTime>(273, value);
+	public sealed class MDEntryTime((bool Valid, TimeOnly Value) value)
+		: Typed<TimeOnly>(273, value);
 
 	/// <summary>
 	/// Represents TickDirection, FIX tag 274, with wire type <c>char</c>.
@@ -2298,8 +2298,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingMaturityMonthYear, FIX tag 313, with wire type <c>MonthYear</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingMaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: Typed<FixMonthYear>(313, value);
+	public sealed class UnderlyingMaturityMonthYear((bool Valid, string Value) value)
+		: Typed<string>(313, value);
 
 	/// <summary>
 	/// Represents UnderlyingPutOrCall, FIX tag 315, with wire type <c>int</c>.
@@ -2480,36 +2480,36 @@ public abstract class FixField : IFixLocation
 	/// Represents TradSesStartTime, FIX tag 341, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesStartTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(341, value);
+	public sealed class TradSesStartTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(341, value);
 
 	/// <summary>
 	/// Represents TradSesOpenTime, FIX tag 342, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesOpenTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(342, value);
+	public sealed class TradSesOpenTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(342, value);
 
 	/// <summary>
 	/// Represents TradSesPreCloseTime, FIX tag 343, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesPreCloseTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(343, value);
+	public sealed class TradSesPreCloseTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(343, value);
 
 	/// <summary>
 	/// Represents TradSesCloseTime, FIX tag 344, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesCloseTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(344, value);
+	public sealed class TradSesCloseTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(344, value);
 
 	/// <summary>
 	/// Represents TradSesEndTime, FIX tag 345, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesEndTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(345, value);
+	public sealed class TradSesEndTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(345, value);
 
 	/// <summary>
 	/// Represents NumberOfOrders, FIX tag 346, with wire type <c>int</c>.
@@ -2734,8 +2734,8 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteSetValidUntilTime, FIX tag 367, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteSetValidUntilTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(367, value);
+	public sealed class QuoteSetValidUntilTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(367, value);
 
 	/// <summary>
 	/// Represents QuoteEntryRejectReason, FIX tag 368, with wire type <c>int</c>.
@@ -3186,8 +3186,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ExpireDate, FIX tag 432, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExpireDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(432, value);
+	public sealed class ExpireDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(432, value);
 
 	/// <summary>
 	/// Represents ListExecInstType, FIX tag 433, with wire type <c>char</c>.
@@ -3228,8 +3228,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ContraTradeTime, FIX tag 438, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContraTradeTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(438, value);
+	public sealed class ContraTradeTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(438, value);
 
 	/// <summary>
 	/// Represents LiquidityNumSecurities, FIX tag 441, with wire type <c>int</c>.
@@ -3249,8 +3249,8 @@ public abstract class FixField : IFixLocation
 	/// Represents StrikeTime, FIX tag 443, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StrikeTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(443, value);
+	public sealed class StrikeTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(443, value);
 
 	/// <summary>
 	/// Represents ListStatusText, FIX tag 444, with wire type <c>String</c>.
@@ -3516,8 +3516,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TransBkdTime, FIX tag 483, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TransBkdTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(483, value);
+	public sealed class TransBkdTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(483, value);
 
 	/// <summary>
 	/// Represents ExecPriceType, FIX tag 484, with wire type <c>char</c>.
@@ -3537,8 +3537,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DateOfBirth, FIX tag 486, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DateOfBirth((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(486, value);
+	public sealed class DateOfBirth((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(486, value);
 
 	/// <summary>
 	/// Represents TradeReportTransType, FIX tag 487, with wire type <c>int</c>.
@@ -3565,8 +3565,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CardExpDate, FIX tag 490, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CardExpDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(490, value);
+	public sealed class CardExpDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(490, value);
 
 	/// <summary>
 	/// Represents CardIssNum, FIX tag 491, with wire type <c>String</c>.
@@ -3656,15 +3656,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CardStartDate, FIX tag 503, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CardStartDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(503, value);
+	public sealed class CardStartDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(503, value);
 
 	/// <summary>
 	/// Represents PaymentDate, FIX tag 504, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PaymentDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(504, value);
+	public sealed class PaymentDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(504, value);
 
 	/// <summary>
 	/// Represents PaymentRemitterID, FIX tag 505, with wire type <c>String</c>.
@@ -3740,8 +3740,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ExecValuationPoint, FIX tag 515, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExecValuationPoint((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(515, value);
+	public sealed class ExecValuationPoint((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(515, value);
 
 	/// <summary>
 	/// Represents OrderPercent, FIX tag 516, with wire type <c>Percentage</c>.
@@ -3929,15 +3929,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MaturityDate, FIX tag 541, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaturityDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(541, value);
+	public sealed class MaturityDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(541, value);
 
 	/// <summary>
 	/// Represents UnderlyingMaturityDate, FIX tag 542, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingMaturityDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(542, value);
+	public sealed class UnderlyingMaturityDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(542, value);
 
 	/// <summary>
 	/// Represents InstrRegistry, FIX tag 543, with wire type <c>String</c>.
@@ -4244,8 +4244,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OrigOrdModTime, FIX tag 586, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrigOrdModTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(586, value);
+	public sealed class OrigOrdModTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(586, value);
 
 	/// <summary>
 	/// Represents LegSettlType, FIX tag 587, with wire type <c>char</c>.
@@ -4258,8 +4258,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegSettlDate, FIX tag 588, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegSettlDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(588, value);
+	public sealed class LegSettlDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(588, value);
 
 	/// <summary>
 	/// Represents DayBookingInst, FIX tag 589, with wire type <c>char</c>.
@@ -4412,15 +4412,15 @@ public abstract class FixField : IFixLocation
 	/// Represents LegMaturityMonthYear, FIX tag 610, with wire type <c>MonthYear</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegMaturityMonthYear((bool Valid, FixMonthYear Value) value)
-		: Typed<FixMonthYear>(610, value);
+	public sealed class LegMaturityMonthYear((bool Valid, string Value) value)
+		: Typed<string>(610, value);
 
 	/// <summary>
 	/// Represents LegMaturityDate, FIX tag 611, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegMaturityDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(611, value);
+	public sealed class LegMaturityDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(611, value);
 
 	/// <summary>
 	/// Represents LegStrikePrice, FIX tag 612, with wire type <c>Price</c>.
@@ -4561,8 +4561,8 @@ public abstract class FixField : IFixLocation
 	/// Represents HopSendingTime, FIX tag 629, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class HopSendingTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(629, value);
+	public sealed class HopSendingTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(629, value);
 
 	/// <summary>
 	/// Represents HopRefID, FIX tag 630, with wire type <c>SeqNum</c>.
@@ -4820,8 +4820,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ContractSettlMonth, FIX tag 667, with wire type <c>MonthYear</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContractSettlMonth((bool Valid, FixMonthYear Value) value)
-		: Typed<FixMonthYear>(667, value);
+	public sealed class ContractSettlMonth((bool Valid, string Value) value)
+		: Typed<string>(667, value);
 
 	/// <summary>
 	/// Represents DeliveryForm, FIX tag 668, with wire type <c>int</c>.
@@ -5016,8 +5016,8 @@ public abstract class FixField : IFixLocation
 	/// Represents YieldRedemptionDate, FIX tag 696, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class YieldRedemptionDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(696, value);
+	public sealed class YieldRedemptionDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(696, value);
 
 	/// <summary>
 	/// Represents YieldRedemptionPrice, FIX tag 697, with wire type <c>Price</c>.
@@ -5051,8 +5051,8 @@ public abstract class FixField : IFixLocation
 	/// Represents YieldCalcDate, FIX tag 701, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class YieldCalcDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(701, value);
+	public sealed class YieldCalcDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(701, value);
 
 	/// <summary>
 	/// Represents NoPositions, FIX tag 702, with wire type <c>NumInGroup</c>.
@@ -5149,8 +5149,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ClearingBusinessDate, FIX tag 715, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ClearingBusinessDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(715, value);
+	public sealed class ClearingBusinessDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(715, value);
 
 	/// <summary>
 	/// Represents SettlSessID, FIX tag 716, with wire type <c>String</c>.
@@ -5317,8 +5317,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegDatedDate, FIX tag 739, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegDatedDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(739, value);
+	public sealed class LegDatedDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(739, value);
 
 	/// <summary>
 	/// Represents LegPool, FIX tag 740, with wire type <c>String</c>.
@@ -5345,8 +5345,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DeliveryDate, FIX tag 743, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DeliveryDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(743, value);
+	public sealed class DeliveryDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(743, value);
 
 	/// <summary>
 	/// Represents AssignmentMethod, FIX tag 744, with wire type <c>char</c>.
@@ -5527,8 +5527,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TrdRegTimestamp, FIX tag 769, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TrdRegTimestamp((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(769, value);
+	public sealed class TrdRegTimestamp((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(769, value);
 
 	/// <summary>
 	/// Represents TrdRegTimestampType, FIX tag 770, with wire type <c>int</c>.
@@ -5597,8 +5597,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LastUpdateTime, FIX tag 779, with wire type <c>UTCTimestamp</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastUpdateTime((bool Valid, FixTimestamp Value) value)
-		: Typed<FixTimestamp>(779, value);
+	public sealed class LastUpdateTime((bool Valid, DateTimeOffset Value) value)
+		: Typed<DateTimeOffset>(779, value);
 
 	/// <summary>
 	/// Represents AllocSettlInstType, FIX tag 780, with wire type <c>int</c>.
@@ -6192,8 +6192,8 @@ public abstract class FixField : IFixLocation
 	/// Represents EventDate, FIX tag 866, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EventDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(866, value);
+	public sealed class EventDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(866, value);
 
 	/// <summary>
 	/// Represents EventPx, FIX tag 867, with wire type <c>Price</c>.
@@ -6241,15 +6241,15 @@ public abstract class FixField : IFixLocation
 	/// Represents DatedDate, FIX tag 873, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DatedDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(873, value);
+	public sealed class DatedDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(873, value);
 
 	/// <summary>
 	/// Represents InterestAccrualDate, FIX tag 874, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class InterestAccrualDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(874, value);
+	public sealed class InterestAccrualDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(874, value);
 
 	/// <summary>
 	/// Represents CPProgram, FIX tag 875, with wire type <c>int</c>.
@@ -6535,22 +6535,22 @@ public abstract class FixField : IFixLocation
 	/// Represents AgreementDate, FIX tag 915, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AgreementDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(915, value);
+	public sealed class AgreementDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(915, value);
 
 	/// <summary>
 	/// Represents StartDate, FIX tag 916, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StartDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(916, value);
+	public sealed class StartDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(916, value);
 
 	/// <summary>
 	/// Represents EndDate, FIX tag 917, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EndDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(917, value);
+	public sealed class EndDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(917, value);
 
 	/// <summary>
 	/// Represents AgreementCurrency, FIX tag 918, with wire type <c>Currency</c>.
@@ -6815,13 +6815,13 @@ public abstract class FixField : IFixLocation
 	/// Represents LegContractSettlMonth, FIX tag 955, with wire type <c>MonthYear</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegContractSettlMonth((bool Valid, FixMonthYear Value) value)
-		: Typed<FixMonthYear>(955, value);
+	public sealed class LegContractSettlMonth((bool Valid, string Value) value)
+		: Typed<string>(955, value);
 
 	/// <summary>
 	/// Represents LegInterestAccrualDate, FIX tag 956, with wire type <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegInterestAccrualDate((bool Valid, FixDate Value) value)
-		: Typed<FixDate>(956, value);
+	public sealed class LegInterestAccrualDate((bool Valid, DateOnly Value) value)
+		: Typed<DateOnly>(956, value);
 }

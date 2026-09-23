@@ -118,7 +118,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("20000229", true)]
 	[InlineData("19000229", false)]
 	[InlineData("20230229", false)]
-	[InlineData("00000101", true)]
+	[InlineData("00000101", false)]
+	[InlineData("00010101", true)]
 	[InlineData("20261301", false)]
 	[InlineData("20260100", false)]
 	[InlineData("2026O915", false)]
@@ -130,22 +131,68 @@ public sealed class FixConvertFastPathTests
 		Assert.Equal(characters, bytes);
 	}
 
+	/// <summary>
+	/// The leap second the protocol admits is the second after it; a fraction is kept to the tick,
+	/// and digits past the seventh are read and let go.
+	/// </summary>
 	[Theory]
-	[InlineData("23:59:60", true, "")]
+	[InlineData("23:59:60", true, "00:00:00.0000000")]
+	[InlineData("23:59:60.250", true, "00:00:00.2500000")]
 	[InlineData("12:59:60", false, "")]
 	[InlineData("24:00:00", false, "")]
-	[InlineData("12:00:00.000", true, "000")]
-	[InlineData("12:00:00.123456789", true, "123456789")]
+	[InlineData("12:00:00.000", true, "12:00:00.0000000")]
+	[InlineData("12:00:00.123456789", true, "12:00:00.1234567")]
 	[InlineData("12:0O:00", false, "")]
 	[InlineData("12:00:00.", false, "")]
-	public void A_time_is_read_from_its_digits(string text, bool valid, string fraction)
+	public void A_time_is_read_from_its_digits(string text, bool valid, string expected)
 	{
 		Assert.Equal(valid, FixConvert.Time(text.AsSpan(), out var characters));
 		Assert.Equal(valid, FixConvert.Time(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(characters, bytes);
 
 		if (valid)
-			Assert.Equal(fraction, characters.Fraction);
+			Assert.Equal(expected, characters.ToString("HH:mm:ss.fffffff", CultureInfo.InvariantCulture));
+	}
+
+	/// <summary>A timestamp is an instant at offset zero; the leap second at the end of a day is the next day's first.</summary>
+	[Theory]
+	[InlineData("19981231-23:59:59", true, "1998-12-31T23:59:59.0000000+00:00")]
+	[InlineData("19981231-23:59:60", true, "1999-01-01T00:00:00.0000000+00:00")]
+	[InlineData("19981231-23:59:60.500", true, "1999-01-01T00:00:00.5000000+00:00")]
+	[InlineData("20260922-12:00:00.123", true, "2026-09-22T12:00:00.1230000+00:00")]
+	[InlineData("00000101-00:00:00", false, "")]
+	[InlineData("99991231-23:59:60", false, "")]
+	[InlineData("20260922 12:00:00", false, "")]
+	[InlineData("20260922-12:00", false, "")]
+	public void A_timestamp_is_an_instant_at_offset_zero(string text, bool valid, string expected)
+	{
+		Assert.Equal(valid, FixConvert.Timestamp(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.Timestamp(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(characters, bytes);
+
+		if (valid)
+		{
+			Assert.Equal(TimeSpan.Zero, characters.Offset);
+			Assert.Equal(expected, characters.ToString("o", CultureInfo.InvariantCulture));
+		}
+	}
+
+	/// <summary>A MonthYear is its text, held to the three shapes the protocol gives it.</summary>
+	[Theory]
+	[InlineData("202609", true)]
+	[InlineData("20260915", true)]
+	[InlineData("202609w1", true)]
+	[InlineData("202609w5", true)]
+	[InlineData("202609w6", false)]
+	[InlineData("20260931", false)]
+	[InlineData("202613", false)]
+	[InlineData("2026091", false)]
+	public void A_month_year_is_its_text_in_one_of_three_shapes(string text, bool valid)
+	{
+		Assert.Equal(valid, FixConvert.MonthYear(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.MonthYear(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(text, characters);
+		Assert.Equal(text, bytes);
 	}
 
 	[Theory]

@@ -106,49 +106,49 @@ static class FixConvert
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<char> raw)
+	public static (bool Valid, DateTimeOffset Value) Timestamp(ReadOnlySpan<char> raw)
 	{
 		var valid = Timestamp(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<byte> raw)
+	public static (bool Valid, DateTimeOffset Value) Timestamp(ReadOnlySpan<byte> raw)
 	{
 		var valid = Timestamp(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<char> raw)
+	public static (bool Valid, TimeOnly Value) Time(ReadOnlySpan<char> raw)
 	{
 		var valid = Time(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<byte> raw)
+	public static (bool Valid, TimeOnly Value) Time(ReadOnlySpan<byte> raw)
 	{
 		var valid = Time(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<char> raw)
+	public static (bool Valid, DateOnly Value) Date(ReadOnlySpan<char> raw)
 	{
 		var valid = Date(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<byte> raw)
+	public static (bool Valid, DateOnly Value) Date(ReadOnlySpan<byte> raw)
 	{
 		var valid = Date(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<char> raw)
+	public static (bool Valid, string Value) MonthYear(ReadOnlySpan<char> raw)
 	{
 		var valid = MonthYear(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<byte> raw)
+	public static (bool Valid, string Value) MonthYear(ReadOnlySpan<byte> raw)
 	{
 		var valid = MonthYear(raw, out var value);
 		return (valid, value);
@@ -488,27 +488,98 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Date(ReadOnlySpan<char> raw, out FixDate value)
+	// ── Dates and times ─────────────────────────────────────────────────────────
+	//
+	// A FIX date is YYYYMMDD, a time HH:MM:SS with an optional fraction of any number of digits,
+	// and a timestamp the two joined by a dash. They are held in DateOnly, TimeOnly and a
+	// DateTimeOffset at offset zero. Two things the wire may say do not fit those: the leap
+	// second, 23:59:60, which the protocol admits and which is read as the second after it, so
+	// that the value is the instant and only the notation is lost; and the year 0000, which the
+	// protocol admits and no calendar type holds, and which is not a value. A fraction is kept
+	// to the tick, a hundred nanoseconds; FIX 4.4 writes at most milliseconds.
+
+	public static bool Date(ReadOnlySpan<char> raw, out DateOnly value)
 	{
 		value = default;
 
-		if (raw.Length != 8)
+		if (!DateParts(raw, out var year, out var month, out var day))
+			return false;
+
+		value = new DateOnly(year, month, day);
+
+		return true;
+	}
+
+	public static bool Time(ReadOnlySpan<char> raw, out TimeOnly value)
+	{
+		value = default;
+
+		if (!TimeParts(raw, out var ticks, out var leap))
+			return false;
+
+		value = new TimeOnly(leap ? ticks + TimeSpan.TicksPerSecond - TimeSpan.TicksPerDay : ticks);
+
+		return true;
+	}
+
+	public static bool Timestamp(ReadOnlySpan<char> raw, out DateTimeOffset value)
+	{
+		value = default;
+
+		if (raw.Length < 17 || raw[8] != '-'
+			|| !DateParts(raw.Slice(0, 8), out var year, out var month, out var day)
+			|| !TimeParts(raw.Slice(9), out var ticks, out var leap))
+			return false;
+
+		return Composed(year, month, day, ticks, leap, out value);
+	}
+
+	public static bool MonthYear(ReadOnlySpan<char> raw, out string value)
+	{
+		value = Text(raw);
+
+		if (raw.Length != 6 && raw.Length != 8)
 			return false;
 
 		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		var day   = Part(raw.Slice(6, 2));
 
-		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month))
+		if (year < 0 || month < 1 || month > 12)
 			return false;
 
-		value = new FixDate(year, month, day);
+		if (raw.Length == 8)
+		{
+			if (raw[6] == 'w')
+				return raw[7] is >= '1' and <= '5';
+
+			var day = Part(raw.Slice(6, 2));
+
+			return day >= 1 && day <= Days(year, month);
+		}
 
 		return true;
 	}
-	public static bool Time(ReadOnlySpan<char> raw, out FixTime value)
+
+	static bool DateParts(ReadOnlySpan<char> raw, out int year, out int month, out int day)
 	{
-		value = default;
+		year = month = day = 0;
+
+		if (raw.Length != 8)
+			return false;
+
+		year  = Part(raw.Slice(0, 4));
+		month = Part(raw.Slice(4, 2));
+		day   = Part(raw.Slice(6, 2));
+
+		return year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= Days(year, month);
+	}
+
+	// The time of day in ticks, and whether it was the leap second, in which case the ticks are
+	// those of 23:59:59 plus the fraction, and the caller adds the second where it can.
+	static bool TimeParts(ReadOnlySpan<char> raw, out long ticks, out bool leap)
+	{
+		ticks = 0;
+		leap  = false;
 
 		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':')
 			return false;
@@ -520,69 +591,39 @@ static class FixConvert
 		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59))
 			return false;
 
-		var fraction = "";
-
 		if (raw.Length > 8)
 		{
 			if (raw.Length < 10 || raw[8] != '.')
 				return false;
 
+			var scale = TimeSpan.TicksPerSecond / 10;
+
 			foreach (var c in raw.Slice(9))
+			{
 				if (c < '0' || c > '9')
 					return false;
 
-			fraction = Text(raw.Slice(9));
+				ticks += (c - '0') * scale;
+				scale /= 10;
+			}
 		}
 
-		value = new FixTime(hour, minute, second, fraction);
+		leap   = second == 60;
+		ticks += hour * TimeSpan.TicksPerHour + minute * TimeSpan.TicksPerMinute + (leap ? 59 : second) * TimeSpan.TicksPerSecond;
 
 		return true;
 	}
 
-	public static bool Timestamp(ReadOnlySpan<char> raw, out FixTimestamp value)
+	static bool Composed(int year, int month, int day, long ticks, bool leap, out DateTimeOffset value)
 	{
 		value = default;
 
-		if (raw.Length < 17 || raw[8] != '-' || !Date(raw.Slice(0, 8), out var date) || !Time(raw.Slice(9), out var time))
+		var all = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc).Ticks + ticks + (leap ? TimeSpan.TicksPerSecond : 0);
+
+		if (all > DateTime.MaxValue.Ticks)
 			return false;
 
-		value = new FixTimestamp(date, time);
-
-		return true;
-	}
-
-	public static bool MonthYear(ReadOnlySpan<char> raw, out FixMonthYear value)
-	{
-		value = default;
-
-		if (raw.Length != 6 && raw.Length != 8)
-			return false;
-
-		var year  = Part(raw.Slice(0, 4));
-		var month = Part(raw.Slice(4, 2));
-
-		if (year < 0 || month < 1 || month > 12)
-			return false;
-
-		int? day = null, week = null;
-
-		if (raw.Length == 8)
-		{
-			if (raw[6] == 'w')
-			{
-				week = raw[7] - '0';
-				if (week is < 1 or > 5)
-					return false;
-			}
-			else
-			{
-				day = Part(raw.Slice(6, 2));
-				if (day < 1 || day > Days(year, month))
-					return false;
-			}
-		}
-
-		value = new FixMonthYear(year, month, day, week);
+		value = new DateTimeOffset(all, TimeSpan.Zero);
 
 		return true;
 	}
@@ -612,27 +653,86 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Date(ReadOnlySpan<byte> raw, out FixDate value)
+	public static bool Date(ReadOnlySpan<byte> raw, out DateOnly value)
 	{
 		value = default;
 
-		if (raw.Length != 8)
+		if (!DateParts(raw, out var year, out var month, out var day))
+			return false;
+
+		value = new DateOnly(year, month, day);
+
+		return true;
+	}
+
+	public static bool Time(ReadOnlySpan<byte> raw, out TimeOnly value)
+	{
+		value = default;
+
+		if (!TimeParts(raw, out var ticks, out var leap))
+			return false;
+
+		value = new TimeOnly(leap ? ticks + TimeSpan.TicksPerSecond - TimeSpan.TicksPerDay : ticks);
+
+		return true;
+	}
+
+	public static bool Timestamp(ReadOnlySpan<byte> raw, out DateTimeOffset value)
+	{
+		value = default;
+
+		if (raw.Length < 17 || raw[8] != '-'
+			|| !DateParts(raw.Slice(0, 8), out var year, out var month, out var day)
+			|| !TimeParts(raw.Slice(9), out var ticks, out var leap))
+			return false;
+
+		return Composed(year, month, day, ticks, leap, out value);
+	}
+
+	public static bool MonthYear(ReadOnlySpan<byte> raw, out string value)
+	{
+		value = Text(raw);
+
+		if (raw.Length != 6 && raw.Length != 8)
 			return false;
 
 		var year  = Part(raw.Slice(0, 4));
 		var month = Part(raw.Slice(4, 2));
-		var day   = Part(raw.Slice(6, 2));
 
-		if (year < 0 || month < 1 || month > 12 || day < 1 || day > Days(year, month))
+		if (year < 0 || month < 1 || month > 12)
 			return false;
 
-		value = new FixDate(year, month, day);
+		if (raw.Length == 8)
+		{
+			if (raw[6] == 'w')
+				return raw[7] is >= (byte)'1' and <= (byte)'5';
+
+			var day = Part(raw.Slice(6, 2));
+
+			return day >= 1 && day <= Days(year, month);
+		}
 
 		return true;
 	}
-	public static bool Time(ReadOnlySpan<byte> raw, out FixTime value)
+
+	static bool DateParts(ReadOnlySpan<byte> raw, out int year, out int month, out int day)
 	{
-		value = default;
+		year = month = day = 0;
+
+		if (raw.Length != 8)
+			return false;
+
+		year  = Part(raw.Slice(0, 4));
+		month = Part(raw.Slice(4, 2));
+		day   = Part(raw.Slice(6, 2));
+
+		return year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= Days(year, month);
+	}
+
+	static bool TimeParts(ReadOnlySpan<byte> raw, out long ticks, out bool leap)
+	{
+		ticks = 0;
+		leap  = false;
 
 		if (raw.Length < 8 || raw[2] != ':' || raw[5] != ':')
 			return false;
@@ -644,70 +744,27 @@ static class FixConvert
 		if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 60 || second == 60 && (hour != 23 || minute != 59))
 			return false;
 
-		var fraction = "";
-
 		if (raw.Length > 8)
 		{
 			if (raw.Length < 10 || raw[8] != '.')
 				return false;
 
+			var scale = TimeSpan.TicksPerSecond / 10;
+
 			foreach (var c in raw.Slice(9))
+			{
 				if (c < '0' || c > '9')
 					return false;
 
-			fraction = Text(raw.Slice(9));
-		}
-
-		value = new FixTime(hour, minute, second, fraction);
-
-		return true;
-	}
-
-	public static bool Timestamp(ReadOnlySpan<byte> raw, out FixTimestamp value)
-	{
-		value = default;
-
-		if (raw.Length < 17 || raw[8] != '-' || !Date(raw[..8], out var date) || !Time(raw[9..], out var time))
-			return false;
-
-		value = new FixTimestamp(date, time);
-
-		return true;
-	}
-
-	public static bool MonthYear(ReadOnlySpan<byte> raw, out FixMonthYear value)
-	{
-		value = default;
-
-		if (raw.Length != 6 && raw.Length != 8)
-			return false;
-
-		var year  = Part(raw.Slice(0, 4));
-		var month = Part(raw.Slice(4, 2));
-
-		if (year < 0 || month < 1 || month > 12)
-			return false;
-
-		int? day = null, week = null;
-
-		if (raw.Length == 8)
-		{
-			if (raw[6] == 'w')
-			{
-				week = raw[7] - '0';
-				if (week is < 1 or > 5)
-					return false;
-			}
-			else
-			{
-				day = Part(raw.Slice(6, 2));
-				if (day < 1 || day > Days(year, month))
-					return false;
+				ticks += (c - '0') * scale;
+				scale /= 10;
 			}
 		}
 
-		value = new FixMonthYear(year, month, day, week);
+		leap   = second == 60;
+		ticks += hour * TimeSpan.TicksPerHour + minute * TimeSpan.TicksPerMinute + (leap ? 59 : second) * TimeSpan.TicksPerSecond;
 
 		return true;
 	}
+
 }

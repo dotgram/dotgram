@@ -256,8 +256,9 @@ Flattened component fields are properties of their containing scope.
 - Numeric properties return `FixNumber?`. Its `Value` preserves all decimal digits;
   `TryGetDecimal` uses .NET's decimal conversion rules. Values outside CLR numeric
   ranges can still be parsed and inspected without overflow or loss of wire text.
-- Temporal properties preserve FIX text, including year zero and leap-second
-  notation, rather than forcing values into `DateTime`.
+- Temporal properties are `DateOnly`, `TimeOnly` and `DateTimeOffset`; on
+  netstandard2.0 and .NET Framework the first two come from the
+  `Portable.System.DateTimeOnly` package, under the same names.
 - `GetField(tag)` returns the first field in the current scope. `FixFieldView.Value`
   and `FixFieldView.Wire` expose non-allocating spans. `Fields` preserves scope order;
   `AllFields` traverses the complete message, including nested groups, in wire order.
@@ -353,12 +354,17 @@ Console.WriteLine(quantity.Value);           // decimal
 | char, Boolean | char, bool |
 | String, Currency, Country, Exchange | string |
 | MultipleValueString | string[] |
-| UTCDateOnly, LocalMktDate | FixDate |
-| UTCTimeOnly, UTCTimestamp, MonthYear | FixTime, FixTimestamp, FixMonthYear |
+| UTCDateOnly, LocalMktDate | DateOnly |
+| UTCTimeOnly | TimeOnly |
+| UTCTimestamp | DateTimeOffset, at offset zero |
+| MonthYear | string, checked for its shape (`YYYYMM`, `YYYYMMDD`, `YYYYMMw1`..`w5`) |
 | data | ReadOnlyMemory<byte> |
 
 A code set is held against the schema by `Validate`, not while the field is read; the
-underlying primitive remains the value type. Dates retain year zero and leap-second notation.
+underlying primitive remains the value type. A leap second, `23:59:60`, which the protocol
+admits, is read as the second after it, so that the value is the instant and only the
+notation is lost; the year `0000`, which the protocol also admits, is not a value. A fraction
+of a second is kept to the tick.
 The character numeric hooks use invariant .NET parsing; byte decimal hooks use
 UTF-8 decimal parsing with the same FIX syntax checks. Integer values must fit a
 `long`; a value that does not sets `IsValid` to false. Decimal values must fit

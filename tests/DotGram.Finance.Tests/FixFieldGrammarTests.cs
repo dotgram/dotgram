@@ -39,8 +39,9 @@ public sealed class FixFieldGrammarTests
 			var price = Assert.IsType<FixField.Price>(Field(order, 44)).Value;
 			Assert.Equal(12.50m, price);
 			var time = Assert.IsType<FixField.TransactTime>(Field(order, 60)).Value;
-			Assert.Equal(2026, time.Date.Year);
-			Assert.Equal(12, time.Time.Hour);
+			Assert.Equal(2026, time.Year);
+			Assert.Equal(12, time.Hour);
+			Assert.Equal(TimeSpan.Zero, time.Offset);
 			Assert.Equal(1L, Assert.IsType<FixField.MsgSeqNum>(Field(order, 34)).Value);
 		}
 		Assert.True(FixConvert.Boolean("Y".AsSpan(), out var flag));
