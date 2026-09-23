@@ -170,4 +170,22 @@ public sealed class FixValidationTests
 		Assert.True(heartbeat.Validate(context));
 		Assert.Equal(1, counted);
 	}
+
+	/// <summary>
+	/// A finding names the field it is about, and the field's location says where in the input it
+	/// is: what a consumer who has an error to show asks next.
+	/// </summary>
+	[Fact]
+	public void The_field_a_finding_names_says_where_it_was_read()
+	{
+		var wire  = FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=Z|");
+		var order = FixParser.ParseMessage(wire);
+
+		Assert.False(order.Validate(FixContext.Default));
+
+		IFixLocation where = Assert.Single(order.InvalidFindings!).Field!;
+
+		Assert.Equal("40=Z", wire.Substring(where.Position, where.ValuePosition - where.Position + where.Length));
+		Assert.Equal("Z", wire.Substring(where.ValuePosition, where.Length));
+	}
 }
