@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -285,5 +286,65 @@ public sealed class FixLoadTests
 				"CollateralInquiryAck: block InstrumentLeg",
 			],
 			context.Validators.Unplaced);
+	}
+
+	/// <summary>
+	/// The errata: what QuickFIX/n's FIX44.xml places differently from the repository, said the way the
+	/// repository says it, in that file's format (tests/Corpus/Fix/quickfixn-fix44-errata.xml). Loaded
+	/// after that file it puts the thirteen types back: every one of their members has a place, and a
+	/// standard message of those types is held to what the compiled-in schema holds it to.
+	/// </summary>
+	[Fact]
+	public void The_errata_places_everything_and_puts_the_thirteen_types_back()
+	{
+		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
+		var errata = File.ReadAllText(Path.Combine(corpus, "quickfixn-fix44-errata.xml"));
+
+		Assert.Empty(FixContext.Default.Load(errata).Validators.Unplaced);
+
+		var file   = File.ReadAllText(Path.Combine(corpus, "FIX44.xml"));
+		var theirs = FixContext.Default.Load(file);
+		var mended = theirs.Load(errata);
+
+		// The lines are the first load's: the errata adds none, and takes none away, since they say
+		// what that file said and not what this context asks.
+		Assert.Equal(theirs.Validators.Unplaced, mended.Validators.Unplaced);
+
+		// What the errata leaves alone is their fields: the values their file lists for a field stand,
+		// and differ from the repository's here and there (SymbolSfx, YieldRedemptionPriceType). So the
+		// context a mended message is held against is the standard's messages over their fields.
+		var fields = "<fix>" + file.Substring(file.IndexOf("<fields>", StringComparison.Ordinal), file.IndexOf("</fields>", StringComparison.Ordinal) + "</fields>".Length - file.IndexOf("<fields>", StringComparison.Ordinal)) + "</fix>";
+		var theirFields = FixContext.Default.Load(fields);
+
+		var types = new[]
+		{
+			"QuoteRequestReject", "CrossOrderCancelReplaceRequest", "AllocationInstruction", "AllocationReport",
+			"SettlementInstructions", "TradeCaptureReport", "AssignmentReport", "CollateralRequest",
+			"CollateralAssignment", "CollateralResponse", "CollateralReport", "CollateralInquiry", "CollateralInquiryAck",
+		};
+
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var data in FixFixtures.Messages())
+		{
+			var (name, wire) = ((string)data[0], (string)data[1]);
+
+			if (Array.IndexOf(types, name) < 0)
+				continue;
+
+			var standard = FixParser.ParseMessage(wire);
+			var repaired = FixParser.ParseMessage(wire);
+
+			standard.Validate(theirFields);
+			repaired.Validate(mended);
+
+			Assert.Equal(
+				(standard.InvalidFindings ?? []).Select(one => one.ToString()),
+				(repaired.InvalidFindings ?? []).Select(one => one.ToString()));
+
+			seen.Add(name);
+		}
+
+		Assert.Equal(types.OrderBy(one => one, StringComparer.Ordinal), seen.OrderBy(one => one, StringComparer.Ordinal));
 	}
 }

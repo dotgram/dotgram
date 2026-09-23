@@ -39,3 +39,13 @@ staleness guard a consumer gets at start-up when a counterparty issues a newer f
 A second dictionary, one that a venue actually issues with its own extensions, is what
 this one cannot be: it is the standard protocol and nothing more. The first venue file we
 are given is worth keeping beside it, if its licence lets us.
+
+## The errata
+
+`quickfixn-fix44-errata.xml` is ours, not theirs: the thirteen message types their file places
+differently from the FIX 4.4 repository, each written whole the way the repository has it, in
+their format. Loaded after their file — `FixContext.Default.Load(FIX44.xml).Load(errata)` —
+it puts those types back to the standard, so that a schema read from their file holds a
+message to the protocol and not to their reading of it. Written by `quickfixn-fix44-errata.py` beside it from
+`../FixRepository`, never edited by hand; the twenty-seven places it answers are the
+`Unplaced` lines that loading their file reports (`FixLoadTests`).
