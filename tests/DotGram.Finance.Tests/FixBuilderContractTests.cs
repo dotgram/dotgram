@@ -120,7 +120,7 @@ public sealed class FixBuilderContractTests
 		var message = FixParser.ParseMessage(wire);
 
 		Assert.Equal("ZZ", message.MessageType);
-		Assert.IsType<FixMessage.Custom>(message);
+		Assert.IsType<FixMessage.Invalid>(message);
 
 		// Everything that is not the standard header or the trailer, in wire order.
 		Assert.Equal(

@@ -61,7 +61,7 @@ public sealed class FixLogTests
 		foreach (var fields in ReadLog(input, options))
 		{
 			Assert.Equal(2, fields.Length);
-			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Custom>(fields[0]).Value.Span));
+			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Invalid>(fields[0]).RawBytes.Span));
 			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
 		}
 	}

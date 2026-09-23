@@ -219,7 +219,7 @@ public sealed class FixConvertFastPathTests
 		var options = new FixContext();
 
 		for (var tag = -2; tag < 2000; tag++)
-			Assert.Equal(tag > 0 && FixFieldFactory.Value(tag, "0".AsSpan(), options.CustomFields) is FixField.Typed<ReadOnlyMemory<byte>> and not FixField.Custom, options.IsData(tag));
+			Assert.Equal(tag > 0 && FixFieldBuilder.Value(tag, "0".AsSpan(), options.FixFieldFactory) is FixField.Typed<ReadOnlyMemory<byte>>, options.IsData(tag));
 
 		Assert.False(options.IsData(int.MaxValue));
 		Assert.False(options.IsData(int.MinValue));
@@ -231,7 +231,7 @@ public sealed class FixConvertFastPathTests
 	{
 		var options = new FixContext { LengthDataPairs = new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 } };
 
-		Assert.IsType<FixField.Custom>(FixFieldFactory.Value(5001, "0".AsSpan(), options.CustomFields));
+		Assert.IsType<FixField.Invalid>(FixFieldBuilder.Value(5001, "0".AsSpan(), options.FixFieldFactory));
 		Assert.True(options.IsData(5001));
 		Assert.False(options.IsData(5000));
 		Assert.True(options.IsData(96));

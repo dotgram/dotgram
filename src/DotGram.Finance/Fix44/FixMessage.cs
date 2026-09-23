@@ -11,7 +11,7 @@ namespace DotGram.Finance.Fix44;
 /// <remarks>
 /// Nested, because this is a closed set and not ninety-three free names: the set is fixed, every
 /// case is a <see cref="FixMessage"/>, and a switch over them is meant to be exhaustive. The
-/// package already writes the field hierarchy this way one layer down — <c>FixField.Custom</c>,
+/// package already writes the field hierarchy this way one layer down — <c>FixField.Invalid</c>,
 /// <c>FixField.SettlDate</c> — and two spellings of one idea in one package is what this removes.
 /// At the point of use it reads as what it is: <c>FixMessage.NewOrderSingle</c> says what the
 /// thing IS where it is written, and puts the base type in front of every arm of every switch,
@@ -96,11 +96,11 @@ public abstract partial class FixMessage
 	/// <summary>
 	/// The MsgType, tag 35.
 	/// </summary>
-	public string         MessageType { get; }
+	public string         MessageType { get; private protected set; }
 	/// <summary>
 	/// All fields in wire order, including header and trailer; group entries are flattened into the list.
 	/// </summary>
-	public List<FixField> Fields      { get; }
+	public List<FixField> Fields      { get; private protected set; }
 
 
 	/// <summary>Everything found wrong with this message, or null while nothing has been.</summary>
@@ -314,33 +314,25 @@ public abstract partial class FixMessage
 		public FixField.HopRefID? HopRefID { get; internal set; }
 	}
 
-	/// <summary>A vendor message of unknown MsgType; its body fields remain in wire order.</summary>
+	/// <summary>A message of a MsgType FIX 4.4 does not define and no message factory builds; its fields remain in wire order.</summary>
 	/// <remarks>
-	/// The case for everything the schema does not describe, and the reason the set can be closed
-	/// without being complete: a MsgType nobody here has heard of is still a message, and still one
-	/// of these.
+	/// Not valid from the moment it is read: its type is what is wrong with it, and that is said once,
+	/// as <see cref="FixRule.UnknownMessageType"/>. The standard header and trailer are the standard's
+	/// and are read as themselves; <see cref="Validate"/> holds them to it and asks nothing more.
 	/// </remarks>
-	public class Custom : FixMessage
+	public sealed class Invalid : FixMessage
 	{
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Custom"/> class.
-		/// </summary>
-		/// <param name="type">The FIX message type.</param>
-		/// <param name="fields">The list of FIX fields.</param>
-		public Custom(string type, List<FixField> fields) : base(type, fields)
+		internal Invalid(string type, List<FixField> fields) : base(type, fields)
 		{
-			// The schema says nothing about this type, so nothing is placed by it and nothing is out of
-			// place either: what is wrong with this message is its type, which validation says once.
-			// The standard header and trailer are the standard's and are read as themselves.
 			foreach (var field in fields)
 				SetStandardField(field);
+
+			AddFinding(new FixFinding(FixRule.UnknownMessageType, 35, MsgType?.Position ?? 0, MsgType, -1));
 		}
 
-
-		/// <summary>Asks the context for the check of this type and runs it.</summary>
+		/// <summary>Nothing: the type is not one the schema describes, and that has been said.</summary>
 		private protected override void Check(FixContext context)
 		{
-			context.Validators.Custom(context, this);
 		}
 	}
 }

@@ -134,7 +134,8 @@ at construction; the standard's own pairs always hold, so neither tag of a suppl
 the standard already defines. Omit it to use the standard pairs alone. The same object is what
 the message calls take, so one value describes both kinds of answer. Each length tag must
 immediately precede its configured data tag. The pair produces one binary field;
-data tags the package does not define produce `FixField.Custom` with binary metadata. Standalone
+a data tag the package does not define is built by `FixFieldFactory`, or is a `FixField.Invalid`
+of that tag carrying the payload. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
@@ -245,8 +246,9 @@ source. Networking and FIX session state are outside this package.
 
 The 93 standard message types are the cases of `FixMessage`, nested in it and written
 `FixMessage.NewOrderSingle`: a closed set, so a `switch` over it reads as one and the base
-type stands in front of every arm. `FixMessage.Custom` is the case for a MsgType
-the schema does not describe, which is what lets the set be closed without being complete.
+type stands in front of every arm. A MsgType the schema does not describe is built by the
+context's `FixMessageFactory`, or is a `FixMessage.Invalid`, which is what lets the set be closed
+without being complete.
 Messages, the header and the trailer have named properties. A group property returns the group's entries, each a
 `FixFieldSet` read with `GetField` and `GetGroup`.
 Flattened component fields are properties of their containing scope.
@@ -376,10 +378,10 @@ Trailing fractional zeros do not cause a loss of precision.
 The source-backed semantic model retains malformed primitive text. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
-Tags the package does not define use `FixField.Custom` with their original value octets, unless
-a `FixCustomFields` was supplied — then that builds them, typed as the consumer likes. It builds
-field objects and nothing more: a tag outside FIX 4.4 is still unknown to the message schema, so
-`Validate` reports it whoever built the field.
+A tag the package does not define is built by the context's `FixFieldFactory`, typed as the
+consumer likes, or is a `FixField.Invalid` of that tag with its value's octets. A standard message
+has no property for such a tag, so it is out of scope there whoever built the field; a message the
+consumer builds places it (below).
 
 ## Pipe-delimited logs
 
@@ -409,45 +411,66 @@ CheckSum is verified against the original SOH representation
 by normalizing only the recognized field delimiters, never pipes inside raw data.
 `OriginalWire` preserves the supplied log representation.
 
-## Custom fields
+## Custom fields and messages
 
-A tag the package does not define is read as delimiter-terminated text, unless its binary
-length/data pair is declared through `FixContext` as described above.
-
-What is built for such a tag is a `FixField.Custom` carrying the octets. To build your own field
-instead, derive from `FixCustomFields` and pass it to `FixContext`:
+A tag or a MsgType FIX 4.4 does not define is built by a factory the context holds, asked with the
+tag or the type and answering what to build, or null:
 
 ```csharp
-using System.Text;
+using System.Collections.Generic;
 
-var pairs   = new Dictionary<int, int> { [25000] = 25001 };
-var context = new FixContext { LengthDataPairs = pairs, CustomFields = new Venue() };
-
-sealed class Status(string value) : FixField.Typed<string>(25005, value);
-
-sealed class Venue : FixCustomFields
+var context = new FixContext
 {
-    public override FixField Text(int tag, ReadOnlySpan<char> value) =>
-        tag == 25005 ? new Status(value.ToString()) : Spare(tag, value);
+    FixFieldFactory   = tag  => tag == 25005 ? new Status() : null,
+    FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
+    LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
+};
 
-    public override FixField Text(int tag, ReadOnlySpan<byte> value) =>
-        tag == 25005 ? new Status(Encoding.Latin1.GetString(value)) : Spare(tag, value);
+sealed class Status() : FixCustomField(25005)
+{
+    public string? Value { get; private set; }
 
-    public override FixField Binary(int tag, ReadOnlyMemory<byte> value) => Spare(tag, value);
+    // The value as the wire had it; what this returns is the field's IsValid.
+    protected override bool Read(ReadOnlySpan<char> value)
+    {
+        Value = value.ToString();
+
+        return Value is "OPEN" or "CLOSED";
+    }
+}
+
+sealed class VenueQuote : FixCustomMessage
+{
+    public Status? Status { get; private set; }
+
+    // Every field of the body in turn, the header's and the trailer's taken already; false is out of scope.
+    protected override bool Place(FixField field)
+    {
+        if (field is not Status status)
+            return false;
+
+        Status = status;
+
+        return true;
+    }
+
+    protected override void OnValidate(FixContext context)
+    {
+        if (Status is null)
+            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
+    }
 }
 ```
 
-Three methods, because a field is built from the characters of a text field, from its bytes, and
-from the payload of a length/data pair. Answer one and not the others and the same message read
-two ways gives two different answers, so they are abstract rather than virtual. `Spare` builds
-what the package builds, for a tag your own switch does not recognise either. A value arrives as a
-span and may not be kept: copy what you need before returning.
+A field is handed its value as characters; bytes arrive as the characters of the same codes unless
+the field overrides the byte form, and the payload of a declared length/data pair arrives as memory
+through a third form, read as bytes by default. A value may not be kept: copy what is needed. The
+factory is asked only of a tag the package has no class for, so a standard tag pays nothing, and
+the message layer builds the length half of a declared pair through the same factory.
 
-**This builds field objects and nothing else.** The tag stays unknown to the message schema, which
-is FIX 4.4's, so `Validate` still reports a message carrying it — the field being one of yours
-changes nothing about that. The message layer builds the length half of a
-declared pair through the same seam, so that both halves of your pair are yours; that too is
-construction and not schema knowledge.
+Where a factory answers null, or there is none, the tag is a `FixField.Invalid` of that tag with its
+value's octets in `RawBytes`, and the type is a `FixMessage.Invalid`, not valid from the moment it is
+read, its finding `UnknownMessageType`.
 
 ## Definition maintenance
 

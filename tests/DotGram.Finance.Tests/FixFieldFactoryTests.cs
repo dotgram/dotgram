@@ -31,7 +31,7 @@ namespace DotGram.Finance.Tests;
 /// </para>
 /// <para>
 /// <strong>What it does not cover: the third door.</strong> Beside the two <c>Value</c> overloads
-/// there is <c>Binary(int, (bool, ReadOnlyMemory&lt;byte&gt;), FixCustomFields)</c>, which builds
+/// there is <c>Binary(int, (bool, ReadOnlyMemory&lt;byte&gt;), Func&lt;int, FixCustomField?&gt;?)</c>, which builds
 /// the sixteen data fields from a payload already read by length. It is one flat switch of sixteen
 /// labels, in no parts and needing none, and nothing here asks it anything. Sixteen labels can be
 /// counted by eye; nine hundred and twelve cannot, which is why this exists for the other two and
@@ -43,20 +43,20 @@ public sealed class FixFieldFactoryTests
 	[Fact]
 	public void Every_tag_builds_the_field_its_tag_names()
 	{
-		var custom = new FixContext().CustomFields;
+		Func<int, FixCustomField?>? custom = null;
 		var wrong  = new List<string>();
 		var named  = Named();
 
 		for (var tag = 1; tag <= 1100; tag++)
 		{
-			var expected = named.TryGetValue(tag, out var name) ? name : nameof(FixField.Custom);
+			var expected = named.TryGetValue(tag, out var name) ? name : nameof(FixField.Invalid);
 
 			foreach (var (door, field) in Both(tag, custom))
 			{
 				if (field.GetType().Name != expected)
 					wrong.Add($"tag {tag} through {door}: built {field.GetType().Name}, and the tag names {expected}.");
 
-				if (field.Tag != tag && expected != nameof(FixField.Custom))
+				if (field.Tag != tag && expected != nameof(FixField.Invalid))
 					wrong.Add($"tag {tag} through {door}: the field it built carries tag {field.Tag}.");
 			}
 		}
@@ -66,7 +66,7 @@ public sealed class FixFieldFactoryTests
 	}
 
 	/// <summary>
-	/// The tags past the last one the standard defines come back as custom text through both doors.
+	/// The tags past the last one the standard defines come back as Invalid through both doors.
 	/// </summary>
 	/// <remarks>
 	/// The edge of the last part is the one place a regrouping can change behaviour quietly: a tag
@@ -82,28 +82,28 @@ public sealed class FixFieldFactoryTests
 	[InlineData(1023)]  // the last of a sixty-four-wide part
 	[InlineData(1024)]  // the first of the next
 	[InlineData(5000)]  // where a counterparty writes its own
-	public void A_tag_past_the_standard_is_custom_through_both_doors(int tag)
+	public void A_tag_past_the_standard_is_Invalid_through_both_doors(int tag)
 	{
-		var custom = new FixContext().CustomFields;
+		Func<int, FixCustomField?>? custom = null;
 
 		foreach (var (door, field) in Both(tag, custom))
 		{
 			if (tag == 956)
 			{
-				Assert.False(field is FixField.Custom, $"tag 956 through {door} should be a field of the standard.");
+				Assert.False(field is FixField.Invalid, $"tag 956 through {door} should be a field of the standard.");
 
 				continue;
 			}
 
-			Assert.True(field is FixField.Custom, $"tag {tag} through {door} built {field.GetType().Name}.");
+			Assert.True(field is FixField.Invalid, $"tag {tag} through {door} built {field.GetType().Name}.");
 		}
 	}
 
 	/// <summary>The two doors, so that neither is checked alone.</summary>
-	static IEnumerable<(string Door, FixField Field)> Both(int tag, FixCustomFields custom)
+	static IEnumerable<(string Door, FixField Field)> Both(int tag, Func<int, FixCustomField?>? custom)
 	{
-		yield return ("characters", FixFieldFactory.Value(tag, "1".AsSpan(), custom));
-		yield return ("octets",     FixFieldFactory.Value(tag, Encoding.Latin1.GetBytes("1").AsSpan(), custom));
+		yield return ("characters", FixFieldBuilder.Value(tag, "1".AsSpan(), custom));
+		yield return ("octets",     FixFieldBuilder.Value(tag, Encoding.Latin1.GetBytes("1").AsSpan(), custom));
 	}
 	/// <summary>
 	/// What each tag is called, which is what the classes are named after: QuickFIX's name where its

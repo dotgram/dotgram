@@ -141,7 +141,7 @@ public static partial class FixParser
 
 	// The length half of a pair, built from the count it measured. The wire text it was read from
 	// is not kept, and a FIX Length is plain digits, so the two agree wherever the input is valid.
-	static FixField LengthField(int tag, int count, FixCustomFields? custom)
+	static FixField LengthField(int tag, int count, Func<int, FixCustomField?>? custom)
 	{
 		(bool, long) value = (true, count);
 
@@ -163,7 +163,7 @@ public static partial class FixParser
 			445 => new FixField.EncodedListStatusTextLen(value),
 			618 => new FixField.EncodedLegIssuerLen(value),
 			621 => new FixField.EncodedLegSecurityDescLen(value),
-			  _ => (custom ?? FixSpareFields.Instance).Text(tag, count.ToString(CultureInfo.InvariantCulture).AsSpan()),
+			  _ => FixCustomField.Build(tag, count.ToString(CultureInfo.InvariantCulture).AsSpan(), custom),
 		};
 	}
 
@@ -185,7 +185,7 @@ public static partial class FixParser
 			if (field.IsBinary)
 			{
 				var settings = context ?? FixContext.Default;
-				var length   = LengthField(settings.LengthTag(field.Tag), field.Length, settings.CustomFields);
+				var length   = LengthField(settings.LengthTag(field.Tag), field.Length, settings.FixFieldFactory);
 
 				length.Locate(field.Position, field.DataPosition - field.Position);
 				fields.Add(length);
@@ -354,7 +354,7 @@ public static partial class FixParser
 				(2, 'B', 'F') => new FixMessage.UserResponse                           (fields),
 				(2, 'B', 'G') => new FixMessage.CollateralInquiryAck                   (fields),
 				(2, 'B', 'H') => new FixMessage.ConfirmationRequest                    (fields),
-				_             => new FixMessage.Custom                                 (type, fields),
+				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
 			};
 		}
 	}

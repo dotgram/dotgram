@@ -181,13 +181,13 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>Whether a value read as this tag's field is valid and passes the field's compiled-in check.</summary>
 	static bool Accepted(int tag, string code)
 	{
-		var field = FixFieldFactory.Value(tag, code.AsSpan(), FixContext.Default.CustomFields);
+		var field = FixFieldBuilder.Value(tag, code.AsSpan(), null);
 
 		if (!field.IsValid)
 			return false;
 
 		var check = typeof(FixValidators).GetProperty(field.GetType().Name)!.GetValue(FixValidators.Default)!;
-		var host  = new FixMessage.Custom("ZZ", []);
+		var host  = FixParser.ParseMessage(FixFixtures.Wire("0", ""));
 
 		((Delegate)check).DynamicInvoke(FixContext.Default, host, field);
 
@@ -197,9 +197,9 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
 	static Type? Held(int tag)
 	{
-		var field = FixFieldFactory.Value(tag, "0".AsSpan(), FixContext.Default.CustomFields);
+		var field = FixFieldBuilder.Value(tag, "0".AsSpan(), null);
 
-		return field is FixField.Custom ? null : field.GetType().BaseType!.GetGenericArguments()[0];
+		return field is FixField.Invalid ? null : field.GetType().BaseType!.GetGenericArguments()[0];
 	}
 
 	/// <summary>The CLR type this package holds a type of the repository's spelling in.</summary>

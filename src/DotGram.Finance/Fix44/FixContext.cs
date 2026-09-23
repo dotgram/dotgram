@@ -75,22 +75,25 @@ public sealed record FixContext
 	sbyte[]                 _kinds        = Standard;
 	Dictionary<int, sbyte>? _far;
 	Dictionary<int, int>?   _pairs;
-	FixCustomFields         _customFields = FixSpareFields.Instance;
 
 	/// <summary>How the input separates one field from the next: the wire's SOH, or a log's pipe.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>Builds the fields of tags this package does not define.</summary>
+	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>tag =&gt; tag == 25005 ? new Status() : null</c>.</summary>
 	/// <remarks>
-	/// Never null: where a consumer supplied nothing this is the package's own, so the reader has
-	/// one path and never asks whether anybody supplied anything.
+	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. What it
+	/// builds is handed the value; where it answers null, or there is none, the field is a
+	/// <see cref="FixField.Invalid"/> of that tag.
 	/// </remarks>
-	public FixCustomFields CustomFields
-	{
-		get => _customFields;
-		init => _customFields = value ?? FixSpareFields.Instance;
-	}
+	public Func<int, FixCustomField?>? FixFieldFactory { get; init; }
+
+	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
+	/// <remarks>
+	/// Asked only of a type the package has no class for. What it builds is handed the fields; where it
+	/// answers null, or there is none, the message is a <see cref="FixMessage.Invalid"/>.
+	/// </remarks>
+	public Func<string, FixCustomMessage?>? FixMessageFactory { get; init; }
 
 	/// <summary>A consumer's own length/data pairs, length tag to data tag; null where there are none.</summary>
 	/// <remarks>
@@ -338,7 +341,7 @@ public sealed record FixContext
 	// not the one built for a tag nobody defined. Asked when a context is made, of a consumer's pairs.
 	static bool Defines(int tag)
 	{
-		return FixFieldFactory.Value(tag, "0".AsSpan(), FixSpareFields.Instance) is not FixField.Custom;
+		return FixFieldBuilder.Value(tag, "0".AsSpan(), null) is not FixField.Invalid;
 	}
 
 	// One past the largest tag of the sixteen pairs: every tag the reader's table answers other than

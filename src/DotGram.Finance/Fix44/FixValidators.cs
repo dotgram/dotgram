@@ -301,9 +301,6 @@ partial class FixValidators
 	/// <summary>Holds a FIX 4.4 XMLnonFIX to the schema.</summary>
 	public Func<FixContext, FixMessage.XMLnonFIX, bool> XMLnonFIX { get; set; } = ValidateXMLnonFIX;
 
-	/// <summary>Holds a message of a type FIX 4.4 does not describe to the schema.</summary>
-	public Func<FixContext, FixMessage.Custom, bool> Custom { get; set; } = ValidateCustom;
-
 	/// <summary>Holds a FIX 4.4 CommissionData to the schema, wherever it is carried.</summary>
 	public Func<FixContext, FixMessage, ICommissionData, bool> CommissionData { get; set; } = ValidateCommissionData;
 
@@ -4817,14 +4814,6 @@ partial class FixValidators
 
 	static bool ValidateXMLnonFIX(FixContext context, FixMessage.XMLnonFIX message)
 	{
-
-		return message.IsValid;
-	}
-
-	static bool ValidateCustom(FixContext context, FixMessage.Custom message)
-	{
-		// The type is not one the schema describes, which is the whole of what can be said about it.
-		message.AddFinding(new FixFinding(FixRule.UnknownMessageType, 35, message.MsgType?.Position ?? 0, message.MsgType, -1));
 
 		return message.IsValid;
 	}

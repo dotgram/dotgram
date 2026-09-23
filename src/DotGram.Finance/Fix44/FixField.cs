@@ -34,7 +34,7 @@ public abstract class FixField : IFixLocation
 		IsValid       = valid;
 	}
 
-	internal bool IsBinary     => this is not Invalid && PrefixLength != TagPrefixLength(Tag);
+	internal bool IsBinary     => !(this is Invalid && Tag == 0) && PrefixLength != TagPrefixLength(Tag);
 	internal int  DataPosition => ValuePosition - TagPrefixLength(Tag);
 
 	int PrefixLength     => _prefixLength     == ushort.MaxValue ? Wide.GetValue(this, NewWide).Prefix     : _prefixLength;
@@ -53,7 +53,7 @@ public abstract class FixField : IFixLocation
 
 	/// <summary>
 	/// Gets the numeric FIX tag. A combined length/data field uses the data tag;
-	/// an <see cref="Invalid"/> field uses zero.
+	/// an <see cref="Invalid"/> field of skipped input uses zero.
 	/// </summary>
 	public int Tag           { get; }
 	/// <summary>
@@ -139,18 +139,53 @@ public abstract class FixField : IFixLocation
 	/// An invalid primitive remains a typed field with this property set to false;
 	/// a syntax error recovered by the parser is represented by <see cref="Invalid"/>.
 	/// </remarks>
-	public bool IsValid { get; }
+	public bool IsValid { get; private protected set; }
 
 	/// <summary>
-	/// Represents malformed input skipped while recovering to the next field separator or end of input.
+	/// A field that is not one: malformed input skipped while recovering to the next separator, or a
+	/// tag nothing builds a field of.
 	/// </summary>
 	/// <remarks>
-	/// The raw input excludes the synchronization separator and any padding it consumes.
-	/// <see cref="Tag"/> is zero, <see cref="IsValid"/> is false, and the source extent
-	/// covers the skipped input. Character and byte input retain their original representation.
+	/// <para>
+	/// Skipped input has <see cref="Tag"/> zero, and its extent covers what was skipped, the
+	/// synchronization separator and any padding it consumes excluded.
+	/// </para>
+	/// <para>
+	/// A tag FIX 4.4 does not define, and the context's <see cref="FixContext.FixFieldFactory"/> builds
+	/// nothing for, keeps its tag and its value: <see cref="RawBytes"/> is the value's octets, from
+	/// character input as from byte input, and the extent is the field's as any field's is.
+	/// </para>
+	/// <para>
+	/// <see cref="IsValid"/> is false either way. Character and byte input retain their original
+	/// representation.
+	/// </para>
 	/// </remarks>
 	public sealed class Invalid : FixField
 	{
+		// A tag nothing builds a field of: its value, kept as it was read.
+		internal Invalid(int tag, ReadOnlySpan<char> value) : base(tag, false)
+		{
+			RawBytes = FixConvert.Data(value).Value;
+			Message  = Unknown(tag);
+		}
+
+		internal Invalid(int tag, ReadOnlySpan<byte> value) : base(tag, false)
+		{
+			RawBytes = value.ToArray();
+			Message  = Unknown(tag);
+		}
+
+		internal Invalid(int tag, ReadOnlyMemory<byte> data) : base(tag, false)
+		{
+			RawBytes = data.ToArray();
+			Message  = Unknown(tag);
+		}
+
+		static string Unknown(int tag)
+		{
+			return $"Tag {tag} is not a field FIX 4.4 defines, and no field factory builds it.";
+		}
+
 		/// <summary>
 		/// Creates a recovery field from character input.
 		/// </summary>
@@ -197,11 +232,11 @@ public abstract class FixField : IFixLocation
 		}
 
 		/// <summary>
-		/// Gets the skipped character input, or null when the source was bytes.
+		/// Gets the skipped character input, or a tag's value read as characters; null when the source was bytes.
 		/// </summary>
 		public string?              RawText { get; }
 		/// <summary>
-		/// Gets an owned copy of the skipped bytes, or empty memory when the source was characters.
+		/// Gets an owned copy of the skipped bytes, or of a tag's value read as bytes; empty memory when the source was characters.
 		/// </summary>
 		public ReadOnlyMemory<byte> RawBytes { get; }
 		/// <summary>
@@ -212,29 +247,6 @@ public abstract class FixField : IFixLocation
 		/// Gets the recognition diagnostic. Its wording depends on the parser implementation.
 		/// </summary>
 		public string               Message { get; }
-	}
-
-	/// <summary>
-	/// Represents a tag without a dedicated field class, retaining its value as bytes.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// The numeric tag is preserved. A configured custom length/data pair also produces this
-	/// case when its data tag is unknown. Byte input is copied unchanged; character input
-	/// uses the same octet conversion and validity reporting as binary field values.
-	/// </para>
-	/// <para>
-	/// This is what the package builds for a tag it was told nothing about. A consumer who
-	/// supplies <see cref="FixCustomFields"/> builds their own field for such a tag instead,
-	/// and then this case does not arise for it at all.
-	/// </para>
-	/// </remarks>
-	public sealed class Custom : Typed<ReadOnlyMemory<byte>>
-	{
-		internal Custom(int tag, (bool Valid, ReadOnlyMemory<byte> Value) parsed)
-			: base(tag, parsed)
-		{
-		}
 	}
 
 	/// <summary>

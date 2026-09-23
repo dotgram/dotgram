@@ -200,13 +200,13 @@ public sealed class Fix44Tests
 	}
 
 	[Fact]
-	public void Vendor_message_types_are_read_as_Custom()
+	public void Vendor_message_types_are_read_as_Invalid()
 	{
 		var wire = FixFixtures.Wire("U1", "9001=X|9002=Y|");
 
 		Assert.True(FixParser.TryParseMessage(wire, out var result, out var error), error?.ToString());
 
-		var custom = Assert.IsType<FixMessage.Custom>(result);
+		var custom = Assert.IsType<FixMessage.Invalid>(result);
 
 		Assert.Equal("U1", custom.MessageType);
 		Assert.Equal(new[] { 9001, 9002 }, Body(custom).Select(f => f.Tag));

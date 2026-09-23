@@ -441,13 +441,6 @@ def validators_text():
         checks += check_body(message_members[m["Name"]], "message")
         checks += ["", "\t\treturn message.IsValid;", "\t}", ""]
 
-    slots += ["\t/// <summary>Holds a message of a type FIX 4.4 does not describe to the schema.</summary>",
-              "\tpublic Func<FixContext, FixMessage.Custom, bool> Custom { get; set; } = ValidateCustom;", ""]
-    checks += ["\tstatic bool ValidateCustom(FixContext context, FixMessage.Custom message)", "\t{",
-               "\t\t// The type is not one the schema describes, which is the whole of what can be said about it.",
-               "\t\tmessage.AddFinding(new FixFinding(FixRule.UnknownMessageType, 35, message.MsgType?.Position ?? 0, message.MsgType, -1));", "",
-               "\t\treturn message.IsValid;", "\t}", ""]
-
     for i in interfaces.values():
         slots += [f"\t/// <summary>Holds a FIX 4.4 {i.name} to the schema, wherever it is carried.</summary>",
                   f"\tpublic Func<FixContext, FixMessage, {i.type_name}, bool> {i.name} {{ get; set; }} = Validate{i.name};", ""]

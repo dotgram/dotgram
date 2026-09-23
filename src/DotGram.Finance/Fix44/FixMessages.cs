@@ -388,7 +388,8 @@ static partial class FixMessages
 	static bool CheckSyntax(FixField[] fields, out FixParseError? error)
 	{
 		foreach (var field in fields)
-			if (field is FixField.Invalid invalid)
+			// Skipped input stops the message; a tag nothing builds a field of is a field of it, out of scope.
+			if (field is FixField.Invalid { Tag: 0 } invalid)
 				return Fail(invalid.Position, null, null, invalid.Message, out error);
 
 		error = null;
@@ -396,12 +397,6 @@ static partial class FixMessages
 		return true;
 	}
 
-
-	// Never null, so that the one path holds here as it does in the reader.
-	static FixCustomFields Custom(FixContext? context)
-	{
-		return context?.CustomFields ?? FixSpareFields.Instance;
-	}
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

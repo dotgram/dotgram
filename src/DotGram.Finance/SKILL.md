@@ -94,12 +94,12 @@ foreach (var field in FixParser.ParseFields(wire))
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
-- A tag the package does not know comes back as `FixField.Custom`, its value as bytes.
-  Supply a `FixCustomFields` to `FixContext` to build your own field for such a tag
-  instead — three methods, because a field is built from characters, from bytes and from the
-  payload of a length/data pair, and answering one of them and not the others gives you two
-  parses of one message that disagree. It builds field objects only: a tag outside FIX 4.4 has
-  no property of a message to sit in, and is carried in `Fields` like any other.
+- A tag the package does not know is built by the context's `FixFieldFactory`
+  (`tag => tag == 25005 ? new Status() : null`, a `FixCustomField` that reads its own value),
+  and a MsgType it does not know by `FixMessageFactory` (a `FixCustomMessage` that places its
+  own fields). Where either answers null, or there is none, the tag is a `FixField.Invalid` of
+  that tag with its octets, and the message a `FixMessage.Invalid`. A standard message has no
+  property for a tag outside FIX 4.4, so such a field is out of scope in it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 
@@ -132,9 +132,9 @@ switch (message)
 
 - The 93 standard messages are the cases of `FixMessage`, nested in it: write
   `FixMessage.NewOrderSingle`, and a `switch` over them reads as the closed set it is. A
-  MsgType the schema does not know becomes `FixMessage.Custom`, carrying the type it read and
-  its fields — that case is why the set can be closed without covering every MsgType that
-  exists.
+  MsgType the schema does not know is the consumer's `FixCustomMessage` or a
+  `FixMessage.Invalid`, carrying the type it read and its fields — that case is why the set can
+  be closed without covering every MsgType that exists.
 - A message's properties are named after its fields and are the typed fields themselves:
   `FixField.Symbol?`, `FixField.OrderQty?`, null when the field is absent. `Value` on one is
   the CLR value — a `string`, a `decimal`, a `long` — and `IsValid` says whether the
