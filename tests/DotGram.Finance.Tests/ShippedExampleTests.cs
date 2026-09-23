@@ -26,12 +26,12 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_length_data_example_of_both_pages_runs()
 	{
-		var options = new FixFieldOptions(new Dictionary<int, int>
+		var options = new FixContext { LengthDataPairs = new Dictionary<int, int>
 		{
 			[5000] = 5001,
-		});
+		} };
 
-		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
 
 		Assert.Equal([5001], custom.Select(field => field.Tag));
 	}
@@ -41,9 +41,9 @@ public sealed class ShippedExampleTests
 	{
 		// What the comment beside those examples now claims, which is the half a reader is most
 		// likely to doubt: declaring your own does not cost you the standard's.
-		var options = new FixFieldOptions(new Dictionary<int, int> { [5000] = 5001 });
+		var options = new FixContext { LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 } };
 
-		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new FixFieldOptions()).With(FixFraming.Log));
+		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
 
 		Assert.Equal([96], standard.Select(field => field.Tag));
 	}
@@ -52,7 +52,7 @@ public sealed class ShippedExampleTests
 	public void Redeclaring_a_standard_pair_is_refused_with_the_tag_named()
 	{
 		var refused = Assert.Throws<System.ArgumentException>(
-			() => new FixFieldOptions(new Dictionary<int, int> { [95] = 96 }));
+			() => new FixContext { LengthDataPairs = new Dictionary<int, int> { [95] = 96 } });
 
 		Assert.Contains("95", refused.Message);
 	}
@@ -98,7 +98,7 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_opening_example_of_the_readme_runs()
 	{
-		var fields = FixParser.ParseFields("55=ABC|38=100|", FixFieldOptions.Log);
+		var fields = FixParser.ParseFields("55=ABC|38=100|", FixContext.Log);
 
 		Assert.Equal([55, 38], fields.Select(field => field.Tag));
 	}

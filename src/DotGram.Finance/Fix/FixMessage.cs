@@ -35,34 +35,34 @@ public abstract partial class FixMessage
 	{
 		switch (field.Tag)
 		{
-			case 8: if (BeginString is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BeginString = (FixField.BeginString)field; break;
-			case 9: if (BodyLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BodyLength = (FixField.BodyLength)field; break;
-			case 10: if (CheckSum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CheckSum = (FixField.CheckSum)field; break;
-			case 34: if (MsgSeqNum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MsgSeqNum = (FixField.MsgSeqNum)field; break;
-			case 35: if (MsgType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MsgType = (FixField.MsgType)field; break;
-			case 43: if (PossDupFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PossDupFlag = (FixField.PossDupFlag)field; break;
-			case 49: if (SenderCompID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderCompID = (FixField.SenderCompID)field; break;
-			case 50: if (SenderSubID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderSubID = (FixField.SenderSubID)field; break;
-			case 52: if (SendingTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SendingTime = (FixField.SendingTime)field; break;
-			case 56: if (TargetCompID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetCompID = (FixField.TargetCompID)field; break;
-			case 57: if (TargetSubID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetSubID = (FixField.TargetSubID)field; break;
-			case 89: if (Signature is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Signature = (FixField.Signature)field; break;
-			case 90: if (SecureDataLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecureDataLen = (FixField.SecureDataLen)field; break;
-			case 91: if (SecureData is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecureData = (FixField.SecureData)field; break;
-			case 93: if (SignatureLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SignatureLength = (FixField.SignatureLength)field; break;
-			case 97: if (PossResend is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PossResend = (FixField.PossResend)field; break;
-			case 115: if (OnBehalfOfCompID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfCompID = (FixField.OnBehalfOfCompID)field; break;
-			case 116: if (OnBehalfOfSubID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfSubID = (FixField.OnBehalfOfSubID)field; break;
-			case 122: if (OrigSendingTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigSendingTime = (FixField.OrigSendingTime)field; break;
-			case 128: if (DeliverToCompID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToCompID = (FixField.DeliverToCompID)field; break;
-			case 129: if (DeliverToSubID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToSubID = (FixField.DeliverToSubID)field; break;
-			case 142: if (SenderLocationID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderLocationID = (FixField.SenderLocationID)field; break;
-			case 143: if (TargetLocationID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetLocationID = (FixField.TargetLocationID)field; break;
-			case 144: if (OnBehalfOfLocationID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfLocationID = (FixField.OnBehalfOfLocationID)field; break;
-			case 145: if (DeliverToLocationID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToLocationID = (FixField.DeliverToLocationID)field; break;
-			case 212: if (XmlDataLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); XmlDataLen = (FixField.XmlDataLen)field; break;
-			case 213: if (XmlData is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); XmlData = (FixField.XmlData)field; break;
-			case 347: if (MessageEncoding is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MessageEncoding = (FixField.MessageEncoding)field; break;
+			case   8: if (BeginString            is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BeginString            = (FixField.BeginString)           field; break;
+			case   9: if (BodyLength             is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BodyLength             = (FixField.BodyLength)            field; break;
+			case  10: if (CheckSum               is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CheckSum               = (FixField.CheckSum)              field; break;
+			case  34: if (MsgSeqNum              is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MsgSeqNum              = (FixField.MsgSeqNum)             field; break;
+			case  35: if (MsgType                is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MsgType                = (FixField.MsgType)               field; break;
+			case  43: if (PossDupFlag            is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PossDupFlag            = (FixField.PossDupFlag)           field; break;
+			case  49: if (SenderCompID           is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderCompID           = (FixField.SenderCompID)          field; break;
+			case  50: if (SenderSubID            is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderSubID            = (FixField.SenderSubID)           field; break;
+			case  52: if (SendingTime            is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SendingTime            = (FixField.SendingTime)           field; break;
+			case  56: if (TargetCompID           is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetCompID           = (FixField.TargetCompID)          field; break;
+			case  57: if (TargetSubID            is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetSubID            = (FixField.TargetSubID)           field; break;
+			case  89: if (Signature              is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Signature              = (FixField.Signature)             field; break;
+			case  90: if (SecureDataLen          is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecureDataLen          = (FixField.SecureDataLen)         field; break;
+			case  91: if (SecureData             is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecureData             = (FixField.SecureData)            field; break;
+			case  93: if (SignatureLength        is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SignatureLength        = (FixField.SignatureLength)       field; break;
+			case  97: if (PossResend             is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PossResend             = (FixField.PossResend)            field; break;
+			case 115: if (OnBehalfOfCompID       is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfCompID       = (FixField.OnBehalfOfCompID)      field; break;
+			case 116: if (OnBehalfOfSubID        is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfSubID        = (FixField.OnBehalfOfSubID)       field; break;
+			case 122: if (OrigSendingTime        is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigSendingTime        = (FixField.OrigSendingTime)       field; break;
+			case 128: if (DeliverToCompID        is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToCompID        = (FixField.DeliverToCompID)       field; break;
+			case 129: if (DeliverToSubID         is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToSubID         = (FixField.DeliverToSubID)        field; break;
+			case 142: if (SenderLocationID       is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SenderLocationID       = (FixField.SenderLocationID)      field; break;
+			case 143: if (TargetLocationID       is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TargetLocationID       = (FixField.TargetLocationID)      field; break;
+			case 144: if (OnBehalfOfLocationID   is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OnBehalfOfLocationID   = (FixField.OnBehalfOfLocationID)  field; break;
+			case 145: if (DeliverToLocationID    is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DeliverToLocationID    = (FixField.DeliverToLocationID)   field; break;
+			case 212: if (XmlDataLen             is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); XmlDataLen             = (FixField.XmlDataLen)            field; break;
+			case 213: if (XmlData                is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); XmlData                = (FixField.XmlData)               field; break;
+			case 347: if (MessageEncoding        is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MessageEncoding        = (FixField.MessageEncoding)       field; break;
 			case 369: if (LastMsgSeqNumProcessed is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMsgSeqNumProcessed = (FixField.LastMsgSeqNumProcessed)field; break;
 
 			// The one repeating group of the standard header: where a message has been, hop by hop.

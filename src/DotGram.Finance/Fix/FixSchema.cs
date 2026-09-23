@@ -4920,7 +4920,7 @@ static class FixSchema
 	// The wire type of each standard tag, as a code TypeName names: one byte a tag, the tag
 	// itself the index, and zero for a tag the standard does not define. Data rather than a switch,
 	// so that asking needs nothing compiled: a switch over 912 tags was the largest method a
-	// parser's first call waited for, and FixFieldOptions asks it of every standard tag at once.
+	// parser's first call waited for, and FixContext asks it of every standard tag at once.
 	static ReadOnlySpan<byte> TypeCodes => new byte[]
 	{
 		 0, 20, 20, 20,  3, 20, 16, 19, 20, 10, 20, 20,  1,  3, 18,  5, // 0

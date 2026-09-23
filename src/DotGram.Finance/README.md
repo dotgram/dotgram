@@ -28,7 +28,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 FixMessage message = FixParser.ParseMessage(wire);
 
 FixField[] fields = FixParser.ParseFields(wire);
-var logFields = FixParser.ParseFields("55=ABC | 38=100", FixFieldOptions.Log);
+var logFields = FixParser.ParseFields("55=ABC | 38=100", FixContext.Log);
 
 using var input = File.OpenRead("messages.fix");
 
@@ -66,7 +66,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixFieldOptions.Log))
+foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixContext.Log))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -82,10 +82,12 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.ParseFields` reads SOH-delimited wire input; given `FixFieldOptions.Log` it reads logs
+`FixParser.ParseFields` reads SOH-delimited wire input; given `FixContext.Log` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
-`FixFieldOptions` declares which framing to read and any length/data pairs of your own.
+`FixContext` declares which framing to read and any length/data pairs of your own; it is the
+one value a reading is done by and the one `Validate` holds a message to, and `FixContext.Default`
+reads the wire by the standard alone.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -119,12 +121,12 @@ It is not included in the Finance package.
 ```csharp
 using System.Collections.Generic;
 
-var fields = FixParser.ParseFields("55=ABC|38=100|", FixFieldOptions.Log);
-var options = new FixFieldOptions(new Dictionary<int, int>
+var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.Log);
+var context = new FixContext
 {
-    [5000] = 5001,   // the standard's own sixteen pairs hold as well, and may not be redeclared
-});
-var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", options.With(FixFraming.Log));
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // the standard's own sixteen pairs hold as well, and may not be redeclared
+};
+var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Framing = FixFraming.Log });
 ```
 
 A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
@@ -172,7 +174,7 @@ else
 
 `FixParser.ParseMessage(wire)` returns the same model and throws `FormatException` on malformed
 input. `TryParseMessage` returns false and leaves `message` null. Null input also returns
-false in `TryParseMessage`; invalid options passed to an options overload are programming
+false in `TryParseMessage`; a context that cannot be made — a framing that is neither wire nor log, a pair the standard defines — is a programming
 errors. The `string`, `ReadOnlySpan<char>`, `byte[]` and `ReadOnlySpan<byte>` overloads accept one
 complete message. Concatenated messages are rejected by these overloads; `ParseMessages` reads a
 buffer of them, and `ReadMessages` consumes a sequence from a reader or stream.
@@ -190,7 +192,7 @@ var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
-with an optional `FixFieldOptions`. Byte streams use the generated native
+with an optional `FixContext`. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
@@ -222,7 +224,7 @@ of subsequent stream reads. See the finance benchmarks for total parsing costs.
 ## Input and ownership
 
 The input is a **lossless octet string**: every character represents one octet,
-U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixFieldOptions.Log`
+U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixContext.Log`
 reads pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
 `CheckSum` therefore count exactly the octets present on the wire, including raw
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
@@ -386,9 +388,9 @@ field objects and nothing more: a tag outside FIX 4.4 is still unknown to the me
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixParser.ParseMessage(logLine, FixFieldOptions.Log);
-var options = FixFieldOptions.Log;
-foreach (var item in FixParser.ReadMessages(logReader, options))
+var message = FixParser.ParseMessage(logLine, FixContext.Log);
+var context = FixContext.Log;
+foreach (var item in FixParser.ReadMessages(logReader, context))
     Console.WriteLine(item.MessageType);
 ```
 
@@ -411,16 +413,16 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 ## Custom fields
 
 A tag the package does not define is read as delimiter-terminated text, unless its binary
-length/data pair is declared through `FixFieldOptions` as described above.
+length/data pair is declared through `FixContext` as described above.
 
 What is built for such a tag is a `FixField.Custom` carrying the octets. To build your own field
-instead, derive from `FixCustomFields` and pass it to `FixFieldOptions`:
+instead, derive from `FixCustomFields` and pass it to `FixContext`:
 
 ```csharp
 using System.Text;
 
 var pairs   = new Dictionary<int, int> { [25000] = 25001 };
-var options = new FixFieldOptions(pairs, new Venue());
+var context = new FixContext { LengthDataPairs = pairs, CustomFields = new Venue() };
 
 sealed class Status(string value) : FixField.Typed<string>(25005, value);
 

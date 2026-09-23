@@ -29,11 +29,11 @@ public static class IdealFixParser
 	static readonly FixField[] None = [];
 
 	/// <summary>Reads wire fields separated by SOH.</summary>
-	public static FixField[] Parse(string input, FixFieldOptions? options = null)
+	public static FixField[] Parse(string input, FixContext? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		var known  = options ?? FixFieldOptions.Default;
+		var known  = options ?? FixContext.Default;
 		var text   = input.AsSpan();
 		var fields = new FixField[8];
 		var count  = 0;

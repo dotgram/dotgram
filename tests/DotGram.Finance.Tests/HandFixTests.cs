@@ -60,7 +60,7 @@ public sealed class HandFixTests
 		var payload = new string(Enumerable.Range(0, length).Select(i => " |=\0ÿ"[i % 5]).ToArray());
 		Compare("55=A | 95=" + length + " | 96=" + payload + " | 55=Z", true);
 		Compare("55=A\u000195=" + length + "\u000196=" + payload + "\u000155=Z", false);
-		var options = new FixFieldOptions(new Dictionary<int, int> { [5000] = 5001 });
+		var options = new FixContext { LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 } };
 		Compare("5000=" + length + " | 5001=" + payload + " | 55=Z", true, options);
 		Compare("5000=2|5002=ab|5001=X|55=Z", true, options);
 	}
@@ -120,9 +120,9 @@ public sealed class HandFixTests
 		Assert.Equal("B", Assert.IsType<FixField.Symbol>(b.Current).Value);
 	}
 
-	static void Compare(string input, bool log, FixFieldOptions? options = null)
+	static void Compare(string input, bool log, FixContext? options = null)
 	{
-		var expected = log ? FixParser.ParseFields(input, (options ?? new FixFieldOptions()).With(FixFraming.Log)) : FixParser.ParseFields(input, options);
+		var expected = log ? FixParser.ParseFields(input, (options ?? new FixContext()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(input, options);
 		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));
 		Equal(expected, log ? HandFixParser.ParseLog(input.AsSpan(), options) : HandFixParser.Parse(input.AsSpan(), options));
 		using var reader = new StringReader(input);
@@ -130,7 +130,7 @@ public sealed class HandFixTests
 		Assert.Equal(-1, reader.Peek());
 
 		var bytes = Encoding.Latin1.GetBytes(input);
-		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new FixFieldOptions()).With(FixFraming.Log)) : FixParser.ParseFields(bytes, options);
+		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new FixContext()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(bytes, options);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(bytes, options) : HandFixParser.Parse(bytes, options));
 		using var stream = new ShortStream(bytes);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, options, 3) : HandFixParser.Parse(stream, options, 3));

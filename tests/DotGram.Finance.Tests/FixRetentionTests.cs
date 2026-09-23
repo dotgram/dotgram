@@ -69,7 +69,7 @@ public sealed class FixRetentionTests
 		for (var i = 0; i < count; i++)
 			text.Append(i % 100 == 99 ? "bad" + (char)1 : Field(10));
 
-		var context = new FixGrammar.FixContext(FixFieldOptions.Default);
+		var context = new FixGrammar.FixReading(FixContext.Default);
 		var fields  = bytes
 			? FixGrammar.ParseFields(new MemoryStream(Encoding.Latin1.GetBytes(text.ToString())), context, 256, Limit * 16)
 			: FixGrammar.ParseFields(new StringReader(text.ToString()), context, 256, Limit * 16);

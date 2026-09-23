@@ -43,9 +43,9 @@ public sealed class FixCustomFieldsTests
 		internal sealed class Payload(ReadOnlyMemory<byte> value) : FixField.Typed<ReadOnlyMemory<byte>>(25001, value);
 	}
 
-	static FixFieldOptions Options(Venue venue, bool pairs = false)
+	static FixContext Options(Venue venue, bool pairs = false)
 	{
-		return new(pairs ? new Dictionary<int, int> { [25000] = 25001 } : null, venue);
+		return new() { LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : null, CustomFields = venue };
 	}
 
 	[Fact]
@@ -53,7 +53,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.ParseFields("55=AAPL|54=1|", Options(venue).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("55=AAPL|54=1|", Options(venue) with { Framing = FixFraming.Log });
 
 		Assert.Equal([55, 54], fields.Select(field => field.Tag));
 		Assert.IsType<FixField.Symbol>(fields[0]);
@@ -69,8 +69,8 @@ public sealed class FixCustomFieldsTests
 			var text  = "55=AAPL|25005=OPEN|";
 
 			var fields = bytes
-				? FixParser.ParseFields(Encoding.Latin1.GetBytes(text), Options(venue).With(FixFraming.Log))
-				: FixParser.ParseFields(text, Options(venue).With(FixFraming.Log));
+				? FixParser.ParseFields(Encoding.Latin1.GetBytes(text), Options(venue) with { Framing = FixFraming.Log })
+				: FixParser.ParseFields(text, Options(venue) with { Framing = FixFraming.Log });
 
 			var status = Assert.IsType<Venue.Status>(fields[1]);
 
@@ -84,7 +84,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.ParseFields("28905=20261231|", Options(venue).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("28905=20261231|", Options(venue) with { Framing = FixFraming.Log });
 
 		var spare = Assert.IsType<FixField.Custom>(Assert.Single(fields));
 
@@ -98,7 +98,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue = new Venue();
 
-		var fields = FixParser.ParseFields("25000=3|25001=a|b|55=END|", Options(venue, pairs: true).With(FixFraming.Log));
+		var fields = FixParser.ParseFields("25000=3|25001=a|b|55=END|", Options(venue, pairs: true) with { Framing = FixFraming.Log });
 
 		var payload = Assert.IsType<Venue.Payload>(fields[0]);
 
@@ -139,7 +139,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void Without_a_consumer_the_package_builds_what_it_always_built()
 	{
-		var fields = FixParser.ParseFields("25005=OPEN|", FixFieldOptions.Log);
+		var fields = FixParser.ParseFields("25005=OPEN|", FixContext.Log);
 
 		var spare = Assert.IsType<FixField.Custom>(Assert.Single(fields));
 

@@ -693,8 +693,12 @@ static partial class Stand
 
 			Type Load(string assembly, string type)
 			{
-				return alc.LoadFromAssemblyPath(Path.Combine(directory, assembly + ".dll")).GetType(type)
-					?? throw new InvalidOperationException($"{name}: {type} not found in {assembly}");
+				return Find(assembly, type) ?? throw new InvalidOperationException($"{name}: {type} not found in {assembly}");
+			}
+
+			Type? Find(string assembly, string type)
+			{
+				return alc.LoadFromAssemblyPath(Path.Combine(directory, assembly + ".dll")).GetType(type);
 			}
 
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
@@ -703,10 +707,11 @@ static partial class Stand
 			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
 			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
-			_fixOptions  = Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
+			// The context since 2026-09-22 (D136: the options and the schema are one value); FixFieldOptions before it.
+			_fixOptions  = Find("DotGram.Finance", "DotGram.Finance.Fix.FixContext") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
 			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
 			// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
-			// settings are FixFieldOptions, an optional parameter after the first (main): the entry is found with the mode, plain, or with FixFieldOptions after the first parameter, in that order.
+			// settings are FixContext, an optional parameter after the first (main): the entry is found with the mode, plain, or with FixContext after the first parameter, in that order.
 			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
 
 			_fixParseMode    = finance.GetType("DotGram.Finance.Fix.FixParseMode");
@@ -949,11 +954,11 @@ static partial class Stand
 			if (_fixMessages.GetMethod(name, Inserted(_fixOptions)) is { } withOptions)
 				return (withOptions, FixEntry.FieldOptions);
 
-			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode (form 1), as FixParser.{doorName} with FixFieldOptions after the first parameter (form 4), plain (form 2), or as FixMessages with FixFieldOptions after the first parameter (form 3)");
+			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode (form 1), as FixParser.{doorName} with FixContext after the first parameter (form 4), plain (form 2), or as FixMessages with FixContext after the first parameter (form 3)");
 		}
 
 		/// <summary>
-		/// Which overload of the message layer a side has: with the mode (strict), plain, with FixFieldOptions after the first parameter (passed as null) on FixMessages, or the same on FixParser (the door, ParseMessage / ReadMessage /
+		/// Which overload of the message layer a side has: with the mode (strict), plain, with FixContext after the first parameter (passed as null) on FixMessages, or the same on FixParser (the door, ParseMessage / ReadMessage /
 		/// ReadMessages), whose last parameter of the streaming forms is the length of a message, not the size of a buffer: <see cref="FixMaxMessageLength"/>.
 		/// </summary>
 		enum FixEntry { Mode, Plain, FieldOptions, Door }
@@ -1013,7 +1018,7 @@ static partial class Stand
 		public Func<int> FixSpan(string text)
 		{
 			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions]) ?? _fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), _fixOptions])
-				?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char>, FixFieldOptions) not found");
+				?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char>, FixContext) not found");
 			var call   = SpanCall(target);
 
 			return () => ((Array)call(text)!).Length;
@@ -1102,9 +1107,9 @@ static partial class Stand
 		public Func<object, object> FixWhole(bool textReader)
 		{
 			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
-			var context = grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixContext not found");
-			var options = _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
-			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixFieldOptions) not found");
+			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
+			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixContext) not found");
 			var method  = grammar.GetMethod("ParseFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
 				[textReader ? typeof(TextReader) : typeof(Stream), context, typeof(int?), typeof(int?)], null)
 				?? throw new InvalidOperationException("FixGrammar.ParseFields(Stream | TextReader, context, int?, int?) not found");
@@ -1121,9 +1126,9 @@ static partial class Stand
 		public Func<int>? FixYieldMemory(bool memory, byte[] bytes, string text)
 		{
 			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
-			var context = grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixContext not found");
-			var options = _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null);
-			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixFieldOptions) not found");
+			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
+			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixContext) not found");
 			var method  = grammar.GetMethod("ReadFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
 				[memory ? typeof(ReadOnlyMemory<byte>) : typeof(string), context], null);
 
@@ -1277,7 +1282,7 @@ static partial class Stand
 				?? (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixOptions])
-				?? throw new InvalidOperationException("FixParser.BuildMessage, or FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with FixFieldOptions, not found");
+				?? throw new InvalidOperationException("FixParser.BuildMessage, or FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with FixContext, not found");
 			var withOptions = build.GetParameters().Length == 3;
 
 			return () => build.Invoke(null, withOptions ? [wire, array.Invoke(null, [fields()]), null] : [wire, array.Invoke(null, [fields()])]) is null ? 0 : 1;
@@ -1288,7 +1293,7 @@ static partial class Stand
 		{
 			var bytes = Encoding.Latin1.GetBytes(text);
 
-			// Form 3 of the message layer has no ParseLog at all: the framing is a value, FixFieldOptions.Log, passed to Parse (finance-9a, 2026-09-20).
+			// Form 3 of the message layer has no ParseLog at all: the framing is a value, FixContext.Log, passed to Parse (finance-9a, 2026-09-20).
 			if (_fix.GetMethod("ParseLog", [typeof(string), _fixOptions]) is null && _fixOptions.GetProperty("Log", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
 			{
 				return form switch
@@ -1709,7 +1714,7 @@ static partial class Stand
 	/// </summary>
 	/// <summary>
 	/// Which form of the FIX message layer this side's DotGram.Finance is in, read from the names in the assembly's metadata strings: 1 has FixParseMode (a parameter, strict), 2 has no mode but still
-	/// FixParseOptions, 3 has neither (the settings are FixFieldOptions, an optional parameter), 4 is 3 with the public door on FixParser (ParseMessage, ReadMessage, ReadMessages; FixMessages internal). The stand's binder asks each form what it can answer; a pair of two forms compares two readings.
+	/// FixParseOptions, 3 has neither (the settings are FixContext, an optional parameter), 4 is 3 with the public door on FixParser (ParseMessage, ReadMessage, ReadMessages; FixMessages internal). The stand's binder asks each form what it can answer; a pair of two forms compares two readings.
 	/// </summary>
 	static int FixForm(string directory)
 	{

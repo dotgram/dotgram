@@ -102,11 +102,11 @@ public sealed class FixFieldHeaderTests
 
 		if (log)
 		{
-			yield return FixParser.ParseFields(input, FixFieldOptions.Log);
-			yield return FixParser.ParseFields(input.AsSpan(), FixFieldOptions.Log);
-			yield return FixParser.ParseFields(bytes, FixFieldOptions.Log);
-			yield return FixParser.ReadFields(new StringReader(input), FixFieldOptions.Log, bufferSize: 7).ToArray();
-			yield return FixParser.ReadFields(new MemoryStream(bytes), FixFieldOptions.Log, bufferSize: 7).ToArray();
+			yield return FixParser.ParseFields(input, FixContext.Log);
+			yield return FixParser.ParseFields(input.AsSpan(), FixContext.Log);
+			yield return FixParser.ParseFields(bytes, FixContext.Log);
+			yield return FixParser.ReadFields(new StringReader(input), FixContext.Log, bufferSize: 7).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), FixContext.Log, bufferSize: 7).ToArray();
 			yield return HandFixParser.ParseLog(input);
 			yield return HandFixParser.ParseLog(bytes);
 			yield return HandFixParser.ParseLog(new StringReader(input), bufferSize: 7).ToArray();

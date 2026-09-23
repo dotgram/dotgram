@@ -10,7 +10,7 @@ namespace DotGram.Finance.Fix;
 	parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
 	parse Fields with (Separator = LogSeparator) as ReadLogFields  stream bytes yield : @FixField
 
-	context : @FixContext
+	context : @FixReading
 
 	Separator    = ['\u0001']
 	LogSeparator = ' '* & '|' & ' '*
@@ -39,35 +39,35 @@ namespace DotGram.Finance.Fix;
 	Portable      = false)]
 sealed partial class FixGrammar
 {
-	static bool ReadData(ParserInput<char> input, ref int position, FixContext context)
+	static bool ReadData(ParserInput<char> input, ref int position, FixReading context)
 	{
 		var length = context.DataLimit - position;
 
 		return length is >= 0 and <= int.MaxValue && input.TryAdvance(ref position, (int)length);
 	}
 
-	static bool ReadData(ParserInput<byte> input, ref int position, FixContext context)
+	static bool ReadData(ParserInput<byte> input, ref int position, FixReading context)
 	{
 		var length = context.DataLimit - position;
 
 		return length is >= 0 and <= int.MaxValue && input.TryAdvance(ref position, (int)length);
 	}
 
-	public sealed class FixContext(FixFieldOptions options)
+	public sealed class FixReading(FixContext context)
 	{
 		public long DataLimit { get; private set; }
 
 		// One read of a table the tag indexes. Whether a consumer declared pairs of their own was
-		// settled when the options were built, so nothing is asked of anybody here.
+		// settled when the context were built, so nothing is asked of anybody here.
 		public int Kind(int tag)
 		{
-			return tag <= 0 ? -1 : options.Kind(tag);
+			return tag <= 0 ? -1 : context.Kind(tag);
 		}
 
 		// Captures belonging to only one switch arm are optional in the generated guard.
 		public bool BeginData(int tag, int? size, int? dataTag, int start)
 		{
-			if (size is not int length || length < 0 || options.DataTag(tag) != dataTag)
+			if (size is not int length || length < 0 || context.DataTag(tag) != dataTag)
 				return false;
 
 			DataLimit = (long)start + length;
@@ -79,12 +79,12 @@ sealed partial class FixGrammar
 		// than captured, because a capture costs the engine more on every field than this search.
 		public FixField Text(int tag, ReadOnlySpan<char> wire)
 		{
-			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf('=') + 1), options.CustomFields);
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf('=') + 1), context.CustomFields);
 		}
 
 		public FixField Text(int tag, ReadOnlySpan<byte> wire)
 		{
-			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf((byte)'=') + 1), options.CustomFields);
+			return FixFieldFactory.Value(tag, wire.Slice(wire.IndexOf((byte)'=') + 1), context.CustomFields);
 		}
 
 		// A length/data pair, whose data tag the grammar has read: the payload follows the second
@@ -95,7 +95,7 @@ sealed partial class FixGrammar
 			var payload = second + wire.Slice(second).IndexOf('=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire.Slice(payload)), start + payload);
 
-			return FixFieldFactory.Binary(dataTag, value.Data, options.CustomFields).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data, context.CustomFields).WithBinary(value, start);
 		}
 
 		public FixField Binary(int dataTag, ReadOnlySpan<byte> wire, int start)
@@ -104,7 +104,7 @@ sealed partial class FixGrammar
 			var payload = second + wire.Slice(second).IndexOf((byte)'=') + 1;
 			var value   = new FixBinaryValue(FixConvert.Data(wire[payload..]), start + payload);
 
-			return FixFieldFactory.Binary(dataTag, value.Data, options.CustomFields).WithBinary(value, start);
+			return FixFieldFactory.Binary(dataTag, value.Data, context.CustomFields).WithBinary(value, start);
 		}
 	}
 }

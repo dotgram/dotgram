@@ -60,7 +60,7 @@ public sealed class Fix44StreamingTests
 		var body = "35=A|49=S|56=T|34=1|52=20260915-12:00:00|98=0|108=30|95=8|96=\0\u00ff\u000110=00|".Replace('|', '\u0001');
 		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
 		var wire = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", System.Globalization.CultureInfo.InvariantCulture) + "\u0001";
-		FixFieldOptions? options = null;
+		FixContext? options = null;
 		using var bytes = new ShortStream(ToBytes(wire + wire));
 		Assert.Equal(2, FixParser.ReadMessages(bytes, options).Count());
 		Assert.Equal(Extents(FixParser.ParseMessage(wire, options)), Extents(FixParser.ReadMessage(new StringReader(wire), options)));

@@ -61,7 +61,7 @@ var handwritten = mode.StartsWith("hand", StringComparison.Ordinal) ? Assembly.L
 
 Phase("load", false);
 
-var options = finance.GetType("DotGram.Finance.Fix.FixFieldOptions")!;
+var options = (finance.GetType("DotGram.Finance.Fix.FixContext") ?? finance.GetType("DotGram.Finance.Fix.FixFieldOptions"))!;
 var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : finance.GetType("DotGram.Finance.Fix.FixParser"))!;
 var messages = finance.GetType("DotGram.Finance.Fix.FixMessages")!;
 var bytes       = mode.EndsWith("-bytes", StringComparison.Ordinal);
@@ -278,7 +278,7 @@ switch (mode)
 
 		Phase("field parse", false);
 
-		var build = messages.GetMethod("Build", [typeof(string), fields.GetType(), finance.GetType("DotGram.Finance.Fix.FixFieldOptions")!])!;
+		var build = messages.GetMethod("Build", [typeof(string), fields.GetType(), options])!;
 		var call  = () => build.Invoke(null, [order, fields, null])!;
 
 		var first = Guard(call);

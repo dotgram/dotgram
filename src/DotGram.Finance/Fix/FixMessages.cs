@@ -10,23 +10,23 @@ static partial class FixMessages
 	/// <param name="input">The message; null is refused with a diagnostic rather than thrown for.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
-		return TryParseCore(input, out message, out error, options);
+		return TryParseCore(input, out message, out error, context);
 	}
 
 	/// <summary>Tries to parse one complete message from a copy of the input.</summary>
 	/// <param name="input">The message.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
-	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
-		return TryParse(input.ToString(), out message, out error, options);
+		return TryParse(input.ToString(), out message, out error, context);
 	}
 
 	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -98,7 +98,7 @@ static partial class FixMessages
 		return true;
 	}
 
-	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
+	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixContext? context)
 	{
 		message = null;
 		error   = null;
@@ -106,12 +106,12 @@ static partial class FixMessages
 		if (input == null)
 			return Fail(0, null, null, "Input is null.", out error);
 
-		var framing = options?.Framing ?? FixFraming.Wire;
+		var framing = context?.Framing ?? FixFraming.Wire;
 
 		if (!Envelope(input, framing, null, out var type, out error))
 			return false;
 
-		var fields = FixParser.ParseFields(input, options);
+		var fields = FixParser.ParseFields(input, context);
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -119,7 +119,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		return FixParser.TryParseMessage(fields, out message, out error, options);
+		return FixParser.TryParseMessage(fields, out message, out error, context);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
@@ -193,20 +193,20 @@ static partial class FixMessages
 
 	/// <summary>Parses one complete message from the octets it arrived as.</summary>
 	/// <param name="input">The message's octets.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="context"/>.</exception>
 	/// <remarks>
 	/// The road the specification describes: BodyLength counts octets and CheckSum sums octets, and
 	/// on this road they are counted and summed over the octets themselves rather than over
 	/// characters somebody has already decoded them into.
 	/// </remarks>
-	public static FixMessage Parse(byte[] input, FixFieldOptions? options = null)
+	public static FixMessage Parse(byte[] input, FixContext? context = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		if (TryParseBytes(input, out var message, out var error, options))
+		if (TryParseBytes(input, out var message, out var error, context))
 			return message!;
 
 		throw new FormatException(error!.ToString());
@@ -214,12 +214,12 @@ static partial class FixMessages
 
 	/// <summary>Parses one complete message from a copy of the octets it arrived as.</summary>
 	/// <param name="input">The message's octets.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <exception cref="FormatException">The input is not a message under <paramref name="options"/>.</exception>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <exception cref="FormatException">The input is not a message under <paramref name="context"/>.</exception>
 	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
-	public static FixMessage Parse(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
+	public static FixMessage Parse(ReadOnlySpan<byte> input, FixContext? context = null)
 	{
-		if (TryParseBytes(input, out var message, out var error, options))
+		if (TryParseBytes(input, out var message, out var error, context))
 			return message!;
 
 		throw new FormatException(error!.ToString());
@@ -229,40 +229,40 @@ static partial class FixMessages
 	/// <param name="input">The message's octets; null is refused with a diagnostic rather than thrown for.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParse(byte[]? input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryParse(byte[]? input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
 		message = null;
 		error   = null;
 
 		return input == null
 			? Fail(0, null, null, "Input is null.", out error)
-			: TryParseBytes(input, out message, out error, options);
+			: TryParseBytes(input, out message, out error, context);
 	}
 
 	/// <summary>Tries to parse one complete message from a copy of the octets it arrived as.</summary>
 	/// <param name="input">The message's octets.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="options">Null reads wire framing with the standard length/data dictionary.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
-	public static bool TryParse(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryParse(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
-		return TryParseBytes(input, out message, out error, options);
+		return TryParseBytes(input, out message, out error, context);
 	}
 
-	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
+	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixContext? context)
 	{
 		message = null;
 
-		var framing = options?.Framing ?? FixFraming.Wire;
+		var framing = context?.Framing ?? FixFraming.Wire;
 
 		if (!Envelope(input, framing, null, out var type, out error))
 			return false;
 
-		var fields = FixParser.ParseFields(input, options);
+		var fields = FixParser.ParseFields(input, context);
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -270,19 +270,19 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		return FixParser.TryParseMessage(fields, out message, out error, options);
+		return FixParser.TryParseMessage(fields, out message, out error, context);
 	}
 
-	static bool TryParseBytes(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixFieldOptions? options)
+	static bool TryParseBytes(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context)
 	{
 		message = null;
 
-		var framing = options?.Framing ?? FixFraming.Wire;
+		var framing = context?.Framing ?? FixFraming.Wire;
 
 		if (!Envelope(input, framing, null, out var type, out error))
 			return false;
 
-		var fields = FixParser.ParseFields(input, options);
+		var fields = FixParser.ParseFields(input, context);
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -290,13 +290,13 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
 			return false;
 
-		return FixParser.TryParseMessage(fields, out message, out error, options);
+		return FixParser.TryParseMessage(fields, out message, out error, context);
 	}
 
 	/// <summary>Build one message from fields already parsed from the supplied source.</summary>
-	public static FixMessage Build(string source, FixField[] fields, FixFieldOptions? options = null)
+	public static FixMessage Build(string source, FixField[] fields, FixContext? context = null)
 	{
-		if (TryBuild(source, fields, out var message, out var error, options))
+		if (TryBuild(source, fields, out var message, out var error, context))
 			return message!;
 
 		throw new FormatException(error!.ToString());
@@ -306,14 +306,14 @@ static partial class FixMessages
 	/// Tries to build one message from fields already parsed from the supplied source.
 	/// </summary>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixFieldOptions? options = null)
+	public static bool TryBuild(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
 		if (source == null) throw new ArgumentNullException(nameof(source));
 		if (fields == null) throw new ArgumentNullException(nameof(fields));
 
 		message = null;
 
-		var framing   = options?.Framing ?? FixFraming.Wire;
+		var framing   = context?.Framing ?? FixFraming.Wire;
 		var separator = framing.Separator();
 
 		if (!Envelope(source, framing, null, out var type, out error))
@@ -364,7 +364,7 @@ static partial class FixMessages
 		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error))
 			return false;
 
-		return FixParser.TryParseMessage(fields, out message, out error, options);
+		return FixParser.TryParseMessage(fields, out message, out error, context);
 	}
 
 	// Whether text is exactly the decimal digits of tag, as ToString writes them: no sign, and
@@ -398,9 +398,9 @@ static partial class FixMessages
 
 
 	// Never null, so that the one path holds here as it does in the reader.
-	static FixCustomFields Custom(FixFieldOptions? options)
+	static FixCustomFields Custom(FixContext? context)
 	{
-		return options?.CustomFields ?? FixSpareFields.Instance;
+		return context?.CustomFields ?? FixSpareFields.Instance;
 	}
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)

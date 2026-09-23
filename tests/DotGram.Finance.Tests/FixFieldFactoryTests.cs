@@ -43,7 +43,7 @@ public sealed class FixFieldFactoryTests
 	[Fact]
 	public void Every_tag_builds_the_field_its_tag_names()
 	{
-		var custom = new FixFieldOptions().CustomFields;
+		var custom = new FixContext().CustomFields;
 		var wrong  = new List<string>();
 		var named  = Named();
 
@@ -84,7 +84,7 @@ public sealed class FixFieldFactoryTests
 	[InlineData(5000)]  // where a counterparty writes its own
 	public void A_tag_past_the_standard_is_custom_through_both_doors(int tag)
 	{
-		var custom = new FixFieldOptions().CustomFields;
+		var custom = new FixContext().CustomFields;
 
 		foreach (var (door, field) in Both(tag, custom))
 		{

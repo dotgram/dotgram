@@ -49,10 +49,10 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
   hand. It is not cheaper: the model keeps its source, so the octets are materialised one
   character to one octet either way. It is right.
-- **Wire or log.** The field calls read SOH-separated fields, and `FixFieldOptions.Log`
+- **Wire or log.** The field calls read SOH-separated fields, and `FixContext.Log`
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
   value goes to every other call. The message calls accept a bare `|` only; read a log
-  padded with spaces with `ParseFields` and `FixFieldOptions.Log`.
+  padded with spaces with `ParseFields` and `FixContext.Log`.
 - **Forms.** Fields and messages both take `string`, `ReadOnlySpan<char>`, `byte[]`,
   `ReadOnlySpan<byte>`, `TextReader` and `Stream`. The span overloads copy the input
   first, into a string or an array. `TextReader` and `Stream` are read lazily and left
@@ -95,7 +95,7 @@ foreach (var field in FixParser.ParseFields(wire))
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
 - A tag the package does not know comes back as `FixField.Custom`, its value as bytes.
-  Supply a `FixCustomFields` to `FixFieldOptions` to build your own field for such a tag
+  Supply a `FixCustomFields` to `FixContext` to build your own field for such a tag
   instead — three methods, because a field is built from characters, from bytes and from the
   payload of a length/data pair, and answering one of them and not the others gives you two
   parses of one message that disagree. It builds field objects only: a tag outside FIX 4.4 has
@@ -150,7 +150,7 @@ switch (message)
 
 A length/data pair — `95=5` then `96=` and five octets — is read by its length, so the
 payload may contain separators. It comes back as one field, the data field, whose
-`Position` covers both. Counterparty-defined pairs go in `FixFieldOptions`:
+`Position` covers both. Counterparty-defined pairs go in `FixContext`:
 
 ```csharp
 using System.Collections.Generic;
@@ -158,13 +158,13 @@ using System.Collections.Generic;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-var options = new FixFieldOptions(new Dictionary<int, int>
+var context = new FixContext
 {
-    [5000] = 5001,   // added to the standard's sixteen pairs, which hold and may not be redeclared
-});
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's sixteen pairs, which hold and may not be redeclared
+};
 
-var fields  = FixParser.ParseFields(wire, options);
-var message = FixParser.ParseMessage(wire, options);   // the same value describes both layers
+var fields  = FixParser.ParseFields(wire, context);
+var message = FixParser.ParseMessage(wire, context);   // the same value reads both layers and holds the message to its schema
 ```
 
 The dictionary **adds to** the standard's sixteen pairs, which always hold: list only

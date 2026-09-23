@@ -216,7 +216,7 @@ public sealed class FixConvertFastPathTests
 	[Fact]
 	public void Standard_data_tags_come_from_the_schema()
 	{
-		var options = new FixFieldOptions();
+		var options = new FixContext();
 
 		for (var tag = -2; tag < 2000; tag++)
 			Assert.Equal(tag > 0 && FixSchema.Type(tag) == FixValueType.Data, options.IsData(tag));
@@ -229,7 +229,7 @@ public sealed class FixConvertFastPathTests
 	[Fact]
 	public void Custom_data_tags_come_from_the_options()
 	{
-		var options = new FixFieldOptions(new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 });
+		var options = new FixContext { LengthDataPairs = new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 } };
 
 		Assert.Equal(FixValueType.None, FixSchema.Type(5001));
 		Assert.True(options.IsData(5001));

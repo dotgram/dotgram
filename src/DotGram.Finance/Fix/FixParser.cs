@@ -24,17 +24,17 @@ public static partial class FixParser
 	/// <summary>
 	/// Reads wire fields separated by SOH.
 	/// </summary>
-	public static FixField[] ParseFields(string input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(string input, FixContext? context = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		var settings = options ?? FixFieldOptions.Default;
-		var context  = new FixGrammar.FixContext(settings);
+		var settings = context ?? FixContext.Default;
+		var reading  = new FixGrammar.FixReading(settings);
 
 		return settings.Framing == FixFraming.Log
-			? FixGrammar.ParseLogFields(input, context)
-			: FixGrammar.ParseFields(input, context);
+			? FixGrammar.ParseLogFields(input, reading)
+			: FixGrammar.ParseFields(input, reading);
 	}
 
 	/// <summary>
@@ -43,16 +43,16 @@ public static partial class FixParser
 	/// <remarks>
 	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
 	/// </remarks>
-	public static FixField[] ParseFields(ReadOnlySpan<char> input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(ReadOnlySpan<char> input, FixContext? context = null)
 	{
-		return ParseFields(input.ToString(), options);
+		return ParseFields(input.ToString(), context);
 	}
 
 	/// <summary>
 	/// Lazily reads fields through a reusable buffer; leaves the input open.
 	/// </summary>
 	/// <param name="input">The reader to consume; it is left open.</param>
-	/// <param name="options">Null uses the standard length/data dictionary.</param>
+	/// <param name="context">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most characters one field may take, from its tag through the separator that ends it,
@@ -61,7 +61,7 @@ public static partial class FixParser
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> characters.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
-	public static IEnumerable<FixField> ReadFields(TextReader input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> ReadFields(TextReader input, FixContext? context = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)   throw new ArgumentNullException(nameof(input));
 		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -71,12 +71,12 @@ public static partial class FixParser
 		if (limit <= 0)
 			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
-		var settings = options ?? FixFieldOptions.Default;
-		var context  = new FixGrammar.FixContext(settings);
+		var settings = context ?? FixContext.Default;
+		var reading  = new FixGrammar.FixReading(settings);
 
 		foreach (var field in settings.Framing == FixFraming.Log
-			? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
-			: FixGrammar.ReadFields   (input, context, bufferSize, limit))
+			? FixGrammar.ReadLogFields(input, reading, bufferSize, limit)
+			: FixGrammar.ReadFields   (input, reading, bufferSize, limit))
 			yield return field;
 	}
 
@@ -84,7 +84,7 @@ public static partial class FixParser
 	/// Lazily reads fields through a reusable buffer; leaves the input open.
 	/// </summary>
 	/// <param name="input">The stream to consume; it is left open.</param>
-	/// <param name="options">Null uses the standard length/data dictionary.</param>
+	/// <param name="context">Null uses the standard length/data dictionary.</param>
 	/// <param name="bufferSize">The initial size of the reusable buffer, in characters or bytes.</param>
 	/// <param name="maxRetained">
 	/// The most bytes one field may take, from its tag through the separator that ends it,
@@ -93,7 +93,7 @@ public static partial class FixParser
 	/// <exception cref="IOException">A field needs more than <paramref name="maxRetained"/> bytes.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null; thrown by the call, not by enumeration.</exception>
 	/// <exception cref="ArgumentOutOfRangeException"><paramref name="bufferSize"/> or <paramref name="maxRetained"/> is not positive; thrown by the call, not by enumeration.</exception>
-	public static IEnumerable<FixField> ReadFields(Stream input, FixFieldOptions? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> ReadFields(Stream input, FixContext? context = null, int bufferSize = 4096, int? maxRetained = null)
 	{
 		if (input == null)   throw new ArgumentNullException      (nameof(input));
 		if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
@@ -103,12 +103,12 @@ public static partial class FixParser
 		if (limit <= 0)
 			throw new ArgumentOutOfRangeException(nameof(maxRetained));
 
-		var settings = options ?? FixFieldOptions.Default;
-		var context  = new FixGrammar.FixContext(settings);
+		var settings = context ?? FixContext.Default;
+		var reading  = new FixGrammar.FixReading(settings);
 
 		foreach (var field in settings.Framing == FixFraming.Log
-			? FixGrammar.ReadLogFields(input, context, bufferSize, limit)
-			: FixGrammar.ReadFields   (input, context, bufferSize, limit))
+			? FixGrammar.ReadLogFields(input, reading, bufferSize, limit)
+			: FixGrammar.ReadFields   (input, reading, bufferSize, limit))
 			yield return field;
 	}
 
@@ -118,17 +118,17 @@ public static partial class FixParser
 	/// <remarks>
 	/// The array is read where it lies, with no copy; being whole, it is not bounded by <c>maxRetained</c>.
 	/// </remarks>
-	public static FixField[] ParseFields(byte[] input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(byte[] input, FixContext? context = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		var settings = options ?? FixFieldOptions.Default;
-		var context  = new FixGrammar.FixContext(settings);
+		var settings = context ?? FixContext.Default;
+		var reading  = new FixGrammar.FixReading(settings);
 
 		return settings.Framing == FixFraming.Log
-			? FixGrammar.ParseLogFields(input, context)
-			: FixGrammar.ParseFields   (input, context);
+			? FixGrammar.ParseLogFields(input, reading)
+			: FixGrammar.ParseFields   (input, reading);
 	}
 
 	/// <summary>
@@ -138,9 +138,9 @@ public static partial class FixParser
 	/// The parser reads an array, so the span is copied into one first; a binary field's value then
 	/// refers to that copy rather than to the caller's buffer, which is what makes it safe to keep.
 	/// </remarks>
-	public static FixField[] ParseFields(ReadOnlySpan<byte> input, FixFieldOptions? options = null)
+	public static FixField[] ParseFields(ReadOnlySpan<byte> input, FixContext? context = null)
 	{
-		return ParseFields(input.ToArray(), options);
+		return ParseFields(input.ToArray(), context);
 	}
 
 	#endregion
