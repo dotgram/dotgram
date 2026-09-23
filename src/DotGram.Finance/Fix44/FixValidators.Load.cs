@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,35 +16,27 @@ namespace DotGram.Finance.Fix44;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A dictionary is read into a copy of the slots it is loaded over, so that the context loaded
-/// over is unchanged and a second load starts from the first. A slot the file describes is
-/// <em>replaced</em>: the check of a message type, of a block, or of a field the file describes
-/// is the file's whole check, and what it does not say the slot no longer asks. A file that
-/// mentions no message, block or field leaves that slot as it was.
+/// The text is the file's names put in place. A message is the class of its name, a field the
+/// property of its name, a component the interface <c>I</c> and its name, and a group the list
+/// <c>&lt;Counter&gt;Groups</c> of entries of the class <c>&lt;Counter&gt;Group</c> nested in
+/// whatever carries it — the names the package's model is written in, which are QuickFIX's. Nothing
+/// is looked up or asked first: a name the model does not have is a check the expression language
+/// cannot compile, and the refusal names it.
 /// </para>
 /// <para>
-/// A message's check written from the file has the shape of the compiled-in one: what the file
-/// marks required is asked for, every field it lists is handed to that field's slot, every
-/// block it lists to that block's slot, and every group's count is held to its entries. A block's
-/// check hands its own fields to their slots the same way, so that a field is asked once,
-/// whichever of the two lists it.
+/// A dictionary is read into a copy of the slots it is loaded over, so that the context loaded
+/// over is unchanged. A slot the file describes is <em>replaced</em>: the check of a message type,
+/// of a component, of a group's entries or of a field the file describes is the file's whole
+/// check, and what it does not say the slot no longer asks. A file that mentions no message,
+/// component or field leaves that slot as it was. A field the file lists values for and the
+/// package has no class for has no slot, and nothing is written for it.
 /// </para>
 /// </remarks>
 partial class FixValidators
 {
 	static readonly Assembly Here = typeof(FixValidators).Assembly;
 
-	/// <summary>
-	/// What the dictionary said that this package has no place for: a member of a message or a block
-	/// that the class here does not carry, one line each, in the order the file said them.
-	/// </summary>
-	/// <remarks>
-	/// A file and the repository this package was written from can place a field differently —
-	/// QuickFIX/n has NoQuoteQualifiers on a QuoteRequestReject where the repository has it inside
-	/// the group — and a rule about a field a class cannot hold is a rule with nothing to hold. It is
-	/// not a refusal of the whole file, and it is not passed over in silence: it is here to be read.
-	/// </remarks>
-	internal List<string> Unplaced { get; private set; } = [];
+	const string Using = "using DotGram.Finance.Fix44;\n";
 
 	/// <summary>The same slots in a new object, to be written to without touching this one.</summary>
 	internal FixValidators Clone()
@@ -55,69 +45,36 @@ partial class FixValidators
 	}
 
 	/// <summary>A copy of these slots with every check the dictionary describes replaced by the file's.</summary>
-	/// <exception cref="FormatException">The file describes a type, a field or a block this package has no class for.</exception>
+	/// <exception cref="FormatException">A check written from the file does not compile: it names what the model does not have.</exception>
 	/// <remarks>
-	/// Each message, block and coded field of the file is a job: its text written, the text handed
-	/// to the emitter, and compiled. The jobs run side by side, and what each leaves — the slots it
-	/// wrote and the lines it could not place — is taken up in the order the file said them, so
-	/// that a slot written twice keeps the later text and Unplaced reads in the file's order. The
-	/// parser's state is a value of each call and its caches are concurrent, which is what makes
-	/// that sound; the emitter writes one file a slot.
+	/// Each message, component and coded field of the file is a job: its texts written, handed to the
+	/// emitter, and compiled. The jobs run side by side, and the slots they wrote are set in the order
+	/// the file said them, so that a slot written twice — the entry of a group two messages carry —
+	/// keeps the later text. The parser's state is a value of each call and its caches are
+	/// concurrent, which is what makes that sound.
 	/// </remarks>
 	internal FixValidators Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
-		var loaded = Clone();
-		var jobs   = new List<Action<Writing>>();
+		var jobs = new List<Action<Writing>>();
 
-		loaded.Unplaced = [.. Unplaced];
-
-		foreach (var (type, spelled, members) in dictionary.Messages)
-		{
-			// The MsgType is the key; a name is a dictionary's own spelling of it.
-			var name = FixNames.MessageName(type)
-				?? throw new FormatException($"The message '{spelled}' ({type}) is not a type this package has a class for.");
-
-			jobs.Add(writing => Replace(writing, Slot(name), MessageText(name, members, dictionary, writing)));
-		}
+		foreach (var (_, name, members) in dictionary.Messages)
+			jobs.Add(writing => writing.Write(name, Using + "(FixContext context, FixMessage." + name + " message) => {\n" +
+				Members(writing, "message", "FixMessage." + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
 		foreach (var (name, members) in dictionary.Components)
-		{
-			var block = Here.GetType("DotGram.Finance.Fix44.I" + name);
-
-			// A repeating component is a group, and a group is checked where its entries are built;
-			// only a block has a slot of its own.
-			if (block is null)
-			{
-				if (!IsGroupComponent(members))
-					loaded.Unplaced.Add($"component {name}: not a block this package has a class for");
-
-				continue;
-			}
-
-			jobs.Add(writing => Replace(writing, Slot(name), BlockText(name, block, members, dictionary, writing)));
-		}
+			jobs.Add(writing => writing.Write(name, Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" +
+				Members(writing, "block", "I" + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
 		foreach (var (tag, field) in dictionary.Fields)
 		{
-			if (field.Codes is null)
+			// A field the package has no class for has no slot, and nothing a check could hold.
+			if (field.Codes is not { } codes || FixNames.Name(tag) is not { } name)
 				continue;
-
-			// The number is the key; a name is a dictionary's own spelling of it. A tag this package has
-			// no class for has no slot and nothing to limit: no message of this package builds it, so a
-			// file that lists its values is describing a field that arrives as Invalid whatever it says.
-			// It is a refusal only where a message is made to require it, which is a rule with nothing
-			// to hold.
-			var name = FixNames.Name(tag);
-
-			if (name is null)
-				continue;
-
-			var codes = field.Codes;
 
 			jobs.Add(writing =>
 			{
-				if (FieldText(name, tag, codes) is { } text)
-					Replace(writing, Slot(name), text);
+				if (FieldText(name, codes) is { } text)
+					writing.Write(name, text);
 			});
 		}
 
@@ -141,28 +98,28 @@ partial class FixValidators
 			ExceptionDispatchInfo.Capture(e.InnerExceptions[0]).Throw();
 		}
 
-		foreach (var writing in writings)
-		{
-			loaded.Unplaced.AddRange(writing.Unplaced);
+		var loaded = Clone();
 
+		foreach (var writing in writings)
 			foreach (var (slot, _, compiled) in writing.Written)
 				slot.SetValue(loaded, compiled);
-		}
 
 		return loaded;
 	}
 
-	/// <summary>One job of a load: the texts it writes, what it could not place, and the delegates the texts compile to.</summary>
+	/// <summary>One job of a load: the texts it writes, and the delegates they compile to.</summary>
 	sealed class Writing(Emitting? emitting, int job)
 	{
-		public List<string> Unplaced { get; } = [];
-
 		public List<(PropertyInfo Slot, string Text, Delegate? Compiled)> Written { get; } = [];
 
-		public void Write(PropertyInfo slot, string text)
+		public void Write(string slot, string text)
 		{
-			emitting?.Write(job, slot.Name, text);
-			Written.Add((slot, text, null));
+			emitting?.Write(job, slot, text);
+
+			var property = typeof(FixValidators).GetProperty(slot, BindingFlags.Public | BindingFlags.Instance)
+				?? throw new FormatException($"The dictionary describes '{slot}', which this package has no slot for." + Environment.NewLine + text);
+
+			Written.Add((property, text, null));
 		}
 
 		public void Compile()
@@ -174,9 +131,8 @@ partial class FixValidators
 
 	/// <summary>
 	/// The emitter shared by the jobs: a slot's file is the text of the last job that wrote the slot,
-	/// which is the text the slot keeps, so a job that comes to a slot a later job has written
-	/// leaves the file alone. The entry of a group is such a slot, written by every message that
-	/// carries the group.
+	/// which is the text the slot keeps, so a job that comes to a slot a later job has written leaves
+	/// the file alone.
 	/// </summary>
 	sealed class Emitting(Action<string, string> emit)
 	{
@@ -202,24 +158,6 @@ partial class FixValidators
 		}
 	}
 
-	static PropertyInfo Slot(string name)
-	{
-		return typeof(FixValidators).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
-			?? throw new InvalidOperationException($"No slot is called '{name}'.");
-	}
-
-	// A group in a component list is one whose members are indented under a counter; a file that
-	// declares a repeating component gives it a group of the same counter.
-	static bool IsGroupComponent(List<FixDictionary.Member> members)
-	{
-		return members.Count == 1 && members[0].Kind == FixDictionary.Member.Group;
-	}
-
-	static void Replace(Writing writing, PropertyInfo slot, string text)
-	{
-		writing.Write(slot, text);
-	}
-
 	static Delegate Compile(Type delegateType, string text)
 	{
 		var method = typeof(ExpressionParser)
@@ -236,208 +174,107 @@ partial class FixValidators
 		}
 	}
 
-	// ── the texts ────────────────────────────────────────────────────────────────────────────
+	// ── the texts ────────────────────────────────────────────────────────────────────────────────
 
-	const string Using = "using DotGram.Finance.Fix44;\n";
-
-	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, Writing writing)
+	// The shape of a compiled-in check, one member at a time, in the file's order: a field asked for
+	// when required and handed to its slot when present; a component asked for when required and
+	// handed to its slot when it has anything; a group's counter likewise, its count held to its
+	// entries and each entry handed to the entry's slot, whose text is written beside this one.
+	// `subject` is what holds the members, `type` the C# type a group of it nests in, `slot` the
+	// slot name a group of it extends, and `opener` the field an entry opens with.
+	static string Members(Writing writing, string subject, string type, string slot, List<FixDictionary.Member> members, FixDictionary dictionary, string? opener)
 	{
 		var body = new StringBuilder();
-
-		Members(body, "message", typeof(FixMessage).GetNestedType(name)!, members, dictionary, name, writing);
-
-		return Using + "(FixContext context, FixMessage." + name + " message) => {\n" + body + "return message.IsValid; }";
-	}
-
-	static string BlockText(string name, Type block, List<FixDictionary.Member> members, FixDictionary dictionary, Writing writing)
-	{
-		var body = new StringBuilder();
-
-		Members(body, "block", block, members, dictionary, name, writing);
-
-		return Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" + body + "return message.IsValid; }";
-	}
-
-	// The shape of a compiled-in check, one member at a time: a field is asked for when required
-	// and handed to its slot when present; a group's counter likewise, and its count held to its
-	// entries; a block is asked for when required and handed to its slot when present.
-	static void Members(StringBuilder body, string subject, Type carrier, List<FixDictionary.Member> members, FixDictionary dictionary, string where, Writing writing)
-	{
-		var unplaced = writing.Unplaced;
 
 		foreach (var member in members)
 		{
 			switch (member.Kind)
 			{
 				case FixDictionary.Member.Field:
-				{
-					var tag  = Tag(member.Name, dictionary);
-					var ours = FixNames.Name(tag)!;
-
-					if (carrier.GetProperty(ours) is null)
-					{
-						unplaced.Add($"{where}: field {member.Name} ({tag})" + (member.Required ? ", required" : ""));
-						break;
-					}
-
-					if (member.Required && subject == "entry")
-						body.Append("if (entry.").Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(", ").Append(Opened(carrier)).Append(", index);\nelse ");
-					else if (member.Required)
-						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" == null) FixValidators.Missing(message, ").Append(tag.ToString(CultureInfo.InvariantCulture)).Append(");\nelse ");
-					else
-						body.Append("if (").Append(subject).Append('.').Append(ours).Append(" != null) ");
-
-					body.Append("context.Validators.").Append(ours).Append(".Invoke(context, message, ").Append(subject).Append('.').Append(ours).Append(");\n");
-					break;
-				}
-
-				case FixDictionary.Member.Group:
-					Group(body, subject, carrier, member.Name, member.Required, member.Members, dictionary, where, writing);
+					Field(body, subject, member.Name, member.Required, dictionary, opener);
 					break;
 
 				case FixDictionary.Member.Component:
 				{
-					var block = Here.GetType("DotGram.Finance.Fix44.I" + member.Name);
-
-					if (block is null)
-					{
-						// A repeating component is its group, declared once under its own name.
-						if (dictionary.Components.TryGetValue(member.Name, out var inner) && IsGroupComponent(inner))
-						{
-							Group(body, subject, carrier, inner[0].Name, member.Required, inner[0].Members, dictionary, where, writing);
-							break;
-						}
-
-						unplaced.Add($"{where}: component {member.Name}" + (member.Required ? ", required" : ""));
-						break;
-					}
-
-					if (!block.IsAssignableFrom(carrier))
-					{
-						unplaced.Add($"{where}: block {member.Name}" + (member.Required ? ", required" : ""));
-						break;
-					}
-
-					var fields = block.GetProperties();
-					var empty  = new StringBuilder();
-
-					for (var i = 0; i < fields.Length; i++)
-					{
-						if (i > 0) empty.Append(" && ");
-						empty.Append(subject).Append('.').Append(fields[i].Name).Append(" == null");
-					}
+					var cast = "((I" + member.Name + ")" + subject + ")";
 
 					if (member.Required)
-						body.Append("if (").Append(empty).Append(") FixValidators.Absent(message, ").Append(FixNames.Tag(fields[0].Name).ToString(CultureInfo.InvariantCulture)).Append(");\n")
+						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixValidators.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
 							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
 					else
-						body.Append("if (!(").Append(empty).Append(")) context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
+						body.Append("if (!FixValidators.Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
+
+					break;
+				}
+
+				case FixDictionary.Member.Group:
+				{
+					var counter = member.Name;
+					var list    = subject + "." + counter + "Groups";
+					var entry   = type + "." + counter + "Group";
+					var inner   = slot + "_" + counter;
+
+					Field(body, subject, counter, member.Required, dictionary, opener);
+
+					body.Append("FixValidators.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
+						.Append("if (").Append(list).Append(" != null) for (var i = 0; i < ").Append(list).Append(".Count; i++) context.Validators.")
+						.Append(inner).Append(".Invoke(context, message, ").Append(list).Append("[i], i);\n");
+
+					// What the file says of the entry is the entry's check, replaced like any other slot.
+					if (member.Members.Count > 0)
+						writing.Write(inner, Using + "(FixContext context, FixMessage message, " + entry + " entry, int index) => {\n" +
+							Members(writing, "entry", entry, inner, member.Members, dictionary, First(member.Members[0], dictionary)) + "return message.IsValid; }");
+
 					break;
 				}
 			}
 		}
+
+		return body.ToString();
 	}
 
-	// A group: its counter is a field of the carrier, required or not, and its entries are the list
-	// whose entry type is opened by the group's first member, which is how the wire cuts them.
-	static void Group(StringBuilder body, string subject, Type carrier, string counterName, bool required, List<FixDictionary.Member> members, FixDictionary dictionary, string where, Writing writing)
+	static void Field(StringBuilder body, string subject, string name, bool required, FixDictionary dictionary, string? opener)
 	{
-		var unplaced = writing.Unplaced;
+		var value = subject + "." + name;
+		var call  = "context.Validators." + name + ".Invoke(context, message, " + value + ");\n";
 
-		var counterTag = Tag(counterName, dictionary);
-		var counter    = FixNames.Name(counterTag)!;
-
-		if (carrier.GetProperty(counter) is null)
-		{
-			unplaced.Add($"{where}: group {counterName} ({counterTag})" + (required ? ", required" : ""));
-
-			return;
-		}
-
-		if (required)
-			body.Append("if (").Append(subject).Append('.').Append(counter).Append(" == null) FixValidators.Missing(message, ").Append(counterTag.ToString(CultureInfo.InvariantCulture)).Append(");\n");
-
-		var opener = Opener(members, dictionary);
-		var list   = opener is null ? null : EntriesOpenedBy(carrier, opener);
-
-		if (list is null)
-			return;
-
-		var entryType = carrier.GetProperty(list)!.PropertyType.GetGenericArguments()[0];
-
-		body.Append("FixValidators.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(subject).Append('.').Append(list).Append(");\n")
-			.Append("if (").Append(subject).Append('.').Append(list).Append(" != null) for (var i = 0; i < ").Append(subject).Append('.').Append(list).Append(".Count; i++) context.Validators.")
-			.Append(entryType.Name).Append(".Invoke(context, message, ").Append(subject).Append('.').Append(list).Append("[i], i);\n");
-
-		// What the file says of the entry is the entry's check, replaced like any other slot. A group
-		// named with no members says only that it is there.
-		if (members.Count > 0)
-		{
-			var entry = new StringBuilder();
-
-			Members(entry, "entry", entryType, members, dictionary, where + "/" + counterName, writing);
-			Replace(writing, Slot(entryType.Name), Using + "(FixContext context, FixMessage message, FixGroup." + entryType.Name + " entry, int index) => {\n" + entry + "return message.IsValid; }");
-		}
+		// The field an entry opens with is there, or there would be no entry.
+		if (name == opener)
+			body.Append(call);
+		else if (required && opener is not null)
+			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary))
+				.Append(", entry.").Append(opener).Append(".Position, index);\nelse ").Append(call);
+		else if (required)
+			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
+		else
+			body.Append("if (").Append(value).Append(" != null) ").Append(call);
 	}
 
-	// The field an entry opens with: the first member of the group, through a block to its first
-	// field and through a nested group to its counter, since the wire cuts entries by the first tag.
-	static string? Opener(List<FixDictionary.Member> members, FixDictionary dictionary)
+	// The first field of a member: the field itself, a group's counter, or a component's first field
+	// as the file describes the component — which is how the wire marks where an entry begins, and
+	// the tag a required component is said to be missing by.
+	static string First(FixDictionary.Member member, FixDictionary dictionary)
 	{
-		if (members.Count == 0)
-			return null;
+		if (member.Kind != FixDictionary.Member.Component)
+			return member.Name;
 
-		var first = members[0];
+		if (!dictionary.Components.TryGetValue(member.Name, out var members) || members.Count == 0)
+			throw new FormatException($"The component '{member.Name}' is used and not described.");
 
-		switch (first.Kind)
-		{
-			case FixDictionary.Member.Field:
-			case FixDictionary.Member.Group:
-				return FixNames.Name(Tag(first.Name, dictionary));
-
-			default:
-				if (Here.GetType("DotGram.Finance.Fix44.I" + first.Name) is { } block)
-					return block.GetProperties()[0].Name;
-
-				return dictionary.Components.TryGetValue(first.Name, out var inner) ? Opener(inner, dictionary) : null;
-		}
+		return First(members[0], dictionary);
 	}
 
-	// Where an entry began: the position of the field it opened with, or zero where the entry type
-	// names no such field.
-	static string Opened(Type entryType)
+	static int Tag(string name, FixDictionary dictionary)
 	{
-		foreach (var property in entryType.GetProperties())
-			if (property.GetCustomAttribute<RequiredMemberAttribute>() is not null)
-				return "entry." + property.Name + ".Position";
+		if (dictionary.Tags.TryGetValue(name, out var tag) || (tag = FixNames.Tag(name)) != 0)
+			return tag;
 
-		return "0";
+		throw new FormatException($"The field '{name}' has no number: the dictionary does not declare it, and the standard has no field of that name.");
 	}
 
-	// The list property of a carrier whose entry type is opened by a field of that name: the
-	// delimiter is required on the entry, since the wire marks no other boundary.
-	static string? EntriesOpenedBy(Type carrier, string delimiter)
+	static string? FieldText(string name, string[] codes)
 	{
-		foreach (var property in carrier.GetProperties())
-		{
-			var type = property.PropertyType;
-
-			if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(List<>))
-				continue;
-
-			var opener = type.GetGenericArguments()[0].GetProperty(delimiter);
-
-			if (opener is not null && opener.GetCustomAttribute<RequiredMemberAttribute>() is not null)
-				return property.Name;
-		}
-
-		return null;
-	}
-
-	static string? FieldText(string name, int tag, string[] codes)
-	{
-		var field = typeof(FixField).GetNestedType(name)!;
-		var value = field.BaseType!.GetGenericArguments()[0];
+		var value = typeof(FixField).GetNestedType(name)!.BaseType!.GetGenericArguments()[0];
 		var body  = new StringBuilder();
 
 		if (value == typeof(bool))
@@ -480,13 +317,5 @@ partial class FixValidators
 		}
 
 		body.Append(" => false, _ => true }");
-	}
-
-	static int Tag(string name, FixDictionary dictionary)
-	{
-		if (dictionary.Tags.TryGetValue(name, out var tag) || (tag = FixNames.Tag(name)) != 0)
-			return FixNames.Name(tag) is not null ? tag : throw new FormatException($"The field '{name}' ({tag}) is not a field this package has a class for.");
-
-		throw new FormatException($"The name '{name}' is not a field this package has a class for, and the dictionary does not number it.");
 	}
 }

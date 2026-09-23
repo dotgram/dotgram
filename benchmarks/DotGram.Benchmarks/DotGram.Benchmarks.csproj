@@ -36,6 +36,7 @@
 		<PackageReference Include="QuickFIXn.Core" />
 		<PackageReference Include="QuickFIXn.FIX44" />
 		<None Include="$([MSBuild]::EnsureTrailingSlash($(NuGetPackageRoot)))quickfixn.fix44/1.14.1/DataDictionary/FIX44.xml" Link="FIX44.xml" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="../../tests/Corpus/Fix/quickfixn-fix44-errata.xml" Link="quickfixn-fix44-errata.xml" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>

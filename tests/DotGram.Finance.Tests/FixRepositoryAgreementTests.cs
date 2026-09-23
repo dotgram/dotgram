@@ -407,9 +407,10 @@ public sealed class FixRepositoryAgreementTests
 
 			var component = Component(text);
 
-			// A required repeating group is a required counter tag; a required block is reported as
-			// a component, which is the other test.
-			if (component is not null && IsGroup(component.Value.Id))
+			// A required group of the message's own is a required counter tag; a required component —
+			// a block, or a group the repository names as a component (Parties) — is reported as a
+			// component, which is the other test.
+			if (component is not null && component.Value.Kind == "ImplicitBlockRepeating")
 				tags.Add(int.Parse(Text(Rows(component.Value.Id).First(), "TagText"), CultureInfo.InvariantCulture));
 		}
 
@@ -442,8 +443,8 @@ public sealed class FixRepositoryAgreementTests
 
 			var component = Component(text);
 
-			// A component with no fields of its own has nothing to be missing.
-			if (component is not null && !IsGroup(component.Value.Id) && Rows(component.Value.Id).Any())
+			// A block, or a group the repository names as a component, with fields to be missing.
+			if (component is not null && component.Value.Kind is "Block" or "BlockRepeating" && Rows(component.Value.Id).Any())
 				count++;
 		}
 

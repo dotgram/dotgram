@@ -115,7 +115,7 @@ public sealed record FixContext
 	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot, named for the slot with the extension <c>.el</c>; null writes nothing.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
-	/// <exception cref="FormatException">The text is not a dictionary this package can read, or names a type, a field or a block it has no class for.</exception>
+	/// <exception cref="FormatException">The text is not a dictionary this package can read, or a check written from it names what the model does not have.</exception>
 	/// <remarks>
 	/// <para>
 	/// Loading composes. The standard, then a venue's file, then a rule a test adds, each a context
@@ -123,8 +123,15 @@ public sealed record FixContext
 	/// does not mention it has no opinion about, so a fragment need say only what it adds.
 	/// </para>
 	/// <para>
-	/// A message type, a block or a field the file describes has the file's whole check from then
-	/// on, and what the file does not say of it is no longer asked.
+	/// A message type, a component, a group's entries or a field the file describes has the file's
+	/// whole check from then on, and what the file does not say of it is no longer asked.
+	/// </para>
+	/// <para>
+	/// The file's names are the names of the checks: a message is the class of its name, a component
+	/// the interface <c>I</c> and its name, a group the entries <c>&lt;Counter&gt;Groups</c> nested
+	/// in what carries it. A file that places a field where the model has no property for it does
+	/// not load; a correction read over it, in the same load, can put the place right before
+	/// anything is written: <see cref="Load(IEnumerable{string}, string)"/>.
 	/// </para>
 	/// </remarks>
 	public FixContext Load(string dictionary, string? emitTo = null)
@@ -152,6 +159,30 @@ public sealed record FixContext
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
 		return this with { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
+	}
+
+	/// <summary>This context with several dictionaries loaded over its schema as one: each read over the one before.</summary>
+	/// <param name="dictionaries">The texts of the files, in order: a later file's message type, component or field replaces an earlier file's.</param>
+	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot; null writes nothing.</param>
+	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="dictionaries"/> is null, or one of them is.</exception>
+	/// <exception cref="FormatException">A text is not a dictionary this package can read, or a check written from them names what the model does not have.</exception>
+	/// <remarks>
+	/// What a correction to somebody else's file is for. A file and its correction loaded one after
+	/// the other would have the file's checks written first, and a place the file has wrong refuses
+	/// to compile before the correction is read; read as one, the correction's description of a type
+	/// is the one written. <c>FixContext.Default.Load([theirs, corrections])</c>.
+	/// </remarks>
+	public FixContext Load(IEnumerable<string> dictionaries, string? emitTo = null)
+	{
+		if (dictionaries == null) throw new ArgumentNullException(nameof(dictionaries));
+
+		var read = new List<FixDictionary>();
+
+		foreach (var dictionary in dictionaries)
+			read.Add(FixDictionary.Parse(dictionary ?? throw new ArgumentNullException(nameof(dictionaries))));
+
+		return this with { Validators = Validators.Load(FixDictionary.Over(read), Emitter(emitTo)) };
 	}
 
 	/// <inheritdoc cref="Load(string, string)"/>

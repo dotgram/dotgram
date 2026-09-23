@@ -47,7 +47,7 @@ public sealed class FixBuilderContractTests
 		var order = Assert.IsType<FixMessage.NewOrderSingle>(message);
 
 		Assert.False(order.NoPartyIDs!.IsValid);
-		Assert.Equal("P", order.Parties![0].PartyID.Value);
+		Assert.Equal("P", order.NoPartyIDsGroups![0].PartyID.Value);
 	}
 
 	/// <summary>A count larger than the fields that follow it.</summary>
@@ -62,7 +62,7 @@ public sealed class FixBuilderContractTests
 		var order = Assert.IsType<FixMessage.NewOrderSingle>(message);
 
 		Assert.Equal(400, (int)order.NoPartyIDs!.Value);
-		Assert.Single(order.Parties!);
+		Assert.Single(order.NoPartyIDsGroups!);
 	}
 
 	/// <summary>An entry that does not open with the tag its group is cut by.</summary>
@@ -81,7 +81,7 @@ public sealed class FixBuilderContractTests
 		var order = Assert.IsType<FixMessage.NewOrderSingle>(message);
 
 		Assert.Equal(2, (int)order.NoPartyIDs!.Value);
-		Assert.Single(order.Parties!);
+		Assert.Single(order.NoPartyIDsGroups!);
 	}
 
 	/// <summary>A field no scope of the message will take.</summary>

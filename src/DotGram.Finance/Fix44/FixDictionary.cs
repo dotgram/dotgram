@@ -53,6 +53,52 @@ sealed class FixDictionary
 	public readonly Dictionary<int, Field>                          Fields     = [];
 	public readonly Dictionary<string, int>                         Tags       = new(StringComparer.Ordinal);
 
+	/// <summary>Dictionaries read one over another: a later one's message type, component or field replaces an earlier one's.</summary>
+	/// <remarks>A message type is known by its MsgType, a component by its name and a field by its number.</remarks>
+	public static FixDictionary Over(List<FixDictionary> dictionaries)
+	{
+		if (dictionaries.Count == 1)
+			return dictionaries[0];
+
+		var over = new FixDictionary();
+
+		foreach (var one in dictionaries)
+		{
+			foreach (var message in one.Messages)
+			{
+				var at = over.Messages.FindIndex(known => known.Type == message.Type);
+
+				if (at < 0)
+					over.Messages.Add(message);
+				else
+					over.Messages[at] = message;
+			}
+
+			foreach (var component in one.Components)
+				over.Components[component.Key] = component.Value;
+
+			foreach (var field in one.Fields)
+				over.Fields[field.Key] = field.Value;
+
+			foreach (var tag in one.Tags)
+				over.Tags[tag.Key] = tag.Value;
+
+			if (one.Header.Count > 0)
+			{
+				over.Header.Clear();
+				over.Header.AddRange(one.Header);
+			}
+
+			if (one.Trailer.Count > 0)
+			{
+				over.Trailer.Clear();
+				over.Trailer.AddRange(one.Trailer);
+			}
+		}
+
+		return over;
+	}
+
 	public static FixDictionary Parse(string text)
 	{
 		if (text == null) throw new ArgumentNullException(nameof(text));

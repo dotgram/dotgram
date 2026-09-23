@@ -2,12 +2,13 @@
 <!--
 	What QuickFIX/n's FIX44.xml places differently from the FIX 4.4 repository, said the way the
 	repository says it, in the format that file is in. Loaded after that file, it puts these thirteen
-	message types back to the standard: FixContext.Default.Load(FIX44.xml).Load(this).
+	message types back to the standard, read as one with it: FixContext.Default.Load([FIX44.xml, this]).
 
 	Written from the FIX Unified Repository (tests/Corpus/FixRepository) by the script beside this
-	file, message for message: every member of each type, the repository's repeating components
-	written as the groups QuickFIX writes, its blocks as component references. A load replaces a
-	message type's whole check, so each type is given whole and not as a difference. Not edited by hand.
+	file, message for message: every member of each type, the repository's implicit repeating
+	components written as the groups QuickFIX writes, its blocks and named repeating components as
+	component references, described after the messages. A load replaces a message type's whole check,
+	so each type is given whole and not as a difference. Not edited by hand.
 -->
 <fix major="4" minor="4">
 	<messages>
@@ -35,10 +36,7 @@
 				<field name="SettlDate2" required="N"/>
 				<field name="OrderQty2" required="N"/>
 				<field name="Currency" required="N"/>
-				<group name="NoStipulations" required="N">
-					<field name="StipulationType" required="N"/>
-					<field name="StipulationValue" required="N"/>
-				</group>
+				<component name="Stipulations" required="N"/>
 				<field name="Account" required="N"/>
 				<field name="AcctIDSource" required="N"/>
 				<field name="AccountType" required="N"/>
@@ -48,19 +46,8 @@
 					<field name="LegSwapType" required="N"/>
 					<field name="LegSettlType" required="N"/>
 					<field name="LegSettlDate" required="N"/>
-					<group name="NoLegStipulations" required="N">
-						<field name="LegStipulationType" required="N"/>
-						<field name="LegStipulationValue" required="N"/>
-					</group>
-					<group name="NoNestedPartyIDs" required="N">
-						<field name="NestedPartyID" required="N"/>
-						<field name="NestedPartyIDSource" required="N"/>
-						<field name="NestedPartyRole" required="N"/>
-						<group name="NoNestedPartySubIDs" required="N">
-							<field name="NestedPartySubID" required="N"/>
-							<field name="NestedPartySubIDType" required="N"/>
-						</group>
-					</group>
+					<component name="LegStipulations" required="N"/>
+					<component name="NestedParties" required="N"/>
 					<component name="LegBenchmarkCurveData" required="N"/>
 				</group>
 				<group name="NoQuoteQualifiers" required="N">
@@ -75,15 +62,7 @@
 				<field name="Price" required="N"/>
 				<field name="Price2" required="N"/>
 				<component name="YieldData" required="N"/>
-				<group name="NoPartyIDs" required="N">
-					<field name="PartyID" required="N"/>
-					<field name="PartyIDSource" required="N"/>
-					<field name="PartyRole" required="N"/>
-					<group name="NoPartySubIDs" required="N">
-						<field name="PartySubID" required="N"/>
-						<field name="PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="Parties" required="N"/>
 			</group>
 			<field name="Text" required="N"/>
 			<field name="EncodedTextLen" required="N"/>
@@ -100,15 +79,7 @@
 				<field name="ClOrdID" required="Y"/>
 				<field name="SecondaryClOrdID" required="N"/>
 				<field name="ClOrdLinkID" required="N"/>
-				<group name="NoPartyIDs" required="N">
-					<field name="PartyID" required="N"/>
-					<field name="PartyIDSource" required="N"/>
-					<field name="PartyRole" required="N"/>
-					<group name="NoPartySubIDs" required="N">
-						<field name="PartySubID" required="N"/>
-						<field name="PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="Parties" required="N"/>
 				<field name="TradeOriginationDate" required="N"/>
 				<field name="TradeDate" required="N"/>
 				<field name="Account" required="N"/>
@@ -123,15 +94,7 @@
 					<field name="AllocAcctIDSource" required="N"/>
 					<field name="AllocSettlCurrency" required="N"/>
 					<field name="IndividualAllocID" required="N"/>
-					<group name="NoNestedPartyIDs" required="N">
-						<field name="NestedPartyID" required="N"/>
-						<field name="NestedPartyIDSource" required="N"/>
-						<field name="NestedPartyRole" required="N"/>
-						<group name="NoNestedPartySubIDs" required="N">
-							<field name="NestedPartySubID" required="N"/>
-							<field name="NestedPartySubIDType" required="N"/>
-						</group>
-					</group>
+					<component name="NestedParties" required="N"/>
 					<field name="AllocQty" required="N"/>
 				</group>
 				<field name="QtyType" required="N"/>
@@ -175,10 +138,7 @@
 			<field name="PrevClosePx" required="N"/>
 			<field name="LocateReqd" required="N"/>
 			<field name="TransactTime" required="Y"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<field name="OrdType" required="Y"/>
 			<field name="PriceType" required="N"/>
 			<field name="Price" required="N"/>
@@ -223,15 +183,7 @@
 				<field name="SecondaryOrderID" required="N"/>
 				<field name="SecondaryClOrdID" required="N"/>
 				<field name="ListID" required="N"/>
-				<group name="NoNested2PartyIDs" required="N">
-					<field name="Nested2PartyID" required="N"/>
-					<field name="Nested2PartyIDSource" required="N"/>
-					<field name="Nested2PartyRole" required="N"/>
-					<group name="NoNested2PartySubIDs" required="N">
-						<field name="Nested2PartySubID" required="N"/>
-						<field name="Nested2PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="NestedParties2" required="N"/>
 				<field name="OrderQty" required="N"/>
 				<field name="OrderAvgPx" required="N"/>
 				<field name="OrderBookingQty" required="N"/>
@@ -269,15 +221,7 @@
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
 			<field name="Currency" required="N"/>
 			<field name="AvgPxPrecision" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="TradeDate" required="Y"/>
 			<field name="TransactTime" required="N"/>
 			<field name="SettlType" required="N"/>
@@ -301,10 +245,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<field name="LegalConfirm" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<component name="YieldData" required="N"/>
 			<field name="TotNoAllocs" required="N"/>
 			<field name="LastFragment" required="N"/>
@@ -316,15 +257,7 @@
 				<field name="AllocQty" required="N"/>
 				<field name="IndividualAllocID" required="N"/>
 				<field name="ProcessCode" required="N"/>
-				<group name="NoNestedPartyIDs" required="N">
-					<field name="NestedPartyID" required="N"/>
-					<field name="NestedPartyIDSource" required="N"/>
-					<field name="NestedPartyRole" required="N"/>
-					<group name="NoNestedPartySubIDs" required="N">
-						<field name="NestedPartySubID" required="N"/>
-						<field name="NestedPartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="NestedParties" required="N"/>
 				<field name="NotifyBrokerOfCredit" required="N"/>
 				<field name="AllocHandlInst" required="N"/>
 				<field name="AllocText" required="N"/>
@@ -376,15 +309,7 @@
 				<field name="SecondaryOrderID" required="N"/>
 				<field name="SecondaryClOrdID" required="N"/>
 				<field name="ListID" required="N"/>
-				<group name="NoNested2PartyIDs" required="N">
-					<field name="Nested2PartyID" required="N"/>
-					<field name="Nested2PartyIDSource" required="N"/>
-					<field name="Nested2PartyRole" required="N"/>
-					<group name="NoNested2PartySubIDs" required="N">
-						<field name="Nested2PartySubID" required="N"/>
-						<field name="Nested2PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="NestedParties2" required="N"/>
 				<field name="OrderQty" required="N"/>
 				<field name="OrderAvgPx" required="N"/>
 				<field name="OrderBookingQty" required="N"/>
@@ -422,15 +347,7 @@
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
 			<field name="Currency" required="N"/>
 			<field name="AvgPxPrecision" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="TradeDate" required="Y"/>
 			<field name="TransactTime" required="N"/>
 			<field name="SettlType" required="N"/>
@@ -454,10 +371,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<field name="LegalConfirm" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<component name="YieldData" required="N"/>
 			<field name="TotNoAllocs" required="N"/>
 			<field name="LastFragment" required="N"/>
@@ -469,15 +383,7 @@
 				<field name="AllocQty" required="N"/>
 				<field name="IndividualAllocID" required="N"/>
 				<field name="ProcessCode" required="N"/>
-				<group name="NoNestedPartyIDs" required="N">
-					<field name="NestedPartyID" required="N"/>
-					<field name="NestedPartyIDSource" required="N"/>
-					<field name="NestedPartyRole" required="N"/>
-					<group name="NoNestedPartySubIDs" required="N">
-						<field name="NestedPartySubID" required="N"/>
-						<field name="NestedPartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="NestedParties" required="N"/>
 				<field name="NotifyBrokerOfCredit" required="N"/>
 				<field name="AllocHandlInst" required="N"/>
 				<field name="AllocText" required="N"/>
@@ -521,15 +427,7 @@
 				<field name="SettlInstID" required="N"/>
 				<field name="SettlInstTransType" required="N"/>
 				<field name="SettlInstRefID" required="N"/>
-				<group name="NoPartyIDs" required="N">
-					<field name="PartyID" required="N"/>
-					<field name="PartyIDSource" required="N"/>
-					<field name="PartyRole" required="N"/>
-					<group name="NoPartySubIDs" required="N">
-						<field name="PartySubID" required="N"/>
-						<field name="PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="Parties" required="N"/>
 				<field name="Side" required="N"/>
 				<field name="Product" required="N"/>
 				<field name="SecurityType" required="N"/>
@@ -595,31 +493,17 @@
 			<field name="AvgPx" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
 			<field name="AvgPxIndicator" required="N"/>
-			<group name="NoPosAmt" required="N">
-				<field name="PosAmtType" required="N"/>
-				<field name="PosAmt" required="N"/>
-			</group>
+			<component name="PositionAmountData" required="N"/>
 			<field name="MultiLegReportingType" required="N"/>
 			<field name="TradeLegRefID" required="N"/>
 			<group name="NoLegs" required="N">
 				<component name="InstrumentLeg" required="N"/>
 				<field name="LegQty" required="N"/>
 				<field name="LegSwapType" required="N"/>
-				<group name="NoLegStipulations" required="N">
-					<field name="LegStipulationType" required="N"/>
-					<field name="LegStipulationValue" required="N"/>
-				</group>
+				<component name="LegStipulations" required="N"/>
 				<field name="LegPositionEffect" required="N"/>
 				<field name="LegCoveredOrUncovered" required="N"/>
-				<group name="NoNestedPartyIDs" required="N">
-					<field name="NestedPartyID" required="N"/>
-					<field name="NestedPartyIDSource" required="N"/>
-					<field name="NestedPartyRole" required="N"/>
-					<group name="NoNestedPartySubIDs" required="N">
-						<field name="NestedPartySubID" required="N"/>
-						<field name="NestedPartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="NestedParties" required="N"/>
 				<field name="LegRefID" required="N"/>
 				<field name="LegPrice" required="N"/>
 				<field name="LegSettlType" required="N"/>
@@ -627,11 +511,7 @@
 				<field name="LegLastPx" required="N"/>
 			</group>
 			<field name="TransactTime" required="Y"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="SettlType" required="N"/>
 			<field name="SettlDate" required="N"/>
 			<field name="MatchStatus" required="N"/>
@@ -643,15 +523,7 @@
 				<field name="ClOrdID" required="N"/>
 				<field name="SecondaryClOrdID" required="N"/>
 				<field name="ListID" required="N"/>
-				<group name="NoPartyIDs" required="N">
-					<field name="PartyID" required="N"/>
-					<field name="PartyIDSource" required="N"/>
-					<field name="PartyRole" required="N"/>
-					<group name="NoPartySubIDs" required="N">
-						<field name="PartySubID" required="N"/>
-						<field name="PartySubIDType" required="N"/>
-					</group>
-				</group>
+				<component name="Parties" required="N"/>
 				<field name="Account" required="N"/>
 				<field name="AcctIDSource" required="N"/>
 				<field name="AccountType" required="N"/>
@@ -702,10 +574,7 @@
 					<field name="ContAmtValue" required="N"/>
 					<field name="ContAmtCurr" required="N"/>
 				</group>
-				<group name="NoStipulations" required="N">
-					<field name="StipulationType" required="N"/>
-					<field name="StipulationValue" required="N"/>
-				</group>
+				<component name="Stipulations" required="N"/>
 				<group name="NoMiscFees" required="N">
 					<field name="MiscFeeAmt" required="N"/>
 					<field name="MiscFeeCurr" required="N"/>
@@ -721,15 +590,7 @@
 					<field name="AllocAcctIDSource" required="N"/>
 					<field name="AllocSettlCurrency" required="N"/>
 					<field name="IndividualAllocID" required="N"/>
-					<group name="NoNested2PartyIDs" required="N">
-						<field name="Nested2PartyID" required="N"/>
-						<field name="Nested2PartyIDSource" required="N"/>
-						<field name="Nested2PartyRole" required="N"/>
-						<group name="NoNested2PartySubIDs" required="N">
-							<field name="Nested2PartySubID" required="N"/>
-							<field name="Nested2PartySubIDType" required="N"/>
-						</group>
-					</group>
+					<component name="NestedParties2" required="N"/>
 					<field name="AllocQty" required="N"/>
 				</group>
 			</group>
@@ -741,15 +602,7 @@
 			<field name="AsgnRptID" required="Y"/>
 			<field name="TotNumAssignmentReports" required="N"/>
 			<field name="LastRptRequested" required="N"/>
-			<group name="NoPartyIDs" required="Y">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="Y"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="Y"/>
 			<component name="Instrument" required="N"/>
@@ -760,25 +613,8 @@
 			<group name="NoUnderlyings" required="N">
 				<component name="UnderlyingInstrument" required="N"/>
 			</group>
-			<group name="NoPositions" required="Y">
-				<field name="PosType" required="N"/>
-				<field name="LongQty" required="N"/>
-				<field name="ShortQty" required="N"/>
-				<field name="PosQtyStatus" required="N"/>
-				<group name="NoNestedPartyIDs" required="N">
-					<field name="NestedPartyID" required="N"/>
-					<field name="NestedPartyIDSource" required="N"/>
-					<field name="NestedPartyRole" required="N"/>
-					<group name="NoNestedPartySubIDs" required="N">
-						<field name="NestedPartySubID" required="N"/>
-						<field name="NestedPartySubIDType" required="N"/>
-					</group>
-				</group>
-			</group>
-			<group name="NoPosAmt" required="Y">
-				<field name="PosAmtType" required="N"/>
-				<field name="PosAmt" required="N"/>
-			</group>
+			<component name="PositionQty" required="Y"/>
+			<component name="PositionAmountData" required="Y"/>
 			<field name="ThresholdAmount" required="N"/>
 			<field name="SettlPrice" required="Y"/>
 			<field name="SettlPriceType" required="Y"/>
@@ -800,15 +636,7 @@
 			<field name="CollAsgnReason" required="Y"/>
 			<field name="TransactTime" required="Y"/>
 			<field name="ExpireTime" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -838,11 +666,7 @@
 			<field name="MarginExcess" required="N"/>
 			<field name="TotalNetValue" required="N"/>
 			<field name="CashOutstanding" required="N"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="Side" required="N"/>
 			<group name="NoMiscFees" required="N">
 				<field name="MiscFeeAmt" required="N"/>
@@ -857,10 +681,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<field name="TradingSessionID" required="N"/>
 			<field name="TradingSessionSubID" required="N"/>
 			<field name="SettlSessID" required="N"/>
@@ -878,15 +699,7 @@
 			<field name="CollAsgnRefID" required="N"/>
 			<field name="TransactTime" required="Y"/>
 			<field name="ExpireTime" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -916,11 +729,7 @@
 			<field name="MarginExcess" required="N"/>
 			<field name="TotalNetValue" required="N"/>
 			<field name="CashOutstanding" required="N"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="Side" required="N"/>
 			<group name="NoMiscFees" required="N">
 				<field name="MiscFeeAmt" required="N"/>
@@ -935,10 +744,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<component name="SettlInstructionsData" required="N"/>
 			<field name="TradingSessionID" required="N"/>
 			<field name="TradingSessionSubID" required="N"/>
@@ -958,15 +764,7 @@
 			<field name="CollAsgnRespType" required="Y"/>
 			<field name="CollAsgnRejectReason" required="N"/>
 			<field name="TransactTime" required="Y"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -996,11 +794,7 @@
 			<field name="MarginExcess" required="N"/>
 			<field name="TotalNetValue" required="N"/>
 			<field name="CashOutstanding" required="N"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="Side" required="N"/>
 			<group name="NoMiscFees" required="N">
 				<field name="MiscFeeAmt" required="N"/>
@@ -1015,10 +809,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<field name="Text" required="N"/>
 			<field name="EncodedTextLen" required="N"/>
 			<field name="EncodedText" required="N"/>
@@ -1029,15 +820,7 @@
 			<field name="CollStatus" required="Y"/>
 			<field name="TotNumReports" required="N"/>
 			<field name="LastRptRequested" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -1066,11 +849,7 @@
 			<field name="MarginExcess" required="N"/>
 			<field name="TotalNetValue" required="N"/>
 			<field name="CashOutstanding" required="N"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="Side" required="N"/>
 			<group name="NoMiscFees" required="N">
 				<field name="MiscFeeAmt" required="N"/>
@@ -1085,10 +864,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<component name="SettlInstructionsData" required="N"/>
 			<field name="TradingSessionID" required="N"/>
 			<field name="TradingSessionSubID" required="N"/>
@@ -1107,15 +883,7 @@
 			<field name="SubscriptionRequestType" required="N"/>
 			<field name="ResponseTransportType" required="N"/>
 			<field name="ResponseDestination" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -1144,11 +912,7 @@
 			<field name="MarginExcess" required="N"/>
 			<field name="TotalNetValue" required="N"/>
 			<field name="CashOutstanding" required="N"/>
-			<group name="NoTrdRegTimestamps" required="N">
-				<field name="TrdRegTimestamp" required="N"/>
-				<field name="TrdRegTimestampType" required="N"/>
-				<field name="TrdRegTimestampOrigin" required="N"/>
-			</group>
+			<component name="TrdRegTimestamps" required="N"/>
 			<field name="Side" required="N"/>
 			<field name="Price" required="N"/>
 			<field name="PriceType" required="N"/>
@@ -1157,10 +921,7 @@
 			<field name="StartCash" required="N"/>
 			<field name="EndCash" required="N"/>
 			<component name="SpreadOrBenchmarkCurveData" required="N"/>
-			<group name="NoStipulations" required="N">
-				<field name="StipulationType" required="N"/>
-				<field name="StipulationValue" required="N"/>
-			</group>
+			<component name="Stipulations" required="N"/>
 			<component name="SettlInstructionsData" required="N"/>
 			<field name="TradingSessionID" required="N"/>
 			<field name="TradingSessionSubID" required="N"/>
@@ -1179,15 +940,7 @@
 				<field name="CollInquiryQualifier" required="N"/>
 			</group>
 			<field name="TotNumReports" required="N"/>
-			<group name="NoPartyIDs" required="N">
-				<field name="PartyID" required="N"/>
-				<field name="PartyIDSource" required="N"/>
-				<field name="PartyRole" required="N"/>
-				<group name="NoPartySubIDs" required="N">
-					<field name="PartySubID" required="N"/>
-					<field name="PartySubIDType" required="N"/>
-				</group>
-			</group>
+			<component name="Parties" required="N"/>
 			<field name="Account" required="N"/>
 			<field name="AccountType" required="N"/>
 			<field name="ClOrdID" required="N"/>
@@ -1225,4 +978,327 @@
 			<field name="EncodedText" required="N"/>
 		</message>
 	</messages>
+	<components>
+		<component name="Instrument">
+			<field name="Symbol" required="N"/>
+			<field name="SymbolSfx" required="N"/>
+			<field name="SecurityID" required="N"/>
+			<field name="SecurityIDSource" required="N"/>
+			<group name="NoSecurityAltID" required="N">
+				<field name="SecurityAltID" required="N"/>
+				<field name="SecurityAltIDSource" required="N"/>
+			</group>
+			<field name="Product" required="N"/>
+			<field name="CFICode" required="N"/>
+			<field name="SecurityType" required="N"/>
+			<field name="SecuritySubType" required="N"/>
+			<field name="MaturityMonthYear" required="N"/>
+			<field name="MaturityDate" required="N"/>
+			<field name="PutOrCall" required="N"/>
+			<field name="CouponPaymentDate" required="N"/>
+			<field name="IssueDate" required="N"/>
+			<field name="RepoCollateralSecurityType" required="N"/>
+			<field name="RepurchaseTerm" required="N"/>
+			<field name="RepurchaseRate" required="N"/>
+			<field name="Factor" required="N"/>
+			<field name="CreditRating" required="N"/>
+			<field name="InstrRegistry" required="N"/>
+			<field name="CountryOfIssue" required="N"/>
+			<field name="StateOrProvinceOfIssue" required="N"/>
+			<field name="LocaleOfIssue" required="N"/>
+			<field name="RedemptionDate" required="N"/>
+			<field name="StrikePrice" required="N"/>
+			<field name="StrikeCurrency" required="N"/>
+			<field name="OptAttribute" required="N"/>
+			<field name="ContractMultiplier" required="N"/>
+			<field name="CouponRate" required="N"/>
+			<field name="SecurityExchange" required="N"/>
+			<field name="Issuer" required="N"/>
+			<field name="EncodedIssuerLen" required="N"/>
+			<field name="EncodedIssuer" required="N"/>
+			<field name="SecurityDesc" required="N"/>
+			<field name="EncodedSecurityDescLen" required="N"/>
+			<field name="EncodedSecurityDesc" required="N"/>
+			<field name="Pool" required="N"/>
+			<field name="ContractSettlMonth" required="N"/>
+			<field name="CPProgram" required="N"/>
+			<field name="CPRegType" required="N"/>
+			<group name="NoEvents" required="N">
+				<field name="EventType" required="N"/>
+				<field name="EventDate" required="N"/>
+				<field name="EventPx" required="N"/>
+				<field name="EventText" required="N"/>
+			</group>
+			<field name="DatedDate" required="N"/>
+			<field name="InterestAccrualDate" required="N"/>
+		</component>
+		<component name="FinancingDetails">
+			<field name="AgreementDesc" required="N"/>
+			<field name="AgreementID" required="N"/>
+			<field name="AgreementDate" required="N"/>
+			<field name="AgreementCurrency" required="N"/>
+			<field name="TerminationType" required="N"/>
+			<field name="StartDate" required="N"/>
+			<field name="EndDate" required="N"/>
+			<field name="DeliveryType" required="N"/>
+			<field name="MarginRatio" required="N"/>
+		</component>
+		<component name="UnderlyingInstrument">
+			<field name="UnderlyingSymbol" required="N"/>
+			<field name="UnderlyingSymbolSfx" required="N"/>
+			<field name="UnderlyingSecurityID" required="N"/>
+			<field name="UnderlyingSecurityIDSource" required="N"/>
+			<group name="NoUnderlyingSecurityAltID" required="N">
+				<field name="UnderlyingSecurityAltID" required="N"/>
+				<field name="UnderlyingSecurityAltIDSource" required="N"/>
+			</group>
+			<field name="UnderlyingProduct" required="N"/>
+			<field name="UnderlyingCFICode" required="N"/>
+			<field name="UnderlyingSecurityType" required="N"/>
+			<field name="UnderlyingSecuritySubType" required="N"/>
+			<field name="UnderlyingMaturityMonthYear" required="N"/>
+			<field name="UnderlyingMaturityDate" required="N"/>
+			<field name="UnderlyingPutOrCall" required="N"/>
+			<field name="UnderlyingCouponPaymentDate" required="N"/>
+			<field name="UnderlyingIssueDate" required="N"/>
+			<field name="UnderlyingRepoCollateralSecurityType" required="N"/>
+			<field name="UnderlyingRepurchaseTerm" required="N"/>
+			<field name="UnderlyingRepurchaseRate" required="N"/>
+			<field name="UnderlyingFactor" required="N"/>
+			<field name="UnderlyingCreditRating" required="N"/>
+			<field name="UnderlyingInstrRegistry" required="N"/>
+			<field name="UnderlyingCountryOfIssue" required="N"/>
+			<field name="UnderlyingStateOrProvinceOfIssue" required="N"/>
+			<field name="UnderlyingLocaleOfIssue" required="N"/>
+			<field name="UnderlyingRedemptionDate" required="N"/>
+			<field name="UnderlyingStrikePrice" required="N"/>
+			<field name="UnderlyingStrikeCurrency" required="N"/>
+			<field name="UnderlyingOptAttribute" required="N"/>
+			<field name="UnderlyingContractMultiplier" required="N"/>
+			<field name="UnderlyingCouponRate" required="N"/>
+			<field name="UnderlyingSecurityExchange" required="N"/>
+			<field name="UnderlyingIssuer" required="N"/>
+			<field name="EncodedUnderlyingIssuerLen" required="N"/>
+			<field name="EncodedUnderlyingIssuer" required="N"/>
+			<field name="UnderlyingSecurityDesc" required="N"/>
+			<field name="EncodedUnderlyingSecurityDescLen" required="N"/>
+			<field name="EncodedUnderlyingSecurityDesc" required="N"/>
+			<field name="UnderlyingCPProgram" required="N"/>
+			<field name="UnderlyingCPRegType" required="N"/>
+			<field name="UnderlyingCurrency" required="N"/>
+			<field name="UnderlyingQty" required="N"/>
+			<field name="UnderlyingPx" required="N"/>
+			<field name="UnderlyingDirtyPrice" required="N"/>
+			<field name="UnderlyingEndPrice" required="N"/>
+			<field name="UnderlyingStartValue" required="N"/>
+			<field name="UnderlyingCurrentValue" required="N"/>
+			<field name="UnderlyingEndValue" required="N"/>
+			<component name="UnderlyingStipulations" required="N"/>
+		</component>
+		<component name="OrderQtyData">
+			<field name="OrderQty" required="N"/>
+			<field name="CashOrderQty" required="N"/>
+			<field name="OrderPercent" required="N"/>
+			<field name="RoundingDirection" required="N"/>
+			<field name="RoundingModulus" required="N"/>
+		</component>
+		<component name="Stipulations">
+			<group name="NoStipulations" required="N">
+				<field name="StipulationType" required="N"/>
+				<field name="StipulationValue" required="N"/>
+			</group>
+		</component>
+		<component name="InstrumentLeg">
+			<field name="LegSymbol" required="N"/>
+			<field name="LegSymbolSfx" required="N"/>
+			<field name="LegSecurityID" required="N"/>
+			<field name="LegSecurityIDSource" required="N"/>
+			<group name="NoLegSecurityAltID" required="N">
+				<field name="LegSecurityAltID" required="N"/>
+				<field name="LegSecurityAltIDSource" required="N"/>
+			</group>
+			<field name="LegProduct" required="N"/>
+			<field name="LegCFICode" required="N"/>
+			<field name="LegSecurityType" required="N"/>
+			<field name="LegSecuritySubType" required="N"/>
+			<field name="LegMaturityMonthYear" required="N"/>
+			<field name="LegMaturityDate" required="N"/>
+			<field name="LegCouponPaymentDate" required="N"/>
+			<field name="LegIssueDate" required="N"/>
+			<field name="LegRepoCollateralSecurityType" required="N"/>
+			<field name="LegRepurchaseTerm" required="N"/>
+			<field name="LegRepurchaseRate" required="N"/>
+			<field name="LegFactor" required="N"/>
+			<field name="LegCreditRating" required="N"/>
+			<field name="LegInstrRegistry" required="N"/>
+			<field name="LegCountryOfIssue" required="N"/>
+			<field name="LegStateOrProvinceOfIssue" required="N"/>
+			<field name="LegLocaleOfIssue" required="N"/>
+			<field name="LegRedemptionDate" required="N"/>
+			<field name="LegStrikePrice" required="N"/>
+			<field name="LegStrikeCurrency" required="N"/>
+			<field name="LegOptAttribute" required="N"/>
+			<field name="LegContractMultiplier" required="N"/>
+			<field name="LegCouponRate" required="N"/>
+			<field name="LegSecurityExchange" required="N"/>
+			<field name="LegIssuer" required="N"/>
+			<field name="EncodedLegIssuerLen" required="N"/>
+			<field name="EncodedLegIssuer" required="N"/>
+			<field name="LegSecurityDesc" required="N"/>
+			<field name="EncodedLegSecurityDescLen" required="N"/>
+			<field name="EncodedLegSecurityDesc" required="N"/>
+			<field name="LegRatioQty" required="N"/>
+			<field name="LegSide" required="N"/>
+			<field name="LegCurrency" required="N"/>
+			<field name="LegPool" required="N"/>
+			<field name="LegDatedDate" required="N"/>
+			<field name="LegContractSettlMonth" required="N"/>
+			<field name="LegInterestAccrualDate" required="N"/>
+		</component>
+		<component name="LegStipulations">
+			<group name="NoLegStipulations" required="N">
+				<field name="LegStipulationType" required="N"/>
+				<field name="LegStipulationValue" required="N"/>
+			</group>
+		</component>
+		<component name="NestedParties">
+			<group name="NoNestedPartyIDs" required="N">
+				<field name="NestedPartyID" required="N"/>
+				<field name="NestedPartyIDSource" required="N"/>
+				<field name="NestedPartyRole" required="N"/>
+				<group name="NoNestedPartySubIDs" required="N">
+					<field name="NestedPartySubID" required="N"/>
+					<field name="NestedPartySubIDType" required="N"/>
+				</group>
+			</group>
+		</component>
+		<component name="LegBenchmarkCurveData">
+			<field name="LegBenchmarkCurveCurrency" required="N"/>
+			<field name="LegBenchmarkCurveName" required="N"/>
+			<field name="LegBenchmarkCurvePoint" required="N"/>
+			<field name="LegBenchmarkPrice" required="N"/>
+			<field name="LegBenchmarkPriceType" required="N"/>
+		</component>
+		<component name="SpreadOrBenchmarkCurveData">
+			<field name="Spread" required="N"/>
+			<field name="BenchmarkCurveCurrency" required="N"/>
+			<field name="BenchmarkCurveName" required="N"/>
+			<field name="BenchmarkCurvePoint" required="N"/>
+			<field name="BenchmarkPrice" required="N"/>
+			<field name="BenchmarkPriceType" required="N"/>
+			<field name="BenchmarkSecurityID" required="N"/>
+			<field name="BenchmarkSecurityIDSource" required="N"/>
+		</component>
+		<component name="YieldData">
+			<field name="YieldType" required="N"/>
+			<field name="Yield" required="N"/>
+			<field name="YieldCalcDate" required="N"/>
+			<field name="YieldRedemptionDate" required="N"/>
+			<field name="YieldRedemptionPrice" required="N"/>
+			<field name="YieldRedemptionPriceType" required="N"/>
+		</component>
+		<component name="Parties">
+			<group name="NoPartyIDs" required="N">
+				<field name="PartyID" required="N"/>
+				<field name="PartyIDSource" required="N"/>
+				<field name="PartyRole" required="N"/>
+				<group name="NoPartySubIDs" required="N">
+					<field name="PartySubID" required="N"/>
+					<field name="PartySubIDType" required="N"/>
+				</group>
+			</group>
+		</component>
+		<component name="CommissionData">
+			<field name="Commission" required="N"/>
+			<field name="CommType" required="N"/>
+			<field name="CommCurrency" required="N"/>
+			<field name="FundRenewWaiv" required="N"/>
+		</component>
+		<component name="PegInstructions">
+			<field name="PegOffsetValue" required="N"/>
+			<field name="PegMoveType" required="N"/>
+			<field name="PegOffsetType" required="N"/>
+			<field name="PegLimitType" required="N"/>
+			<field name="PegRoundDirection" required="N"/>
+			<field name="PegScope" required="N"/>
+		</component>
+		<component name="DiscretionInstructions">
+			<field name="DiscretionInst" required="N"/>
+			<field name="DiscretionOffsetValue" required="N"/>
+			<field name="DiscretionMoveType" required="N"/>
+			<field name="DiscretionOffsetType" required="N"/>
+			<field name="DiscretionLimitType" required="N"/>
+			<field name="DiscretionRoundDirection" required="N"/>
+			<field name="DiscretionScope" required="N"/>
+		</component>
+		<component name="NestedParties2">
+			<group name="NoNested2PartyIDs" required="N">
+				<field name="Nested2PartyID" required="N"/>
+				<field name="Nested2PartyIDSource" required="N"/>
+				<field name="Nested2PartyRole" required="N"/>
+				<group name="NoNested2PartySubIDs" required="N">
+					<field name="Nested2PartySubID" required="N"/>
+					<field name="Nested2PartySubIDType" required="N"/>
+				</group>
+			</group>
+		</component>
+		<component name="InstrumentExtension">
+			<field name="DeliveryForm" required="N"/>
+			<field name="PctAtRisk" required="N"/>
+			<group name="NoInstrAttrib" required="N">
+				<field name="InstrAttribType" required="N"/>
+				<field name="InstrAttribValue" required="N"/>
+			</group>
+		</component>
+		<component name="SettlInstructionsData">
+			<field name="SettlDeliveryType" required="N"/>
+			<field name="StandInstDbType" required="N"/>
+			<field name="StandInstDbName" required="N"/>
+			<field name="StandInstDbID" required="N"/>
+			<group name="NoDlvyInst" required="N">
+				<field name="SettlInstSource" required="N"/>
+				<field name="DlvyInstType" required="N"/>
+				<component name="SettlParties" required="N"/>
+			</group>
+		</component>
+		<component name="PositionAmountData">
+			<group name="NoPosAmt" required="N">
+				<field name="PosAmtType" required="N"/>
+				<field name="PosAmt" required="N"/>
+			</group>
+		</component>
+		<component name="TrdRegTimestamps">
+			<group name="NoTrdRegTimestamps" required="N">
+				<field name="TrdRegTimestamp" required="N"/>
+				<field name="TrdRegTimestampType" required="N"/>
+				<field name="TrdRegTimestampOrigin" required="N"/>
+			</group>
+		</component>
+		<component name="PositionQty">
+			<group name="NoPositions" required="N">
+				<field name="PosType" required="N"/>
+				<field name="LongQty" required="N"/>
+				<field name="ShortQty" required="N"/>
+				<field name="PosQtyStatus" required="N"/>
+				<component name="NestedParties" required="N"/>
+			</group>
+		</component>
+		<component name="UnderlyingStipulations">
+			<group name="NoUnderlyingStips" required="N">
+				<field name="UnderlyingStipType" required="N"/>
+				<field name="UnderlyingStipValue" required="N"/>
+			</group>
+		</component>
+		<component name="SettlParties">
+			<group name="NoSettlPartyIDs" required="N">
+				<field name="SettlPartyID" required="N"/>
+				<field name="SettlPartyIDSource" required="N"/>
+				<field name="SettlPartyRole" required="N"/>
+				<group name="NoSettlPartySubIDs" required="N">
+					<field name="SettlPartySubID" required="N"/>
+					<field name="SettlPartySubIDType" required="N"/>
+				</group>
+			</group>
+		</component>
+	</components>
 </fix>

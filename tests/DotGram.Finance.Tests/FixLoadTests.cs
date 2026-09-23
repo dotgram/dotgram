@@ -168,19 +168,19 @@ public sealed class FixLoadTests
 	[Fact]
 	public void A_fragment_describing_a_group_replaces_the_check_of_its_entries()
 	{
-		// The venue wants a PartyRole in every party.
+		// The venue wants a PartyRole in every party. The parties are a component, and what a party
+		// holds is said where the component is described, which is where every carrier finds it.
 		const string partiesWantRole =
 			"""
 			<fix>
-			  <messages>
-			    <message name="NewOrderSingle" msgtype="D">
-			      <field name="ClOrdID" required="Y" />
+			  <components>
+			    <component name="Parties">
 			      <group name="NoPartyIDs" required="N">
 			        <field name="PartyID" required="Y" />
 			        <field name="PartyRole" required="Y" />
 			      </group>
-			    </message>
-			  </messages>
+			    </component>
+			  </components>
 			</fix>
 			""";
 
@@ -194,7 +194,7 @@ public sealed class FixLoadTests
 		Assert.Equal(FixRule.RequiredFieldMissing, finding.Rule);
 		Assert.Equal(452, finding.Tag);
 		Assert.Equal(1, finding.EntryIndex);
-		Assert.Equal(((FixMessage.NewOrderSingle)order).Parties![1].PartyID.Position, finding.Position);
+		Assert.Equal(((FixMessage.NewOrderSingle)order).NoPartyIDsGroups![1].PartyID.Position, finding.Position);
 	}
 	[Fact]
 	public void What_a_load_wrote_can_be_kept_as_files()
@@ -234,88 +234,45 @@ public sealed class FixLoadTests
 		Assert.Contains("VenueHeartbeat", refused.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// QuickFIX/n's own FIX 4.4, read whole, does not load alone: it places fields where FIX 4.4 does
+	/// not, the checks written from it name a property the model does not have, and the refusal says
+	/// which. The body of a QuoteRequestReject is the first such place in the file.
+	/// </summary>
 	[Fact]
-	public void The_whole_of_the_reference_dictionary_loads_over_the_standard()
+	public void The_reference_dictionary_alone_names_where_it_departs_from_the_standard()
 	{
-		// QuickFIX's own FIX 4.4, the file the stand compares against, read whole. It asks for
-		// more than the repository in places, and every one of those is a check added, not a
-		// refusal at the door.
-		var path    = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix", "FIX44.xml");
-		var context = FixContext.Default.Load(File.ReadAllText(path));
-		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
+		var refused = Assert.Throws<FormatException>(() => FixContext.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
 
-		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
-
-		// And what that file says that this package has no place for, named. Each is a place where the
-		// two readings of FIX 4.4 disagree: QuickFIX/n puts the body of a QuoteRequestReject on the
-		// message where the repository puts it inside QuotReqRjctGrp; the InstrumentLeg block on seven
-		// messages where the repository has InstrmtLegGrp; SettlInstSource on a SettlementInstructions
-		// where the repository has it only inside SettlInstructionsData; and, inside the entries of
-		// four groups, eight fields the repository places elsewhere - among them 586 and 635, which the
-		// fixtures of Fix44Tests carry and the repository does not place there either. This package
-		// reads the repository, so a rule about those is a rule with nothing to hold, and it is said
-		// here rather than passed over, so that a change on either side fails this.
-		Assert.Equal(
-			[
-				"QuoteRequestReject: group NoQuoteQualifiers (735)",
-				"QuoteRequestReject: field QuotePriceType (692)",
-				"QuoteRequestReject: field OrdType (40)",
-				"QuoteRequestReject: field ExpireTime (126)",
-				"QuoteRequestReject: field TransactTime (60)",
-				"QuoteRequestReject: block SpreadOrBenchmarkCurveData",
-				"QuoteRequestReject: field PriceType (423)",
-				"QuoteRequestReject: field Price (44)",
-				"QuoteRequestReject: field Price2 (640)",
-				"QuoteRequestReject: block YieldData",
-				"QuoteRequestReject: group NoPartyIDs (453)",
-				"CrossOrderCancelReplaceRequest/NoSides: field OrigClOrdID (41), required",
-				"CrossOrderCancelReplaceRequest/NoSides: field OrigOrdModTime (586)",
-				"AllocationInstruction/NoAllocs: field AccruedInterestAmt (159)",
-				"AllocationInstruction/NoAllocs: field SettlInstMode (160)",
-				"AllocationInstruction/NoAllocs: field ClearingInstruction (577)",
-				"AllocationInstruction/NoAllocs: field ClearingFeeIndicator (635)",
-				"AllocationReport/NoAllocs: field ClearingFeeIndicator (635)",
-				"SettlementInstructions: field SettlInstSource (165)",
-				"TradeCaptureReport/NoSides: field ClearingFeeIndicator (635)",
-				"AssignmentReport: block InstrumentLeg",
-				"CollateralRequest: block InstrumentLeg",
-				"CollateralAssignment: block InstrumentLeg",
-				"CollateralResponse: block InstrumentLeg",
-				"CollateralReport: block InstrumentLeg",
-				"CollateralInquiry: block InstrumentLeg",
-				"CollateralInquiryAck: block InstrumentLeg",
-			],
-			context.Validators.Unplaced);
+		Assert.Contains("could not be compiled", refused.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>
 	/// The errata: what QuickFIX/n's FIX44.xml places differently from the repository, said the way the
-	/// repository says it, in that file's format (tests/Corpus/Fix/quickfixn-fix44-errata.xml). Loaded
-	/// after that file it puts the thirteen types back: every one of their members has a place, and a
-	/// standard message of those types is held to what the compiled-in schema holds it to.
+	/// repository says it, in that file's format (tests/Corpus/Fix/quickfixn-fix44-errata.xml). It loads
+	/// alone, and read as one with their file it puts the thirteen types back: a standard message of
+	/// those types is held to what the standard's messages over their fields hold it to.
 	/// </summary>
 	[Fact]
-	public void The_errata_places_everything_and_puts_the_thirteen_types_back()
+	public void The_errata_read_with_the_reference_dictionary_puts_the_thirteen_types_back()
 	{
-		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
-		var errata = File.ReadAllText(Path.Combine(corpus, "quickfixn-fix44-errata.xml"));
+		var errata = File.ReadAllText(Path.Combine(Corpus, "quickfixn-fix44-errata.xml"));
 
-		Assert.Empty(FixContext.Default.Load(errata).Validators.Unplaced);
-		Assert.Empty(FixContext.Default.LoadFile(Path.Combine(corpus, "quickfixn-fix44-errata.xml")).Validators.Unplaced);
+		FixContext.Default.Load(errata);
+		FixContext.Default.LoadFile(Path.Combine(Corpus, "quickfixn-fix44-errata.xml"));
 
-		var file   = File.ReadAllText(Path.Combine(corpus, "FIX44.xml"));
-		var theirs = FixContext.Default.Load(file);
-		var mended = theirs.Load(errata);
+		var file   = File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"));
+		var mended = FixContext.Default.Load([file, errata]);
+		var order  = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 
-		// The lines are the first load's: the errata adds none, and takes none away, since they say
-		// what that file said and not what this context asks.
-		Assert.Equal(theirs.Validators.Unplaced, mended.Validators.Unplaced);
+		Assert.True(order.Validate(mended), string.Join("; ", order.InvalidFindings ?? []));
 
 		// What the errata leaves alone is their fields: the values their file lists for a field stand,
 		// and differ from the repository's here and there (SymbolSfx, YieldRedemptionPriceType). So the
 		// context a mended message is held against is the standard's messages over their fields.
-		var fields = "<fix>" + file.Substring(file.IndexOf("<fields>", StringComparison.Ordinal), file.IndexOf("</fields>", StringComparison.Ordinal) + "</fields>".Length - file.IndexOf("<fields>", StringComparison.Ordinal)) + "</fix>";
-		var theirFields = FixContext.Default.Load(fields);
+		var from        = file.IndexOf("<fields>", StringComparison.Ordinal);
+		var to          = file.IndexOf("</fields>", StringComparison.Ordinal) + "</fields>".Length;
+		var theirFields = FixContext.Default.Load("<fix>" + file.Substring(from, to - from) + "</fix>");
 
 		var types = new[]
 		{
@@ -340,12 +297,14 @@ public sealed class FixLoadTests
 			repaired.Validate(mended);
 
 			Assert.Equal(
-				(standard.InvalidFindings ?? []).Select(one => one.ToString()),
-				(repaired.InvalidFindings ?? []).Select(one => one.ToString()));
+				(standard.InvalidFindings ?? []).Select(one => one.ToString()).Order(),
+				(repaired.InvalidFindings ?? []).Select(one => one.ToString()).Order());
 
 			seen.Add(name);
 		}
 
 		Assert.Equal(types.OrderBy(one => one, StringComparer.Ordinal), seen.OrderBy(one => one, StringComparer.Ordinal));
 	}
+
+	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
 }

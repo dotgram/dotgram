@@ -58,12 +58,13 @@ public sealed class FixValidationTests
 	[Fact]
 	public void A_required_field_and_a_required_block_are_named_by_their_tags()
 	{
-		// A NewOrderSingle without its instrument, its quantity or its side.
+		// A NewOrderSingle without its instrument, its quantity or its side, found in the order the
+		// repository lists them: Instrument, Side, OrderQtyData.
 		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|60=20260915-12:00:00|40=2|"));
 
 		Assert.False(order.Validate(FixContext.Default));
 		Assert.Equal(
-			[(FixRule.RequiredFieldMissing, 54), (FixRule.RequiredComponentMissing, 55), (FixRule.RequiredComponentMissing, 38)],
+			[(FixRule.RequiredComponentMissing, 55), (FixRule.RequiredFieldMissing, 54), (FixRule.RequiredComponentMissing, 38)],
 			order.InvalidFindings!.Select(one => (one.Rule, one.Tag)).ToArray());
 	}
 
@@ -93,7 +94,7 @@ public sealed class FixValidationTests
 		Assert.Equal(
 			[(FixRule.RequiredFieldMissing, 54, 1), (FixRule.RequiredFieldMissing, 67, 1)],
 			list.InvalidFindings!.Select(one => (one.Rule, one.Tag, one.EntryIndex)).OrderBy(one => one.Tag).ToArray());
-		Assert.All(list.InvalidFindings!, one => Assert.Equal(list.ListOrdGrp![1].ClOrdID.Position, one.Position));
+		Assert.All(list.InvalidFindings!, one => Assert.Equal(list.NoOrdersGroups![1].ClOrdID.Position, one.Position));
 	}
 
 	/// <summary>A count inside an entry is held to the entries that follow it there.</summary>

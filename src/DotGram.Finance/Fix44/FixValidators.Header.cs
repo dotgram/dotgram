@@ -43,7 +43,7 @@ partial class FixValidators
 				message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 		}
 
-		Counted(message, message.NoHops, message.Hop);
+		Counted(message, message.NoHops, message.NoHopsGroups);
 
 		return message.IsValid;
 	}

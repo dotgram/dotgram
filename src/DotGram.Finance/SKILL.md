@@ -124,7 +124,7 @@ switch (message)
         break;
 
     case FixMessage.NewOrderSingle order:
-        foreach (var party in order.Parties ?? [])   // one entry class per entry, in order
+        foreach (var party in order.NoPartyIDsGroups ?? [])   // the entries, in order
             Console.WriteLine(party.PartyID.Value);
         break;
 }
@@ -138,8 +138,10 @@ switch (message)
 - A message's properties are named after its fields and are the typed fields themselves:
   `FixField.Symbol?`, `FixField.OrderQty?`, null when the field is absent. `Value` on one is
   the CLR value — a `string`, a `decimal`, a `long` — and `IsValid` says whether the
-  characters fitted it. A repeating group is a `List<T>?` of entries, one class per group,
-  and an entry reads the same way.
+  characters fitted it. A repeating group is named as QuickFIX names it: the list
+  `<Counter>Groups` beside its counter, of entries of the class `<Counter>Group` nested in
+  what carries it — `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup` — and an entry
+  reads the same way.
 - The standard header and trailer are properties of every message, and `Fields` is the whole
   message in wire order, the fields of every group included.
 - `ParseMessage` throws `FormatException`; `TryParseMessage` returns false with a

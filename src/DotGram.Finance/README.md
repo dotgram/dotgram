@@ -160,7 +160,7 @@ if (FixParser.TryParseMessage(wire, out var message, out var error))
         Console.WriteLine(order.OrderQty?.Value);
         Console.WriteLine(order.SenderCompID?.Value);
 
-        foreach (var party in order.Parties ?? [])
+        foreach (var party in order.NoPartyIDsGroups ?? [])
             Console.WriteLine(party.PartyID.Value);   // tag 448
     }
 }
@@ -455,13 +455,17 @@ Field declarations, message classes, the checks, the Fix44 field grammar and tes
 fixtures are maintained together. When changing definitions, update the affected
 factory cases, message classes, checks, Fix44 grammar and test cases together.
 
-- `Fix/FixField.cs`: field base, typed-value access, locations and typed field cases.
-- `Fix/FixFieldFactory.cs`: construction of typed fields.
-- `Fix/FixMessage.cs`, `Fix/FixMessageGroups.cs`, `Fix/FixComponents.cs`: message classes, group entries and block interfaces.
-- `Fix/FixValidators.cs`: the check of every message type, block, group entry and field, written from the FIX repository.
+- `Fix44/FixField.cs`: field base, typed-value access, locations and typed field cases.
+- `Fix44/FixFieldFactory.cs`: construction of typed fields.
+- `Fix44/FixMessage.cs`: the message base, the standard header and trailer.
+- `Fix44/FixMessage.Types.cs`, `Fix44/FixComponents.cs`, `Fix44/FixValidators.cs`: the 93 message
+  classes, the 24 component interfaces and the check of every message type, component and group
+  entry — written by `Fix44/generate.py` from the FIX 4.4 repository, not by hand.
+- `Fix44/FixValidators.Fields.cs`: the check of every field against its type and its code set.
 
-The definitions cover 912 fields, 247 code sets, 15 components and 92 group
-definitions; 91 groups are reachable from the 93 standard messages.
+A group is named as QuickFIX names it: the class `<Counter>Group`, nested in whatever carries it —
+a message, a component's interface or another group's entry — and its entries are the list
+`<Counter>Groups` beside the counter: `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`.
 `FieldCases.json` holds field IDs and code-value regression cases;
 `Fixtures.json` holds message test inputs. Maintain both alongside the definitions.
 DotGram compiles `.gram` files during builds.

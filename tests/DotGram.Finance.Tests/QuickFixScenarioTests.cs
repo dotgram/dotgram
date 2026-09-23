@@ -30,8 +30,8 @@ namespace DotGram.Finance.Tests;
 /// conversation are not asked about, and an <c>E</c> that is not a Reject means only that the
 /// message has nothing wrong with it. A wire an <c>I</c> line gives has no BodyLength and no
 /// CheckSum, because the harness that runs these frames them, so they are framed here. The
-/// schema is QuickFIX/n's own FIX44.xml, loaded over this package's, since the expectations were
-/// written against it.
+/// schema is QuickFIX/n's own FIX44.xml, loaded over this package's with the errata that puts the
+/// places it departs from FIX 4.4 back, since the expectations were written against it.
 /// </para>
 /// </remarks>
 public sealed class QuickFixScenarioTests
@@ -39,7 +39,9 @@ public sealed class QuickFixScenarioTests
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix", "quickfixn");
 
 	static readonly Lazy<FixContext> Schema = new(() =>
-		FixContext.Default.Load(File.ReadAllText(Path.Combine(Corpus, "..", "FIX44.xml"))));
+		FixContext.Default.Load([
+			File.ReadAllText(Path.Combine(Corpus, "..", "FIX44.xml")),
+			File.ReadAllText(Path.Combine(Corpus, "..", "quickfixn-fix44-errata.xml"))]));
 
 	/// <summary>Every exchange of every scenario: the file, the message sent, and the answer expected.</summary>
 	public static TheoryData<string, int, string, string> Exchanges()
