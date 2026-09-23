@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Threading.Tasks;
 
 using DotGram.ExpressionLanguage;
 
@@ -58,6 +60,7 @@ partial class FixValidators
 		var loaded = Clone();
 
 		loaded._emitted = emitted;
+		loaded._written = [];
 
 		loaded.Unplaced = [.. Unplaced];
 
@@ -108,13 +111,42 @@ partial class FixValidators
 				Replace(loaded, Slot(name), text);
 		}
 
+		Compiled(loaded);
+
 		loaded._emitted = null;
+		loaded._written = null;
 
 		return loaded;
 	}
 
 	// Where each text written from the file goes before it is compiled, for the length of one load.
 	Action<string, string>? _emitted;
+
+	// The texts written from the file, in the order the file said them, until they are compiled.
+	List<(PropertyInfo Slot, string Text)>? _written;
+
+	// The texts are written one after another, since writing one reads what the others left
+	// (Unplaced) and the file's order is the order they are handed out; compiling them is the
+	// whole of the load's time, and each is a lambda of its own, so they are compiled on every
+	// processor there is and set into their slots in the order they were written. The parser's
+	// state is a value of each call and its caches are concurrent, which is what makes that sound.
+	static void Compiled(FixValidators loaded)
+	{
+		var written  = loaded._written!;
+		var compiled = new Delegate[written.Count];
+
+		try
+		{
+			Parallel.For(0, written.Count, at => compiled[at] = Compile(written[at].Slot.PropertyType, written[at].Text));
+		}
+		catch (AggregateException e) when (e.InnerExceptions.Count > 0)
+		{
+			ExceptionDispatchInfo.Capture(e.InnerExceptions[0]).Throw();
+		}
+
+		for (var at = 0; at < written.Count; at++)
+			written[at].Slot.SetValue(loaded, compiled[at]);
+	}
 
 	static PropertyInfo Slot(string name)
 	{
@@ -132,7 +164,7 @@ partial class FixValidators
 	static void Replace(FixValidators into, PropertyInfo slot, string text)
 	{
 		into._emitted?.Invoke(slot.Name, text);
-		slot.SetValue(into, Compile(slot.PropertyType, text));
+		into._written!.Add((slot, text));
 	}
 
 	static Delegate Compile(Type delegateType, string text)
