@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace DotGram.Finance.Fix;
 
@@ -15349,8 +15348,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -15360,9 +15358,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 12 && value != 13 && value != 2 && value != 3 && value != 4 && value != 5 &&
-			value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or
+			8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -15436,8 +15433,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -15463,8 +15459,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -15474,9 +15469,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 13 && value != 14 && value != 15 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7 && value != 8 && value != 9 && value != 99)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
+			7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -15985,8 +15979,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16012,7 +16005,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16094,7 +16087,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16128,7 +16121,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16146,7 +16139,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16180,7 +16173,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16238,7 +16231,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16625,7 +16618,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16911,9 +16904,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 12 && value != 13 && value != 14 && value != 15 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or
+			6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16923,7 +16915,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16941,8 +16933,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7 && value != 8 && value != 9 && value != 99)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16952,7 +16943,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -16970,7 +16961,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17100,7 +17091,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17118,7 +17109,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 5 && value != 6)
+		else if (field.Value is not (1 or 2 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17144,10 +17135,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 12 && value != 13 &&
-			value != 14 && value != 15 && value != 16 && value != 17 && value != 18 && value != 19 &&
-			value != 2 && value != 20 && value != 21 && value != 22 && value != 23 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or
+			20 or 21 or 22 or 23 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17213,7 +17202,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17247,7 +17236,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17257,7 +17246,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17267,8 +17256,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17526,10 +17514,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 12 && value != 13 && value != 14 && value != 15 && value != 16 && value != 17 &&
-			value != 2 && value != 3 && value != 4 && value != 5 && value != 6 && value != 7 &&
-			value != 8 && value != 9 && value != 99)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 2 or
+			3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17571,9 +17557,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 2 &&
-			value != 3 && value != 4 && value != 5 && value != 6 && value != 7 && value != 8 &&
-			value != 9 && value != 99)
+		else if (field.Value is not (0 or 1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17591,8 +17575,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17706,7 +17689,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17748,7 +17731,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17766,7 +17749,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17832,7 +17815,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17874,7 +17857,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17892,7 +17875,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17951,9 +17934,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 2 &&
-			value != 3 && value != 4 && value != 5 && value != 6 && value != 7 && value != 8 &&
-			value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -17987,7 +17968,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18005,8 +17986,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18016,7 +17996,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18026,8 +18006,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18166,13 +18145,9 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 16 && value != 17 && value != 18 &&
-			value != 19 && value != 2 && value != 20 && value != 21 && value != 22 && value != 24 &&
-			value != 25 && value != 26 && value != 27 && value != 28 && value != 29 && value != 3 &&
-			value != 30 && value != 31 && value != 32 && value != 33 && value != 34 && value != 35 &&
-			value != 36 && value != 37 && value != 38 && value != 4 && value != 5 && value != 6 &&
-			value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
+			2 or 20 or 21 or 22 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 30 or 31 or 32 or 33 or
+			34 or 35 or 36 or 37 or 38 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18238,9 +18213,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 2 && value != 3 && value != 4 && value != 5 && value != 6 &&
-			value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or
+			9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18370,9 +18344,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 2 && value != 3 && value != 4 && value != 5 && value != 6 && value != 7 &&
-			value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18494,9 +18466,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
+			7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18522,12 +18493,9 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 12 && value != 13 && value != 14 && value != 15 && value != 16 && value != 17 &&
-			value != 18 && value != 19 && value != 2 && value != 20 && value != 21 && value != 22 &&
-			value != 23 && value != 24 && value != 25 && value != 26 && value != 27 && value != 28 &&
-			value != 29 && value != 3 && value != 4 && value != 5 && value != 6 && value != 7 &&
-			value != 8 && value != 9)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or
+			19 or 2 or 20 or 21 or 22 or 23 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 4 or 5 or 6 or
+			7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18625,10 +18593,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 16 && value != 17 && value != 18 &&
-			value != 2 && value != 3 && value != 4 && value != 5 && value != 6 && value != 7 &&
-			value != 8 && value != 9 && value != 99)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 2 or
+			3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18726,9 +18692,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
+			7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18754,9 +18719,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 2 && value != 3 && value != 4 && value != 5 && value != 6 &&
-			value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or
+			9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18883,7 +18847,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18986,7 +18950,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -18996,7 +18960,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19014,7 +18978,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19072,8 +19036,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19083,8 +19046,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19110,7 +19072,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19144,7 +19106,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 99)
+		else if (field.Value is not (1 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19162,8 +19124,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19230,9 +19191,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 11 &&
-			value != 12 && value != 13 && value != 2 && value != 3 && value != 4 && value != 5 &&
-			value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or
+			8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19266,8 +19226,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 6 && value != 7 && value != 8)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 6 or 7 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19277,7 +19236,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19303,8 +19262,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6 && value != 7 && value != 8)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19634,8 +19592,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 5 && value != 7 &&
-			value != 8)
+		else if (field.Value is not (1 or 2 or 5 or 7 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19734,7 +19691,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19888,9 +19845,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9 &&
-			value != 99)
+		else if (field.Value is not (1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19908,8 +19863,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 99)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19951,8 +19905,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19962,7 +19915,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -19980,7 +19933,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20150,7 +20103,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 4 && value != 5)
+		else if (field.Value is not (1 or 2 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20168,8 +20121,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20187,8 +20139,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20287,7 +20238,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20313,8 +20264,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20340,7 +20290,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20390,7 +20340,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20424,8 +20374,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20435,7 +20384,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 99)
+		else if (field.Value is not (0 or 1 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20445,7 +20394,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20455,7 +20404,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20481,8 +20430,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20492,7 +20440,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20510,7 +20458,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20656,8 +20604,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 8 && value != 9 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20667,7 +20614,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20677,8 +20624,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20688,7 +20634,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20834,8 +20780,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20861,7 +20806,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20871,7 +20816,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 99)
+		else if (field.Value is not (1 or 2 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20881,7 +20826,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20923,8 +20868,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -20990,7 +20934,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21024,7 +20968,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21042,7 +20986,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 3 && value != 4 && value != 5 && value != 8)
+		else if (field.Value is not (3 or 4 or 5 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21060,7 +21004,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 99)
+		else if (field.Value is not (1 or 2 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21078,8 +21022,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 6 && value != 7 && value != 8)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 6 or 7 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21121,11 +21064,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 16 && value != 17 && value != 18 &&
-			value != 19 && value != 2 && value != 20 && value != 21 && value != 22 && value != 23 &&
-			value != 24 && value != 25 && value != 26 && value != 3 && value != 4 && value != 5 &&
-			value != 6 && value != 7 && value != 8 && value != 9)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
+			2 or 20 or 21 or 22 or 23 or 24 or 25 or 26 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21167,8 +21107,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21210,7 +21149,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21220,7 +21159,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21254,7 +21193,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21312,7 +21251,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21322,7 +21261,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21332,9 +21271,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 10 && value != 2 &&
-			value != 3 && value != 4 && value != 5 && value != 6 && value != 7 && value != 8 &&
-			value != 9)
+		else if (field.Value is not (0 or 1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21384,7 +21321,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21394,7 +21331,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21404,7 +21341,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21414,7 +21351,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21432,7 +21369,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21442,7 +21379,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21452,7 +21389,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21462,7 +21399,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21472,7 +21409,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21490,7 +21427,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21500,7 +21437,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21534,7 +21471,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21552,8 +21489,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21563,7 +21499,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21581,8 +21517,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21592,7 +21527,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21658,8 +21593,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 99)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21709,11 +21643,8 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 10 && value != 11 && value != 12 &&
-			value != 13 && value != 14 && value != 15 && value != 16 && value != 17 && value != 18 &&
-			value != 19 && value != 2 && value != 20 && value != 21 && value != 22 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9 &&
-			value != 99)
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
+			2 or 20 or 21 or 22 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21747,7 +21678,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 99)
+		else if (field.Value is not (1 or 2 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21877,7 +21808,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21911,8 +21842,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21922,8 +21852,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -21981,8 +21910,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22000,7 +21928,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22010,8 +21938,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22045,8 +21972,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22120,7 +22046,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (0 or 1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22162,7 +22088,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22180,8 +22106,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4 &&
-			value != 5 && value != 6)
+		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22199,7 +22124,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3 && value != 4)
+		else if (field.Value is not (1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22257,7 +22182,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 4 && value != 8)
+		else if (field.Value is not (1 or 2 or 4 or 8))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22275,7 +22200,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2)
+		else if (field.Value is not (1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22293,7 +22218,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1)
+		else if (field.Value is not (0 or 1))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22303,7 +22228,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 1 && value != 2 && value != 3)
+		else if (field.Value is not (1 or 2 or 3))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22337,7 +22262,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2)
+		else if (field.Value is not (0 or 1 or 2))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22347,8 +22272,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22358,9 +22282,7 @@ partial class FixValidators
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is var value && value != 0 && value != 1 && value != 2 && value != 3 &&
-			value != 4 && value != 5 && value != 6 && value != 7 && value != 8 && value != 9 &&
-			value != 99)
+		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -22476,7 +22398,7 @@ partial class FixValidators
 	/// A counter absent while entries are present is a finding of the reading, made where the first
 	/// entry was built, so there is nothing left to say about it here.
 	/// </remarks>
-	internal static void Counted<T>(FixMessage message, FixField.Typed<BigInteger>? counter, List<T>? entries)
+	internal static void Counted<T>(FixMessage message, FixField.Typed<long>? counter, List<T>? entries)
 	{
 		if (counter is null)
 			return;

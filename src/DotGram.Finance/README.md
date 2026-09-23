@@ -348,7 +348,7 @@ Console.WriteLine(quantity.Value);           // decimal
 
 | FIX primitive | ADT value |
 | --- | --- |
-| int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | BigInteger |
+| int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | long |
 | float, Qty, Price, PriceOffset, Amt, Percentage | decimal |
 | char, Boolean | char, bool |
 | String, Currency, Country, Exchange | string |
@@ -360,8 +360,9 @@ Console.WriteLine(quantity.Value);           // decimal
 A code set is held against the schema by `Validate`, not while the field is read; the
 underlying primitive remains the value type. Dates retain year zero and leap-second notation.
 The character numeric hooks use invariant .NET parsing; byte decimal hooks use
-UTF-8 decimal parsing with the same FIX syntax checks. Integer values retain
-arbitrary precision. Decimal values must fit `System.Decimal` exactly: overflow
+UTF-8 decimal parsing with the same FIX syntax checks. Integer values must fit a
+`long`; a value that does not sets `IsValid` to false. Decimal values must fit
+`System.Decimal` exactly: overflow
 and loss of fractional precision set `IsValid` to false rather than rounding.
 Trailing fractional zeros do not cause a loss of precision.
 

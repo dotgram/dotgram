@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Buffers.Text;
 using System.Globalization;
-using System.Numerics;
 using System.Text;
 
 using DotGram.Finance.Fix;
@@ -29,13 +28,12 @@ public sealed class FixConvertFastPathTests
 	[InlineData("1000000000000000000")]
 	[InlineData("9223372036854775807")]
 	[InlineData("-9223372036854775808")]
-	[InlineData("9223372036854775808")]
-	[InlineData("123456789012345678901234567890")]
 	[InlineData("00000000000000000001")]
 	[InlineData("0000000000000000000")]
-	public void An_integer_is_the_value_BigInteger_reads(string text)
+	[InlineData("-000000009223372036854775808")]
+	public void An_integer_is_the_value_long_reads(string text)
 	{
-		var expected = BigInteger.Parse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+		var expected = long.Parse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
 
 		Assert.True(FixConvert.Integer(text.AsSpan(), out var characters));
 		Assert.True(FixConvert.Integer(Encoding.ASCII.GetBytes(text), out var bytes));
@@ -54,7 +52,10 @@ public sealed class FixConvertFastPathTests
 	[InlineData("--1")]
 	[InlineData("12345678901234567x")]
 	[InlineData("1234567890123456789x")]
-	public void An_integer_refuses_what_is_not_digits(string text)
+	[InlineData("9223372036854775808")]
+	[InlineData("-9223372036854775809")]
+	[InlineData("123456789012345678901234567890")]
+	public void An_integer_refuses_what_is_not_digits_or_does_not_fit_a_long(string text)
 	{
 		Assert.False(FixConvert.Integer(text.AsSpan(), out _));
 		Assert.False(FixConvert.Integer(Encoding.ASCII.GetBytes(text), out _));

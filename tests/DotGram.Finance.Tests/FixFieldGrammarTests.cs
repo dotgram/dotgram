@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 
 using DotGram.Finance.Fix;
 
@@ -42,7 +41,7 @@ public sealed class FixFieldGrammarTests
 			var time = Assert.IsType<FixField.TransactTime>(Field(order, 60)).Value;
 			Assert.Equal(2026, time.Date.Year);
 			Assert.Equal(12, time.Time.Hour);
-			Assert.Equal(BigInteger.One, Assert.IsType<FixField.MsgSeqNum>(Field(order, 34)).Value);
+			Assert.Equal(1L, Assert.IsType<FixField.MsgSeqNum>(Field(order, 34)).Value);
 		}
 		Assert.True(FixConvert.Boolean("Y".AsSpan(), out var flag));
 		Assert.True(flag);

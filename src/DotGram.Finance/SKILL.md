@@ -88,7 +88,7 @@ foreach (var field in FixParser.ParseFields(wire))
 ```
 
 - Each of the 912 standard tags has its own case, `FixField.<Name>`, with a typed
-  `Value`: text as `string`, numbers as `decimal` or `BigInteger`, dates and times as
+  `Value`: text as `string`, numbers as `decimal` or `long`, dates and times as
   `FixDate`, `FixTime`, `FixTimestamp` and `FixMonthYear`. `field.FieldType` gives the
   tag as a `FixFieldType`, for code that should not spell numbers.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
@@ -137,7 +137,7 @@ switch (message)
   exists.
 - A message's properties are named after its fields and are the typed fields themselves:
   `FixField.Symbol?`, `FixField.OrderQty?`, null when the field is absent. `Value` on one is
-  the CLR value — a `string`, a `decimal`, a `BigInteger` — and `IsValid` says whether the
+  the CLR value — a `string`, a `decimal`, a `long` — and `IsValid` says whether the
   characters fitted it. A repeating group is a `List<T>?` of entries, one class per group,
   and an entry reads the same way.
 - The standard header and trailer are properties of every message, and `Fields` is the whole

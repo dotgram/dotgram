@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Numerics;
 
 namespace DotGram.Finance.Fix;
 
@@ -144,7 +143,7 @@ public static partial class FixParser
 	// is not kept, and a FIX Length is plain digits, so the two agree wherever the input is valid.
 	static FixField LengthField(int tag, int count, FixCustomFields? custom)
 	{
-		(bool, BigInteger) value = (true, count);
+		(bool, long) value = (true, count);
 
 		return tag switch
 		{

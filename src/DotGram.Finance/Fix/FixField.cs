@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
@@ -338,8 +337,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BeginSeqNo, FIX tag 7, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BeginSeqNo((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(7, value);
+	public sealed class BeginSeqNo((bool Valid, long Value) value)
+		: Typed<long>(7, value);
 
 	/// <summary>
 	/// Represents BeginString, FIX tag 8, with wire type <c>String</c>.
@@ -356,8 +355,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BodyLength((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(9, value);
+	public sealed class BodyLength((bool Valid, long Value) value)
+		: Typed<long>(9, value);
 
 	/// <summary>
 	/// Represents CheckSum, FIX tag 10, with wire type <c>String</c>.
@@ -405,8 +404,8 @@ public abstract class FixField : IFixLocation
 	/// Represents EndSeqNo, FIX tag 16, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EndSeqNo((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(16, value);
+	public sealed class EndSeqNo((bool Valid, long Value) value)
+		: Typed<long>(16, value);
 
 	/// <summary>
 	/// Represents ExecID, FIX tag 17, with wire type <c>String</c>.
@@ -510,15 +509,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoLinesOfText, FIX tag 33, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLinesOfText((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(33, value);
+	public sealed class NoLinesOfText((bool Valid, long Value) value)
+		: Typed<long>(33, value);
 
 	/// <summary>
 	/// Represents MsgSeqNum, FIX tag 34, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MsgSeqNum((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(34, value);
+	public sealed class MsgSeqNum((bool Valid, long Value) value)
+		: Typed<long>(34, value);
 
 	/// <summary>
 	/// Represents MsgType, FIX tag 35, with wire type <c>String</c>.
@@ -531,8 +530,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NewSeqNo, FIX tag 36, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NewSeqNo((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(36, value);
+	public sealed class NewSeqNo((bool Valid, long Value) value)
+		: Typed<long>(36, value);
 
 	/// <summary>
 	/// Represents OrderID, FIX tag 37, with wire type <c>String</c>.
@@ -594,8 +593,8 @@ public abstract class FixField : IFixLocation
 	/// Represents RefSeqNum, FIX tag 45, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RefSeqNum((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(45, value);
+	public sealed class RefSeqNum((bool Valid, long Value) value)
+		: Typed<long>(45, value);
 
 	/// <summary>
 	/// Represents SecurityID, FIX tag 48, with wire type <c>String</c>.
@@ -727,15 +726,15 @@ public abstract class FixField : IFixLocation
 	/// Represents ListSeqNo, FIX tag 67, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ListSeqNo((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(67, value);
+	public sealed class ListSeqNo((bool Valid, long Value) value)
+		: Typed<long>(67, value);
 
 	/// <summary>
 	/// Represents TotNoOrders, FIX tag 68, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoOrders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(68, value);
+	public sealed class TotNoOrders((bool Valid, long Value) value)
+		: Typed<long>(68, value);
 
 	/// <summary>
 	/// Represents ListExecInst, FIX tag 69, with wire type <c>String</c>.
@@ -769,15 +768,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoOrders, FIX tag 73, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoOrders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(73, value);
+	public sealed class NoOrders((bool Valid, long Value) value)
+		: Typed<long>(73, value);
 
 	/// <summary>
 	/// Represents AvgPxPrecision, FIX tag 74, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AvgPxPrecision((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(74, value);
+	public sealed class AvgPxPrecision((bool Valid, long Value) value)
+		: Typed<long>(74, value);
 
 	/// <summary>
 	/// Represents TradeDate, FIX tag 75, with wire type <c>LocalMktDate</c>.
@@ -797,8 +796,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoAllocs, FIX tag 78, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoAllocs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(78, value);
+	public sealed class NoAllocs((bool Valid, long Value) value)
+		: Typed<long>(78, value);
 
 	/// <summary>
 	/// Represents AllocAccount, FIX tag 79, with wire type <c>String</c>.
@@ -825,15 +824,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoRpts, FIX tag 82, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoRpts((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(82, value);
+	public sealed class NoRpts((bool Valid, long Value) value)
+		: Typed<long>(82, value);
 
 	/// <summary>
 	/// Represents RptSeq, FIX tag 83, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RptSeq((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(83, value);
+	public sealed class RptSeq((bool Valid, long Value) value)
+		: Typed<long>(83, value);
 
 	/// <summary>
 	/// Represents CxlQty, FIX tag 84, with wire type <c>Qty</c>.
@@ -846,22 +845,22 @@ public abstract class FixField : IFixLocation
 	/// Represents NoDlvyInst, FIX tag 85, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoDlvyInst((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(85, value);
+	public sealed class NoDlvyInst((bool Valid, long Value) value)
+		: Typed<long>(85, value);
 
 	/// <summary>
 	/// Represents AllocStatus, FIX tag 87, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(87, value);
+	public sealed class AllocStatus((bool Valid, long Value) value)
+		: Typed<long>(87, value);
 
 	/// <summary>
 	/// Represents AllocRejCode, FIX tag 88, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocRejCode((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(88, value);
+	public sealed class AllocRejCode((bool Valid, long Value) value)
+		: Typed<long>(88, value);
 
 	/// <summary>
 	/// Represents Signature, FIX tag 89, with wire type <c>data</c>.
@@ -882,8 +881,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecureDataLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(90, value);
+	public sealed class SecureDataLen((bool Valid, long Value) value)
+		: Typed<long>(90, value);
 
 	/// <summary>
 	/// Represents SecureData, FIX tag 91, with wire type <c>data</c>.
@@ -904,8 +903,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SignatureLength((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(93, value);
+	public sealed class SignatureLength((bool Valid, long Value) value)
+		: Typed<long>(93, value);
 
 	/// <summary>
 	/// Represents EmailType, FIX tag 94, with wire type <c>char</c>.
@@ -922,8 +921,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RawDataLength((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(95, value);
+	public sealed class RawDataLength((bool Valid, long Value) value)
+		: Typed<long>(95, value);
 
 	/// <summary>
 	/// Represents RawData, FIX tag 96, with wire type <c>data</c>.
@@ -947,8 +946,8 @@ public abstract class FixField : IFixLocation
 	/// Represents EncryptMethod, FIX tag 98, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncryptMethod((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(98, value);
+	public sealed class EncryptMethod((bool Valid, long Value) value)
+		: Typed<long>(98, value);
 
 	/// <summary>
 	/// Represents StopPx, FIX tag 99, with wire type <c>Price</c>.
@@ -968,15 +967,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CxlRejReason, FIX tag 102, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CxlRejReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(102, value);
+	public sealed class CxlRejReason((bool Valid, long Value) value)
+		: Typed<long>(102, value);
 
 	/// <summary>
 	/// Represents OrdRejReason, FIX tag 103, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OrdRejReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(103, value);
+	public sealed class OrdRejReason((bool Valid, long Value) value)
+		: Typed<long>(103, value);
 
 	/// <summary>
 	/// Represents IOIQualifier, FIX tag 104, with wire type <c>char</c>.
@@ -1003,8 +1002,8 @@ public abstract class FixField : IFixLocation
 	/// Represents HeartBtInt, FIX tag 108, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class HeartBtInt((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(108, value);
+	public sealed class HeartBtInt((bool Valid, long Value) value)
+		: Typed<long>(108, value);
 
 	/// <summary>
 	/// Represents MinQty, FIX tag 110, with wire type <c>Qty</c>.
@@ -1108,8 +1107,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoExecs, FIX tag 124, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoExecs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(124, value);
+	public sealed class NoExecs((bool Valid, long Value) value)
+		: Typed<long>(124, value);
 
 	/// <summary>
 	/// Represents ExpireTime, FIX tag 126, with wire type <c>UTCTimestamp</c>.
@@ -1185,8 +1184,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoMiscFees, FIX tag 136, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoMiscFees((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(136, value);
+	public sealed class NoMiscFees((bool Valid, long Value) value)
+		: Typed<long>(136, value);
 
 	/// <summary>
 	/// Represents MiscFeeAmt, FIX tag 137, with wire type <c>Amt</c>.
@@ -1262,8 +1261,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoRelatedSym, FIX tag 146, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoRelatedSym((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(146, value);
+	public sealed class NoRelatedSym((bool Valid, long Value) value)
+		: Typed<long>(146, value);
 
 	/// <summary>
 	/// Represents Subject, FIX tag 147, with wire type <c>String</c>.
@@ -1339,8 +1338,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NumDaysInterest, FIX tag 157, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NumDaysInterest((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(157, value);
+	public sealed class NumDaysInterest((bool Valid, long Value) value)
+		: Typed<long>(157, value);
 
 	/// <summary>
 	/// Represents AccruedInterestRate, FIX tag 158, with wire type <c>Percentage</c>.
@@ -1416,8 +1415,8 @@ public abstract class FixField : IFixLocation
 	/// Represents StandInstDbType, FIX tag 169, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StandInstDbType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(169, value);
+	public sealed class StandInstDbType((bool Valid, long Value) value)
+		: Typed<long>(169, value);
 
 	/// <summary>
 	/// Represents StandInstDbName, FIX tag 170, with wire type <c>String</c>.
@@ -1437,8 +1436,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlDeliveryType, FIX tag 172, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlDeliveryType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(172, value);
+	public sealed class SettlDeliveryType((bool Valid, long Value) value)
+		: Typed<long>(172, value);
 
 	/// <summary>
 	/// Represents BidSpotRate, FIX tag 188, with wire type <c>Price</c>.
@@ -1507,8 +1506,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocLinkType, FIX tag 197, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocLinkType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(197, value);
+	public sealed class AllocLinkType((bool Valid, long Value) value)
+		: Typed<long>(197, value);
 
 	/// <summary>
 	/// Represents SecondaryOrderID, FIX tag 198, with wire type <c>String</c>.
@@ -1521,8 +1520,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoIOIQualifiers, FIX tag 199, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoIOIQualifiers((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(199, value);
+	public sealed class NoIOIQualifiers((bool Valid, long Value) value)
+		: Typed<long>(199, value);
 
 	/// <summary>
 	/// Represents MaturityMonthYear, FIX tag 200, with wire type <c>MonthYear</c>.
@@ -1535,8 +1534,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PutOrCall, FIX tag 201, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PutOrCall((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(201, value);
+	public sealed class PutOrCall((bool Valid, long Value) value)
+		: Typed<long>(201, value);
 
 	/// <summary>
 	/// Represents StrikePrice, FIX tag 202, with wire type <c>Price</c>.
@@ -1549,8 +1548,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CoveredOrUncovered, FIX tag 203, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CoveredOrUncovered((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(203, value);
+	public sealed class CoveredOrUncovered((bool Valid, long Value) value)
+		: Typed<long>(203, value);
 
 	/// <summary>
 	/// Represents OptAttribute, FIX tag 206, with wire type <c>char</c>.
@@ -1577,8 +1576,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocHandlInst, FIX tag 209, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocHandlInst((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(209, value);
+	public sealed class AllocHandlInst((bool Valid, long Value) value)
+		: Typed<long>(209, value);
 
 	/// <summary>
 	/// Represents MaxShow, FIX tag 210, with wire type <c>Qty</c>.
@@ -1602,8 +1601,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class XmlDataLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(212, value);
+	public sealed class XmlDataLen((bool Valid, long Value) value)
+		: Typed<long>(212, value);
 
 	/// <summary>
 	/// Represents XmlData, FIX tag 213, with wire type <c>data</c>.
@@ -1627,15 +1626,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoRoutingIDs, FIX tag 215, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoRoutingIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(215, value);
+	public sealed class NoRoutingIDs((bool Valid, long Value) value)
+		: Typed<long>(215, value);
 
 	/// <summary>
 	/// Represents RoutingType, FIX tag 216, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RoutingType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(216, value);
+	public sealed class RoutingType((bool Valid, long Value) value)
+		: Typed<long>(216, value);
 
 	/// <summary>
 	/// Represents RoutingID, FIX tag 217, with wire type <c>String</c>.
@@ -1697,8 +1696,8 @@ public abstract class FixField : IFixLocation
 	/// Represents RepurchaseTerm, FIX tag 226, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RepurchaseTerm((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(226, value);
+	public sealed class RepurchaseTerm((bool Valid, long Value) value)
+		: Typed<long>(226, value);
 
 	/// <summary>
 	/// Represents RepurchaseRate, FIX tag 227, with wire type <c>Percentage</c>.
@@ -1739,8 +1738,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoStipulations, FIX tag 232, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoStipulations((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(232, value);
+	public sealed class NoStipulations((bool Valid, long Value) value)
+		: Typed<long>(232, value);
 
 	/// <summary>
 	/// Represents StipulationType, FIX tag 233, with wire type <c>String</c>.
@@ -1823,8 +1822,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingRepurchaseTerm, FIX tag 244, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingRepurchaseTerm((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(244, value);
+	public sealed class UnderlyingRepurchaseTerm((bool Valid, long Value) value)
+		: Typed<long>(244, value);
 
 	/// <summary>
 	/// Represents UnderlyingRepurchaseRate, FIX tag 245, with wire type <c>Percentage</c>.
@@ -1872,8 +1871,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegRepurchaseTerm, FIX tag 251, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegRepurchaseTerm((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(251, value);
+	public sealed class LegRepurchaseTerm((bool Valid, long Value) value)
+		: Typed<long>(251, value);
 
 	/// <summary>
 	/// Represents LegRepurchaseRate, FIX tag 252, with wire type <c>Percentage</c>.
@@ -1956,15 +1955,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MarketDepth, FIX tag 264, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MarketDepth((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(264, value);
+	public sealed class MarketDepth((bool Valid, long Value) value)
+		: Typed<long>(264, value);
 
 	/// <summary>
 	/// Represents MDUpdateType, FIX tag 265, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDUpdateType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(265, value);
+	public sealed class MDUpdateType((bool Valid, long Value) value)
+		: Typed<long>(265, value);
 
 	/// <summary>
 	/// Represents AggregatedBook, FIX tag 266, with wire type <c>Boolean</c>.
@@ -1977,15 +1976,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoMDEntryTypes, FIX tag 267, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoMDEntryTypes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(267, value);
+	public sealed class NoMDEntryTypes((bool Valid, long Value) value)
+		: Typed<long>(267, value);
 
 	/// <summary>
 	/// Represents NoMDEntries, FIX tag 268, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoMDEntries((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(268, value);
+	public sealed class NoMDEntries((bool Valid, long Value) value)
+		: Typed<long>(268, value);
 
 	/// <summary>
 	/// Represents MDEntryType, FIX tag 269, with wire type <c>char</c>.
@@ -2117,8 +2116,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SellerDays, FIX tag 287, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SellerDays((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(287, value);
+	public sealed class SellerDays((bool Valid, long Value) value)
+		: Typed<long>(287, value);
 
 	/// <summary>
 	/// Represents MDEntryBuyer, FIX tag 288, with wire type <c>String</c>.
@@ -2138,8 +2137,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MDEntryPositionNo, FIX tag 290, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MDEntryPositionNo((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(290, value);
+	public sealed class MDEntryPositionNo((bool Valid, long Value) value)
+		: Typed<long>(290, value);
 
 	/// <summary>
 	/// Represents FinancialStatus, FIX tag 291, with wire type <c>MultipleValueString</c>.
@@ -2173,29 +2172,29 @@ public abstract class FixField : IFixLocation
 	/// Represents NoQuoteEntries, FIX tag 295, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoQuoteEntries((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(295, value);
+	public sealed class NoQuoteEntries((bool Valid, long Value) value)
+		: Typed<long>(295, value);
 
 	/// <summary>
 	/// Represents NoQuoteSets, FIX tag 296, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoQuoteSets((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(296, value);
+	public sealed class NoQuoteSets((bool Valid, long Value) value)
+		: Typed<long>(296, value);
 
 	/// <summary>
 	/// Represents QuoteStatus, FIX tag 297, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(297, value);
+	public sealed class QuoteStatus((bool Valid, long Value) value)
+		: Typed<long>(297, value);
 
 	/// <summary>
 	/// Represents QuoteCancelType, FIX tag 298, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteCancelType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(298, value);
+	public sealed class QuoteCancelType((bool Valid, long Value) value)
+		: Typed<long>(298, value);
 
 	/// <summary>
 	/// Represents QuoteEntryID, FIX tag 299, with wire type <c>String</c>.
@@ -2208,15 +2207,15 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteRejectReason, FIX tag 300, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(300, value);
+	public sealed class QuoteRejectReason((bool Valid, long Value) value)
+		: Typed<long>(300, value);
 
 	/// <summary>
 	/// Represents QuoteResponseLevel, FIX tag 301, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteResponseLevel((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(301, value);
+	public sealed class QuoteResponseLevel((bool Valid, long Value) value)
+		: Typed<long>(301, value);
 
 	/// <summary>
 	/// Represents QuoteSetID, FIX tag 302, with wire type <c>String</c>.
@@ -2229,15 +2228,15 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteRequestType, FIX tag 303, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(303, value);
+	public sealed class QuoteRequestType((bool Valid, long Value) value)
+		: Typed<long>(303, value);
 
 	/// <summary>
 	/// Represents TotNoQuoteEntries, FIX tag 304, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoQuoteEntries((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(304, value);
+	public sealed class TotNoQuoteEntries((bool Valid, long Value) value)
+		: Typed<long>(304, value);
 
 	/// <summary>
 	/// Represents UnderlyingSecurityIDSource, FIX tag 305, with wire type <c>String</c>.
@@ -2306,8 +2305,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingPutOrCall, FIX tag 315, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingPutOrCall((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(315, value);
+	public sealed class UnderlyingPutOrCall((bool Valid, long Value) value)
+		: Typed<long>(315, value);
 
 	/// <summary>
 	/// Represents UnderlyingStrikePrice, FIX tag 316, with wire type <c>Price</c>.
@@ -2341,8 +2340,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SecurityRequestType, FIX tag 321, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecurityRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(321, value);
+	public sealed class SecurityRequestType((bool Valid, long Value) value)
+		: Typed<long>(321, value);
 
 	/// <summary>
 	/// Represents SecurityResponseID, FIX tag 322, with wire type <c>String</c>.
@@ -2355,8 +2354,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SecurityResponseType, FIX tag 323, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecurityResponseType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(323, value);
+	public sealed class SecurityResponseType((bool Valid, long Value) value)
+		: Typed<long>(323, value);
 
 	/// <summary>
 	/// Represents SecurityStatusReqID, FIX tag 324, with wire type <c>String</c>.
@@ -2376,8 +2375,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SecurityTradingStatus, FIX tag 326, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecurityTradingStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(326, value);
+	public sealed class SecurityTradingStatus((bool Valid, long Value) value)
+		: Typed<long>(326, value);
 
 	/// <summary>
 	/// Represents HaltReason, FIX tag 327, with wire type <c>char</c>.
@@ -2432,8 +2431,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Adjustment, FIX tag 334, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Adjustment((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(334, value);
+	public sealed class Adjustment((bool Valid, long Value) value)
+		: Typed<long>(334, value);
 
 	/// <summary>
 	/// Represents TradSesReqID, FIX tag 335, with wire type <c>String</c>.
@@ -2460,22 +2459,22 @@ public abstract class FixField : IFixLocation
 	/// Represents TradSesMethod, FIX tag 338, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesMethod((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(338, value);
+	public sealed class TradSesMethod((bool Valid, long Value) value)
+		: Typed<long>(338, value);
 
 	/// <summary>
 	/// Represents TradSesMode, FIX tag 339, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesMode((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(339, value);
+	public sealed class TradSesMode((bool Valid, long Value) value)
+		: Typed<long>(339, value);
 
 	/// <summary>
 	/// Represents TradSesStatus, FIX tag 340, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(340, value);
+	public sealed class TradSesStatus((bool Valid, long Value) value)
+		: Typed<long>(340, value);
 
 	/// <summary>
 	/// Represents TradSesStartTime, FIX tag 341, with wire type <c>UTCTimestamp</c>.
@@ -2516,8 +2515,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NumberOfOrders, FIX tag 346, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NumberOfOrders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(346, value);
+	public sealed class NumberOfOrders((bool Valid, long Value) value)
+		: Typed<long>(346, value);
 
 	/// <summary>
 	/// Represents MessageEncoding, FIX tag 347, with wire type <c>String</c>.
@@ -2534,8 +2533,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedIssuerLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(348, value);
+	public sealed class EncodedIssuerLen((bool Valid, long Value) value)
+		: Typed<long>(348, value);
 
 	/// <summary>
 	/// Represents EncodedIssuer, FIX tag 349, with wire type <c>data</c>.
@@ -2556,8 +2555,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedSecurityDescLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(350, value);
+	public sealed class EncodedSecurityDescLen((bool Valid, long Value) value)
+		: Typed<long>(350, value);
 
 	/// <summary>
 	/// Represents EncodedSecurityDesc, FIX tag 351, with wire type <c>data</c>.
@@ -2578,8 +2577,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedListExecInstLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(352, value);
+	public sealed class EncodedListExecInstLen((bool Valid, long Value) value)
+		: Typed<long>(352, value);
 
 	/// <summary>
 	/// Represents EncodedListExecInst, FIX tag 353, with wire type <c>data</c>.
@@ -2600,8 +2599,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedTextLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(354, value);
+	public sealed class EncodedTextLen((bool Valid, long Value) value)
+		: Typed<long>(354, value);
 
 	/// <summary>
 	/// Represents EncodedText, FIX tag 355, with wire type <c>data</c>.
@@ -2622,8 +2621,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedSubjectLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(356, value);
+	public sealed class EncodedSubjectLen((bool Valid, long Value) value)
+		: Typed<long>(356, value);
 
 	/// <summary>
 	/// Represents EncodedSubject, FIX tag 357, with wire type <c>data</c>.
@@ -2644,8 +2643,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedHeadlineLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(358, value);
+	public sealed class EncodedHeadlineLen((bool Valid, long Value) value)
+		: Typed<long>(358, value);
 
 	/// <summary>
 	/// Represents EncodedHeadline, FIX tag 359, with wire type <c>data</c>.
@@ -2666,8 +2665,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedAllocTextLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(360, value);
+	public sealed class EncodedAllocTextLen((bool Valid, long Value) value)
+		: Typed<long>(360, value);
 
 	/// <summary>
 	/// Represents EncodedAllocText, FIX tag 361, with wire type <c>data</c>.
@@ -2688,8 +2687,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedUnderlyingIssuerLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(362, value);
+	public sealed class EncodedUnderlyingIssuerLen((bool Valid, long Value) value)
+		: Typed<long>(362, value);
 
 	/// <summary>
 	/// Represents EncodedUnderlyingIssuer, FIX tag 363, with wire type <c>data</c>.
@@ -2710,8 +2709,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedUnderlyingSecurityDescLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(364, value);
+	public sealed class EncodedUnderlyingSecurityDescLen((bool Valid, long Value) value)
+		: Typed<long>(364, value);
 
 	/// <summary>
 	/// Represents EncodedUnderlyingSecurityDesc, FIX tag 365, with wire type <c>data</c>.
@@ -2742,22 +2741,22 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteEntryRejectReason, FIX tag 368, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteEntryRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(368, value);
+	public sealed class QuoteEntryRejectReason((bool Valid, long Value) value)
+		: Typed<long>(368, value);
 
 	/// <summary>
 	/// Represents LastMsgSeqNumProcessed, FIX tag 369, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastMsgSeqNumProcessed((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(369, value);
+	public sealed class LastMsgSeqNumProcessed((bool Valid, long Value) value)
+		: Typed<long>(369, value);
 
 	/// <summary>
 	/// Represents RefTagID, FIX tag 371, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RefTagID((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(371, value);
+	public sealed class RefTagID((bool Valid, long Value) value)
+		: Typed<long>(371, value);
 
 	/// <summary>
 	/// Represents RefMsgType, FIX tag 372, with wire type <c>String</c>.
@@ -2770,8 +2769,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SessionRejectReason, FIX tag 373, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SessionRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(373, value);
+	public sealed class SessionRejectReason((bool Valid, long Value) value)
+		: Typed<long>(373, value);
 
 	/// <summary>
 	/// Represents BidRequestTransType, FIX tag 374, with wire type <c>char</c>.
@@ -2805,8 +2804,8 @@ public abstract class FixField : IFixLocation
 	/// Represents ExecRestatementReason, FIX tag 378, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExecRestatementReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(378, value);
+	public sealed class ExecRestatementReason((bool Valid, long Value) value)
+		: Typed<long>(378, value);
 
 	/// <summary>
 	/// Represents BusinessRejectRefID, FIX tag 379, with wire type <c>String</c>.
@@ -2819,8 +2818,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BusinessRejectReason, FIX tag 380, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BusinessRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(380, value);
+	public sealed class BusinessRejectReason((bool Valid, long Value) value)
+		: Typed<long>(380, value);
 
 	/// <summary>
 	/// Represents GrossTradeAmt, FIX tag 381, with wire type <c>Amt</c>.
@@ -2833,8 +2832,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoContraBrokers, FIX tag 382, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoContraBrokers((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(382, value);
+	public sealed class NoContraBrokers((bool Valid, long Value) value)
+		: Typed<long>(382, value);
 
 	/// <summary>
 	/// Represents MaxMessageSize, FIX tag 383, with wire type <c>Length</c>.
@@ -2844,15 +2843,15 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MaxMessageSize((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(383, value);
+	public sealed class MaxMessageSize((bool Valid, long Value) value)
+		: Typed<long>(383, value);
 
 	/// <summary>
 	/// Represents NoMsgTypes, FIX tag 384, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoMsgTypes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(384, value);
+	public sealed class NoMsgTypes((bool Valid, long Value) value)
+		: Typed<long>(384, value);
 
 	/// <summary>
 	/// Represents MsgDirection, FIX tag 385, with wire type <c>char</c>.
@@ -2865,8 +2864,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoTradingSessions, FIX tag 386, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoTradingSessions((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(386, value);
+	public sealed class NoTradingSessions((bool Valid, long Value) value)
+		: Typed<long>(386, value);
 
 	/// <summary>
 	/// Represents TotalVolumeTraded, FIX tag 387, with wire type <c>Qty</c>.
@@ -2914,22 +2913,22 @@ public abstract class FixField : IFixLocation
 	/// Represents TotNoRelatedSym, FIX tag 393, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoRelatedSym((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(393, value);
+	public sealed class TotNoRelatedSym((bool Valid, long Value) value)
+		: Typed<long>(393, value);
 
 	/// <summary>
 	/// Represents BidType, FIX tag 394, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(394, value);
+	public sealed class BidType((bool Valid, long Value) value)
+		: Typed<long>(394, value);
 
 	/// <summary>
 	/// Represents NumTickets, FIX tag 395, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NumTickets((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(395, value);
+	public sealed class NumTickets((bool Valid, long Value) value)
+		: Typed<long>(395, value);
 
 	/// <summary>
 	/// Represents SideValue1, FIX tag 396, with wire type <c>Amt</c>.
@@ -2949,15 +2948,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoBidDescriptors, FIX tag 398, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoBidDescriptors((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(398, value);
+	public sealed class NoBidDescriptors((bool Valid, long Value) value)
+		: Typed<long>(398, value);
 
 	/// <summary>
 	/// Represents BidDescriptorType, FIX tag 399, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BidDescriptorType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(399, value);
+	public sealed class BidDescriptorType((bool Valid, long Value) value)
+		: Typed<long>(399, value);
 
 	/// <summary>
 	/// Represents BidDescriptor, FIX tag 400, with wire type <c>String</c>.
@@ -2970,8 +2969,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SideValueInd, FIX tag 401, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SideValueInd((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(401, value);
+	public sealed class SideValueInd((bool Valid, long Value) value)
+		: Typed<long>(401, value);
 
 	/// <summary>
 	/// Represents LiquidityPctLow, FIX tag 402, with wire type <c>Percentage</c>.
@@ -3026,8 +3025,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LiquidityIndType, FIX tag 409, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LiquidityIndType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(409, value);
+	public sealed class LiquidityIndType((bool Valid, long Value) value)
+		: Typed<long>(409, value);
 
 	/// <summary>
 	/// Represents WtAverageLiquidity, FIX tag 410, with wire type <c>Percentage</c>.
@@ -3061,29 +3060,29 @@ public abstract class FixField : IFixLocation
 	/// Represents ProgRptReqs, FIX tag 414, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ProgRptReqs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(414, value);
+	public sealed class ProgRptReqs((bool Valid, long Value) value)
+		: Typed<long>(414, value);
 
 	/// <summary>
 	/// Represents ProgPeriodInterval, FIX tag 415, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ProgPeriodInterval((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(415, value);
+	public sealed class ProgPeriodInterval((bool Valid, long Value) value)
+		: Typed<long>(415, value);
 
 	/// <summary>
 	/// Represents IncTaxInd, FIX tag 416, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class IncTaxInd((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(416, value);
+	public sealed class IncTaxInd((bool Valid, long Value) value)
+		: Typed<long>(416, value);
 
 	/// <summary>
 	/// Represents NumBidders, FIX tag 417, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NumBidders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(417, value);
+	public sealed class NumBidders((bool Valid, long Value) value)
+		: Typed<long>(417, value);
 
 	/// <summary>
 	/// Represents BidTradeType, FIX tag 418, with wire type <c>char</c>.
@@ -3103,8 +3102,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoBidComponents, FIX tag 420, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoBidComponents((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(420, value);
+	public sealed class NoBidComponents((bool Valid, long Value) value)
+		: Typed<long>(420, value);
 
 	/// <summary>
 	/// Represents Country, FIX tag 421, with wire type <c>Country</c>.
@@ -3117,15 +3116,15 @@ public abstract class FixField : IFixLocation
 	/// Represents TotNoStrikes, FIX tag 422, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoStrikes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(422, value);
+	public sealed class TotNoStrikes((bool Valid, long Value) value)
+		: Typed<long>(422, value);
 
 	/// <summary>
 	/// Represents PriceType, FIX tag 423, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(423, value);
+	public sealed class PriceType((bool Valid, long Value) value)
+		: Typed<long>(423, value);
 
 	/// <summary>
 	/// Represents DayOrderQty, FIX tag 424, with wire type <c>Qty</c>.
@@ -3152,36 +3151,36 @@ public abstract class FixField : IFixLocation
 	/// Represents GTBookingInst, FIX tag 427, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class GTBookingInst((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(427, value);
+	public sealed class GTBookingInst((bool Valid, long Value) value)
+		: Typed<long>(427, value);
 
 	/// <summary>
 	/// Represents NoStrikes, FIX tag 428, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoStrikes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(428, value);
+	public sealed class NoStrikes((bool Valid, long Value) value)
+		: Typed<long>(428, value);
 
 	/// <summary>
 	/// Represents ListStatusType, FIX tag 429, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ListStatusType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(429, value);
+	public sealed class ListStatusType((bool Valid, long Value) value)
+		: Typed<long>(429, value);
 
 	/// <summary>
 	/// Represents NetGrossInd, FIX tag 430, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NetGrossInd((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(430, value);
+	public sealed class NetGrossInd((bool Valid, long Value) value)
+		: Typed<long>(430, value);
 
 	/// <summary>
 	/// Represents ListOrderStatus, FIX tag 431, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ListOrderStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(431, value);
+	public sealed class ListOrderStatus((bool Valid, long Value) value)
+		: Typed<long>(431, value);
 
 	/// <summary>
 	/// Represents ExpireDate, FIX tag 432, with wire type <c>LocalMktDate</c>.
@@ -3236,8 +3235,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LiquidityNumSecurities, FIX tag 441, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LiquidityNumSecurities((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(441, value);
+	public sealed class LiquidityNumSecurities((bool Valid, long Value) value)
+		: Typed<long>(441, value);
 
 	/// <summary>
 	/// Represents MultiLegReportingType, FIX tag 442, with wire type <c>char</c>.
@@ -3268,8 +3267,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedListStatusTextLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(445, value);
+	public sealed class EncodedListStatusTextLen((bool Valid, long Value) value)
+		: Typed<long>(445, value);
 
 	/// <summary>
 	/// Represents EncodedListStatusText, FIX tag 446, with wire type <c>data</c>.
@@ -3307,22 +3306,22 @@ public abstract class FixField : IFixLocation
 	/// Represents PartyRole, FIX tag 452, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PartyRole((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(452, value);
+	public sealed class PartyRole((bool Valid, long Value) value)
+		: Typed<long>(452, value);
 
 	/// <summary>
 	/// Represents NoPartyIDs, FIX tag 453, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoPartyIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(453, value);
+	public sealed class NoPartyIDs((bool Valid, long Value) value)
+		: Typed<long>(453, value);
 
 	/// <summary>
 	/// Represents NoSecurityAltID, FIX tag 454, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSecurityAltID((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(454, value);
+	public sealed class NoSecurityAltID((bool Valid, long Value) value)
+		: Typed<long>(454, value);
 
 	/// <summary>
 	/// Represents SecurityAltID, FIX tag 455, with wire type <c>String</c>.
@@ -3342,8 +3341,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoUnderlyingSecurityAltID, FIX tag 457, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoUnderlyingSecurityAltID((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(457, value);
+	public sealed class NoUnderlyingSecurityAltID((bool Valid, long Value) value)
+		: Typed<long>(457, value);
 
 	/// <summary>
 	/// Represents UnderlyingSecurityAltID, FIX tag 458, with wire type <c>String</c>.
@@ -3363,8 +3362,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Product, FIX tag 460, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Product((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(460, value);
+	public sealed class Product((bool Valid, long Value) value)
+		: Typed<long>(460, value);
 
 	/// <summary>
 	/// Represents CFICode, FIX tag 461, with wire type <c>String</c>.
@@ -3377,8 +3376,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingProduct, FIX tag 462, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingProduct((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(462, value);
+	public sealed class UnderlyingProduct((bool Valid, long Value) value)
+		: Typed<long>(462, value);
 
 	/// <summary>
 	/// Represents UnderlyingCFICode, FIX tag 463, with wire type <c>String</c>.
@@ -3447,8 +3446,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoRegistDtls, FIX tag 473, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoRegistDtls((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(473, value);
+	public sealed class NoRegistDtls((bool Valid, long Value) value)
+		: Typed<long>(473, value);
 
 	/// <summary>
 	/// Represents MailingDtls, FIX tag 474, with wire type <c>String</c>.
@@ -3475,8 +3474,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DistribPaymentMethod, FIX tag 477, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DistribPaymentMethod((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(477, value);
+	public sealed class DistribPaymentMethod((bool Valid, long Value) value)
+		: Typed<long>(477, value);
 
 	/// <summary>
 	/// Represents CashDistribCurr, FIX tag 478, with wire type <c>Currency</c>.
@@ -3545,8 +3544,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TradeReportTransType, FIX tag 487, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeReportTransType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(487, value);
+	public sealed class TradeReportTransType((bool Valid, long Value) value)
+		: Typed<long>(487, value);
 
 	/// <summary>
 	/// Represents CardHolderName, FIX tag 488, with wire type <c>String</c>.
@@ -3580,8 +3579,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PaymentMethod, FIX tag 492, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PaymentMethod((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(492, value);
+	public sealed class PaymentMethod((bool Valid, long Value) value)
+		: Typed<long>(492, value);
 
 	/// <summary>
 	/// Represents RegistAcctType, FIX tag 493, with wire type <c>String</c>.
@@ -3601,8 +3600,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TaxAdvantageType, FIX tag 495, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TaxAdvantageType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(495, value);
+	public sealed class TaxAdvantageType((bool Valid, long Value) value)
+		: Typed<long>(495, value);
 
 	/// <summary>
 	/// Represents RegistRejReasonText, FIX tag 496, with wire type <c>String</c>.
@@ -3685,8 +3684,8 @@ public abstract class FixField : IFixLocation
 	/// Represents RegistRejReasonCode, FIX tag 507, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class RegistRejReasonCode((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(507, value);
+	public sealed class RegistRejReasonCode((bool Valid, long Value) value)
+		: Typed<long>(507, value);
 
 	/// <summary>
 	/// Represents RegistRefID, FIX tag 508, with wire type <c>String</c>.
@@ -3706,8 +3705,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoDistribInsts, FIX tag 510, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoDistribInsts((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(510, value);
+	public sealed class NoDistribInsts((bool Valid, long Value) value)
+		: Typed<long>(510, value);
 
 	/// <summary>
 	/// Represents RegistEmail, FIX tag 511, with wire type <c>String</c>.
@@ -3762,15 +3761,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoContAmts, FIX tag 518, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoContAmts((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(518, value);
+	public sealed class NoContAmts((bool Valid, long Value) value)
+		: Typed<long>(518, value);
 
 	/// <summary>
 	/// Represents ContAmtType, FIX tag 519, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ContAmtType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(519, value);
+	public sealed class ContAmtType((bool Valid, long Value) value)
+		: Typed<long>(519, value);
 
 	/// <summary>
 	/// Represents ContAmtValue, FIX tag 520, with wire type <c>float</c>.
@@ -3790,8 +3789,8 @@ public abstract class FixField : IFixLocation
 	/// Represents OwnerType, FIX tag 522, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class OwnerType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(522, value);
+	public sealed class OwnerType((bool Valid, long Value) value)
+		: Typed<long>(522, value);
 
 	/// <summary>
 	/// Represents PartySubID, FIX tag 523, with wire type <c>String</c>.
@@ -3874,15 +3873,15 @@ public abstract class FixField : IFixLocation
 	/// Represents TotalAffectedOrders, FIX tag 533, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalAffectedOrders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(533, value);
+	public sealed class TotalAffectedOrders((bool Valid, long Value) value)
+		: Typed<long>(533, value);
 
 	/// <summary>
 	/// Represents NoAffectedOrders, FIX tag 534, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoAffectedOrders((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(534, value);
+	public sealed class NoAffectedOrders((bool Valid, long Value) value)
+		: Typed<long>(534, value);
 
 	/// <summary>
 	/// Represents AffectedOrderID, FIX tag 535, with wire type <c>String</c>.
@@ -3902,22 +3901,22 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteType, FIX tag 537, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(537, value);
+	public sealed class QuoteType((bool Valid, long Value) value)
+		: Typed<long>(537, value);
 
 	/// <summary>
 	/// Represents NestedPartyRole, FIX tag 538, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NestedPartyRole((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(538, value);
+	public sealed class NestedPartyRole((bool Valid, long Value) value)
+		: Typed<long>(538, value);
 
 	/// <summary>
 	/// Represents NoNestedPartyIDs, FIX tag 539, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNestedPartyIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(539, value);
+	public sealed class NoNestedPartyIDs((bool Valid, long Value) value)
+		: Typed<long>(539, value);
 
 	/// <summary>
 	/// Represents TotalAccruedInterestAmt, FIX tag 540, with wire type <c>Amt</c>.
@@ -3986,15 +3985,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CrossType, FIX tag 549, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CrossType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(549, value);
+	public sealed class CrossType((bool Valid, long Value) value)
+		: Typed<long>(549, value);
 
 	/// <summary>
 	/// Represents CrossPrioritization, FIX tag 550, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CrossPrioritization((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(550, value);
+	public sealed class CrossPrioritization((bool Valid, long Value) value)
+		: Typed<long>(550, value);
 
 	/// <summary>
 	/// Represents OrigCrossID, FIX tag 551, with wire type <c>String</c>.
@@ -4007,8 +4006,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoSides, FIX tag 552, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSides((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(552, value);
+	public sealed class NoSides((bool Valid, long Value) value)
+		: Typed<long>(552, value);
 
 	/// <summary>
 	/// Represents Username, FIX tag 553, with wire type <c>String</c>.
@@ -4028,8 +4027,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoLegs, FIX tag 555, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLegs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(555, value);
+	public sealed class NoLegs((bool Valid, long Value) value)
+		: Typed<long>(555, value);
 
 	/// <summary>
 	/// Represents LegCurrency, FIX tag 556, with wire type <c>Currency</c>.
@@ -4042,29 +4041,29 @@ public abstract class FixField : IFixLocation
 	/// Represents TotNoSecurityTypes, FIX tag 557, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoSecurityTypes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(557, value);
+	public sealed class TotNoSecurityTypes((bool Valid, long Value) value)
+		: Typed<long>(557, value);
 
 	/// <summary>
 	/// Represents NoSecurityTypes, FIX tag 558, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSecurityTypes((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(558, value);
+	public sealed class NoSecurityTypes((bool Valid, long Value) value)
+		: Typed<long>(558, value);
 
 	/// <summary>
 	/// Represents SecurityListRequestType, FIX tag 559, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecurityListRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(559, value);
+	public sealed class SecurityListRequestType((bool Valid, long Value) value)
+		: Typed<long>(559, value);
 
 	/// <summary>
 	/// Represents SecurityRequestResult, FIX tag 560, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecurityRequestResult((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(560, value);
+	public sealed class SecurityRequestResult((bool Valid, long Value) value)
+		: Typed<long>(560, value);
 
 	/// <summary>
 	/// Represents RoundLot, FIX tag 561, with wire type <c>Qty</c>.
@@ -4084,8 +4083,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MultiLegRptTypeReq, FIX tag 563, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MultiLegRptTypeReq((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(563, value);
+	public sealed class MultiLegRptTypeReq((bool Valid, long Value) value)
+		: Typed<long>(563, value);
 
 	/// <summary>
 	/// Represents LegPositionEffect, FIX tag 564, with wire type <c>char</c>.
@@ -4098,8 +4097,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegCoveredOrUncovered, FIX tag 565, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegCoveredOrUncovered((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(565, value);
+	public sealed class LegCoveredOrUncovered((bool Valid, long Value) value)
+		: Typed<long>(565, value);
 
 	/// <summary>
 	/// Represents LegPrice, FIX tag 566, with wire type <c>Price</c>.
@@ -4112,8 +4111,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TradSesStatusRejReason, FIX tag 567, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradSesStatusRejReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(567, value);
+	public sealed class TradSesStatusRejReason((bool Valid, long Value) value)
+		: Typed<long>(567, value);
 
 	/// <summary>
 	/// Represents TradeRequestID, FIX tag 568, with wire type <c>String</c>.
@@ -4126,8 +4125,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TradeRequestType, FIX tag 569, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(569, value);
+	public sealed class TradeRequestType((bool Valid, long Value) value)
+		: Typed<long>(569, value);
 
 	/// <summary>
 	/// Represents PreviouslyReported, FIX tag 570, with wire type <c>Boolean</c>.
@@ -4175,15 +4174,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoClearingInstructions, FIX tag 576, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoClearingInstructions((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(576, value);
+	public sealed class NoClearingInstructions((bool Valid, long Value) value)
+		: Typed<long>(576, value);
 
 	/// <summary>
 	/// Represents ClearingInstruction, FIX tag 577, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ClearingInstruction((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(577, value);
+	public sealed class ClearingInstruction((bool Valid, long Value) value)
+		: Typed<long>(577, value);
 
 	/// <summary>
 	/// Represents TradeInputSource, FIX tag 578, with wire type <c>String</c>.
@@ -4203,22 +4202,22 @@ public abstract class FixField : IFixLocation
 	/// Represents NoDates, FIX tag 580, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoDates((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(580, value);
+	public sealed class NoDates((bool Valid, long Value) value)
+		: Typed<long>(580, value);
 
 	/// <summary>
 	/// Represents AccountType, FIX tag 581, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AccountType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(581, value);
+	public sealed class AccountType((bool Valid, long Value) value)
+		: Typed<long>(581, value);
 
 	/// <summary>
 	/// Represents CustOrderCapacity, FIX tag 582, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CustOrderCapacity((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(582, value);
+	public sealed class CustOrderCapacity((bool Valid, long Value) value)
+		: Typed<long>(582, value);
 
 	/// <summary>
 	/// Represents ClOrdLinkID, FIX tag 583, with wire type <c>String</c>.
@@ -4238,8 +4237,8 @@ public abstract class FixField : IFixLocation
 	/// Represents MassStatusReqType, FIX tag 585, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MassStatusReqType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(585, value);
+	public sealed class MassStatusReqType((bool Valid, long Value) value)
+		: Typed<long>(585, value);
 
 	/// <summary>
 	/// Represents OrigOrdModTime, FIX tag 586, with wire type <c>UTCTimestamp</c>.
@@ -4371,8 +4370,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoLegSecurityAltID, FIX tag 604, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLegSecurityAltID((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(604, value);
+	public sealed class NoLegSecurityAltID((bool Valid, long Value) value)
+		: Typed<long>(604, value);
 
 	/// <summary>
 	/// Represents LegSecurityAltID, FIX tag 605, with wire type <c>String</c>.
@@ -4392,8 +4391,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegProduct, FIX tag 607, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegProduct((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(607, value);
+	public sealed class LegProduct((bool Valid, long Value) value)
+		: Typed<long>(607, value);
 
 	/// <summary>
 	/// Represents LegCFICode, FIX tag 608, with wire type <c>String</c>.
@@ -4473,8 +4472,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedLegIssuerLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(618, value);
+	public sealed class EncodedLegIssuerLen((bool Valid, long Value) value)
+		: Typed<long>(618, value);
 
 	/// <summary>
 	/// Represents EncodedLegIssuer, FIX tag 619, with wire type <c>data</c>.
@@ -4502,8 +4501,8 @@ public abstract class FixField : IFixLocation
 	/// following data field and returns the data case instead of a separate length case.
 	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EncodedLegSecurityDescLen((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(621, value);
+	public sealed class EncodedLegSecurityDescLen((bool Valid, long Value) value)
+		: Typed<long>(621, value);
 
 	/// <summary>
 	/// Represents EncodedLegSecurityDesc, FIX tag 622, with wire type <c>data</c>.
@@ -4541,15 +4540,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocType, FIX tag 626, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(626, value);
+	public sealed class AllocType((bool Valid, long Value) value)
+		: Typed<long>(626, value);
 
 	/// <summary>
 	/// Represents NoHops, FIX tag 627, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoHops((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(627, value);
+	public sealed class NoHops((bool Valid, long Value) value)
+		: Typed<long>(627, value);
 
 	/// <summary>
 	/// Represents HopCompID, FIX tag 628, with wire type <c>String</c>.
@@ -4569,8 +4568,8 @@ public abstract class FixField : IFixLocation
 	/// Represents HopRefID, FIX tag 630, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class HopRefID((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(630, value);
+	public sealed class HopRefID((bool Valid, long Value) value)
+		: Typed<long>(630, value);
 
 	/// <summary>
 	/// Represents MidPx, FIX tag 631, with wire type <c>Price</c>.
@@ -4625,8 +4624,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PriorityIndicator, FIX tag 638, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PriorityIndicator((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(638, value);
+	public sealed class PriorityIndicator((bool Valid, long Value) value)
+		: Typed<long>(638, value);
 
 	/// <summary>
 	/// Represents PriceImprovement, FIX tag 639, with wire type <c>PriceOffset</c>.
@@ -4758,8 +4757,8 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteRequestRejectReason, FIX tag 658, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteRequestRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(658, value);
+	public sealed class QuoteRequestRejectReason((bool Valid, long Value) value)
+		: Typed<long>(658, value);
 
 	/// <summary>
 	/// Represents SideComplianceID, FIX tag 659, with wire type <c>String</c>.
@@ -4772,15 +4771,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AcctIDSource, FIX tag 660, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AcctIDSource((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(660, value);
+	public sealed class AcctIDSource((bool Valid, long Value) value)
+		: Typed<long>(660, value);
 
 	/// <summary>
 	/// Represents AllocAcctIDSource, FIX tag 661, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocAcctIDSource((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(661, value);
+	public sealed class AllocAcctIDSource((bool Valid, long Value) value)
+		: Typed<long>(661, value);
 
 	/// <summary>
 	/// Represents BenchmarkPrice, FIX tag 662, with wire type <c>Price</c>.
@@ -4793,8 +4792,8 @@ public abstract class FixField : IFixLocation
 	/// Represents BenchmarkPriceType, FIX tag 663, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BenchmarkPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(663, value);
+	public sealed class BenchmarkPriceType((bool Valid, long Value) value)
+		: Typed<long>(663, value);
 
 	/// <summary>
 	/// Represents ConfirmID, FIX tag 664, with wire type <c>String</c>.
@@ -4807,15 +4806,15 @@ public abstract class FixField : IFixLocation
 	/// Represents ConfirmStatus, FIX tag 665, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ConfirmStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(665, value);
+	public sealed class ConfirmStatus((bool Valid, long Value) value)
+		: Typed<long>(665, value);
 
 	/// <summary>
 	/// Represents ConfirmTransType, FIX tag 666, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ConfirmTransType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(666, value);
+	public sealed class ConfirmTransType((bool Valid, long Value) value)
+		: Typed<long>(666, value);
 
 	/// <summary>
 	/// Represents ContractSettlMonth, FIX tag 667, with wire type <c>MonthYear</c>.
@@ -4828,8 +4827,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DeliveryForm, FIX tag 668, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DeliveryForm((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(668, value);
+	public sealed class DeliveryForm((bool Valid, long Value) value)
+		: Typed<long>(668, value);
 
 	/// <summary>
 	/// Represents LastParPx, FIX tag 669, with wire type <c>Price</c>.
@@ -4842,8 +4841,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoLegAllocs, FIX tag 670, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLegAllocs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(670, value);
+	public sealed class NoLegAllocs((bool Valid, long Value) value)
+		: Typed<long>(670, value);
 
 	/// <summary>
 	/// Represents LegAllocAccount, FIX tag 671, with wire type <c>String</c>.
@@ -4912,8 +4911,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegBenchmarkPriceType, FIX tag 680, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegBenchmarkPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(680, value);
+	public sealed class LegBenchmarkPriceType((bool Valid, long Value) value)
+		: Typed<long>(680, value);
 
 	/// <summary>
 	/// Represents LegBidPx, FIX tag 681, with wire type <c>Price</c>.
@@ -4933,8 +4932,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoLegStipulations, FIX tag 683, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLegStipulations((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(683, value);
+	public sealed class NoLegStipulations((bool Valid, long Value) value)
+		: Typed<long>(683, value);
 
 	/// <summary>
 	/// Represents LegOfferPx, FIX tag 684, with wire type <c>Price</c>.
@@ -4947,8 +4946,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegPriceType, FIX tag 686, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(686, value);
+	public sealed class LegPriceType((bool Valid, long Value) value)
+		: Typed<long>(686, value);
 
 	/// <summary>
 	/// Represents LegQty, FIX tag 687, with wire type <c>Qty</c>.
@@ -4975,8 +4974,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LegSwapType, FIX tag 690, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LegSwapType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(690, value);
+	public sealed class LegSwapType((bool Valid, long Value) value)
+		: Typed<long>(690, value);
 
 	/// <summary>
 	/// Represents Pool, FIX tag 691, with wire type <c>String</c>.
@@ -4989,8 +4988,8 @@ public abstract class FixField : IFixLocation
 	/// Represents QuotePriceType, FIX tag 692, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuotePriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(692, value);
+	public sealed class QuotePriceType((bool Valid, long Value) value)
+		: Typed<long>(692, value);
 
 	/// <summary>
 	/// Represents QuoteRespID, FIX tag 693, with wire type <c>String</c>.
@@ -5003,8 +5002,8 @@ public abstract class FixField : IFixLocation
 	/// Represents QuoteRespType, FIX tag 694, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QuoteRespType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(694, value);
+	public sealed class QuoteRespType((bool Valid, long Value) value)
+		: Typed<long>(694, value);
 
 	/// <summary>
 	/// Represents QuoteQualifier, FIX tag 695, with wire type <c>char</c>.
@@ -5031,8 +5030,8 @@ public abstract class FixField : IFixLocation
 	/// Represents YieldRedemptionPriceType, FIX tag 698, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class YieldRedemptionPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(698, value);
+	public sealed class YieldRedemptionPriceType((bool Valid, long Value) value)
+		: Typed<long>(698, value);
 
 	/// <summary>
 	/// Represents BenchmarkSecurityID, FIX tag 699, with wire type <c>String</c>.
@@ -5059,8 +5058,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoPositions, FIX tag 702, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoPositions((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(702, value);
+	public sealed class NoPositions((bool Valid, long Value) value)
+		: Typed<long>(702, value);
 
 	/// <summary>
 	/// Represents PosType, FIX tag 703, with wire type <c>String</c>.
@@ -5087,8 +5086,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PosQtyStatus, FIX tag 706, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosQtyStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(706, value);
+	public sealed class PosQtyStatus((bool Valid, long Value) value)
+		: Typed<long>(706, value);
 
 	/// <summary>
 	/// Represents PosAmtType, FIX tag 707, with wire type <c>String</c>.
@@ -5108,8 +5107,8 @@ public abstract class FixField : IFixLocation
 	/// Represents PosTransType, FIX tag 709, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosTransType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(709, value);
+	public sealed class PosTransType((bool Valid, long Value) value)
+		: Typed<long>(709, value);
 
 	/// <summary>
 	/// Represents PosReqID, FIX tag 710, with wire type <c>String</c>.
@@ -5122,15 +5121,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoUnderlyings, FIX tag 711, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoUnderlyings((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(711, value);
+	public sealed class NoUnderlyings((bool Valid, long Value) value)
+		: Typed<long>(711, value);
 
 	/// <summary>
 	/// Represents PosMaintAction, FIX tag 712, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosMaintAction((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(712, value);
+	public sealed class PosMaintAction((bool Valid, long Value) value)
+		: Typed<long>(712, value);
 
 	/// <summary>
 	/// Represents OrigPosReqRefID, FIX tag 713, with wire type <c>String</c>.
@@ -5171,8 +5170,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AdjustmentType, FIX tag 718, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AdjustmentType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(718, value);
+	public sealed class AdjustmentType((bool Valid, long Value) value)
+		: Typed<long>(718, value);
 
 	/// <summary>
 	/// Represents ContraryInstructionIndicator, FIX tag 719, with wire type <c>Boolean</c>.
@@ -5199,29 +5198,29 @@ public abstract class FixField : IFixLocation
 	/// Represents PosMaintStatus, FIX tag 722, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosMaintStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(722, value);
+	public sealed class PosMaintStatus((bool Valid, long Value) value)
+		: Typed<long>(722, value);
 
 	/// <summary>
 	/// Represents PosMaintResult, FIX tag 723, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosMaintResult((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(723, value);
+	public sealed class PosMaintResult((bool Valid, long Value) value)
+		: Typed<long>(723, value);
 
 	/// <summary>
 	/// Represents PosReqType, FIX tag 724, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosReqType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(724, value);
+	public sealed class PosReqType((bool Valid, long Value) value)
+		: Typed<long>(724, value);
 
 	/// <summary>
 	/// Represents ResponseTransportType, FIX tag 725, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ResponseTransportType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(725, value);
+	public sealed class ResponseTransportType((bool Valid, long Value) value)
+		: Typed<long>(725, value);
 
 	/// <summary>
 	/// Represents ResponseDestination, FIX tag 726, with wire type <c>String</c>.
@@ -5234,22 +5233,22 @@ public abstract class FixField : IFixLocation
 	/// Represents TotalNumPosReports, FIX tag 727, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotalNumPosReports((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(727, value);
+	public sealed class TotalNumPosReports((bool Valid, long Value) value)
+		: Typed<long>(727, value);
 
 	/// <summary>
 	/// Represents PosReqResult, FIX tag 728, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosReqResult((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(728, value);
+	public sealed class PosReqResult((bool Valid, long Value) value)
+		: Typed<long>(728, value);
 
 	/// <summary>
 	/// Represents PosReqStatus, FIX tag 729, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PosReqStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(729, value);
+	public sealed class PosReqStatus((bool Valid, long Value) value)
+		: Typed<long>(729, value);
 
 	/// <summary>
 	/// Represents SettlPrice, FIX tag 730, with wire type <c>Price</c>.
@@ -5262,8 +5261,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlPriceType, FIX tag 731, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(731, value);
+	public sealed class SettlPriceType((bool Valid, long Value) value)
+		: Typed<long>(731, value);
 
 	/// <summary>
 	/// Represents UnderlyingSettlPrice, FIX tag 732, with wire type <c>Price</c>.
@@ -5276,8 +5275,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UnderlyingSettlPriceType, FIX tag 733, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UnderlyingSettlPriceType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(733, value);
+	public sealed class UnderlyingSettlPriceType((bool Valid, long Value) value)
+		: Typed<long>(733, value);
 
 	/// <summary>
 	/// Represents PriorSettlPrice, FIX tag 734, with wire type <c>Price</c>.
@@ -5290,8 +5289,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoQuoteQualifiers, FIX tag 735, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoQuoteQualifiers((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(735, value);
+	public sealed class NoQuoteQualifiers((bool Valid, long Value) value)
+		: Typed<long>(735, value);
 
 	/// <summary>
 	/// Represents AllocSettlCurrency, FIX tag 736, with wire type <c>Currency</c>.
@@ -5381,43 +5380,43 @@ public abstract class FixField : IFixLocation
 	/// Represents TotNumTradeReports, FIX tag 748, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNumTradeReports((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(748, value);
+	public sealed class TotNumTradeReports((bool Valid, long Value) value)
+		: Typed<long>(748, value);
 
 	/// <summary>
 	/// Represents TradeRequestResult, FIX tag 749, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeRequestResult((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(749, value);
+	public sealed class TradeRequestResult((bool Valid, long Value) value)
+		: Typed<long>(749, value);
 
 	/// <summary>
 	/// Represents TradeRequestStatus, FIX tag 750, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeRequestStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(750, value);
+	public sealed class TradeRequestStatus((bool Valid, long Value) value)
+		: Typed<long>(750, value);
 
 	/// <summary>
 	/// Represents TradeReportRejectReason, FIX tag 751, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeReportRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(751, value);
+	public sealed class TradeReportRejectReason((bool Valid, long Value) value)
+		: Typed<long>(751, value);
 
 	/// <summary>
 	/// Represents SideMultiLegReportingType, FIX tag 752, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SideMultiLegReportingType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(752, value);
+	public sealed class SideMultiLegReportingType((bool Valid, long Value) value)
+		: Typed<long>(752, value);
 
 	/// <summary>
 	/// Represents NoPosAmt, FIX tag 753, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoPosAmt((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(753, value);
+	public sealed class NoPosAmt((bool Valid, long Value) value)
+		: Typed<long>(753, value);
 
 	/// <summary>
 	/// Represents AutoAcceptIndicator, FIX tag 754, with wire type <c>Boolean</c>.
@@ -5437,8 +5436,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoNested2PartyIDs, FIX tag 756, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNested2PartyIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(756, value);
+	public sealed class NoNested2PartyIDs((bool Valid, long Value) value)
+		: Typed<long>(756, value);
 
 	/// <summary>
 	/// Represents Nested2PartyID, FIX tag 757, with wire type <c>String</c>.
@@ -5458,8 +5457,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Nested2PartyRole, FIX tag 759, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Nested2PartyRole((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(759, value);
+	public sealed class Nested2PartyRole((bool Valid, long Value) value)
+		: Typed<long>(759, value);
 
 	/// <summary>
 	/// Represents Nested2PartySubID, FIX tag 760, with wire type <c>String</c>.
@@ -5521,8 +5520,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoTrdRegTimestamps, FIX tag 768, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoTrdRegTimestamps((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(768, value);
+	public sealed class NoTrdRegTimestamps((bool Valid, long Value) value)
+		: Typed<long>(768, value);
 
 	/// <summary>
 	/// Represents TrdRegTimestamp, FIX tag 769, with wire type <c>UTCTimestamp</c>.
@@ -5535,8 +5534,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TrdRegTimestampType, FIX tag 770, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TrdRegTimestampType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(770, value);
+	public sealed class TrdRegTimestampType((bool Valid, long Value) value)
+		: Typed<long>(770, value);
 
 	/// <summary>
 	/// Represents TrdRegTimestampOrigin, FIX tag 771, with wire type <c>String</c>.
@@ -5556,29 +5555,29 @@ public abstract class FixField : IFixLocation
 	/// Represents ConfirmType, FIX tag 773, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ConfirmType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(773, value);
+	public sealed class ConfirmType((bool Valid, long Value) value)
+		: Typed<long>(773, value);
 
 	/// <summary>
 	/// Represents ConfirmRejReason, FIX tag 774, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ConfirmRejReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(774, value);
+	public sealed class ConfirmRejReason((bool Valid, long Value) value)
+		: Typed<long>(774, value);
 
 	/// <summary>
 	/// Represents BookingType, FIX tag 775, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class BookingType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(775, value);
+	public sealed class BookingType((bool Valid, long Value) value)
+		: Typed<long>(775, value);
 
 	/// <summary>
 	/// Represents IndividualAllocRejCode, FIX tag 776, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class IndividualAllocRejCode((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(776, value);
+	public sealed class IndividualAllocRejCode((bool Valid, long Value) value)
+		: Typed<long>(776, value);
 
 	/// <summary>
 	/// Represents SettlInstMsgID, FIX tag 777, with wire type <c>String</c>.
@@ -5591,8 +5590,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoSettlInst, FIX tag 778, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSettlInst((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(778, value);
+	public sealed class NoSettlInst((bool Valid, long Value) value)
+		: Typed<long>(778, value);
 
 	/// <summary>
 	/// Represents LastUpdateTime, FIX tag 779, with wire type <c>UTCTimestamp</c>.
@@ -5605,15 +5604,15 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocSettlInstType, FIX tag 780, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocSettlInstType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(780, value);
+	public sealed class AllocSettlInstType((bool Valid, long Value) value)
+		: Typed<long>(780, value);
 
 	/// <summary>
 	/// Represents NoSettlPartyIDs, FIX tag 781, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSettlPartyIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(781, value);
+	public sealed class NoSettlPartyIDs((bool Valid, long Value) value)
+		: Typed<long>(781, value);
 
 	/// <summary>
 	/// Represents SettlPartyID, FIX tag 782, with wire type <c>String</c>.
@@ -5633,8 +5632,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlPartyRole, FIX tag 784, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlPartyRole((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(784, value);
+	public sealed class SettlPartyRole((bool Valid, long Value) value)
+		: Typed<long>(784, value);
 
 	/// <summary>
 	/// Represents SettlPartySubID, FIX tag 785, with wire type <c>String</c>.
@@ -5647,8 +5646,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlPartySubIDType, FIX tag 786, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlPartySubIDType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(786, value);
+	public sealed class SettlPartySubIDType((bool Valid, long Value) value)
+		: Typed<long>(786, value);
 
 	/// <summary>
 	/// Represents DlvyInstType, FIX tag 787, with wire type <c>char</c>.
@@ -5661,15 +5660,15 @@ public abstract class FixField : IFixLocation
 	/// Represents TerminationType, FIX tag 788, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TerminationType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(788, value);
+	public sealed class TerminationType((bool Valid, long Value) value)
+		: Typed<long>(788, value);
 
 	/// <summary>
 	/// Represents NextExpectedMsgSeqNum, FIX tag 789, with wire type <c>SeqNum</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NextExpectedMsgSeqNum((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(789, value);
+	public sealed class NextExpectedMsgSeqNum((bool Valid, long Value) value)
+		: Typed<long>(789, value);
 
 	/// <summary>
 	/// Represents OrdStatusReqID, FIX tag 790, with wire type <c>String</c>.
@@ -5689,8 +5688,8 @@ public abstract class FixField : IFixLocation
 	/// Represents SettlInstReqRejCode, FIX tag 792, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SettlInstReqRejCode((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(792, value);
+	public sealed class SettlInstReqRejCode((bool Valid, long Value) value)
+		: Typed<long>(792, value);
 
 	/// <summary>
 	/// Represents SecondaryAllocID, FIX tag 793, with wire type <c>String</c>.
@@ -5703,8 +5702,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocReportType, FIX tag 794, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocReportType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(794, value);
+	public sealed class AllocReportType((bool Valid, long Value) value)
+		: Typed<long>(794, value);
 
 	/// <summary>
 	/// Represents AllocReportRefID, FIX tag 795, with wire type <c>String</c>.
@@ -5717,8 +5716,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocCancReplaceReason, FIX tag 796, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocCancReplaceReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(796, value);
+	public sealed class AllocCancReplaceReason((bool Valid, long Value) value)
+		: Typed<long>(796, value);
 
 	/// <summary>
 	/// Represents CopyMsgIndicator, FIX tag 797, with wire type <c>Boolean</c>.
@@ -5731,8 +5730,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AllocAccountType, FIX tag 798, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocAccountType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(798, value);
+	public sealed class AllocAccountType((bool Valid, long Value) value)
+		: Typed<long>(798, value);
 
 	/// <summary>
 	/// Represents OrderAvgPx, FIX tag 799, with wire type <c>Price</c>.
@@ -5752,57 +5751,57 @@ public abstract class FixField : IFixLocation
 	/// Represents NoSettlPartySubIDs, FIX tag 801, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoSettlPartySubIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(801, value);
+	public sealed class NoSettlPartySubIDs((bool Valid, long Value) value)
+		: Typed<long>(801, value);
 
 	/// <summary>
 	/// Represents NoPartySubIDs, FIX tag 802, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoPartySubIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(802, value);
+	public sealed class NoPartySubIDs((bool Valid, long Value) value)
+		: Typed<long>(802, value);
 
 	/// <summary>
 	/// Represents PartySubIDType, FIX tag 803, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PartySubIDType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(803, value);
+	public sealed class PartySubIDType((bool Valid, long Value) value)
+		: Typed<long>(803, value);
 
 	/// <summary>
 	/// Represents NoNestedPartySubIDs, FIX tag 804, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNestedPartySubIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(804, value);
+	public sealed class NoNestedPartySubIDs((bool Valid, long Value) value)
+		: Typed<long>(804, value);
 
 	/// <summary>
 	/// Represents NestedPartySubIDType, FIX tag 805, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NestedPartySubIDType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(805, value);
+	public sealed class NestedPartySubIDType((bool Valid, long Value) value)
+		: Typed<long>(805, value);
 
 	/// <summary>
 	/// Represents NoNested2PartySubIDs, FIX tag 806, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNested2PartySubIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(806, value);
+	public sealed class NoNested2PartySubIDs((bool Valid, long Value) value)
+		: Typed<long>(806, value);
 
 	/// <summary>
 	/// Represents Nested2PartySubIDType, FIX tag 807, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Nested2PartySubIDType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(807, value);
+	public sealed class Nested2PartySubIDType((bool Valid, long Value) value)
+		: Typed<long>(807, value);
 
 	/// <summary>
 	/// Represents AllocIntermedReqType, FIX tag 808, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocIntermedReqType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(808, value);
+	public sealed class AllocIntermedReqType((bool Valid, long Value) value)
+		: Typed<long>(808, value);
 
 	/// <summary>
 	/// Represents UnderlyingPx, FIX tag 810, with wire type <c>Price</c>.
@@ -5822,36 +5821,36 @@ public abstract class FixField : IFixLocation
 	/// Represents ApplQueueMax, FIX tag 812, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ApplQueueMax((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(812, value);
+	public sealed class ApplQueueMax((bool Valid, long Value) value)
+		: Typed<long>(812, value);
 
 	/// <summary>
 	/// Represents ApplQueueDepth, FIX tag 813, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ApplQueueDepth((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(813, value);
+	public sealed class ApplQueueDepth((bool Valid, long Value) value)
+		: Typed<long>(813, value);
 
 	/// <summary>
 	/// Represents ApplQueueResolution, FIX tag 814, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ApplQueueResolution((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(814, value);
+	public sealed class ApplQueueResolution((bool Valid, long Value) value)
+		: Typed<long>(814, value);
 
 	/// <summary>
 	/// Represents ApplQueueAction, FIX tag 815, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ApplQueueAction((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(815, value);
+	public sealed class ApplQueueAction((bool Valid, long Value) value)
+		: Typed<long>(815, value);
 
 	/// <summary>
 	/// Represents NoAltMDSource, FIX tag 816, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoAltMDSource((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(816, value);
+	public sealed class NoAltMDSource((bool Valid, long Value) value)
+		: Typed<long>(816, value);
 
 	/// <summary>
 	/// Represents AltMDSourceID, FIX tag 817, with wire type <c>String</c>.
@@ -5871,8 +5870,8 @@ public abstract class FixField : IFixLocation
 	/// Represents AvgPxIndicator, FIX tag 819, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AvgPxIndicator((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(819, value);
+	public sealed class AvgPxIndicator((bool Valid, long Value) value)
+		: Typed<long>(819, value);
 
 	/// <summary>
 	/// Represents TradeLinkID, FIX tag 820, with wire type <c>String</c>.
@@ -5920,29 +5919,29 @@ public abstract class FixField : IFixLocation
 	/// Represents TradeAllocIndicator, FIX tag 826, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeAllocIndicator((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(826, value);
+	public sealed class TradeAllocIndicator((bool Valid, long Value) value)
+		: Typed<long>(826, value);
 
 	/// <summary>
 	/// Represents ExpirationCycle, FIX tag 827, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ExpirationCycle((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(827, value);
+	public sealed class ExpirationCycle((bool Valid, long Value) value)
+		: Typed<long>(827, value);
 
 	/// <summary>
 	/// Represents TrdType, FIX tag 828, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TrdType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(828, value);
+	public sealed class TrdType((bool Valid, long Value) value)
+		: Typed<long>(828, value);
 
 	/// <summary>
 	/// Represents TrdSubType, FIX tag 829, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TrdSubType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(829, value);
+	public sealed class TrdSubType((bool Valid, long Value) value)
+		: Typed<long>(829, value);
 
 	/// <summary>
 	/// Represents TransferReason, FIX tag 830, with wire type <c>String</c>.
@@ -5955,8 +5954,8 @@ public abstract class FixField : IFixLocation
 	/// Represents TotNumAssignmentReports, FIX tag 832, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNumAssignmentReports((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(832, value);
+	public sealed class TotNumAssignmentReports((bool Valid, long Value) value)
+		: Typed<long>(832, value);
 
 	/// <summary>
 	/// Represents AsgnRptID, FIX tag 833, with wire type <c>String</c>.
@@ -5976,29 +5975,29 @@ public abstract class FixField : IFixLocation
 	/// Represents PegMoveType, FIX tag 835, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegMoveType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(835, value);
+	public sealed class PegMoveType((bool Valid, long Value) value)
+		: Typed<long>(835, value);
 
 	/// <summary>
 	/// Represents PegOffsetType, FIX tag 836, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegOffsetType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(836, value);
+	public sealed class PegOffsetType((bool Valid, long Value) value)
+		: Typed<long>(836, value);
 
 	/// <summary>
 	/// Represents PegLimitType, FIX tag 837, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegLimitType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(837, value);
+	public sealed class PegLimitType((bool Valid, long Value) value)
+		: Typed<long>(837, value);
 
 	/// <summary>
 	/// Represents PegRoundDirection, FIX tag 838, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegRoundDirection((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(838, value);
+	public sealed class PegRoundDirection((bool Valid, long Value) value)
+		: Typed<long>(838, value);
 
 	/// <summary>
 	/// Represents PeggedPrice, FIX tag 839, with wire type <c>Price</c>.
@@ -6011,36 +6010,36 @@ public abstract class FixField : IFixLocation
 	/// Represents PegScope, FIX tag 840, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class PegScope((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(840, value);
+	public sealed class PegScope((bool Valid, long Value) value)
+		: Typed<long>(840, value);
 
 	/// <summary>
 	/// Represents DiscretionMoveType, FIX tag 841, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionMoveType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(841, value);
+	public sealed class DiscretionMoveType((bool Valid, long Value) value)
+		: Typed<long>(841, value);
 
 	/// <summary>
 	/// Represents DiscretionOffsetType, FIX tag 842, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionOffsetType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(842, value);
+	public sealed class DiscretionOffsetType((bool Valid, long Value) value)
+		: Typed<long>(842, value);
 
 	/// <summary>
 	/// Represents DiscretionLimitType, FIX tag 843, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionLimitType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(843, value);
+	public sealed class DiscretionLimitType((bool Valid, long Value) value)
+		: Typed<long>(843, value);
 
 	/// <summary>
 	/// Represents DiscretionRoundDirection, FIX tag 844, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionRoundDirection((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(844, value);
+	public sealed class DiscretionRoundDirection((bool Valid, long Value) value)
+		: Typed<long>(844, value);
 
 	/// <summary>
 	/// Represents DiscretionPrice, FIX tag 845, with wire type <c>Price</c>.
@@ -6053,15 +6052,15 @@ public abstract class FixField : IFixLocation
 	/// Represents DiscretionScope, FIX tag 846, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DiscretionScope((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(846, value);
+	public sealed class DiscretionScope((bool Valid, long Value) value)
+		: Typed<long>(846, value);
 
 	/// <summary>
 	/// Represents TargetStrategy, FIX tag 847, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TargetStrategy((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(847, value);
+	public sealed class TargetStrategy((bool Valid, long Value) value)
+		: Typed<long>(847, value);
 
 	/// <summary>
 	/// Represents TargetStrategyParameters, FIX tag 848, with wire type <c>String</c>.
@@ -6088,8 +6087,8 @@ public abstract class FixField : IFixLocation
 	/// Represents LastLiquidityInd, FIX tag 851, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class LastLiquidityInd((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(851, value);
+	public sealed class LastLiquidityInd((bool Valid, long Value) value)
+		: Typed<long>(851, value);
 
 	/// <summary>
 	/// Represents PublishTrdIndicator, FIX tag 852, with wire type <c>Boolean</c>.
@@ -6102,36 +6101,36 @@ public abstract class FixField : IFixLocation
 	/// Represents ShortSaleReason, FIX tag 853, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class ShortSaleReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(853, value);
+	public sealed class ShortSaleReason((bool Valid, long Value) value)
+		: Typed<long>(853, value);
 
 	/// <summary>
 	/// Represents QtyType, FIX tag 854, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class QtyType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(854, value);
+	public sealed class QtyType((bool Valid, long Value) value)
+		: Typed<long>(854, value);
 
 	/// <summary>
 	/// Represents SecondaryTrdType, FIX tag 855, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class SecondaryTrdType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(855, value);
+	public sealed class SecondaryTrdType((bool Valid, long Value) value)
+		: Typed<long>(855, value);
 
 	/// <summary>
 	/// Represents TradeReportType, FIX tag 856, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TradeReportType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(856, value);
+	public sealed class TradeReportType((bool Valid, long Value) value)
+		: Typed<long>(856, value);
 
 	/// <summary>
 	/// Represents AllocNoOrdersType, FIX tag 857, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AllocNoOrdersType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(857, value);
+	public sealed class AllocNoOrdersType((bool Valid, long Value) value)
+		: Typed<long>(857, value);
 
 	/// <summary>
 	/// Represents SharedCommission, FIX tag 858, with wire type <c>Amt</c>.
@@ -6165,8 +6164,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoCapacities, FIX tag 862, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoCapacities((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(862, value);
+	public sealed class NoCapacities((bool Valid, long Value) value)
+		: Typed<long>(862, value);
 
 	/// <summary>
 	/// Represents OrderCapacityQty, FIX tag 863, with wire type <c>Qty</c>.
@@ -6179,15 +6178,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoEvents, FIX tag 864, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoEvents((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(864, value);
+	public sealed class NoEvents((bool Valid, long Value) value)
+		: Typed<long>(864, value);
 
 	/// <summary>
 	/// Represents EventType, FIX tag 865, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class EventType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(865, value);
+	public sealed class EventType((bool Valid, long Value) value)
+		: Typed<long>(865, value);
 
 	/// <summary>
 	/// Represents EventDate, FIX tag 866, with wire type <c>LocalMktDate</c>.
@@ -6221,15 +6220,15 @@ public abstract class FixField : IFixLocation
 	/// Represents NoInstrAttrib, FIX tag 870, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoInstrAttrib((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(870, value);
+	public sealed class NoInstrAttrib((bool Valid, long Value) value)
+		: Typed<long>(870, value);
 
 	/// <summary>
 	/// Represents InstrAttribType, FIX tag 871, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class InstrAttribType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(871, value);
+	public sealed class InstrAttribType((bool Valid, long Value) value)
+		: Typed<long>(871, value);
 
 	/// <summary>
 	/// Represents InstrAttribValue, FIX tag 872, with wire type <c>String</c>.
@@ -6256,8 +6255,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CPProgram, FIX tag 875, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CPProgram((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(875, value);
+	public sealed class CPProgram((bool Valid, long Value) value)
+		: Typed<long>(875, value);
 
 	/// <summary>
 	/// Represents CPRegType, FIX tag 876, with wire type <c>String</c>.
@@ -6340,8 +6339,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoUnderlyingStips, FIX tag 887, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoUnderlyingStips((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(887, value);
+	public sealed class NoUnderlyingStips((bool Valid, long Value) value)
+		: Typed<long>(887, value);
 
 	/// <summary>
 	/// Represents UnderlyingStipType, FIX tag 888, with wire type <c>String</c>.
@@ -6368,15 +6367,15 @@ public abstract class FixField : IFixLocation
 	/// Represents MiscFeeBasis, FIX tag 891, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class MiscFeeBasis((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(891, value);
+	public sealed class MiscFeeBasis((bool Valid, long Value) value)
+		: Typed<long>(891, value);
 
 	/// <summary>
 	/// Represents TotNoAllocs, FIX tag 892, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNoAllocs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(892, value);
+	public sealed class TotNoAllocs((bool Valid, long Value) value)
+		: Typed<long>(892, value);
 
 	/// <summary>
 	/// Represents LastFragment, FIX tag 893, with wire type <c>Boolean</c>.
@@ -6396,22 +6395,22 @@ public abstract class FixField : IFixLocation
 	/// Represents CollAsgnReason, FIX tag 895, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollAsgnReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(895, value);
+	public sealed class CollAsgnReason((bool Valid, long Value) value)
+		: Typed<long>(895, value);
 
 	/// <summary>
 	/// Represents CollInquiryQualifier, FIX tag 896, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollInquiryQualifier((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(896, value);
+	public sealed class CollInquiryQualifier((bool Valid, long Value) value)
+		: Typed<long>(896, value);
 
 	/// <summary>
 	/// Represents NoTrades, FIX tag 897, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoTrades((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(897, value);
+	public sealed class NoTrades((bool Valid, long Value) value)
+		: Typed<long>(897, value);
 
 	/// <summary>
 	/// Represents MarginRatio, FIX tag 898, with wire type <c>Percentage</c>.
@@ -6452,8 +6451,8 @@ public abstract class FixField : IFixLocation
 	/// Represents CollAsgnTransType, FIX tag 903, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollAsgnTransType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(903, value);
+	public sealed class CollAsgnTransType((bool Valid, long Value) value)
+		: Typed<long>(903, value);
 
 	/// <summary>
 	/// Represents CollRespID, FIX tag 904, with wire type <c>String</c>.
@@ -6466,15 +6465,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CollAsgnRespType, FIX tag 905, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollAsgnRespType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(905, value);
+	public sealed class CollAsgnRespType((bool Valid, long Value) value)
+		: Typed<long>(905, value);
 
 	/// <summary>
 	/// Represents CollAsgnRejectReason, FIX tag 906, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollAsgnRejectReason((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(906, value);
+	public sealed class CollAsgnRejectReason((bool Valid, long Value) value)
+		: Typed<long>(906, value);
 
 	/// <summary>
 	/// Represents CollAsgnRefID, FIX tag 907, with wire type <c>String</c>.
@@ -6501,15 +6500,15 @@ public abstract class FixField : IFixLocation
 	/// Represents CollStatus, FIX tag 910, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(910, value);
+	public sealed class CollStatus((bool Valid, long Value) value)
+		: Typed<long>(910, value);
 
 	/// <summary>
 	/// Represents TotNumReports, FIX tag 911, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TotNumReports((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(911, value);
+	public sealed class TotNumReports((bool Valid, long Value) value)
+		: Typed<long>(911, value);
 
 	/// <summary>
 	/// Represents LastRptRequested, FIX tag 912, with wire type <c>Boolean</c>.
@@ -6564,8 +6563,8 @@ public abstract class FixField : IFixLocation
 	/// Represents DeliveryType, FIX tag 919, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class DeliveryType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(919, value);
+	public sealed class DeliveryType((bool Valid, long Value) value)
+		: Typed<long>(919, value);
 
 	/// <summary>
 	/// Represents EndAccruedInterestAmt, FIX tag 920, with wire type <c>Amt</c>.
@@ -6599,8 +6598,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UserRequestType, FIX tag 924, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UserRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(924, value);
+	public sealed class UserRequestType((bool Valid, long Value) value)
+		: Typed<long>(924, value);
 
 	/// <summary>
 	/// Represents NewPassword, FIX tag 925, with wire type <c>String</c>.
@@ -6613,8 +6612,8 @@ public abstract class FixField : IFixLocation
 	/// Represents UserStatus, FIX tag 926, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class UserStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(926, value);
+	public sealed class UserStatus((bool Valid, long Value) value)
+		: Typed<long>(926, value);
 
 	/// <summary>
 	/// Represents UserStatusText, FIX tag 927, with wire type <c>String</c>.
@@ -6627,8 +6626,8 @@ public abstract class FixField : IFixLocation
 	/// Represents StatusValue, FIX tag 928, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class StatusValue((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(928, value);
+	public sealed class StatusValue((bool Valid, long Value) value)
+		: Typed<long>(928, value);
 
 	/// <summary>
 	/// Represents StatusText, FIX tag 929, with wire type <c>String</c>.
@@ -6676,43 +6675,43 @@ public abstract class FixField : IFixLocation
 	/// Represents NetworkRequestType, FIX tag 935, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NetworkRequestType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(935, value);
+	public sealed class NetworkRequestType((bool Valid, long Value) value)
+		: Typed<long>(935, value);
 
 	/// <summary>
 	/// Represents NoCompIDs, FIX tag 936, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoCompIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(936, value);
+	public sealed class NoCompIDs((bool Valid, long Value) value)
+		: Typed<long>(936, value);
 
 	/// <summary>
 	/// Represents NetworkStatusResponseType, FIX tag 937, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NetworkStatusResponseType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(937, value);
+	public sealed class NetworkStatusResponseType((bool Valid, long Value) value)
+		: Typed<long>(937, value);
 
 	/// <summary>
 	/// Represents NoCollInquiryQualifier, FIX tag 938, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoCollInquiryQualifier((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(938, value);
+	public sealed class NoCollInquiryQualifier((bool Valid, long Value) value)
+		: Typed<long>(938, value);
 
 	/// <summary>
 	/// Represents TrdRptStatus, FIX tag 939, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class TrdRptStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(939, value);
+	public sealed class TrdRptStatus((bool Valid, long Value) value)
+		: Typed<long>(939, value);
 
 	/// <summary>
 	/// Represents AffirmStatus, FIX tag 940, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class AffirmStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(940, value);
+	public sealed class AffirmStatus((bool Valid, long Value) value)
+		: Typed<long>(940, value);
 
 	/// <summary>
 	/// Represents UnderlyingStrikeCurrency, FIX tag 941, with wire type <c>Currency</c>.
@@ -6739,22 +6738,22 @@ public abstract class FixField : IFixLocation
 	/// Represents CollAction, FIX tag 944, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollAction((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(944, value);
+	public sealed class CollAction((bool Valid, long Value) value)
+		: Typed<long>(944, value);
 
 	/// <summary>
 	/// Represents CollInquiryStatus, FIX tag 945, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollInquiryStatus((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(945, value);
+	public sealed class CollInquiryStatus((bool Valid, long Value) value)
+		: Typed<long>(945, value);
 
 	/// <summary>
 	/// Represents CollInquiryResult, FIX tag 946, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class CollInquiryResult((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(946, value);
+	public sealed class CollInquiryResult((bool Valid, long Value) value)
+		: Typed<long>(946, value);
 
 	/// <summary>
 	/// Represents StrikeCurrency, FIX tag 947, with wire type <c>Currency</c>.
@@ -6767,8 +6766,8 @@ public abstract class FixField : IFixLocation
 	/// Represents NoNested3PartyIDs, FIX tag 948, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNested3PartyIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(948, value);
+	public sealed class NoNested3PartyIDs((bool Valid, long Value) value)
+		: Typed<long>(948, value);
 
 	/// <summary>
 	/// Represents Nested3PartyID, FIX tag 949, with wire type <c>String</c>.
@@ -6788,15 +6787,15 @@ public abstract class FixField : IFixLocation
 	/// Represents Nested3PartyRole, FIX tag 951, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Nested3PartyRole((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(951, value);
+	public sealed class Nested3PartyRole((bool Valid, long Value) value)
+		: Typed<long>(951, value);
 
 	/// <summary>
 	/// Represents NoNested3PartySubIDs, FIX tag 952, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoNested3PartySubIDs((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(952, value);
+	public sealed class NoNested3PartySubIDs((bool Valid, long Value) value)
+		: Typed<long>(952, value);
 
 	/// <summary>
 	/// Represents Nested3PartySubID, FIX tag 953, with wire type <c>String</c>.
@@ -6809,8 +6808,8 @@ public abstract class FixField : IFixLocation
 	/// Represents Nested3PartySubIDType, FIX tag 954, with wire type <c>int</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class Nested3PartySubIDType((bool Valid, BigInteger Value) value)
-		: Typed<BigInteger>(954, value);
+	public sealed class Nested3PartySubIDType((bool Valid, long Value) value)
+		: Typed<long>(954, value);
 
 	/// <summary>
 	/// Represents LegContractSettlMonth, FIX tag 955, with wire type <c>MonthYear</c>.

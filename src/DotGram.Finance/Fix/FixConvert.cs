@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.Numerics;
 using System.Text;
 
 namespace DotGram.Finance.Fix;
@@ -47,13 +46,13 @@ static class FixConvert
 		return result;
 	}
 
-	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<char> raw)
+	public static (bool Valid, long Value) Integer(ReadOnlySpan<char> raw)
 	{
 		var valid = Integer(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<byte> raw)
+	public static (bool Valid, long Value) Integer(ReadOnlySpan<byte> raw)
 	{
 		var valid = Integer(raw, out var value);
 		return (valid, value);
@@ -167,7 +166,7 @@ static class FixConvert
 		return (valid, value);
 	}
 
-	public static bool Integer(ReadOnlySpan<char> raw, out BigInteger value)
+	public static bool Integer(ReadOnlySpan<char> raw, out long value)
 	{
 		value = default;
 
@@ -176,9 +175,10 @@ static class FixConvert
 		if (start == raw.Length)
 			return false;
 
-		// Eighteen characters of digits always fit a long, which a BigInteger takes without
-		// allocating. The criterion is the length of the text, so a value with more leading
-		// zeros than that takes the general path below.
+		// Eighteen digits always fit a long, so they are added up without a check. The criterion
+		// is the length of the text, so a value with more leading zeros than that takes the
+		// checked path below, which is the same loop asking at every digit whether the next
+		// still fits.
 		if (raw.Length - start <= 18)
 		{
 			long number = 0;
@@ -198,78 +198,73 @@ static class FixConvert
 			return true;
 		}
 
-		for (var i = start; i < raw.Length; i++) if (raw[i] < '0' || raw[i] > '9')
-			return false;
-
-#if NETSTANDARD2_0
-		return BigInteger.TryParse(raw.ToString(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
-#else
-		return BigInteger.TryParse(raw, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
-#endif
-	}
-
-	public static bool Integer(ReadOnlySpan<byte> raw, out BigInteger value)
-	{
-		value = BigInteger.Zero;
-
-		var negative = !raw.IsEmpty && raw[0] == '-';
-		var start    = negative ? 1 : 0;
-
-		if (start == raw.Length)
-			return false;
-
-		// Eighteen characters of digits always fit a long, which a BigInteger takes without
-		// allocating. The criterion is the length of the text, so a value with more leading
-		// zeros than that takes the general path below.
-		if (raw.Length - start <= 18)
-		{
-			long number = 0;
-
-			for (var i = start; i < raw.Length; i++)
-			{
-				var digit = raw[i] - '0';
-
-				if (digit < 0 || digit > 9)
-					return false;
-
-				number = number * 10 + digit;
-			}
-
-			value = start == 1 ? -number : number;
-
-			return true;
-		}
-
-		// Nine digits per BigInteger operation; no text decoding or decimal rounding.
-		uint chunk  = 0;
-		var  digits = 0;
+		// Added up below zero, so that the one value with no positive twin, long.MinValue, is read.
+		long negated = 0;
 
 		for (var i = start; i < raw.Length; i++)
 		{
 			var digit = raw[i] - '0';
 
-			if (digit < 0 || digit > 9)
+			if (digit < 0 || digit > 9 || negated < (long.MinValue + digit) / 10)
 				return false;
 
-			chunk = chunk * 10 + (uint)digit;
-
-			if (++digits == 9)
-			{
-				value  = value * 1000000000 + chunk;
-				chunk  = 0;
-				digits = 0;
-			}
+			negated = negated * 10 - digit;
 		}
 
-		uint factor = 1;
+		if (start == 0 && negated == long.MinValue)
+			return false;
 
-		for (var i = 0; i < digits; i++)
-			factor *= 10;
+		value = start == 1 ? negated : -negated;
 
-		value = value * factor + chunk;
+		return true;
+	}
 
-		if (negative)
-			value = -value;
+	public static bool Integer(ReadOnlySpan<byte> raw, out long value)
+	{
+		value = default;
+
+		var start = !raw.IsEmpty && raw[0] == '-' ? 1 : 0;
+
+		if (start == raw.Length)
+			return false;
+
+		// The reader over characters, digit for digit: eighteen digits unchecked, more of them
+		// checked at every step and added up below zero.
+		if (raw.Length - start <= 18)
+		{
+			long number = 0;
+
+			for (var i = start; i < raw.Length; i++)
+			{
+				var digit = raw[i] - '0';
+
+				if (digit < 0 || digit > 9)
+					return false;
+
+				number = number * 10 + digit;
+			}
+
+			value = start == 1 ? -number : number;
+
+			return true;
+		}
+
+		long negated = 0;
+
+		for (var i = start; i < raw.Length; i++)
+		{
+			var digit = raw[i] - '0';
+
+			if (digit < 0 || digit > 9 || negated < (long.MinValue + digit) / 10)
+				return false;
+
+			negated = negated * 10 - digit;
+		}
+
+		if (start == 0 && negated == long.MinValue)
+			return false;
+
+		value = start == 1 ? negated : -negated;
 
 		return true;
 	}

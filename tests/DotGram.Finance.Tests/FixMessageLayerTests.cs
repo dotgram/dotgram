@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 
 using DotGram.Finance.Fix;
 
@@ -27,8 +26,8 @@ public sealed class FixMessageLayerTests
 		// A FixMessage.Reject: RefSeqNum and RefTagID both answer with a number, and both are integers.
 		var reject = (FixMessage.Reject)FixFixtures.Message("35=3|49=S|56=T|34=1|52=20260920-12:00:00|45=12345|371=44|");
 
-		Assert.Equal(new BigInteger(12345), reject.RefSeqNum!.Value);
-		Assert.Equal(new BigInteger(44),    reject.RefTagID!.Value);
+		Assert.Equal(12345L, reject.RefSeqNum!.Value);
+		Assert.Equal(44L,    reject.RefTagID!.Value);
 		Assert.True(reject.RefSeqNum.IsValid);
 
 		// And what is not a whole number is not read as one: the field is there, and says so.
