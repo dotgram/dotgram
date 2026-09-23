@@ -32,7 +32,7 @@ sealed class Fix44Context
 
 	static bool IsUnknownText(int tag)
 	{
-		return tag > 0 && FixSchema.Type(tag) == FixValueType.None;
+		return tag > 0 && FixNames.Name(tag) is null;
 	}
 
 	public static bool IsUnknownText(ReadOnlySpan<char> tag)

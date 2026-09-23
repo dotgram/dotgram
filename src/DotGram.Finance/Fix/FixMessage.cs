@@ -571,10 +571,10 @@ public abstract partial class FixMessage
 		}
 	}
 
-	/// <summary>FIX 4.4 IOI, MsgType 6.</summary>
-	public sealed partial class IOI : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
+	/// <summary>FIX 4.4 IndicationOfInterest, MsgType 6.</summary>
+	public sealed partial class IndicationOfInterest : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IYieldData
 	{
-		internal IOI(List<FixField> fields) : base("6", fields)
+		internal IndicationOfInterest(List<FixField> fields) : base("6", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -582,7 +582,7 @@ public abstract partial class FixMessage
 				{
 					case 15: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Currency)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 25: if (IOIQltyInd is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIQltyInd = (FixField.IOIQltyInd)field; break;
 					case 26: if (IOIRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIRefID = (FixField.IOIRefID)field; break;
 					case 27: if (IOIQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIQty = (FixField.IOIQty)field; break;
@@ -1608,7 +1608,7 @@ public abstract partial class FixMessage
 		/// <summary>
 		/// FIX tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX IOITransType, tag 28, wire type <c>char</c>; null when the field is absent.
 		/// </summary>
@@ -1999,7 +1999,7 @@ public abstract partial class FixMessage
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
-			context.Validators.IOI(context, this);
+			context.Validators.IndicationOfInterest(context, this);
 		}
 	}
 
@@ -6679,7 +6679,7 @@ public abstract partial class FixMessage
 						else
 							UndInstrmtGrp![^1].UnderlyingStipulations![^1].UnderlyingStipValue = (FixField.UnderlyingStipValue)field;
 						break;
-					case 33: if (NoLinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLinesOfText = (FixField.NoLinesOfText)field; break;
+					case 33: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.LinesOfText)field; break;
 					case  58: (LinesOfTextGrp ??= []).Add(new () { Text = (FixField.Text)field }); break;
 					case 354:
 						if (LinesOfTextGrp is null || LinesOfTextGrp.Count == 0)
@@ -6744,7 +6744,7 @@ public abstract partial class FixMessage
 		/// </summary>
 		public List<UndInstrmtGrp>?                UndInstrmtGrp             { get; internal set; }
 		/// <summary>
-		/// The entries counted by NoLinesOfText, tag 33; null when the group is absent.
+		/// The entries counted by LinesOfText, tag 33; null when the group is absent.
 		/// </summary>
 		public List<LinesOfTextGrp>?               LinesOfTextGrp            { get; internal set; }
 		/// <summary>
@@ -6767,8 +6767,8 @@ public abstract partial class FixMessage
 		public FixField.NoLegs?                    NoLegs                    { get; private set; }
 		/// <summary>The FIX NoUnderlyings, tag 711; how many entries of UndInstrmtGrp follow.</summary>
 		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
-		/// <summary>The FIX NoLinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
-		public FixField.NoLinesOfText?             NoLinesOfText             { get; private set; }
+		/// <summary>The FIX LinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
+		public FixField.LinesOfText?             LinesOfText             { get; private set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
@@ -7931,7 +7931,7 @@ public abstract partial class FixMessage
 						else
 							InstrmtLegGrp![^1].LegSecAltIDGrp![^1].LegSecurityAltIDSource = (FixField.LegSecurityAltIDSource)field;
 						break;
-					case 33: if (NoLinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLinesOfText = (FixField.NoLinesOfText)field; break;
+					case 33: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.LinesOfText)field; break;
 					case  58: (LinesOfTextGrp ??= []).Add(new () { Text = (FixField.Text)field }); break;
 					case 354:
 						if (LinesOfTextGrp is null || LinesOfTextGrp.Count == 0)
@@ -8008,7 +8008,7 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.ClOrdID?                   ClOrdID                   { get; private set; }
 		/// <summary>
-		/// The entries counted by NoLinesOfText, tag 33; null when the group is absent.
+		/// The entries counted by LinesOfText, tag 33; null when the group is absent.
 		/// </summary>
 		public List<LinesOfTextGrp>?               LinesOfTextGrp            { get; internal set; }
 		/// <summary>
@@ -8027,8 +8027,8 @@ public abstract partial class FixMessage
 		public FixField.NoUnderlyings?             NoUnderlyings             { get; private set; }
 		/// <summary>The FIX NoLegs, tag 555; how many entries of InstrmtLegGrp follow.</summary>
 		public FixField.NoLegs?                    NoLegs                    { get; private set; }
-		/// <summary>The FIX NoLinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
-		public FixField.NoLinesOfText?             NoLinesOfText             { get; private set; }
+		/// <summary>The FIX LinesOfText, tag 33; how many entries of LinesOfTextGrp follow.</summary>
+		public FixField.LinesOfText?             LinesOfText             { get; private set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
@@ -8054,7 +8054,7 @@ public abstract partial class FixMessage
 					case 18: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.ExecInst)field; break;
 					case 21: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.HandlInst)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 38: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.OrderQty)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
 					case 44: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Price)field; break;
@@ -9227,9 +9227,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.SolicitedFlag?              SolicitedFlag              { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
@@ -10233,10 +10233,10 @@ public abstract partial class FixMessage
 					case  23:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
-						else if (ListOrdGrp![^1].IOIID is not null)
+						else if (ListOrdGrp![^1].IOIid is not null)
 							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, ListOrdGrp!.Count - 1));
 						else
-							ListOrdGrp![^1].IOIID = (FixField.IOIID)field;
+							ListOrdGrp![^1].IOIid = (FixField.IOIid)field;
 						break;
 					case 117:
 						if (ListOrdGrp is null || ListOrdGrp.Count == 0)
@@ -39564,7 +39564,7 @@ public abstract partial class FixMessage
 					case 18: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.ExecInst)field; break;
 					case 21: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.HandlInst)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
 					case 44: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Price)field; break;
 					case 48: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.SecurityID)field; break;
@@ -41249,9 +41249,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.ComplianceID?               ComplianceID               { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
@@ -41396,7 +41396,7 @@ public abstract partial class FixMessage
 					case 18: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.ExecInst)field; break;
 					case 21: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.HandlInst)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 37: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.OrderID)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
 					case 44: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Price)field; break;
@@ -43091,9 +43091,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.ComplianceID?               ComplianceID               { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
@@ -48920,7 +48920,7 @@ public abstract partial class FixMessage
 					case 18: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.ExecInst)field; break;
 					case 21: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.HandlInst)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 38: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.OrderQty)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
 					case 44: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Price)field; break;
@@ -50546,9 +50546,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.SolicitedFlag?              SolicitedFlag              { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
@@ -50742,10 +50742,10 @@ public abstract partial class FixMessage
 		}
 	}
 
-	/// <summary>FIX 4.4 MultilegOrderCancelReplace, MsgType AC.</summary>
-	public sealed partial class MultilegOrderCancelReplace : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IPegInstructions
+	/// <summary>FIX 4.4 MultilegOrderCancelReplaceRequest, MsgType AC.</summary>
+	public sealed partial class MultilegOrderCancelReplaceRequest : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IPegInstructions
 	{
-		internal MultilegOrderCancelReplace(List<FixField> fields)
+		internal MultilegOrderCancelReplaceRequest(List<FixField> fields)
 			: base("AC", fields)
 		{
 			foreach (var field in fields)
@@ -50760,7 +50760,7 @@ public abstract partial class FixMessage
 					case 18: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.ExecInst)field; break;
 					case 21: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.HandlInst)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 37: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.OrderID)field; break;
 					case 38: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.OrderQty)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
@@ -52401,9 +52401,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.SolicitedFlag?              SolicitedFlag              { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
@@ -52593,7 +52593,7 @@ public abstract partial class FixMessage
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
-			context.Validators.MultilegOrderCancelReplace(context, this);
+			context.Validators.MultilegOrderCancelReplaceRequest(context, this);
 		}
 	}
 
@@ -61530,7 +61530,7 @@ public abstract partial class FixMessage
 					case 13: if (CommType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CommType = (FixField.CommType)field; break;
 					case 15: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Currency)field; break;
 					case 22: if (SecurityIDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityIDSource = (FixField.SecurityIDSource)field; break;
-					case 23: if (IOIID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIID = (FixField.IOIID)field; break;
+					case 23: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.IOIid)field; break;
 					case 38: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.OrderQty)field; break;
 					case 40: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.OrdType)field; break;
 					case 44: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Price)field; break;
@@ -62676,9 +62676,9 @@ public abstract partial class FixMessage
 		/// </summary>
 		public FixField.OrderCapacity?              OrderCapacity              { get; private set; }
 		/// <summary>
-		/// The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.
+		/// The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.
 		/// </summary>
-		public FixField.IOIID?                      IOIID                      { get; private set; }
+		public FixField.IOIid?                      IOIid                      { get; private set; }
 		/// <summary>
 		/// The FIX QuoteType, tag 537, wire type <c>int</c>; null when the field is absent.
 		/// </summary>
@@ -84567,10 +84567,10 @@ public abstract partial class FixMessage
 		}
 	}
 
-	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusRequest, MsgType BC.</summary>
-	public sealed partial class NetworkCounterpartySystemStatusRequest : FixMessage
+	/// <summary>FIX 4.4 NetworkStatusRequest, MsgType BC.</summary>
+	public sealed partial class NetworkStatusRequest : FixMessage
 	{
-		internal NetworkCounterpartySystemStatusRequest(List<FixField> fields)
+		internal NetworkStatusRequest(List<FixField> fields)
 			: base("BC", fields)
 		{
 			foreach (var field in fields)
@@ -84634,14 +84634,14 @@ public abstract partial class FixMessage
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
-			context.Validators.NetworkCounterpartySystemStatusRequest(context, this);
+			context.Validators.NetworkStatusRequest(context, this);
 		}
 	}
 
-	/// <summary>FIX 4.4 NetworkCounterpartySystemStatusResponse, MsgType BD.</summary>
-	public sealed partial class NetworkCounterpartySystemStatusResponse : FixMessage
+	/// <summary>FIX 4.4 NetworkStatusResponse, MsgType BD.</summary>
+	public sealed partial class NetworkStatusResponse : FixMessage
 	{
-		internal NetworkCounterpartySystemStatusResponse(List<FixField> fields)
+		internal NetworkStatusResponse(List<FixField> fields)
 			: base("BD", fields)
 		{
 			foreach (var field in fields)
@@ -84731,7 +84731,7 @@ public abstract partial class FixMessage
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(FixContext context)
 		{
-			context.Validators.NetworkCounterpartySystemStatusResponse(context, this);
+			context.Validators.NetworkStatusResponse(context, this);
 		}
 	}
 

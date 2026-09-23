@@ -100,28 +100,20 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>
-	/// The type this package gives a tag is the type the repository declares for it — except where
-	/// the repository contradicts itself, and then it is a type that holds what the repository
-	/// publishes.
+	/// The value a tag's field holds is the CLR type of the type the repository declares for it —
+	/// except where the repository contradicts itself, and then it is a type that holds what the
+	/// repository publishes.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// The generator reads the repository's spelling and writes the member it lands on; the
-	/// run-time reader of a dictionary does the same through <c>FixVocabulary</c>. Two copies of
-	/// one map disagree silently — by leaving a tag unchecked rather than by failing — so they are
-	/// held against each other here, where a disagreement is loud.
-	/// </para>
-	/// <para>
 	/// <strong>Two fields of FIX 4.4 declare a type their own code set does not fit.</strong>
 	/// MiscFeeType (139) is declared <c>char</c> and publishes the values 10, 11 and 12;
 	/// MassCancelRejectReason (532) is declared <c>char</c> and publishes 99. Held to the declared
 	/// type, a message carrying a value the same specification publishes would be refused. So the
 	/// rule is not "agree with the declared type" but "hold what the specification publishes", and
 	/// the exception is allowed only where the declared type demonstrably cannot.
-	/// </para>
 	/// </remarks>
 	[Fact]
-	public void Every_tag_has_the_type_the_repository_declares()
+	public void Every_tag_holds_the_type_the_repository_declares()
 	{
 		var wrong = new List<string>();
 
@@ -129,8 +121,8 @@ public sealed class FixRepositoryAgreementTests
 		{
 			var tag      = int.Parse(Text(field, "Tag"), CultureInfo.InvariantCulture);
 			var declared = Text(field, "Type");
-			var ours     = FixSchema.Type(tag);
-			var theirs   = Vocabulary(declared);
+			var ours     = Held(tag);
+			var theirs   = Clr(declared);
 
 			if (ours == theirs)
 				continue;
@@ -138,27 +130,27 @@ public sealed class FixRepositoryAgreementTests
 			var codes = Codes(tag);
 
 			// A wider type is right only where the declared one cannot hold what the same
-			// specification publishes for the field, and only if the wider one holds all of it.
+			// specification publishes for the field, and only if the field holds all of it.
 			if (codes.Count != 0 &&
-				codes.Any(code => !Fits(theirs, tag, code)) &&
-				codes.All(code => Fits(ours, tag, code)))
+				codes.Any(code => !Fits(theirs, code)) &&
+				codes.All(code => Accepted(tag, code)))
 				continue;
 
-			wrong.Add($"tag {tag} ({Text(field, "Name")}): the repository says {declared}, which is {theirs}; this package says {ours}.");
+			wrong.Add($"tag {tag} ({Text(field, "Name")}): the repository says {declared}, which is {theirs?.Name}; this package holds {ours?.Name}.");
 		}
 
 		Assert.True(wrong.Count == 0, string.Join(Environment.NewLine, wrong));
 	}
 
 	/// <summary>
-	/// Every value the repository publishes for a tag is one this package's type for that tag
-	/// accepts.
+	/// Every value the repository publishes for a tag is one this package reads and holds to the
+	/// schema without a finding.
 	/// </summary>
 	/// <remarks>
 	/// The property the test above is an approximation of, and the one that actually matters: a
-	/// value the specification prints in its own table must not be refused. It is asked through
-	/// <c>FixPrimitives</c>, which is what a validator asks, so this is the consumer's path and not
-	/// a second opinion about it.
+	/// value the specification prints in its own table must not be refused. It is asked through the
+	/// field factory and the compiled-in check of the field, which is the consumer's path and not a
+	/// second opinion about it.
 	/// </remarks>
 	[Fact]
 	public void Every_published_value_is_one_this_package_accepts()
@@ -167,15 +159,11 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var field in Load("Fields.xml").Elements())
 		{
-			var tag  = int.Parse(Text(field, "Tag"), CultureInfo.InvariantCulture);
-			var type = FixSchema.Type(tag);
-
-			if (type == FixValueType.None)
-				continue;
+			var tag = int.Parse(Text(field, "Tag"), CultureInfo.InvariantCulture);
 
 			foreach (var code in Codes(tag))
-				if (!Fits(type, tag, code))
-					refused.Add($"tag {tag} ({Text(field, "Name")}) publishes '{code}', which this package's {type} refuses.");
+				if (!Accepted(tag, code))
+					refused.Add($"tag {tag} ({Text(field, "Name")}) publishes '{code}', which this package refuses.");
 		}
 
 		Assert.True(refused.Count == 0, string.Join(Environment.NewLine, refused));
@@ -190,10 +178,57 @@ public sealed class FixRepositoryAgreementTests
 			.ToArray();
 	}
 
-	/// <summary>Whether a value fits a type, asked of the code a validator asks.</summary>
-	static bool Fits(FixValueType type, int tag, string code)
+	/// <summary>Whether a value read as this tag's field is valid and passes the field's compiled-in check.</summary>
+	static bool Accepted(int tag, string code)
 	{
-		return FixPrimitives.Valid(tag, code, type, null);
+		var field = FixFieldFactory.Value(tag, code.AsSpan(), FixContext.Default.CustomFields);
+
+		if (!field.IsValid)
+			return false;
+
+		var check = typeof(FixValidators).GetProperty(FixNames.Name(tag)!)!.GetValue(FixValidators.Default)!;
+		var host  = new FixMessage.Custom("ZZ", []);
+
+		((Delegate)check).DynamicInvoke(FixContext.Default, host, field);
+
+		return host.IsValid;
+	}
+
+	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
+	static Type? Held(int tag)
+	{
+		var type = FixNames.Name(tag) is { } name ? typeof(FixField).GetNestedType(name) : null;
+
+		return type?.BaseType is { IsGenericType: true } typed ? typed.GetGenericArguments()[0] : null;
+	}
+
+	/// <summary>The CLR type this package holds a type of the repository's spelling in.</summary>
+	static Type? Clr(string declared)
+	{
+		return declared.ToUpperInvariant() switch
+		{
+			"INT" or "LENGTH" or "NUMINGROUP" or "SEQNUM" or "TAGNUM" or "DAYOFMONTH"   => typeof(long),
+			"FLOAT" or "QTY" or "PRICE" or "PRICEOFFSET" or "AMT" or "PERCENTAGE"         => typeof(decimal),
+			"CHAR"                                                                        => typeof(char),
+			"BOOLEAN"                                                                     => typeof(bool),
+			"STRING" or "CURRENCY" or "COUNTRY" or "EXCHANGE" or "MONTHYEAR" or "LANGUAGE" => typeof(string),
+			"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE"         => typeof(string[]),
+			"LOCALMKTDATE" or "UTCDATEONLY" or "UTCDATE"                                  => typeof(DateOnly),
+			"UTCTIMEONLY"                                                                 => typeof(TimeOnly),
+			"UTCTIMESTAMP"                                                                => typeof(DateTimeOffset),
+			"DATA" or "XMLDATA"                                                           => typeof(ReadOnlyMemory<byte>),
+			_                                                                             => null,
+		};
+	}
+
+	/// <summary>Whether a published value could be held in a CLR type at all.</summary>
+	static bool Fits(Type? type, string code)
+	{
+		return type == typeof(char)    ? code.Length == 1
+		     : type == typeof(long)    ? long.TryParse(code, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _)
+		     : type == typeof(decimal) ? decimal.TryParse(code, NumberStyles.Number, CultureInfo.InvariantCulture, out _)
+		     : type == typeof(bool)    ? code is "Y" or "N"
+		     : type is not null;
 	}
 
 	/// <summary>
@@ -269,43 +304,14 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var pair in pairs)
 		{
-			Assert.Equal(pair.Value, FixSchema.LengthTag(pair.Key));
-			Assert.Equal(pair.Key,   FixSchema.DataTag(pair.Value));
+			Assert.Equal(pair.Value, FixContext.Default.LengthTag(pair.Key));
+			Assert.Equal(pair.Key,   FixContext.Default.DataTag(pair.Value));
 		}
 
 		// And nothing the package calls a pair is outside that set.
 		for (var tag = 1; tag < 1000; tag++)
-			if (FixSchema.DataTag(tag) != 0)
+			if (FixContext.Default.DataTag(tag) != 0)
 				Assert.Contains(tag, pairs.Values);
-	}
-
-	/// <summary>
-	/// Every tag the specification declares is inside the mask a scope marks what it has seen with.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Trivially true today: FIX 4.4's largest tag is 956 and the mask covers 1 through
-	/// <see cref="FixSchema.TagLimit"/>. It is asserted because a deletion rests on it. Asking
-	/// whether a scope holds a tag is done by reading that mask, and the branch that looked for a
-	/// tag outside it among the fields themselves existed for a counterparty's own tag, arriving
-	/// from a loaded dictionary. Nothing generated asks it: a validator asks only about tags the
-	/// schema lists.
-	/// </para>
-	/// <para>
-	/// If a later edition of the repository -- or another version of FIX read through the same
-	/// files -- ever declares a tag above the mask, presence would be asked of a bit that is not
-	/// there. This says so at once instead of letting it become a silent wrong answer.
-	/// </para>
-	/// </remarks>
-	[Fact]
-	public void Every_tag_the_repository_declares_is_inside_the_mask()
-	{
-		var largest = Load("Fields.xml").Elements()
-			.Select(one => int.Parse(Text(one, "Tag"), CultureInfo.InvariantCulture))
-			.Max();
-
-		Assert.True(largest < FixSchema.TagLimit,
-			$"the repository declares tag {largest} and the mask covers 1 through {FixSchema.TagLimit - 1}.");
 	}
 
 	// ── the repository, read afresh ──────────────────────────────────────────────────────────
@@ -442,40 +448,6 @@ public sealed class FixRepositoryAgreementTests
 		}
 
 		return count;
-	}
-
-	/// <summary>This package's reading of the repository's spelling of a type.</summary>
-	static FixValueType Vocabulary(string declared)
-	{
-		return declared.ToUpperInvariant() switch
-		{
-			"STRING" or "LANGUAGE"                                           => FixValueType.String,
-			"CHAR"                                                           => FixValueType.Char,
-			"INT"                                                            => FixValueType.Int,
-			"LENGTH"                                                         => FixValueType.Length,
-			"NUMINGROUP"                                                     => FixValueType.NumInGroup,
-			"SEQNUM"                                                         => FixValueType.SeqNum,
-			"TAGNUM"                                                         => FixValueType.TagNum,
-			"DAYOFMONTH"                                                     => FixValueType.DayOfMonth,
-			"FLOAT"                                                          => FixValueType.Float,
-			"QTY"                                                            => FixValueType.Qty,
-			"PRICE"                                                          => FixValueType.Price,
-			"PRICEOFFSET"                                                    => FixValueType.PriceOffset,
-			"AMT"                                                            => FixValueType.Amt,
-			"PERCENTAGE"                                                     => FixValueType.Percentage,
-			"BOOLEAN"                                                        => FixValueType.Boolean,
-			"CURRENCY"                                                       => FixValueType.Currency,
-			"COUNTRY"                                                        => FixValueType.Country,
-			"EXCHANGE"                                                       => FixValueType.Exchange,
-			"MONTHYEAR"                                                      => FixValueType.MonthYear,
-			"LOCALMKTDATE"                                                   => FixValueType.LocalMktDate,
-			"UTCDATEONLY" or "UTCDATE"                                       => FixValueType.UTCDateOnly,
-			"UTCTIMEONLY"                                                    => FixValueType.UTCTimeOnly,
-			"UTCTIMESTAMP"                                                   => FixValueType.UTCTimestamp,
-			"DATA" or "XMLDATA"                                              => FixValueType.Data,
-			"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE" => FixValueType.MultipleValueString,
-			_                                                                => FixValueType.None,
-		};
 	}
 
 	// ── a message of that type with nothing in its body ──────────────────────────────────────

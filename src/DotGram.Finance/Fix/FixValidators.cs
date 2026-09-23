@@ -117,8 +117,8 @@ partial class FixValidators
 	/// <summary>Holds a FIX 4.4 Heartbeat to the schema.</summary>
 	public Func<FixContext, FixMessage.Heartbeat, bool> Heartbeat                               { get; set; } = ValidateHeartbeat;
 
-	/// <summary>Holds a FIX 4.4 IOI to the schema.</summary>
-	public Func<FixContext, FixMessage.IOI, bool> IOI                                     { get; set; } = ValidateIOI;
+	/// <summary>Holds a FIX 4.4 IndicationOfInterest to the schema.</summary>
+	public Func<FixContext, FixMessage.IndicationOfInterest, bool> IndicationOfInterest                                     { get; set; } = ValidateIndicationOfInterest;
 
 	/// <summary>Holds a FIX 4.4 ListCancelRequest to the schema.</summary>
 	public Func<FixContext, FixMessage.ListCancelRequest, bool> ListCancelRequest                       { get; set; } = ValidateListCancelRequest;
@@ -159,14 +159,14 @@ partial class FixValidators
 	/// <summary>Holds a FIX 4.4 MassQuoteAcknowledgement to the schema.</summary>
 	public Func<FixContext, FixMessage.MassQuoteAcknowledgement, bool> MassQuoteAcknowledgement                { get; set; } = ValidateMassQuoteAcknowledgement;
 
-	/// <summary>Holds a FIX 4.4 MultilegOrderCancelReplace to the schema.</summary>
-	public Func<FixContext, FixMessage.MultilegOrderCancelReplace, bool> MultilegOrderCancelReplace              { get; set; } = ValidateMultilegOrderCancelReplace;
+	/// <summary>Holds a FIX 4.4 MultilegOrderCancelReplaceRequest to the schema.</summary>
+	public Func<FixContext, FixMessage.MultilegOrderCancelReplaceRequest, bool> MultilegOrderCancelReplaceRequest              { get; set; } = ValidateMultilegOrderCancelReplaceRequest;
 
-	/// <summary>Holds a FIX 4.4 NetworkCounterpartySystemStatusRequest to the schema.</summary>
-	public Func<FixContext, FixMessage.NetworkCounterpartySystemStatusRequest, bool> NetworkCounterpartySystemStatusRequest  { get; set; } = ValidateNetworkCounterpartySystemStatusRequest;
+	/// <summary>Holds a FIX 4.4 NetworkStatusRequest to the schema.</summary>
+	public Func<FixContext, FixMessage.NetworkStatusRequest, bool> NetworkStatusRequest  { get; set; } = ValidateNetworkStatusRequest;
 
-	/// <summary>Holds a FIX 4.4 NetworkCounterpartySystemStatusResponse to the schema.</summary>
-	public Func<FixContext, FixMessage.NetworkCounterpartySystemStatusResponse, bool> NetworkCounterpartySystemStatusResponse { get; set; } = ValidateNetworkCounterpartySystemStatusResponse;
+	/// <summary>Holds a FIX 4.4 NetworkStatusResponse to the schema.</summary>
+	public Func<FixContext, FixMessage.NetworkStatusResponse, bool> NetworkStatusResponse { get; set; } = ValidateNetworkStatusResponse;
 
 	/// <summary>Holds a FIX 4.4 NewOrderCross to the schema.</summary>
 	public Func<FixContext, FixMessage.NewOrderCross, bool> NewOrderCross                           { get; set; } = ValidateNewOrderCross;
@@ -707,8 +707,8 @@ partial class FixValidators
 	/// <summary>Holds a FIX 4.4 SecurityIDSource, tag 22, to the values the specification lists.</summary>
 	public Func<FixContext, FixMessage, FixField.SecurityIDSource, bool> SecurityIDSource                        { get; set; } = ValidateSecurityIDSource;
 
-	/// <summary>Holds a FIX 4.4 IOIID, tag 23, to its type.</summary>
-	public Func<FixContext, FixMessage, FixField.IOIID, bool> IOIID                                   { get; set; } = ValidateIOIID;
+	/// <summary>Holds a FIX 4.4 IOIid, tag 23, to its type.</summary>
+	public Func<FixContext, FixMessage, FixField.IOIid, bool> IOIid                                   { get; set; } = ValidateIOIid;
 
 	/// <summary>Holds a FIX 4.4 IOIQltyInd, tag 25, to the values the specification lists.</summary>
 	public Func<FixContext, FixMessage, FixField.IOIQltyInd, bool> IOIQltyInd                              { get; set; } = ValidateIOIQltyInd;
@@ -734,8 +734,8 @@ partial class FixValidators
 	/// <summary>Holds a FIX 4.4 LastQty, tag 32, to its type.</summary>
 	public Func<FixContext, FixMessage, FixField.LastQty, bool> LastQty                                 { get; set; } = ValidateLastQty;
 
-	/// <summary>Holds a FIX 4.4 NoLinesOfText, tag 33, to its type.</summary>
-	public Func<FixContext, FixMessage, FixField.NoLinesOfText, bool> NoLinesOfText                           { get; set; } = ValidateNoLinesOfText;
+	/// <summary>Holds a FIX 4.4 LinesOfText, tag 33, to its type.</summary>
+	public Func<FixContext, FixMessage, FixField.LinesOfText, bool> LinesOfText                           { get; set; } = ValidateLinesOfText;
 
 	/// <summary>Holds a FIX 4.4 MsgSeqNum, tag 34, to its type.</summary>
 	public Func<FixContext, FixMessage, FixField.MsgSeqNum, bool> MsgSeqNum                               { get; set; } = ValidateMsgSeqNum;
@@ -5368,7 +5368,7 @@ partial class FixValidators
 		if (message.ExecInst                   is not null) context.Validators.ExecInst(context, message, message.ExecInst);
 		if (message.HandlInst                  is not null) context.Validators.HandlInst(context, message, message.HandlInst);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrderID                    is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
 		if (message.Price                      is not null) context.Validators.Price(context, message, message.Price);
@@ -5853,13 +5853,13 @@ partial class FixValidators
 
 	static bool ValidateEmail(FixContext context, FixMessage.Email message)
 	{
-		if (message.NoLinesOfText is null) Missing(message, 33);
+		if (message.LinesOfText is null) Missing(message, 33);
 		if (message.EmailType     is null) Missing(message, 94);
 		if (message.Subject       is null) Missing(message, 147);
 		if (message.EmailThreadID is null) Missing(message, 164);
 
 		if (message.ClOrdID           is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
-		if (message.NoLinesOfText     is not null) context.Validators.NoLinesOfText(context, message, message.NoLinesOfText);
+		if (message.LinesOfText     is not null) context.Validators.LinesOfText(context, message, message.LinesOfText);
 		if (message.OrderID           is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.OrigTime          is not null) context.Validators.OrigTime(context, message, message.OrigTime);
 		if (message.EmailType         is not null) context.Validators.EmailType(context, message, message.EmailType);
@@ -5876,7 +5876,7 @@ partial class FixValidators
 
 		Counted(message, message.NoRelatedSym, message.InstrmtGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
-		Counted(message, message.NoLinesOfText, message.LinesOfTextGrp);
+		Counted(message, message.LinesOfText, message.LinesOfTextGrp);
 		Counted(message, message.NoRoutingIDs, message.RoutingGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
@@ -6187,9 +6187,9 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateIOI(FixContext context, FixMessage.IOI message)
+	static bool ValidateIndicationOfInterest(FixContext context, FixMessage.IndicationOfInterest message)
 	{
-		if (message.IOIID        is null) Missing(message, 23);
+		if (message.IOIid        is null) Missing(message, 23);
 		if (message.IOIQty       is null) Missing(message, 27);
 		if (message.IOITransType is null) Missing(message, 28);
 		if (message.Side         is null) Missing(message, 54);
@@ -6203,7 +6203,7 @@ partial class FixValidators
 
 		if (message.Currency                   is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.IOIQltyInd                 is not null) context.Validators.IOIQltyInd(context, message, message.IOIQltyInd);
 		if (message.IOIRefID                   is not null) context.Validators.IOIRefID(context, message, message.IOIRefID);
 		if (message.IOIQty                     is not null) context.Validators.IOIQty(context, message, message.IOIQty);
@@ -6688,7 +6688,7 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateMultilegOrderCancelReplace(FixContext context, FixMessage.MultilegOrderCancelReplace message)
+	static bool ValidateMultilegOrderCancelReplaceRequest(FixContext context, FixMessage.MultilegOrderCancelReplaceRequest message)
 	{
 		if (message.ClOrdID      is null) Missing(message, 11);
 		if (message.OrdType      is null) Missing(message, 40);
@@ -6713,7 +6713,7 @@ partial class FixValidators
 		if (message.ExecInst                   is not null) context.Validators.ExecInst(context, message, message.ExecInst);
 		if (message.HandlInst                  is not null) context.Validators.HandlInst(context, message, message.HandlInst);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrderID                    is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.OrderQty                   is not null) context.Validators.OrderQty(context, message, message.OrderQty);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
@@ -6873,7 +6873,7 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateNetworkCounterpartySystemStatusRequest(FixContext context, FixMessage.NetworkCounterpartySystemStatusRequest message)
+	static bool ValidateNetworkStatusRequest(FixContext context, FixMessage.NetworkStatusRequest message)
 	{
 		if (message.NetworkRequestID   is null) Missing(message, 933);
 		if (message.NetworkRequestType is null) Missing(message, 935);
@@ -6891,7 +6891,7 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateNetworkCounterpartySystemStatusResponse(FixContext context, FixMessage.NetworkCounterpartySystemStatusResponse message)
+	static bool ValidateNetworkStatusResponse(FixContext context, FixMessage.NetworkStatusResponse message)
 	{
 		if (message.NetworkResponseID         is null) Missing(message, 932);
 		if (message.NoCompIDs                 is null) Missing(message, 936);
@@ -6932,7 +6932,7 @@ partial class FixValidators
 		if (message.ExecInst                   is not null) context.Validators.ExecInst(context, message, message.ExecInst);
 		if (message.HandlInst                  is not null) context.Validators.HandlInst(context, message, message.HandlInst);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
 		if (message.Price                      is not null) context.Validators.Price(context, message, message.Price);
 		if (message.SecurityID                 is not null) context.Validators.SecurityID(context, message, message.SecurityID);
@@ -7132,7 +7132,7 @@ partial class FixValidators
 		if (message.ExecInst                   is not null) context.Validators.ExecInst(context, message, message.ExecInst);
 		if (message.HandlInst                  is not null) context.Validators.HandlInst(context, message, message.HandlInst);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrderQty                   is not null) context.Validators.OrderQty(context, message, message.OrderQty);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
 		if (message.Price                      is not null) context.Validators.Price(context, message, message.Price);
@@ -7315,7 +7315,7 @@ partial class FixValidators
 		if (message.ExecInst                   is not null) context.Validators.ExecInst(context, message, message.ExecInst);
 		if (message.HandlInst                  is not null) context.Validators.HandlInst(context, message, message.HandlInst);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrderQty                   is not null) context.Validators.OrderQty(context, message, message.OrderQty);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
 		if (message.Price                      is not null) context.Validators.Price(context, message, message.Price);
@@ -7499,10 +7499,10 @@ partial class FixValidators
 
 	static bool ValidateNews(FixContext context, FixMessage.News message)
 	{
-		if (message.NoLinesOfText is null) Missing(message, 33);
+		if (message.LinesOfText is null) Missing(message, 33);
 		if (message.Headline      is null) Missing(message, 148);
 
-		if (message.NoLinesOfText      is not null) context.Validators.NoLinesOfText(context, message, message.NoLinesOfText);
+		if (message.LinesOfText      is not null) context.Validators.LinesOfText(context, message, message.LinesOfText);
 		if (message.OrigTime           is not null) context.Validators.OrigTime(context, message, message.OrigTime);
 		if (message.Urgency            is not null) context.Validators.Urgency(context, message, message.Urgency);
 		if (message.RawDataLength      is not null) context.Validators.RawDataLength(context, message, message.RawDataLength);
@@ -7518,7 +7518,7 @@ partial class FixValidators
 
 		Counted(message, message.NoRelatedSym, message.InstrmtGrp);
 		Counted(message, message.NoLegs, message.InstrmtLegGrp);
-		Counted(message, message.NoLinesOfText, message.LinesOfTextGrp);
+		Counted(message, message.LinesOfText, message.LinesOfTextGrp);
 		Counted(message, message.NoRoutingIDs, message.RoutingGrp);
 		Counted(message, message.NoUnderlyings, message.UndInstrmtGrp);
 
@@ -9010,7 +9010,7 @@ partial class FixValidators
 		if (message.CommType                   is not null) context.Validators.CommType(context, message, message.CommType);
 		if (message.Currency                   is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, message.SecurityIDSource);
-		if (message.IOIID                      is not null) context.Validators.IOIID(context, message, message.IOIID);
+		if (message.IOIid                      is not null) context.Validators.IOIid(context, message, message.IOIid);
 		if (message.OrderQty                   is not null) context.Validators.OrderQty(context, message, message.OrderQty);
 		if (message.OrdType                    is not null) context.Validators.OrdType(context, message, message.OrdType);
 		if (message.Price                      is not null) context.Validators.Price(context, message, message.Price);
@@ -12070,7 +12070,7 @@ partial class FixValidators
 		if (entry.ExecInst                   is not null) context.Validators.ExecInst(context, message, entry.ExecInst);
 		if (entry.HandlInst                  is not null) context.Validators.HandlInst(context, message, entry.HandlInst);
 		if (entry.SecurityIDSource           is not null) context.Validators.SecurityIDSource(context, message, entry.SecurityIDSource);
-		if (entry.IOIID                      is not null) context.Validators.IOIID(context, message, entry.IOIID);
+		if (entry.IOIid                      is not null) context.Validators.IOIid(context, message, entry.IOIid);
 		if (entry.OrderQty                   is not null) context.Validators.OrderQty(context, message, entry.OrderQty);
 		if (entry.OrdType                    is not null) context.Validators.OrdType(context, message, entry.OrdType);
 		if (entry.Price                      is not null) context.Validators.Price(context, message, entry.Price);
@@ -14871,7 +14871,7 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateIOIID(FixContext context, FixMessage message, FixField.IOIID field)
+	static bool ValidateIOIid(FixContext context, FixMessage message, FixField.IOIid field)
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
@@ -14943,7 +14943,7 @@ partial class FixValidators
 		return message.IsValid;
 	}
 
-	static bool ValidateNoLinesOfText(FixContext context, FixMessage message, FixField.NoLinesOfText field)
+	static bool ValidateLinesOfText(FixContext context, FixMessage message, FixField.LinesOfText field)
 	{
 		if (!field.IsValid)
 			Invalid(message, field);

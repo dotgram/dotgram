@@ -20,7 +20,7 @@ public sealed class HandFixTests
 	}
 
 	[Theory]
-	[MemberData(nameof(PrimitiveTests.KnownCodes), MemberType = typeof(PrimitiveTests))]
+	[MemberData(nameof(FixFixtures.KnownCodes), MemberType = typeof(FixFixtures))]
 	public void Known_code_values_match(int tag, string value)
 	{
 		Compare(tag + "=" + value, true);

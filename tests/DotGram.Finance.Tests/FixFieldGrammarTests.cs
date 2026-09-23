@@ -19,7 +19,7 @@ public sealed class FixFieldGrammarTests
 		var log = FixFieldReaderTests.Log(wire, expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixContext.Log), FixParser.ReadMessage(logBytes, FixContext.Log) })
+		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixContext.WithLogFraming), FixParser.ReadMessage(logBytes, FixContext.WithLogFraming) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.Fields.Select(f => (f.Tag, f.GetType())), message.Fields.Select(f => (f.Tag, f.GetType())));
@@ -68,7 +68,7 @@ public sealed class FixFieldGrammarTests
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
-		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixContext.Log));
+		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixContext.WithLogFraming));
 	}
 
 	static FixField Field(FixMessage message, int tag)

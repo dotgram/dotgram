@@ -269,7 +269,7 @@ public sealed class Fix44Tests
 			for (var i = 1; i < fields.Count; i++)
 			{
 				var current   = fields[i];
-				var lengthTag = FixSchema.LengthTag(current.Tag);
+				var lengthTag = FixContext.Default.LengthTag(current.Tag);
 
 				if (lengthTag == 0 || !covered.Add(current.Tag)) continue;
 

@@ -89,7 +89,7 @@ public sealed class FixLogTests
 
 		Assert.Equal(2, fields.Length);
 		Assert.Equal(value, Assert.IsType<FixField.Symbol>(fields[0]).Value);
-		Assert.Equal("ABC ", Assert.IsType<FixField.Symbol>(Assert.Single(FixParser.ParseFields("55=ABC ", FixContext.Log))).Value);
+		Assert.Equal("ABC ", Assert.IsType<FixField.Symbol>(Assert.Single(FixParser.ParseFields("55=ABC ", FixContext.WithLogFraming))).Value);
 	}
 
 	[Theory]
@@ -101,8 +101,8 @@ public sealed class FixLogTests
 		var limit = input.IndexOf("38=", StringComparison.Ordinal) + 1;
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input)) { ReadLimit = limit };
 		using var reader = new GatedReader(input, limit);
-		var bytes = FixParser.ReadFields(stream, FixContext.Log, bufferSize: 1);
-		var chars = FixParser.ReadFields(reader, FixContext.Log, bufferSize: 1);
+		var bytes = FixParser.ReadFields(stream, FixContext.WithLogFraming, bufferSize: 1);
+		var chars = FixParser.ReadFields(reader, FixContext.WithLogFraming, bufferSize: 1);
 
 		Assert.Equal(0, stream.Position);
 		Assert.Equal(0, reader.ReadCount);

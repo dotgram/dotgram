@@ -137,8 +137,11 @@ switch (mode)
 
 	case "parse":
 	{
-		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
-		Phase("FixSchema cctor", true);
+		if (finance.GetType("DotGram.Finance.Fix.FixSchema") is { } schema)
+		{
+			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
+			Phase("FixSchema cctor", true);
+		}
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
@@ -172,8 +175,11 @@ switch (mode)
 	case "validate-all":
 	case "validate-all-generated":
 	{
-		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
-		Phase("FixSchema cctor", true);
+		if (finance.GetType("DotGram.Finance.Fix.FixSchema") is { } schema)
+		{
+			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
+			Phase("FixSchema cctor", true);
+		}
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
@@ -235,8 +241,11 @@ switch (mode)
 	case "validate":
 	case "validate-generated":
 	{
-		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
-		Phase("FixSchema cctor", true);
+		if (finance.GetType("DotGram.Finance.Fix.FixSchema") is { } schema)
+		{
+			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
+			Phase("FixSchema cctor", true);
+		}
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
@@ -269,8 +278,11 @@ switch (mode)
 
 	default:
 	{
-		RuntimeHelpers.RunClassConstructor(finance.GetType("DotGram.Finance.Fix.FixSchema")!.TypeHandle);
-		Phase("FixSchema cctor", true);
+		if (finance.GetType("DotGram.Finance.Fix.FixSchema") is { } schema)
+		{
+			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
+			Phase("FixSchema cctor", true);
+		}
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 

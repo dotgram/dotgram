@@ -139,7 +139,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void Without_a_consumer_the_package_builds_what_it_always_built()
 	{
-		var fields = FixParser.ParseFields("25005=OPEN|", FixContext.Log);
+		var fields = FixParser.ParseFields("25005=OPEN|", FixContext.WithLogFraming);
 
 		var spare = Assert.IsType<FixField.Custom>(Assert.Single(fields));
 

@@ -301,6 +301,7 @@ public sealed class FixLoadTests
 		var errata = File.ReadAllText(Path.Combine(corpus, "quickfixn-fix44-errata.xml"));
 
 		Assert.Empty(FixContext.Default.Load(errata).Validators.Unplaced);
+		Assert.Empty(FixContext.Default.LoadFile(Path.Combine(corpus, "quickfixn-fix44-errata.xml")).Validators.Unplaced);
 
 		var file   = File.ReadAllText(Path.Combine(corpus, "FIX44.xml"));
 		var theirs = FixContext.Default.Load(file);

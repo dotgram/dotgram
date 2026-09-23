@@ -26,6 +26,15 @@ public static class FixFixtures
 			yield return new object[] { item.GetProperty("name").GetString()!, item.GetProperty("wire").GetString()! };
 	}
 
+	/// <summary>Every code value of FieldCases.json, as a tag and the value.</summary>
+	public static IEnumerable<object[]> KnownCodes()
+	{
+		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
+
+		foreach (var code in cases.RootElement.GetProperty("codes").EnumerateArray())
+			yield return new object[] { code.GetProperty("tag").GetInt32(), code.GetProperty("value").GetString()! };
+	}
+
 	/// <summary>A message built from a body written with '|' for SOH, framed and parsed.</summary>
 	public static FixMessage Message(string body)
 	{

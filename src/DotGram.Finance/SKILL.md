@@ -49,10 +49,10 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
   hand. It is not cheaper: the model keeps its source, so the octets are materialised one
   character to one octet either way. It is right.
-- **Wire or log.** The field calls read SOH-separated fields, and `FixContext.Log`
+- **Wire or log.** The field calls read SOH-separated fields, and `FixContext.WithLogFraming`
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
   value goes to every other call. The message calls accept a bare `|` only; read a log
-  padded with spaces with `ParseFields` and `FixContext.Log`.
+  padded with spaces with `ParseFields` and `FixContext.WithLogFraming`.
 - **Forms.** Fields and messages both take `string`, `ReadOnlySpan<char>`, `byte[]`,
   `ReadOnlySpan<byte>`, `TextReader` and `Stream`. The span overloads copy the input
   first, into a string or an array. `TextReader` and `Stream` are read lazily and left

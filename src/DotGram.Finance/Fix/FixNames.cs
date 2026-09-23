@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace DotGram.Finance.Fix;
 
@@ -14,8 +13,11 @@ static class FixNames
 	/// <summary>The name of a tag, or null where this package has no field class for it.</summary>
 	public static string? Name(int tag)
 	{
-		return (uint)tag < (uint)names.Length ? names[tag] : null;
+		return (uint)tag < (uint)_names.Length ? _names[tag] : null;
 	}
+
+	/// <summary>One past the largest tag the standard defines.</summary>
+	public static int Limit => _names.Length;
 
 	/// <summary>The tag a name means, or zero where no field class of this package is called that.</summary>
 	public static int Tag(string name)
@@ -26,7 +28,7 @@ static class FixNames
 	/// <summary>The class this package gives a message type, or null where it has none.</summary>
 	/// <remarks>
 	/// A dictionary spells a type by whatever name its author chose — QuickFIX writes
-	/// <c>IndicationOfInterest</c> where the repository and this package write <c>IOI</c> — and the
+	/// <c>IndicationOfInterest</c> where the repository and this package write <c>IndicationOfInterest</c> — and the
 	/// MsgType is what the two agree on.
 	/// </remarks>
 	public static string? MessageName(string messageType)
@@ -39,14 +41,14 @@ static class FixNames
 			"3"   => "Reject",
 			"4"   => "SequenceReset",
 			"5"   => "Logout",
-			"6"   => "IOI",
+			"6"   => "IndicationOfInterest",
 			"7"   => "Advertisement",
 			"8"   => "ExecutionReport",
 			"9"   => "OrderCancelReject",
 			"A"   => "Logon",
 			"AA"  => "DerivativeSecurityList",
 			"AB"  => "NewOrderMultileg",
-			"AC"  => "MultilegOrderCancelReplace",
+			"AC"  => "MultilegOrderCancelReplaceRequest",
 			"AD"  => "TradeCaptureReportRequest",
 			"AE"  => "TradeCaptureReport",
 			"AF"  => "OrderMassStatusRequest",
@@ -73,8 +75,8 @@ static class FixNames
 			"B"   => "News",
 			"BA"  => "CollateralReport",
 			"BB"  => "CollateralInquiry",
-			"BC"  => "NetworkCounterpartySystemStatusRequest",
-			"BD"  => "NetworkCounterpartySystemStatusResponse",
+			"BC"  => "NetworkStatusRequest",
+			"BD"  => "NetworkStatusResponse",
 			"BE"  => "UserRequest",
 			"BF"  => "UserResponse",
 			"BG"  => "CollateralInquiryAck",
@@ -134,22 +136,22 @@ static class FixNames
 
 	static Dictionary<string, int> Index()
 	{
-		var index = new Dictionary<string, int>(names.Length, StringComparer.Ordinal);
+		var index = new Dictionary<string, int>(_names.Length, StringComparer.Ordinal);
 
-		for (var tag = 1; tag < names.Length; tag++)
-			if (names[tag] is { } name)
+		for (var tag = 1; tag < _names.Length; tag++)
+			if (_names[tag] is { } name)
 				index[name] = tag;
 
 		return index;
 	}
 
-	static readonly string?[] names =
+	static readonly string?[] _names =
 	[
 		null, "Account", "AdvId", "AdvRefID", "AdvSide", "AdvTransType", "AvgPx", "BeginSeqNo",
 		"BeginString", "BodyLength", "CheckSum", "ClOrdID", "Commission", "CommType", "CumQty", "Currency",
-		"EndSeqNo", "ExecID", "ExecInst", "ExecRefID", null, "HandlInst", "SecurityIDSource", "IOIID",
+		"EndSeqNo", "ExecID", "ExecInst", "ExecRefID", null, "HandlInst", "SecurityIDSource", "IOIid",
 		null, "IOIQltyInd", "IOIRefID", "IOIQty", "IOITransType", "LastCapacity", "LastMkt", "LastPx",
-		"LastQty", "NoLinesOfText", "MsgSeqNum", "MsgType", "NewSeqNo", "OrderID", "OrderQty", "OrdStatus",
+		"LastQty", "LinesOfText", "MsgSeqNum", "MsgType", "NewSeqNo", "OrderID", "OrderQty", "OrdStatus",
 		"OrdType", "OrigClOrdID", "OrigTime", "PossDupFlag", "Price", "RefSeqNum", null, null,
 		"SecurityID", "SenderCompID", "SenderSubID", null, "SendingTime", "Quantity", "Side", "Symbol",
 		"TargetCompID", "TargetSubID", "Text", "TimeInForce", "TransactTime", "Urgency", "ValidUntilTime", "SettlType",

@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using static DotGram.Finance.Fix.FixGroup;
+
+// ReSharper disable InconsistentNaming
 
 namespace DotGram.Finance.Fix;
 

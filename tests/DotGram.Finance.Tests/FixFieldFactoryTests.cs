@@ -105,15 +105,27 @@ public sealed class FixFieldFactoryTests
 		yield return ("characters", FixFieldFactory.Value(tag, "1".AsSpan(), custom));
 		yield return ("octets",     FixFieldFactory.Value(tag, Encoding.Latin1.GetBytes("1").AsSpan(), custom));
 	}
-	/// <summary>What the published repository calls each tag, which is what the classes are named after.</summary>
+	/// <summary>
+	/// What each tag is called, which is what the classes are named after: QuickFIX's name where its
+	/// dictionary declares the tag, since that is the name a dictionary a consumer loads spells it
+	/// with, and the repository's where it does not.
+	/// </summary>
 	static Dictionary<int, string> Named()
 	{
-		var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository", "FIX.4.4", "Base", "Fields.xml");
-		var named = new Dictionary<int, string>();
+		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus");
+		var named  = new Dictionary<int, string>();
 
-		foreach (var field in XDocument.Load(path).Root!.Elements())
+		foreach (var field in XDocument.Load(Path.Combine(corpus, "FixRepository", "FIX.4.4", "Base", "Fields.xml")).Root!.Elements())
 			named[int.Parse(field.Element(field.Name.Namespace + "Tag")!.Value, CultureInfo.InvariantCulture)] =
 				field.Element(field.Name.Namespace + "Name")!.Value;
+
+		foreach (var field in XDocument.Load(Path.Combine(corpus, "Fix", "FIX44.xml")).Root!.Element("fields")!.Elements("field"))
+		{
+			var tag = int.Parse(field.Attribute("number")!.Value, CultureInfo.InvariantCulture);
+
+			if (named.ContainsKey(tag))
+				named[tag] = field.Attribute("name")!.Value;
+		}
 
 		return named;
 	}

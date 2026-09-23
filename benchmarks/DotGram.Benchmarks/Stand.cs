@@ -1293,8 +1293,8 @@ static partial class Stand
 		{
 			var bytes = Encoding.Latin1.GetBytes(text);
 
-			// Form 3 of the message layer has no ParseLog at all: the framing is a value, FixContext.Log, passed to Parse (finance-9a, 2026-09-20).
-			if (_fix.GetMethod("ParseLog", [typeof(string), _fixOptions]) is null && _fixOptions.GetProperty("Log", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
+			// Form 3 of the message layer has no ParseLog at all: the framing is a value, FixContext.WithLogFraming, passed to Parse (finance-9a, 2026-09-20).
+			if (_fix.GetMethod("ParseLog", [typeof(string), _fixOptions]) is null && _fixOptions.GetProperty("WithLogFraming", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
 			{
 				return form switch
 				{

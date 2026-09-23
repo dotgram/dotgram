@@ -2091,7 +2091,7 @@ public static class FixGroup
 		public          FixField.LegStipulationValue? LegStipulationValue { get; internal set; }
 	}
 
-	/// <summary>One entry of the FIX 4.4 LinesOfTextGrp, counted by NoLinesOfText, tag 33.</summary>
+	/// <summary>One entry of the FIX 4.4 LinesOfTextGrp, counted by LinesOfText, tag 33.</summary>
 	public sealed class LinesOfTextGrp
 	{
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
@@ -2440,8 +2440,8 @@ public static class FixGroup
 		/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public          FixField.SolicitedFlag?              SolicitedFlag              { get; internal set; }
 
-		/// <summary>The FIX IOIID, tag 23, wire type <c>String</c>; null when the field is absent.</summary>
-		public          FixField.IOIID?                      IOIID                      { get; internal set; }
+		/// <summary>The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.</summary>
+		public          FixField.IOIid?                      IOIid                      { get; internal set; }
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
 		public          FixField.QuoteID?                    QuoteID                    { get; internal set; }

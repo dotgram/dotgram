@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace DotGram.Finance.Fix;
 
@@ -41,7 +38,7 @@ public sealed record FixContext
 	/// uses is a property of the input, not of the caller's wish, and a property of the input belongs
 	/// in the value that describes the input.
 	/// </remarks>
-	public static FixContext Log { get; } = new() { Framing = FixFraming.Log };
+	public static FixContext WithLogFraming => Default with { Framing = FixFraming.Log };
 
 	// What the reader asks of a tag. The values are the grammar's own, so that the guard is a read
 	// and not a translation: 1 begins a length/data pair, -1 is the data half standing where a
@@ -58,24 +55,31 @@ public sealed record FixContext
 	// A slot filled the first time it is read rather than a field an initializer fills: `Default`
 	// is itself a static of this type and would otherwise be built while this one was still null,
 	// which is a bug that depends on the order two lines are written in.
-	static sbyte[]? settled;
+	static class SettledHolder
+	{
+		public static readonly sbyte[] SettledData = Settled();
 
-	static sbyte[] Standard =>
-		settled ?? Interlocked.CompareExchange(ref settled, Settled(), null) ?? settled;
+		static sbyte[] Settled()
+		{
+			var kinds = new sbyte[FixNames.Limit];
+
+			for (var tag = 1; tag < kinds.Length; tag++)
+				kinds[tag] = StandardDataTag(tag) != 0 ? Length : StandardLengthTag(tag) != 0 ? Data : Ordinary;
+
+			return kinds;
+		}
+	}
+
+	static sbyte[] Standard => SettledHolder.SettledData;
 
 	sbyte[]                 _kinds        = Standard;
 	Dictionary<int, sbyte>? _far;
 	Dictionary<int, int>?   _pairs;
 	FixCustomFields         _customFields = FixSpareFields.Instance;
-	FixFraming              _framing      = FixFraming.Wire;
 
 	/// <summary>How the input separates one field from the next: the wire's SOH, or a log's pipe.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
-	public FixFraming Framing
-	{
-		get => _framing;
-		init => _framing = value is FixFraming.Wire or FixFraming.Log ? value : throw new ArgumentOutOfRangeException(nameof(value));
-	}
+	public FixFraming Framing { get; init; }
 
 	/// <summary>Builds the fields of tags this package does not define.</summary>
 	/// <remarks>
@@ -99,7 +103,7 @@ public sealed record FixContext
 	/// </exception>
 	public IReadOnlyDictionary<int, int>? LengthDataPairs
 	{
-		get => _pairs;
+		get  => _pairs;
 		init => Declare(value, out _kinds, out _far, out _pairs);
 	}
 
@@ -150,6 +154,19 @@ public sealed record FixContext
 		return this with { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
 	}
 
+	/// <inheritdoc cref="Load(string, string)"/>
+	/// <param name="fileName">The path of the dictionary's file.</param>
+	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot; null writes nothing.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="fileName"/> is null.</exception>
+	public FixContext LoadFile(string fileName, string? emitTo = null)
+	{
+		if (fileName == null) throw new ArgumentNullException(nameof(fileName));
+
+		using var stream = File.OpenRead(fileName);
+
+		return Load(stream, emitTo);
+	}
+
 	// The texts a load writes are the expression language's, one file a slot, so that what a
 	// dictionary was turned into can be read and kept; a check that would not compile is written
 	// before the refusal names it.
@@ -182,7 +199,7 @@ public sealed record FixContext
 	/// </remarks>
 	internal int DataTag(int lengthTag)
 	{
-		var standard = FixSchema.DataTag(lengthTag);
+		var standard = StandardDataTag(lengthTag);
 
 		if (standard != 0)
 			return standard;
@@ -198,7 +215,7 @@ public sealed record FixContext
 	/// </remarks>
 	internal int LengthTag(int dataTag)
 	{
-		var standard = FixSchema.LengthTag(dataTag);
+		var standard = StandardLengthTag(dataTag);
 
 		if (standard != 0 || _pairs is null)
 			return standard;
@@ -239,9 +256,9 @@ public sealed record FixContext
 			// The standard's meaning for a tag stands. A pair that contradicts it could only be
 			// ignored, and a caller who believes something that is not true is worse served by
 			// silence than by this.
-			if (FixSchema.Defines(pair.Key) || FixSchema.Defines(pair.Value))
+			if (FixNames.Name(pair.Key) is not null || FixNames.Name(pair.Value) is not null)
 				throw new ArgumentException(
-					$"Tag {(FixSchema.Defines(pair.Key) ? pair.Key : pair.Value)} is one the standard defines; " +
+					$"Tag {(FixNames.Name(pair.Key) is not null ? pair.Key : pair.Value)} is one the standard defines; " +
 					"the standard's pairs are added to, not replaced.", nameof(LengthDataPairs));
 
 			if (!data.Add(pair.Value) || !copied.TryAdd(pair.Key, pair.Value))
@@ -286,13 +303,28 @@ public sealed record FixContext
 		}
 	}
 
-	static sbyte[] Settled()
+	// The sixteen length/data pairs of FIX 4.4, both ways.
+	static int StandardLengthTag(int dataTag)
 	{
-		var kinds = new sbyte[FixSchema.TagLimit];
+		return dataTag switch
+		{
+			 89 =>  93,  91 =>  90,  96 =>  95, 213 => 212,
+			349 => 348, 351 => 350, 353 => 352, 355 => 354,
+			357 => 356, 359 => 358, 361 => 360, 363 => 362,
+			365 => 364, 446 => 445, 619 => 618, 622 => 621,
+			_   => 0,
+		};
+	}
 
-		for (var tag = 1; tag < kinds.Length; tag++)
-			kinds[tag] = FixSchema.DataTag(tag) != 0 ? Length : FixSchema.IsData(tag) ? Data : Ordinary;
-
-		return kinds;
+	static int StandardDataTag(int lengthTag)
+	{
+		return lengthTag switch
+		{
+			 93 =>  89,  90 =>  91,  95 =>  96, 212 => 213,
+			348 => 349, 350 => 351, 352 => 353, 354 => 355,
+			356 => 357, 358 => 359, 360 => 361, 362 => 363,
+			364 => 365, 445 => 446, 618 => 619, 621 => 622,
+			_   => 0,
+		};
 	}
 }

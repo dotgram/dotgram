@@ -344,7 +344,7 @@ static partial class FixMessages
 
 			if (field.IsBinary)
 			{
-				var lengthTag = FixSchema.LengthTag(field.Tag);
+				var lengthTag = (context ?? FixContext.Default).LengthTag(field.Tag);
 				var header    = source.AsSpan(position, tagPosition - position);
 				var equals    = header.IndexOf('=');
 

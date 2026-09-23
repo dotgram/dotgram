@@ -20,6 +20,12 @@ def rows(name):
 messages   = {m["Name"]: m for m in rows("Messages.xml")}
 components = {c["Name"]: c for c in rows("Components.xml")}
 fields     = {f["Tag"]: f["Name"] for f in rows("Fields.xml")}
+
+# The names QuickFIX gives the fields, where its file declares them: the errata is read after that
+# file and spells a field the way it does.
+for f in ET.parse(os.path.join(here, "FIX44.xml")).getroot().find("fields"):
+    if f.get("number") in fields:
+        fields[f.get("number")] = f.get("name")
 contents   = {}
 
 for r in rows("MsgContents.xml"):

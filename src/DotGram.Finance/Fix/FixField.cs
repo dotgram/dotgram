@@ -443,10 +443,10 @@ public abstract class FixField : IFixLocation
 		: Typed<string>(22, value);
 
 	/// <summary>
-	/// Represents IOIID, FIX tag 23, with wire type <c>String</c>.
+	/// Represents IOIid, FIX tag 23, with wire type <c>String</c>.
 	/// </summary>
 	/// <param name="value">The field text, stored directly without primitive conversion.</param>
-	public sealed class IOIID(string value)
+	public sealed class IOIid(string value)
 		: Typed<string>(23, value);
 
 	/// <summary>
@@ -506,10 +506,10 @@ public abstract class FixField : IFixLocation
 		: Typed<decimal>(32, value);
 
 	/// <summary>
-	/// Represents NoLinesOfText, FIX tag 33, with wire type <c>NumInGroup</c>.
+	/// Represents LinesOfText, FIX tag 33, with wire type <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
-	public sealed class NoLinesOfText((bool Valid, long Value) value)
+	public sealed class LinesOfText((bool Valid, long Value) value)
 		: Typed<long>(33, value);
 
 	/// <summary>

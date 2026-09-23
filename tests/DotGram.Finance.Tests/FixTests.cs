@@ -51,7 +51,7 @@ public sealed class FixTests
 	[InlineData("95=0000|96=", 96)]
 	public void Typed_numbers_preserve_integer_boundaries_and_zero_padded_lengths(string input, int tag)
 	{
-		var expected = FixParser.ParseFields(input, FixContext.Log);
+		var expected = FixParser.ParseFields(input, FixContext.WithLogFraming);
 
 		Assert.Equal(tag, Assert.Single(expected).Tag);
 		Assert.DoesNotContain(expected, field => field is FixField.Invalid);
@@ -59,8 +59,8 @@ public sealed class FixTests
 		using var reader = new StringReader(input);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 
-		Equal(expected, FixParser.ReadFields(reader, FixContext.Log, bufferSize: 1));
-		Equal(expected, FixParser.ReadFields(stream, FixContext.Log, bufferSize: 1));
+		Equal(expected, FixParser.ReadFields(reader, FixContext.WithLogFraming, bufferSize: 1));
+		Equal(expected, FixParser.ReadFields(stream, FixContext.WithLogFraming, bufferSize: 1));
 	}
 
 	[Fact]
@@ -68,8 +68,8 @@ public sealed class FixTests
 	{
 		using var input = new ShortStream(Encoding.Latin1.GetBytes("95=3|96=a|b|55=END|"));
 		using var reader = new StringReader("95=1|96=X|55=NEXT|");
-		using var first = FixParser.ReadFields(input, FixContext.Log, bufferSize: 1).GetEnumerator();
-		using var second = FixParser.ReadFields(reader, FixContext.Log, bufferSize: 1).GetEnumerator();
+		using var first = FixParser.ReadFields(input, FixContext.WithLogFraming, bufferSize: 1).GetEnumerator();
+		using var second = FixParser.ReadFields(reader, FixContext.WithLogFraming, bufferSize: 1).GetEnumerator();
 		Assert.True(first.MoveNext());
 		Assert.True(second.MoveNext());
 		Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(first.Current).Value.Span));

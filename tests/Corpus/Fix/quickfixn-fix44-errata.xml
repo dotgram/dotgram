@@ -187,7 +187,7 @@
 			<component name="YieldData" required="N"/>
 			<field name="Currency" required="N"/>
 			<field name="ComplianceID" required="N"/>
-			<field name="IOIID" required="N"/>
+			<field name="IOIid" required="N"/>
 			<field name="QuoteID" required="N"/>
 			<field name="TimeInForce" required="N"/>
 			<field name="EffectiveTime" required="N"/>

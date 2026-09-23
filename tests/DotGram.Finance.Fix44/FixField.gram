@@ -86,9 +86,9 @@ KnownField(text) : @FixField =
 	| { "22=" & value: text }
 	  => @(new FixField.SecurityIDSource(FixConvert.Text(value)))
 
-	// 23: IOIID (String)
+	// 23: IOIid (String)
 	| { "23=" & value: text }
-	  => @(new FixField.IOIID(FixConvert.Text(value)))
+	  => @(new FixField.IOIid(FixConvert.Text(value)))
 
 	// 25: IOIQltyInd (char)
 	| { "25=" & value: text }
@@ -122,9 +122,9 @@ KnownField(text) : @FixField =
 	| { "32=" & value: text }
 	  => @(new FixField.LastQty(FixConvert.Decimal(value)))
 
-	// 33: NoLinesOfText (NumInGroup)
+	// 33: LinesOfText (NumInGroup)
 	| { "33=" & value: text }
-	  => @(new FixField.NoLinesOfText(FixConvert.Integer(value)))
+	  => @(new FixField.LinesOfText(FixConvert.Integer(value)))
 
 	// 34: MsgSeqNum (SeqNum)
 	| { "34=" & value: text }

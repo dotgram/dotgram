@@ -28,7 +28,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 FixMessage message = FixParser.ParseMessage(wire);
 
 FixField[] fields = FixParser.ParseFields(wire);
-var logFields = FixParser.ParseFields("55=ABC | 38=100", FixContext.Log);
+var logFields = FixParser.ParseFields("55=ABC | 38=100", FixContext.WithLogFraming);
 
 using var input = File.OpenRead("messages.fix");
 
@@ -66,7 +66,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixContext.Log))
+foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixContext.WithLogFraming))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -82,7 +82,7 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.ParseFields` reads SOH-delimited wire input; given `FixContext.Log` it reads logs
+`FixParser.ParseFields` reads SOH-delimited wire input; given `FixContext.WithLogFraming` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
 spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
 `FixContext` declares which framing to read and any length/data pairs of your own; it is the
@@ -121,7 +121,7 @@ It is not included in the Finance package.
 ```csharp
 using System.Collections.Generic;
 
-var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.Log);
+var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
 var context = new FixContext
 {
     LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // the standard's own sixteen pairs hold as well, and may not be redeclared
@@ -224,7 +224,7 @@ of subsequent stream reads. See the finance benchmarks for total parsing costs.
 ## Input and ownership
 
 The input is a **lossless octet string**: every character represents one octet,
-U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixContext.Log`
+U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixContext.WithLogFraming`
 reads pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
 `CheckSum` therefore count exactly the octets present on the wire, including raw
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
@@ -388,8 +388,8 @@ field objects and nothing more: a tag outside FIX 4.4 is still unknown to the me
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixParser.ParseMessage(logLine, FixContext.Log);
-var context = FixContext.Log;
+var message = FixParser.ParseMessage(logLine, FixContext.WithLogFraming);
+var context = FixContext.WithLogFraming;
 foreach (var item in FixParser.ReadMessages(logReader, context))
     Console.WriteLine(item.MessageType);
 ```
@@ -452,14 +452,14 @@ construction and not schema knowledge.
 
 ## Definition maintenance
 
-Field declarations, model types, schema tables, the Fix44 field grammar and test
-fixtures are maintained manually. When changing definitions, update the affected
-factory cases, schema entries, models, Fix44 grammar and test cases together.
+Field declarations, message classes, the checks, the Fix44 field grammar and test
+fixtures are maintained together. When changing definitions, update the affected
+factory cases, message classes, checks, Fix44 grammar and test cases together.
 
 - `Fix/FixField.cs`: field base, typed-value access, locations and typed field cases.
 - `Fix/FixFieldFactory.cs`: construction of typed fields.
-- `Fix/FixMessageTypes.cs`: message models and the MsgType table that constructs them.
-- `Fix/FixSchema.cs`: field types, code sets and message/group definitions.
+- `Fix/FixMessage.cs`, `Fix/FixMessageGroups.cs`, `Fix/FixComponents.cs`: message classes, group entries and block interfaces.
+- `Fix/FixValidators.cs`: the check of every message type, block, group entry and field, written from the FIX repository.
 
 The definitions cover 912 fields, 247 code sets, 15 components and 92 group
 definitions; 91 groups are reachable from the 93 standard messages.

@@ -98,7 +98,7 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_opening_example_of_the_readme_runs()
 	{
-		var fields = FixParser.ParseFields("55=ABC|38=100|", FixContext.Log);
+		var fields = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
 
 		Assert.Equal([55, 38], fields.Select(field => field.Tag));
 	}

@@ -14,10 +14,10 @@ public sealed class ProductFieldReaderTests : FixFieldReaderTests
 	protected override FieldParser[] Parsers { get; } =
 	[
 		new FieldParser("generated",
-			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.Log) : FixParser.ParseFields(input),
-			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.Log) : FixParser.ParseFields(input),
-			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.Log, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained),
-			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.Log, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained)),
+			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.WithLogFraming) : FixParser.ParseFields(input),
+			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.WithLogFraming) : FixParser.ParseFields(input),
+			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.WithLogFraming, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained),
+			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.WithLogFraming, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained)),
 		new FieldParser("hand",
 			(input, log)                         => log ? HandFixParser.ParseLog(input) : HandFixParser.Parse(input),
 			(input, log)                         => log ? HandFixParser.ParseLog(input) : HandFixParser.Parse(input),
