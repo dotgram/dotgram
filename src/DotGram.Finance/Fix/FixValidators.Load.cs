@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -55,12 +56,18 @@ partial class FixValidators
 
 	/// <summary>A copy of these slots with every check the dictionary describes replaced by the file's.</summary>
 	/// <exception cref="FormatException">The file describes a type, a field or a block this package has no class for.</exception>
+	/// <remarks>
+	/// Each message, block and coded field of the file is a job: its text written, the text handed
+	/// to the emitter, and compiled. The jobs run side by side, and what each leaves — the slots it
+	/// wrote and the lines it could not place — is taken up in the order the file said them, so
+	/// that a slot written twice keeps the later text and Unplaced reads in the file's order. The
+	/// parser's state is a value of each call and its caches are concurrent, which is what makes
+	/// that sound; the emitter writes one file a slot.
+	/// </remarks>
 	internal FixValidators Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
 		var loaded = Clone();
-
-		loaded._emitted = emitted;
-		loaded._written = [];
+		var jobs   = new List<Action<Writing>>();
 
 		loaded.Unplaced = [.. Unplaced];
 
@@ -70,7 +77,7 @@ partial class FixValidators
 			var name = FixNames.MessageName(type)
 				?? throw new FormatException($"The message '{spelled}' ({type}) is not a type this package has a class for.");
 
-			Replace(loaded, Slot(name), MessageText(name, members, dictionary, loaded));
+			jobs.Add(writing => Replace(writing, Slot(name), MessageText(name, members, dictionary, writing)));
 		}
 
 		foreach (var (name, members) in dictionary.Components)
@@ -87,7 +94,7 @@ partial class FixValidators
 				continue;
 			}
 
-			Replace(loaded, Slot(name), BlockText(name, block, members, dictionary, loaded));
+			jobs.Add(writing => Replace(writing, Slot(name), BlockText(name, block, members, dictionary, writing)));
 		}
 
 		foreach (var (tag, field) in dictionary.Fields)
@@ -105,47 +112,94 @@ partial class FixValidators
 			if (name is null)
 				continue;
 
-			var text = FieldText(name, tag, field.Codes);
+			var codes = field.Codes;
 
-			if (text is not null)
-				Replace(loaded, Slot(name), text);
+			jobs.Add(writing =>
+			{
+				if (FieldText(name, tag, codes) is { } text)
+					Replace(writing, Slot(name), text);
+			});
 		}
 
-		Compiled(loaded);
-
-		loaded._emitted = null;
-		loaded._written = null;
-
-		return loaded;
-	}
-
-	// Where each text written from the file goes before it is compiled, for the length of one load.
-	Action<string, string>? _emitted;
-
-	// The texts written from the file, in the order the file said them, until they are compiled.
-	List<(PropertyInfo Slot, string Text)>? _written;
-
-	// The texts are written one after another, since writing one reads what the others left
-	// (Unplaced) and the file's order is the order they are handed out; compiling them is the
-	// whole of the load's time, and each is a lambda of its own, so they are compiled on every
-	// processor there is and set into their slots in the order they were written. The parser's
-	// state is a value of each call and its caches are concurrent, which is what makes that sound.
-	static void Compiled(FixValidators loaded)
-	{
-		var written  = loaded._written!;
-		var compiled = new Delegate[written.Count];
+		var writings = new Writing[jobs.Count];
+		var emitting = emitted is null ? null : new Emitting(emitted);
 
 		try
 		{
-			Parallel.For(0, written.Count, at => compiled[at] = Compile(written[at].Slot.PropertyType, written[at].Text));
+			Parallel.For(0, jobs.Count, at =>
+			{
+				var writing = new Writing(emitting, at);
+
+				jobs[at](writing);
+				writing.Compile();
+
+				writings[at] = writing;
+			});
 		}
 		catch (AggregateException e) when (e.InnerExceptions.Count > 0)
 		{
 			ExceptionDispatchInfo.Capture(e.InnerExceptions[0]).Throw();
 		}
 
-		for (var at = 0; at < written.Count; at++)
-			written[at].Slot.SetValue(loaded, compiled[at]);
+		foreach (var writing in writings)
+		{
+			loaded.Unplaced.AddRange(writing.Unplaced);
+
+			foreach (var (slot, _, compiled) in writing.Written)
+				slot.SetValue(loaded, compiled);
+		}
+
+		return loaded;
+	}
+
+	/// <summary>One job of a load: the texts it writes, what it could not place, and the delegates the texts compile to.</summary>
+	sealed class Writing(Emitting? emitting, int job)
+	{
+		public List<string> Unplaced { get; } = [];
+
+		public List<(PropertyInfo Slot, string Text, Delegate? Compiled)> Written { get; } = [];
+
+		public void Write(PropertyInfo slot, string text)
+		{
+			emitting?.Write(job, slot.Name, text);
+			Written.Add((slot, text, null));
+		}
+
+		public void Compile()
+		{
+			for (var at = 0; at < Written.Count; at++)
+				Written[at] = (Written[at].Slot, Written[at].Text, FixValidators.Compile(Written[at].Slot.PropertyType, Written[at].Text));
+		}
+	}
+
+	/// <summary>
+	/// The emitter shared by the jobs: a slot's file is the text of the last job that wrote the slot,
+	/// which is the text the slot keeps, so a job that comes to a slot a later job has written
+	/// leaves the file alone. The entry of a group is such a slot, written by every message that
+	/// carries the group.
+	/// </summary>
+	sealed class Emitting(Action<string, string> emit)
+	{
+		readonly ConcurrentDictionary<string, Latest> _latest = new(StringComparer.Ordinal);
+
+		sealed class Latest
+		{
+			public int Job = -1;
+		}
+
+		public void Write(int job, string slot, string text)
+		{
+			var latest = _latest.GetOrAdd(slot, static _ => new Latest());
+
+			lock (latest)
+			{
+				if (job < latest.Job)
+					return;
+
+				latest.Job = job;
+				emit(slot, text);
+			}
+		}
 	}
 
 	static PropertyInfo Slot(string name)
@@ -161,10 +215,9 @@ partial class FixValidators
 		return members.Count == 1 && members[0].Kind == FixDictionary.Member.Group;
 	}
 
-	static void Replace(FixValidators into, PropertyInfo slot, string text)
+	static void Replace(Writing writing, PropertyInfo slot, string text)
 	{
-		into._emitted?.Invoke(slot.Name, text);
-		into._written!.Add((slot, text));
+		writing.Write(slot, text);
 	}
 
 	static Delegate Compile(Type delegateType, string text)
@@ -187,20 +240,20 @@ partial class FixValidators
 
 	const string Using = "using DotGram.Finance.Fix;\n";
 
-	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, FixValidators loaded)
+	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, Writing writing)
 	{
 		var body = new StringBuilder();
 
-		Members(body, "message", typeof(FixMessage).GetNestedType(name)!, members, dictionary, name, loaded);
+		Members(body, "message", typeof(FixMessage).GetNestedType(name)!, members, dictionary, name, writing);
 
 		return Using + "(FixContext context, FixMessage." + name + " message) => {\n" + body + "return message.IsValid; }";
 	}
 
-	static string BlockText(string name, Type block, List<FixDictionary.Member> members, FixDictionary dictionary, FixValidators loaded)
+	static string BlockText(string name, Type block, List<FixDictionary.Member> members, FixDictionary dictionary, Writing writing)
 	{
 		var body = new StringBuilder();
 
-		Members(body, "block", block, members, dictionary, name, loaded);
+		Members(body, "block", block, members, dictionary, name, writing);
 
 		return Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" + body + "return message.IsValid; }";
 	}
@@ -208,9 +261,9 @@ partial class FixValidators
 	// The shape of a compiled-in check, one member at a time: a field is asked for when required
 	// and handed to its slot when present; a group's counter likewise, and its count held to its
 	// entries; a block is asked for when required and handed to its slot when present.
-	static void Members(StringBuilder body, string subject, Type carrier, List<FixDictionary.Member> members, FixDictionary dictionary, string where, FixValidators loaded)
+	static void Members(StringBuilder body, string subject, Type carrier, List<FixDictionary.Member> members, FixDictionary dictionary, string where, Writing writing)
 	{
-		var unplaced = loaded.Unplaced;
+		var unplaced = writing.Unplaced;
 
 		foreach (var member in members)
 		{
@@ -239,7 +292,7 @@ partial class FixValidators
 				}
 
 				case FixDictionary.Member.Group:
-					Group(body, subject, carrier, member.Name, member.Required, member.Members, dictionary, where, loaded);
+					Group(body, subject, carrier, member.Name, member.Required, member.Members, dictionary, where, writing);
 					break;
 
 				case FixDictionary.Member.Component:
@@ -251,7 +304,7 @@ partial class FixValidators
 						// A repeating component is its group, declared once under its own name.
 						if (dictionary.Components.TryGetValue(member.Name, out var inner) && IsGroupComponent(inner))
 						{
-							Group(body, subject, carrier, inner[0].Name, member.Required, inner[0].Members, dictionary, where, loaded);
+							Group(body, subject, carrier, inner[0].Name, member.Required, inner[0].Members, dictionary, where, writing);
 							break;
 						}
 
@@ -287,9 +340,9 @@ partial class FixValidators
 
 	// A group: its counter is a field of the carrier, required or not, and its entries are the list
 	// whose entry type is opened by the group's first member, which is how the wire cuts them.
-	static void Group(StringBuilder body, string subject, Type carrier, string counterName, bool required, List<FixDictionary.Member> members, FixDictionary dictionary, string where, FixValidators loaded)
+	static void Group(StringBuilder body, string subject, Type carrier, string counterName, bool required, List<FixDictionary.Member> members, FixDictionary dictionary, string where, Writing writing)
 	{
-		var unplaced = loaded.Unplaced;
+		var unplaced = writing.Unplaced;
 
 		var counterTag = Tag(counterName, dictionary);
 		var counter    = FixNames.Name(counterTag)!;
@@ -322,8 +375,8 @@ partial class FixValidators
 		{
 			var entry = new StringBuilder();
 
-			Members(entry, "entry", entryType, members, dictionary, where + "/" + counterName, loaded);
-			Replace(loaded, Slot(entryType.Name), Using + "(FixContext context, FixMessage message, FixGroup." + entryType.Name + " entry, int index) => {\n" + entry + "return message.IsValid; }");
+			Members(entry, "entry", entryType, members, dictionary, where + "/" + counterName, writing);
+			Replace(writing, Slot(entryType.Name), Using + "(FixContext context, FixMessage message, FixGroup." + entryType.Name + " entry, int index) => {\n" + entry + "return message.IsValid; }");
 		}
 	}
 

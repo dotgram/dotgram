@@ -1,0 +1,9 @@
+# fix-standard-types-strict, 2026-09-22 22:38 - 22:38
+
+Script P:\dotgram\.work\Run-Stand.ps1, arguments: -Dll P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll -Out T:\TEMP\dotgram-stand\stand-standard-types -Only fixmsg/Order44.parse,fixmsg/Order44.strict. Machine IGOR-DESKTOP, this process and its children on mask 0xFFFF at high priority (the children inherit it; whether they stayed on it was not read back).
+Quiet check before the start: 2.4% of the machine (0.78 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.286; Taskmgr (pid 51400) 0.073; brave (pid 8388) 0.073.
+State of the repository the script sits in, read at 22:38:18: HEAD 237b11bf; 0 tracked files modified.
+Artifact P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll: sha256 F4B51EE519A332A6, 1368576 bytes, written 22:38:14.
+Artifact P:\dotgram\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Finance.dll: sha256 8603D544B6F3A5D0, 4401152 bytes, written 22:37:38.
+Exit code: 0.
+Note: One order, parse alone and parse-and-schema, five runs, at 237b11bf: whole numbers as long with pattern checks, dates as DateOnly/TimeOnly/DateTimeOffset, loaded field checks as x switch, constants folded. Read beside strict-default-loaded-quickfix (38ac14af).
