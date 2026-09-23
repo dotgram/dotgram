@@ -2007,6 +2007,18 @@ public sealed class ExpressionParserTests
 		Assert.Equal((true, true, false), (whole(1), whole(2), whole(3)));
 	}
 
+	/// <summary>A constant put through the author's implicit operator is a constant of the target, made once.</summary>
+	[Fact]
+	public void And_a_constant_through_an_implicit_operator_is_folded()
+	{
+		var chosen = Assert.IsAssignableFrom<SwitchExpression>(
+			Both.Parse("using System.Numerics;\n(BigInteger n) => n switch { 1 => true, _ => false }").Body);
+
+		var test = Assert.IsAssignableFrom<ConstantExpression>(Assert.Single(Assert.Single(chosen.Cases).TestValues));
+
+		Assert.Equal(BigInteger.One, test.Value);
+	}
+
 	/// <summary>Where C# puts it: over a unary and under the ladder.</summary>
 	[Fact]
 	public void And_it_stands_over_a_unary_and_under_the_ladder()

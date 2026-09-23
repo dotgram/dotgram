@@ -254,9 +254,33 @@ public static partial class ExpressionParser
 	static Expression Through(Expression value, MethodInfo method, Type to)
 	{
 		var input  = Implicitly(value, method.GetParameters()[0].ParameterType)!;
-		var result = Expression.Convert(input, method.ReturnType, method);
+		var result = Folded(input, method) ?? Expression.Convert(input, method.ReturnType, method);
 
 		return method.ReturnType == to ? result : Expression.Convert(result, to);
+	}
+
+	/// <summary>A constant put through the author's operator once, here, rather than at every call.</summary>
+	/// <remarks>
+	/// `n switch { 1 or 2 => … }` over a <c>BigInteger</c> converted its 1 and its 2 each time
+	/// it ran, a call apiece before the comparison. C# folds no user-defined conversion, since a
+	/// constant expression there has none; this one is folded on the rule C# gives the operator
+	/// itself — an implicit conversion may not throw and loses nothing — so the value is the
+	/// same, and only when it is made differs. An operator that throws all the same keeps its
+	/// call, and throws where it did.
+	/// </remarks>
+	static Expression? Folded(Expression input, MethodInfo method)
+	{
+		if (input is not ConstantExpression { Value: { } constant } || !method.IsStatic)
+			return null;
+
+		try
+		{
+			return Expression.Constant(method.Invoke(null, [constant]), method.ReturnType);
+		}
+		catch (TargetInvocationException)
+		{
+			return null;
+		}
 	}
 
 	/// <summary>Whether a type is one of C#'s numeric types, <c>char</c> among them.</summary>
