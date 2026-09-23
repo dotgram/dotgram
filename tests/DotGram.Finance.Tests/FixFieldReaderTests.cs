@@ -74,7 +74,7 @@ public abstract class FixFieldReaderTests
 			var corrupt       = wire.Substring(0, wire.Length - 4) + "999" + wire[^1];
 			var corruptFields = parser.Parse(corrupt);
 
-			Assert.False(FixParser.TryBuildMessage(corrupt, corruptFields, out _, out _));
+			Assert.Throws<FormatException>(() => FixParser.BuildMessage(corrupt, corruptFields));
 		});
 	}
 
@@ -144,8 +144,9 @@ public abstract class FixFieldReaderTests
 
 			var fields = parser.ParseLog(stream, bufferSize: 3).ToArray();
 
-			Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
+			Assert.Equal(size, Assert.IsType<FixField.RawDataLength>(fields[0]).Value);
+			Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
+			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
 		});
 	}
 
@@ -191,7 +192,6 @@ public abstract class FixFieldReaderTests
 
 	[Theory]
 	[InlineData("96=abc|")]
-	[InlineData("95=3|")]
 	[InlineData("95=3|89=abc|")]
 	[InlineData("95=1|96=a|96=b|")]
 	[InlineData("95=-1|96=|")]
@@ -254,7 +254,7 @@ public abstract class FixFieldReaderTests
 	}
 
 	[Fact]
-	public void Streaming_pair_returns_one_binary_field_without_reading_the_next_field()
+	public void Streaming_pair_returns_its_data_without_reading_the_next_field()
 	{
 		const string pair = "95=3\u000196=a|b\u0001";
 
@@ -263,6 +263,8 @@ public abstract class FixFieldReaderTests
 			using var stream = new ShortStream(Encoding.Latin1.GetBytes(pair + "55=X\u0001")) { ReadLimit = pair.Length };
 			using var fields = parser.Parse(stream, bufferSize: 1).GetEnumerator();
 
+			Assert.True(fields.MoveNext());
+			Assert.Equal(3, Assert.IsType<FixField.RawDataLength>(fields.Current).Value);
 			Assert.True(fields.MoveNext());
 			Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields.Current).Value.ToArray());
 			Assert.Equal(pair.Length, stream.ReadCount);
@@ -337,12 +339,13 @@ public abstract class FixFieldReaderTests
 
 			Assert.True(fields.MoveNext());
 			Assert.IsType<FixField.Symbol>(fields.Current);
-			Assert.True(fields.MoveNext());
-			Assert.IsType<FixField.Invalid>(fields.Current);
+
+			var invalid = false;
 
 			while (fields.MoveNext())
-			{
-			}
+				invalid |= fields.Current is FixField.Invalid;
+
+			Assert.True(invalid);
 
 			Assert.True(stream.CanRead);
 		});
@@ -359,8 +362,8 @@ public abstract class FixFieldReaderTests
 
 			var fields = parser.ParseLog(stream, bufferSize: 3, maxRetained: 32).ToArray();
 
-			Assert.Equal(2000, fields.Length);
-			Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
+			Assert.Equal(3000, fields.Length);
+			Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
 			Assert.Equal(wire.Length - 5, fields[^1].Position);
 			Assert.True(stream.CanRead);
 		});
@@ -504,14 +507,7 @@ public abstract class FixFieldReaderTests
 		var text = wire.ToCharArray();
 
 		foreach (var field in message.Fields)
-		{
-			// A length/data pair arrives as the data field alone, and it begins at the length field it
-			// was measured by, so the separator that ends that length is the one before the data tag.
-			if (field.IsBinary)
-				text[field.DataPosition - 1] = '|';
-
 			text[field.ValuePosition + field.Length] = '|';
-		}
 
 		return new string(text);
 	}
@@ -525,16 +521,8 @@ public abstract class FixFieldReaderTests
 			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
 
 			Assert.Equal(position, field.Position);
-			Assert.Equal(prefix, wire.Substring(field.DataPosition, prefix.Length));
-
-			if (field.IsBinary)
-			{
-				var lengthEnd = wire.IndexOf(wire[field.ValuePosition + field.Length], position);
-
-				Assert.Equal(lengthEnd + 1, field.DataPosition);
-			}
-			else
-				Assert.Equal(position + prefix.Length, field.ValuePosition);
+			Assert.Equal(prefix, wire.Substring(field.Position, prefix.Length));
+			Assert.Equal(position + prefix.Length, field.ValuePosition);
 
 			Assert.True(field.Length >= 0);
 

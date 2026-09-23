@@ -2,115 +2,8 @@
 
 namespace DotGram.Finance.Fix44;
 
-static partial class FixMessages
+public static partial class FixParser
 {
-	/// <summary>Default maximum size of one streamed message, in octets.</summary>
-	public const int DefaultMaxMessageLength = 16 * 1024 * 1024;
-
-	/// <summary>Reads exactly one message without closing the input or reading beyond it.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage Parse(TextReader input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (TryParse(input, out var message, out var error, context, maxMessageLength)) return message!;
-		throw new FormatException(error!.ToString());
-	}
-
-	/// <summary>Reads one message; malformed or incomplete input answers with a diagnostic.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="message">The message read, or null.</param>
-	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryParse(TextReader input, out FixMessage? message, out FixParseError? error, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-
-		ValidateStreamArguments(maxMessageLength);
-
-		message = null;
-
-		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
-
-		if (!reader.TryRead(out var wire, out error))
-		{
-			if (error == null)
-				Fail(0, null, null, "Expected a FIX message.", out error);
-			return false;
-		}
-
-		return TryParseFrame(wire, out message, out error, context);
-	}
-
-	/// <summary>Reads concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-
-		ValidateStreamArguments(maxMessageLength);
-
-		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
-	}
-
-	/// <summary>Reads exactly one message without closing the input or reading beyond it.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage Parse(Stream input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (TryParse(input, out var message, out var error, context, maxMessageLength))
-			return message!;
-
-		throw new FormatException(error!.ToString());
-	}
-
-	/// <summary>Reads one message; malformed or incomplete input answers with a diagnostic.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="message">The message read, or null.</param>
-	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryParse(Stream input, out FixMessage? message, out FixParseError? error, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-
-		ValidateStreamArguments(maxMessageLength);
-
-		message = null;
-
-		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
-
-		if (!reader.TryRead(out var wire, out error))
-		{
-			if (error == null)
-				Fail(0, null, null, "Expected a FIX message.", out error);
-			return false;
-		}
-
-		return TryParseFrame(wire, out message, out error, context);
-	}
-
-	/// <summary>Reads concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
-	/// <param name="input">The input.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		if (input == null) throw new ArgumentNullException(nameof(input));
-
-		ValidateStreamArguments(maxMessageLength);
-
-		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
-	}
-
 	static void ValidateStreamArguments(int maxMessageLength)
 	{
 		if (maxMessageLength < 1) throw new ArgumentOutOfRangeException(nameof(maxMessageLength));
@@ -150,7 +43,7 @@ static partial class FixMessages
 	{
 		return frame.Bytes != null
 			? TryParseBytes(frame.Bytes, out message, out error, context)
-			: TryParseCore(frame.Text, out message, out error, context);
+			: TryParseText(frame.Text, out message, out error, context);
 	}
 
 	sealed class FrameReader

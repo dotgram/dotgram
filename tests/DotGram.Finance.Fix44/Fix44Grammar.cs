@@ -13,20 +13,38 @@ sealed class Fix44Context
 {
 	public long DataLimit { get; private set; }
 
-	public bool BeginData(ReadOnlySpan<char> size, int start)
+	int _pending, _current, _size;
+
+	// Each field takes the expectation the one before it left, and leaves none unless it is a length.
+	public bool Next()
 	{
-		return BeginData(Tag(size), start);
+		_current = _pending;
+		_pending = 0;
+		return true;
 	}
 
-	public bool BeginData(ReadOnlySpan<byte> size, int start)
+	public bool Expect(int dataTag, ReadOnlySpan<char> size)
 	{
-		return BeginData(Tag(size), start);
+		return Expect(dataTag, Tag(size));
 	}
 
-	bool BeginData(int size, int start)
+	public bool Expect(int dataTag, ReadOnlySpan<byte> size)
 	{
-		DataLimit = (long)start + size;
+		return Expect(dataTag, Tag(size));
+	}
+
+	bool Expect(int dataTag, int size)
+	{
+		_pending = dataTag;
+		_size    = size;
 		return size >= 0;
+	}
+
+	// A capture of one alternative reaches a guard as optional, though it is always there.
+	public bool Takes(int dataTag, int? start)
+	{
+		DataLimit = (long)(start ?? 0) + _size;
+		return _current == dataTag;
 	}
 
 	static bool IsUnknownText(int tag)

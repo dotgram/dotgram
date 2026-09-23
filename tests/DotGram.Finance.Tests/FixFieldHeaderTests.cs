@@ -58,15 +58,16 @@ public sealed class FixFieldHeaderTests
 
 		foreach (var fields in Parse(input, false))
 		{
-			var data = Assert.IsType<FixField.RawData>(fields[0]);
+			var length = Assert.IsType<FixField.RawDataLength>(fields[0]);
+			var data   = Assert.IsType<FixField.RawData>(fields[1]);
 
-			Assert.Equal(0, data.Position);
+			Assert.Equal(0, length.Position);
+			Assert.Equal(5, length.Value);
+			Assert.Equal(zeros + 1, length.Length);
+			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal), data.Position);
 			Assert.Equal(input.IndexOf("hello", StringComparison.Ordinal), data.ValuePosition);
 			Assert.Equal(5, data.Length);
-			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal), data.DataPosition);
-			Assert.True(data.IsBinary);
-			Assert.Equal(input.IndexOf("58=", StringComparison.Ordinal), fields[1].Position);
-			Assert.Equal(data.ValuePosition - data.Position >= ushort.MaxValue, data.HasWideLengths);
+			Assert.Equal(input.IndexOf("58=", StringComparison.Ordinal), fields[2].Position);
 		}
 	}
 
@@ -103,26 +104,26 @@ public sealed class FixFieldHeaderTests
 		if (log)
 		{
 			yield return FixParser.ParseFields(input, FixContext.WithLogFraming);
-			yield return FixParser.ParseFields(input.AsSpan(), FixContext.WithLogFraming);
+			yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(bytes), FixContext.WithLogFraming);
 			yield return FixParser.ParseFields(bytes, FixContext.WithLogFraming);
-			yield return FixParser.ReadFields(new StringReader(input), FixContext.WithLogFraming, bufferSize: 7).ToArray();
-			yield return FixParser.ReadFields(new MemoryStream(bytes), FixContext.WithLogFraming, bufferSize: 7).ToArray();
+			yield return FixParser.ReadFields(new StringReader(input), FixContext.WithLogFraming with { BufferSize = 7 }).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), FixContext.WithLogFraming with { BufferSize = 7 }).ToArray();
 			yield return HandFixParser.ParseLog(input);
 			yield return HandFixParser.ParseLog(bytes);
-			yield return HandFixParser.ParseLog(new StringReader(input), bufferSize: 7).ToArray();
-			yield return HandFixParser.ParseLog(new MemoryStream(bytes), bufferSize: 7).ToArray();
+			yield return HandFixParser.ParseLog(new StringReader(input), FixContext.Default with { BufferSize = 7 }).ToArray();
+			yield return HandFixParser.ParseLog(new MemoryStream(bytes), FixContext.Default with { BufferSize = 7 }).ToArray();
 		}
 		else
 		{
 			yield return FixParser.ParseFields(input);
-			yield return FixParser.ParseFields(input.AsSpan());
+			yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(bytes));
 			yield return FixParser.ParseFields(bytes);
-			yield return FixParser.ReadFields(new StringReader(input), bufferSize: 7).ToArray();
-			yield return FixParser.ReadFields(new MemoryStream(bytes), bufferSize: 7).ToArray();
+			yield return FixParser.ReadFields(new StringReader(input), FixContext.Default with { BufferSize = 7 }).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), FixContext.Default with { BufferSize = 7 }).ToArray();
 			yield return HandFixParser.Parse(input);
 			yield return HandFixParser.Parse(bytes);
-			yield return HandFixParser.Parse(new StringReader(input), bufferSize: 7).ToArray();
-			yield return HandFixParser.Parse(new MemoryStream(bytes), bufferSize: 7).ToArray();
+			yield return HandFixParser.Parse(new StringReader(input), FixContext.Default with { BufferSize = 7 }).ToArray();
+			yield return HandFixParser.Parse(new MemoryStream(bytes), FixContext.Default with { BufferSize = 7 }).ToArray();
 		}
 	}
 }

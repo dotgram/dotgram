@@ -17,29 +17,40 @@ Block16   = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 1
 Octet     = when @(parserSpan.Start + parserSpan.Length < context.DataLimit) & any
 Data = { Block4096* & Block256* & Block16* & Octet* & when @(parserSpan.Start + parserSpan.Length == context.DataLimit) }
 
-Binary(dataTag) : @FixBinaryValue =
-	size: Size & Separator & dataTag & start: Position
-	& when @(context.BeginData(size, start)) & value: Data
-	=> @(new FixBinaryValue(FixConvert.Data(value), start))
-
-// Each length/data pair produces one binary field.
+// A length field announces its data; the data field after it reads that many.
 KnownBinary : @FixField =
-	"93=" & value: Binary("89=") => @(new FixField.Signature(value.Data).WithBinary(value, parserSpan.Start))
-	| "90=" & value: Binary("91=") => @(new FixField.SecureData(value.Data).WithBinary(value, parserSpan.Start))
-	| "95=" & value: Binary("96=") => @(new FixField.RawData(value.Data).WithBinary(value, parserSpan.Start))
-	| "212=" & value: Binary("213=") => @(new FixField.XmlData(value.Data).WithBinary(value, parserSpan.Start))
-	| "348=" & value: Binary("349=") => @(new FixField.EncodedIssuer(value.Data).WithBinary(value, parserSpan.Start))
-	| "350=" & value: Binary("351=") => @(new FixField.EncodedSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
-	| "352=" & value: Binary("353=") => @(new FixField.EncodedListExecInst(value.Data).WithBinary(value, parserSpan.Start))
-	| "354=" & value: Binary("355=") => @(new FixField.EncodedText(value.Data).WithBinary(value, parserSpan.Start))
-	| "356=" & value: Binary("357=") => @(new FixField.EncodedSubject(value.Data).WithBinary(value, parserSpan.Start))
-	| "358=" & value: Binary("359=") => @(new FixField.EncodedHeadline(value.Data).WithBinary(value, parserSpan.Start))
-	| "360=" & value: Binary("361=") => @(new FixField.EncodedAllocText(value.Data).WithBinary(value, parserSpan.Start))
-	| "362=" & value: Binary("363=") => @(new FixField.EncodedUnderlyingIssuer(value.Data).WithBinary(value, parserSpan.Start))
-	| "364=" & value: Binary("365=") => @(new FixField.EncodedUnderlyingSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
-	| "445=" & value: Binary("446=") => @(new FixField.EncodedListStatusText(value.Data).WithBinary(value, parserSpan.Start))
-	| "618=" & value: Binary("619=") => @(new FixField.EncodedLegIssuer(value.Data).WithBinary(value, parserSpan.Start))
-	| "621=" & value: Binary("622=") => @(new FixField.EncodedLegSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
+	"93=" & size: Size & when @(context.Expect(89, size)) => @(new FixField.SignatureLength(FixConvert.Integer(size)))
+	| "89=" & start: Position & when @(context.Takes(89, start)) & value: Data => @(new FixField.Signature(FixConvert.Data(value)))
+	| "90=" & size: Size & when @(context.Expect(91, size)) => @(new FixField.SecureDataLen(FixConvert.Integer(size)))
+	| "91=" & start: Position & when @(context.Takes(91, start)) & value: Data => @(new FixField.SecureData(FixConvert.Data(value)))
+	| "95=" & size: Size & when @(context.Expect(96, size)) => @(new FixField.RawDataLength(FixConvert.Integer(size)))
+	| "96=" & start: Position & when @(context.Takes(96, start)) & value: Data => @(new FixField.RawData(FixConvert.Data(value)))
+	| "212=" & size: Size & when @(context.Expect(213, size)) => @(new FixField.XmlDataLen(FixConvert.Integer(size)))
+	| "213=" & start: Position & when @(context.Takes(213, start)) & value: Data => @(new FixField.XmlData(FixConvert.Data(value)))
+	| "348=" & size: Size & when @(context.Expect(349, size)) => @(new FixField.EncodedIssuerLen(FixConvert.Integer(size)))
+	| "349=" & start: Position & when @(context.Takes(349, start)) & value: Data => @(new FixField.EncodedIssuer(FixConvert.Data(value)))
+	| "350=" & size: Size & when @(context.Expect(351, size)) => @(new FixField.EncodedSecurityDescLen(FixConvert.Integer(size)))
+	| "351=" & start: Position & when @(context.Takes(351, start)) & value: Data => @(new FixField.EncodedSecurityDesc(FixConvert.Data(value)))
+	| "352=" & size: Size & when @(context.Expect(353, size)) => @(new FixField.EncodedListExecInstLen(FixConvert.Integer(size)))
+	| "353=" & start: Position & when @(context.Takes(353, start)) & value: Data => @(new FixField.EncodedListExecInst(FixConvert.Data(value)))
+	| "354=" & size: Size & when @(context.Expect(355, size)) => @(new FixField.EncodedTextLen(FixConvert.Integer(size)))
+	| "355=" & start: Position & when @(context.Takes(355, start)) & value: Data => @(new FixField.EncodedText(FixConvert.Data(value)))
+	| "356=" & size: Size & when @(context.Expect(357, size)) => @(new FixField.EncodedSubjectLen(FixConvert.Integer(size)))
+	| "357=" & start: Position & when @(context.Takes(357, start)) & value: Data => @(new FixField.EncodedSubject(FixConvert.Data(value)))
+	| "358=" & size: Size & when @(context.Expect(359, size)) => @(new FixField.EncodedHeadlineLen(FixConvert.Integer(size)))
+	| "359=" & start: Position & when @(context.Takes(359, start)) & value: Data => @(new FixField.EncodedHeadline(FixConvert.Data(value)))
+	| "360=" & size: Size & when @(context.Expect(361, size)) => @(new FixField.EncodedAllocTextLen(FixConvert.Integer(size)))
+	| "361=" & start: Position & when @(context.Takes(361, start)) & value: Data => @(new FixField.EncodedAllocText(FixConvert.Data(value)))
+	| "362=" & size: Size & when @(context.Expect(363, size)) => @(new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(size)))
+	| "363=" & start: Position & when @(context.Takes(363, start)) & value: Data => @(new FixField.EncodedUnderlyingIssuer(FixConvert.Data(value)))
+	| "364=" & size: Size & when @(context.Expect(365, size)) => @(new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(size)))
+	| "365=" & start: Position & when @(context.Takes(365, start)) & value: Data => @(new FixField.EncodedUnderlyingSecurityDesc(FixConvert.Data(value)))
+	| "445=" & size: Size & when @(context.Expect(446, size)) => @(new FixField.EncodedListStatusTextLen(FixConvert.Integer(size)))
+	| "446=" & start: Position & when @(context.Takes(446, start)) & value: Data => @(new FixField.EncodedListStatusText(FixConvert.Data(value)))
+	| "618=" & size: Size & when @(context.Expect(619, size)) => @(new FixField.EncodedLegIssuerLen(FixConvert.Integer(size)))
+	| "619=" & start: Position & when @(context.Takes(619, start)) & value: Data => @(new FixField.EncodedLegIssuer(FixConvert.Data(value)))
+	| "621=" & size: Size & when @(context.Expect(622, size)) => @(new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(size)))
+	| "622=" & start: Position & when @(context.Takes(622, start)) & value: Data => @(new FixField.EncodedLegSecurityDesc(FixConvert.Data(value)))
 
 // Reserved for a future grammar extension; never matches by default.
 // The consuming shape keeps the yielded Field non-nullable even with an EOF terminator.
@@ -50,7 +61,7 @@ Unknown : @FixField =
 	=> @(FixCustomField.Build(Fix44Context.Tag(tag), value, null))
 
 Field : @FixField =
-	{ ?=any } & (v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
+	{ ?=any } & when @(context.Next()) & (v: KnownBinary | v: KnownField(ValueText) | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
 
 Fields : @FixField[] = Field* recover Separator
 	=> @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))

@@ -52,8 +52,8 @@ src/
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Finance/      FIX, a package of its own, in the DotGram.Finance.Fix44 namespace:
-	                      the wire read into typed fields (FixParser), the messages built
-	                      over them (FixMessages), the checks (FixValidators). README.md and
+	                      the wire read into typed fields and the messages built over them,
+	                      one door (FixParser), the checks (FixValidators). README.md and
 	                      SKILL.md ship on NuGet
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
 	                      tree the SQL grammars meet in, its writer and walker, in the

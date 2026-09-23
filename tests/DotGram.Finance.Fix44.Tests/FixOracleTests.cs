@@ -30,13 +30,13 @@ public sealed class FixOracleTests
 
 		Equal(expected, FixParser.ParseFields(wire));
 		Equal(expected, FixParser.ParseFields(bytes));
-		Equal(expected, FixParser.ReadFields(new StringReader(wire), bufferSize: 3));
-		Equal(expected, FixParser.ReadFields(new ShortStream(bytes), bufferSize: 3));
+		Equal(expected, FixParser.ReadFields(new StringReader(wire), new FixContext { BufferSize = 3 }));
+		Equal(expected, FixParser.ReadFields(new ShortStream(bytes), new FixContext { BufferSize = 3 }));
 
 		Equal(expected, HandFixParser.Parse(wire));
 		Equal(expected, HandFixParser.Parse(bytes));
-		Equal(expected, HandFixParser.Parse(new StringReader(wire), bufferSize: 3));
-		Equal(expected, HandFixParser.Parse(new ShortStream(bytes), bufferSize: 3));
+		Equal(expected, HandFixParser.Parse(new StringReader(wire), new FixContext { BufferSize = 3 }));
+		Equal(expected, HandFixParser.Parse(new ShortStream(bytes), new FixContext { BufferSize = 3 }));
 	}
 
 	static void Equal(IEnumerable<FixField> expected, IEnumerable<FixField> actual)

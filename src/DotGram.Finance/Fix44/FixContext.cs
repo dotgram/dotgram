@@ -29,7 +29,9 @@ namespace DotGram.Finance.Fix44;
 /// </remarks>
 public sealed record FixContext
 {
-	/// <summary>FIX 4.4 as this package compiles it in, read from the wire by the standard's own pairs.</summary>
+	/// <summary>
+	/// FIX 4.4 as this package compiles it in, read from the wire by the standard's own pairs.
+	/// </summary>
 	public static FixContext Default { get; } = new();
 
 	/// <summary>The same, reading a lossless pipe rendering: bare <c>|</c>, spaced <c> | </c>, or a mixture.</summary>
@@ -40,41 +42,43 @@ public sealed record FixContext
 	/// </remarks>
 	public static FixContext WithLogFraming => Default with { Framing = FixFraming.Log };
 
-	// What the reader asks of a tag. The values are the grammar's own, so that the guard is a read
-	// and not a translation: 1 begins a length/data pair, -1 is the data half standing where a
-	// length should have been (which is no field at all), 0 is an ordinary value read to the
-	// separator. A tag nobody has declared is ordinary, which is why zero means that.
-	const sbyte Ordinary = 0, Length = 1, Data = -1;
-
-	// Past this, a tag goes in the dictionary rather than the table. It covers every tag anyone
-	// writes — the bilateral range ends at 39,999 — at 64 KB for the table, built once and shared
-	// by every context that declares no pairs.
-	const int Tabled = 65536;
-
-	// The standard alone, which is what most contexts read by and none of them should pay for twice.
-	// A slot filled the first time it is read rather than a field an initializer fills: `Default`
-	// is itself a static of this type and would otherwise be built while this one was still null,
-	// which is a bug that depends on the order two lines are written in.
-	static class SettledHolder
+	// The standard's sixteen pairs, length tag to data tag, and the table the reader indexes, built
+	// from them once. A class of their own so that they exist before Default, which is built from them.
+	static class Standard
 	{
-		public static readonly sbyte[] SettledData = Settled();
-
-		static sbyte[] Settled()
+		public static readonly Dictionary<int,int> Pairs = new()
 		{
-			var kinds = new sbyte[StandardTop];
+			{  93,  89 }, {  90,  91 }, {  95,  96 }, { 212, 213 },
+			{ 348, 349 }, { 350, 351 }, { 352, 353 }, { 354, 355 },
+			{ 356, 357 }, { 358, 359 }, { 360, 361 }, { 362, 363 },
+			{ 364, 365 }, { 445, 446 }, { 618, 619 }, { 621, 622 },
+		};
 
-			for (var tag = 1; tag < kinds.Length; tag++)
-				kinds[tag] = StandardDataTag(tag) != 0 ? Length : StandardLengthTag(tag) != 0 ? Data : Ordinary;
-
-			return kinds;
-		}
+		public static readonly sbyte[] Kinds = KindsOf(Pairs);
 	}
 
-	static sbyte[] Standard => SettledHolder.SettledData;
+	// What the reader asks of a tag: 1 is a length, -1 the data it measures, 0 an ordinary value.
+	const sbyte Ordinary = 0, Length = 1, Data = -1;
 
-	sbyte[]                 _kinds        = Standard;
-	Dictionary<int, sbyte>? _far;
-	Dictionary<int, int>?   _pairs;
+	// The table covers every tag anyone writes, the bilateral range ending at 39,999; a tag past it
+	// is looked up in the pairs themselves.
+	const int Tabled = 65536;
+
+	static sbyte[] KindsOf(Dictionary<int,int> pairs)
+	{
+		var kinds = new sbyte[Tabled];
+
+		foreach (var pair in pairs)
+		{
+			if (pair.Key < Tabled)
+				kinds[pair.Key] = Length;
+
+			if (pair.Value < Tabled)
+				kinds[pair.Value] = Data;
+		}
+
+		return kinds;
+	}
 
 	/// <summary>How the input separates one field from the next: the wire's SOH, or a log's pipe.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
@@ -86,28 +90,71 @@ public sealed record FixContext
 	/// builds is handed the value; where it answers null, or there is none, the field is a
 	/// <see cref="FixField.Invalid"/> of that tag.
 	/// </remarks>
-	public Func<int, FixCustomField?>? FixFieldFactory { get; init; }
+	public Func<int,FixCustomField?>? FixFieldFactory { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
 	/// Asked only of a type the package has no class for. What it builds is handed the fields; where it
 	/// answers null, or there is none, the message is a <see cref="FixMessage.Invalid"/>.
 	/// </remarks>
-	public Func<string, FixCustomMessage?>? FixMessageFactory { get; init; }
+	public Func<string,FixCustomMessage?>? FixMessageFactory { get; init; }
 
-	/// <summary>A consumer's own length/data pairs, length tag to data tag; null where there are none.</summary>
-	/// <remarks>
-	/// Copied when set. The standard's sixteen pairs always hold and are added to, never replaced,
-	/// so neither tag of a supplied pair may be one the standard defines.
-	/// </remarks>
-	/// <exception cref="ArgumentException">
-	/// A tag is not positive, a pair names one tag twice, a data tag is declared twice, a data tag
-	/// is also a length tag, or either tag is one the standard already defines.
-	/// </exception>
-	public IReadOnlyDictionary<int, int>? LengthDataPairs
+	int _bufferSize  = 4096;
+	int _maxRetained = FixGrammar.DefaultMaxRetained;
+
+	/// <summary>The initial size of the buffer a reader or a stream is read through, in characters or bytes: 4096 unless given.</summary>
+	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
+	public int BufferSize
 	{
-		get  => _pairs;
-		init => Declare(value, out _kinds, out _far, out _pairs);
+		get  => _bufferSize;
+		init => _bufferSize = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(BufferSize));
+	}
+
+	/// <summary>
+	/// The most characters or bytes one field read from a reader or a stream may take, from its tag
+	/// through the separator that ends it, or a whole length/data pair: <see cref="FixParser.DefaultMaxRetained"/>
+	/// unless given.
+	/// </summary>
+	/// <remarks>
+	/// It bounds one field, not the input, which is read and let go field by field. A field that needs
+	/// more throws <see cref="System.IO.IOException"/>. Input read whole, a string or an array, is not
+	/// bounded by it.
+	/// </remarks>
+	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
+	public int MaxRetained
+	{
+		get  => _maxRetained;
+		init => _maxRetained = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
+	}
+
+	Dictionary<int,int> _pairs = Standard.Pairs;
+	sbyte[]             _kinds = Standard.Kinds;
+
+	/// <summary>The length/data pairs, length tag to data tag: the standard's sixteen and a consumer's own.</summary>
+	/// <remarks>What is set is added to the standard's pairs; a length tag set again replaces its pair.</remarks>
+	public IReadOnlyDictionary<int,int> LengthDataPairs
+	{
+		get => _pairs;
+		init
+		{
+			var pairs = new Dictionary<int,int>(Standard.Pairs);
+
+			foreach (var pair in value)
+				pairs[pair.Key] = pair.Value;
+
+			_pairs = pairs;
+			_kinds = KindsOf(pairs);
+		}
+	}
+
+	/// <summary>What the reader does with a tag: 1 a length, -1 the data a length measures, 0 an ordinary value.</summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	internal int Kind(int tag)
+	{
+		if ((uint)tag < Tabled)
+			return _kinds[tag];
+
+		return _pairs.ContainsKey(tag) ? Length : _pairs.ContainsValue(tag) ? Data : Ordinary;
 	}
 
 	/// <summary>The check of each message type, of each block, and of each field.</summary>
@@ -214,162 +261,15 @@ public sealed record FixContext
 		return (slot, text) => File.WriteAllText(Path.Combine(directory, slot + ".el"), text);
 	}
 
-	/// <summary>What the reader does with a tag: 1 a length/data pair, -1 no field, 0 an ordinary value.</summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	internal int Kind(int tag)
-	{
-		var kinds = _kinds;
-
-		if ((uint)tag < (uint)kinds.Length)
-			return kinds[tag];
-
-		return _far is not null && _far.TryGetValue(tag, out var kind) ? kind : Ordinary;
-	}
-
 	/// <summary>The data tag a length tag is paired with, or zero where it is not a length tag.</summary>
-	/// <remarks>
-	/// Asked once a field is already known to begin a pair, which is sixteen tags plus a consumer's
-	/// and not every field — so this may be a lookup where <see cref="Kind"/> may not.
-	/// </remarks>
 	internal int DataTag(int lengthTag)
 	{
-		var standard = StandardDataTag(lengthTag);
-
-		if (standard != 0)
-			return standard;
-
-		return _pairs is not null && _pairs.TryGetValue(lengthTag, out var data) ? data : 0;
-	}
-
-	/// <summary>The length tag a data tag is measured by, or zero where it is not a data tag.</summary>
-	/// <remarks>
-	/// The standard's sixteen answer from the table. A consumer's pair is held the other way round,
-	/// length to data, because that is the direction the reader asks in; this walks it, which is a
-	/// handful of entries and is asked once per data field of a message rather than once per field.
-	/// </remarks>
-	internal int LengthTag(int dataTag)
-	{
-		var standard = StandardLengthTag(dataTag);
-
-		if (standard != 0 || _pairs is null)
-			return standard;
-
-		foreach (var pair in _pairs)
-			if (pair.Value == dataTag)
-				return pair.Key;
-
-		return 0;
+		return _pairs.TryGetValue(lengthTag, out var dataTag) ? dataTag : 0;
 	}
 
 	/// <summary>Whether a tag carries binary data — the standard's, or one this consumer declared.</summary>
 	internal bool IsData(int tag)
 	{
 		return Kind(tag) == Data;
-	}
-
-	// The pairs worked out into the table the reader indexes, once, here.
-	static void Declare(IReadOnlyDictionary<int, int>? lengthDataPairs, out sbyte[] kinds, out Dictionary<int, sbyte>? far, out Dictionary<int, int>? pairs)
-	{
-		kinds = Standard;
-		far   = null;
-		pairs = null;
-
-		if (lengthDataPairs is null || lengthDataPairs.Count == 0)
-			return;
-
-		var copied = new Dictionary<int, int>(lengthDataPairs.Count);
-		var data   = new HashSet<int>();
-		var top    = Standard.Length;
-
-		foreach (var pair in lengthDataPairs)
-		{
-			if (pair.Key <= 0 || pair.Value <= 0 || pair.Key == pair.Value)
-				throw new ArgumentException(
-					"Pairs require positive, distinct length and data tags.", nameof(LengthDataPairs));
-
-			// The standard's meaning for a tag stands. A pair that contradicts it could only be
-			// ignored, and a caller who believes something that is not true is worse served by
-			// silence than by this.
-			if (Defines(pair.Key) || Defines(pair.Value))
-				throw new ArgumentException(
-					$"Tag {(Defines(pair.Key) ? pair.Key : pair.Value)} is one the standard defines; " +
-					"the standard's pairs are added to, not replaced.", nameof(LengthDataPairs));
-
-			if (!data.Add(pair.Value) || !copied.TryAdd(pair.Key, pair.Value))
-				throw new ArgumentException(
-					"Pairs require unique length tags and unique data tags.", nameof(LengthDataPairs));
-
-			top = Math.Max(top, Room(pair.Key));
-			top = Math.Max(top, Room(pair.Value));
-		}
-
-		foreach (var tag in data)
-			if (copied.ContainsKey(tag))
-				throw new ArgumentException(
-					"A data tag cannot also be a length tag.", nameof(LengthDataPairs));
-
-		var table = new sbyte[top];
-
-		// The standard goes in first and nothing overwrites it: the checks above have already
-		// refused everything that could try.
-		Array.Copy(Standard, table, Standard.Length);
-
-		foreach (var pair in copied)
-		{
-			Place(table, ref far, pair.Key,   Length);
-			Place(table, ref far, pair.Value, Data);
-		}
-
-		kinds = table;
-		pairs = copied;
-
-		static int Room(int tag)
-		{
-			return tag < Tabled ? tag + 1 : 0;
-		}
-
-		static void Place(sbyte[] kinds, ref Dictionary<int, sbyte>? far, int tag, sbyte kind)
-		{
-			if ((uint)tag < (uint)kinds.Length)
-				kinds[tag] = kind;
-			else
-				(far ??= [])[tag] = kind;
-		}
-	}
-
-	// Whether the standard defines a tag: whether the field it builds is the standard's own class and
-	// not the one built for a tag nobody defined. Asked when a context is made, of a consumer's pairs.
-	static bool Defines(int tag)
-	{
-		return FixFieldBuilder.Value(tag, "0".AsSpan(), null) is not FixField.Invalid;
-	}
-
-	// One past the largest tag of the sixteen pairs: every tag the reader's table answers other than
-	// ordinary, which is what it holds for any tag past it.
-	const int StandardTop = 623;
-
-	// The sixteen length/data pairs of FIX 4.4, both ways.
-	static int StandardLengthTag(int dataTag)
-	{
-		return dataTag switch
-		{
-			 89 =>  93,  91 =>  90,  96 =>  95, 213 => 212,
-			349 => 348, 351 => 350, 353 => 352, 355 => 354,
-			357 => 356, 359 => 358, 361 => 360, 363 => 362,
-			365 => 364, 446 => 445, 619 => 618, 622 => 621,
-			_   => 0,
-		};
-	}
-
-	static int StandardDataTag(int lengthTag)
-	{
-		return lengthTag switch
-		{
-			 93 =>  89,  90 =>  91,  95 =>  96, 212 => 213,
-			348 => 349, 350 => 351, 352 => 353, 354 => 355,
-			356 => 357, 358 => 359, 360 => 361, 362 => 363,
-			364 => 365, 445 => 446, 618 => 619, 621 => 622,
-			_   => 0,
-		};
 	}
 }

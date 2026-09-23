@@ -16,12 +16,12 @@ public sealed class ProductFieldReaderTests : FixFieldReaderTests
 		new FieldParser("generated",
 			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.WithLogFraming) : FixParser.ParseFields(input),
 			(input, log)                         => log ? FixParser.ParseFields(input, FixContext.WithLogFraming) : FixParser.ParseFields(input),
-			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.WithLogFraming, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained),
-			(input, log, bufferSize, maxRetained) => log ? FixParser.ReadFields(input, FixContext.WithLogFraming, bufferSize, maxRetained) : FixParser.ReadFields(input, null, bufferSize, maxRetained)),
+			(input, log, bufferSize, maxRetained) => FixParser.ReadFields(input, FixFixtures.Reading(log, bufferSize, maxRetained)),
+			(input, log, bufferSize, maxRetained) => FixParser.ReadFields(input, FixFixtures.Reading(log, bufferSize, maxRetained))),
 		new FieldParser("hand",
 			(input, log)                         => log ? HandFixParser.ParseLog(input) : HandFixParser.Parse(input),
 			(input, log)                         => log ? HandFixParser.ParseLog(input) : HandFixParser.Parse(input),
-			(input, log, bufferSize, maxRetained) => log ? HandFixParser.ParseLog(input, null, bufferSize, maxRetained) : HandFixParser.Parse(input, null, bufferSize, maxRetained),
-			(input, log, bufferSize, maxRetained) => log ? HandFixParser.ParseLog(input, null, bufferSize, maxRetained) : HandFixParser.Parse(input, null, bufferSize, maxRetained)),
+			(input, log, bufferSize, maxRetained) => log ? HandFixParser.ParseLog(input, FixFixtures.Reading(log, bufferSize, maxRetained)) : HandFixParser.Parse(input, FixFixtures.Reading(log, bufferSize, maxRetained)),
+			(input, log, bufferSize, maxRetained) => log ? HandFixParser.ParseLog(input, FixFixtures.Reading(log, bufferSize, maxRetained)) : HandFixParser.Parse(input, FixFixtures.Reading(log, bufferSize, maxRetained))),
 	];
 }

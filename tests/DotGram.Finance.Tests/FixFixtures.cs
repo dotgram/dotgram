@@ -26,6 +26,16 @@ public static class FixFixtures
 			yield return new object[] { item.GetProperty("name").GetString()!, item.GetProperty("wire").GetString()! };
 	}
 
+	/// <summary>A context that reads a reader or a stream through a buffer of this size, bounding a field by that many.</summary>
+	public static FixContext Reading(bool log, int bufferSize, int? maxRetained = null)
+	{
+		return (log ? FixContext.WithLogFraming : FixContext.Default) with
+		{
+			BufferSize  = bufferSize,
+			MaxRetained = maxRetained ?? FixParser.DefaultMaxRetained,
+		};
+	}
+
 	/// <summary>Every code value of FieldCases.json, as a tag and the value.</summary>
 	public static IEnumerable<object[]> KnownCodes()
 	{

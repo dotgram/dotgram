@@ -63,14 +63,21 @@ Phase("load", false);
 
 var options = ((finance.GetType("DotGram.Finance.Fix44.FixContext") ?? finance.GetType("DotGram.Finance.Fix.FixContext")) ?? (finance.GetType("DotGram.Finance.Fix44.FixFieldOptions") ?? finance.GetType("DotGram.Finance.Fix.FixFieldOptions")))!;
 var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : (finance.GetType("DotGram.Finance.Fix44.FixParser") ?? finance.GetType("DotGram.Finance.Fix.FixParser")))!;
-var messages = (finance.GetType("DotGram.Finance.Fix44.FixMessages") ?? finance.GetType("DotGram.Finance.Fix.FixMessages"))!;
+// The message layer was its own internal class until 2026-09-23; since then its calls are the door's own.
+var messages = (finance.GetType("DotGram.Finance.Fix44.FixMessages") ?? finance.GetType("DotGram.Finance.Fix.FixMessages") ?? finance.GetType("DotGram.Finance.Fix44.FixParser"))!;
+MethodInfo? MessageCall(string name, string door, Type[] types)
+{
+	return messages.GetMethod(name, types) ?? messages.GetMethod(door, types);
+}
 var bytes       = mode.EndsWith("-bytes", StringComparison.Ordinal);
 var streamed    = mode.EndsWith("-stream", StringComparison.Ordinal);
 // The field calls of this package were renamed when its door was merged -- ParseFields from a
 // buffer, ReadFields from a stream -- while the hand-written parser beside it kept Parse. A
 // harness that runs against an older build of the library has to answer to both names, so it asks
 // for the current one and falls back rather than dying with a null it cannot explain.
-var parseTypes  = streamed ? new[] { typeof(Stream), options, typeof(int), typeof(int?) } : [bytes ? typeof(byte[]) : typeof(string), options];
+// Since 2026-09-23 the buffer settings are the context's, and a stream call takes only the two.
+var settled     = streamed && new[] { "ReadFields", "Parse" }.Any(name => fieldParser.GetMethod(name, [typeof(Stream), options]) is not null);
+var parseTypes  = streamed ? (settled ? new[] { typeof(Stream), options } : [typeof(Stream), options, typeof(int), typeof(int?)]) : [bytes ? typeof(byte[]) : typeof(string), options];
 var parseNames  = mode.StartsWith("hand", StringComparison.Ordinal) ? ["Parse"] : new[] { streamed ? "ReadFields" : "ParseFields", "Parse" };
 var parseFields = parseNames.Select(name => fieldParser.GetMethod(name, parseTypes)).FirstOrDefault(found => found != null)
 	?? throw new MissingMethodException($"{fieldParser.Name} has none of {string.Join(", ", parseNames)} for this input.");
@@ -122,7 +129,7 @@ switch (mode)
 
 		var input = bytes || streamed ? System.Text.Encoding.Latin1.GetBytes(plain) : (object)plain;
 		var call  = () => Materialized(streamed
-			? parseFields.Invoke(null, [new MemoryStream((byte[])input, false), null, 4096, null])!
+			? parseFields.Invoke(null, settled ? [new MemoryStream((byte[])input, false), null] : [new MemoryStream((byte[])input, false), null, 4096, null])!
 			: parseFields.Invoke(null, [input, null])!);
 
 		var first = call();
@@ -149,8 +156,9 @@ switch (mode)
 		// after it takes none and the schema is a separate call. Both are asked for the work the
 		// other does, so what this harness times is the same on either side of the change.
 		var parseMode = (finance.GetType("DotGram.Finance.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
-		var parse     = messages.GetMethod("Parse", parseMode == null ? [typeof(string)] : [typeof(string), parseMode])!;
-		var arguments = parseMode == null ? new object[] { order } : [order, Enum.ToObject(parseMode, 0)];
+		var alone     = parseMode == null ? messages.GetMethod("Parse", [typeof(string)]) : null;
+		var parse     = parseMode != null ? messages.GetMethod("Parse", [typeof(string), parseMode])! : alone ?? MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
+		var arguments = parseMode != null ? new object?[] { order, Enum.ToObject(parseMode, 0) } : alone != null ? [order] : [order, null];
 		var validate  = parseMode != null ? null : (finance.GetType("DotGram.Finance.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
 
 		var call = () =>
@@ -183,7 +191,7 @@ switch (mode)
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
-		var parseOne = messages.GetMethod("Parse", [typeof(string), options])!;
+		var parseOne = MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
 		var built    = new List<object>();
 
 		// One message of every type the package knows, found by asking it: a MsgType it does not
@@ -249,7 +257,7 @@ switch (mode)
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
-		var parse   = messages.GetMethod("Parse", [typeof(string), options])!;
+		var parse   = MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
 		var message = parse.Invoke(null, [Wire(which), null])!;
 
 		Phase("parse", false);
@@ -290,7 +298,7 @@ switch (mode)
 
 		Phase("field parse", false);
 
-		var build = messages.GetMethod("Build", [typeof(string), fields.GetType(), options])!;
+		var build = MessageCall("Build", "BuildMessage", [typeof(string), fields.GetType(), options])!;
 		var call  = () => build.Invoke(null, [order, fields, null])!;
 
 		var first = Guard(call);

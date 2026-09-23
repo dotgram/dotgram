@@ -10,65 +10,61 @@ namespace DotGram.Finance.Fix44;
 /// </summary>
 public abstract class FixField : IFixLocation
 {
-	// The two header lengths sit in narrow fields beside IsValid, so the state before the value
-	// is four words: Tag, Position, Length and these. A length too wide for its field, which
-	// takes a data length written with tens of thousands of leading zeros or a log separator
-	// padded past 254 spaces, leaves the field's maximum as a mark and is kept in Wide.
-	// Not in a field of its own: four more bytes are eight with alignment, every field would
-	// carry them, and that is the whole saving (a character field 40 bytes against 48) spent
-	// on input nobody sends. Only such input writes to the table or reads from it.
+	// The terminator's length sits in a byte beside IsValid, so the state before the value is four
+	// words: Tag, Position, Length and this. One too wide for it, a log separator padded past 254
+	// spaces, leaves the byte's maximum as a mark and is kept in Wide. Not in a field of its own:
+	// four more bytes are eight with alignment, every field would carry them, and that is the whole
+	// saving (a character field 40 bytes against 48) spent on input nobody sends.
 	static readonly ConditionalWeakTable<FixField, WideLengths> Wide = new();
 
-	ushort _prefixLength;
-	byte   _terminatorLength = 1;
+	byte _terminatorLength = 1;
 
 	/// <summary>
-	/// Initializes the tag, conversion status and default tag-prefix length.
+	/// Initializes the tag and conversion status.
 	/// </summary>
 	/// <param name="tag">The numeric FIX tag; recovery fields use zero.</param>
-	/// <param name="valid">Whether the supplied primitive value is valid.</param>
-	protected FixField(int tag, bool valid)
+	/// <param name="isValid">Whether the supplied primitive value is valid.</param>
+	protected FixField(int tag, bool isValid)
 	{
-		Tag           = tag;
-		_prefixLength = (ushort)TagPrefixLength(tag);
-		IsValid       = valid;
+		Tag     = tag;
+		IsValid = isValid;
 	}
 
-	internal bool IsBinary     => !(this is Invalid && Tag == 0) && PrefixLength != TagPrefixLength(Tag);
-	internal int  DataPosition => ValuePosition - TagPrefixLength(Tag);
+	int TerminatorLength => _terminatorLength == byte.MaxValue ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
 
-	int PrefixLength     => _prefixLength     == ushort.MaxValue ? Wide.GetValue(this, NewWide).Prefix     : _prefixLength;
-	int TerminatorLength => _terminatorLength == byte.MaxValue   ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
-
-	// The tag, its digits and the equals sign after them.
-	static int TagPrefixLength(int tag)
+	// The tag, its digits and the equals sign after them; nothing for skipped input, which has no tag.
+	int PrefixLength
 	{
-		var length = 2;
+		get
+		{
+			if (Tag == 0)
+				return 0;
 
-		for (var digits = tag; digits >= 10; digits /= 10)
-			length++;
+			var length = 2;
 
-		return length;
+			for (var digits = Tag; digits >= 10; digits /= 10)
+				length++;
+
+			return length;
+		}
 	}
 
 	/// <summary>
-	/// Gets the numeric FIX tag. A combined length/data field uses the data tag;
-	/// an <see cref="Invalid"/> field of skipped input uses zero.
+	/// Gets the numeric FIX tag; an <see cref="Invalid"/> field of skipped input uses zero.
 	/// </summary>
 	public int Tag           { get; }
 	/// <summary>
 	/// Gets the zero-based start of the field in the original input.
-	/// For a combined binary field, this is the start of its preceding length tag.
 	/// </summary>
 	/// <remarks>Offsets count UTF-16 code units for character input and bytes for byte input.</remarks>
 	public int Position      { get; private set; }
 	/// <summary>
 	/// Gets the number of input units occupied by the value, excluding tag headers and the terminator.
-	/// For binary fields this is the payload length; for recovery fields it is the skipped raw length.
+	/// For recovery fields it is the skipped raw length.
 	/// </summary>
 	public int Length        { get; private set; }
 	/// <summary>
-	/// Gets the zero-based start of the value or binary payload in the original input.
+	/// Gets the zero-based start of the value in the original input.
 	/// For recovery fields this equals <see cref="Position"/>.
 	/// </summary>
 	public int ValuePosition => Position + PrefixLength;
@@ -76,7 +72,7 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Records source coordinates supplied by the parser and derives the value length.
 	/// </summary>
-	/// <param name="position">The absolute start of the field, or of the length tag for a binary pair.</param>
+	/// <param name="position">The absolute start of the field.</param>
 	/// <param name="length">The complete matched extent, including headers and the configured terminator.</param>
 	/// <remarks>
 	/// The parser may call this more than once as enclosing rules finish. The final call
@@ -102,22 +98,6 @@ public abstract class FixField : IFixLocation
 		return this;
 	}
 
-	internal FixField WithBinary(FixBinaryValue value, int start)
-	{
-		// The source extent begins at the length tag; the value begins after both headers.
-		var length = value.Position - start;
-
-		if (length < ushort.MaxValue)
-			_prefixLength = (ushort)length;
-		else
-		{
-			_prefixLength = ushort.MaxValue;
-			Wide.GetValue(this, NewWide).Prefix = length;
-		}
-
-		return this;
-	}
-
 	internal bool HasWideLengths => Wide.TryGetValue(this, out _);
 
 	static WideLengths NewWide(FixField field)
@@ -127,7 +107,6 @@ public abstract class FixField : IFixLocation
 
 	sealed class WideLengths
 	{
-		public int Prefix;
 		public int Terminator;
 	}
 
@@ -198,7 +177,6 @@ public abstract class FixField : IFixLocation
 			RawText = raw ?? throw new ArgumentNullException(nameof(raw));
 			Message = message ?? throw new ArgumentNullException(nameof(message));
 
-			_prefixLength     = 0;
 			_terminatorLength = 0;
 
 			Locate(position, raw.Length);
@@ -225,7 +203,6 @@ public abstract class FixField : IFixLocation
 			RawBytes = raw.ToArray();
 			Message  = message ?? throw new ArgumentNullException(nameof(message));
 
-			_prefixLength = 0;
 			_terminatorLength = 0;
 
 			Locate(position, raw.Length);
@@ -362,10 +339,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents BodyLength, FIX tag 9, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class BodyLength((bool Valid, long Value) value)
 		: Typed<long>(9, value);
@@ -888,10 +861,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents SecureDataLen, FIX tag 90, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class SecureDataLen((bool Valid, long Value) value)
 		: Typed<long>(90, value);
@@ -910,10 +879,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents SignatureLength, FIX tag 93, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class SignatureLength((bool Valid, long Value) value)
 		: Typed<long>(93, value);
@@ -928,10 +893,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents RawDataLength, FIX tag 95, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class RawDataLength((bool Valid, long Value) value)
 		: Typed<long>(95, value);
@@ -1608,10 +1569,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents XmlDataLen, FIX tag 212, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class XmlDataLen((bool Valid, long Value) value)
 		: Typed<long>(212, value);
@@ -2540,10 +2497,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedIssuerLen, FIX tag 348, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedIssuerLen((bool Valid, long Value) value)
 		: Typed<long>(348, value);
@@ -2562,10 +2515,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedSecurityDescLen, FIX tag 350, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedSecurityDescLen((bool Valid, long Value) value)
 		: Typed<long>(350, value);
@@ -2584,10 +2533,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedListExecInstLen, FIX tag 352, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedListExecInstLen((bool Valid, long Value) value)
 		: Typed<long>(352, value);
@@ -2606,10 +2551,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedTextLen, FIX tag 354, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedTextLen((bool Valid, long Value) value)
 		: Typed<long>(354, value);
@@ -2628,10 +2569,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedSubjectLen, FIX tag 356, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedSubjectLen((bool Valid, long Value) value)
 		: Typed<long>(356, value);
@@ -2650,10 +2587,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedHeadlineLen, FIX tag 358, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedHeadlineLen((bool Valid, long Value) value)
 		: Typed<long>(358, value);
@@ -2672,10 +2605,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedAllocTextLen, FIX tag 360, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedAllocTextLen((bool Valid, long Value) value)
 		: Typed<long>(360, value);
@@ -2694,10 +2623,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedUnderlyingIssuerLen, FIX tag 362, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedUnderlyingIssuerLen((bool Valid, long Value) value)
 		: Typed<long>(362, value);
@@ -2716,10 +2641,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedUnderlyingSecurityDescLen, FIX tag 364, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedUnderlyingSecurityDescLen((bool Valid, long Value) value)
 		: Typed<long>(364, value);
@@ -2850,10 +2771,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents MaxMessageSize, FIX tag 383, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class MaxMessageSize((bool Valid, long Value) value)
 		: Typed<long>(383, value);
@@ -3274,10 +3191,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedListStatusTextLen, FIX tag 445, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedListStatusTextLen((bool Valid, long Value) value)
 		: Typed<long>(445, value);
@@ -4479,10 +4392,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedLegIssuerLen, FIX tag 618, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedLegIssuerLen((bool Valid, long Value) value)
 		: Typed<long>(618, value);
@@ -4508,10 +4417,6 @@ public abstract class FixField : IFixLocation
 	/// <summary>
 	/// Represents EncodedLegSecurityDescLen, FIX tag 621, with wire type <c>Length</c>.
 	/// </summary>
-	/// <remarks>
-	/// When configured as a binary length tag, the parser combines this field with the
-	/// following data field and returns the data case instead of a separate length case.
-	/// </remarks>
 	/// <param name="value">The primitive conversion result: its success flag and typed value.</param>
 	public sealed class EncodedLegSecurityDescLen((bool Valid, long Value) value)
 		: Typed<long>(621, value);

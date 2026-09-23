@@ -208,14 +208,14 @@ public sealed class FixRetentionTests
 			using var stream = new MemoryStream(Encoding.Latin1.GetBytes(text));
 
 			return parser == "generated"
-				? FixParser.ReadFields(stream, null, bufferSize, maxRetained).ToArray()
-				: HandFixParser.Parse(stream, null, bufferSize, maxRetained).ToArray();
+				? FixParser.ReadFields(stream, FixFixtures.Reading(false, bufferSize, maxRetained)).ToArray()
+				: HandFixParser.Parse(stream, FixFixtures.Reading(false, bufferSize, maxRetained)).ToArray();
 		}
 
 		using var reader = new StringReader(text);
 
 		return parser == "generated"
-			? FixParser.ReadFields(reader, null, bufferSize, maxRetained).ToArray()
-			: HandFixParser.Parse(reader, null, bufferSize, maxRetained).ToArray();
+			? FixParser.ReadFields(reader, FixFixtures.Reading(false, bufferSize, maxRetained)).ToArray()
+			: HandFixParser.Parse(reader, FixFixtures.Reading(false, bufferSize, maxRetained)).ToArray();
 	}
 }

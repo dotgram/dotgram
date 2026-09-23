@@ -42,17 +42,17 @@ CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it doe
 not reject the field, except that a binary length must be valid to find the next
 field boundary. Text values need no conversion validity check.
 
-String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
+String, `TextReader`, byte-array, `ReadOnlyMemory<byte>` and `Stream` inputs are supported.
 `Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
 The grammar directly yields `FixField`. Ordinary fields are returned immediately;
-a binary length/data pair produces one typed data field after its payload is read.
-For example, `95=3|96=a|b|` produces one `FixField.RawData`, without a separate
-`RawDataLength` result. Its `Position` points to the start of the pair and
-`ValuePosition`/`Length` describe the payload. Native char/byte buffers release each
-completed field. `maxRetained` bounds one field, from its tag through the separator that
-ends it, or a whole binary pair, in characters from a reader or bytes from a stream:
-`FixParser.DefaultMaxRetained`, 16 Mi of either, unless given. A field that needs more
-throws `IOException`; pass a larger `maxRetained` to read it.
+a binary length/data pair produces two, the length and then the data it measures.
+For example, `95=3|96=a|b|` produces a `FixField.RawDataLength` of 3 and a `FixField.RawData`
+of `a|b`, each with its own `Position`, `ValuePosition` and `Length`. Native char/byte buffers
+release each completed field. The context's `MaxRetained` bounds one field, from its tag through
+the separator that ends it, in characters from a reader or bytes from a
+stream: `FixParser.DefaultMaxRetained`, 16 Mi of either, unless given. A field that needs more
+throws `IOException`; give the context a larger `MaxRetained` to read it. Its `BufferSize`,
+4096 unless given, is the size of the buffer the input is read through.
 Locations remain relative to the complete input. The input stays open on completion,
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.
@@ -78,13 +78,13 @@ After a malformed binary header or length, separator recovery is best effort:
 the next separator may be inside damaged payload data. Primitive conversion
 failures still come back as the tag's own typed field, with `IsValid == false`; `recover`
 handles recognition failures, not semantic validation.
-Use `.ToArray()` when a complete list is needed. String/span/byte-array overloads
+Use `.ToArray()` when a complete list is needed. String, byte-array and memory overloads
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
 `FixParser.ParseFields` reads SOH-delimited wire input; given `FixContext.WithLogFraming` it reads logs
-with bare `|`, spaced ` | `, or a mixture. Both names support strings, character
-spans, byte arrays, `TextReader`, and byte `Stream`; stream overloads are lazy.
+with bare `|`, spaced ` | `, or a mixture. Both names support strings, byte
+arrays, `ReadOnlyMemory<byte>`, `TextReader`, and byte `Stream`; stream overloads are lazy.
 `FixContext` declares which framing to read and any length/data pairs of your own; it is the
 one value a reading is done by and the one `Validate` holds a message to, and `FixContext.Default`
 reads the wire by the standard alone.
@@ -96,20 +96,20 @@ binary payloads are never trimmed, even when they contain ` | ` or end in spaces
 Field positions refer to the original input, including its formatting spaces.
 A streamed log field reads ahead through the padding to the next character or
 EOF before yielding. Wire parsing can yield as soon as SOH is read.
-Raw data and its immediately preceding Length field form one grammar rule.
-The parser requires the correct tag pair and consumes exactly the declared number
-of data bytes, including any delimiter bytes inside the payload. An orphaned
-length or data field is rejected. The final field may end at EOF without a separator. Separators between fields
+A length field makes the field right after it its data: when that field has the paired data tag,
+the parser consumes exactly the declared number of data bytes, including any delimiter bytes
+inside the payload. A data field anywhere else is rejected as an `Invalid`; a length followed by
+something else is still a length, and the message calls refuse it. The final field may end at EOF without a separator. Separators between fields
 remain required; the declared binary length still determines the complete payload.
 `FixParser.ParseFields` returns the completed field sequence, including `Invalid` fields.
-Use `FixParser.TryParseMessage` or `FixParser.TryBuildMessage` to build a message; both refuse a
+Use `FixParser.TryParseMessage` or `FixParser.BuildMessage` to build a message; both refuse a
 recovered syntax error with the first syntax diagnostic, whatever the framing. Typed values own their data;
-no complete source string is retained by a field. Character-span input is copied
-for recognition; native byte-stream parsing creates no complete character view.
+no complete source string is retained by a field. Octets held in an array or memory are read
+where they lie; native byte-stream parsing creates no complete character view.
 
 ## Computed dispatch parser
 
-`FixParser` is the main parser, with string, character-span, byte-array, `TextReader`
+`FixParser` is the main parser, with string, byte-array, `ReadOnlyMemory<byte>`, `TextReader`
 and byte `Stream` input forms. Its small [grammar](Fix/FixGrammar.gram) reads a
 numeric tag and uses `switch` to select text or a length/data pair. C# supplies
 classification and typed field construction.
@@ -124,26 +124,22 @@ using System.Collections.Generic;
 var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
 var context = new FixContext
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // the standard's own sixteen pairs hold as well, and may not be redeclared
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's own sixteen pairs
 };
 var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Framing = FixFraming.Log });
 ```
 
-A supplied length/data dictionary **adds to** the standard's sixteen pairs and is copied
-at construction; the standard's own pairs always hold, so neither tag of a supplied pair may be one
-the standard already defines. Omit it to use the standard pairs alone. The same object is what
-the message calls take, so one value describes both kinds of answer. Each length tag must
-immediately precede its configured data tag. The pair produces one binary field;
-a data tag the package does not define is built by `FixFieldFactory`, or is a `FixField.Invalid`
-of that tag carrying the payload. Standalone
+A supplied length/data dictionary, length tag to data tag, **adds to** the standard's sixteen
+pairs and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
+the standard pairs alone. The same object is what the message calls take, so one value describes
+both kinds of answer. The pair produces two fields; a tag the package does not define is built by
+`FixFieldFactory`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
 ## Explicit message semantics
 
 The message calls run only when called explicitly.
-A length/data pair is one field to `FixParser`; the message model holds the length
-and the data as two nodes, and this is the layer that separates them.
 `Build(source, fields)` requires fields parsed from that exact source and performs
 recognition and group assembly without parsing it again. `Parse` combines both steps.
 Holding the result to a schema is `Validate`, a call of its own.
@@ -174,8 +170,8 @@ else
 
 `FixParser.ParseMessage(wire)` returns the same model and throws `FormatException` on malformed
 input. `TryParseMessage` returns false and leaves `message` null. Null input also returns
-false in `TryParseMessage`; a context that cannot be made — a framing that is neither wire nor log, a pair the standard defines — is a programming
-errors. The `string`, `ReadOnlySpan<char>`, `byte[]` and `ReadOnlySpan<byte>` overloads accept one
+false in `TryParseMessage`; a context that cannot be made, a framing that is neither wire nor log, is a programming
+error. The `string`, `byte[]` and `ReadOnlyMemory<byte>` overloads accept one
 complete message. Concatenated messages are rejected by these overloads; `ParseMessages` reads a
 buffer of them, and `ReadMessages` consumes a sequence from a reader or stream.
 
@@ -231,7 +227,7 @@ and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
 
 **Or hand over the octets and make no claim at all.** Every field and message call also takes
-`byte[]` and `ReadOnlySpan<byte>`: `ParseFields`, `ParseMessage`, `TryParseMessage` and
+`byte[]` and `ReadOnlyMemory<byte>`: `ParseFields`, `ParseMessage`, `TryParseMessage` and
 `ParseMessages`. There the package decodes, knowing that the specification counts octets, so
 nothing depends on the caller having chosen an encoding. What this buys is correctness, not
 allocation: a message keeps its source, so the octets are still materialised one character to one
@@ -465,8 +461,8 @@ sealed class VenueQuote : FixCustomMessage
 A field is handed its value as characters; bytes arrive as the characters of the same codes unless
 the field overrides the byte form, and the payload of a declared length/data pair arrives as memory
 through a third form, read as bytes by default. A value may not be kept: copy what is needed. The
-factory is asked only of a tag the package has no class for, so a standard tag pays nothing, and
-the message layer builds the length half of a declared pair through the same factory.
+factory is asked only of a tag the package has no class for, so a standard tag pays nothing; the
+length of a declared pair is a field like any other, built by it too.
 
 Where a factory answers null, or there is none, the tag is a `FixField.Invalid` of that tag with its
 value's octets in `RawBytes`, and the type is a `FixMessage.Invalid`, not valid from the moment it is

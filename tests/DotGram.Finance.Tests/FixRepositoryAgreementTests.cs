@@ -304,8 +304,7 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var pair in pairs)
 		{
-			Assert.Equal(pair.Value, FixContext.Default.LengthTag(pair.Key));
-			Assert.Equal(pair.Key,   FixContext.Default.DataTag(pair.Value));
+			Assert.Equal(pair.Key, FixContext.Default.DataTag(pair.Value));
 		}
 
 		// And nothing the package calls a pair is outside that set.

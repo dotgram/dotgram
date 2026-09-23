@@ -75,7 +75,7 @@ public sealed class FixCustomFieldsTests
 	{
 		return new()
 		{
-			LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : null,
+			LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : new Dictionary<int, int>(),
 			FixFieldFactory = venue.Build,
 			Framing         = FixFraming.Log,
 		};
@@ -146,10 +146,10 @@ public sealed class FixCustomFieldsTests
 	{
 		var venue   = new Venue();
 		var fields  = FixParser.ParseFields("25000=3|25001=a|b|55=END|", Context(venue, pairs: true));
-		var payload = Assert.IsType<Payload>(fields[0]);
+		var payload = Assert.IsType<Payload>(fields[1]);
 
 		Assert.Equal("a|b", Encoding.Latin1.GetString(payload.Value));
-		Assert.Equal([25001], venue.Asked);
+		Assert.Equal([25000, 25001], venue.Asked);
 	}
 
 	[Fact]

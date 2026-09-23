@@ -89,10 +89,12 @@ public sealed class HandFixTests
 	{
 		const string first = "95=3 | 96=a|b | ";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(first + "55=END")) { Limit = first.Length + 1 };
-		var source = HandFixParser.ParseLog(stream, bufferSize: 1, maxRetained: 32);
+		var source = HandFixParser.ParseLog(stream, FixFixtures.Reading(true, 1, 32));
 		Assert.Equal(0, stream.Position);
 		using (var fields = source.GetEnumerator())
 		{
+			Assert.True(fields.MoveNext());
+			Assert.Equal(3, Assert.IsType<FixField.RawDataLength>(fields.Current).Value);
 			Assert.True(fields.MoveNext());
 			Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(fields.Current).Value.Span));
 			Assert.Equal(first.Length + 1, stream.Position);
@@ -100,9 +102,9 @@ public sealed class HandFixTests
 		Assert.True(stream.CanRead);
 
 		using var many = new StringReader(string.Concat(Enumerable.Repeat("55=ABC|", 10000)));
-		Assert.Equal(10000, HandFixParser.ParseLog(many, bufferSize: 3, maxRetained: 32).Count());
+		Assert.Equal(10000, HandFixParser.ParseLog(many, FixFixtures.Reading(true, 3, 32)).Count());
 		using var large = new StringReader("55=" + new string('X', 100));
-		Assert.Throws<IOException>(() => HandFixParser.ParseLog(large, bufferSize: 3, maxRetained: 16).ToArray());
+		Assert.Throws<IOException>(() => HandFixParser.ParseLog(large, FixFixtures.Reading(true, 3, 16)).ToArray());
 	}
 
 	[Fact]
@@ -110,8 +112,10 @@ public sealed class HandFixTests
 	{
 		using var one = new StringReader("95=3|96=a|b|55=A");
 		using var two = new StringReader("95=1|96=X|55=B");
-		using var a = HandFixParser.ParseLog(one, bufferSize: 1).GetEnumerator();
-		using var b = HandFixParser.ParseLog(two, bufferSize: 1).GetEnumerator();
+		using var a = HandFixParser.ParseLog(one, FixFixtures.Reading(true, 1)).GetEnumerator();
+		using var b = HandFixParser.ParseLog(two, FixFixtures.Reading(true, 1)).GetEnumerator();
+		Assert.True(a.MoveNext());
+		Assert.True(b.MoveNext());
 		Assert.True(a.MoveNext());
 		Assert.True(b.MoveNext());
 		Assert.True(a.MoveNext());
@@ -126,14 +130,14 @@ public sealed class HandFixTests
 		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));
 		Equal(expected, log ? HandFixParser.ParseLog(input.AsSpan(), options) : HandFixParser.Parse(input.AsSpan(), options));
 		using var reader = new StringReader(input);
-		Equal(expected, log ? HandFixParser.ParseLog(reader, options, 1) : HandFixParser.Parse(reader, options, 1));
+		Equal(expected, log ? HandFixParser.ParseLog(reader, (options ?? new FixContext()) with { BufferSize = 1 }) : HandFixParser.Parse(reader, (options ?? new FixContext()) with { BufferSize = 1 }));
 		Assert.Equal(-1, reader.Peek());
 
 		var bytes = Encoding.Latin1.GetBytes(input);
 		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new FixContext()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(bytes, options);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(bytes, options) : HandFixParser.Parse(bytes, options));
 		using var stream = new ShortStream(bytes);
-		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, options, 3) : HandFixParser.Parse(stream, options, 3));
+		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, (options ?? new FixContext()) with { BufferSize = 3 }) : HandFixParser.Parse(stream, (options ?? new FixContext()) with { BufferSize = 3 }));
 		Assert.True(stream.CanRead);
 	}
 

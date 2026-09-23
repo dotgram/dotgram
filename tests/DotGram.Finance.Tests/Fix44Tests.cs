@@ -269,7 +269,7 @@ public sealed class Fix44Tests
 			for (var i = 1; i < fields.Count; i++)
 			{
 				var current   = fields[i];
-				var lengthTag = FixContext.Default.LengthTag(current.Tag);
+				var lengthTag = FixContext.Default.LengthDataPairs.FirstOrDefault(pair => pair.Value == current.Tag).Key;
 
 				if (lengthTag == 0 || !covered.Add(current.Tag)) continue;
 

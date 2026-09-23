@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace DotGram.Finance.Fix44;
 
@@ -32,7 +32,7 @@ public static partial class FixParser
 	/// <summary>
 	/// The largest message a streamed call will read, in octets, when none is given.
 	/// </summary>
-	public const int DefaultMaxMessageLength = FixMessages.DefaultMaxMessageLength;
+	public const int DefaultMaxMessageLength = 16 * 1024 * 1024;
 
 	/// <summary>
 	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
@@ -50,19 +50,6 @@ public static partial class FixParser
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		if (TryParseMessage(input, out var message, out var error, context))
-			return message!;
-
-		throw new FormatException(error!.ToString());
-	}
-
-	/// <summary>Parses one complete message from a copy of the input.</summary>
-	/// <param name="input">The message.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
-	/// <exception cref="FormatException">The input is not a message under <paramref name="context"/>.</exception>
-	/// <remarks>The message keeps its source, so the input is copied into a string once.</remarks>
-	public static FixMessage ParseMessage(ReadOnlySpan<char> input, FixContext? context = null)
-	{
 		if (TryParseMessage(input, out var message, out var error, context))
 			return message!;
 
@@ -107,15 +94,15 @@ public static partial class FixParser
 		throw new FormatException(error!.ToString());
 	}
 
-	/// <summary>Reads one message from a copy of the octets it arrived as.</summary>
+	/// <summary>Reads one message from octets the caller already holds.</summary>
 	/// <param name="input">The whole message, as the octets that came off the wire.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <exception cref="FormatException">The input is not one readable message.</exception>
 	/// <remarks>
-	/// <see cref="ParseMessage(byte[], FixContext)"/> says what the octet road is for. The
-	/// parser reads an array, so the span is copied into one first.
+	/// <see cref="ParseMessage(byte[], FixContext)"/> says what the octet road is for. The octets
+	/// are read where they lie, with no copy.
 	/// </remarks>
-	public static FixMessage ParseMessage(ReadOnlySpan<byte> input, FixContext? context = null)
+	public static FixMessage ParseMessage(ReadOnlyMemory<byte> input, FixContext? context = null)
 	{
 		if (TryParseMessage(input, out var message, out var error, context))
 			return message!;
@@ -135,37 +122,9 @@ public static partial class FixParser
 
 		// The same road as every other overload: the envelope is checked, the fields are read, and
 		// the message is put together from them.
-		return FixMessages.TryParse(input, out message, out error, context);
+		return TryParseText(input, out message, out error, context);
 	}
 
-
-	// The length half of a pair, built from the count it measured. The wire text it was read from
-	// is not kept, and a FIX Length is plain digits, so the two agree wherever the input is valid.
-	static FixField LengthField(int tag, int count, Func<int, FixCustomField?>? custom)
-	{
-		(bool, long) value = (true, count);
-
-		return tag switch
-		{
-			 90 => new FixField.SecureDataLen(value),
-			 93 => new FixField.SignatureLength(value),
-			 95 => new FixField.RawDataLength(value),
-			212 => new FixField.XmlDataLen(value),
-			348 => new FixField.EncodedIssuerLen(value),
-			350 => new FixField.EncodedSecurityDescLen(value),
-			352 => new FixField.EncodedListExecInstLen(value),
-			354 => new FixField.EncodedTextLen(value),
-			356 => new FixField.EncodedSubjectLen(value),
-			358 => new FixField.EncodedHeadlineLen(value),
-			360 => new FixField.EncodedAllocTextLen(value),
-			362 => new FixField.EncodedUnderlyingIssuerLen(value),
-			364 => new FixField.EncodedUnderlyingSecurityDescLen(value),
-			445 => new FixField.EncodedListStatusTextLen(value),
-			618 => new FixField.EncodedLegIssuerLen(value),
-			621 => new FixField.EncodedLegSecurityDescLen(value),
-			  _ => FixCustomField.Build(tag, count.ToString(CultureInfo.InvariantCulture).AsSpan(), custom),
-		};
-	}
 
 	/// <summary>Puts one message together from fields already read, in the order they were read.</summary>
 	internal static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
@@ -176,20 +135,19 @@ public static partial class FixParser
 		var     ended   = false;
 		var     fields  = new List<FixField>(input is ICollection c ? c.Count : 6);
 		string? type    = null;
+		var     pairs   = context ?? FixContext.Default;
+		var     length  = 0;
 
 		foreach (var field in input)
 		{
-			// A length/data pair is read as the data field alone, since the length is how the reader
-			// knew where to stop. The message carries both, so the length half is put back here, with
-			// the count it measured and the extent it was read from.
-			if (field.IsBinary)
+			// A length field is followed by the data it measures, and by nothing else.
+			if (length != 0 && field.Tag != pairs.DataTag(length))
 			{
-				var settings = context ?? FixContext.Default;
-				var length   = LengthField(settings.LengthTag(field.Tag), field.Length, settings.FixFieldFactory);
-
-				length.Locate(field.Position, field.DataPosition - field.Position);
-				fields.Add(length);
+				error = new FixParseError(field.Position, length, null, $"Length ({length}) is not followed by its data ({pairs.DataTag(length)})");
+				return false;
 			}
+
+			length = pairs.DataTag(field.Tag) != 0 ? field.Tag : 0;
 
 			fields.Add(field);
 
@@ -234,6 +192,12 @@ public static partial class FixParser
 			}
 		}
 
+		if (length != 0)
+		{
+			error = new FixParseError(0, length, null, $"Length ({length}) is not followed by its data ({pairs.DataTag(length)})");
+			return false;
+		}
+
 		if (!started)
 		{
 			error = new FixParseError(0, null, null, "Message has no BeginString (8)");
@@ -267,7 +231,7 @@ public static partial class FixParser
 				(1, '3', _  ) => new FixMessage.Reject                                 (fields),
 				(1, '4', _  ) => new FixMessage.SequenceReset                          (fields),
 				(1, '5', _  ) => new FixMessage.Logout                                 (fields),
-				(1, '6', _  ) => new FixMessage.IndicationOfInterest                                    (fields),
+				(1, '6', _  ) => new FixMessage.IndicationOfInterest                   (fields),
 				(1, '7', _  ) => new FixMessage.Advertisement                          (fields),
 				(1, '8', _  ) => new FixMessage.ExecutionReport                        (fields),
 				(1, '9', _  ) => new FixMessage.OrderCancelReject                      (fields),
@@ -359,17 +323,6 @@ public static partial class FixParser
 		}
 	}
 
-	/// <summary>Reads one message from a buffer; a malformed one answers with a diagnostic.</summary>
-	/// <param name="input">The whole message, as octets held one to a character.</param>
-	/// <param name="message">The message read, or null.</param>
-	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
-	{
-		return FixMessages.TryParse(input, out message, out error, context);
-	}
-
 	/// <summary>Reads one message from octets; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The whole message, as the octets that came off the wire; null is refused with a diagnostic.</param>
 	/// <param name="message">The message read, or null.</param>
@@ -379,19 +332,25 @@ public static partial class FixParser
 	/// <remarks><see cref="ParseMessage(byte[], FixContext)"/> says what the octet road is for.</remarks>
 	public static bool TryParseMessage(byte[]? input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
-		return FixMessages.TryParse(input, out message, out error, context);
+		if (input == null)
+		{
+			message = null;
+			return Fail(0, null, null, "Input is null.", out error);
+		}
+
+		return TryParseBytes(input, out message, out error, context);
 	}
 
-	/// <summary>Reads one message from a copy of the octets; a malformed one answers with a diagnostic.</summary>
+	/// <summary>Reads one message from octets the caller already holds; a malformed one answers with a diagnostic.</summary>
 	/// <param name="input">The whole message, as the octets that came off the wire.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	/// <remarks>The parser reads an array, so the span is copied into one first.</remarks>
-	public static bool TryParseMessage(ReadOnlySpan<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
+	/// <remarks>The octets are read where they lie, with no copy.</remarks>
+	public static bool TryParseMessage(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context = null)
 	{
-		return FixMessages.TryParse(input, out message, out error, context);
+		return TryParseBytes(input, out message, out error, context);
 	}
 
 	/// <summary>Reads every message of a buffer, in order.</summary>
@@ -412,20 +371,10 @@ public static partial class FixParser
 		var messages = new List<FixMessage>();
 
 		using (var reader = new StringReader(input))
-			foreach (var message in FixMessages.ReadMessages(reader, context, maxMessageLength))
+			foreach (var message in ReadMessages(reader, context, maxMessageLength))
 				messages.Add(message);
 
 		return messages.ToArray();
-	}
-
-	/// <summary>Reads every message of a buffer, in order.</summary>
-	/// <param name="input">Concatenated messages, as octets held one to a character.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
-	public static FixMessage[] ParseMessages(ReadOnlySpan<char> input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
-	{
-		return ParseMessages(input.ToString(), context, maxMessageLength);
 	}
 
 	/// <summary>Reads every message of a buffer of octets, in order.</summary>
@@ -445,24 +394,31 @@ public static partial class FixParser
 		if (input is null)
 			throw new ArgumentNullException(nameof(input));
 
-		var messages = new List<FixMessage>();
-
-		using (var stream = new MemoryStream(input, writable: false))
-			foreach (var message in FixMessages.ReadMessages(stream, context, maxMessageLength))
-				messages.Add(message);
-
-		return messages.ToArray();
+		return ParseMessages(new ReadOnlyMemory<byte>(input), context, maxMessageLength);
 	}
 
-	/// <summary>Reads every message of a copy of a buffer of octets, in order.</summary>
+	/// <summary>Reads every message of octets the caller already holds, in order.</summary>
 	/// <param name="input">Concatenated messages, as the octets that came off the wire.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
-	/// <remarks>The input is read from an array, so the span is copied into one first.</remarks>
-	public static FixMessage[] ParseMessages(ReadOnlySpan<byte> input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	/// <remarks>
+	/// Octets held in an array are read where they lie; memory of any other kind is copied into one
+	/// first.
+	/// </remarks>
+	public static FixMessage[] ParseMessages(ReadOnlyMemory<byte> input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return ParseMessages(input.ToArray(), context, maxMessageLength);
+		var held = MemoryMarshal.TryGetArray(input, out var segment)
+			? segment
+			: new ArraySegment<byte>(input.ToArray());
+
+		var messages = new List<FixMessage>();
+
+		using (var stream = new MemoryStream(held.Array!, held.Offset, held.Count, writable: false))
+			foreach (var message in ReadMessages(stream, context, maxMessageLength))
+				messages.Add(message);
+
+		return messages.ToArray();
 	}
 
 	/// <summary>Reads exactly one message from a reader, without closing it or reading past it.</summary>
@@ -472,7 +428,10 @@ public static partial class FixParser
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
 	public static FixMessage ReadMessage(TextReader input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.Parse(input, context, maxMessageLength);
+		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Reads exactly one message from a stream, without closing it or reading past it.</summary>
@@ -482,7 +441,10 @@ public static partial class FixParser
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
 	public static FixMessage ReadMessage(Stream input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.Parse(input, context, maxMessageLength);
+		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
 	/// <summary>Reads one message from a reader; a malformed one answers with a diagnostic.</summary>
@@ -494,7 +456,22 @@ public static partial class FixParser
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
 	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.TryParse(input, out message, out error, context, maxMessageLength);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		ValidateStreamArguments(maxMessageLength);
+
+		message = null;
+
+		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
+
+		if (!reader.TryRead(out var wire, out error))
+		{
+			if (error == null)
+				Fail(0, null, null, "Expected a FIX message.", out error);
+			return false;
+		}
+
+		return TryParseFrame(wire, out message, out error, context);
 	}
 
 	/// <summary>Reads one message from a stream; a malformed one answers with a diagnostic.</summary>
@@ -506,7 +483,22 @@ public static partial class FixParser
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
 	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.TryParse(input, out message, out error, context, maxMessageLength);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		ValidateStreamArguments(maxMessageLength);
+
+		message = null;
+
+		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
+
+		if (!reader.TryRead(out var wire, out error))
+		{
+			if (error == null)
+				Fail(0, null, null, "Expected a FIX message.", out error);
+			return false;
+		}
+
+		return TryParseFrame(wire, out message, out error, context);
 	}
 
 	/// <summary>Reads concatenated messages from a reader, one at a time, reusing a frame buffer.</summary>
@@ -515,7 +507,11 @@ public static partial class FixParser
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	public static IEnumerable<FixMessage> ReadMessages(TextReader input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.ReadMessages(input, context, maxMessageLength);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		ValidateStreamArguments(maxMessageLength);
+
+		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
 	}
 
 	/// <summary>Reads concatenated messages from a stream, one at a time, reusing a frame buffer.</summary>
@@ -524,7 +520,11 @@ public static partial class FixParser
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	public static IEnumerable<FixMessage> ReadMessages(Stream input, FixContext? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
-		return FixMessages.ReadMessages(input, context, maxMessageLength);
+		if (input == null) throw new ArgumentNullException(nameof(input));
+
+		ValidateStreamArguments(maxMessageLength);
+
+		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
 	}
 
 	/// <summary>
@@ -541,18 +541,269 @@ public static partial class FixParser
 	/// </remarks>
 	public static FixMessage BuildMessage(string source, FixField[] fields, FixContext? context = null)
 	{
-		return FixMessages.Build(source, fields, context);
+		if (TryBuildMessage(source, fields, out var message, out var error, context))
+			return message!;
+
+		throw new FormatException(error!.ToString());
 	}
 
-	/// <summary>The same, answering with a diagnostic rather than throwing.</summary>
-	/// <param name="source">The source those fields were read from.</param>
-	/// <param name="fields">The fields, in the order they were read.</param>
-	/// <param name="message">The message built, or null.</param>
-	/// <param name="error">The first problem found, or null.</param>
-	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixContext? context = null)
+	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
 	{
-		return FixMessages.TryBuild(source, fields, out message, out error, context);
+		type  = "";
+		error = null;
+
+		var separator = framing.Separator();
+
+		for (var i = 0; i < input.Length; i++)
+			if (input[i] > 255)
+				return Fail(i, null, null, "Input must preserve octets as characters U+0000 through U+00FF.", out error);
+
+		if (!input.StartsWith("8=FIX.4.4" + separator + "9=", StringComparison.Ordinal))
+			return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+
+		var lengthEnd = input.IndexOf(separator, 12);
+
+		if (lengthEnd < 0)
+			return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
+
+		if (!int.TryParse(input.AsSpan(12, lengthEnd - 12), NumberStyles.None, CultureInfo.InvariantCulture, out var bodyLength))
+			return Fail(12, 9, null, "BodyLength must be a nonnegative integer within the input range.", out error);
+
+		var bodyStart = lengthEnd + 1;
+
+		if (input.Length - bodyStart < 4 || !input.AsSpan(bodyStart, 3).SequenceEqual("35=".AsSpan()))
+			return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
+
+		var typeEnd = input.IndexOf(separator, bodyStart + 3);
+
+		if (typeEnd < 0)
+			return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
+
+		type = input.Substring(bodyStart + 3, typeEnd - bodyStart - 3);
+
+		if (bodyLength != input.Length - bodyStart - 7)
+			return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
+
+		var checksumStart = bodyStart + bodyLength;
+
+		if (!input.AsSpan(checksumStart, 3).SequenceEqual("10=".AsSpan()) || input[input.Length - 1] != separator)
+			return Fail(checksumStart, 10, type, "Expected final CheckSum field with three digits and SOH.", out error);
+
+		if (!int.TryParse(input.AsSpan(checksumStart + 3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out var expected))
+			return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
+
+		var checksum = 0;
+
+		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
+
+		if (framing == FixFraming.Log)
+		{
+			if (fields == null) return true;
+
+			foreach (var field in fields)
+			{
+				if (field.ValuePosition + field.Length < checksumStart)
+					checksum = (checksum - separator + 1) & 255;
+			}
+		}
+
+		if (checksum != expected)
+			return Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
+
+		return true;
+	}
+
+	static bool TryParseText(string? input, out FixMessage? message, out FixParseError? error, FixContext? context)
+	{
+		message = null;
+		error   = null;
+
+		if (input == null)
+			return Fail(0, null, null, "Input is null.", out error);
+
+		var framing = context?.Framing ?? FixFraming.Wire;
+
+		if (!Envelope(input, framing, null, out var type, out error))
+			return false;
+
+		var fields = FixParser.ParseFields(input, context);
+
+		if (!CheckSyntax(fields, out error))
+			return false;
+
+		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
+			return false;
+
+		return FixParser.TryParseMessage(fields, out message, out error, context);
+	}
+
+	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
+	{
+		type  = "";
+		error = null;
+
+		var separator = framing.Separator();
+
+		if (input.Length < 12 || !input.Slice(0, 9).SequenceEqual("8=FIX.4.4"u8) || input[9] != separator || input[10] != '9' || input[11] != '=')
+			return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+
+		var lengthEnd = input.Slice(12).IndexOf((byte)separator);
+
+		if (lengthEnd < 0)
+			return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
+
+		lengthEnd += 12;
+
+		var bodyLength = FixConvert.Tag(input.Slice(12, lengthEnd - 12));
+
+		if (bodyLength < 0)
+			return Fail(12, 9, null, "Invalid BodyLength.", out error);
+
+		var bodyStart = lengthEnd + 1;
+
+		if (input.Length - bodyStart < 4 || !input.Slice(bodyStart, 3).SequenceEqual("35="u8))
+			return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
+
+		var typeLength = input.Slice(bodyStart + 3).IndexOf((byte)separator);
+
+		if (typeLength < 0)
+			return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
+
+		type = FixConvert.Text(input.Slice(bodyStart + 3, typeLength));
+
+		if (bodyLength != input.Length - bodyStart - 7)
+			return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
+
+		var checksumStart = bodyStart + bodyLength;
+
+		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator)
+			return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
+
+		var expected = FixConvert.Tag(input.Slice(checksumStart + 3, 3));
+
+		if (expected < 0)
+			return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
+
+		var checksum = 0;
+
+		for (var i = 0; i < checksumStart; i++)
+			checksum = (checksum + input[i]) & 255;
+
+		if (framing == FixFraming.Log)
+		{
+			if (fields == null)
+				return true;
+
+			foreach (var field in fields)
+			{
+				if (field.ValuePosition + field.Length < checksumStart)
+					checksum = (checksum - separator + 1) & 255;
+			}
+		}
+		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
+	}
+
+	static bool TryParseBytes(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context)
+	{
+		message = null;
+
+		var framing = context?.Framing ?? FixFraming.Wire;
+
+		if (!Envelope(input.Span, framing, null, out _, out error))
+			return false;
+
+		var fields = FixParser.ParseFields(input, context);
+
+		if (!CheckSyntax(fields, out error))
+			return false;
+
+		if (framing == FixFraming.Log && !Envelope(input.Span, framing, fields, out _, out error))
+			return false;
+
+		return FixParser.TryParseMessage(fields, out message, out error, context);
+	}
+
+	/// <summary>
+	/// <see cref="BuildMessage"/>, answering with a diagnostic rather than throwing.
+	/// </summary>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	internal static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, FixContext? context = null)
+	{
+		if (source == null) throw new ArgumentNullException(nameof(source));
+		if (fields == null) throw new ArgumentNullException(nameof(fields));
+
+		message = null;
+
+		var framing   = context?.Framing ?? FixFraming.Wire;
+		var separator = framing.Separator();
+
+		if (!Envelope(source, framing, null, out var type, out error))
+			return false;
+
+		if (!CheckSyntax(fields, out error))
+			return false;
+
+		var position = 0;
+
+		foreach (var field in fields)
+		{
+			if (field == null || field.Position != position || field.Length < 0 ||
+				field.ValuePosition < position || field.ValuePosition > source.Length - 1 ||
+				field.Length >= source.Length - field.ValuePosition)
+			{
+				return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
+			}
+
+			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
+				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
+				source[field.ValuePosition + field.Length] != separator)
+			{
+				return Fail(position, field.Tag, type, "Field locations do not match the supplied source.", out error);
+			}
+
+			position = field.ValuePosition + field.Length + 1;
+		}
+
+		if (position != source.Length)
+			return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
+
+		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error))
+			return false;
+
+		return FixParser.TryParseMessage(fields, out message, out error, context);
+	}
+
+	static bool IsTag(ReadOnlySpan<char> text, int tag)
+	{
+		for (var i = text.Length - 1; i >= 0; i--)
+		{
+			if (text[i] != (char)('0' + tag % 10))
+				return false;
+
+			tag /= 10;
+
+			if (tag == 0)
+				return i == 0;
+		}
+
+		return false;
+	}
+
+	static bool CheckSyntax(FixField[] fields, out FixParseError? error)
+	{
+		foreach (var field in fields)
+			// Skipped input stops the message; a tag nothing builds a field of is a field of it, out of scope.
+			if (field is FixField.Invalid { Tag: 0 } invalid)
+				return Fail(invalid.Position, null, null, invalid.Message, out error);
+
+		error = null;
+
+		return true;
+	}
+
+	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
+	{
+		error = new FixParseError(position, tag, type, reason);
+		return false;
 	}
 }

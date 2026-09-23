@@ -44,7 +44,7 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   (`Encoding.Latin1`), never UTF-8: UTF-8 changes the byte count, and a message call
   then rejects the input on BodyLength or CheckSum. A character above U+00FF is
   refused.
-- **Better: hand over the octets.** `byte[]` and `ReadOnlySpan<byte>` go to every field
+- **Better: hand over the octets.** `byte[]` and `ReadOnlyMemory<byte>` go to every field
   and message call, and there is then no encoding for anyone to get wrong — the package
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
   hand. It is not cheaper: the model keeps its source, so the octets are materialised one
@@ -53,10 +53,11 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
   value goes to every other call. The message calls accept a bare `|` only; read a log
   padded with spaces with `ParseFields` and `FixContext.WithLogFraming`.
-- **Forms.** Fields and messages both take `string`, `ReadOnlySpan<char>`, `byte[]`,
-  `ReadOnlySpan<byte>`, `TextReader` and `Stream`. The span overloads copy the input
-  first, into a string or an array. `TextReader` and `Stream` are read lazily and left
-  open: dispose them yourself, and enumerate the result once.
+- **Forms.** Fields and messages both take `string`, `byte[]`, `ReadOnlyMemory<byte>`,
+  `TextReader` and `Stream`. An array or memory is read where it lies, without a copy.
+  There is no span overload: it could only copy the span into an array, so a caller who
+  holds one writes `span.ToArray()` and sees the copy. `TextReader` and `Stream` are read
+  lazily and left open: dispose them yourself, and enumerate the result once.
 
 ## Reading fields
 
@@ -151,8 +152,8 @@ switch (message)
 ## Binary data
 
 A length/data pair — `95=5` then `96=` and five octets — is read by its length, so the
-payload may contain separators. It comes back as one field, the data field, whose
-`Position` covers both. Counterparty-defined pairs go in `FixContext`:
+payload may contain separators. It comes back as two fields, the length and the data, each
+with its own position. Counterparty-defined pairs go in `FixContext`:
 
 ```csharp
 using System.Collections.Generic;
@@ -162,20 +163,20 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 
 var context = new FixContext
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's sixteen pairs, which hold and may not be redeclared
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // length tag to data tag, added to the standard's sixteen
 };
 
 var fields  = FixParser.ParseFields(wire, context);
 var message = FixParser.ParseMessage(wire, context);   // the same value reads both layers and holds the message to its schema
 ```
 
-The dictionary **adds to** the standard's sixteen pairs, which always hold: list only
-what the standard does not define, and repeating one of its pairs is refused with the tag
-named. The same object goes to the message calls. When
-reading a stream, `maxRetained` bounds one field, from its tag through the separator that
-ends it, or a whole pair: 16 Mi characters from a `TextReader` or bytes from a `Stream` by
-default. A field that needs more throws `IOException`, so pass a larger `maxRetained` for
-large binary data.
+The dictionary **adds to** the standard's sixteen pairs: list only what the standard does
+not define. The same object goes to the message calls, which refuse a length not followed by
+its data. When reading a stream, the context's `MaxRetained` bounds one field, from its tag
+through the separator that ends it: 16 Mi characters from a `TextReader` or bytes from a
+`Stream` by default. A field that needs more throws `IOException`, so give the context a larger
+`MaxRetained` for large binary data: `context with { MaxRetained = 64 << 20 }`. `BufferSize`
+is the size of the buffer the input is read through.
 
 ## Streams
 
@@ -191,5 +192,5 @@ large binary data.
 3. Expecting the field calls to reject a bad message. They do not: the message calls are
    what check the envelope, BodyLength and CheckSum.
 4. Feeding a space-padded log to a message call. Only the field calls read padding.
-5. Repeating a standard length/data pair in a dictionary of your own to keep it. They hold
-   without being listed, and redeclaring one is refused.
+5. Writing a pair's data tag without its length right before it. The field calls return it
+   as a `FixField.Invalid`: only a length says where the data ends.

@@ -42,13 +42,14 @@ public sealed class FixLogTests
 
 		foreach (var fields in ReadLog(input))
 		{
-			Assert.Equal(3, fields.Length);
-			var binary = Assert.IsType<FixField.RawData>(fields[1]);
+			Assert.Equal(4, fields.Length);
+			Assert.Equal(payload.Length, Assert.IsType<FixField.RawDataLength>(fields[1]).Value);
+			var binary = Assert.IsType<FixField.RawData>(fields[2]);
 			Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
-			Assert.Equal(input.IndexOf("95=", StringComparison.Ordinal), binary.Position);
+			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal), binary.Position);
 			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal) + 3, binary.ValuePosition);
 			Assert.Equal(payload.Length, binary.Length);
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
+			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[3]).Value);
 		}
 	}
 
@@ -60,9 +61,10 @@ public sealed class FixLogTests
 
 		foreach (var fields in ReadLog(input, options))
 		{
-			Assert.Equal(2, fields.Length);
-			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Invalid>(fields[0]).RawBytes.Span));
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
+			Assert.Equal(3, fields.Length);
+			Assert.Equal(5000, fields[0].Tag);
+			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Invalid>(fields[1]).RawBytes.Span));
+			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
 		}
 	}
 
@@ -93,16 +95,16 @@ public sealed class FixLogTests
 	}
 
 	[Theory]
-	[InlineData("55=ABC | 38=2")]
-	[InlineData("bad | 38=2")]
-	[InlineData("95=3 | 96=a|b | 38=2")]
-	public void Log_enumeration_only_looks_past_padding_to_the_next_character(string input)
+	[InlineData("55=ABC | 38=2", "38=")]
+	[InlineData("bad | 38=2", "38=")]
+	[InlineData("95=3 | 96=a|b | 38=2", "96=")]
+	public void Log_enumeration_only_looks_past_padding_to_the_next_character(string input, string next)
 	{
-		var limit = input.IndexOf("38=", StringComparison.Ordinal) + 1;
+		var limit = input.IndexOf(next, StringComparison.Ordinal) + 1;
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input)) { ReadLimit = limit };
 		using var reader = new GatedReader(input, limit);
-		var bytes = FixParser.ReadFields(stream, FixContext.WithLogFraming, bufferSize: 1);
-		var chars = FixParser.ReadFields(reader, FixContext.WithLogFraming, bufferSize: 1);
+		var bytes = FixParser.ReadFields(stream, FixFixtures.Reading(true, 1));
+		var chars = FixParser.ReadFields(reader, FixFixtures.Reading(true, 1));
 
 		Assert.Equal(0, stream.Position);
 		Assert.Equal(0, reader.ReadCount);
@@ -149,14 +151,14 @@ public sealed class FixLogTests
 	static IEnumerable<FixField[]> ReadLog(string input, FixContext? options = null)
 	{
 		yield return FixParser.ParseFields(input, (options ?? new FixContext()) with { Framing = FixFraming.Log });
-		yield return FixParser.ParseFields(input.AsSpan(), (options ?? new FixContext()) with { Framing = FixFraming.Log });
+		yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(input)), (options ?? new FixContext()) with { Framing = FixFraming.Log });
 		yield return FixParser.ParseFields(Encoding.Latin1.GetBytes(input), (options ?? new FixContext()) with { Framing = FixFraming.Log });
 
 		using var reader = new StringReader(input);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 
-		yield return FixParser.ReadFields(reader, (options ?? new FixContext()) with { Framing = FixFraming.Log }, bufferSize: 1).ToArray();
-		yield return FixParser.ReadFields(stream, (options ?? new FixContext()) with { Framing = FixFraming.Log }, bufferSize: 1).ToArray();
+		yield return FixParser.ReadFields(reader, (options ?? new FixContext()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
+		yield return FixParser.ReadFields(stream, (options ?? new FixContext()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
 		Assert.True(stream.CanRead);
 	}
 

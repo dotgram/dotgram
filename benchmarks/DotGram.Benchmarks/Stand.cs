@@ -709,7 +709,8 @@ static partial class Stand
 			_fix         = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixParser") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser"));
 			// The context since 2026-09-22 (D136: the options and the schema are one value); FixFieldOptions before it.
 			_fixOptions  = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixContext") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixContext")) ?? (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixFieldOptions") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions"));
-			_fixMessages = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixMessages") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages"));
+			// The message layer was its own internal class until 2026-09-23; since then its calls are the door's own, which form 4 already reads.
+			_fixMessages = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixMessages") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixMessages") ?? _fix);
 			// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
 			// settings are FixContext, an optional parameter after the first (main): the entry is found with the mode, plain, or with FixContext after the first parameter, in that order.
 			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
@@ -888,6 +889,16 @@ static partial class Stand
 
 			if (form == "parse-span")
 			{
+				// Form 5: the door takes no span, so a caller holding one copies it into a string
+				// first, as the span overload used to do inside; the copy is part of what is timed.
+				if (_fix.GetMethod("ParseMessage", [typeof(string), _fixOptions]) is { } stringDoor
+					&& _fix.GetMethod("ParseMessage", [typeof(ReadOnlySpan<char>), _fixOptions]) is null)
+				{
+					var validateCopy = FixValidate();
+
+					return () => Checked(stringDoor.Invoke(null, [wire.AsSpan().ToString(), null]), validateCopy) is null ? 0 : 1;
+				}
+
 				var (target, spanKind) = FixMessagesEntry("Parse", [typeof(ReadOnlySpan<char>)]);
 				var call           = SpanCall(target);
 				var validateSpan   = spanKind == FixEntry.Mode ? null : FixValidate();
@@ -1017,8 +1028,18 @@ static partial class Stand
 		/// <summary>FixParser.Parse(ReadOnlySpan&lt;char&gt;) of this side, through a dynamic method: how many fields it read.</summary>
 		public Func<int> FixSpan(string text)
 		{
-			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions]) ?? _fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), _fixOptions])
-				?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char>, FixContext) not found");
+			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions]) ?? _fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), _fixOptions]);
+
+			// Form 5: no span overload, so the span is copied into a string by the caller, as the
+			// overload used to do inside; the copy is part of what is timed.
+			if (target is null)
+			{
+				var door = _fix.GetMethod("ParseFields", [typeof(string), _fixOptions])
+					?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char> | string, FixContext) not found");
+
+				return () => ((Array)door.Invoke(null, [text.AsSpan().ToString(), null])!).Length;
+			}
+
 			var call   = SpanCall(target);
 
 			return () => ((Array)call(text)!).Length;
@@ -1371,9 +1392,31 @@ static partial class Stand
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{
 			// The field readers were Parse; since finance-fc's 4219b316 they are ParseFields (memory) and ReadFields (a reader or a stream).
-			var call = _fix.GetMethod(method, parameters)
-				?? (method == "Parse" ? _fix.GetMethod(parameters[0] == typeof(TextReader) || parameters[0] == typeof(Stream) ? "ReadFields" : "ParseFields", parameters) : null)
-				?? throw new InvalidOperationException($"FixParser.{method} (or its successor ParseFields / ReadFields) not found for the given parameters");
+			var reader = parameters[0] == typeof(TextReader) || parameters[0] == typeof(Stream);
+			var call   = _fix.GetMethod(method, parameters)
+				?? (method == "Parse" ? _fix.GetMethod(reader ? "ReadFields" : "ParseFields", parameters) : null);
+
+			// Since 2026-09-23 a reader's buffer and its bound are the context's, BufferSize and MaxRetained,
+			// and ReadFields takes the reader and the context alone.
+			if (call is null && reader && parameters.Length == 4 && _fix.GetMethod(method == "Parse" ? "ReadFields" : method, [parameters[0], _fixOptions]) is { } two)
+			{
+				return () =>
+				{
+					var context = arguments[1] is { } given
+						? _fixOptions.GetMethod("<Clone>$")!.Invoke(given, null)!
+						: Activator.CreateInstance(_fixOptions)!;
+
+					_fixOptions.GetProperty("BufferSize")!.SetValue(context, arguments[2]);
+
+					if (arguments[3] is int limit)
+						_fixOptions.GetProperty("MaxRetained")!.SetValue(context, limit);
+
+					return two.Invoke(null, [arguments[0], context])!;
+				};
+			}
+
+			if (call is null)
+				throw new InvalidOperationException($"FixParser.{method} (or its successor ParseFields / ReadFields) not found for the given parameters");
 
 			return () => call.Invoke(null, arguments)!;
 		}

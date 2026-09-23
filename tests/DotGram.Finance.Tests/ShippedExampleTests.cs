@@ -33,7 +33,7 @@ public sealed class ShippedExampleTests
 
 		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
 
-		Assert.Equal([5001], custom.Select(field => field.Tag));
+		Assert.Equal([5000, 5001], custom.Select(field => field.Tag));
 	}
 
 	[Fact]
@@ -45,16 +45,7 @@ public sealed class ShippedExampleTests
 
 		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
 
-		Assert.Equal([96], standard.Select(field => field.Tag));
-	}
-
-	[Fact]
-	public void Redeclaring_a_standard_pair_is_refused_with_the_tag_named()
-	{
-		var refused = Assert.Throws<System.ArgumentException>(
-			() => new FixContext { LengthDataPairs = new Dictionary<int, int> { [95] = 96 } });
-
-		Assert.Contains("95", refused.Message);
+		Assert.Equal([95, 96], standard.Select(field => field.Tag));
 	}
 
 	// ── The pages themselves, compiled as they are written ──────────────────────

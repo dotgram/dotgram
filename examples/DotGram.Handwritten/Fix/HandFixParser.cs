@@ -33,16 +33,18 @@ public static class HandFixParser
 		return Read(new Input<byte>(input), false, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> Parse(TextReader input, FixContext? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> Parse(TextReader input, FixContext? options = null)
 	{
-		var limit = Validate(input, bufferSize, maxRetained);
-		return ReadText(input, false, options, bufferSize, limit);
+		ArgumentNullException.ThrowIfNull(input);
+		var settings = options ?? FixContext.Default;
+		return ReadText(input, false, options, settings.BufferSize, settings.MaxRetained);
 	}
 
-	public static IEnumerable<FixField> Parse(Stream input, FixContext? options = null, int bufferSize = 4096, int? maxRetained = null)
+	public static IEnumerable<FixField> Parse(Stream input, FixContext? options = null)
 	{
-		var limit = Validate(input, bufferSize, maxRetained);
-		return ReadBytes(input, false, options, bufferSize, limit);
+		ArgumentNullException.ThrowIfNull(input);
+		var settings = options ?? FixContext.Default;
+		return ReadBytes(input, false, options, settings.BufferSize, settings.MaxRetained);
 	}
 
 	public static FixField[] ParseLog(string input, FixContext? options = null)
@@ -68,28 +70,18 @@ public static class HandFixParser
 		return Read(new Input<byte>(input), true, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> ParseLog(TextReader input, FixContext? options = null, int bufferSize = 4096, int? maxRetained = null)
-	{
-		var limit = Validate(input, bufferSize, maxRetained);
-		return ReadText(input, true, options, bufferSize, limit);
-	}
-
-	public static IEnumerable<FixField> ParseLog(Stream input, FixContext? options = null, int bufferSize = 4096, int? maxRetained = null)
-	{
-		var limit = Validate(input, bufferSize, maxRetained);
-		return ReadBytes(input, true, options, bufferSize, limit);
-	}
-
-	static int Validate(object input, int bufferSize, int? maxRetained)
+	public static IEnumerable<FixField> ParseLog(TextReader input, FixContext? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
+		var settings = options ?? FixContext.Default;
+		return ReadText(input, true, options, settings.BufferSize, settings.MaxRetained);
+	}
 
-		var limit = maxRetained ?? FixParser.DefaultMaxRetained;
-
-		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit, nameof(maxRetained));
-
-		return limit;
+	public static IEnumerable<FixField> ParseLog(Stream input, FixContext? options = null)
+	{
+		ArgumentNullException.ThrowIfNull(input);
+		var settings = options ?? FixContext.Default;
+		return ReadBytes(input, true, options, settings.BufferSize, settings.MaxRetained);
 	}
 
 	static IEnumerable<FixField> ReadText(TextReader input, bool log, FixContext? options, int bufferSize, int maxRetained)
@@ -109,15 +101,16 @@ public static class HandFixParser
 	{
 		options ??= FixContext.Default;
 		var position = 0;
+		var pair     = new Pair();
 
 		while (input.Peek(position) >= 0)
 		{
 			var start = position;
-			var field = Field(input, log, options, ref position, out var error);
+			var field = Field(input, log, options, ref pair, ref position, out var error);
 
 			if (field == null)
 			{
-				// Recovery starts at the failed field, including a failed length/data pair.
+				// Recovery starts at the failed field.
 				var end = FindSeparator(input, start, log);
 				position = end;
 				Separator(input, log, ref position);
@@ -129,7 +122,14 @@ public static class HandFixParser
 		}
 	}
 
-	static FixField? Field<T>(Input<T> input, bool log, FixContext options, ref int position, out string? error)
+	// The data tag a length field has announced, and how long its data is: the next field only.
+	struct Pair
+	{
+		public int Expected;
+		public int Size;
+	}
+
+	static FixField? Field<T>(Input<T> input, bool log, FixContext options, ref Pair pair, ref int position, out string? error)
 		where T : unmanaged
 	{
 		var start = position;
@@ -139,24 +139,34 @@ public static class HandFixParser
 
 		position++;
 		var valueStart = position;
-		var dataTag = options.DataTag(tag);
+		var expected   = pair.Expected;
 		int end;
 
-		if (dataTag != 0)
+		pair.Expected = 0;
+
+		if (tag == expected)
 		{
-			error = "Expected a length followed immediately by its matching data tag.";
-			if (!Number(input, ref position, true, out var length) ||
-				!Separator(input, log, ref position) ||
-				!Number(input, ref position, false, out var actualTag) ||
-				input.Peek(position) != '=' || actualTag != dataTag)
-				return null;
-
-			valueStart = ++position;
 			error = "The binary payload is shorter than its declared length.";
-			if (length > int.MaxValue - position || (length > 0 && input.Peek(position + length - 1) < 0))
+			if (pair.Size > int.MaxValue - position || (pair.Size > 0 && input.Peek(position + pair.Size - 1) < 0))
 				return null;
 
-			end = position + length;
+			end = position + pair.Size;
+		}
+		else if (options.DataTag(tag) is var dataTag and not 0)
+		{
+			// A length too large to count by is still a length; it only measures nothing.
+			error = "Expected a length.";
+			var fits = Number(input, ref position, true, out var length);
+			if (position == valueStart)
+				return null;
+
+			end = position;
+
+			if (fits)
+			{
+				pair.Size     = length;
+				pair.Expected = dataTag;
+			}
 		}
 		else
 		{
@@ -175,7 +185,7 @@ public static class HandFixParser
 		if (!Separator(input, log, ref position) && input.Peek(position) >= 0)
 			return null;
 
-		var field = Create(input, dataTag == 0 ? tag : dataTag, valueStart, end, start, dataTag != 0, options.FixFieldFactory);
+		var field = Create(input, tag, valueStart, end, options.IsData(tag), options.FixFieldFactory);
 		field.WithTerminator(position - end).Locate(start, position - start);
 		error = null;
 		return field;
@@ -246,7 +256,7 @@ public static class HandFixParser
 		return position;
 	}
 
-	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, int start, bool binary, Func<int, FixCustomField?>? custom)
+	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, Func<int, FixCustomField?>? custom)
 		where T : unmanaged
 	{
 		var value = input.Slice(valueStart, end - valueStart);
@@ -256,8 +266,7 @@ public static class HandFixParser
 			if (!binary)
 				return FixFieldBuilder.Value(tag, chars, custom);
 
-			var data = new FixBinaryValue(FixConvert.Data(chars), valueStart);
-			return FixFieldBuilder.Binary(tag, data.Data, custom).WithBinary(data, start);
+			return FixFieldBuilder.Binary(tag, FixConvert.Data(chars), custom);
 		}
 		else
 		{
@@ -265,8 +274,7 @@ public static class HandFixParser
 			if (!binary)
 				return FixFieldBuilder.Value(tag, bytes, custom);
 
-			var data = new FixBinaryValue(FixConvert.Data(bytes), valueStart);
-			return FixFieldBuilder.Binary(tag, data.Data, custom).WithBinary(data, start);
+			return FixFieldBuilder.Binary(tag, FixConvert.Data(bytes), custom);
 		}
 	}
 

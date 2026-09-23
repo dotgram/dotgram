@@ -137,9 +137,12 @@ public sealed class FixOctetRoadTests
 			.Concat(payload)
 			.Concat([Soh])
 			.ToArray();
-		var field = Assert.Single(FixParser.ParseFields(input));
+		var fields = FixParser.ParseFields(input);
 
-		Assert.Equal(dataTag, field.Tag);
+		Assert.Equal([lengthTag, dataTag], fields.Select(one => one.Tag));
+
+		var field = fields[1];
+
 		Assert.Equal(payload, Assert.IsAssignableFrom<FixField.Typed<ReadOnlyMemory<byte>>>(field).Value.ToArray());
 	}
 
@@ -237,26 +240,34 @@ public sealed class FixOctetRoadTests
 		Assert.Equal(fromOctets.MessageType, fromStream.MessageType);
 	}
 
-	/// <summary>An array and a span over it are the same input to every door that takes octets.</summary>
+	/// <summary>
+	/// An array and memory over a slice of a larger one are the same input to every door that takes
+	/// octets, and positions count from the start of the slice.
+	/// </summary>
 	[Fact]
-	public void An_array_and_a_span_over_it_read_alike()
+	public void An_array_and_memory_over_a_slice_read_alike()
 	{
-		var wire = Framed(Head + Order);
-		var read = FixParser.ParseMessage(wire);
+		var wire   = Framed(Head + Order);
+		var read   = FixParser.ParseMessage(wire);
+		var padded = new byte[wire.Length + 6];
 
-		Assert.Equal(Extents(read), Extents(FixParser.ParseMessage(new ReadOnlySpan<byte>(wire))));
+		wire.CopyTo(padded, 3);
 
-		Assert.True(FixParser.TryParseMessage(new ReadOnlySpan<byte>(wire), out var message, out var error));
+		var slice = new ReadOnlyMemory<byte>(padded, 3, wire.Length);
+
+		Assert.Equal(Extents(read), Extents(FixParser.ParseMessage(slice)));
+
+		Assert.True(FixParser.TryParseMessage(slice, out var message, out var error));
 		Assert.Null(error);
 		Assert.Equal(Extents(read), Extents(message!));
 
 		Assert.Equal(
-			FixParser.ParseFields(wire).Select(field => field.Tag),
-			FixParser.ParseFields(new ReadOnlySpan<byte>(wire)).Select(field => field.Tag));
+			FixParser.ParseFields(wire).Select(field => (field.Tag, field.Position, field.Length)),
+			FixParser.ParseFields(slice).Select(field => (field.Tag, field.Position, field.Length)));
 
 		Assert.Equal(
 			FixParser.ParseMessages(wire).Length,
-			FixParser.ParseMessages(new ReadOnlySpan<byte>(wire)).Length);
+			FixParser.ParseMessages(slice).Length);
 	}
 
 	/// <summary>Concatenated messages come back in order, and each keeps its own wire.</summary>
