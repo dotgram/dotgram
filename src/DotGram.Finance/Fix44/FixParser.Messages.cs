@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// The message half of the package's one door: the same input read as messages rather than as a

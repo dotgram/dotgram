@@ -140,8 +140,8 @@ static Entry ReadEntry(int tag, bool required)
 
 ### Code locality and scope
 
-- Match feature namespaces to their folders, such as `DotGram.Finance.Fix` for
-  `Finance/Fix`. Use a role-bearing public type name such as `FixParser` rather than
+- Match feature namespaces to their folders, such as `DotGram.Finance.Fix44` for
+  `Finance/Fix44`. Use a role-bearing public type name such as `FixParser` rather than
   a name that collides with the feature namespace. Coordinate API changes with
   callers, package smoke tests and documentation; do not rename existing APIs merely
   to make an unrelated change conform to this guideline.

@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 // A Heartbeat, framed by hand: what a consumer of the package has to be able to do with it.
 var body     = "35=0\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00.250\u0001";
@@ -44,7 +44,7 @@ if (FixParser.ParseMessage(wire).Validate(loaded) || FixParser.ParseMessage(wire
 	throw new Exception("A loaded schema must replace the compiled-in check of the type it describes, and leave the compiled-in context as it was.");
 
 // The other doors: pipe-delimited text, a byte stream, the octets themselves, and flat fields.
-if (FixParser.ParseMessage(wire.Replace('\u0001', '|'), FixContext.Log) is not FixMessage.Heartbeat)
+if (FixParser.ParseMessage(wire.Replace('\u0001', '|'), FixContext.WithLogFraming) is not FixMessage.Heartbeat)
 	throw new Exception("Expected a pipe-delimited Heartbeat.");
 
 using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire + wire));

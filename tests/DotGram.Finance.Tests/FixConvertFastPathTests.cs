@@ -3,7 +3,7 @@ using System.Buffers.Text;
 using System.Globalization;
 using System.Text;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 using Xunit;
 

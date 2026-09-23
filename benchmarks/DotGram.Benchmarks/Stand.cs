@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using DotGram.ExpressionLanguage;
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 using DotGram.Handwritten;
 using DotGram.Handwritten.Fix;
 using DotGram.Sql.Standard;
@@ -669,7 +669,7 @@ static partial class Stand
 			{
 				"el" => [_elTape, _elImmediate],
 				"tsql" => [_tsql],
-				"fix" => new[] { _fix, _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") }.OfType<Type>().ToArray(),
+				"fix" => new[] { _fix, (_fix.Assembly.GetType("DotGram.Finance.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) }.OfType<Type>().ToArray(),
 				"web" => new[] { _json, _uri }.OfType<Type>().ToArray(),
 				_ => [_sql],
 			};
@@ -706,16 +706,16 @@ static partial class Stand
 			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
 			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
-			_fix         = Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
+			_fix         = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixParser") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser"));
 			// The context since 2026-09-22 (D136: the options and the schema are one value); FixFieldOptions before it.
-			_fixOptions  = Find("DotGram.Finance", "DotGram.Finance.Fix.FixContext") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
-			_fixMessages = Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages");
+			_fixOptions  = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixContext") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixContext")) ?? (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixFieldOptions") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions"));
+			_fixMessages = (Find("DotGram.Finance", "DotGram.Finance.Fix44.FixMessages") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixMessages"));
 			// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
 			// settings are FixContext, an optional parameter after the first (main): the entry is found with the mode, plain, or with FixContext after the first parameter, in that order.
 			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
 
-			_fixParseMode    = finance.GetType("DotGram.Finance.Fix.FixParseMode");
-			_fixParseOptions = finance.GetType("DotGram.Finance.Fix.FixParseOptions");
+			_fixParseMode    = (finance.GetType("DotGram.Finance.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
+			_fixParseOptions = (finance.GetType("DotGram.Finance.Fix44.FixParseOptions") ?? finance.GetType("DotGram.Finance.Fix.FixParseOptions"));
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
@@ -981,7 +981,7 @@ static partial class Stand
 		/// </summary>
 		Func<object, object?>? FixValidate()
 		{
-			var message  = _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage");
+			var message  = (_fixMessages.Assembly.GetType("DotGram.Finance.Fix44.FixMessage") ?? _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage"));
 			var validate = message?.GetMethod("Validate", Type.EmptyTypes);
 			var parameter = System.Linq.Expressions.Expression.Parameter(typeof(object));
 
@@ -993,7 +993,7 @@ static partial class Stand
 			// Form 5 (2026-09-22): the schema is a context passed in, Validate(FixContext), and a consumer
 			// that names none holds a message to FixContext.Default. That is what this side is asked, so
 			// that a pair of form 4 against form 5 compares parse-and-check with parse-and-check.
-			var context = _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixContext");
+			var context = (_fixMessages.Assembly.GetType("DotGram.Finance.Fix44.FixContext") ?? _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixContext"));
 			var withContext = context is null ? null : message?.GetMethod("Validate", [context]);
 
 			if (withContext is null)
@@ -1106,7 +1106,7 @@ static partial class Stand
 		/// </summary>
 		public Func<object, object> FixWhole(bool textReader)
 		{
-			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
+			var grammar = (_fix.Assembly.GetType("DotGram.Finance.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
 			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
 			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
 			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixContext) not found");
@@ -1125,7 +1125,7 @@ static partial class Stand
 		/// </summary>
 		public Func<int>? FixYieldMemory(bool memory, byte[] bytes, string text)
 		{
-			var grammar = _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar") ?? throw new InvalidOperationException("FixGrammar not found");
+			var grammar = (_fix.Assembly.GetType("DotGram.Finance.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
 			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("FixContext", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
 			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
 			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("FixContext(FixContext) not found");
@@ -1277,7 +1277,7 @@ static partial class Stand
 		public Func<int> FixMessageBuild(string wire)
 		{
 			var fields = FixCall("Parse", [typeof(string), _fixOptions], [wire, null]);
-			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod(_fix.Assembly.GetType("DotGram.Finance.Fix.FixField")!);
+			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod((_fix.Assembly.GetType("DotGram.Finance.Fix44.FixField") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixField"))!);
 			var build  = _fix.GetMethod("BuildMessage", [typeof(string), array.ReturnType, _fixOptions])
 				?? (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
 				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])

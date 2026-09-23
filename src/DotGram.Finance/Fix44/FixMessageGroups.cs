@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// The repeating groups FIX 4.4 describes, each a class whose instances are one entry.

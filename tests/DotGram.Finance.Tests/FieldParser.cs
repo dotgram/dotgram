@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 namespace DotGram.Finance.Tests;
 

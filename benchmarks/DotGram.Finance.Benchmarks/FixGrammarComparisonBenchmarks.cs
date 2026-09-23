@@ -11,7 +11,6 @@ using System.Text.Json.Nodes;
 using BenchmarkDotNet.Attributes;
 
 using DotGram.Finance.Fix44;
-using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Benchmarks;
 
@@ -60,7 +59,7 @@ public class FixGrammarComparisonBenchmarks
 		var assembly = new AssemblyLoadContext("Previous FIX").LoadFromAssemblyPath(Path.GetFullPath(path));
 		// The parser types by every name they have had, oldest first, so that any build compares.
 		return assembly.GetType("DotGram.Finance.Fix") ?? assembly.GetType("DotGram.Examples.Finance.Fix44") ??
-			assembly.GetType("DotGram.Finance.Fix.Fix44") ?? assembly.GetType("DotGram.Finance.Fix.FixParser") ??
+			(assembly.GetType("DotGram.Finance.Fix44.Fix44") ?? assembly.GetType("DotGram.Finance.Fix.Fix44")) ?? (assembly.GetType("DotGram.Finance.Fix44.FixParser") ?? assembly.GetType("DotGram.Finance.Fix.FixParser")) ??
 			assembly.GetType("DotGram.Finance.Fix44.Fix44Parser", throwOnError: true)!;
 	}
 

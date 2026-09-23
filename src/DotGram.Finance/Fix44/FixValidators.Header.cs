@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// The standard header and trailer: what every message owes before its own type is asked anything.

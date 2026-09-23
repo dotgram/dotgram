@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Xml;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// A FIX dictionary as a file says it: the composition of each message, the components, and the

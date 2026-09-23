@@ -1,6 +1,5 @@
 ﻿using System;
 
-using DotGram.Finance.Fix;
 
 namespace DotGram.Finance.Fix44;
 

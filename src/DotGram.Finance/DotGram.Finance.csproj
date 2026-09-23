@@ -34,7 +34,7 @@
 		     slot, typed on the class it checks. -->
 		<ProjectReference Include="../DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 
-		<AdditionalFiles Include="Fix/*.gram" />
+		<AdditionalFiles Include="Fix44/*.gram" />
 
 		<None Include="README.md" Pack="true" PackagePath="/" />
 

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// Reads an ordered, flat list of FIX fields using computed dispatch without message validation.

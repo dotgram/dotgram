@@ -7,7 +7,7 @@ description: Read FIX 4.4 tag-value data with DotGram.Finance — flat typed fie
 
 Reads FIX 4.4 tag-value input: wire messages whose fields end with SOH, and the
 pipe-separated log renderings people keep of them. Everything is in the
-`DotGram.Finance.Fix` namespace. There is no runtime to deploy, nothing to configure
+`DotGram.Finance.Fix44` namespace. There is no runtime to deploy, nothing to configure
 and nothing to initialize.
 
 The [README][readme] beside this file is the reference. This is the order to decide
@@ -63,7 +63,7 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
 ```csharp
 using System;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');

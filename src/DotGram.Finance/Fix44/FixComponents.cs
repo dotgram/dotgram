@@ -1,10 +1,10 @@
 ﻿using System;
 
-using static DotGram.Finance.Fix.FixGroup;
+using static DotGram.Finance.Fix44.FixGroup;
 
 // ReSharper disable InconsistentNaming
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 // The blocks FIX 4.4 reuses across message types, as the shape a message or a group entry has
 // when it carries one. A component is written into its carrier field by field, because that is

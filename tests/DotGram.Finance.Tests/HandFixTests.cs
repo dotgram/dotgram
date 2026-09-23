@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 using DotGram.Handwritten.Fix;
 
 using Xunit;

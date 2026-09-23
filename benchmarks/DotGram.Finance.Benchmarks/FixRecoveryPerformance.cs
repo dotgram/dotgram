@@ -58,7 +58,7 @@ public static class FixRecoveryPerformance
 	static Func<string,Array> Bind(string path, string name)
 	{
 		var assembly = new AssemblyLoadContext(name).LoadFromAssemblyPath(Path.GetFullPath(path));
-		var type = assembly.GetType("DotGram.Finance.Fix.FixParser", true)!;
+		var type = (assembly.GetType("DotGram.Finance.Fix44.FixParser") ?? assembly.GetType("DotGram.Finance.Fix.FixParser", true))!;
 		var method = type.GetMethods().Single(m => m.Name == "ParseLog" && m.GetParameters()[0].ParameterType == typeof(string));
 		var input = Expression.Parameter(typeof(string));
 		var call = Expression.Call(method, input, Expression.Constant(null, method.GetParameters()[1].ParameterType));

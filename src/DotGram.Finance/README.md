@@ -17,7 +17,7 @@ grammar files, schema XML, reflection configuration or initialization step.
 using System;
 using System.IO;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 // One message, with the separator written as a pipe so it can be read on a page.
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
@@ -148,7 +148,6 @@ recognition and group assembly without parsing it again. `Parse` combines both s
 Holding the result to a schema is `Validate`, a call of its own.
 
 ```csharp
-using DotGram.Finance.Fix;
 
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// One case in the FIX field algebra, with its original source extent.

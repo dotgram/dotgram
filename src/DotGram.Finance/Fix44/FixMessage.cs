@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using static DotGram.Finance.Fix.FixField;
-using static DotGram.Finance.Fix.FixGroup;
+using static DotGram.Finance.Fix44.FixField;
+using static DotGram.Finance.Fix44.FixGroup;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// The ninety-three messages FIX 4.4 describes, each a case of <see cref="FixMessage"/>.

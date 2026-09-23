@@ -15,7 +15,7 @@ public static class FixLogPerformance
 	{
 		var previous = Load(args[0], "previous");
 		var current  = Load(args[1], "current");
-		var legacy   = previous.Assembly.GetType("DotGram.Finance.Fix.FixOptions")!.GetProperty("Separator") != null;
+		var legacy   = (previous.Assembly.GetType("DotGram.Finance.Fix44.FixOptions") ?? previous.Assembly.GetType("DotGram.Finance.Fix.FixOptions"))!.GetProperty("Separator") != null;
 		var samples = new Dictionary<string,string>
 		{
 			["Short"] = "55=ABC|38=100|",

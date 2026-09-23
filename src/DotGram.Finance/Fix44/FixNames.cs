@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>The name FIX 4.4 gives each tag this package has a field class for, and the tag a name means.</summary>
 /// <remarks>

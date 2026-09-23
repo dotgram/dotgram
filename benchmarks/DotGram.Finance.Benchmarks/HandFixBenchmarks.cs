@@ -5,7 +5,7 @@ using System.Text.Json;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 using DotGram.Handwritten.Fix;
 
 namespace DotGram.Finance.Benchmarks;

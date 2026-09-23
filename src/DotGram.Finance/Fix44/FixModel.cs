@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// How the input separates one field from the next.

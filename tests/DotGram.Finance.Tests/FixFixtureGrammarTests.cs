@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 using Xunit;
 

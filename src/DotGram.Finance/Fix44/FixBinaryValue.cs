@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 readonly struct FixBinaryValue((bool Valid, ReadOnlyMemory<byte> Value) data, int position)
 {

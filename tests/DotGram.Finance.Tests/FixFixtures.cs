@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 namespace DotGram.Finance.Tests;
 

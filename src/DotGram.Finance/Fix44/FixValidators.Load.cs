@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 using DotGram.ExpressionLanguage;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>
 /// The slots a loaded dictionary fills: the same straight-line checks the package compiles in,
@@ -82,7 +82,7 @@ partial class FixValidators
 
 		foreach (var (name, members) in dictionary.Components)
 		{
-			var block = Here.GetType("DotGram.Finance.Fix.I" + name);
+			var block = Here.GetType("DotGram.Finance.Fix44.I" + name);
 
 			// A repeating component is a group, and a group is checked where its entries are built;
 			// only a block has a slot of its own.
@@ -238,7 +238,7 @@ partial class FixValidators
 
 	// ── the texts ────────────────────────────────────────────────────────────────────────────
 
-	const string Using = "using DotGram.Finance.Fix;\n";
+	const string Using = "using DotGram.Finance.Fix44;\n";
 
 	static string MessageText(string name, List<FixDictionary.Member> members, FixDictionary dictionary, Writing writing)
 	{
@@ -297,7 +297,7 @@ partial class FixValidators
 
 				case FixDictionary.Member.Component:
 				{
-					var block = Here.GetType("DotGram.Finance.Fix.I" + member.Name);
+					var block = Here.GetType("DotGram.Finance.Fix44.I" + member.Name);
 
 					if (block is null)
 					{
@@ -396,7 +396,7 @@ partial class FixValidators
 				return FixNames.Name(Tag(first.Name, dictionary));
 
 			default:
-				if (Here.GetType("DotGram.Finance.Fix.I" + first.Name) is { } block)
+				if (Here.GetType("DotGram.Finance.Fix44.I" + first.Name) is { } block)
 					return block.GetProperties()[0].Name;
 
 				return dictionary.Components.TryGetValue(first.Name, out var inner) ? Opener(inner, dictionary) : null;

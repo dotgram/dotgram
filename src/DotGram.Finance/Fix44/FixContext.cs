@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>What a reading is done by: the framing, the length/data pairs, the fields a consumer builds, and the schema a message is held to.</summary>
 /// <remarks>

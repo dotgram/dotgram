@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix;
+using DotGram.Finance.Fix44;
 
 namespace DotGram.Finance.Benchmarks;
 

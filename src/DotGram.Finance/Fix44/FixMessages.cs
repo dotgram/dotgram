@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace DotGram.Finance.Fix;
+namespace DotGram.Finance.Fix44;
 
 /// <summary>Parses one complete FIX 4.4 tag-value message.</summary>
 static partial class FixMessages
