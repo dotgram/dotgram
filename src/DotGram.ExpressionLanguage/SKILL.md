@@ -102,8 +102,11 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   `return` leaves the whole lambda from however deep: `{ int sum = x + y; return sum * sum; }`.
 - **Locals** say their type or use `var`: `int n = 0;`, `var half = x / 2;`.
 - **Statements:** `if`/`else` (also as a value: `int n = if (c) 1 else 2;`), `while`, `do`,
-  `for`, `foreach`, `switch`, `try`/`catch`/`finally`, `throw`, `break`, `continue`.
-  Loops are worth nothing.
+  `for`, `foreach`, `switch` (a label is `case 1:`, `case 1 or 2:`, or several stacked),
+  `try`/`catch`/`finally`, `throw`, `break`, `continue`. Loops are worth nothing.
+- **`x switch { 1 or 2 => …, _ => … }`** as a value, where C# puts it in the precedence.
+  A pattern is constants joined by `or`, or `_`; no other pattern, no `when`. The arms
+  share one type as the branches of `?:` do; without `_`, an unmatched value throws.
 - **Expressions:** members, calls, indexers, `new` with object, collection and array
   initializers, generic types, casts, `is`, `as`, `?.`, `??`, `?:`, `checked(…)` and
   `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.

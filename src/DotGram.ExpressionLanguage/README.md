@@ -25,7 +25,8 @@ square(3); // 8
 
 It reads C#'s operators, at C#'s precedence, and its literals down to the digit separator
 and the verbatim string. Past expressions it has typed locals, blocks, `if`, `while`, `do`,
-`for`, `switch`, `try`/`catch`/`finally`, `throw`, `break`, `continue` and `return`, and
+`for`, `switch` — the statement and `x switch { 1 or 2 => …, _ => … }` —
+`try`/`catch`/`finally`, `throw`, `break`, `continue` and `return`, and
 past the keywords it has members, calls, indexers, `new` with initializers, generic types,
 `is`, `as`, casts and `checked`:
 

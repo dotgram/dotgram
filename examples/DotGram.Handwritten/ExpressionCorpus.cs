@@ -101,6 +101,8 @@ public static class ExpressionCorpus
 		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { if (i % 2 == 0) continue; sum += i; } sum }",
 		"(int n) => { while (true) { if (n > 3) break; n += 1; } n }",
 		"(int n) => { switch (n) { case 1: n = 10; break; default: n = 0; break; } n }",
+		"(int n) => { switch (n) { case 1 or 2: n = 10; break; case 3: case 4: n = 30; break; } n }",
+		"(int n, int limit) => n switch { 1 or 2 => 10, limit => 20, _ => -1 }",
 
 		// `foreach`, which the API has no node for: over an array, over a list through the
 		// enumerator it declares, over a string, with the element type written and with `var`,

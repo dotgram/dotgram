@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Reflection;
 
 using DotGram.ExpressionLanguage;
@@ -1958,6 +1959,106 @@ public sealed class ExpressionParserTests
 			Both.Compile<Func<int, int>>(
 				"(int n) => { int r = 0; switch (n) { case 1: r = 10; break; case 2: r = 20; break; default: r = -1; } r }")
 				(argument));
+	}
+
+	/// <summary>A case holds one body under several labels, stacked or joined by `or`.</summary>
+	[Theory]
+	[InlineData("(int n) => { int r = 0; switch (n) { case 1: case 2: r = 10; break; default: r = -1; } r }")]
+	[InlineData("(int n) => { int r = 0; switch (n) { case 1 or 2: r = 10; break; default: r = -1; } r }")]
+	public void A_case_holds_one_body_under_several_labels(string text)
+	{
+		var chosen = Both.Compile<Func<int, int>>(text);
+
+		Assert.Equal(10, chosen(1));
+		Assert.Equal(10, chosen(2));
+		Assert.Equal(-1, chosen(3));
+	}
+
+	// ── `x switch { … }`, the expression ────────────────────────────────────────
+
+	[Theory]
+	[InlineData(1, 10)]
+	[InlineData(2, 10)]
+	[InlineData(3, 30)]
+	[InlineData(9, -1)]
+	public void A_switch_expression_is_worth_the_arm_that_matches(int argument, int expected)
+	{
+		Assert.Equal(
+			expected,
+			Both.Compile<Func<int, int>>("(int n) => n switch { 1 or 2 => 10, 3 => 30, _ => -1 }")(argument));
+	}
+
+	/// <summary>
+	/// Over what a case label takes: a character, a string — seven of them, the count from which
+	/// the API hashes rather than compares — and two types with an equality of their own.
+	/// </summary>
+	[Fact]
+	public void And_over_a_character_a_string_a_decimal_and_a_big_integer()
+	{
+		var letter = Both.Compile<Func<char, int>>("(char c) => c switch { 'a' or 'b' => 1, 'c' => 2, _ => 0 }");
+		var word   = Both.Compile<Func<string, int>>(
+			"(string s) => s switch { \"a\" => 1, \"b\" => 2, \"c\" => 3, \"d\" => 4, \"e\" => 5, \"f\" => 6, \"g\" => 7, _ => 0 }");
+		var amount = Both.Compile<Func<decimal, int>>("(decimal d) => d switch { 1 or 2.5m => 1, _ => 0 }");
+		var whole  = Both.Compile<Func<BigInteger, bool>>("using System.Numerics;\n(BigInteger n) => n switch { 1 or 2 => true, _ => false }");
+
+		Assert.Equal((1, 1, 2, 0), (letter('a'), letter('b'), letter('c'), letter('z')));
+		Assert.Equal((1, 7, 0), (word("a"), word("g"), word("z")));
+		Assert.Equal((1, 1, 0), (amount(1m), amount(2.5m), amount(3m)));
+		Assert.Equal((true, true, false), (whole(1), whole(2), whole(3)));
+	}
+
+	/// <summary>Where C# puts it: over a unary and under the ladder.</summary>
+	[Fact]
+	public void And_it_stands_over_a_unary_and_under_the_ladder()
+	{
+		Assert.Equal(20, Both.Compile<Func<int, int>>("(int n) => 2 * n switch { 1 => 10, _ => 1 }")(1));
+		Assert.Equal(5,  Both.Compile<Func<int, int>>("(int n) => -n switch { -1 => 5, _ => 0 }")(1));
+	}
+
+	/// <summary>Typed as a `?:` is: the one type every arm converts to, and refused where there is none.</summary>
+	[Fact]
+	public void And_it_is_typed_as_a_conditional_is()
+	{
+		Assert.Equal(typeof(double), Both.Parse("(int n) => n switch { 1 => 1, _ => 2.5 }").Body.Type);
+		Assert.Equal(typeof(string), Both.Parse("(int n) => n switch { 1 => null, _ => \"a\" }").Body.Type);
+
+		Assert.Contains(
+			"no implicit conversion between 'Int32' and 'String'",
+			Both.TryParse("(int n) => n switch { 1 => 1, _ => \"a\" }").Error,
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>Without `_`, a value no arm matches throws, as C#'s does.</summary>
+	[Fact]
+	public void And_without_a_discard_a_value_no_arm_matches_throws()
+	{
+		var chosen = Both.Compile<Func<int, int>>("(int n) => n switch { 1 => 10 }");
+
+		Assert.Equal(10, chosen(1));
+		Assert.Contains(
+			"Non-exhaustive",
+			Assert.Throws<InvalidOperationException>(() => chosen(2)).Message,
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>An arm after `_` is never reached, and is refused rather than dropped.</summary>
+	[Fact]
+	public void And_an_arm_after_the_discard_is_refused()
+	{
+		Assert.Contains(
+			"never reached",
+			Both.TryParse("(int n) => n switch { _ => 0, 1 => 1 }").Error,
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>A bare name in a pattern is the name and not a lambda's parameter, and the last arm may end in a comma.</summary>
+	[Fact]
+	public void And_a_pattern_may_be_a_name_and_the_last_arm_may_end_in_a_comma()
+	{
+		var chosen = Both.Compile<Func<int, int, int>>("(int n, int limit) => n switch { limit => 10, _ => 0, }");
+
+		Assert.Equal(10, chosen(3, 3));
+		Assert.Equal(0,  chosen(3, 4));
 	}
 
 	[Fact]

@@ -3067,17 +3067,37 @@ public static class HandExpression
 
 			while (Kind(at) == KwCase)
 			{
-				var test = Assignment(at + 1, out var label);
+				var labels = _build ? new List<ExpressionParser.Label>() : null;
 
-				if (test < 0 || Kind(test) != Colon)
-					return -1;
+				while (true)
+				{
+					// A label that is not there where the next would begin is where the labels end,
+					// not where the text went wrong: the accounting Statements gives below.
+					var before = _furthest;
 
-				var body = Statements(test + 1, out var statements);
+					if (Kind(at) != KwCase)
+					{
+						if (_furthest == at && before < at)
+							_furthest = before;
+
+						break;
+					}
+
+					var test = Pattern(at + 1, out var tests);
+
+					if (test < 0 || Kind(test) != Colon)
+						return -1;
+
+					labels?.Add(new ExpressionParser.Label(tests!));
+					at = test + 1;
+				}
+
+				var body = Statements(at, out var statements);
 
 				if (body < 0)
 					return -1;
 
-				cases?.Add(Expression.SwitchCase(Expression.Block(statements!), label!));
+				cases?.Add(Expression.SwitchCase(Expression.Block(statements!), ExpressionParser.Labelled(labels!.ToArray())));
 				at = body;
 			}
 
@@ -3475,6 +3495,20 @@ public static class HandExpression
 			if (read < 0)
 				return -1;
 
+			// `x switch { … }`, where C# puts it: over a unary and under the ladder. An optional
+			// tail, so where the arms fail the operand stands alone and what follows is asked of
+			// the `switch`.
+			if (Kind(read) == KwSwitch && Kind(read + 1) == LeftBrace)
+			{
+				var matched = Arms(read + 2, node, out var chosen);
+
+				if (matched >= 0)
+				{
+					node = chosen;
+					read = matched;
+				}
+			}
+
 			while (true)
 			{
 				var level = Level(read, out var width);
@@ -3511,6 +3545,145 @@ public static class HandExpression
 
 				read = right;
 			}
+		}
+
+		/// <summary>The arms of `x switch { … }` from the first to the closing brace, and the switch they make.</summary>
+		int Arms(int i, Expression? value, out Expression? node)
+		{
+			node = null;
+
+			var at = Arm(i, out var first);
+
+			if (at < 0)
+				return -1;
+
+			var rest = _build ? new List<ExpressionParser.Arm>() : null;
+
+			while (Kind(at) == Comma)
+			{
+				var next = Arm(at + 1, out var arm);
+
+				// The comma may be the one C# allows after the last arm.
+				if (next < 0)
+					break;
+
+				rest?.Add(arm);
+				at = next;
+			}
+
+			if (Kind(at) == Comma)
+				at++;
+
+			if (Kind(at) != RightBrace)
+				return -1;
+
+			if (_build)
+				node = ExpressionParser.Matched(value!, first, rest!.ToArray());
+
+			return at + 1;
+		}
+
+		/// <summary>One arm: `_` or a pattern, the arrow, and what the arm is worth.</summary>
+		/// <remarks>
+		/// `_` is asked first, as the grammar asks it, since `_ => 0` is what the untyped lambda
+		/// would read otherwise. It is a name held to its spelling and not a token, and a name
+		/// spelled otherwise is a guard refusing, which counts where a guard's refusal counts.
+		/// </remarks>
+		int Arm(int i, out ExpressionParser.Arm arm)
+		{
+			arm = default;
+
+			if (Kind(i) == Identifier)
+			{
+				if (Cut(i) == "_")
+				{
+					if (Kind(i + 1) == Arrow)
+					{
+						var worth = Assignment(i + 2, out var body);
+
+						if (worth >= 0)
+						{
+							if (_build)
+								arm = new ExpressionParser.Arm(null, body!);
+
+							return worth;
+						}
+					}
+				}
+				else
+					Refuse(i + 1);
+			}
+
+			var at = Pattern(i, out var tests);
+
+			if (at < 0 || Kind(at) != Arrow)
+				return -1;
+
+			var end = Assignment(at + 1, out var value);
+
+			if (end < 0)
+				return -1;
+
+			if (_build)
+				arm = new ExpressionParser.Arm(tests, value!);
+
+			return end;
+		}
+
+		/// <summary>Constants joined by `or`: what a case label and an arm hold a value against.</summary>
+		int Pattern(int i, out Expression[]? tests)
+		{
+			tests = null;
+
+			var at = Constant(i, out var first);
+
+			if (at < 0)
+				return -1;
+
+			var rest = _build ? new List<Expression>() : null;
+
+			while (Kind(at) == Identifier)
+			{
+				if (Cut(at) != "or")
+				{
+					Refuse(at + 1);
+					break;
+				}
+
+				var next = Constant(at + 1, out var constant);
+
+				if (next < 0)
+					break;
+
+				rest?.Add(constant!);
+				at = next;
+			}
+
+			if (_build)
+				tests = ExpressionParser.Listed(first, rest!.ToArray());
+
+			return at;
+		}
+
+		/// <summary>One constant of a pattern: a bare name that ends it, or an expression of the ladder.</summary>
+		/// <remarks>
+		/// The name is read first and its guard asked, as the grammar's `Name` asks it, before the
+		/// lookahead that tells `limit => 1` from a lambda: a name followed by an arrow, a colon or
+		/// another name. Where the guard refuses or the lookahead does, the ladder reads it.
+		/// </remarks>
+		int Constant(int i, out Expression? node)
+		{
+			var name = Name(i, out node);
+
+			if (name >= 0)
+			{
+				var next = Peek(name);
+
+				if (next == Arrow || next == Colon || next == Identifier)
+					return name;
+			}
+
+			return Binary(i, 2, out node);
 		}
 
 		/// <summary>Which level the operator at this token belongs to, and how many tokens it is.</summary>

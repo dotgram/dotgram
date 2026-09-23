@@ -887,11 +887,41 @@ namespace DotGram.ExpressionLanguage;
 			Expression.Switch(typeof(void), value, fallback, null, ExpressionParser.Against(cases, value.Type)),
 			Expression.Label(context.Exit(parserState, parserMarks))))
 
+	// One body under any number of labels: `case 1: case 2:` and `case 1 or 2:` are both one
+	// case with two tests, which is the one shape the API has for them.
 	Case : @SwitchCase
-		= "case" & test: Expression & ':' & body: Statement+
-		=> @(Expression.SwitchCase(Expression.Block(body), test))
+		= labels: Label+ & body: Statement+
+		=> @(Expression.SwitchCase(Expression.Block(body), ExpressionParser.Labelled(labels)))
+
+	Label : @Label = "case" & tests: Pattern & ':' => @(new Label(tests))
 
 	Fallback : @Expression = "default" & ':' & body: Statement+ => @(Expression.Block(body))
+
+	// An arm of `x switch { … }`: what the value is held against, and what the switch is
+	// worth when it matches. `_` is the arm that matches anything, and `null` tests say so.
+	// It is tried first, since `_ => 0` is what `Untyped` reads as a lambda.
+	Arm : @Arm
+		= Discard & "=>" & body: Expression => @(new Arm(null, body))
+		| tests: Pattern & "=>" & body: Expression => @(new Arm(tests, body))
+
+	// A pattern is constants joined by `or`, which is as much of C#'s patterns as is read:
+	// no `not`, no relation, no type, no `when`.
+	Pattern : @Expression[] on fail "Expected a pattern."
+		= first: Constant & (Or & rest: Constant)* => @(ExpressionParser.Listed(first, rest))
+
+	// `_` and `or` are words of a pattern and names anywhere else, so neither is a token the
+	// lexer makes: each is a name read here and held to its spelling. Made tokens, they were
+	// listed among what every expression may begin with.
+	Discard : @string = w: Identifier & when @(w == "_")  => @(w)
+	Or      : @string = w: Identifier & when @(w == "or") => @(w)
+
+	// A bare name that ends the pattern is read as the name before `Untyped` can take it for
+	// a lambda's parameter: `limit => 1` in an arm is a constant and an arrow, not a lambda.
+	// A name followed by a name can only be `limit or …`, since nothing else puts two names
+	// side by side; asked as a name so that the lookahead holds no guard.
+	Constant : @Expression
+		= n: Name & ?=("=>" | ':' | Identifier) => @(n)
+		| e: Binary => @(e)
 
 	Jump : @Expression
 		= "break"                     => @(Expression.Break(context.Exit(parserState, parserMarks)))
@@ -1051,7 +1081,13 @@ namespace DotGram.ExpressionLanguage;
 		  => @(ExpressionParser.Multiply(left, right, parserState))
 		| left: Binary & '/' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Divide, left, right))
 		| left: Binary & '%' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Modulo, left, right))
-		| u: Unary                                          => @(u)
+
+		// C#'s `x switch { … }`, standing where C# puts it: over a unary and under the ladder,
+		// so `a * b switch { … }` switches on `b` and `-x switch { … }` on `-x`. The tail is
+		// optional on the operand rather than a level of its own, for the reason the ladder
+		// gives: a level is a call for every operand, and nearly none of them is a switch.
+		| u: Unary & ("switch" & '{' & first: Arm & (',' & rest: Arm)* & ','? & '}')?
+		  => @(first is { } head ? ExpressionParser.Matched(u, head, rest) : u)
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.
@@ -2423,6 +2459,97 @@ public static partial class ExpressionParser
 			against[at] = Expression.SwitchCase(cases[at].Body, Converted([.. cases[at].TestValues], type));
 
 		return against;
+	}
+
+	/// <summary>One `case` label: the tests it names.</summary>
+	internal readonly record struct Label(Expression[] Tests);
+
+	/// <summary>The tests of every label of a case, as the one list the case holds.</summary>
+	internal static Expression[] Labelled(Label[] labels)
+	{
+		if (labels is null)
+			throw new ArgumentNullException(nameof(labels));
+
+		if (labels.Length == 1)
+			return labels[0].Tests;
+
+		var count = 0;
+
+		foreach (var label in labels)
+			count += label.Tests.Length;
+
+		var tests = new Expression[count];
+		var at    = 0;
+
+		foreach (var label in labels)
+		{
+			label.Tests.CopyTo(tests, at);
+			at += label.Tests.Length;
+		}
+
+		return tests;
+	}
+
+	/// <summary>An arm of `x switch { … }`: its tests, or null for `_`, and what it is worth.</summary>
+	internal readonly record struct Arm(Expression[]? Tests, Expression Body);
+
+	static readonly ConstructorInfo _unmatched = typeof(InvalidOperationException).GetConstructor([typeof(string)])!;
+
+	/// <summary>The `x switch { … }` those arms make over that value.</summary>
+	/// <remarks>
+	/// Typed as C# types one: the one type every arm converts to, found the way <see cref="Chosen"/>
+	/// finds it for a `?:`, and refused as C# refuses it where there is none. A `_` arm is
+	/// the default and may only stand last, since nothing after it is reached; without one,
+	/// a value no arm matches throws, as C#'s does — an <c>InvalidOperationException</c>
+	/// rather than C#'s own, which the older framework this builds for does not have.
+	/// The tests are converted to the value's type, as a `case` label's are, and the API
+	/// makes of them what it can: a jump table over an integral or a character, a hash
+	/// over strings, and the type's own equality over anything else.
+	/// </remarks>
+	internal static Expression Matched(Expression value, Arm first, Arm[] rest)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value));
+
+		var arms  = new Arm[(rest?.Length ?? 0) + 1];
+
+		arms[0] = first;
+		rest?.CopyTo(arms, 1);
+
+		var chosen = arms[0].Body;
+
+		for (var at = 1; at < arms.Length; at++)
+		{
+			var body = arms[at].Body;
+			var type = Common(chosen, body) ?? throw new InvalidOperationException(
+				"Type of switch expression cannot be determined because there is no implicit " +
+				$"conversion between '{Shown(chosen)}' and '{Shown(body)}'.");
+
+			if (type != chosen.Type)
+				chosen = body;
+		}
+
+		var cases     = new List<SwitchCase>(arms.Length);
+		var otherwise = default(Expression);
+
+		for (var at = 0; at < arms.Length; at++)
+		{
+			if (otherwise is not null)
+				throw new FormatException("The arm after '_' is never reached.");
+
+			var body = Implicitly(arms[at].Body, chosen.Type)!;
+
+			if (arms[at].Tests is { } tests)
+				cases.Add(Expression.SwitchCase(body, Converted(tests, value.Type)));
+			else
+				otherwise = body;
+		}
+
+		otherwise ??= Expression.Throw(
+			Expression.New(_unmatched, Expression.Constant("Non-exhaustive switch expression failed to match its input.")),
+			chosen.Type);
+
+		return Expression.Switch(chosen.Type, value, otherwise, null, cases);
 	}
 
 	// ── `foreach`, which this API has no node for ───────────────────────────────

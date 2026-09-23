@@ -376,14 +376,15 @@ partial class FixValidators
 		return Using + "(FixContext context, FixMessage message, FixField." + name + " field) => {\n" + body + "return message.IsValid; }";
 	}
 
-	// The value is none of the codes: one inequality a code, in the literal form its type reads.
+	// The value is none of the codes: a switch over them, in the literal form its type reads,
+	// which compiles to a jump table over a character or a number and a hash over strings.
 	static void Codes(StringBuilder body, string subject, string[] codes, Type value)
 	{
+		body.Append(subject).Append(" switch { ");
+
 		for (var i = 0; i < codes.Length; i++)
 		{
-			if (i > 0) body.Append(" && ");
-
-			body.Append(subject).Append(" != ");
+			if (i > 0) body.Append(" or ");
 
 			if (value == typeof(char))
 				body.Append('\'').Append(codes[i] == "\\" || codes[i] == "'" ? "\\" + codes[i] : codes[i]).Append('\'');
@@ -392,6 +393,8 @@ partial class FixValidators
 			else
 				body.Append(codes[i]);
 		}
+
+		body.Append(" => false, _ => true }");
 	}
 
 	static int Tag(string name, FixDictionary dictionary)
