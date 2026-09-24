@@ -230,9 +230,13 @@ public sealed class ReaderTests
 	{
 		var written = Written(Lexical + Deep + Line + "parse Start", reader: true);
 
-		// Probed at the rule and not at the call, once in sixty-four entries.
+		// Probed at the rule and not at the call, and at EVERY entry to it. It used to be
+		// once in sixty-four, which stepped over a 128 KiB reserve at 2.38 KiB a level and
+		// killed the process; nothing here may reintroduce an interval, because the bytes a
+		// level cost are not known where this is written.
 		Assert.Contains(
-			"if ((probes++ & 63) == 0 && !EnoughStack_DotGram())", written, StringComparison.Ordinal);
+			"if (!EnoughStack_DotGram())", written, StringComparison.Ordinal);
+		Assert.DoesNotContain("probes", written, StringComparison.Ordinal);
 
 		// And what that asks is the framework's where the framework has it. The older pair
 		// is what .NET Framework and netstandard2.0 answer with, which is why the emitted

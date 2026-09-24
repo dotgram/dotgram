@@ -412,27 +412,41 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// The stack, probed once in every sixty-four entries to a rule that can reach
-	/// itself, rather than at every call that could.
+	/// The stack, probed at every entry to a rule that can reach itself.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// A grammar that recurses on input the author did not write can be handed a
-	/// thousand brackets, so the probe stays; what it does not have to be is one probe
-	/// per call. The runtime reserves far more than sixty-four frames of a reader,
-	/// so a probe every sixty-fourth entry bounds the depth exactly as well as one at
-	/// every entry and costs a counter and a mask.
+	/// A grammar that recurses on input the author did not write can be handed a thousand
+	/// brackets, so the probe has to be here. It used to fire once in sixty-four entries,
+	/// on the reasoning that "the runtime reserves far more than sixty-four frames of a
+	/// reader". That sentence was never measured and it is false. The reserve
+	/// <c>TryEnsureSufficientExecutionStack</c> asks for is <b>128 KiB</b> — the same 128 on a
+	/// 256 KiB stack, a 1 MiB stack and a 4 MiB one — and one nesting level of the SQL:2023
+	/// reader is ten frames and <b>2.38 KiB</b>, so sixty-four levels is 152 KiB and the guard
+	/// was stepped clean over. The whole slow suite died of it on every run, reported as a
+	/// pass (2026-09-24).
 	/// </para>
 	/// <para>
-	/// Measured at 79 places in the expression language and 33 in standard SQL, worth
-	/// about a tenth of a deeply parenthesized parse (docs/next.md).
+	/// <b>The condition an interval has to satisfy is <c>interval × bytes-a-level &lt;
+	/// margin</c>, and bytes-a-level is not known here.</b> It is a property of the reader
+	/// this emitter is about to write, it varies fivefold between our own two SQL grammars
+	/// (2.38 KiB against T-SQL's 0.45), and a tier-0 frame is fatter than the tiered one any
+	/// measurement of it would see. So no constant can be a guarantee, and the interval is
+	/// one: at every entry, the most the stack can move between two probes is a single
+	/// frame, whatever the grammar and whatever the tier.
+	/// </para>
+	/// <para>
+	/// A counter would also have to be carried across the hand-off to a deeper reading and
+	/// back, which is how the old form came to fail differently depending on how many probe
+	/// sites the parse had passed through earlier: at 256 KiB, depth 250 died and 1,168
+	/// survived. Whether a parse survives may not depend on its history.
 	/// </para>
 	/// </remarks>
 	void Probe(Writer file, RuleSymbol rule)
 	{
 		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
 
-		file.Line($"if ((probes++ & 63) == 0 && !EnoughStack_DotGram{_tag}())");
+		file.Line($"if (!EnoughStack_DotGram{_tag}())");
 		file.Then($"return Deepen_DotGram{_tag}(pos, {DeepOf(rule)}{power});");
 		file.Line();
 	}
@@ -646,8 +660,6 @@ sealed partial class Machine
 			foreach (var (_, name) in carried)
 				file.Line($"deep.{name} = this.{name};");
 
-			file.Line("deep.probes = this.probes;");
-
 			if (_stacks > 0)
 				file.Line("deep.stacks = this.stacks + 1;");
 
@@ -668,7 +680,6 @@ sealed partial class Machine
 			foreach (var (_, name) in registers)
 				file.Line($"this.{name} = deep.{name};");
 
-			file.Line("this.probes = deep.probes;");
 			file.Line();
 			file.Line("if (deep.thrown != null)");
 			file.Then(
@@ -699,8 +710,6 @@ sealed partial class Machine
 			foreach (var (type, name) in carried)
 				file.Line($"internal {type} {name} = default!;");
 
-			file.Line("internal int probes;");
-
 			if (_stacks > 0)
 				file.Line("internal int stacks;");
 
@@ -724,8 +733,6 @@ sealed partial class Machine
 						if (state.All(one => one.Name != name))
 							file.Line($"reader.{name} = this.{name};");
 
-					file.Line("reader.probes = this.probes;");
-
 					if (_stacks > 0)
 						file.Line("reader.stacks = this.stacks;");
 
@@ -746,7 +753,6 @@ sealed partial class Machine
 						if (state.All(one => one.Name != name))
 							file.Line($"this.{name} = reader.{name};");
 
-					file.Line("this.probes = reader.probes;");
 				}
 
 				using (file.Block("catch (global::System.Exception caught)"))
@@ -789,16 +795,10 @@ sealed partial class Machine
 			header.Line($"readonly {InputType} text;");
 			header.Line($"internal {CSharpEmitter.FailureType} failure;");
 
-			if (Probes)
+			if (Probes && _stacks > 0)
 			{
-				header.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
-				header.Line("internal int probes;");
-
-				if (_stacks > 0)
-				{
-					header.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
-					header.Line("internal int stacks;");
-				}
+				header.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
+				header.Line("internal int stacks;");
 			}
 
 			header.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
@@ -827,11 +827,8 @@ sealed partial class Machine
 					header.Line("this.ways    = ways;");
 
 				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
-				if (Probes)
-					header.Line("this.probes  = 0;");
-
-					if (_stacks > 0)
-						header.Line("this.stacks  = 0;");
+				if (_stacks > 0)
+					header.Line("this.stacks  = 0;");
 
 				foreach (var (_, name) in state)
 					header.Line($"this.{name} = {name};");

@@ -34,7 +34,7 @@ namespace DotGram.Tests;
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
-public sealed class RefusalGuardTests
+public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
 {
 	static readonly Lazy<Dictionary<string, RefusalLadders.Class>> Baseline = new(ReadBaseline);
 
@@ -48,6 +48,8 @@ public sealed class RefusalGuardTests
 	public void A_refusal_is_no_worse_than_its_baseline(string id)
 	{
 		var series   = RefusalLadders.All().Single(one => RefusalLadders.Id(one) == id);
+
+		Ran[id] = true;
 
 		// The baseline is written by this process and no other: DOTGRAM_RECORD_BASELINE=<file> dotnet test (or the exe) appends one line a series, the WORST class of three runs, and asserts nothing.
 		// A class measured in the stand's audit process is another number (a fresh process reads a curve flatter than one that had run other ladders).
@@ -119,6 +121,68 @@ public sealed class RefusalGuardTests
 		if (last.Class < allowed)
 			TestContext.Current.SendDiagnosticMessage($"{id}: better than its baseline ({allowed} -> {last.Class}, exponent {last.Exponent:F2}); tighten the line in RefusalBaseline.txt.");
 	}
+
+	/// <summary>Every series the ladders hold was actually run, and the count is not written down here.</summary>
+	/// <remarks>
+	/// <para>
+	/// Until 2026-09-24 this suite died of a stack overflow partway through, and the runner
+	/// printed a summary of whatever had finished: "total: 28, failed: 0" beside an exit code
+	/// of 0xC00000FD. The guard had been running a third of itself and reporting green, and
+	/// nothing in the suite could say so, because a summary line counts what completed and a
+	/// crash completes nothing further. Which third it was depended on the order, so two runs
+	/// disagreed about which series were covered and neither was wrong about itself.
+	/// </para>
+	/// <para>
+	/// So the guard counts its own reach. Against <c>All().Count()</c> and never against a
+	/// number written here: the count is not a constant — <c>All()</c> yields sixteen series
+	/// per entry in <c>ExpressionForms</c>, which is one in this host and two in the stand
+	/// once it adds the immediate reading — so a literal would be right in one process, wrong
+	/// in the other, and would need editing every time a series is added.
+	/// </para>
+	/// <para>
+	/// It cannot catch a death in the middle of the last series, and it is not meant to: what
+	/// catches that is reading the exit code rather than the summary. This catches every
+	/// quieter way for the guard to stop asking — a filter that matches less than it looks,
+	/// a row that fails to materialise, a series skipped by something that swallows its own
+	/// reason.
+	/// </para>
+	/// </remarks>
+	/// <remarks>
+	/// Counted when the fixture is disposed rather than in a <c>[Fact]</c>, because a fact
+	/// would have to run after every case it counts and xunit promises no order within a
+	/// class. The first draft of this was a fact; it passed, and it would have failed the day
+	/// the runner happened to take it first — a reach check that reports at random is worse
+	/// than none, because it is the check people switch off.
+	/// <para>
+	/// Two consequences, both preferred to the alternative. A failure here is a fixture
+	/// disposal, so the runner attributes it to every case in the class — 87 red lines for
+	/// one fact, with the count in each of them. And a run filtered to a single series trips
+	/// it, saying "1 of 85 series reported", which is true and is the thing this exists to
+	/// say. Both were accepted rather than gated behind an environment variable that a full
+	/// run would have to remember to set, because a reach check nobody sets is the state this
+	/// suite was already in.
+	/// </para>
+	/// </remarks>
+	public sealed class Reach : IDisposable
+	{
+		public void Dispose()
+		{
+			var held = RefusalLadders.All().Count();
+
+			if (Ran.Count != held)
+				throw new InvalidOperationException(
+					$"{Ran.Count} of the {held} series the ladders hold reported. The guard is only worth " +
+					"what it asks, and a series that did not run is indistinguishable from one that passed.");
+		}
+	}
+
+	/// <summary>Which series reported, so that the count is of what ran and not of what was discovered.</summary>
+	/// <remarks>
+	/// Written to by every case, so it is shared: the theory rows run in parallel with each
+	/// other unless the collection says otherwise, and a plain <c>HashSet</c> would lose
+	/// entries rather than fail, which is the one outcome a reach check may not have.
+	/// </remarks>
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> Ran = new(StringComparer.Ordinal);
 
 	[Fact]
 	public void Few_series_are_held_as_unstable()
