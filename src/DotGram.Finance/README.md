@@ -188,7 +188,7 @@ using var single = File.OpenRead("messages.fix");
 var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
-`Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
+`ReadMessage`, `TryReadMessage` and `ReadMessages` accept either `TextReader` or `Stream`,
 with an optional `FixContext`. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
@@ -197,26 +197,24 @@ synchronous and leave the input open, including when enumeration stops early.
 The adapter frames messages using `BodyLength`, then performs the same grammar, raw-data and
 group recognition as the string API. Checking a
 message against the schema is a separate call: see **Validation** below.
-It reuses a growing buffer across `ReadMessages` iterations and creates an owned
-source string for each result. Buffering is bounded by the largest frame seen,
-not the length of the stream. Keeping all returned messages also keeps all their
-source strings and models alive. The default `maxMessageLength` is 16 MiB per
+It reuses a growing buffer across `ReadMessages` iterations and copies each frame out of it
+before reading it. Buffering is bounded by the largest frame seen, not the length of the stream;
+a message keeps its fields and not the frame. The default `maxMessageLength` is 16 MiB per
 message, including header and trailer; callers can set a different positive
 limit. This is a frame-size limit, not a total allocation budget.
 
 Clean EOF ends `ReadMessages`; EOF before a complete frame is an error.
-`TryParse` returns false with a diagnostic for malformed, oversized, truncated,
-or empty input. `Parse` and `ReadMessages` throw `FormatException` for these
+`TryReadMessage` returns false with a diagnostic for malformed, oversized, truncated,
+or empty input. `ReadMessage` and `ReadMessages` throw `FormatException` for these
 errors (except clean EOF for enumeration). Diagnostic positions are relative to
 the current frame. I/O exceptions propagate. A failed parse may consume input;
 there is no automatic resynchronization or rollback of the underlying stream.
 
 The framing adapter prevents read-ahead from consuming the next message. The byte
 path retains a byte frame and passes it to the generated buffered byte parser;
-field conversion does not transcode numeric input. A result owns its source, and a
-lossless character view is built after recognition for validation and
-`OriginalWire`. This is not a zero-copy API. Results own their data independently
-of subsequent stream reads. See the finance benchmarks for total parsing costs.
+field conversion does not transcode numeric input. This is not a zero-copy API: each field owns
+its value, independently of subsequent stream reads. See the finance benchmarks for total
+parsing costs.
 
 ## Input and ownership
 
@@ -231,13 +229,11 @@ payload remains opaque and its declared `MessageEncoding` remains available.
 `byte[]` and `ReadOnlyMemory<byte>`: `ParseFields`, `ParseMessage`, `TryParseMessage` and
 `ParseMessages`. There the package decodes, knowing that the specification counts octets, so
 nothing depends on the caller having chosen an encoding. What this buys is correctness, not
-allocation: a message keeps its source, so the octets are still materialised one character to one
-octet, and the cost is about what the string road costs.
+allocation: the values are materialised one character to one octet either way, and the cost is
+about what the string road costs.
 
-String input is retained without copying. Span and octet input are materialised once because the
-returned model owns its source; `ParseFields(byte[])` reads the array where it lies and builds no
-model, so nothing is copied there. Keeping a field or message alive retains that
-source. Networking and FIX session state are outside this package.
+Input is read where it lies and is not retained: a field owns its value, and a message its fields.
+Networking and FIX session state are outside this package.
 
 ## Model
 
@@ -246,23 +242,18 @@ The 93 standard message types are the cases of `FixMessage`, nested in it and wr
 type stands in front of every arm. A MsgType the schema does not describe is built by the
 context's `FixMessageFactory`, or is a `FixMessage.Invalid`, which is what lets the set be closed
 without being complete.
-Messages, the header and the trailer have named properties. A group property returns the group's entries, each a
-`FixFieldSet` read with `GetField` and `GetGroup`.
-Flattened component fields are properties of their containing scope.
+A message's properties are named after its fields and are the typed fields themselves, the
+standard header's and trailer's included: `order.OrderQty` is a `FixField.Decimal?`,
+`order.SenderCompID` a `FixField.Text?`. A component's fields are properties of whatever carries
+it, which implements the component's interface (`IInstrument`). A repeating group is named as
+QuickFIX names it: the list `<Counter>Groups` beside its counter, of entries of the class
+`<Counter>Group` nested in what carries it — `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`.
 
-- Missing scalar fields return null; absent groups return an empty read-only list.
-- Text ADT cases own their converted string. The original named message properties
-  remain available; accessing a text projection may allocate another string.
-- Numeric properties return `FixNumber?`. Its `Value` preserves all decimal digits;
-  `TryGetDecimal` uses .NET's decimal conversion rules. Values outside CLR numeric
-  ranges can still be parsed and inspected without overflow or loss of wire text.
-- Temporal properties are `DateOnly`, `TimeOnly` and `DateTimeOffset`; on
-  netstandard2.0 and .NET Framework the first two come from the
-  `Portable.System.DateTimeOnly` package, under the same names.
-- `GetField(tag)` returns the first field in the current scope. `FixFieldView.Value`
-  and `FixFieldView.Wire` expose non-allocating spans. `Fields` preserves scope order;
-  `AllFields` traverses the complete message, including nested groups, in wire order.
-- `OriginalWire` is the exact input. No serializer is necessary to recover it.
+- An absent field is null, and so is an absent group.
+- `Fields` is the whole message in wire order, the fields of every group included.
+- A value that does not convert leaves the field present with `IsValid` false.
+- `Date` and `Time` hold `DateOnly` and `TimeOnly`; on netstandard2.0 and .NET Framework
+  these come from the `Portable.System.DateTimeOnly` package, under the same names.
 
 ## Recognition and validation
 
@@ -276,8 +267,9 @@ entry that does not begin with its delimiter, and a field the parser could not r
 of these can wait for a message to exist: they are how the reader finds where one ends. A stream
 is cut into messages by their `BodyLength`, so there a wrong one is a refusal too.
 
-**Everything else is a finding about a message that was built.** `message.Validate()` holds
-it to FIX 4.4 and answers with all of them at once:
+**Everything else is a finding about a message that was built.** `message.Validate(context)` holds
+it to the context's schema, FIX 4.4 unless a dictionary was loaded, answers whether nothing is
+wrong, and puts everything that is in `message.InvalidFindings` at once:
 
 | What it reports | |
 | --- | --- |
@@ -286,22 +278,19 @@ it to FIX 4.4 and answers with all of them at once:
 | `InvalidValue` | the value does not fit the tag's type, or is not one of its code set |
 | `DuplicateField` | a tag appears twice in one scope |
 | `FieldNotInScope` | the schema defines no such tag, or defines it and not there |
-| `FieldOutOfOrder` | a group entry's fields are not in the schema's order |
-| `GroupCountMismatch` | a required group announces no entries |
+| `FieldOutOfOrder` | a header field after the body has begun, or `BeginString`, `BodyLength` and `MsgType` not first, second and third |
+| `GroupCountMismatch` | a counter that is not the number of entries after it, or entries no counter announces |
 | `UnknownMessageType` | the schema describes no message of that `MsgType` |
-| `MessageEncodingMissing` | an `Encoded` field is present and tag 347 is not |
 | `BodyLengthMismatch` | `BodyLength` is not the number of octets of the body it was read with |
 | `CheckSumMismatch` | `CheckSum` is not the sum, modulo 256, of the octets before it |
 | `LengthFieldNotBeforeData` | a length field is not followed by the data it measures |
 
-`BeginString` other than `FIX.4.4` is an `InvalidValue`, and `BeginString`, `BodyLength` and
-`MsgType` anywhere but first, second and third a `FieldOutOfOrder`. The octets the length and the
-sum are held to are measured while the message is read, since it keeps its fields and not its
-source.
+`BeginString` other than `FIX.4.4` is an `InvalidValue`. The octets the length and the sum are
+held to are measured while the message is read, since it keeps its fields and not its source.
 
-Each finding names its rule, its scope, its tag, the entry of the repeating group it is in,
-and where in the source it begins — "tag 448 is wrong" says nothing where a message carries
-nine parties.
+Each `FixFinding` names its rule, its tag, the field, where in the source it begins and the entry
+of the repeating group it is in — "tag 448 is wrong" says nothing where a message carries nine
+parties.
 
 Body fields may be reordered, and an unknown tag between the header and the trailer belongs
 to the body rather than ending it: whether it should be there is a finding, and a message the
@@ -310,30 +299,22 @@ preserved whatever is found.
 
 **A port from a library that stops at the first problem needs looking at.** Code written
 against one — where validation throws the first thing wrong, or returns it — handles one
-problem per message, and against `Validate()` it keeps the first finding and drops the rest
-without a word. `Validate()` answers "is it valid" as `Length == 0`, and
-`message.Validate().FirstOrDefault()` is that older shape written out, if it is what you
-want. A finding is the same story: where a message carries nine parties, `GroupTag`,
-`EntryIndex` and `Position` are what say which one, and code that reads `Tag` alone throws
-that away.
+problem per message; `InvalidFindings` holds all of them, and code that reads only the first
+drops the rest without a word. A finding is the same story: where a message carries nine parties,
+`EntryIndex` and `Position` are what say which one, and code that reads `Tag` alone throws that away.
 
-**The rule lives in the class, because a message type and a class are the same thing here.**
-`Validate()` asks the `Rule` field of the class the message is; replacing a rule is assigning to
-that field — `FixMessage.NewOrderSingle.Rule = (message, findings) => …` — and undoing it is
-assigning the name back, `FixValidator.ValidateNewOrderSingle`. `FixValidator` is not an entry
-point: it holds the ninety-four rules this package compiles in, one named method a type, so that
-a replacement can be taken back. Whether a rule is still in place is asked with `==` rather than
-`ReferenceEquals`: the two may or may not be one object, and that is the compiler's business.
-
-`FixParser.LoadDictionary(stream)` reads a counterparty's QuickFIX dictionary and writes the rule
-of every type it describes. It answers with nothing and throws where the file is not a dictionary
-it accepts, because validation holding half of one schema and half of another is worse than a
-refusal at the door. A type this package has no class for keeps no rule of its own and stays
-unknown; what to do about such a type is to write its class. The package ships nobody's
+**A counterparty's dictionary is loaded into a context.** `FixContext.Default.Load(text)`,
+`LoadFile(path)`, or `Load` of a `TextReader`, a `Stream` or several texts read as one, reads a
+QuickFIX dictionary and answers a new context: a message type, component, group entry or field
+the file describes is held to the file's whole check from then on, and the context it was loaded
+over is unchanged. A file that is not a dictionary this package can read, or that places a field
+where the model has no property for it, is refused whole, because a schema that is half one file
+and half another is worse than a refusal at the door. A type this package has no class for is
+still unknown; what to do about such a type is a `FixCustomMessage`. The package ships nobody's
 dictionary: the file is yours, in your repository, and its licence obligations are yours with it.
 
-One field a class means **one configuration for the process**: two counterparties with two
-schemas at once is not expressible, and that is the trade this shape was chosen for.
+The context is a value and not a setting of the process, so two counterparties with two schemas
+are two contexts, and a pass over one input never sees the other's.
 
 It is not a trading or session validator. Prose-only conditional requirements,
 sequence-number state, order economics, live ISO registry assignments and announced
@@ -419,7 +400,7 @@ remain untouched; a log that replaces or escapes payload bytes is not lossless a
 requires its own decoding before this API. Arbitrary log prefixes are not accepted.
 BodyLength counts the wire's octets and the pipe rendering does not change it; CheckSum is summed
 as the SOH representation would be, a separator counted as one SOH, never pipes inside raw data.
-`OriginalWire` preserves the supplied log representation.
+Positions refer to the log as it was given.
 
 ## Custom fields and messages
 
