@@ -208,7 +208,14 @@ public sealed class FixLoadTests
 			var written = Directory.GetFiles(directory, "*.el").Select(Path.GetFileName).ToArray();
 
 			Assert.Equal(["Logon.el"], written);
-			Assert.Contains("(FixContext context, FixMessage.Logon message) =>", File.ReadAllText(Path.Combine(directory, "Logon.el")), StringComparison.Ordinal);
+			var text = File.ReadAllText(Path.Combine(directory, "Logon.el"));
+
+			Assert.Contains("(FixContext context, FixMessage.Logon message) =>", text, StringComparison.Ordinal);
+
+			// A tag is written as its number, which every version shares, and not as a name FixTag may
+			// spell otherwise than the file.
+			Assert.Contains("FixValidators.Missing(message, (FixTag)141)", text, StringComparison.Ordinal);
+			Assert.DoesNotContain("FixTag.", text, StringComparison.Ordinal);
 		}
 		finally
 		{
