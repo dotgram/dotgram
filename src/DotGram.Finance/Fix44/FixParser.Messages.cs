@@ -147,7 +147,7 @@ public static partial class FixParser
 				return false;
 			}
 
-			length = pairs.DataTag(field.Tag) != 0 ? field.Tag : 0;
+			length = pairs.Kind(field.Tag) > 0 ? field.Tag : 0;
 
 			fields.Add(field);
 

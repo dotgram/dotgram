@@ -140,6 +140,7 @@ public static class HandFixParser
 		position++;
 		var valueStart = position;
 		var expected   = pair.Expected;
+		var kind       = options.Kind(tag);
 		int end;
 
 		pair.Expected = 0;
@@ -152,7 +153,7 @@ public static class HandFixParser
 
 			end = position + pair.Size;
 		}
-		else if (options.DataTag(tag) is var dataTag and not 0)
+		else if (kind > 0)
 		{
 			// A length too large to count by is still a length; it only measures nothing.
 			error = "Expected a length.";
@@ -165,13 +166,13 @@ public static class HandFixParser
 			if (fits)
 			{
 				pair.Size     = length;
-				pair.Expected = dataTag;
+				pair.Expected = options.DataTag(tag);
 			}
 		}
 		else
 		{
 			error = "A data tag requires its preceding length tag.";
-			if (options.IsData(tag))
+			if (kind < 0)
 				return null;
 
 			end = FindSeparator(input, position, log);
@@ -185,7 +186,7 @@ public static class HandFixParser
 		if (!Separator(input, log, ref position) && input.Peek(position) >= 0)
 			return null;
 
-		var field = Create(input, tag, valueStart, end, options.IsData(tag), options.FixFieldFactory);
+		var field = Create(input, tag, valueStart, end, kind < 0, options.FixFieldFactory);
 		field.WithTerminator(position - end).Locate(start, position - start);
 		error = null;
 		return field;
