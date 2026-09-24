@@ -139,13 +139,16 @@ public static partial class ExpressionParser
 	/// <param name="Member">The member this overload is.</param>
 	/// <param name="Parameters">What it takes, as metadata says.</param>
 	/// <param name="Params">Whether the last parameter is a <c>params</c> array.</param>
-	/// <param name="Usable">Whether an expression tree could hold every parameter it takes.</param>
+	/// <param name="Usable">Whether every parameter it takes can be written as an argument.</param>
 	/// <remarks>
 	/// Those two ride along because neither is an answer about a call. A member taking a
-	/// parameter by reference is no candidate whatever it is handed, and a <c>params</c> array
-	/// is one whatever it is handed — so both are worked out where the parameters are, once and
-	/// for as long as they are kept, and the choosing below reads them instead of asking
-	/// metadata again for every overload of every call.
+	/// parameter by reference is no candidate whatever it is handed — nothing in the language
+	/// spells <c>ref</c> at a call — and a <c>params</c> array is one whatever it is handed, so
+	/// both are worked out where the parameters are, once and for as long as they are kept, and
+	/// the choosing below reads them instead of asking metadata again for every overload of
+	/// every call. A ref struct is not among them: a compiled expression tree holds
+	/// <c>ReadOnlySpan&lt;T&gt;</c> as a parameter, a local and a return, on .NET and on .NET
+	/// Framework alike.
 	/// </remarks>
 	readonly record struct Overload(MemberInfo Member, ParameterInfo[] Parameters, bool Params, bool Usable)
 	{
@@ -155,7 +158,7 @@ public static partial class ExpressionParser
 			var usable = true;
 
 			foreach (var parameter in parameters)
-				if (parameter.ParameterType.IsByRef || Unrepresentable(parameter.ParameterType))
+				if (parameter.ParameterType.IsByRef)
 				{
 					usable = false;
 					break;
@@ -340,9 +343,9 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// The normal form first — an argument for each parameter, and a default for each one
 	/// after — and then, where the last parameter is a <c>params</c> array, the expanded one,
-	/// with that array's elements written one by one. A parameter taken by reference, or of a
-	/// type an expression tree cannot hold, makes the member no candidate at all: chosen, it
-	/// would build a tree that does not compile, where the overload beside it would have.
+	/// with that array's elements written one by one. A parameter taken by reference makes the
+	/// member no candidate at all: chosen, it would build a tree that does not compile, where
+	/// the overload beside it would have.
 	/// </remarks>
 	static Candidate? Applicable(Overload one, Expression[] arguments)
 	{
@@ -380,15 +383,6 @@ public static partial class ExpressionParser
 
 		return null;
 	}
-
-	/// <summary>A ref struct, which an expression tree cannot hold — <c>Span&lt;T&gt;</c> and its kind.</summary>
-	static bool Unrepresentable(Type type) =>
-#if NETSTANDARD2_0
-		type.IsValueType && type.GetCustomAttributesData().Any(
-			static attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute");
-#else
-		type.IsByRefLike;
-#endif
 
 	/// <summary>The one candidate better than every other, which is the one C# calls.</summary>
 	/// <remarks>
