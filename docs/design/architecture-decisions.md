@@ -9389,3 +9389,38 @@ grammar is guarded, with the reason. §7.5 says the condition holds for the gene
 passes to the author with the override. Not an error: `ExpressionParser.Immediate` keeps building.
 performance-9f owns the diagnostic; EL suppresses it with a reference to its guards and to expr's
 standing two-carrier comparison.
+
+Done at b2a30937 as GRAM5015 (docs/diagnostics.md). A grammar in a string literal is suppressed
+with `#pragma` beside it; a grammar in a `.gram` file is reported in that file, which no pragma
+reaches, so there the suppression is `NoWarn` in the host's project, as for GRAM5003. Reporting
+it at the host instead would change `GramDiagnostic`'s contract and was not done.
+
+## D139 — FIX: a field is a class of the type of its value, and its tag says which (Igor)
+
+Until 2026-09-24 the FIX package had a class per tag, 912 of them (`FixField.OrderQty`), a
+`FixCustomField<T>` for tags outside FIX 4.4, and a `FixFieldFactory` delegate on the context —
+which `Load` also compiled from a dictionary through the expression language. Igor: a field is a
+base class and the classes of its value's type, nothing else; no factory; compatible with FIX 5.
+
+- **The classes.** `FixField` (tag, extent, `IsValid`), `Typed<T>`, and eleven sealed classes of
+  the value types — `Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`,
+  `Date`, `MonthYear`, `Multiple`, `Data` — plus `Invalid`. No finer FIX type is stored on a field.
+  Sealed because the parser builds only these and, with no factory, nothing it reads can be a
+  derived class (opened at 2858c557 and sealed again at eebd2ab2 for that reason).
+- **The tag is `FixTag`,** an enum of the 912 standard tags; `FixField.Tag`, `FixFinding.Tag`,
+  `FixParseError.Tag` and `LengthDataPairs` are typed by it. A tag outside the standard is its
+  number, `(FixTag)25005`. Matched as `FixField.Decimal { Tag: FixTag.OrderQty }`.
+- **One table a context,** a byte a tag: the value type and the tag's half of a length/data pair.
+  The standard's is the default (`FixFieldBuilder.Standard.cs`, written by `generate.py`);
+  `LengthDataPairs` sets the pair bits, `Load` sets the types of the tags a dictionary adds. A
+  dictionary never retypes a standard tag — a message property's cast would fail. A pair's tag
+  nothing types is read as its half: an `Integer` length, a `Data` data. A tag nothing defines is
+  an `Invalid`. The builder is a switch of twelve arms over the type.
+- **Messages, components and checks** are typed by the value class; names are unchanged. Field
+  check slots stay one per tag, typed by the value class (`Func<…, FixField.Decimal, bool>`).
+- **What went:** a consumer's own class for a field, and a check of a non-standard field's value
+  in a slot; the second is written in `FixCustomMessage.OnValidate`.
+
+`582a63c5`. Consequence for EL: the tuple, the target-typed switch and the untyped lambda built
+that week for the factory lost their only consumer; Igor keeps them as C# parity (232 KB, +13.5%
+over 5bfa7b7b~1, measured in one worktree after 3a8d5bcd).
