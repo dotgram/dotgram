@@ -2533,7 +2533,11 @@ after `when`, an external recognizer: what they throw propagates from every publ
 or without the `Try` prefix, as any exception of C# does (§7.4). A `Try` method that turned it
 into a refusal would report a defect of the host as input that did not fit. The parser never
 lets escape an exception from a reading it has abandoned: host code is asked about what the
-parse reads, and a reading the parse gives up cannot fail it.
+parse reads, and a reading the parse gives up cannot fail it. That holds for the carrier the
+generator chooses, which keeps a grammar whose building may run on an abandoned reading off the
+immediate carrier. An author who asks for the immediate carrier over such a grammar
+(`Carrier = GramCarrier.Immediate`) is warned, and takes the condition on: every construction
+that could throw on a reading the parse abandons stands behind a guard that answers first.
 
 ### 7.6 Mapping positions back
 

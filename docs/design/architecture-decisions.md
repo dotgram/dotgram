@@ -9371,3 +9371,21 @@ be a correctness defect with its own priority.
 **Not changed:** EL's public `TryParse` already refuses a text that does not compile, with the
 exception's own message. That is EL's catching of its own semantic errors, not the generator's of
 a host's, and it stays.
+
+## D138 — Forcing the immediate carrier over an unsafe grammar is a warning (Igor)
+
+D137's condition — no exception escapes from a reading the parser abandons — is kept by the
+generator only where it chooses the carrier: `Auto` keeps a grammar on the tape when a building
+rule may be read where the reading may not stand (`replay`). performance-9f, 2026-09-24: an
+author's `[GramOptions(Carrier = GramCarrier.Immediate)]` is not checked at all, the one
+`Commit`-based refusal applying only to grammars that use `recover`. EL's
+`ExpressionParser.Immediate` is such an override over a grammar with 18 of 844 building sites
+settled; it is safe because its grammar puts a `when` in front of every construction that could
+throw (expr: 10,722 texts, both carriers, no divergence, no witness), not because anything checks.
+
+**Igor: a warning.** Where the author forces the immediate carrier and the generator would have
+kept the grammar on the tape, the generator warns and says why; the author suppresses it where the
+grammar is guarded, with the reason. §7.5 says the condition holds for the generator's choice and
+passes to the author with the override. Not an error: `ExpressionParser.Immediate` keeps building.
+performance-9f owns the diagnostic; EL suppresses it with a reference to its guards and to expr's
+standing two-carrier comparison.
