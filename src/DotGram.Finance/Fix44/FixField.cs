@@ -293,7 +293,7 @@ public abstract class FixField : IFixLocation
 	/// </remarks>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">The field text.</param>
-	public class Text(FixTag tag, string value)
+	public sealed class Text(FixTag tag, string value)
 		: Typed<string>(tag, value);
 
 	/// <summary>
@@ -301,7 +301,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToCharacter(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Character(FixTag tag, (bool Valid, char Value) value)
+	public sealed class Character(FixTag tag, (bool Valid, char Value) value)
 		: Typed<char>(tag, value);
 
 	/// <summary>
@@ -309,7 +309,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToBoolean(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Boolean(FixTag tag, (bool Valid, bool Value) value)
+	public sealed class Boolean(FixTag tag, (bool Valid, bool Value) value)
 		: Typed<bool>(tag, value);
 
 	/// <summary>
@@ -317,7 +317,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToInteger(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Integer(FixTag tag, (bool Valid, long Value) value)
+	public sealed class Integer(FixTag tag, (bool Valid, long Value) value)
 		: Typed<long>(tag, value);
 
 	/// <summary>
@@ -325,7 +325,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToDecimal(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Decimal(FixTag tag, (bool Valid, decimal Value) value)
+	public sealed class Decimal(FixTag tag, (bool Valid, decimal Value) value)
 		: Typed<decimal>(tag, value);
 
 	/// <summary>
@@ -333,7 +333,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToTimestamp(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Timestamp(FixTag tag, (bool Valid, DateTimeOffset Value) value)
+	public sealed class Timestamp(FixTag tag, (bool Valid, DateTimeOffset Value) value)
 		: Typed<DateTimeOffset>(tag, value);
 
 	/// <summary>
@@ -341,7 +341,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToTime(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Time(FixTag tag, (bool Valid, TimeOnly Value) value)
+	public sealed class Time(FixTag tag, (bool Valid, TimeOnly Value) value)
 		: Typed<TimeOnly>(tag, value);
 
 	/// <summary>
@@ -349,7 +349,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToDate(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Date(FixTag tag, (bool Valid, DateOnly Value) value)
+	public sealed class Date(FixTag tag, (bool Valid, DateOnly Value) value)
 		: Typed<DateOnly>(tag, value);
 
 	/// <summary>
@@ -360,7 +360,7 @@ public abstract class FixField : IFixLocation
 	/// </remarks>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToMonthYear(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class MonthYear(FixTag tag, (bool Valid, string Value) value)
+	public sealed class MonthYear(FixTag tag, (bool Valid, string Value) value)
 		: Typed<string>(tag, value);
 
 	/// <summary>
@@ -368,7 +368,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToMultiple(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Multiple(FixTag tag, (bool Valid, string[] Value) value)
+	public sealed class Multiple(FixTag tag, (bool Valid, string[] Value) value)
 		: Typed<string[]>(tag, value);
 
 	/// <summary>
@@ -380,6 +380,6 @@ public abstract class FixField : IFixLocation
 	/// </remarks>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToData(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
-	public class Data(FixTag tag, (bool Valid, ReadOnlyMemory<byte> Value) value)
+	public sealed class Data(FixTag tag, (bool Valid, ReadOnlyMemory<byte> Value) value)
 		: Typed<ReadOnlyMemory<byte>>(tag, value);
 }
