@@ -88,7 +88,7 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new Status(value.ToText()) : null</c>.</summary>
+	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new FixCustomField&lt;long&gt;(tag, value.ToInteger()) : null</c>.</summary>
 	/// <remarks>
 	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. It is
 	/// handed the tag and the value, and builds a <see cref="FixCustomField{T}"/>, or a class derived from
@@ -277,12 +277,12 @@ public sealed record FixContext
 
 		foreach (var field in dictionary.Fields.OrderBy(static field => field.Key))
 			if (!Defined.Tags.Contains(field.Key) && Built(field.Value.Type) is { } built)
-				arms.Append('\t').Append(field.Key.ToString(CultureInfo.InvariantCulture)).Append(" => (FixCustomField)").Append(built).Append(",\n");
+				arms.Append('\t').Append(field.Key.ToString(CultureInfo.InvariantCulture)).Append(" => ").Append(built).Append(",\n");
 
 		if (arms.Length == 0)
 			return null;
 
-		var text = "using System;\nusing DotGram.Finance.Fix44;\n(int tag, ReadOnlySpan<char> value) => tag switch\n{\n" + arms + "\t_ => null,\n}";
+		var text = "using System;\nusing DotGram.Finance.Fix44;\n(tag, value) => tag switch\n{\n" + arms + "\t_ => null,\n}";
 
 		emit?.Invoke(nameof(FixFieldFactory), text);
 
@@ -313,7 +313,7 @@ public sealed record FixContext
 			"MONTHYEAR"                                                                         => "new FixCustomField<string>(tag, value.ToMonthYear())",
 			"MULTIPLEVALUESTRING" or "MULTIPLECHARVALUE" or "MULTIPLESTRINGVALUE"               => "new FixCustomField<string[]>(tag, value.ToMultiple())",
 			"DATA" or "XMLDATA"                                                                 => "new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData())",
-			_                                                                                   => "new FixCustomField<string>(tag, ValueTuple.Create(true, value.ToText()))",
+			_                                                                                   => "new FixCustomField<string>(tag, (true, value.ToText()))",
 		};
 	}
 
