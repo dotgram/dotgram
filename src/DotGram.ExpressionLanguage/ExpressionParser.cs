@@ -155,16 +155,27 @@ namespace DotGram.ExpressionLanguage;
 // GRAM5015 says what asking for this carrier costs: the gates would have kept this grammar
 // on the tape, 81 of the 84 rules it builds are read for derivations that may not stand, and
 // a construction that runs for one of those can throw out of a publication that does not say
-// it can (D137, docs/syntax.md §7.5). It is suppressed because both halves of that are
-// answered here and nowhere else:
+// it can (D137, docs/syntax.md §7.5). It is suppressed for two reasons, one about how this
+// grammar is written and one about what is checked of it:
 //
-//   * every construction that could throw stands behind a `when` that is read first -- the
-//     one that did not, a name resolved by a factory, is the reason the guard was written;
-//   * ExpressionCarrierTests holds this reading against the one on the tape over the whole
-//     shared corpus, 10,722 texts, and the two must answer alike on every one of them.
+//   * where two readings compete over the same text — which is the only place a construction
+//     can run for a derivation that then does not stand — the question is asked by a `when`
+//     and not by letting a construction throw. `Target` is the one to read: it asks
+//     `Has(n, member, caller)`, which is exactly what its construction is about to do, and its
+//     own comment says why. `NamedType` asks `Resolves` for the same reason. Most constructions
+//     here carry no guard, and need none: they run only for the derivation that stands;
+//   * it is checked and not asserted. `CarrierAgreementTests` puts every corpus shape, every
+//     prefix of one and every one-character deletion from one — 10,722 texts — to both
+//     carriers and requires the same answer, refusals and throws included. A construction that
+//     threw for a derivation this carrier abandoned would show there and nowhere else, because
+//     the tape builds only what stands. `ExpressionCarrierTests` is the other half: for texts
+//     that read, the two build the same tree.
 //
-// So the promise the gates would have kept is kept by the grammar instead, and it is checked
-// rather than asserted. Take the suppression off if either of those two stops being true.
+// What that is worth, said plainly: a search, not a proof. It says no such construction exists
+// today over the widest corpus there is, and where the language is ambiguous the grammar was
+// written so that none could. Take the suppression off if a construction is added to an
+// alternative that can be abandoned without a guard in front of it asking what the construction
+// will do — and expect `CarrierAgreementTests` to be what tells you.
 #pragma warning disable GRAM5015
 [Gram("""
 	@using System;
