@@ -298,7 +298,7 @@ static partial class Stand
 		[
 			.. Fix("One",        "55=ABC\u0001", 1, regex: true),
 			.. Fix("Order",      order, 11, regex: true),
-			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64)), 64),
+			.. Fix("BinaryMany", string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64)), 128),
 			.. Fix("Orders128",  string.Concat(Enumerable.Repeat(order, 128)), 11 * 128, regex: true),
 
 			// Q7.2 (expr-2d, 2026-09-18): a malformed field late in the message, not the
