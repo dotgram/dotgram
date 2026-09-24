@@ -54,6 +54,10 @@ partial class FixValidators
 
 		var length = (FixTag)0;
 
+		// An Encoded field is text in the encoding MessageEncoding names, and without it nobody can
+		// say what the octets are: said once, at the first such field.
+		var encoding = message.MessageEncoding is not null;
+
 		foreach (var field in message.Fields)
 		{
 			// A length field is followed by the data it measures, and by nothing else.
@@ -61,6 +65,12 @@ partial class FixValidators
 				message.AddFinding(new FixFinding(FixRule.LengthFieldNotBeforeData, length, field.Position, field, -1));
 
 			length = context.Kind((int)field.Tag) > 0 ? field.Tag : 0;
+
+			if (!encoding && IsEncoded(field.Tag))
+			{
+				message.AddFinding(new FixFinding(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field.Position, field, -1));
+				encoding = true;
+			}
 
 			if (IsTrailer(field.Tag))
 				continue;
@@ -92,6 +102,14 @@ partial class FixValidators
 			or FixTag.PossResend or FixTag.SendingTime or FixTag.OrigSendingTime or FixTag.XmlDataLen or FixTag.XmlData
 			or FixTag.MessageEncoding or FixTag.LastMsgSeqNumProcessed or FixTag.NoHops or FixTag.HopCompID or FixTag.HopSendingTime
 			or FixTag.HopRefID;
+	}
+
+	static bool IsEncoded(FixTag tag)
+	{
+		return tag is FixTag.EncodedIssuer or FixTag.EncodedSecurityDesc or FixTag.EncodedListExecInst or FixTag.EncodedText
+			or FixTag.EncodedSubject or FixTag.EncodedHeadline or FixTag.EncodedAllocText or FixTag.EncodedUnderlyingIssuer
+			or FixTag.EncodedUnderlyingSecurityDesc or FixTag.EncodedListStatusText or FixTag.EncodedLegIssuer
+			or FixTag.EncodedLegSecurityDesc;
 	}
 
 	static bool IsTrailer(FixTag tag)

@@ -281,6 +281,7 @@ wrong, and puts everything that is in `message.InvalidFindings` at once:
 | `FieldOutOfOrder` | a header field after the body has begun, or `BeginString`, `BodyLength` and `MsgType` not first, second and third |
 | `GroupCountMismatch` | a counter that is not the number of entries after it, or entries no counter announces |
 | `UnknownMessageType` | the schema describes no message of that `MsgType` |
+| `MessageEncodingMissing` | an `Encoded` field is present and `MessageEncoding` (347) is not; said once, at the first such field |
 | `BodyLengthMismatch` | `BodyLength` is not the number of octets of the body it was read with |
 | `CheckSumMismatch` | `CheckSum` is not the sum, modulo 256, of the octets before it |
 | `LengthFieldNotBeforeData` | a length field is not followed by the data it measures |

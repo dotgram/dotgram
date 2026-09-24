@@ -25,14 +25,11 @@ public enum FixRule
 	/// <summary>The schema does not place this tag in the scope the message puts it in.</summary>
 	FieldNotInScope,
 
-	/// <summary>The fields of a group entry are not in the order the schema gives them.</summary>
+	/// <summary>A header field after the body has begun, or <c>BeginString</c>, <c>BodyLength</c> and <c>MsgType</c> not first, second and third.</summary>
 	FieldOutOfOrder,
 
 	/// <summary>A value does not fit its field's type, or is not one of its code set.</summary>
 	InvalidValue,
-
-	/// <summary>A data field does not immediately follow the length field that measures it.</summary>
-	DataFieldNotAfterLength,
 
 	/// <summary>A length field does not immediately precede the data field it measures.</summary>
 	LengthFieldNotBeforeData,
@@ -40,7 +37,7 @@ public enum FixRule
 	/// <summary>A group's count does not match the entries that follow it.</summary>
 	GroupCountMismatch,
 
-	/// <summary><c>MessageEncoding</c> is absent where an <c>Encoded</c> field is present.</summary>
+	/// <summary><c>MessageEncoding</c> is absent where an <c>Encoded</c> field is present; said at the first such field, by tag 347.</summary>
 	MessageEncodingMissing,
 
 	/// <summary><c>BodyLength</c> is not the number of octets of the body it was read with.</summary>

@@ -198,6 +198,26 @@ public sealed class Fix44Tests
 	}
 
 	[Fact]
+	public void An_encoded_field_without_its_encoding_is_a_finding_once()
+	{
+		var bare = FixParser.ParseMessage(FixFixtures.Wire("B", "148=NEWS|354=3|355=abc|358=2|359=xy|33=0|"));
+
+		Assert.False(bare.Validate(FixContext.Default));
+
+		var missing = Assert.Single(bare.InvalidFindings!, finding => finding.Rule == FixRule.MessageEncodingMissing);
+
+		Assert.Equal(FixTag.MessageEncoding, missing.Tag);
+		Assert.Equal(FixTag.EncodedText, missing.Field!.Tag);
+		Assert.Equal(missing.Field.Position, missing.Position);
+
+		var declared = FixParser.ParseMessage(FixFixtures.Wire("B", "347=UTF-8|148=NEWS|354=3|355=abc|33=0|"));
+
+		declared.Validate(FixContext.Default);
+
+		Assert.DoesNotContain(declared.InvalidFindings ?? [], finding => finding.Rule == FixRule.MessageEncodingMissing);
+	}
+
+	[Fact]
 	public void A_length_without_its_data_is_a_finding()
 	{
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=3|"));
