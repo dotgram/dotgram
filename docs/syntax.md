@@ -2528,6 +2528,13 @@ Exceptions appear only at the publication boundary, and only in the methods with
 `FormatException`: the same type as `int.Parse` throws, and one that requires nothing
 shared between assemblies.
 
+**An exception the host's own code throws is not an outcome.** A factory after `=>`, a guard
+after `when`, an external recognizer: what they throw propagates from every publication, with
+or without the `Try` prefix, as any exception of C# does (§7.4). A `Try` method that turned it
+into a refusal would report a defect of the host as input that did not fit. The parser never
+lets escape an exception from a reading it has abandoned: host code is asked about what the
+parse reads, and a reading the parse gives up cannot fail it.
+
 ### 7.6 Mapping positions back
 
 Generated code carries `#line` directives mapping it back into the `.gram` file. This

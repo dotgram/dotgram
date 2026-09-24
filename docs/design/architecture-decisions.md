@@ -9347,3 +9347,27 @@ is what makes finishing validation a correctness matter and not only a feature.
 survives at all. As Igor describes them — the consumer's factory accepts and builds, or the base
 builds `Invalid` — nothing is left to build a `Custom`, but that is a consequence of the factory
 design and is not settled ahead of it.
+
+## D137 — An exception the host throws is not caught, not even by a `Try` method (Igor)
+
+Raised by expr, 2026-09-24, while EL's refusals were being examined: the generated `TryParseX`
+lets an exception from host code escape — a `=>` factory, a `when` guard, an external recognizer.
+§7.5 said an outcome is a value and exceptions appear only in the methods without `Try`; §7.4 says
+C# stays C#. Read strictly, the first made the generated `Try` methods wrong.
+
+**Igor: the host's exception is not caught.** A `Try` method that caught it would turn a defect in
+the consumer's code — a `NullReferenceException` in somebody's factory — into "the input did not
+match", and the defect would be lost where it is cheapest to find. §7.5 now says so: what host code
+throws propagates from every publication; a refusal of the grammar is still a value.
+
+**The condition that comes with it.** The parser must never let escape an exception from a reading
+it has abandoned: the host is asked about what the parse reads, and a reading given up cannot fail
+it. Whether that holds today is not established. performance-9f counted 117 speculative throws from
+EL's semantic factories on the immediate carrier before expr's 5bfa7b7b, caught by the internal
+`TryParseLambda`'s harness; they stopped with that commit for a reason not yet known. expr is
+looking for a witness — a valid text whose abandoned reading throws through `Parse` — and it would
+be a correctness defect with its own priority.
+
+**Not changed:** EL's public `TryParse` already refuses a text that does not compile, with the
+exception's own message. That is EL's catching of its own semantic errors, not the generator's of
+a host's, and it stays.
