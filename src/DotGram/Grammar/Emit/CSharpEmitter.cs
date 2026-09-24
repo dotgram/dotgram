@@ -227,7 +227,15 @@ public static partial class CSharpEmitter
 
 		// What the graph says about readings that may not stand, asked once for every machine
 		// left to choose its own carrier, and not at all where the author chose.
-		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph, sites: carriers is not null) : null;
+		// Computed for a carrier the author forced to Immediate as well, because the gates need
+		// it to say what they would have said had they been asked (D138, GRAM5015). Nothing
+		// emitted moves by it: the one place that read this under a forced carrier already
+		// computed the same report for itself where it was null (`Commit.Of(_graph, _replay ??
+		// Replay.Of(_graph))`), and `Commit` asks the report only for `Keeps`, which `sites`
+		// does not enter into. The snapshot of a grammar compiled immediately says so too.
+		var replay = carrier is CarrierKind.Auto or CarrierKind.Immediate
+			? Replay.Of(graph, sites: carriers is not null)
+			: null;
 
 		// A `find` over text tries every start and throws each failure away, and a parse of text in
 		// memory reads quietly first where it may; so their machines are written to ask before they
@@ -855,6 +863,60 @@ public static partial class CSharpEmitter
 					0,
 					0,
 					GramSeverity.Info));
+			}
+
+			// D138. The request was honoured and the gates were never asked - asking them is what
+			// CarrierKind.Auto does, and naming a carrier skips it. Where they would have kept the
+			// grammar on the tape, the author has taken off the parser a promise the generator
+			// would not have taken off it: a construction may now run for a reading the parse then
+			// gives up, and an exception thrown by host code there escapes a publication that does
+			// not say it can throw (syntax.md 7.5). A warning and not an error, because it is a
+			// decision the author is allowed to make - the message says what it costs, and the
+			// grammar that means it suppresses it with the reason in place.
+			if (carrier == CarrierKind.Immediate)
+			{
+				var forced = machines
+					.Where(static one => one.Direct)
+					.Select(static one => one.Machine.ForcedPastGates)
+					.OfType<Machine.Kept>()
+					.ToList();
+
+				if (forced.Count > 0)
+				{
+					var builds   = Names(forced.SelectMany(static one => one.Building));
+					var replayed = Names(forced.SelectMany(static one => one.Replayed));
+					var again    = Names(forced.SelectMany(static one => one.Again));
+
+					var why = replayed.Count > 0
+						? $"{replayed.Count} of the {builds.Count} rules it builds are read for derivations " +
+							$"that may not stand - {Three(replayed)}"
+						: $"{Three(again)} can be read again after answering, and what the first reading " +
+							"built would stay built";
+
+					diagnostics.Add(new GramDiagnostic(
+						GramCompiler.CarrierForced,
+						$"This grammar is carried as Immediate because the author asked for it, and " +
+							$"Carrier = GramCarrier.Auto would have kept it on the tape: {why}. Every " +
+							"construction now runs where it is read, including for a reading the parse " +
+							"then gives up, and an exception a host factory throws there escapes the " +
+							"publication whatever it promises (docs/syntax.md 7.5). Where that is meant - " +
+							"nothing a construction reaches can throw, or every one of them stands behind " +
+							"a guard - suppress this warning with the reason in place" +
+							Points(graph, replay) + ".",
+						0,
+						0,
+						GramSeverity.Warning));
+				}
+
+				static List<string> Names(IEnumerable<RuleSymbol> rules)
+				{
+					return [.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
+				}
+
+				static string Three(List<string> names)
+				{
+					return string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
+				}
 			}
 		}
 		else if (carrier == CarrierKind.Auto && diagnostics is not null)

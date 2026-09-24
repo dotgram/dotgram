@@ -6,6 +6,13 @@
 		<RootNamespace>DotGram.Benchmarks</RootNamespace>
 		<IsPackable>false</IsPackable>
 
+		<!-- ImmediateSql asks for the immediate carrier by name over a grammar the gates
+		     would have kept on the tape, and GRAM5015 says so. That is what the class is
+		     for: measuring that carrier, over a tree whose factories are pure. The reason
+		     is written out at the attribute, which cannot carry the suppression itself -
+		     the grammar is a file, so the message lands in the .gram and not in any C#. -->
+		<NoWarn>$(NoWarn);GRAM5015</NoWarn>
+
 		<!-- The generated parser is the thing under test, so it goes on disk where it can
 		     be read next to the numbers it produced. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

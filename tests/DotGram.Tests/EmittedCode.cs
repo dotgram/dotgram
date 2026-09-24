@@ -49,10 +49,19 @@ static class EmittedCode
 	/// stream was not available (§6.3). A test about whether a
 	/// grammar compiles is about everything else, and a test that asserted on the whole
 	/// list would break whenever the compiler learned to offer something new.
+	/// <para>
+	/// GRAM5015 is a warning and is let through here for the one reason the others are not:
+	/// it is about the caller's choice rather than the grammar. A test that names a carrier
+	/// has already made the decision the warning describes — that is what the test is for —
+	/// and there is no grammar text in which it could write the reason down. It is asserted
+	/// on where it is the subject, in <c>CarrierTests</c>, which reads the list itself.
+	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
 	{
-		Assert.DoesNotContain(diagnostics, static one => one.Severity != GramSeverity.Info);
+		Assert.DoesNotContain(
+			diagnostics,
+			static one => one.Severity != GramSeverity.Info && one.Id != GramCompiler.CarrierForced);
 	}
 
 	public static Assembly Compile(

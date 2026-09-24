@@ -37,7 +37,7 @@ public sealed class CommittedPrefixTests
 			Lexical = true,
 			Carrier = CarrierKind.Immediate,
 		});
-		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+		EmittedCode.Quiet(compiled.Diagnostics);
 		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text,
 			declarationMembers: "public static int Calls;");
 		var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
@@ -67,7 +67,7 @@ public sealed class CommittedPrefixTests
 				ClassName = "Grammar", Lexical = lexical, Carrier = carrier,
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
-			Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+			EmittedCode.Quiet(compiled.Diagnostics);
 			var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
 			if (!lexical)
 			{

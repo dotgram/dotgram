@@ -25,6 +25,11 @@ namespace DotGram.Benchmarks;
 /// what makes the comparison fair rather than what makes it safe.
 /// </para>
 /// </remarks>
+// GRAM5015 is right about this request and it is wanted anyway, for the reason the second
+// paragraph gives: a factory runs once per derivation tried, including the ones the parse
+// gives up, and this tree's factories are pure, so such a reading leaves nothing behind.
+// The grammar is a file rather than a literal, so the message lands in the .gram and no
+// pragma here reaches it; the suppression is NoWarn in this project, scoped to this host.
 [Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public static partial class ImmediateSql
 {

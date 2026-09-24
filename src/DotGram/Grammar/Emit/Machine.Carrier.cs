@@ -40,6 +40,19 @@ sealed partial class Machine
 	internal Kept? KeptOnTape { get; private set; }
 
 	/// <summary>
+	/// What would have kept this machine on the tape had the carrier been left to choose,
+	/// where the author asked for the immediate one and got it (D138). Null where nothing
+	/// would have, and null for a machine left to choose, which has
+	/// <see cref="KeptOnTape"/> instead.
+	/// </summary>
+	/// <remarks>
+	/// Asking for a carrier by name skips the gates entirely - which is what made forcing it
+	/// silent - so they are asked here and their answer kept for the diagnostic and for
+	/// nothing else. Nothing reads this to decide anything: the carrier is the one written.
+	/// </remarks>
+	internal Kept? ForcedPastGates { get; private set; }
+
+	/// <summary>
 	/// Why the immediate carrier refused a machine left to choose, and what the gates would have
 	/// said had it not: the carriers report's, and nothing a diagnostic says (GRAM5012 is silent
 	/// where the carrier refuses). Null where it did not refuse, or where there was nothing to choose.
@@ -304,12 +317,30 @@ sealed partial class Machine
 	/// <param name="ownWays">Those that open one themselves.</param>
 	void Choose(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
 	{
+		// Above the return below because the gates are now asked of a forced carrier too (D138),
+		// and Replayed() reads this. One pass over the rules, whatever the carrier.
+		var building = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
+
 		if (_carrierKind != CarrierKind.Auto || _chosen is not null)
+		{
+			// The gates are not asked of a carrier the author named, and that is the whole of why
+			// forcing it was silent. Ask them anyway where the immediate one was asked for and
+			// will be given: the answer decides nothing here and is carried only to the warning.
+			if (_carrierKind == CarrierKind.Immediate && ForcedPastGates is null &&
+				_replay is not null && building.Count > 0)
+			{
+				var held  = Replayed();
+				var twice = held.Count > 0 ? new List<RuleSymbol>() : ReadAgain(rules, opens, ownWays);
+
+				if (held.Count > 0 || twice.Count > 0)
+					ForcedPastGates = new Kept(building, held, twice);
+			}
+
 			return;
+		}
 
 		var tape      = _provisional ??= new TapeCarrier(this);
 		var immediate = new ImmediateCarrier(this);
-		var building  = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
 
 		_chosen = tape;
 

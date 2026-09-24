@@ -556,6 +556,80 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// Asking for the immediate carrier by name over a grammar the gates would have kept on
+	/// the tape is a warning, and says which rules and how much of the grammar is unsettled.
+	/// </summary>
+	/// <remarks>
+	/// The request is granted: the point of the warning is that it is granted without the
+	/// gates being asked, which is what <see cref="CarrierKind.Auto"/> does and what naming a
+	/// carrier skips. <c>Depth</c> builds, and the alternative it is read in is only settled by
+	/// the <c>')'</c> that comes after it, so on an unclosed text its construction has already
+	/// run for a reading the parse gives up — and an exception from a host factory there escapes
+	/// the publication (D137, §7.5).
+	/// </remarks>
+	[Fact]
+	public void Forcing_the_immediate_carrier_over_a_grammar_the_gates_would_keep_warns()
+	{
+		var told = Assert.Single(
+			Diagnostics(TakenBack, CarrierKind.Immediate),
+			static one => one.Id == GramCompiler.CarrierForced);
+
+		Assert.Equal(GramSeverity.Warning, told.Severity);
+		Assert.Contains("would have kept it on the tape", told.Message, StringComparison.Ordinal);
+		Assert.Contains("Start can be read again",        told.Message, StringComparison.Ordinal);
+		Assert.Contains("points:",                        told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The same request over a grammar the generator would have carried immediately anyway
+	/// says nothing: the warning is about the gates disagreeing, not about naming a carrier.
+	/// </summary>
+	[Fact]
+	public void Forcing_the_immediate_carrier_over_a_grammar_that_would_have_had_it_says_nothing()
+	{
+		Assert.DoesNotContain(
+			Diagnostics(Settled, CarrierKind.Immediate),
+			static one => one.Id == GramCompiler.CarrierForced);
+	}
+
+	/// <summary>
+	/// And a grammar left to choose is never told this, whatever the gates answer: it is
+	/// told what was chosen instead (<c>GRAM5012</c>), because nothing was overridden.
+	/// </summary>
+	[Fact]
+	public void A_grammar_left_to_choose_is_not_told_that_a_carrier_was_forced()
+	{
+		var told = Diagnostics(TakenBack, CarrierKind.Auto);
+
+		Assert.DoesNotContain(told, static one => one.Id == GramCompiler.CarrierForced);
+		Assert.Contains(told, static one => one.Id == GramCompiler.CarrierChosen);
+
+		// And the warning's claim is true rather than merely printed: left to choose, this
+		// grammar really is kept on the tape, which is what a walk at the end is emitted for.
+		Assert.Contains("Materialize_DotGram", Compiled(TakenBack, CarrierKind.Auto).Source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A rule that builds, read where a later text can take the reading back: the inner
+	/// <c>Depth</c> is built before the <c>')'</c> that decides whether its reading stands.
+	/// One building rule, so whichever gate holds it, the message has only that name to give.
+	/// </summary>
+	const string TakenBack =
+		"""
+		Start  : @string = parts: Letter* & 'a' => @(string.Concat(parts))
+		Letter : @string = t: ['a'..'z'] => @(t)
+		parse Start
+		""";
+
+	/// <summary>One reading, nothing to take back: the carrier would have been chosen anyway.</summary>
+	const string Settled =
+		"""
+		Start  : @string = t: Letter & '!' => @(t)
+		Letter : @string = c: ['a'..'z'] => @(c)
+		parse Start
+		""";
+
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier)
 	{
 		return GramCompiler.Compile(grammar, new GramCompilerOptions

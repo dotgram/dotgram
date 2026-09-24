@@ -152,6 +152,20 @@ namespace DotGram.ExpressionLanguage;
 //     (CS0136). The nearer name wins here — more permissive than C#, so no valid C# is
 //     turned into something else, and the check C# makes is one this has no reason to.
 
+// GRAM5015 says what asking for this carrier costs: the gates would have kept this grammar
+// on the tape, 81 of the 84 rules it builds are read for derivations that may not stand, and
+// a construction that runs for one of those can throw out of a publication that does not say
+// it can (D137, docs/syntax.md §7.5). It is suppressed because both halves of that are
+// answered here and nowhere else:
+//
+//   * every construction that could throw stands behind a `when` that is read first -- the
+//     one that did not, a name resolved by a factory, is the reason the guard was written;
+//   * ExpressionCarrierTests holds this reading against the one on the tape over the whole
+//     shared corpus, 10,722 texts, and the two must answer alike on every one of them.
+//
+// So the promise the gates would have kept is kept by the grammar instead, and it is checked
+// rather than asserted. Take the suppression off if either of those two stops being true.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using System.Globalization;
@@ -1393,6 +1407,7 @@ namespace DotGram.ExpressionLanguage;
 // ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
 // the one place that did, a name resolved by a factory that threw, is a `when` now.
 [GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+#pragma warning restore GRAM5015
 public static partial class ExpressionParser
 {
 	// Declared here so that it is internal: a reading for the tests and the yardstick, and
