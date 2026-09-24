@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-
-using static DotGram.Finance.Fix44.FixField;
 
 namespace DotGram.Finance.Fix44;
 
