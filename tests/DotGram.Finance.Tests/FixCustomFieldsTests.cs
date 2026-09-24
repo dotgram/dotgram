@@ -146,6 +146,25 @@ public sealed class FixCustomFieldsTests
 		Assert.IsType<FixField.Symbol>(fields[2]);
 	}
 
+	[Fact]
+	public void The_factory_answers_before_a_loaded_dictionary()
+	{
+		var context = (FixContext.WithLogFraming with { FixFieldFactory = static tag => tag == 25010 ? FixCustom.Text : null }).Load(
+			"""
+			<fix>
+			  <fields>
+			    <field number="25010" name="VenuePrice" type="PRICE" />
+			    <field number="25011" name="VenueFlag" type="BOOLEAN" />
+			  </fields>
+			</fix>
+			""");
+
+		var fields = FixParser.ParseFields("25010=1.25|25011=Y|", context);
+
+		Assert.Equal("1.25", Assert.IsType<FixField.Custom<string>>(fields[0]).Value);
+		Assert.True(Assert.IsType<FixField.Custom<bool>>(fields[1]).Value);
+	}
+
 	// ── messages ─────────────────────────────────────────────────────────────────────────────────
 
 	// A venue's message: it keeps its Status, and nothing else it does not know belongs to it.

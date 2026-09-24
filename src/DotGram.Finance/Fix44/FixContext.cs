@@ -90,9 +90,9 @@ public sealed record FixContext
 	/// answers a type for is a <see cref="FixField.Custom{T}"/> of that type, or the consumer's class
 	/// declared with <see cref="FixCustom{T}.As"/>; one it answers null for, or with no factory, is a
 	/// <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
-	/// answers first for the fields it describes that the standard does not.
+	/// answers for the fields it describes that the standard does not, where the factory answers null.
 	/// </remarks>
-	public Func<int, FixCustom?>? FixFieldFactory { get; init; }
+	public Func<int,FixCustom?>? FixFieldFactory { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
@@ -264,7 +264,7 @@ public sealed record FixContext
 		return this with
 		{
 			Validators      = Validators.Load(dictionary, Emitter(emitTo)),
-			FixFieldFactory = types.Count == 0 ? factory : tag => types.TryGetValue(tag, out var type) ? type : factory?.Invoke(tag),
+			FixFieldFactory = tag => factory?.Invoke(tag) ?? (types.Count == 0 ? null : types.GetValueOrDefault(tag)),
 		};
 	}
 

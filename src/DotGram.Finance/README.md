@@ -460,8 +460,8 @@ sealed class VenueQuote : FixCustomMessage
 `FixCustom` has one declaration a type of the standard's: `Text`, `Character`, `Boolean`, `Integer`,
 `Decimal`, `Timestamp`, `Time`, `Date`, `MonthYear`, `Multiple` and `Data`. The field is read by the
 conversion the standard's fields of that type are, and is not valid where the value does not convert.
-A dictionary loaded into the context answers first for the fields it describes that the standard does
-not, by the types it gives them. The factory is asked only of a tag the package has no class for, so a
+A dictionary loaded into the context answers for the fields it describes that the standard does not,
+by the types it gives them, wherever the factory answers null: the consumer's answer comes first. The factory is asked only of a tag the package has no class for, so a
 standard tag pays nothing.
 
 A tag the factory answers null for is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and

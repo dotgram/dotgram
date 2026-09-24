@@ -98,7 +98,7 @@ foreach (var field in FixParser.ParseFields(wire))
 - A tag the package does not know goes through the context's `FixFieldFactory`, which answers its
   type (`tag => tag == 25005 ? FixCustom.Integer : null`); it is then a `FixField.Custom<long>`; a class of your own
   derives from `FixField.Custom<T>` and is declared with `.As((tag, value) => new Status(tag, value))`.
-  A loaded dictionary answers for its own fields the same way. A MsgType it does not know is built by
+  A loaded dictionary answers for its own fields where your factory answers null. A MsgType it does not know is built by
   `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing declares is a
   `FixField.Invalid` of that tag with its octets where the factory answers null, and a type the message factory answers null for a
   `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a field
