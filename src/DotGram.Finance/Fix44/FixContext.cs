@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
+
+using DotGram.ExpressionLanguage;
 
 namespace DotGram.Finance.Fix44;
 
@@ -89,7 +93,9 @@ public sealed record FixContext
 	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. It is
 	/// handed the tag and the value, and builds a <see cref="FixCustomField{T}"/>, or a class derived from
 	/// one, the way the standard's fields are built; where it answers null, or there is none, the field is
-	/// a <see cref="FixField.Invalid"/> of that tag.
+	/// a <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
+	/// builds the fields it describes that the standard does not, by the types it gives them, where this
+	/// answers null.
 	/// </remarks>
 	public FixFieldFactory? FixFieldFactory { get; init; }
 
@@ -248,12 +254,73 @@ public sealed record FixContext
 		return Load(stream, emitTo);
 	}
 
-	// A dictionary's checks go over this context's. The fields it describes that the standard does not
-	// are to be built by a factory compiled through the expression language, which cannot yet hand a
-	// span to a method (the architect's task to expr, 2026-09-23).
+	// A dictionary's checks go over this context's, and the fields it describes that the standard does
+	// not are built by a factory compiled from it, asked where the consumer's own answers null.
 	FixContext Loaded(FixDictionary dictionary, string? emitTo)
 	{
-		return this with { Validators = Validators.Load(dictionary, Emitter(emitTo)) };
+		var emit    = Emitter(emitTo);
+		var loaded  = Fields(dictionary, emit);
+		var factory = FixFieldFactory;
+
+		return this with
+		{
+			Validators      = Validators.Load(dictionary, emit),
+			FixFieldFactory = loaded is null ? factory : factory is null ? loaded : (tag, value) => factory(tag, value) ?? loaded(tag, value),
+		};
+	}
+
+	// The factory of the fields a dictionary describes that the standard does not, written as the
+	// expression language's text and compiled: each tag read by the conversion of the type the file gives it.
+	static FixFieldFactory? Fields(FixDictionary dictionary, Action<string, string>? emit)
+	{
+		var arms = new StringBuilder();
+
+		foreach (var field in dictionary.Fields.OrderBy(static field => field.Key))
+			if (!Defined.Tags.Contains(field.Key) && Built(field.Value.Type) is { } built)
+				arms.Append('\t').Append(field.Key.ToString(CultureInfo.InvariantCulture)).Append(" => (FixCustomField)").Append(built).Append(",\n");
+
+		if (arms.Length == 0)
+			return null;
+
+		var text = "using System;\nusing DotGram.Finance.Fix44;\n(int tag, ReadOnlySpan<char> value) => tag switch\n{\n" + arms + "\t_ => null,\n}";
+
+		emit?.Invoke(nameof(FixFieldFactory), text);
+
+		try
+		{
+			return ExpressionParser.Compile<FixFieldFactory>(text, typeof(FixContext).Assembly);
+		}
+		catch (Exception e) when (e is FormatException or InvalidOperationException)
+		{
+			throw new FormatException("The fields of the dictionary could not be compiled: " + e.Message + Environment.NewLine + text, e);
+		}
+	}
+
+	// The field of a type as a QuickFIX dictionary names it, as the expression that builds it; a type
+	// the file does not name builds nothing, and a name this does not know is text.
+	static string? Built(string? type)
+	{
+		return type?.ToUpperInvariant() switch
+		{
+			null                                                                                => null,
+			"CHAR"                                                                              => "new FixCustomField<char>(tag, value.ToCharacter())",
+			"BOOLEAN"                                                                           => "new FixCustomField<bool>(tag, value.ToBoolean())",
+			"INT" or "LENGTH" or "SEQNUM" or "NUMINGROUP" or "DAYOFMONTH" or "TAGNUM"           => "new FixCustomField<long>(tag, value.ToInteger())",
+			"FLOAT" or "QTY" or "QUANTITY" or "PRICE" or "PRICEOFFSET" or "AMT" or "PERCENTAGE" => "new FixCustomField<decimal>(tag, value.ToDecimal())",
+			"UTCTIMESTAMP" or "TZTIMESTAMP" or "TIME"                                           => "new FixCustomField<DateTimeOffset>(tag, value.ToTimestamp())",
+			"UTCTIMEONLY" or "TZTIMEONLY"                                                       => "new FixCustomField<TimeOnly>(tag, value.ToTime())",
+			"UTCDATEONLY" or "UTCDATE" or "LOCALMKTDATE" or "DATE"                              => "new FixCustomField<DateOnly>(tag, value.ToDate())",
+			"MONTHYEAR"                                                                         => "new FixCustomField<string>(tag, value.ToMonthYear())",
+			"MULTIPLEVALUESTRING" or "MULTIPLECHARVALUE" or "MULTIPLESTRINGVALUE"               => "new FixCustomField<string[]>(tag, value.ToMultiple())",
+			"DATA" or "XMLDATA"                                                                 => "new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData())",
+			_                                                                                   => "new FixCustomField<string>(tag, ValueTuple.Create(true, value.ToText()))",
+		};
+	}
+
+	// The tags the standard defines, from the constants that name them: asked only by a load.
+	static class Defined
+	{
+		public static readonly HashSet<int> Tags = [.. typeof(FixTag).GetFields().Select(static field => (int)field.GetRawConstantValue()!)];
 	}
 
 	// The texts a load writes are the expression language's, one file a slot, so that what a

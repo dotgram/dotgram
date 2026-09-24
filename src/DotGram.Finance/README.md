@@ -461,7 +461,9 @@ sealed class VenueQuote : FixCustomMessage
 ```
 
 The value is handed as characters, one to an octet from byte input as from text, and may not be kept.
-The factory is asked only of a tag the package has no class for, so a standard tag pays nothing.
+The factory is asked only of a tag the package has no class for, so a standard tag pays nothing. A
+dictionary loaded into the context builds the fields it describes that the standard does not, by the
+types it gives them, wherever the factory answers null: the consumer's answer comes first.
 
 A tag the factory answers null for, or with no factory, is a `FixField.Invalid` of that tag with its
 value's octets in `RawBytes`, and a type the message factory answers null for is a `FixMessage.Invalid`,

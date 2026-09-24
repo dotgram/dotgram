@@ -130,7 +130,7 @@ public sealed class FixCustomFieldsTests
 		Assert.Throws<InvalidOperationException>(() => FixParser.ParseFields("25006=X|", context));
 	}
 
-	[Fact(Skip = "Load builds the fields of a dictionary once the expression language can hand a span to a method (the architect's task to expr, 2026-09-23).")]
+	[Fact]
 	public void A_loaded_dictionary_answers_for_the_fields_the_standard_does_not()
 	{
 		var context = FixContext.WithLogFraming.Load(
@@ -150,7 +150,7 @@ public sealed class FixCustomFieldsTests
 		Assert.IsType<FixField.Symbol>(fields[2]);
 	}
 
-	[Fact(Skip = "Load builds the fields of a dictionary once the expression language can hand a span to a method (the architect's task to expr, 2026-09-23).")]
+	[Fact]
 	public void The_factory_answers_before_a_loaded_dictionary()
 	{
 		var context = (FixContext.WithLogFraming with { FixFieldFactory = static (tag, value) => tag == 25010 ? new FixCustomField<string>(tag, (true, value.ToText())) : null }).Load(
