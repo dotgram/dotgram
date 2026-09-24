@@ -41,6 +41,12 @@ public static partial class ExpressionParser
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to) ? Expression.Constant(null, to) : null;
 
+		// A switch whose arms meet in no type of their own is what this conversion is FOR: `to`
+		// is the target C# would have typed it by, and every arm converts to it or the switch
+		// converts to nothing.
+		if (value is Untargeted untargeted)
+			return untargeted.Builds(to) ? untargeted.Built(to) : null;
+
 		if (value is ConstantExpression { Value: { } constant })
 		{
 			if (Narrowed(constant, to) is { } narrowed)
@@ -74,6 +80,12 @@ public static partial class ExpressionParser
 
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to);
+
+		// The same question about a switch with no natural type, asked without building it: it
+		// goes where every one of its arms goes, which is what lets one overload take it and
+		// another be left out.
+		if (value is Untargeted untargeted)
+			return untargeted.Builds(to);
 
 		// A lambda not yet built goes to a delegate that takes as many parameters as it was
 		// written with, and gives back something its body can be: `s => s.Length` is no
@@ -273,6 +285,14 @@ public static partial class ExpressionParser
 		if (input is not ConstantExpression { Value: { } constant } || !method.IsStatic)
 			return null;
 
+		// A ref struct cannot be folded, and the reason is the same one twice: reflection
+		// cannot hand one back, and a tree cannot hold one as a constant. `string` to
+		// `ReadOnlySpan<char>` is the operator this is about — asked to fold it, reflection
+		// answers with a NotSupportedException that says nothing about spans. The call stands
+		// instead, which is what the conversion was going to be anyway.
+		if (ByRefLike(method.ReturnType))
+			return null;
+
 		try
 		{
 			return Expression.Constant(method.Invoke(null, [constant]), method.ReturnType);
@@ -281,6 +301,24 @@ public static partial class ExpressionParser
 		{
 			return null;
 		}
+	}
+
+	/// <summary>Whether a type is a ref struct, which no boxed value can be.</summary>
+	/// <remarks>
+	/// Asked about a value being carried OUT of the runtime and back — through reflection, into
+	/// a tree as a constant — which is the one thing a ref struct cannot do. It is not a
+	/// question about whether a tree can hold such a type: it can, as a parameter, a local, an
+	/// argument and a return, which is why no overload is turned away for taking one.
+	/// </remarks>
+	static bool ByRefLike(Type type)
+	{
+#if NETSTANDARD2_0
+		return type.IsValueType && Array.Exists(
+			[.. type.GetCustomAttributesData()],
+			static attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute");
+#else
+		return type.IsByRefLike;
+#endif
 	}
 
 	/// <summary>Whether a type is one of C#'s numeric types, <c>char</c> among them.</summary>

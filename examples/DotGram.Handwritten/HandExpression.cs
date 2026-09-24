@@ -3578,7 +3578,7 @@ public static class HandExpression
 				return -1;
 
 			if (_build)
-				node = ExpressionParser.Matched(value!, first, rest!.ToArray());
+				node = ExpressionParser.Matched(value!, first, rest!.ToArray(), _context);
 
 			return at + 1;
 		}

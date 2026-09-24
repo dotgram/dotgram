@@ -27,8 +27,8 @@ It reads C#'s operators, at C#'s precedence, and its literals down to the digit 
 and the verbatim string. Past expressions it has typed locals, blocks, `if`, `while`, `do`,
 `for`, `switch` — the statement and `x switch { 1 or 2 => …, _ => … }` —
 `try`/`catch`/`finally`, `throw`, `break`, `continue` and `return`, and
-past the keywords it has members, calls, indexers, `new` with initializers, generic types,
-`is`, `as`, casts and `checked`:
+past the keywords it has members, calls, indexers, `new` with initializers, tuples, generic
+types, `is`, `as`, casts and `checked`:
 
 ```csharp
 var calculate = ExpressionParser.Compile<Func<int, int, int>>(
@@ -83,7 +83,9 @@ Conversions, operators and overloads follow C#'s rules: `x + 1.5` over an `int` 
 `double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. A generic
 method takes its type arguments from its arguments, an extension method is found through a
 `using`, and a lambda that says no types takes them from the overload it is handed to, so
-`a.Where(n => n > 1).Sum()` reads as it does in C#. Where it is not C# — a method is never
+`a.Where(n => n > 1).Sum()` reads as it does in C#. The lambda a text IS takes them the same
+way from the delegate it is compiled to, so `Compile<Func<int, int>>("x => x * x")` reads
+with no types written at all. Where it is not C# — a method is never
 called with its type arguments written, and a constant is folded only across a minus — is
 written down, with the reason for each, at the top of the file below.
 

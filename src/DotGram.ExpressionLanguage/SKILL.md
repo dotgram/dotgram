@@ -97,7 +97,10 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
 
 ## What a text may say
 
-- **One lambda.** Parameters say their types: `(int x, string s) => …`, or `() => …`.
+- **One lambda.** Parameters say their types: `(int x, string s) => …`, or `() => …`. With
+  `Compile<TDelegate>` they may be left out and taken from the delegate, as C# takes them
+  from the type a lambda is converted to: `(tag, value) => …`, and `value => …` with no
+  brackets. `Parse` is handed no delegate, so there they must be written.
 - **The body** is an expression, or a block. A block is worth its last expression, and
   `return` leaves the whole lambda from however deep: `{ int sum = x + y; return sum * sum; }`.
 - **Locals** say their type or use `var`: `int n = 0;`, `var half = x / 2;`.
@@ -106,10 +109,14 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   `try`/`catch`/`finally`, `throw`, `break`, `continue`. Loops are worth nothing.
 - **`x switch { 1 or 2 => …, _ => … }`** as a value, where C# puts it in the precedence.
   A pattern is constants joined by `or`, or `_`; no other pattern, no `when`. The arms
-  share one type as the branches of `?:` do; without `_`, an unmatched value throws.
+  share one type as the branches of `?:` do, and where they share none the switch takes
+  the type of the place it stands in — the delegate's return, an argument, a variable of a
+  declared type — as C# does. Without `_`, an unmatched value throws.
 - **Expressions:** members, calls, indexers, `new` with object, collection and array
   initializers, generic types, casts, `is`, `as`, `?.`, `??`, `?:`, `checked(…)` and
   `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.
+- **Tuples:** `(a, b)`, of any number of elements and nested, which is a `ValueTuple` as it
+  is in C#. Read back by position: `(a, b).Item1`.
 - **Literals:** every number form (`0x`, `0b`, `_`, suffixes), strings and characters with
   C#'s escapes, verbatim, interpolated (`$"{x,5:D3}"`) and raw strings (`"""…"""`,
   `$$"""{{x}}"""`).
@@ -127,11 +134,16 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   `byte b = 1 + 1;` is refused where C# would fold it.
 - `++`, `--` and compound assignments write to a name or one member of a name, not to an
   element and not to a longer chain.
-- `new` always writes its argument list, initializer or not: `new List<int>() { 1, 2 }`,
-  not `new List<int> { 1, 2 }`. An array is `new int[3]` or `new int[] { 1, 2 }`.
+- `new` may leave its parentheses out before an initializer, as C# may: `new List<int> { 1, 2 }`
+  and `new List<int>() { 1, 2 }` both read. `new T` with neither tail is refused. An array is
+  `new int[3]` or `new int[] { 1, 2 }`, never `new[] { 1, 2 }`.
 - `default` needs its type: `default(int)`, never a bare `default`.
 - `nameof` answers with the name as written and checks nothing.
-- A lambda that says no types and is handed to no call is refused, as C# refuses it (CS8917).
+- A tuple element cannot be named: write `(true, x)`, not `(Valid: true, Value: x)`. In C# a
+  name is metadata beside the type and is erased from the value, and a compiled expression
+  tree carries the type alone — so a name here could be read by nothing that runs.
+- A lambda written INSIDE a text that says no types and is handed to no call is refused, as
+  C# refuses it (CS8917). The outermost one is different: `Compile<TDelegate>` types it.
 - An inner block may declare a name an outer one already has; the nearer one wins.
 
 ## Mistakes to avoid

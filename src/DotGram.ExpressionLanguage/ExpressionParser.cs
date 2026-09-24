@@ -451,6 +451,28 @@ namespace DotGram.ExpressionLanguage;
 		=> @(Expression.Lambda(
 			context.Returning(body, parserState, parserMarks), ExpressionParser.Taking(first, rest)))
 
+		// The same lambda with the types left out — `(tag, value) => …`, and `tag => …` with
+		// no brackets at all — as C# writes one for the delegate it is being converted to. Only
+		// a caller that named a delegate can read it, and that is what `Given` says: the types
+		// are that delegate's, taken by position, and the guard declares them before the body
+		// is read, which is the one moment this grammar has in the order it is written.
+		//
+		// Nothing of the inner lambda's machinery is needed here. `Untyped` defers because the
+		// overload that would type it is chosen by the arguments, this one among them; here the
+		// types are known before the first character is read, so the body is read once, with
+		// its parameters already standing.
+		//
+		// The guard stands FIRST and reads nothing. Where there is no delegate this whole way
+		// is not there at all, and a text that is no lambda is refused exactly where and in the
+		// words it was refused before this way existed — which is what keeps the record of every
+		// refusal, and the hand-written parser beside it, saying what they said.
+		| when @(context.Compiling())
+		& (only: Awaiting | '(' & head: Awaiting & (',' & tail: Awaiting)* & ')') & "=>"
+		& when @(context.Given(Awaited.Of(only, head, tail), parserSpan))
+		& given: Body
+		=> @(Expression.Lambda(
+			context.Returning(given, parserState, parserMarks), context.Given()))
+
 	// The same thing written inside an expression, where it is an operand like any other.
 	//
 	// Its parameters say their types, which is what lets it be built where it is read.
@@ -1087,7 +1109,7 @@ namespace DotGram.ExpressionLanguage;
 		// optional on the operand rather than a level of its own, for the reason the ladder
 		// gives: a level is a call for every operand, and nearly none of them is a switch.
 		| u: Unary & ("switch" & '{' & first: Arm & (',' & rest: Arm)* & ','? & '}')?
-		  => @(first is { } head ? ExpressionParser.Matched(u, head, rest) : u)
+		  => @(first is { } head ? ExpressionParser.Matched(u, head, rest, context) : u)
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.
@@ -1256,6 +1278,31 @@ namespace DotGram.ExpressionLanguage;
 
 		| '(' & inner: Expression & ')' => @(inner)
 
+		// C#'s tuple literal, told from a parenthesis by the comma alone: `(a)` is the
+		// expression `a`, and `(a, b)` is a `ValueTuple` of the two. It stands after the
+		// parenthesis and not before it because a parenthesis is what nearly every `(` opens,
+		// and whichever of the two is written second is the one a `(` makes the parse read
+		// twice.
+		//
+		| '(' & first: Expression & (',' & rest: Expression)+ & ')'
+		  => @(ExpressionParser.Tupled(first, rest))
+
+		// An element name is READ and then refused, rather than left to fall out of the grammar:
+		// written `(Valid: true, …)` it would otherwise be read as far as the name and refused in
+		// words about a name nothing declares — true of what the parse tried, and no help at all
+		// about what was written. `Unnamed` says why it cannot be kept.
+		//
+		// It is a way of its own rather than an optional name on the rule above, and the two cost
+		// the same: 1,976,832 bytes of assembly against 1,963,008, over 1,729,536 before any of
+		// this (one worktree, 2026-09-24). Measured apart from the untyped-lambda way below, this
+		// one looked six times cheaper — and that did not survive putting the two together, where
+		// the growth is almost all interaction: the two ways apart cost 17 KB and 35 KB, and
+		// together 247 KB. So this shape is kept for reading and not for size, and what the whole
+		// of it costs the package is +13.5%.
+		| '(' & (named: Identifier & ':')? & Expression & (',' & (later: Identifier & ':')? & Expression)* & ')'
+		  & when @(named is not null || later.Length > 0)
+		  => @(ExpressionParser.Unnamed(named ?? later[0]))
+
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
 		// backtracking would find its way here (§11). Reals before integers for the same
@@ -1403,7 +1450,21 @@ public static partial class ExpressionParser
 	/// </remarks>
 	public static LambdaExpression Parse(string text, Assembly caller)
 	{
-		var state = new State(caller) { Text = text };
+		return Parse(text, caller, null);
+	}
+
+	/// <summary>The same, read for a place that already says what the lambda is to give back.</summary>
+	/// <remarks>
+	/// C# reads a switch expression whose arms meet in no type of their own by converting every
+	/// arm to what the place it stands in asks for, and the outermost lambda's place is the
+	/// delegate it is being compiled to — which <see cref="Compile{TDelegate}(string, Assembly)"/>
+	/// knows before the text is read and <see cref="Parse(string, Assembly)"/> never does.
+	/// Without a target, such a switch is refused exactly as it was before there was any target
+	/// typing at all.
+	/// </remarks>
+	static LambdaExpression Parse(string text, Assembly caller, Type? target, Type? delegated = null)
+	{
+		var state = new State(caller) { Text = text, Target = target, Delegated = delegated };
 		var match = TryParseLambda(text, state);
 
 		if (match.IsSuccess)
@@ -1496,8 +1557,8 @@ public static partial class ExpressionParser
 	public static TDelegate Compile<TDelegate>(string text, Assembly caller)
 		where TDelegate : Delegate
 	{
-		var lambda  = Parse(text, caller);
 		var returns = typeof(TDelegate).GetMethod("Invoke")!.ReturnType;
+		var lambda  = Parse(text, caller, returns == typeof(void) ? null : returns, typeof(TDelegate));
 		var body    = returns == typeof(void) ? lambda.Body : Converted(lambda.Body, returns);
 
 		return (TDelegate)Expression.Lambda(typeof(TDelegate), body, lambda.Parameters).Compile();
@@ -2506,38 +2567,74 @@ public static partial class ExpressionParser
 	/// makes of them what it can: a jump table over an integral or a character, a hash
 	/// over strings, and the type's own equality over anything else.
 	/// </remarks>
-	internal static Expression Matched(Expression value, Arm first, Arm[] rest)
+	internal static Expression Matched(Expression value, Arm first, Arm[] rest, State context)
 	{
 		if (value is null)
 			throw new ArgumentNullException(nameof(value));
 
-		var arms  = new Arm[(rest?.Length ?? 0) + 1];
+		var arms = new Arm[(rest?.Length ?? 0) + 1];
 
 		arms[0] = first;
 		rest?.CopyTo(arms, 1);
 
+		// Where `_` stands is a question about the arms alone, so it is asked before anything
+		// about their types — a switch with an unreachable arm is refused whether or not the
+		// rest of it would have had a type.
+		for (var at = 0; at < arms.Length - 1; at++)
+			if (arms[at].Tests is null)
+				throw new FormatException("The arm after '_' is never reached.");
+
+		if (Choosing(arms, out var left, out var right) is { } chosen)
+			return Switched(value, arms, chosen.Type);
+
+		context.Waiting();
+
+		return new Untargeted(value, arms, left, right);
+	}
+
+	/// <summary>The arm whose type the others all convert to, or null where there is none.</summary>
+	/// <remarks>
+	/// An arm and not a type, so that a constant is weighed as a constant, the way
+	/// <see cref="Common"/> weighs the branches of a `?:`. Where they meet in nothing, the two
+	/// that did not meet come back to be named in the refusal — the whole switch in a message
+	/// says less than the pair that disagreed.
+	/// </remarks>
+	static Expression? Choosing(Arm[] arms, out Expression left, out Expression right)
+	{
 		var chosen = arms[0].Body;
+
+		left  = chosen;
+		right = chosen;
 
 		for (var at = 1; at < arms.Length; at++)
 		{
 			var body = arms[at].Body;
-			var type = Common(chosen, body) ?? throw new InvalidOperationException(
-				"Type of switch expression cannot be determined because there is no implicit " +
-				$"conversion between '{Shown(chosen)}' and '{Shown(body)}'.");
+
+			if (Common(chosen, body) is not { } type)
+			{
+				left  = chosen;
+				right = body;
+
+				return null;
+			}
 
 			if (type != chosen.Type)
 				chosen = body;
 		}
 
+		return chosen;
+	}
+
+	/// <summary>The switch those arms make over that value, every arm converted to that type.</summary>
+	static Expression Switched(Expression value, Arm[] arms, Type type)
+	{
 		var cases     = new List<SwitchCase>(arms.Length);
 		var otherwise = default(Expression);
 
 		for (var at = 0; at < arms.Length; at++)
 		{
-			if (otherwise is not null)
-				throw new FormatException("The arm after '_' is never reached.");
-
-			var body = Implicitly(arms[at].Body, chosen.Type)!;
+			var body = Implicitly(arms[at].Body, type) ?? throw new InvalidOperationException(
+				$"A switch arm worth '{Shown(arms[at].Body)}' does not convert to '{type.Name}'.");
 
 			if (arms[at].Tests is { } tests)
 				cases.Add(Expression.SwitchCase(body, Converted(tests, value.Type)));
@@ -2547,9 +2644,9 @@ public static partial class ExpressionParser
 
 		otherwise ??= Expression.Throw(
 			Expression.New(_unmatched, Expression.Constant("Non-exhaustive switch expression failed to match its input.")),
-			chosen.Type);
+			type);
 
-		return Expression.Switch(chosen.Type, value, otherwise, null, cases);
+		return Expression.Switch(type, value, otherwise, null, cases);
 	}
 
 	// ── `foreach`, which this API has no node for ───────────────────────────────
@@ -3400,6 +3497,22 @@ public static partial class ExpressionParser
 			return Labelled("continue", of, null);
 		}
 
+		/// <summary>Whether what is read under these marks stands in the outermost lambda.</summary>
+		/// <remarks>
+		/// One lambda mark and no more: the outermost is the first of them, so anything standing
+		/// under exactly one is inside it and inside no other.
+		/// </remarks>
+		static bool Outermost(ReadOnlySpan<Reading> state)
+		{
+			var lambdas = 0;
+
+			for (var at = 0; at < state.Length; at++)
+				if (state[at] == Reading.Lambda && ++lambdas > 1)
+					return false;
+
+			return lambdas == 1;
+		}
+
 		/// <summary>The nearest mark of either kind, or none where a lambda stands nearer.</summary>
 		/// <remarks>
 		/// A lambda is where a jump's reach ends: a <c>break</c> in a lambda written inside a
@@ -3444,6 +3557,13 @@ public static partial class ExpressionParser
 
 			var of = Nearest(state, marks, Reading.Lambda, Reading.Lambda) ??
 				throw new FormatException("a 'return' here is inside no lambda.");
+
+			// A `return` in the OUTERMOST lambda gives back what the delegate gives back, so a
+			// switch with no natural type is typed by that. One inside a lambda written within
+			// it gives back what that lambda is handed to, which this knows nothing about, and
+			// is left to be refused if nothing else types it.
+			if (value is Untargeted untargeted && Target is not null && Outermost(state))
+				value = untargeted.Built(Target);
 
 			var target = Labelled("return", of, value.Type);
 
@@ -3531,6 +3651,95 @@ public static partial class ExpressionParser
 		/// <summary>Whether this reading made a lambda that waits for its types.</summary>
 		bool _deferred;
 
+		/// <summary>Whether this reading made a switch that waits for a target type.</summary>
+		bool _untargeted;
+
+		/// <summary>The delegate the outermost lambda is being compiled to, where there is one.</summary>
+		/// <remarks>
+		/// What lets a lambda leave its parameter types out. <c>Compile</c> is handed the
+		/// delegate type and so knows them before the text is read; <c>Parse</c> is handed
+		/// nothing, and a text that leaves them out is refused there, as C# refuses a lambda
+		/// with nothing to convert it to.
+		/// </remarks>
+		internal Type? Delegated { get; init; }
+
+		/// <summary>Whether a delegate was named, which is what makes an untyped lambda readable.</summary>
+		/// <remarks>
+		/// Asked before anything is read, so that where there is no delegate the way that reads
+		/// one is simply not there: a text that is no lambda is then refused where it always was,
+		/// rather than somewhere past a `=>` this way had begun to read.
+		/// </remarks>
+		internal bool Compiling()
+		{
+			return Delegated is not null;
+		}
+
+		/// <summary>The parameters the guard below declared, in the order they were written.</summary>
+		ParameterExpression[]? _given;
+
+		/// <summary>A lambda's parameters, typed by the delegate it is being compiled to.</summary>
+		/// <remarks>
+		/// A guard, because a declaration has to happen while the text is read and before the
+		/// body that names them — the same moment, and the same reason, as <see cref="Takes"/>.
+		/// It refuses rather than answers false: by the time it runs a delegate has been named
+		/// and a `=>` has been read, so what stands here IS a lambda written for that delegate,
+		/// and saying why it does not fit is worth more than letting the parse report what else
+		/// it might have wanted.
+		/// </remarks>
+		internal bool Given(Awaited[] parameters, SourceSpan at)
+		{
+			if (parameters is null)
+				throw new ArgumentNullException(nameof(parameters));
+
+			// Reached only under `Compiling`, which is what says there is one.
+			var delegated = Delegated!;
+
+			var types = Unbuilt.Taken(delegated) ??
+				throw new InvalidOperationException($"'{delegated.Name}' is no delegate.");
+
+			if (types.Length != parameters.Length)
+				throw new InvalidOperationException(
+					$"The lambda says {parameters.Length} parameter(s) and '{delegated.Name}' takes " +
+					$"{types.Length}.");
+
+			var given = new ParameterExpression[parameters.Length];
+
+			for (var at2 = 0; at2 < parameters.Length; at2++)
+			{
+				var one = parameters[at2];
+
+				given[at2] = Expression.Parameter(types[at2], one.Name);
+
+				Holds(given[at2], one.Name, new SourceSpan(one.At, one.Name.Length));
+			}
+
+			_given = given;
+
+			return true;
+		}
+
+		/// <summary>The same parameters, for the lambda the construction builds.</summary>
+		internal ParameterExpression[] Given()
+		{
+			return _given ?? [];
+		}
+
+		/// <summary>What the outermost lambda is to give back, where the caller already knows.</summary>
+		/// <remarks>
+		/// Set by <c>Compile</c>, which is handed the delegate type, and left unset by
+		/// <c>Parse</c>, which is handed nothing to type a lambda by. It is the target of the
+		/// body and of every `return` in the outermost lambda, and of nothing inside a lambda
+		/// written within it — that one gives back what IT is handed to, and this says nothing
+		/// about it.
+		/// </remarks>
+		internal Type? Target { get; init; }
+
+		/// <summary>Said once a switch with no natural type was made, so the walk below is worth taking.</summary>
+		internal void Waiting()
+		{
+			_untargeted = true;
+		}
+
 		/// <summary>The whole lambda, with no lambda left in it still waiting for its types.</summary>
 		/// <remarks>
 		/// One that was handed to a call was built there. One that was not — kept in a
@@ -3545,7 +3754,21 @@ public static partial class ExpressionParser
 					"The delegate type could not be inferred: a lambda whose parameters say no types " +
 					"takes them from the parameter it is handed to, and this one is handed to none.");
 
-			return lambda;
+			if (!_untargeted)
+				return lambda ?? throw new ArgumentNullException(nameof(lambda));
+
+			// The body of `(…) => switch` is the one place a target reaches that no conversion
+			// inside the text passes through: nothing converts the body, because the body is
+			// what the lambda is worth.
+			if (Target is not null && lambda!.Body is Untargeted body)
+				lambda = Expression.Lambda(body.Built(Target), lambda.Parameters);
+
+			// Anything still waiting had no target anywhere — refused in the words it would have
+			// been refused in before a target was ever asked for.
+			if (Untargeted.Remains(lambda!) is { } waiting)
+				throw waiting.Refusal();
+
+			return lambda!;
 		}
 
 		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>
