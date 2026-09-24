@@ -236,15 +236,23 @@ public sealed class FixLoadTests
 
 	/// <summary>
 	/// QuickFIX/n's own FIX 4.4, read whole, does not load alone: it places fields where FIX 4.4 does
-	/// not, the checks written from it name a property the model does not have, and the refusal says
-	/// which. The body of a QuoteRequestReject is the first such place in the file.
+	/// not, and the refusal says where. The body of a QuoteRequestReject is the first such place in the
+	/// file: it carries a group the standard's does not, which the model has no slot for.
 	/// </summary>
+	/// <remarks>
+	/// The file departs in more than one place, and the checks are written side by side; the refusal is
+	/// the first place in the file's order, the same on every run, and not the first that failed in time.
+	/// </remarks>
 	[Fact]
 	public void The_reference_dictionary_alone_names_where_it_departs_from_the_standard()
 	{
-		var refused = Assert.Throws<FormatException>(() => FixContext.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
+		for (var run = 0; run < 3; run++)
+		{
+			var refused = Assert.Throws<FormatException>(() => FixContext.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
 
-		Assert.Contains("could not be compiled", refused.Message, StringComparison.Ordinal);
+			Assert.StartsWith("The dictionary describes 'QuoteRequestReject_", refused.Message, StringComparison.Ordinal);
+			Assert.Contains("which this package has no slot for", refused.Message, StringComparison.Ordinal);
+		}
 	}
 
 	/// <summary>

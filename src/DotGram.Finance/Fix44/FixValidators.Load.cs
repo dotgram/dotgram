@@ -51,8 +51,9 @@ partial class FixValidators
 	/// Each message, component and coded field of the file is a job: its texts written, handed to the
 	/// emitter, and compiled. The jobs run side by side, and the slots they wrote are set in the order
 	/// the file said them, so that a slot written twice — the entry of a group two messages carry —
-	/// keeps the later text. The parser's state is a value of each call and its caches are
-	/// concurrent, which is what makes that sound.
+	/// keeps the later text; a file refused in more than one place is refused for the first place in
+	/// its order, whichever job failed first in time. The parser's state is a value of each call and
+	/// its caches are concurrent, which is what makes that sound.
 	/// </remarks>
 	internal FixValidators Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
@@ -80,11 +81,14 @@ partial class FixValidators
 		}
 
 		var writings = new Writing[jobs.Count];
+		var failures = new Exception?[jobs.Count];
 		var emitting = emitted is null ? null : new Emitting(emitted);
 
-		try
+		// Every job runs to its end, and what is refused is the first job's refusal in the file's
+		// order: which job fails first in time is the scheduler's, and a refusal is not allowed to be.
+		Parallel.For(0, jobs.Count, at =>
 		{
-			Parallel.For(0, jobs.Count, at =>
+			try
 			{
 				var writing = new Writing(emitting, at);
 
@@ -92,12 +96,16 @@ partial class FixValidators
 				writing.Compile();
 
 				writings[at] = writing;
-			});
-		}
-		catch (AggregateException e) when (e.InnerExceptions.Count > 0)
-		{
-			ExceptionDispatchInfo.Capture(e.InnerExceptions[0]).Throw();
-		}
+			}
+			catch (Exception e)
+			{
+				failures[at] = e;
+			}
+		});
+
+		foreach (var failure in failures)
+			if (failure is not null)
+				ExceptionDispatchInfo.Capture(failure).Throw();
 
 		var loaded = Clone();
 
