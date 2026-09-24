@@ -619,8 +619,8 @@ namespace DotGram.ExpressionLanguage;
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
-		       ? context.TypeNamed(ExpressionParser.Dotted(head, part))
-		       : context.Generic(
+		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
+		       : context.Here(parserSpan).Generic(
 		           ExpressionParser.Dotted(head, part), ExpressionParser.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
@@ -993,7 +993,7 @@ namespace DotGram.ExpressionLanguage;
 		// a second. So a compound assignment writes to a name or a member of one, and only
 		// the plain `=` writes to an element.
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Caller), value))
+		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Here(parserSpan).Caller), value))
 
 		// Each compound form names the assignment the API has for it and the operator it
 		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
@@ -1035,7 +1035,7 @@ namespace DotGram.ExpressionLanguage;
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
 		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Caller))
-		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Caller))
+		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Here(parserSpan).Caller))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -1140,13 +1140,13 @@ namespace DotGram.ExpressionLanguage;
 	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
 		= target: Postfix & '.' & member: Identifier & args: Arguments
-		  => @(context.Calling(target, member, args))
+		  => @(context.Here(parserSpan).Calling(target, member, args))
 
-		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Caller))
+		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Here(parserSpan).Caller))
 
 		// An index is a list, so a two-dimensional array and an indexer of two arguments are
 		// both written without another rule.
-		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Caller))
+		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Here(parserSpan).Caller))
 
 		// `?.`, which reads the rest of the chain rather than one step of it. In C# the guard
 		// protects everything written after it — `a?.b.c` is `a == null ? null : a.b.c` and
@@ -1154,7 +1154,7 @@ namespace DotGram.ExpressionLanguage;
 		// builds as it goes, so by the time `.c` is reached `a?.b` is already a tree. So the
 		// tail is read as data and handed over whole, and `Chained` builds it inside the test.
 		| target: Postfix & chain: Guarded
-		  => @(ExpressionParser.Chained(target, chain, context))
+		  => @(ExpressionParser.Chained(target, chain, context.Here(parserSpan)))
 
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
@@ -1218,7 +1218,7 @@ namespace DotGram.ExpressionLanguage;
 		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
-		  => @(ExpressionParser.Made(type, args, fields, items, context.Caller))
+		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Caller))
 		// The parentheses may be left out when an initializer follows, which is C#'s rule:
 		// `new List<int> { 448 }` is `new List<int>() { 448 }`. Not on their own — `new T` with
 		// neither tail is no constructor call here, as it is none in C#, and this alternative
@@ -1232,7 +1232,7 @@ namespace DotGram.ExpressionLanguage;
 		// that text. `Type` is read twice on this path, which is the price of keeping the
 		// difference between "not this" and "not yet".
 		| "new" & type: Type & (fields: Bindings | '{' & items: Elements & '}')
-		  => @(ExpressionParser.Made(type, [], fields, items, context.Caller))
+		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Caller))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -1245,8 +1245,8 @@ namespace DotGram.ExpressionLanguage;
 		// '(', which nothing at the end of a member name can be.
 		| type: Core & '.' & member: Identifier & args: Arguments?
 		  => @(args is null
-		       ? ExpressionParser.StaticMember(type, member, context.Caller)
-		       : ExpressionParser.Called(type, member, args, context.Caller))
+		       ? ExpressionParser.StaticMember(type, member, context.Here(parserSpan).Caller)
+		       : ExpressionParser.Called(type, member, args, context.Here(parserSpan).Caller))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary
@@ -1338,10 +1338,10 @@ namespace DotGram.ExpressionLanguage;
 
 		// Its holes are read here, each over its own window of the text, by the publication
 		// below — this reading's own, whichever carrier it is.
-		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
-		| literal: VerbatimInterpolated => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
+		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
+		| literal: VerbatimInterpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 		| token: RawString              => @(Expression.Constant(token))
-		| literal: RawLiteral           => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
+		| literal: RawLiteral           => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 
 		| "true"     => @(Expression.Constant(true))
 		| "false"    => @(Expression.Constant(false))
@@ -1514,7 +1514,10 @@ public static partial class ExpressionParser
 		}
 		catch (Exception thrown) when (IsRefusal(thrown))
 		{
-			return Match<LambdaExpression>.Failed(Outcome.NoMatch, thrown.Message, 0, null, null);
+			// Where the construction that refused was written, and 0 where nothing recorded one
+			// — which is what this said of every refusal before anything did.
+			return Match<LambdaExpression>.Failed(
+				Outcome.NoMatch, thrown.Message, state.Where < 0 ? 0 : state.Where, null, null);
 		}
 
 		return match.IsSuccess || state.Refused() is not { } refused
@@ -3662,6 +3665,34 @@ public static partial class ExpressionParser
 		/// with nothing to convert it to.
 		/// </remarks>
 		internal Type? Delegated { get; init; }
+
+		/// <summary>Where the construction now being built was written, or -1 before any is.</summary>
+		int _where = -1;
+
+		/// <summary>Where the construction now being built was written.</summary>
+		/// <remarks>
+		/// A refusal from a factory says what is wrong and not where: the factory is handed a
+		/// tree and the members it names, and none of those knows what it was read from. So the
+		/// construction says it, by recording before it builds — <c>context.Here(parserSpan)</c>
+		/// stands where <c>context</c> already stood in the argument list, and C# evaluates
+		/// arguments left to right, so it runs first and the factory throws second.
+		///
+		/// It has to be written INTO the construction and not into a guard beside it. A guard
+		/// runs while the text is read; on the tape a construction runs when the reading is
+		/// chosen, which is after every guard in the text has run and recorded, so what a guard
+		/// left behind would be the end of the parse rather than the place that threw.
+		///
+		/// What is left here when nothing threw is meaningless, and nothing reads it then.
+		/// </remarks>
+		internal State Here(SourceSpan at)
+		{
+			_where = at.Start;
+
+			return this;
+		}
+
+		/// <summary>The same, for a refusal that has no position of its own.</summary>
+		internal int Where => _where;
 
 		/// <summary>Whether a delegate was named, which is what makes an untyped lambda readable.</summary>
 		/// <remarks>
