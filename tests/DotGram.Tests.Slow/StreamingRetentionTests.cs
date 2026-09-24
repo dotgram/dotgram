@@ -108,10 +108,31 @@ public sealed class StreamingRetentionTests
 
 	/// <remarks>
 	/// <para>
-	/// What a parse has finished with, it lets go of. The buffer is rented from the shared pool,
-	/// which keeps what it is given for the life of the process, so a buffer grown to hold a long
-	/// input stayed live after the parse: 47 MB of bytes and 112 MB of characters, once, before
-	/// the generated input class stopped returning a buffer longer than its kept length.
+	/// This asserted that a finished parse leaves NOTHING behind until 2026-09-24, and it was
+	/// right to until <c>02e44143</c> reversed the decision: an oversized store used to be
+	/// dropped, which was a cliff rather than a bound -- one entry over and the next parse of a
+	/// document that size grew everything again from nothing -- so such a store is now held while
+	/// the work keeps wanting it. That commit rewrote <c>PoolRetentionTests</c> to the policy it
+	/// chose and did not reach this one, which has been failing since. It is rewritten rather
+	/// than deleted for the reason given there: a test contradicting a deliberate change of
+	/// design looks exactly like a test that caught a regression, and only knowing which way the
+	/// decision went tells them apart.
+	/// </para>
+	/// <para>
+	/// So both halves of the chosen policy are asserted here, because either alone is a policy
+	/// nobody chose. <b>Kept</b>: the store the large parse grew is still live after it, which is
+	/// what makes a loop of large parses reuse it deterministically rather than when a collection
+	/// happens not to have intervened. <b>Let go</b>: it is a bound and not hoarding, so once
+	/// <see cref="LetGoAfter"/> parses in a row have not wanted it, it is handed to the collector
+	/// and a full collection reclaims it. A test that checked only the first would pass over a
+	/// parser that never let go of anything.
+	/// </para>
+	/// <para>
+	/// What is NOT relaxed is the buffer: it is rented from the shared pool, which keeps what it
+	/// is given for the life of the process, so a buffer grown to hold a long input once stayed
+	/// live after the parse -- 47 MB of bytes and 112 MB of characters -- before the generated
+	/// input class stopped returning a buffer longer than its kept length. <see cref="Kept"/> is
+	/// still what the pool may hold of it, and the second half is held to that same figure.
 	/// </para>
 	/// <para>
 	/// Run over a whole-result form because that is the one whose buffer grows with the input;
@@ -121,7 +142,7 @@ public sealed class StreamingRetentionTests
 	[Theory]
 	[InlineData("reader whole")]
 	[InlineData("stream whole")]
-	public void A_finished_parse_leaves_none_of_its_buffer_behind(string form)
+	public void A_finished_parse_keeps_what_it_grew_until_the_work_stops_wanting_it(string form)
 	{
 		var host = Compile(buffered: true);
 
@@ -133,12 +154,35 @@ public sealed class StreamingRetentionTests
 
 		Run(host, form, Large);
 
-		var after = GC.GetTotalMemory(forceFullCollection: true);
+		var kept = GC.GetTotalMemory(forceFullCollection: true);
 
-		Assert.True(after <= before + Kept,
-			$"{form}: {before} bytes live before a parse of {Large} records and {after} after it; " +
-			$"a finished parse may leave behind only what the pool keeps below the kept length.");
+		Assert.True(kept > before,
+			$"{form}: {before} bytes live before a parse of {Large} records and {kept} after it. " +
+			"The store it grew is supposed to be HELD, so that a loop of parses this size reuses " +
+			"it; nothing being left is the cliff 02e44143 removed, not the bound it put there.");
+
+		// Parses that do not want the room it grew. Each is a rental, and the slot counts rentals.
+		for (var idle = 0; idle < LetGoAfter; idle++)
+			Run(host, form, Small);
+
+		var freed = GC.GetTotalMemory(forceFullCollection: true);
+
+		Assert.True(freed <= before + Kept,
+			$"{form}: {freed} bytes live after {LetGoAfter} parses of {Small} records that did not " +
+			$"want the room, against {before} before the large one. A store nobody has wanted for " +
+			"that many parses is handed to the collector, so what is left may be only what the " +
+			"pool keeps below the kept length.");
 	}
+
+	/// <summary>Parses in a row that do not want the room before an oversized store is let go of.</summary>
+	/// <remarks>
+	/// <c>LargeIdle</c> and <c>LargeParserIdle</c> in <c>Support.cs</c>, both 8. It is written
+	/// here as the generator's number rather than derived, because there is nothing in the
+	/// emitted parser a test can ask. If the generator's number grows and this one does not,
+	/// the second assertion fails and says so -- which is the direction a stale copy should fail
+	/// in, and why the count is not padded with a margin that would hide it.
+	/// </remarks>
+	const int LetGoAfter = 8;
 
 	/// <summary>What the pool may keep of a buffer's growth once a parse is over.</summary>
 	/// <remarks>
