@@ -138,7 +138,7 @@ public static partial class FixParser
 		{
 			fields.Add(field);
 
-			if (type is null && field is FixField.MsgType msgType)
+			if (type is null && field is FixField.Text { Tag: FixTag.MsgType } msgType)
 				type = msgType.Value;
 		}
 
@@ -147,7 +147,7 @@ public static partial class FixParser
 		// Everything else wrong with it is a finding of Validate.
 		var last = fields.Count == 0 ? null : fields[fields.Count - 1];
 
-		if (last is not FixField.CheckSum { IsValid: true } || !last.Terminated)
+		if (last is not FixField.Text { Tag: FixTag.CheckSum, IsValid: true } || !last.Terminated)
 		{
 			error = new FixParseError(last?.Position ?? 0, last?.Tag, type, "Message does not end with CheckSum (10)");
 			return false;
@@ -534,7 +534,7 @@ public static partial class FixParser
 
 		foreach (var field in message.Fields)
 		{
-			if (field.Tag == 10)
+			if (field.Tag == FixTag.CheckSum)
 				break;
 
 			var octets = input.Slice(field.Position, field.ValuePosition + field.Length - field.Position);
@@ -546,7 +546,7 @@ public static partial class FixParser
 
 			if (body >= 0)
 				body += octets.Length + 1;
-			else if (field.Tag == 9)
+			else if (field.Tag == FixTag.BodyLength)
 				body = 0;
 		}
 
@@ -561,7 +561,7 @@ public static partial class FixParser
 
 		foreach (var field in message.Fields)
 		{
-			if (field.Tag == 10)
+			if (field.Tag == FixTag.CheckSum)
 				break;
 
 			var octets = input.Slice(field.Position, field.ValuePosition + field.Length - field.Position);
@@ -573,7 +573,7 @@ public static partial class FixParser
 
 			if (body >= 0)
 				body += octets.Length + 1;
-			else if (field.Tag == 9)
+			else if (field.Tag == FixTag.BodyLength)
 				body = 0;
 		}
 
@@ -610,7 +610,7 @@ public static partial class FixParser
 			}
 
 			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
-				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
+				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), (int)field.Tag) ||
 				source[field.ValuePosition + field.Length] != separator)
 			{
 				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
@@ -658,7 +658,7 @@ public static partial class FixParser
 		return true;
 	}
 
-	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
+	static bool Fail(int position, FixTag? tag, string? type, string reason, out FixParseError? error)
 	{
 		error = new FixParseError(position, tag, type, reason);
 		return false;

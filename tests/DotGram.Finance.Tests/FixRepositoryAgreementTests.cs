@@ -68,7 +68,7 @@ public sealed class FixRepositoryAgreementTests
 
 		var asked = (message.InvalidFindings ?? [])
 			.Where(one => one.Rule == FixRule.RequiredFieldMissing)
-			.Select(one => one.Tag)
+			.Select(one => (int)one.Tag)
 			.OrderBy(tag => tag)
 			.ToArray();
 
@@ -181,12 +181,12 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>Whether a value read as this tag's field is valid and passes the field's compiled-in check.</summary>
 	static bool Accepted(int tag, string code)
 	{
-		var field = FixFieldBuilder.Value(tag, code.AsSpan(), null);
+		var field = FixFieldBuilder.Value((FixTag)tag, FixContext.Default.Type(tag), code.AsSpan());
 
 		if (!field.IsValid)
 			return false;
 
-		var check = typeof(FixValidators).GetProperty(field.GetType().Name)!.GetValue(FixValidators.Default)!;
+		var check = typeof(FixValidators).GetProperty(field.Tag.ToString())!.GetValue(FixValidators.Default)!;
 		var host  = FixParser.ParseMessage(FixFixtures.Wire("0", ""));
 
 		((Delegate)check).DynamicInvoke(FixContext.Default, host, field);
@@ -197,7 +197,7 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
 	static Type? Held(int tag)
 	{
-		var field = FixFieldBuilder.Value(tag, "0".AsSpan(), null);
+		var field = FixFieldBuilder.Value((FixTag)tag, FixContext.Default.Type(tag), "0".AsSpan());
 
 		return field is FixField.Invalid ? null : field.GetType().BaseType!.GetGenericArguments()[0];
 	}

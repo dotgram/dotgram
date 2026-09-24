@@ -34,7 +34,7 @@ public sealed class FixValidationTests
 	[Fact]
 	public void The_standard_fixtures_report_what_they_report()
 	{
-		var found = new List<(string Type, FixRule Rule, int Tag)>();
+		var found = new List<(string Type, FixRule Rule, FixTag Tag)>();
 
 		foreach (var data in FixFixtures.Messages())
 		{
@@ -52,7 +52,7 @@ public sealed class FixValidationTests
 				"FieldNotInScope 586 in NewOrderCross",
 				"FieldNotInScope 635 in TradeCaptureReport",
 			],
-			found.Select(one => one.Rule + " " + one.Tag + " in " + one.Type).Distinct().Order().ToArray());
+			found.Select(one => one.Rule + " " + (int)one.Tag + " in " + one.Type).Distinct().Order().ToArray());
 	}
 
 	[Fact]
@@ -64,7 +64,7 @@ public sealed class FixValidationTests
 
 		Assert.False(order.Validate(FixContext.Default));
 		Assert.Equal(
-			[(FixRule.RequiredComponentMissing, 55), (FixRule.RequiredFieldMissing, 54), (FixRule.RequiredComponentMissing, 38)],
+			[(FixRule.RequiredComponentMissing, FixTag.Symbol), (FixRule.RequiredFieldMissing, FixTag.Side), (FixRule.RequiredComponentMissing, FixTag.OrderQty)],
 			order.InvalidFindings!.Select(one => (one.Rule, one.Tag)).ToArray());
 	}
 
@@ -78,8 +78,8 @@ public sealed class FixValidationTests
 		var finding = Assert.Single(order.InvalidFindings!);
 
 		Assert.Equal(FixRule.GroupCountMismatch, finding.Rule);
-		Assert.Equal(453, finding.Tag);
-		Assert.Same(order.Fields.First(field => field.Tag == 453), finding.Field);
+		Assert.Equal(FixTag.NoPartyIDs, finding.Tag);
+		Assert.Same(order.Fields.First(field => field.Tag == FixTag.NoPartyIDs), finding.Field);
 	}
 
 	/// <summary>An entry is held to what the repository requires of it, and the finding names the entry.</summary>
@@ -92,7 +92,7 @@ public sealed class FixValidationTests
 
 		Assert.False(list.Validate(FixContext.Default));
 		Assert.Equal(
-			[(FixRule.RequiredFieldMissing, 54, 1), (FixRule.RequiredFieldMissing, 67, 1)],
+			[(FixRule.RequiredFieldMissing, FixTag.Side, 1), (FixRule.RequiredFieldMissing, FixTag.ListSeqNo, 1)],
 			list.InvalidFindings!.Select(one => (one.Rule, one.Tag, one.EntryIndex)).OrderBy(one => one.Tag).ToArray());
 		Assert.All(list.InvalidFindings!, one => Assert.Equal(list.NoOrdersGroups![1].ClOrdID.Position, one.Position));
 	}
@@ -108,7 +108,7 @@ public sealed class FixValidationTests
 		var finding = Assert.Single(order.InvalidFindings!);
 
 		Assert.Equal(FixRule.GroupCountMismatch, finding.Rule);
-		Assert.Equal(802, finding.Tag);
+		Assert.Equal(FixTag.NoPartySubIDs, finding.Tag);
 	}
 	/// <summary>
 	/// A block is checked once and the check reaches every type that carries it: this replaces what
@@ -124,7 +124,7 @@ public sealed class FixValidationTests
 				Instrument = (context, message, instrument) =>
 				{
 					if (instrument.SecurityID is null)
-						message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 48, 0, null, -1));
+						message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, FixTag.SecurityID, 0, null, -1));
 
 					return message.IsValid;
 				},
@@ -142,8 +142,8 @@ public sealed class FixValidationTests
 
 		Assert.False(strictOrder.Validate(strict));
 		Assert.False(strictQuote.Validate(strict));
-		Assert.Equal(48, Assert.Single(strictOrder.InvalidFindings!).Tag);
-		Assert.Equal(48, Assert.Single(strictQuote.InvalidFindings!).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(strictOrder.InvalidFindings!).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(strictQuote.InvalidFindings!).Tag);
 	}
 
 	[Fact]

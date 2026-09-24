@@ -46,8 +46,8 @@ String, `TextReader`, byte-array, `ReadOnlyMemory<byte>` and `Stream` inputs are
 `Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
 The grammar directly yields `FixField`. Ordinary fields are returned immediately;
 a binary length/data pair produces two, the length and then the data it measures.
-For example, `95=3|96=a|b|` produces a `FixField.RawDataLength` of 3 and a `FixField.RawData`
-of `a|b`, each with its own `Position`, `ValuePosition` and `Length`. Native char/byte buffers
+For example, `95=3|96=a|b|` produces a `FixField.Integer` of 3 whose tag is `RawDataLength` and a
+`FixField.Data` of `a|b` whose tag is `RawData`, each with its own `Position`, `ValuePosition` and `Length`. Native char/byte buffers
 release each completed field. The context's `MaxRetained` bounds one field, from its tag through
 the separator that ends it, in characters from a reader or bytes from a
 stream: `FixParser.DefaultMaxRetained`, 16 Mi of either, unless given. A field that needs more
@@ -76,7 +76,7 @@ foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixContext.Wit
 Valid binary payloads are consumed by length, including embedded separators.
 After a malformed binary header or length, separator recovery is best effort:
 the next separator may be inside damaged payload data. Primitive conversion
-failures still come back as the tag's own typed field, with `IsValid == false`; `recover`
+failures still come back as the field of the tag's type, with `IsValid == false`; `recover`
 handles recognition failures, not semantic validation.
 Use `.ToArray()` when a complete list is needed. String, byte-array and memory overloads
 materialize the complete result. Empty input returns no fields.
@@ -124,7 +124,7 @@ using System.Collections.Generic;
 var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
 var context = new FixContext
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's own sixteen pairs
+    LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // added to the standard's own sixteen pairs
 };
 var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Framing = FixFraming.Log });
 ```
@@ -132,8 +132,9 @@ var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Frami
 A supplied length/data dictionary, length tag to data tag, **adds to** the standard's sixteen
 pairs and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
 the standard pairs alone. The same object is what the message calls take, so one value describes
-both kinds of answer. The pair produces two fields; a tag the package does not define is built by
-`FixFieldFactory`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
+both kinds of answer. The pair produces two fields, a `FixField.Integer` and a `FixField.Data` where
+nothing gives the tags another type; a tag neither the standard nor a loaded dictionary defines is a
+`FixField.Invalid` of that tag carrying its value. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
@@ -338,34 +339,43 @@ It is not a trading or session validator. Prose-only conditional requirements,
 sequence-number state, order economics, live ISO registry assignments and announced
 leap-second dates are outside it; ISO identifiers are checked for their lexical shape.
 
-## Field ADT and typed values
+## Fields and typed values
 
-`FixFieldView.TypedValue` is a `FixField` with one concrete `FixField` case per
-standard tag. Each case declares its tag and primitive type:
+A field is a class of the type of its value, and its `Tag` says which field it is: an `OrderQty` is
+a `FixField.Decimal` whose `Tag` is `FixTag.OrderQty`. `FixTag` names every tag FIX 4.4 defines; a
+tag it does not is its number, `(FixTag)25005`. A message's properties are typed the same way:
 
 ```csharp
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
 var order = (FixMessage.NewOrderSingle)FixParser.ParseMessage(wire);
-FixField.Symbol symbol = order.Symbol!;
-FixField.OrderQty quantity = order.OrderQty!;
+FixField.Text symbol = order.Symbol!;
+FixField.Decimal quantity = order.OrderQty!;
 Console.WriteLine(symbol.Value);             // string
 Console.WriteLine(quantity.Value);           // decimal
+
+foreach (var field in order.Fields)
+    if (field is FixField.Decimal { Tag: FixTag.Price, IsValid: true } price)
+        Console.WriteLine(price.Value);
 ```
 
-| FIX primitive | ADT value |
-| --- | --- |
-| int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | long |
-| float, Qty, Price, PriceOffset, Amt, Percentage | decimal |
-| char, Boolean | char, bool |
-| String, Currency, Country, Exchange | string |
-| MultipleValueString | string[] |
-| UTCDateOnly, LocalMktDate | DateOnly |
-| UTCTimeOnly | TimeOnly |
-| UTCTimestamp | DateTimeOffset, at offset zero |
-| MonthYear | string, checked for its shape (`YYYYMM`, `YYYYMMDD`, `YYYYMMw1`..`w5`) |
-| data | ReadOnlyMemory<byte> |
+| FIX primitive | Field | Value |
+| --- | --- | --- |
+| int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | `Integer` | long |
+| float, Qty, Price, PriceOffset, Amt, Percentage | `Decimal` | decimal |
+| char | `Character` | char |
+| Boolean | `Boolean` | bool |
+| String, Currency, Country, Exchange | `Text` | string |
+| MultipleValueString | `Multiple` | string[] |
+| UTCDateOnly, LocalMktDate | `Date` | DateOnly |
+| UTCTimeOnly | `Time` | TimeOnly |
+| UTCTimestamp | `Timestamp` | DateTimeOffset, at offset zero |
+| MonthYear | `MonthYear` | string, checked for its shape (`YYYYMM`, `YYYYMMDD`, `YYYYMMw1`..`w5`) |
+| data | `Data` | ReadOnlyMemory<byte> |
+
+MiscFeeType and MassCancelRejectReason are declared `char` and publish values a character cannot
+hold, so they are `Text`.
 
 A code set is held against the schema by `Validate`, not while the field is read; the
 underlying primitive remains the value type. A leap second, `23:59:60`, which the protocol
@@ -379,13 +389,11 @@ UTF-8 decimal parsing with the same FIX syntax checks. Integer values must fit a
 and loss of fractional precision set `IsValid` to false rather than rounding.
 Trailing fractional zeros do not cause a loss of precision.
 
-The source-backed semantic model retains malformed primitive text. Such a field has
-`TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
-This flag describes primitive conversion, not code-set or message-schema validity.
-A tag the package does not define is the `FixCustomField` the context's `FixFieldFactory` builds
-for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
-has no property for such a tag, so it is out of scope there whoever built the field; a message the
-consumer builds places it (below).
+A value that does not convert leaves its field with `IsValid == false`; `TryGetValue` returns false
+and `Value` throws. This flag describes primitive conversion, not code-set or message-schema validity.
+A tag the package does not define is read as the type a loaded dictionary gives it, or is a
+`FixField.Invalid` of that tag with its value's octets. A standard message has no property for such a
+tag, so it is out of scope there; a message the consumer builds places it (below).
 
 ## Pipe-delimited logs
 
@@ -415,42 +423,36 @@ as the SOH representation would be, a separator counted as one SOH, never pipes 
 
 ## Custom fields and messages
 
-A tag or a MsgType FIX 4.4 does not define goes through a factory the context holds. The field
-factory is handed the tag and its value and builds the field the way the standard's fields are built:
-the value is read by the `FixConvert` conversion of its type, an extension of the span such as
-`value.ToDecimal()`, and handed to a `FixCustomField<T>`, or to
-a class of the consumer's derived from one. The message factory is handed the MsgType and answers the
-message to build. Either answers null for what it does not know:
+A tag FIX 4.4 does not define is typed by a dictionary loaded into the context: each field it
+describes that the standard does not is read, from then on, as the type the file gives it, into the
+same classes the standard's fields are. A dictionary does not retype a tag the standard defines. A
+MsgType FIX 4.4 does not define goes through the message factory the context holds, which is handed
+the MsgType and answers the message to build, or null:
 
 ```csharp
 using System.Collections.Generic;
 
 var context = new FixContext
 {
-    FixFieldFactory = (tag, value) => tag switch
-    {
-        25005 => new Status(tag, (true, value.ToText())),                    // a class of the consumer's
-        25006 => new FixCustomField<decimal>(tag, value.ToDecimal()),
-        25000 => new FixCustomField<long>(tag, value.ToInteger()),
-        25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData()),
-        _     => null,
-    },
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
-    LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
-};
-
-// The standard's conversion, held to more: what is passed on is the field's IsValid.
-sealed class Status(int tag, (bool Valid, string Value) value)
-    : FixCustomField<string>(tag, (value.Valid && value.Value is "OPEN" or "CLOSED", value.Value));
+    LengthDataPairs   = new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 },
+}.Load("""
+    <fix>
+      <fields>
+        <field number="25005" name="VenueStatus" type="STRING" />
+        <field number="25006" name="VenuePrice" type="PRICE" />
+      </fields>
+    </fix>
+    """);
 
 sealed class VenueQuote : FixCustomMessage
 {
-    public Status? Status { get; private set; }
+    public FixField.Text? Status { get; private set; }
 
     // Every field of the body in turn, the header's and the trailer's taken already; false is out of scope.
     protected override bool Place(FixField field)
     {
-        if (field is not Status status)
+        if (field is not FixField.Text { Tag: (FixTag)25005 } status)
             return false;
 
         Status = status;
@@ -461,19 +463,18 @@ sealed class VenueQuote : FixCustomMessage
     protected override void OnValidate(FixContext context)
     {
         if (Status is null)
-            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
+            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
+        else if (Status.Value is not ("OPEN" or "CLOSED"))
+            AddFinding(new FixFinding(FixRule.InvalidValue, Status.Tag, Status.Position, Status, -1));
     }
 }
 ```
 
-The value is handed as characters, one to an octet from byte input as from text, and may not be kept.
-The factory is asked only of a tag the package has no class for, so a standard tag pays nothing. A
-dictionary loaded into the context builds the fields it describes that the standard does not, by the
-types it gives them, wherever the factory answers null: the consumer's answer comes first.
-
-A tag the factory answers null for, or with no factory, is a `FixField.Invalid` of that tag with its
-value's octets in `RawBytes`, and a type the message factory answers null for is a `FixMessage.Invalid`,
-not valid from the moment it is read, its finding `UnknownMessageType`.
+The tags of a declared pair that nothing gives a type are read as their halves: the length a
+`FixField.Integer`, the data a `FixField.Data`. A tag neither the standard nor a loaded dictionary
+defines is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and a type the
+message factory answers null for is a `FixMessage.Invalid`, not valid from the moment it is read,
+its finding `UnknownMessageType`.
 
 ## Definition maintenance
 
@@ -481,8 +482,10 @@ Field declarations, message classes, the checks, the Fix44 field grammar and tes
 fixtures are maintained together. When changing definitions, update the affected
 factory cases, message classes, checks, Fix44 grammar and test cases together.
 
-- `Fix44/FixField.cs`: field base, typed-value access, locations and typed field cases.
-- `Fix44/FixFieldBuilder.cs`: construction of typed fields.
+- `Fix44/FixField.cs`: field base, typed-value access, locations and the class of each value type.
+- `Fix44/FixFieldBuilder.cs`: construction of a field from its tag's type;
+  `Fix44/FixFieldBuilder.Standard.cs` and `Fix44/FixTag.cs`, the type and the name of every tag,
+  are written by `Fix44/generate.py`.
 - `Fix44/FixMessage.cs`: the message base, the standard header and trailer.
 - `Fix44/FixMessage.Types.cs`, `Fix44/FixComponents.cs`, `Fix44/FixValidators.cs`: the 93 message
   classes, the 24 component interfaces and the check of every message type, component and group
@@ -503,7 +506,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 ### Field construction and locations
 
 `FixGrammar` parses the tag and selects one branch through `switch`.
-`FixFieldBuilder.cs` constructs the corresponding typed field in C#.
+`FixFieldBuilder.cs` constructs the field of the tag's type in C#.
 `Field` reads the field contents. `Fields` repeats a constructing group that adds
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.
@@ -512,13 +515,12 @@ The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.
 
-`FixField.cs` contains the field base, `FixField.Typed<T>` and all nested field
-cases. The base classes implement locations and typed-value access; case
-declarations contain no conversion or location logic. `FixFieldView` provides
-access to the original source text.
+`FixField.cs` contains the field base, `FixField.Typed<T>` and a class a value type.
+The base classes implement locations and typed-value access; the classes contain no
+conversion or location logic.
 
-The C# factory constructs field cases, for example
-`new FixField.LegProduct(value.ToInteger())`. Primitive conversions return
+The builder constructs a field of the tag's type, for example
+`new FixField.Integer(FixTag.LegProduct, value.ToInteger())`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions
 on a particular field (such as currency syntax or a code set) remain semantic checks.

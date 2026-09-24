@@ -22,8 +22,8 @@ public sealed class FixLogTests
 		foreach (var fields in ReadLog(input))
 		{
 			Assert.Equal(3, fields.Length);
-			Assert.Equal("T 1 1/8 06/15/18", Assert.IsType<FixField.Symbol>(fields[0]).Value);
-			Assert.Equal("hello world", Assert.IsType<FixField.Text>(fields[2]).Value);
+			Assert.Equal("T 1 1/8 06/15/18", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
+			Assert.Equal("hello world", FixFixtures.Typed<FixField.Text>(FixTag.Text, fields[2]).Value);
 			Assert.Equal(input.IndexOf("38=", StringComparison.Ordinal), fields[1].Position);
 			Assert.Equal(input.IndexOf("hello world", StringComparison.Ordinal), fields[2].ValuePosition);
 			Assert.Equal("hello world".Length, fields[2].Length);
@@ -43,28 +43,28 @@ public sealed class FixLogTests
 		foreach (var fields in ReadLog(input))
 		{
 			Assert.Equal(4, fields.Length);
-			Assert.Equal(payload.Length, Assert.IsType<FixField.RawDataLength>(fields[1]).Value);
-			var binary = Assert.IsType<FixField.RawData>(fields[2]);
+			Assert.Equal(payload.Length, FixFixtures.Typed<FixField.Integer>(FixTag.RawDataLength, fields[1]).Value);
+			var binary = FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields[2]);
 			Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
 			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal), binary.Position);
 			Assert.Equal(input.IndexOf("96=", StringComparison.Ordinal) + 3, binary.ValuePosition);
 			Assert.Equal(payload.Length, binary.Length);
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[3]).Value);
+			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[3]).Value);
 		}
 	}
 
 	[Fact]
 	public void Custom_binary_pairs_also_accept_padded_separators()
 	{
-		var options = new FixContext { LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 } };
+		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 		const string input = "5000=3 | 5001= |  | 55=END";
 
 		foreach (var fields in ReadLog(input, options))
 		{
 			Assert.Equal(3, fields.Length);
-			Assert.Equal(5000, fields[0].Tag);
-			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Invalid>(fields[1]).RawBytes.Span));
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
+			Assert.Equal((FixTag)5000, fields[0].Tag);
+			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Data>(fields[1]).Value.Span));
+			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[2]).Value);
 		}
 	}
 
@@ -90,8 +90,8 @@ public sealed class FixLogTests
 		var fields = FixParser.ParseFields("55=" + value + "\u000138=2\u0001");
 
 		Assert.Equal(2, fields.Length);
-		Assert.Equal(value, Assert.IsType<FixField.Symbol>(fields[0]).Value);
-		Assert.Equal("ABC ", Assert.IsType<FixField.Symbol>(Assert.Single(FixParser.ParseFields("55=ABC ", FixContext.WithLogFraming))).Value);
+		Assert.Equal(value, FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
+		Assert.Equal("ABC ", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, Assert.Single(FixParser.ParseFields("55=ABC ", FixContext.WithLogFraming))).Value);
 	}
 
 	[Theory]
@@ -128,9 +128,9 @@ public sealed class FixLogTests
 		foreach (var fields in ReadLog("58=" + value + spaces + " | 55=END" + spaces))
 		{
 			Assert.Equal(2, fields.Length);
-			Assert.Equal(value, Assert.IsType<FixField.Text>(fields[0]).Value);
+			Assert.Equal(value, FixFixtures.Typed<FixField.Text>(FixTag.Text, fields[0]).Value);
 			Assert.Equal(value.Length, fields[0].Length);
-			Assert.Equal("END" + spaces, Assert.IsType<FixField.Symbol>(fields[1]).Value);
+			Assert.Equal("END" + spaces, FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[1]).Value);
 			Assert.Equal(3 + value.Length + spaces.Length + 3, fields[1].Position);
 		}
 	}
@@ -144,7 +144,7 @@ public sealed class FixLogTests
 		{
 			Assert.Equal(2, fields.Length);
 			Assert.IsType<FixField.Invalid>(fields[0]);
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
+			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[1]).Value);
 		}
 	}
 

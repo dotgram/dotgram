@@ -503,7 +503,7 @@ static partial class Stand
 			var count = 0;
 
 			foreach (var field in fields)
-				count += field.Tag;
+				count += (int)field.Tag;
 
 			return count;
 		}
@@ -1625,7 +1625,7 @@ static partial class Stand
 			var count = 0;
 
 			foreach (var field in fields)
-				count += field.Tag;
+				count += (int)field.Tag;
 
 			return count;
 		}

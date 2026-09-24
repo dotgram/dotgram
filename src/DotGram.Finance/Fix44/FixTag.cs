@@ -1,2743 +1,2744 @@
 ﻿namespace DotGram.Finance.Fix44;
 
-// Written by generate.py from the field classes of FixField.cs; not edited by hand.
+// Written by generate.py from the FIX 4.4 repository; not edited by hand.
 
-/// <summary>The number of every field of FIX 4.4, named for the field: <c>case FixTag.ClOrdID:</c> rather than <c>case 11:</c>.</summary>
-public static class FixTag
+/// <summary>The tag of every field of FIX 4.4, named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
+/// <remarks>A tag FIX 4.4 does not define is its number, <c>(FixTag)25005</c>, and has no name here.</remarks>
+public enum FixTag
 {
-	/// <summary>The tag of <see cref="FixField.Account"/>.</summary>
-	public const int Account = 1;
+	/// <summary>Account, a <see cref="FixField.Text"/>.</summary>
+	Account = 1,
 
-	/// <summary>The tag of <see cref="FixField.AdvId"/>.</summary>
-	public const int AdvId = 2;
+	/// <summary>AdvId, a <see cref="FixField.Text"/>.</summary>
+	AdvId = 2,
 
-	/// <summary>The tag of <see cref="FixField.AdvRefID"/>.</summary>
-	public const int AdvRefID = 3;
+	/// <summary>AdvRefID, a <see cref="FixField.Text"/>.</summary>
+	AdvRefID = 3,
 
-	/// <summary>The tag of <see cref="FixField.AdvSide"/>.</summary>
-	public const int AdvSide = 4;
+	/// <summary>AdvSide, a <see cref="FixField.Character"/>.</summary>
+	AdvSide = 4,
 
-	/// <summary>The tag of <see cref="FixField.AdvTransType"/>.</summary>
-	public const int AdvTransType = 5;
+	/// <summary>AdvTransType, a <see cref="FixField.Text"/>.</summary>
+	AdvTransType = 5,
 
-	/// <summary>The tag of <see cref="FixField.AvgPx"/>.</summary>
-	public const int AvgPx = 6;
+	/// <summary>AvgPx, a <see cref="FixField.Decimal"/>.</summary>
+	AvgPx = 6,
 
-	/// <summary>The tag of <see cref="FixField.BeginSeqNo"/>.</summary>
-	public const int BeginSeqNo = 7;
+	/// <summary>BeginSeqNo, a <see cref="FixField.Integer"/>.</summary>
+	BeginSeqNo = 7,
 
-	/// <summary>The tag of <see cref="FixField.BeginString"/>.</summary>
-	public const int BeginString = 8;
+	/// <summary>BeginString, a <see cref="FixField.Text"/>.</summary>
+	BeginString = 8,
 
-	/// <summary>The tag of <see cref="FixField.BodyLength"/>.</summary>
-	public const int BodyLength = 9;
+	/// <summary>BodyLength, a <see cref="FixField.Integer"/>.</summary>
+	BodyLength = 9,
 
-	/// <summary>The tag of <see cref="FixField.CheckSum"/>.</summary>
-	public const int CheckSum = 10;
+	/// <summary>CheckSum, a <see cref="FixField.Text"/>.</summary>
+	CheckSum = 10,
 
-	/// <summary>The tag of <see cref="FixField.ClOrdID"/>.</summary>
-	public const int ClOrdID = 11;
+	/// <summary>ClOrdID, a <see cref="FixField.Text"/>.</summary>
+	ClOrdID = 11,
 
-	/// <summary>The tag of <see cref="FixField.Commission"/>.</summary>
-	public const int Commission = 12;
+	/// <summary>Commission, a <see cref="FixField.Decimal"/>.</summary>
+	Commission = 12,
 
-	/// <summary>The tag of <see cref="FixField.CommType"/>.</summary>
-	public const int CommType = 13;
+	/// <summary>CommType, a <see cref="FixField.Character"/>.</summary>
+	CommType = 13,
 
-	/// <summary>The tag of <see cref="FixField.CumQty"/>.</summary>
-	public const int CumQty = 14;
+	/// <summary>CumQty, a <see cref="FixField.Decimal"/>.</summary>
+	CumQty = 14,
 
-	/// <summary>The tag of <see cref="FixField.Currency"/>.</summary>
-	public const int Currency = 15;
+	/// <summary>Currency, a <see cref="FixField.Text"/>.</summary>
+	Currency = 15,
 
-	/// <summary>The tag of <see cref="FixField.EndSeqNo"/>.</summary>
-	public const int EndSeqNo = 16;
+	/// <summary>EndSeqNo, a <see cref="FixField.Integer"/>.</summary>
+	EndSeqNo = 16,
 
-	/// <summary>The tag of <see cref="FixField.ExecID"/>.</summary>
-	public const int ExecID = 17;
+	/// <summary>ExecID, a <see cref="FixField.Text"/>.</summary>
+	ExecID = 17,
 
-	/// <summary>The tag of <see cref="FixField.ExecInst"/>.</summary>
-	public const int ExecInst = 18;
+	/// <summary>ExecInst, a <see cref="FixField.Multiple"/>.</summary>
+	ExecInst = 18,
 
-	/// <summary>The tag of <see cref="FixField.ExecRefID"/>.</summary>
-	public const int ExecRefID = 19;
+	/// <summary>ExecRefID, a <see cref="FixField.Text"/>.</summary>
+	ExecRefID = 19,
 
-	/// <summary>The tag of <see cref="FixField.HandlInst"/>.</summary>
-	public const int HandlInst = 21;
+	/// <summary>HandlInst, a <see cref="FixField.Character"/>.</summary>
+	HandlInst = 21,
 
-	/// <summary>The tag of <see cref="FixField.SecurityIDSource"/>.</summary>
-	public const int SecurityIDSource = 22;
+	/// <summary>SecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	SecurityIDSource = 22,
 
-	/// <summary>The tag of <see cref="FixField.IOIid"/>.</summary>
-	public const int IOIid = 23;
+	/// <summary>IOIid, a <see cref="FixField.Text"/>.</summary>
+	IOIid = 23,
 
-	/// <summary>The tag of <see cref="FixField.IOIQltyInd"/>.</summary>
-	public const int IOIQltyInd = 25;
+	/// <summary>IOIQltyInd, a <see cref="FixField.Character"/>.</summary>
+	IOIQltyInd = 25,
 
-	/// <summary>The tag of <see cref="FixField.IOIRefID"/>.</summary>
-	public const int IOIRefID = 26;
+	/// <summary>IOIRefID, a <see cref="FixField.Text"/>.</summary>
+	IOIRefID = 26,
 
-	/// <summary>The tag of <see cref="FixField.IOIQty"/>.</summary>
-	public const int IOIQty = 27;
+	/// <summary>IOIQty, a <see cref="FixField.Text"/>.</summary>
+	IOIQty = 27,
 
-	/// <summary>The tag of <see cref="FixField.IOITransType"/>.</summary>
-	public const int IOITransType = 28;
+	/// <summary>IOITransType, a <see cref="FixField.Character"/>.</summary>
+	IOITransType = 28,
 
-	/// <summary>The tag of <see cref="FixField.LastCapacity"/>.</summary>
-	public const int LastCapacity = 29;
+	/// <summary>LastCapacity, a <see cref="FixField.Character"/>.</summary>
+	LastCapacity = 29,
 
-	/// <summary>The tag of <see cref="FixField.LastMkt"/>.</summary>
-	public const int LastMkt = 30;
+	/// <summary>LastMkt, a <see cref="FixField.Text"/>.</summary>
+	LastMkt = 30,
 
-	/// <summary>The tag of <see cref="FixField.LastPx"/>.</summary>
-	public const int LastPx = 31;
+	/// <summary>LastPx, a <see cref="FixField.Decimal"/>.</summary>
+	LastPx = 31,
 
-	/// <summary>The tag of <see cref="FixField.LastQty"/>.</summary>
-	public const int LastQty = 32;
+	/// <summary>LastQty, a <see cref="FixField.Decimal"/>.</summary>
+	LastQty = 32,
 
-	/// <summary>The tag of <see cref="FixField.LinesOfText"/>.</summary>
-	public const int LinesOfText = 33;
+	/// <summary>LinesOfText, a <see cref="FixField.Integer"/>.</summary>
+	LinesOfText = 33,
 
-	/// <summary>The tag of <see cref="FixField.MsgSeqNum"/>.</summary>
-	public const int MsgSeqNum = 34;
+	/// <summary>MsgSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	MsgSeqNum = 34,
 
-	/// <summary>The tag of <see cref="FixField.MsgType"/>.</summary>
-	public const int MsgType = 35;
+	/// <summary>MsgType, a <see cref="FixField.Text"/>.</summary>
+	MsgType = 35,
 
-	/// <summary>The tag of <see cref="FixField.NewSeqNo"/>.</summary>
-	public const int NewSeqNo = 36;
+	/// <summary>NewSeqNo, a <see cref="FixField.Integer"/>.</summary>
+	NewSeqNo = 36,
 
-	/// <summary>The tag of <see cref="FixField.OrderID"/>.</summary>
-	public const int OrderID = 37;
+	/// <summary>OrderID, a <see cref="FixField.Text"/>.</summary>
+	OrderID = 37,
 
-	/// <summary>The tag of <see cref="FixField.OrderQty"/>.</summary>
-	public const int OrderQty = 38;
+	/// <summary>OrderQty, a <see cref="FixField.Decimal"/>.</summary>
+	OrderQty = 38,
 
-	/// <summary>The tag of <see cref="FixField.OrdStatus"/>.</summary>
-	public const int OrdStatus = 39;
+	/// <summary>OrdStatus, a <see cref="FixField.Character"/>.</summary>
+	OrdStatus = 39,
 
-	/// <summary>The tag of <see cref="FixField.OrdType"/>.</summary>
-	public const int OrdType = 40;
+	/// <summary>OrdType, a <see cref="FixField.Character"/>.</summary>
+	OrdType = 40,
 
-	/// <summary>The tag of <see cref="FixField.OrigClOrdID"/>.</summary>
-	public const int OrigClOrdID = 41;
+	/// <summary>OrigClOrdID, a <see cref="FixField.Text"/>.</summary>
+	OrigClOrdID = 41,
 
-	/// <summary>The tag of <see cref="FixField.OrigTime"/>.</summary>
-	public const int OrigTime = 42;
+	/// <summary>OrigTime, a <see cref="FixField.Timestamp"/>.</summary>
+	OrigTime = 42,
 
-	/// <summary>The tag of <see cref="FixField.PossDupFlag"/>.</summary>
-	public const int PossDupFlag = 43;
+	/// <summary>PossDupFlag, a <see cref="FixField.Boolean"/>.</summary>
+	PossDupFlag = 43,
 
-	/// <summary>The tag of <see cref="FixField.Price"/>.</summary>
-	public const int Price = 44;
+	/// <summary>Price, a <see cref="FixField.Decimal"/>.</summary>
+	Price = 44,
 
-	/// <summary>The tag of <see cref="FixField.RefSeqNum"/>.</summary>
-	public const int RefSeqNum = 45;
+	/// <summary>RefSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	RefSeqNum = 45,
 
-	/// <summary>The tag of <see cref="FixField.SecurityID"/>.</summary>
-	public const int SecurityID = 48;
+	/// <summary>SecurityID, a <see cref="FixField.Text"/>.</summary>
+	SecurityID = 48,
 
-	/// <summary>The tag of <see cref="FixField.SenderCompID"/>.</summary>
-	public const int SenderCompID = 49;
+	/// <summary>SenderCompID, a <see cref="FixField.Text"/>.</summary>
+	SenderCompID = 49,
 
-	/// <summary>The tag of <see cref="FixField.SenderSubID"/>.</summary>
-	public const int SenderSubID = 50;
+	/// <summary>SenderSubID, a <see cref="FixField.Text"/>.</summary>
+	SenderSubID = 50,
 
-	/// <summary>The tag of <see cref="FixField.SendingTime"/>.</summary>
-	public const int SendingTime = 52;
+	/// <summary>SendingTime, a <see cref="FixField.Timestamp"/>.</summary>
+	SendingTime = 52,
 
-	/// <summary>The tag of <see cref="FixField.Quantity"/>.</summary>
-	public const int Quantity = 53;
+	/// <summary>Quantity, a <see cref="FixField.Decimal"/>.</summary>
+	Quantity = 53,
 
-	/// <summary>The tag of <see cref="FixField.Side"/>.</summary>
-	public const int Side = 54;
+	/// <summary>Side, a <see cref="FixField.Character"/>.</summary>
+	Side = 54,
 
-	/// <summary>The tag of <see cref="FixField.Symbol"/>.</summary>
-	public const int Symbol = 55;
+	/// <summary>Symbol, a <see cref="FixField.Text"/>.</summary>
+	Symbol = 55,
 
-	/// <summary>The tag of <see cref="FixField.TargetCompID"/>.</summary>
-	public const int TargetCompID = 56;
+	/// <summary>TargetCompID, a <see cref="FixField.Text"/>.</summary>
+	TargetCompID = 56,
 
-	/// <summary>The tag of <see cref="FixField.TargetSubID"/>.</summary>
-	public const int TargetSubID = 57;
+	/// <summary>TargetSubID, a <see cref="FixField.Text"/>.</summary>
+	TargetSubID = 57,
 
-	/// <summary>The tag of <see cref="FixField.Text"/>.</summary>
-	public const int Text = 58;
+	/// <summary>Text, a <see cref="FixField.Text"/>.</summary>
+	Text = 58,
 
-	/// <summary>The tag of <see cref="FixField.TimeInForce"/>.</summary>
-	public const int TimeInForce = 59;
+	/// <summary>TimeInForce, a <see cref="FixField.Character"/>.</summary>
+	TimeInForce = 59,
 
-	/// <summary>The tag of <see cref="FixField.TransactTime"/>.</summary>
-	public const int TransactTime = 60;
+	/// <summary>TransactTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TransactTime = 60,
 
-	/// <summary>The tag of <see cref="FixField.Urgency"/>.</summary>
-	public const int Urgency = 61;
+	/// <summary>Urgency, a <see cref="FixField.Character"/>.</summary>
+	Urgency = 61,
 
-	/// <summary>The tag of <see cref="FixField.ValidUntilTime"/>.</summary>
-	public const int ValidUntilTime = 62;
+	/// <summary>ValidUntilTime, a <see cref="FixField.Timestamp"/>.</summary>
+	ValidUntilTime = 62,
 
-	/// <summary>The tag of <see cref="FixField.SettlType"/>.</summary>
-	public const int SettlType = 63;
+	/// <summary>SettlType, a <see cref="FixField.Character"/>.</summary>
+	SettlType = 63,
 
-	/// <summary>The tag of <see cref="FixField.SettlDate"/>.</summary>
-	public const int SettlDate = 64;
+	/// <summary>SettlDate, a <see cref="FixField.Date"/>.</summary>
+	SettlDate = 64,
 
-	/// <summary>The tag of <see cref="FixField.SymbolSfx"/>.</summary>
-	public const int SymbolSfx = 65;
+	/// <summary>SymbolSfx, a <see cref="FixField.Text"/>.</summary>
+	SymbolSfx = 65,
 
-	/// <summary>The tag of <see cref="FixField.ListID"/>.</summary>
-	public const int ListID = 66;
+	/// <summary>ListID, a <see cref="FixField.Text"/>.</summary>
+	ListID = 66,
 
-	/// <summary>The tag of <see cref="FixField.ListSeqNo"/>.</summary>
-	public const int ListSeqNo = 67;
+	/// <summary>ListSeqNo, a <see cref="FixField.Integer"/>.</summary>
+	ListSeqNo = 67,
 
-	/// <summary>The tag of <see cref="FixField.TotNoOrders"/>.</summary>
-	public const int TotNoOrders = 68;
+	/// <summary>TotNoOrders, a <see cref="FixField.Integer"/>.</summary>
+	TotNoOrders = 68,
 
-	/// <summary>The tag of <see cref="FixField.ListExecInst"/>.</summary>
-	public const int ListExecInst = 69;
+	/// <summary>ListExecInst, a <see cref="FixField.Text"/>.</summary>
+	ListExecInst = 69,
 
-	/// <summary>The tag of <see cref="FixField.AllocID"/>.</summary>
-	public const int AllocID = 70;
+	/// <summary>AllocID, a <see cref="FixField.Text"/>.</summary>
+	AllocID = 70,
 
-	/// <summary>The tag of <see cref="FixField.AllocTransType"/>.</summary>
-	public const int AllocTransType = 71;
+	/// <summary>AllocTransType, a <see cref="FixField.Character"/>.</summary>
+	AllocTransType = 71,
 
-	/// <summary>The tag of <see cref="FixField.RefAllocID"/>.</summary>
-	public const int RefAllocID = 72;
+	/// <summary>RefAllocID, a <see cref="FixField.Text"/>.</summary>
+	RefAllocID = 72,
 
-	/// <summary>The tag of <see cref="FixField.NoOrders"/>.</summary>
-	public const int NoOrders = 73;
+	/// <summary>NoOrders, a <see cref="FixField.Integer"/>.</summary>
+	NoOrders = 73,
 
-	/// <summary>The tag of <see cref="FixField.AvgPxPrecision"/>.</summary>
-	public const int AvgPxPrecision = 74;
+	/// <summary>AvgPxPrecision, a <see cref="FixField.Integer"/>.</summary>
+	AvgPxPrecision = 74,
 
-	/// <summary>The tag of <see cref="FixField.TradeDate"/>.</summary>
-	public const int TradeDate = 75;
+	/// <summary>TradeDate, a <see cref="FixField.Date"/>.</summary>
+	TradeDate = 75,
 
-	/// <summary>The tag of <see cref="FixField.PositionEffect"/>.</summary>
-	public const int PositionEffect = 77;
+	/// <summary>PositionEffect, a <see cref="FixField.Character"/>.</summary>
+	PositionEffect = 77,
 
-	/// <summary>The tag of <see cref="FixField.NoAllocs"/>.</summary>
-	public const int NoAllocs = 78;
+	/// <summary>NoAllocs, a <see cref="FixField.Integer"/>.</summary>
+	NoAllocs = 78,
 
-	/// <summary>The tag of <see cref="FixField.AllocAccount"/>.</summary>
-	public const int AllocAccount = 79;
+	/// <summary>AllocAccount, a <see cref="FixField.Text"/>.</summary>
+	AllocAccount = 79,
 
-	/// <summary>The tag of <see cref="FixField.AllocQty"/>.</summary>
-	public const int AllocQty = 80;
+	/// <summary>AllocQty, a <see cref="FixField.Decimal"/>.</summary>
+	AllocQty = 80,
 
-	/// <summary>The tag of <see cref="FixField.ProcessCode"/>.</summary>
-	public const int ProcessCode = 81;
+	/// <summary>ProcessCode, a <see cref="FixField.Character"/>.</summary>
+	ProcessCode = 81,
 
-	/// <summary>The tag of <see cref="FixField.NoRpts"/>.</summary>
-	public const int NoRpts = 82;
+	/// <summary>NoRpts, a <see cref="FixField.Integer"/>.</summary>
+	NoRpts = 82,
 
-	/// <summary>The tag of <see cref="FixField.RptSeq"/>.</summary>
-	public const int RptSeq = 83;
+	/// <summary>RptSeq, a <see cref="FixField.Integer"/>.</summary>
+	RptSeq = 83,
 
-	/// <summary>The tag of <see cref="FixField.CxlQty"/>.</summary>
-	public const int CxlQty = 84;
+	/// <summary>CxlQty, a <see cref="FixField.Decimal"/>.</summary>
+	CxlQty = 84,
 
-	/// <summary>The tag of <see cref="FixField.NoDlvyInst"/>.</summary>
-	public const int NoDlvyInst = 85;
+	/// <summary>NoDlvyInst, a <see cref="FixField.Integer"/>.</summary>
+	NoDlvyInst = 85,
 
-	/// <summary>The tag of <see cref="FixField.AllocStatus"/>.</summary>
-	public const int AllocStatus = 87;
+	/// <summary>AllocStatus, a <see cref="FixField.Integer"/>.</summary>
+	AllocStatus = 87,
 
-	/// <summary>The tag of <see cref="FixField.AllocRejCode"/>.</summary>
-	public const int AllocRejCode = 88;
+	/// <summary>AllocRejCode, a <see cref="FixField.Integer"/>.</summary>
+	AllocRejCode = 88,
 
-	/// <summary>The tag of <see cref="FixField.Signature"/>.</summary>
-	public const int Signature = 89;
+	/// <summary>Signature, a <see cref="FixField.Data"/>.</summary>
+	Signature = 89,
 
-	/// <summary>The tag of <see cref="FixField.SecureDataLen"/>.</summary>
-	public const int SecureDataLen = 90;
+	/// <summary>SecureDataLen, a <see cref="FixField.Integer"/>.</summary>
+	SecureDataLen = 90,
 
-	/// <summary>The tag of <see cref="FixField.SecureData"/>.</summary>
-	public const int SecureData = 91;
+	/// <summary>SecureData, a <see cref="FixField.Data"/>.</summary>
+	SecureData = 91,
 
-	/// <summary>The tag of <see cref="FixField.SignatureLength"/>.</summary>
-	public const int SignatureLength = 93;
+	/// <summary>SignatureLength, a <see cref="FixField.Integer"/>.</summary>
+	SignatureLength = 93,
 
-	/// <summary>The tag of <see cref="FixField.EmailType"/>.</summary>
-	public const int EmailType = 94;
+	/// <summary>EmailType, a <see cref="FixField.Character"/>.</summary>
+	EmailType = 94,
 
-	/// <summary>The tag of <see cref="FixField.RawDataLength"/>.</summary>
-	public const int RawDataLength = 95;
+	/// <summary>RawDataLength, a <see cref="FixField.Integer"/>.</summary>
+	RawDataLength = 95,
 
-	/// <summary>The tag of <see cref="FixField.RawData"/>.</summary>
-	public const int RawData = 96;
+	/// <summary>RawData, a <see cref="FixField.Data"/>.</summary>
+	RawData = 96,
 
-	/// <summary>The tag of <see cref="FixField.PossResend"/>.</summary>
-	public const int PossResend = 97;
+	/// <summary>PossResend, a <see cref="FixField.Boolean"/>.</summary>
+	PossResend = 97,
 
-	/// <summary>The tag of <see cref="FixField.EncryptMethod"/>.</summary>
-	public const int EncryptMethod = 98;
+	/// <summary>EncryptMethod, a <see cref="FixField.Integer"/>.</summary>
+	EncryptMethod = 98,
 
-	/// <summary>The tag of <see cref="FixField.StopPx"/>.</summary>
-	public const int StopPx = 99;
+	/// <summary>StopPx, a <see cref="FixField.Decimal"/>.</summary>
+	StopPx = 99,
 
-	/// <summary>The tag of <see cref="FixField.ExDestination"/>.</summary>
-	public const int ExDestination = 100;
+	/// <summary>ExDestination, a <see cref="FixField.Text"/>.</summary>
+	ExDestination = 100,
 
-	/// <summary>The tag of <see cref="FixField.CxlRejReason"/>.</summary>
-	public const int CxlRejReason = 102;
+	/// <summary>CxlRejReason, a <see cref="FixField.Integer"/>.</summary>
+	CxlRejReason = 102,
 
-	/// <summary>The tag of <see cref="FixField.OrdRejReason"/>.</summary>
-	public const int OrdRejReason = 103;
+	/// <summary>OrdRejReason, a <see cref="FixField.Integer"/>.</summary>
+	OrdRejReason = 103,
 
-	/// <summary>The tag of <see cref="FixField.IOIQualifier"/>.</summary>
-	public const int IOIQualifier = 104;
+	/// <summary>IOIQualifier, a <see cref="FixField.Character"/>.</summary>
+	IOIQualifier = 104,
 
-	/// <summary>The tag of <see cref="FixField.Issuer"/>.</summary>
-	public const int Issuer = 106;
+	/// <summary>Issuer, a <see cref="FixField.Text"/>.</summary>
+	Issuer = 106,
 
-	/// <summary>The tag of <see cref="FixField.SecurityDesc"/>.</summary>
-	public const int SecurityDesc = 107;
+	/// <summary>SecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	SecurityDesc = 107,
 
-	/// <summary>The tag of <see cref="FixField.HeartBtInt"/>.</summary>
-	public const int HeartBtInt = 108;
+	/// <summary>HeartBtInt, a <see cref="FixField.Integer"/>.</summary>
+	HeartBtInt = 108,
 
-	/// <summary>The tag of <see cref="FixField.MinQty"/>.</summary>
-	public const int MinQty = 110;
+	/// <summary>MinQty, a <see cref="FixField.Decimal"/>.</summary>
+	MinQty = 110,
 
-	/// <summary>The tag of <see cref="FixField.MaxFloor"/>.</summary>
-	public const int MaxFloor = 111;
+	/// <summary>MaxFloor, a <see cref="FixField.Decimal"/>.</summary>
+	MaxFloor = 111,
 
-	/// <summary>The tag of <see cref="FixField.TestReqID"/>.</summary>
-	public const int TestReqID = 112;
+	/// <summary>TestReqID, a <see cref="FixField.Text"/>.</summary>
+	TestReqID = 112,
 
-	/// <summary>The tag of <see cref="FixField.ReportToExch"/>.</summary>
-	public const int ReportToExch = 113;
+	/// <summary>ReportToExch, a <see cref="FixField.Boolean"/>.</summary>
+	ReportToExch = 113,
 
-	/// <summary>The tag of <see cref="FixField.LocateReqd"/>.</summary>
-	public const int LocateReqd = 114;
+	/// <summary>LocateReqd, a <see cref="FixField.Boolean"/>.</summary>
+	LocateReqd = 114,
 
-	/// <summary>The tag of <see cref="FixField.OnBehalfOfCompID"/>.</summary>
-	public const int OnBehalfOfCompID = 115;
+	/// <summary>OnBehalfOfCompID, a <see cref="FixField.Text"/>.</summary>
+	OnBehalfOfCompID = 115,
 
-	/// <summary>The tag of <see cref="FixField.OnBehalfOfSubID"/>.</summary>
-	public const int OnBehalfOfSubID = 116;
+	/// <summary>OnBehalfOfSubID, a <see cref="FixField.Text"/>.</summary>
+	OnBehalfOfSubID = 116,
 
-	/// <summary>The tag of <see cref="FixField.QuoteID"/>.</summary>
-	public const int QuoteID = 117;
+	/// <summary>QuoteID, a <see cref="FixField.Text"/>.</summary>
+	QuoteID = 117,
 
-	/// <summary>The tag of <see cref="FixField.NetMoney"/>.</summary>
-	public const int NetMoney = 118;
+	/// <summary>NetMoney, a <see cref="FixField.Decimal"/>.</summary>
+	NetMoney = 118,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrAmt"/>.</summary>
-	public const int SettlCurrAmt = 119;
+	/// <summary>SettlCurrAmt, a <see cref="FixField.Decimal"/>.</summary>
+	SettlCurrAmt = 119,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrency"/>.</summary>
-	public const int SettlCurrency = 120;
+	/// <summary>SettlCurrency, a <see cref="FixField.Text"/>.</summary>
+	SettlCurrency = 120,
 
-	/// <summary>The tag of <see cref="FixField.ForexReq"/>.</summary>
-	public const int ForexReq = 121;
+	/// <summary>ForexReq, a <see cref="FixField.Boolean"/>.</summary>
+	ForexReq = 121,
 
-	/// <summary>The tag of <see cref="FixField.OrigSendingTime"/>.</summary>
-	public const int OrigSendingTime = 122;
+	/// <summary>OrigSendingTime, a <see cref="FixField.Timestamp"/>.</summary>
+	OrigSendingTime = 122,
 
-	/// <summary>The tag of <see cref="FixField.GapFillFlag"/>.</summary>
-	public const int GapFillFlag = 123;
+	/// <summary>GapFillFlag, a <see cref="FixField.Boolean"/>.</summary>
+	GapFillFlag = 123,
 
-	/// <summary>The tag of <see cref="FixField.NoExecs"/>.</summary>
-	public const int NoExecs = 124;
+	/// <summary>NoExecs, a <see cref="FixField.Integer"/>.</summary>
+	NoExecs = 124,
 
-	/// <summary>The tag of <see cref="FixField.ExpireTime"/>.</summary>
-	public const int ExpireTime = 126;
+	/// <summary>ExpireTime, a <see cref="FixField.Timestamp"/>.</summary>
+	ExpireTime = 126,
 
-	/// <summary>The tag of <see cref="FixField.DKReason"/>.</summary>
-	public const int DKReason = 127;
+	/// <summary>DKReason, a <see cref="FixField.Character"/>.</summary>
+	DKReason = 127,
 
-	/// <summary>The tag of <see cref="FixField.DeliverToCompID"/>.</summary>
-	public const int DeliverToCompID = 128;
+	/// <summary>DeliverToCompID, a <see cref="FixField.Text"/>.</summary>
+	DeliverToCompID = 128,
 
-	/// <summary>The tag of <see cref="FixField.DeliverToSubID"/>.</summary>
-	public const int DeliverToSubID = 129;
+	/// <summary>DeliverToSubID, a <see cref="FixField.Text"/>.</summary>
+	DeliverToSubID = 129,
 
-	/// <summary>The tag of <see cref="FixField.IOINaturalFlag"/>.</summary>
-	public const int IOINaturalFlag = 130;
+	/// <summary>IOINaturalFlag, a <see cref="FixField.Boolean"/>.</summary>
+	IOINaturalFlag = 130,
 
-	/// <summary>The tag of <see cref="FixField.QuoteReqID"/>.</summary>
-	public const int QuoteReqID = 131;
+	/// <summary>QuoteReqID, a <see cref="FixField.Text"/>.</summary>
+	QuoteReqID = 131,
 
-	/// <summary>The tag of <see cref="FixField.BidPx"/>.</summary>
-	public const int BidPx = 132;
+	/// <summary>BidPx, a <see cref="FixField.Decimal"/>.</summary>
+	BidPx = 132,
 
-	/// <summary>The tag of <see cref="FixField.OfferPx"/>.</summary>
-	public const int OfferPx = 133;
+	/// <summary>OfferPx, a <see cref="FixField.Decimal"/>.</summary>
+	OfferPx = 133,
 
-	/// <summary>The tag of <see cref="FixField.BidSize"/>.</summary>
-	public const int BidSize = 134;
+	/// <summary>BidSize, a <see cref="FixField.Decimal"/>.</summary>
+	BidSize = 134,
 
-	/// <summary>The tag of <see cref="FixField.OfferSize"/>.</summary>
-	public const int OfferSize = 135;
+	/// <summary>OfferSize, a <see cref="FixField.Decimal"/>.</summary>
+	OfferSize = 135,
 
-	/// <summary>The tag of <see cref="FixField.NoMiscFees"/>.</summary>
-	public const int NoMiscFees = 136;
+	/// <summary>NoMiscFees, a <see cref="FixField.Integer"/>.</summary>
+	NoMiscFees = 136,
 
-	/// <summary>The tag of <see cref="FixField.MiscFeeAmt"/>.</summary>
-	public const int MiscFeeAmt = 137;
+	/// <summary>MiscFeeAmt, a <see cref="FixField.Decimal"/>.</summary>
+	MiscFeeAmt = 137,
 
-	/// <summary>The tag of <see cref="FixField.MiscFeeCurr"/>.</summary>
-	public const int MiscFeeCurr = 138;
+	/// <summary>MiscFeeCurr, a <see cref="FixField.Text"/>.</summary>
+	MiscFeeCurr = 138,
 
-	/// <summary>The tag of <see cref="FixField.MiscFeeType"/>.</summary>
-	public const int MiscFeeType = 139;
+	/// <summary>MiscFeeType, a <see cref="FixField.Text"/>.</summary>
+	MiscFeeType = 139,
 
-	/// <summary>The tag of <see cref="FixField.PrevClosePx"/>.</summary>
-	public const int PrevClosePx = 140;
+	/// <summary>PrevClosePx, a <see cref="FixField.Decimal"/>.</summary>
+	PrevClosePx = 140,
 
-	/// <summary>The tag of <see cref="FixField.ResetSeqNumFlag"/>.</summary>
-	public const int ResetSeqNumFlag = 141;
+	/// <summary>ResetSeqNumFlag, a <see cref="FixField.Boolean"/>.</summary>
+	ResetSeqNumFlag = 141,
 
-	/// <summary>The tag of <see cref="FixField.SenderLocationID"/>.</summary>
-	public const int SenderLocationID = 142;
+	/// <summary>SenderLocationID, a <see cref="FixField.Text"/>.</summary>
+	SenderLocationID = 142,
 
-	/// <summary>The tag of <see cref="FixField.TargetLocationID"/>.</summary>
-	public const int TargetLocationID = 143;
+	/// <summary>TargetLocationID, a <see cref="FixField.Text"/>.</summary>
+	TargetLocationID = 143,
 
-	/// <summary>The tag of <see cref="FixField.OnBehalfOfLocationID"/>.</summary>
-	public const int OnBehalfOfLocationID = 144;
+	/// <summary>OnBehalfOfLocationID, a <see cref="FixField.Text"/>.</summary>
+	OnBehalfOfLocationID = 144,
 
-	/// <summary>The tag of <see cref="FixField.DeliverToLocationID"/>.</summary>
-	public const int DeliverToLocationID = 145;
+	/// <summary>DeliverToLocationID, a <see cref="FixField.Text"/>.</summary>
+	DeliverToLocationID = 145,
 
-	/// <summary>The tag of <see cref="FixField.NoRelatedSym"/>.</summary>
-	public const int NoRelatedSym = 146;
+	/// <summary>NoRelatedSym, a <see cref="FixField.Integer"/>.</summary>
+	NoRelatedSym = 146,
 
-	/// <summary>The tag of <see cref="FixField.Subject"/>.</summary>
-	public const int Subject = 147;
+	/// <summary>Subject, a <see cref="FixField.Text"/>.</summary>
+	Subject = 147,
 
-	/// <summary>The tag of <see cref="FixField.Headline"/>.</summary>
-	public const int Headline = 148;
+	/// <summary>Headline, a <see cref="FixField.Text"/>.</summary>
+	Headline = 148,
 
-	/// <summary>The tag of <see cref="FixField.URLLink"/>.</summary>
-	public const int URLLink = 149;
+	/// <summary>URLLink, a <see cref="FixField.Text"/>.</summary>
+	URLLink = 149,
 
-	/// <summary>The tag of <see cref="FixField.ExecType"/>.</summary>
-	public const int ExecType = 150;
+	/// <summary>ExecType, a <see cref="FixField.Character"/>.</summary>
+	ExecType = 150,
 
-	/// <summary>The tag of <see cref="FixField.LeavesQty"/>.</summary>
-	public const int LeavesQty = 151;
+	/// <summary>LeavesQty, a <see cref="FixField.Decimal"/>.</summary>
+	LeavesQty = 151,
 
-	/// <summary>The tag of <see cref="FixField.CashOrderQty"/>.</summary>
-	public const int CashOrderQty = 152;
+	/// <summary>CashOrderQty, a <see cref="FixField.Decimal"/>.</summary>
+	CashOrderQty = 152,
 
-	/// <summary>The tag of <see cref="FixField.AllocAvgPx"/>.</summary>
-	public const int AllocAvgPx = 153;
+	/// <summary>AllocAvgPx, a <see cref="FixField.Decimal"/>.</summary>
+	AllocAvgPx = 153,
 
-	/// <summary>The tag of <see cref="FixField.AllocNetMoney"/>.</summary>
-	public const int AllocNetMoney = 154;
+	/// <summary>AllocNetMoney, a <see cref="FixField.Decimal"/>.</summary>
+	AllocNetMoney = 154,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrFxRate"/>.</summary>
-	public const int SettlCurrFxRate = 155;
+	/// <summary>SettlCurrFxRate, a <see cref="FixField.Decimal"/>.</summary>
+	SettlCurrFxRate = 155,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrFxRateCalc"/>.</summary>
-	public const int SettlCurrFxRateCalc = 156;
+	/// <summary>SettlCurrFxRateCalc, a <see cref="FixField.Character"/>.</summary>
+	SettlCurrFxRateCalc = 156,
 
-	/// <summary>The tag of <see cref="FixField.NumDaysInterest"/>.</summary>
-	public const int NumDaysInterest = 157;
+	/// <summary>NumDaysInterest, a <see cref="FixField.Integer"/>.</summary>
+	NumDaysInterest = 157,
 
-	/// <summary>The tag of <see cref="FixField.AccruedInterestRate"/>.</summary>
-	public const int AccruedInterestRate = 158;
+	/// <summary>AccruedInterestRate, a <see cref="FixField.Decimal"/>.</summary>
+	AccruedInterestRate = 158,
 
-	/// <summary>The tag of <see cref="FixField.AccruedInterestAmt"/>.</summary>
-	public const int AccruedInterestAmt = 159;
+	/// <summary>AccruedInterestAmt, a <see cref="FixField.Decimal"/>.</summary>
+	AccruedInterestAmt = 159,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstMode"/>.</summary>
-	public const int SettlInstMode = 160;
+	/// <summary>SettlInstMode, a <see cref="FixField.Character"/>.</summary>
+	SettlInstMode = 160,
 
-	/// <summary>The tag of <see cref="FixField.AllocText"/>.</summary>
-	public const int AllocText = 161;
+	/// <summary>AllocText, a <see cref="FixField.Text"/>.</summary>
+	AllocText = 161,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstID"/>.</summary>
-	public const int SettlInstID = 162;
+	/// <summary>SettlInstID, a <see cref="FixField.Text"/>.</summary>
+	SettlInstID = 162,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstTransType"/>.</summary>
-	public const int SettlInstTransType = 163;
+	/// <summary>SettlInstTransType, a <see cref="FixField.Character"/>.</summary>
+	SettlInstTransType = 163,
 
-	/// <summary>The tag of <see cref="FixField.EmailThreadID"/>.</summary>
-	public const int EmailThreadID = 164;
+	/// <summary>EmailThreadID, a <see cref="FixField.Text"/>.</summary>
+	EmailThreadID = 164,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstSource"/>.</summary>
-	public const int SettlInstSource = 165;
+	/// <summary>SettlInstSource, a <see cref="FixField.Character"/>.</summary>
+	SettlInstSource = 165,
 
-	/// <summary>The tag of <see cref="FixField.SecurityType"/>.</summary>
-	public const int SecurityType = 167;
+	/// <summary>SecurityType, a <see cref="FixField.Text"/>.</summary>
+	SecurityType = 167,
 
-	/// <summary>The tag of <see cref="FixField.EffectiveTime"/>.</summary>
-	public const int EffectiveTime = 168;
+	/// <summary>EffectiveTime, a <see cref="FixField.Timestamp"/>.</summary>
+	EffectiveTime = 168,
 
-	/// <summary>The tag of <see cref="FixField.StandInstDbType"/>.</summary>
-	public const int StandInstDbType = 169;
+	/// <summary>StandInstDbType, a <see cref="FixField.Integer"/>.</summary>
+	StandInstDbType = 169,
 
-	/// <summary>The tag of <see cref="FixField.StandInstDbName"/>.</summary>
-	public const int StandInstDbName = 170;
+	/// <summary>StandInstDbName, a <see cref="FixField.Text"/>.</summary>
+	StandInstDbName = 170,
 
-	/// <summary>The tag of <see cref="FixField.StandInstDbID"/>.</summary>
-	public const int StandInstDbID = 171;
+	/// <summary>StandInstDbID, a <see cref="FixField.Text"/>.</summary>
+	StandInstDbID = 171,
 
-	/// <summary>The tag of <see cref="FixField.SettlDeliveryType"/>.</summary>
-	public const int SettlDeliveryType = 172;
+	/// <summary>SettlDeliveryType, a <see cref="FixField.Integer"/>.</summary>
+	SettlDeliveryType = 172,
 
-	/// <summary>The tag of <see cref="FixField.BidSpotRate"/>.</summary>
-	public const int BidSpotRate = 188;
+	/// <summary>BidSpotRate, a <see cref="FixField.Decimal"/>.</summary>
+	BidSpotRate = 188,
 
-	/// <summary>The tag of <see cref="FixField.BidForwardPoints"/>.</summary>
-	public const int BidForwardPoints = 189;
+	/// <summary>BidForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	BidForwardPoints = 189,
 
-	/// <summary>The tag of <see cref="FixField.OfferSpotRate"/>.</summary>
-	public const int OfferSpotRate = 190;
+	/// <summary>OfferSpotRate, a <see cref="FixField.Decimal"/>.</summary>
+	OfferSpotRate = 190,
 
-	/// <summary>The tag of <see cref="FixField.OfferForwardPoints"/>.</summary>
-	public const int OfferForwardPoints = 191;
+	/// <summary>OfferForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	OfferForwardPoints = 191,
 
-	/// <summary>The tag of <see cref="FixField.OrderQty2"/>.</summary>
-	public const int OrderQty2 = 192;
+	/// <summary>OrderQty2, a <see cref="FixField.Decimal"/>.</summary>
+	OrderQty2 = 192,
 
-	/// <summary>The tag of <see cref="FixField.SettlDate2"/>.</summary>
-	public const int SettlDate2 = 193;
+	/// <summary>SettlDate2, a <see cref="FixField.Date"/>.</summary>
+	SettlDate2 = 193,
 
-	/// <summary>The tag of <see cref="FixField.LastSpotRate"/>.</summary>
-	public const int LastSpotRate = 194;
+	/// <summary>LastSpotRate, a <see cref="FixField.Decimal"/>.</summary>
+	LastSpotRate = 194,
 
-	/// <summary>The tag of <see cref="FixField.LastForwardPoints"/>.</summary>
-	public const int LastForwardPoints = 195;
+	/// <summary>LastForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	LastForwardPoints = 195,
 
-	/// <summary>The tag of <see cref="FixField.AllocLinkID"/>.</summary>
-	public const int AllocLinkID = 196;
+	/// <summary>AllocLinkID, a <see cref="FixField.Text"/>.</summary>
+	AllocLinkID = 196,
 
-	/// <summary>The tag of <see cref="FixField.AllocLinkType"/>.</summary>
-	public const int AllocLinkType = 197;
+	/// <summary>AllocLinkType, a <see cref="FixField.Integer"/>.</summary>
+	AllocLinkType = 197,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryOrderID"/>.</summary>
-	public const int SecondaryOrderID = 198;
+	/// <summary>SecondaryOrderID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryOrderID = 198,
 
-	/// <summary>The tag of <see cref="FixField.NoIOIQualifiers"/>.</summary>
-	public const int NoIOIQualifiers = 199;
+	/// <summary>NoIOIQualifiers, a <see cref="FixField.Integer"/>.</summary>
+	NoIOIQualifiers = 199,
 
-	/// <summary>The tag of <see cref="FixField.MaturityMonthYear"/>.</summary>
-	public const int MaturityMonthYear = 200;
+	/// <summary>MaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	MaturityMonthYear = 200,
 
-	/// <summary>The tag of <see cref="FixField.PutOrCall"/>.</summary>
-	public const int PutOrCall = 201;
+	/// <summary>PutOrCall, a <see cref="FixField.Integer"/>.</summary>
+	PutOrCall = 201,
 
-	/// <summary>The tag of <see cref="FixField.StrikePrice"/>.</summary>
-	public const int StrikePrice = 202;
+	/// <summary>StrikePrice, a <see cref="FixField.Decimal"/>.</summary>
+	StrikePrice = 202,
 
-	/// <summary>The tag of <see cref="FixField.CoveredOrUncovered"/>.</summary>
-	public const int CoveredOrUncovered = 203;
+	/// <summary>CoveredOrUncovered, a <see cref="FixField.Integer"/>.</summary>
+	CoveredOrUncovered = 203,
 
-	/// <summary>The tag of <see cref="FixField.OptAttribute"/>.</summary>
-	public const int OptAttribute = 206;
+	/// <summary>OptAttribute, a <see cref="FixField.Character"/>.</summary>
+	OptAttribute = 206,
 
-	/// <summary>The tag of <see cref="FixField.SecurityExchange"/>.</summary>
-	public const int SecurityExchange = 207;
+	/// <summary>SecurityExchange, a <see cref="FixField.Text"/>.</summary>
+	SecurityExchange = 207,
 
-	/// <summary>The tag of <see cref="FixField.NotifyBrokerOfCredit"/>.</summary>
-	public const int NotifyBrokerOfCredit = 208;
+	/// <summary>NotifyBrokerOfCredit, a <see cref="FixField.Boolean"/>.</summary>
+	NotifyBrokerOfCredit = 208,
 
-	/// <summary>The tag of <see cref="FixField.AllocHandlInst"/>.</summary>
-	public const int AllocHandlInst = 209;
+	/// <summary>AllocHandlInst, a <see cref="FixField.Integer"/>.</summary>
+	AllocHandlInst = 209,
 
-	/// <summary>The tag of <see cref="FixField.MaxShow"/>.</summary>
-	public const int MaxShow = 210;
+	/// <summary>MaxShow, a <see cref="FixField.Decimal"/>.</summary>
+	MaxShow = 210,
 
-	/// <summary>The tag of <see cref="FixField.PegOffsetValue"/>.</summary>
-	public const int PegOffsetValue = 211;
+	/// <summary>PegOffsetValue, a <see cref="FixField.Decimal"/>.</summary>
+	PegOffsetValue = 211,
 
-	/// <summary>The tag of <see cref="FixField.XmlDataLen"/>.</summary>
-	public const int XmlDataLen = 212;
+	/// <summary>XmlDataLen, a <see cref="FixField.Integer"/>.</summary>
+	XmlDataLen = 212,
 
-	/// <summary>The tag of <see cref="FixField.XmlData"/>.</summary>
-	public const int XmlData = 213;
+	/// <summary>XmlData, a <see cref="FixField.Data"/>.</summary>
+	XmlData = 213,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstRefID"/>.</summary>
-	public const int SettlInstRefID = 214;
+	/// <summary>SettlInstRefID, a <see cref="FixField.Text"/>.</summary>
+	SettlInstRefID = 214,
 
-	/// <summary>The tag of <see cref="FixField.NoRoutingIDs"/>.</summary>
-	public const int NoRoutingIDs = 215;
+	/// <summary>NoRoutingIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoRoutingIDs = 215,
 
-	/// <summary>The tag of <see cref="FixField.RoutingType"/>.</summary>
-	public const int RoutingType = 216;
+	/// <summary>RoutingType, a <see cref="FixField.Integer"/>.</summary>
+	RoutingType = 216,
 
-	/// <summary>The tag of <see cref="FixField.RoutingID"/>.</summary>
-	public const int RoutingID = 217;
+	/// <summary>RoutingID, a <see cref="FixField.Text"/>.</summary>
+	RoutingID = 217,
 
-	/// <summary>The tag of <see cref="FixField.Spread"/>.</summary>
-	public const int Spread = 218;
+	/// <summary>Spread, a <see cref="FixField.Decimal"/>.</summary>
+	Spread = 218,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkCurveCurrency"/>.</summary>
-	public const int BenchmarkCurveCurrency = 220;
+	/// <summary>BenchmarkCurveCurrency, a <see cref="FixField.Text"/>.</summary>
+	BenchmarkCurveCurrency = 220,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkCurveName"/>.</summary>
-	public const int BenchmarkCurveName = 221;
+	/// <summary>BenchmarkCurveName, a <see cref="FixField.Text"/>.</summary>
+	BenchmarkCurveName = 221,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkCurvePoint"/>.</summary>
-	public const int BenchmarkCurvePoint = 222;
+	/// <summary>BenchmarkCurvePoint, a <see cref="FixField.Text"/>.</summary>
+	BenchmarkCurvePoint = 222,
 
-	/// <summary>The tag of <see cref="FixField.CouponRate"/>.</summary>
-	public const int CouponRate = 223;
+	/// <summary>CouponRate, a <see cref="FixField.Decimal"/>.</summary>
+	CouponRate = 223,
 
-	/// <summary>The tag of <see cref="FixField.CouponPaymentDate"/>.</summary>
-	public const int CouponPaymentDate = 224;
+	/// <summary>CouponPaymentDate, a <see cref="FixField.Date"/>.</summary>
+	CouponPaymentDate = 224,
 
-	/// <summary>The tag of <see cref="FixField.IssueDate"/>.</summary>
-	public const int IssueDate = 225;
+	/// <summary>IssueDate, a <see cref="FixField.Date"/>.</summary>
+	IssueDate = 225,
 
-	/// <summary>The tag of <see cref="FixField.RepurchaseTerm"/>.</summary>
-	public const int RepurchaseTerm = 226;
+	/// <summary>RepurchaseTerm, a <see cref="FixField.Integer"/>.</summary>
+	RepurchaseTerm = 226,
 
-	/// <summary>The tag of <see cref="FixField.RepurchaseRate"/>.</summary>
-	public const int RepurchaseRate = 227;
+	/// <summary>RepurchaseRate, a <see cref="FixField.Decimal"/>.</summary>
+	RepurchaseRate = 227,
 
-	/// <summary>The tag of <see cref="FixField.Factor"/>.</summary>
-	public const int Factor = 228;
+	/// <summary>Factor, a <see cref="FixField.Decimal"/>.</summary>
+	Factor = 228,
 
-	/// <summary>The tag of <see cref="FixField.TradeOriginationDate"/>.</summary>
-	public const int TradeOriginationDate = 229;
+	/// <summary>TradeOriginationDate, a <see cref="FixField.Date"/>.</summary>
+	TradeOriginationDate = 229,
 
-	/// <summary>The tag of <see cref="FixField.ExDate"/>.</summary>
-	public const int ExDate = 230;
+	/// <summary>ExDate, a <see cref="FixField.Date"/>.</summary>
+	ExDate = 230,
 
-	/// <summary>The tag of <see cref="FixField.ContractMultiplier"/>.</summary>
-	public const int ContractMultiplier = 231;
+	/// <summary>ContractMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	ContractMultiplier = 231,
 
-	/// <summary>The tag of <see cref="FixField.NoStipulations"/>.</summary>
-	public const int NoStipulations = 232;
+	/// <summary>NoStipulations, a <see cref="FixField.Integer"/>.</summary>
+	NoStipulations = 232,
 
-	/// <summary>The tag of <see cref="FixField.StipulationType"/>.</summary>
-	public const int StipulationType = 233;
+	/// <summary>StipulationType, a <see cref="FixField.Text"/>.</summary>
+	StipulationType = 233,
 
-	/// <summary>The tag of <see cref="FixField.StipulationValue"/>.</summary>
-	public const int StipulationValue = 234;
+	/// <summary>StipulationValue, a <see cref="FixField.Text"/>.</summary>
+	StipulationValue = 234,
 
-	/// <summary>The tag of <see cref="FixField.YieldType"/>.</summary>
-	public const int YieldType = 235;
+	/// <summary>YieldType, a <see cref="FixField.Text"/>.</summary>
+	YieldType = 235,
 
-	/// <summary>The tag of <see cref="FixField.Yield"/>.</summary>
-	public const int Yield = 236;
+	/// <summary>Yield, a <see cref="FixField.Decimal"/>.</summary>
+	Yield = 236,
 
-	/// <summary>The tag of <see cref="FixField.TotalTakedown"/>.</summary>
-	public const int TotalTakedown = 237;
+	/// <summary>TotalTakedown, a <see cref="FixField.Decimal"/>.</summary>
+	TotalTakedown = 237,
 
-	/// <summary>The tag of <see cref="FixField.Concession"/>.</summary>
-	public const int Concession = 238;
+	/// <summary>Concession, a <see cref="FixField.Decimal"/>.</summary>
+	Concession = 238,
 
-	/// <summary>The tag of <see cref="FixField.RepoCollateralSecurityType"/>.</summary>
-	public const int RepoCollateralSecurityType = 239;
+	/// <summary>RepoCollateralSecurityType, a <see cref="FixField.Text"/>.</summary>
+	RepoCollateralSecurityType = 239,
 
-	/// <summary>The tag of <see cref="FixField.RedemptionDate"/>.</summary>
-	public const int RedemptionDate = 240;
+	/// <summary>RedemptionDate, a <see cref="FixField.Date"/>.</summary>
+	RedemptionDate = 240,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCouponPaymentDate"/>.</summary>
-	public const int UnderlyingCouponPaymentDate = 241;
+	/// <summary>UnderlyingCouponPaymentDate, a <see cref="FixField.Date"/>.</summary>
+	UnderlyingCouponPaymentDate = 241,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingIssueDate"/>.</summary>
-	public const int UnderlyingIssueDate = 242;
+	/// <summary>UnderlyingIssueDate, a <see cref="FixField.Date"/>.</summary>
+	UnderlyingIssueDate = 242,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingRepoCollateralSecurityType"/>.</summary>
-	public const int UnderlyingRepoCollateralSecurityType = 243;
+	/// <summary>UnderlyingRepoCollateralSecurityType, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingRepoCollateralSecurityType = 243,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingRepurchaseTerm"/>.</summary>
-	public const int UnderlyingRepurchaseTerm = 244;
+	/// <summary>UnderlyingRepurchaseTerm, a <see cref="FixField.Integer"/>.</summary>
+	UnderlyingRepurchaseTerm = 244,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingRepurchaseRate"/>.</summary>
-	public const int UnderlyingRepurchaseRate = 245;
+	/// <summary>UnderlyingRepurchaseRate, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingRepurchaseRate = 245,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingFactor"/>.</summary>
-	public const int UnderlyingFactor = 246;
+	/// <summary>UnderlyingFactor, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingFactor = 246,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingRedemptionDate"/>.</summary>
-	public const int UnderlyingRedemptionDate = 247;
+	/// <summary>UnderlyingRedemptionDate, a <see cref="FixField.Date"/>.</summary>
+	UnderlyingRedemptionDate = 247,
 
-	/// <summary>The tag of <see cref="FixField.LegCouponPaymentDate"/>.</summary>
-	public const int LegCouponPaymentDate = 248;
+	/// <summary>LegCouponPaymentDate, a <see cref="FixField.Date"/>.</summary>
+	LegCouponPaymentDate = 248,
 
-	/// <summary>The tag of <see cref="FixField.LegIssueDate"/>.</summary>
-	public const int LegIssueDate = 249;
+	/// <summary>LegIssueDate, a <see cref="FixField.Date"/>.</summary>
+	LegIssueDate = 249,
 
-	/// <summary>The tag of <see cref="FixField.LegRepoCollateralSecurityType"/>.</summary>
-	public const int LegRepoCollateralSecurityType = 250;
+	/// <summary>LegRepoCollateralSecurityType, a <see cref="FixField.Text"/>.</summary>
+	LegRepoCollateralSecurityType = 250,
 
-	/// <summary>The tag of <see cref="FixField.LegRepurchaseTerm"/>.</summary>
-	public const int LegRepurchaseTerm = 251;
+	/// <summary>LegRepurchaseTerm, a <see cref="FixField.Integer"/>.</summary>
+	LegRepurchaseTerm = 251,
 
-	/// <summary>The tag of <see cref="FixField.LegRepurchaseRate"/>.</summary>
-	public const int LegRepurchaseRate = 252;
+	/// <summary>LegRepurchaseRate, a <see cref="FixField.Decimal"/>.</summary>
+	LegRepurchaseRate = 252,
 
-	/// <summary>The tag of <see cref="FixField.LegFactor"/>.</summary>
-	public const int LegFactor = 253;
+	/// <summary>LegFactor, a <see cref="FixField.Decimal"/>.</summary>
+	LegFactor = 253,
 
-	/// <summary>The tag of <see cref="FixField.LegRedemptionDate"/>.</summary>
-	public const int LegRedemptionDate = 254;
+	/// <summary>LegRedemptionDate, a <see cref="FixField.Date"/>.</summary>
+	LegRedemptionDate = 254,
 
-	/// <summary>The tag of <see cref="FixField.CreditRating"/>.</summary>
-	public const int CreditRating = 255;
+	/// <summary>CreditRating, a <see cref="FixField.Text"/>.</summary>
+	CreditRating = 255,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCreditRating"/>.</summary>
-	public const int UnderlyingCreditRating = 256;
+	/// <summary>UnderlyingCreditRating, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCreditRating = 256,
 
-	/// <summary>The tag of <see cref="FixField.LegCreditRating"/>.</summary>
-	public const int LegCreditRating = 257;
+	/// <summary>LegCreditRating, a <see cref="FixField.Text"/>.</summary>
+	LegCreditRating = 257,
 
-	/// <summary>The tag of <see cref="FixField.TradedFlatSwitch"/>.</summary>
-	public const int TradedFlatSwitch = 258;
+	/// <summary>TradedFlatSwitch, a <see cref="FixField.Boolean"/>.</summary>
+	TradedFlatSwitch = 258,
 
-	/// <summary>The tag of <see cref="FixField.BasisFeatureDate"/>.</summary>
-	public const int BasisFeatureDate = 259;
+	/// <summary>BasisFeatureDate, a <see cref="FixField.Date"/>.</summary>
+	BasisFeatureDate = 259,
 
-	/// <summary>The tag of <see cref="FixField.BasisFeaturePrice"/>.</summary>
-	public const int BasisFeaturePrice = 260;
+	/// <summary>BasisFeaturePrice, a <see cref="FixField.Decimal"/>.</summary>
+	BasisFeaturePrice = 260,
 
-	/// <summary>The tag of <see cref="FixField.MDReqID"/>.</summary>
-	public const int MDReqID = 262;
+	/// <summary>MDReqID, a <see cref="FixField.Text"/>.</summary>
+	MDReqID = 262,
 
-	/// <summary>The tag of <see cref="FixField.SubscriptionRequestType"/>.</summary>
-	public const int SubscriptionRequestType = 263;
+	/// <summary>SubscriptionRequestType, a <see cref="FixField.Character"/>.</summary>
+	SubscriptionRequestType = 263,
 
-	/// <summary>The tag of <see cref="FixField.MarketDepth"/>.</summary>
-	public const int MarketDepth = 264;
+	/// <summary>MarketDepth, a <see cref="FixField.Integer"/>.</summary>
+	MarketDepth = 264,
 
-	/// <summary>The tag of <see cref="FixField.MDUpdateType"/>.</summary>
-	public const int MDUpdateType = 265;
+	/// <summary>MDUpdateType, a <see cref="FixField.Integer"/>.</summary>
+	MDUpdateType = 265,
 
-	/// <summary>The tag of <see cref="FixField.AggregatedBook"/>.</summary>
-	public const int AggregatedBook = 266;
+	/// <summary>AggregatedBook, a <see cref="FixField.Boolean"/>.</summary>
+	AggregatedBook = 266,
 
-	/// <summary>The tag of <see cref="FixField.NoMDEntryTypes"/>.</summary>
-	public const int NoMDEntryTypes = 267;
+	/// <summary>NoMDEntryTypes, a <see cref="FixField.Integer"/>.</summary>
+	NoMDEntryTypes = 267,
 
-	/// <summary>The tag of <see cref="FixField.NoMDEntries"/>.</summary>
-	public const int NoMDEntries = 268;
+	/// <summary>NoMDEntries, a <see cref="FixField.Integer"/>.</summary>
+	NoMDEntries = 268,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryType"/>.</summary>
-	public const int MDEntryType = 269;
+	/// <summary>MDEntryType, a <see cref="FixField.Character"/>.</summary>
+	MDEntryType = 269,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryPx"/>.</summary>
-	public const int MDEntryPx = 270;
+	/// <summary>MDEntryPx, a <see cref="FixField.Decimal"/>.</summary>
+	MDEntryPx = 270,
 
-	/// <summary>The tag of <see cref="FixField.MDEntrySize"/>.</summary>
-	public const int MDEntrySize = 271;
+	/// <summary>MDEntrySize, a <see cref="FixField.Decimal"/>.</summary>
+	MDEntrySize = 271,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryDate"/>.</summary>
-	public const int MDEntryDate = 272;
+	/// <summary>MDEntryDate, a <see cref="FixField.Date"/>.</summary>
+	MDEntryDate = 272,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryTime"/>.</summary>
-	public const int MDEntryTime = 273;
+	/// <summary>MDEntryTime, a <see cref="FixField.Time"/>.</summary>
+	MDEntryTime = 273,
 
-	/// <summary>The tag of <see cref="FixField.TickDirection"/>.</summary>
-	public const int TickDirection = 274;
+	/// <summary>TickDirection, a <see cref="FixField.Character"/>.</summary>
+	TickDirection = 274,
 
-	/// <summary>The tag of <see cref="FixField.MDMkt"/>.</summary>
-	public const int MDMkt = 275;
+	/// <summary>MDMkt, a <see cref="FixField.Text"/>.</summary>
+	MDMkt = 275,
 
-	/// <summary>The tag of <see cref="FixField.QuoteCondition"/>.</summary>
-	public const int QuoteCondition = 276;
+	/// <summary>QuoteCondition, a <see cref="FixField.Multiple"/>.</summary>
+	QuoteCondition = 276,
 
-	/// <summary>The tag of <see cref="FixField.TradeCondition"/>.</summary>
-	public const int TradeCondition = 277;
+	/// <summary>TradeCondition, a <see cref="FixField.Multiple"/>.</summary>
+	TradeCondition = 277,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryID"/>.</summary>
-	public const int MDEntryID = 278;
+	/// <summary>MDEntryID, a <see cref="FixField.Text"/>.</summary>
+	MDEntryID = 278,
 
-	/// <summary>The tag of <see cref="FixField.MDUpdateAction"/>.</summary>
-	public const int MDUpdateAction = 279;
+	/// <summary>MDUpdateAction, a <see cref="FixField.Character"/>.</summary>
+	MDUpdateAction = 279,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryRefID"/>.</summary>
-	public const int MDEntryRefID = 280;
+	/// <summary>MDEntryRefID, a <see cref="FixField.Text"/>.</summary>
+	MDEntryRefID = 280,
 
-	/// <summary>The tag of <see cref="FixField.MDReqRejReason"/>.</summary>
-	public const int MDReqRejReason = 281;
+	/// <summary>MDReqRejReason, a <see cref="FixField.Character"/>.</summary>
+	MDReqRejReason = 281,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryOriginator"/>.</summary>
-	public const int MDEntryOriginator = 282;
+	/// <summary>MDEntryOriginator, a <see cref="FixField.Text"/>.</summary>
+	MDEntryOriginator = 282,
 
-	/// <summary>The tag of <see cref="FixField.LocationID"/>.</summary>
-	public const int LocationID = 283;
+	/// <summary>LocationID, a <see cref="FixField.Text"/>.</summary>
+	LocationID = 283,
 
-	/// <summary>The tag of <see cref="FixField.DeskID"/>.</summary>
-	public const int DeskID = 284;
+	/// <summary>DeskID, a <see cref="FixField.Text"/>.</summary>
+	DeskID = 284,
 
-	/// <summary>The tag of <see cref="FixField.DeleteReason"/>.</summary>
-	public const int DeleteReason = 285;
+	/// <summary>DeleteReason, a <see cref="FixField.Character"/>.</summary>
+	DeleteReason = 285,
 
-	/// <summary>The tag of <see cref="FixField.OpenCloseSettlFlag"/>.</summary>
-	public const int OpenCloseSettlFlag = 286;
+	/// <summary>OpenCloseSettlFlag, a <see cref="FixField.Multiple"/>.</summary>
+	OpenCloseSettlFlag = 286,
 
-	/// <summary>The tag of <see cref="FixField.SellerDays"/>.</summary>
-	public const int SellerDays = 287;
+	/// <summary>SellerDays, a <see cref="FixField.Integer"/>.</summary>
+	SellerDays = 287,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryBuyer"/>.</summary>
-	public const int MDEntryBuyer = 288;
+	/// <summary>MDEntryBuyer, a <see cref="FixField.Text"/>.</summary>
+	MDEntryBuyer = 288,
 
-	/// <summary>The tag of <see cref="FixField.MDEntrySeller"/>.</summary>
-	public const int MDEntrySeller = 289;
+	/// <summary>MDEntrySeller, a <see cref="FixField.Text"/>.</summary>
+	MDEntrySeller = 289,
 
-	/// <summary>The tag of <see cref="FixField.MDEntryPositionNo"/>.</summary>
-	public const int MDEntryPositionNo = 290;
+	/// <summary>MDEntryPositionNo, a <see cref="FixField.Integer"/>.</summary>
+	MDEntryPositionNo = 290,
 
-	/// <summary>The tag of <see cref="FixField.FinancialStatus"/>.</summary>
-	public const int FinancialStatus = 291;
+	/// <summary>FinancialStatus, a <see cref="FixField.Multiple"/>.</summary>
+	FinancialStatus = 291,
 
-	/// <summary>The tag of <see cref="FixField.CorporateAction"/>.</summary>
-	public const int CorporateAction = 292;
+	/// <summary>CorporateAction, a <see cref="FixField.Multiple"/>.</summary>
+	CorporateAction = 292,
 
-	/// <summary>The tag of <see cref="FixField.DefBidSize"/>.</summary>
-	public const int DefBidSize = 293;
+	/// <summary>DefBidSize, a <see cref="FixField.Decimal"/>.</summary>
+	DefBidSize = 293,
 
-	/// <summary>The tag of <see cref="FixField.DefOfferSize"/>.</summary>
-	public const int DefOfferSize = 294;
+	/// <summary>DefOfferSize, a <see cref="FixField.Decimal"/>.</summary>
+	DefOfferSize = 294,
 
-	/// <summary>The tag of <see cref="FixField.NoQuoteEntries"/>.</summary>
-	public const int NoQuoteEntries = 295;
+	/// <summary>NoQuoteEntries, a <see cref="FixField.Integer"/>.</summary>
+	NoQuoteEntries = 295,
 
-	/// <summary>The tag of <see cref="FixField.NoQuoteSets"/>.</summary>
-	public const int NoQuoteSets = 296;
+	/// <summary>NoQuoteSets, a <see cref="FixField.Integer"/>.</summary>
+	NoQuoteSets = 296,
 
-	/// <summary>The tag of <see cref="FixField.QuoteStatus"/>.</summary>
-	public const int QuoteStatus = 297;
+	/// <summary>QuoteStatus, a <see cref="FixField.Integer"/>.</summary>
+	QuoteStatus = 297,
 
-	/// <summary>The tag of <see cref="FixField.QuoteCancelType"/>.</summary>
-	public const int QuoteCancelType = 298;
+	/// <summary>QuoteCancelType, a <see cref="FixField.Integer"/>.</summary>
+	QuoteCancelType = 298,
 
-	/// <summary>The tag of <see cref="FixField.QuoteEntryID"/>.</summary>
-	public const int QuoteEntryID = 299;
+	/// <summary>QuoteEntryID, a <see cref="FixField.Text"/>.</summary>
+	QuoteEntryID = 299,
 
-	/// <summary>The tag of <see cref="FixField.QuoteRejectReason"/>.</summary>
-	public const int QuoteRejectReason = 300;
+	/// <summary>QuoteRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	QuoteRejectReason = 300,
 
-	/// <summary>The tag of <see cref="FixField.QuoteResponseLevel"/>.</summary>
-	public const int QuoteResponseLevel = 301;
+	/// <summary>QuoteResponseLevel, a <see cref="FixField.Integer"/>.</summary>
+	QuoteResponseLevel = 301,
 
-	/// <summary>The tag of <see cref="FixField.QuoteSetID"/>.</summary>
-	public const int QuoteSetID = 302;
+	/// <summary>QuoteSetID, a <see cref="FixField.Text"/>.</summary>
+	QuoteSetID = 302,
 
-	/// <summary>The tag of <see cref="FixField.QuoteRequestType"/>.</summary>
-	public const int QuoteRequestType = 303;
+	/// <summary>QuoteRequestType, a <see cref="FixField.Integer"/>.</summary>
+	QuoteRequestType = 303,
 
-	/// <summary>The tag of <see cref="FixField.TotNoQuoteEntries"/>.</summary>
-	public const int TotNoQuoteEntries = 304;
+	/// <summary>TotNoQuoteEntries, a <see cref="FixField.Integer"/>.</summary>
+	TotNoQuoteEntries = 304,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityIDSource"/>.</summary>
-	public const int UnderlyingSecurityIDSource = 305;
+	/// <summary>UnderlyingSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityIDSource = 305,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingIssuer"/>.</summary>
-	public const int UnderlyingIssuer = 306;
+	/// <summary>UnderlyingIssuer, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingIssuer = 306,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityDesc"/>.</summary>
-	public const int UnderlyingSecurityDesc = 307;
+	/// <summary>UnderlyingSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityDesc = 307,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityExchange"/>.</summary>
-	public const int UnderlyingSecurityExchange = 308;
+	/// <summary>UnderlyingSecurityExchange, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityExchange = 308,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityID"/>.</summary>
-	public const int UnderlyingSecurityID = 309;
+	/// <summary>UnderlyingSecurityID, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityID = 309,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityType"/>.</summary>
-	public const int UnderlyingSecurityType = 310;
+	/// <summary>UnderlyingSecurityType, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityType = 310,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSymbol"/>.</summary>
-	public const int UnderlyingSymbol = 311;
+	/// <summary>UnderlyingSymbol, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSymbol = 311,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSymbolSfx"/>.</summary>
-	public const int UnderlyingSymbolSfx = 312;
+	/// <summary>UnderlyingSymbolSfx, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSymbolSfx = 312,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingMaturityMonthYear"/>.</summary>
-	public const int UnderlyingMaturityMonthYear = 313;
+	/// <summary>UnderlyingMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	UnderlyingMaturityMonthYear = 313,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingPutOrCall"/>.</summary>
-	public const int UnderlyingPutOrCall = 315;
+	/// <summary>UnderlyingPutOrCall, a <see cref="FixField.Integer"/>.</summary>
+	UnderlyingPutOrCall = 315,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStrikePrice"/>.</summary>
-	public const int UnderlyingStrikePrice = 316;
+	/// <summary>UnderlyingStrikePrice, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingStrikePrice = 316,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingOptAttribute"/>.</summary>
-	public const int UnderlyingOptAttribute = 317;
+	/// <summary>UnderlyingOptAttribute, a <see cref="FixField.Character"/>.</summary>
+	UnderlyingOptAttribute = 317,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCurrency"/>.</summary>
-	public const int UnderlyingCurrency = 318;
+	/// <summary>UnderlyingCurrency, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCurrency = 318,
 
-	/// <summary>The tag of <see cref="FixField.SecurityReqID"/>.</summary>
-	public const int SecurityReqID = 320;
+	/// <summary>SecurityReqID, a <see cref="FixField.Text"/>.</summary>
+	SecurityReqID = 320,
 
-	/// <summary>The tag of <see cref="FixField.SecurityRequestType"/>.</summary>
-	public const int SecurityRequestType = 321;
+	/// <summary>SecurityRequestType, a <see cref="FixField.Integer"/>.</summary>
+	SecurityRequestType = 321,
 
-	/// <summary>The tag of <see cref="FixField.SecurityResponseID"/>.</summary>
-	public const int SecurityResponseID = 322;
+	/// <summary>SecurityResponseID, a <see cref="FixField.Text"/>.</summary>
+	SecurityResponseID = 322,
 
-	/// <summary>The tag of <see cref="FixField.SecurityResponseType"/>.</summary>
-	public const int SecurityResponseType = 323;
+	/// <summary>SecurityResponseType, a <see cref="FixField.Integer"/>.</summary>
+	SecurityResponseType = 323,
 
-	/// <summary>The tag of <see cref="FixField.SecurityStatusReqID"/>.</summary>
-	public const int SecurityStatusReqID = 324;
+	/// <summary>SecurityStatusReqID, a <see cref="FixField.Text"/>.</summary>
+	SecurityStatusReqID = 324,
 
-	/// <summary>The tag of <see cref="FixField.UnsolicitedIndicator"/>.</summary>
-	public const int UnsolicitedIndicator = 325;
+	/// <summary>UnsolicitedIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	UnsolicitedIndicator = 325,
 
-	/// <summary>The tag of <see cref="FixField.SecurityTradingStatus"/>.</summary>
-	public const int SecurityTradingStatus = 326;
+	/// <summary>SecurityTradingStatus, a <see cref="FixField.Integer"/>.</summary>
+	SecurityTradingStatus = 326,
 
-	/// <summary>The tag of <see cref="FixField.HaltReason"/>.</summary>
-	public const int HaltReason = 327;
+	/// <summary>HaltReason, a <see cref="FixField.Character"/>.</summary>
+	HaltReason = 327,
 
-	/// <summary>The tag of <see cref="FixField.InViewOfCommon"/>.</summary>
-	public const int InViewOfCommon = 328;
+	/// <summary>InViewOfCommon, a <see cref="FixField.Boolean"/>.</summary>
+	InViewOfCommon = 328,
 
-	/// <summary>The tag of <see cref="FixField.DueToRelated"/>.</summary>
-	public const int DueToRelated = 329;
+	/// <summary>DueToRelated, a <see cref="FixField.Boolean"/>.</summary>
+	DueToRelated = 329,
 
-	/// <summary>The tag of <see cref="FixField.BuyVolume"/>.</summary>
-	public const int BuyVolume = 330;
+	/// <summary>BuyVolume, a <see cref="FixField.Decimal"/>.</summary>
+	BuyVolume = 330,
 
-	/// <summary>The tag of <see cref="FixField.SellVolume"/>.</summary>
-	public const int SellVolume = 331;
+	/// <summary>SellVolume, a <see cref="FixField.Decimal"/>.</summary>
+	SellVolume = 331,
 
-	/// <summary>The tag of <see cref="FixField.HighPx"/>.</summary>
-	public const int HighPx = 332;
+	/// <summary>HighPx, a <see cref="FixField.Decimal"/>.</summary>
+	HighPx = 332,
 
-	/// <summary>The tag of <see cref="FixField.LowPx"/>.</summary>
-	public const int LowPx = 333;
+	/// <summary>LowPx, a <see cref="FixField.Decimal"/>.</summary>
+	LowPx = 333,
 
-	/// <summary>The tag of <see cref="FixField.Adjustment"/>.</summary>
-	public const int Adjustment = 334;
+	/// <summary>Adjustment, a <see cref="FixField.Integer"/>.</summary>
+	Adjustment = 334,
 
-	/// <summary>The tag of <see cref="FixField.TradSesReqID"/>.</summary>
-	public const int TradSesReqID = 335;
+	/// <summary>TradSesReqID, a <see cref="FixField.Text"/>.</summary>
+	TradSesReqID = 335,
 
-	/// <summary>The tag of <see cref="FixField.TradingSessionID"/>.</summary>
-	public const int TradingSessionID = 336;
+	/// <summary>TradingSessionID, a <see cref="FixField.Text"/>.</summary>
+	TradingSessionID = 336,
 
-	/// <summary>The tag of <see cref="FixField.ContraTrader"/>.</summary>
-	public const int ContraTrader = 337;
+	/// <summary>ContraTrader, a <see cref="FixField.Text"/>.</summary>
+	ContraTrader = 337,
 
-	/// <summary>The tag of <see cref="FixField.TradSesMethod"/>.</summary>
-	public const int TradSesMethod = 338;
+	/// <summary>TradSesMethod, a <see cref="FixField.Integer"/>.</summary>
+	TradSesMethod = 338,
 
-	/// <summary>The tag of <see cref="FixField.TradSesMode"/>.</summary>
-	public const int TradSesMode = 339;
+	/// <summary>TradSesMode, a <see cref="FixField.Integer"/>.</summary>
+	TradSesMode = 339,
 
-	/// <summary>The tag of <see cref="FixField.TradSesStatus"/>.</summary>
-	public const int TradSesStatus = 340;
+	/// <summary>TradSesStatus, a <see cref="FixField.Integer"/>.</summary>
+	TradSesStatus = 340,
 
-	/// <summary>The tag of <see cref="FixField.TradSesStartTime"/>.</summary>
-	public const int TradSesStartTime = 341;
+	/// <summary>TradSesStartTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TradSesStartTime = 341,
 
-	/// <summary>The tag of <see cref="FixField.TradSesOpenTime"/>.</summary>
-	public const int TradSesOpenTime = 342;
+	/// <summary>TradSesOpenTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TradSesOpenTime = 342,
 
-	/// <summary>The tag of <see cref="FixField.TradSesPreCloseTime"/>.</summary>
-	public const int TradSesPreCloseTime = 343;
+	/// <summary>TradSesPreCloseTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TradSesPreCloseTime = 343,
 
-	/// <summary>The tag of <see cref="FixField.TradSesCloseTime"/>.</summary>
-	public const int TradSesCloseTime = 344;
+	/// <summary>TradSesCloseTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TradSesCloseTime = 344,
 
-	/// <summary>The tag of <see cref="FixField.TradSesEndTime"/>.</summary>
-	public const int TradSesEndTime = 345;
+	/// <summary>TradSesEndTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TradSesEndTime = 345,
 
-	/// <summary>The tag of <see cref="FixField.NumberOfOrders"/>.</summary>
-	public const int NumberOfOrders = 346;
+	/// <summary>NumberOfOrders, a <see cref="FixField.Integer"/>.</summary>
+	NumberOfOrders = 346,
 
-	/// <summary>The tag of <see cref="FixField.MessageEncoding"/>.</summary>
-	public const int MessageEncoding = 347;
+	/// <summary>MessageEncoding, a <see cref="FixField.Text"/>.</summary>
+	MessageEncoding = 347,
 
-	/// <summary>The tag of <see cref="FixField.EncodedIssuerLen"/>.</summary>
-	public const int EncodedIssuerLen = 348;
+	/// <summary>EncodedIssuerLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedIssuerLen = 348,
 
-	/// <summary>The tag of <see cref="FixField.EncodedIssuer"/>.</summary>
-	public const int EncodedIssuer = 349;
+	/// <summary>EncodedIssuer, a <see cref="FixField.Data"/>.</summary>
+	EncodedIssuer = 349,
 
-	/// <summary>The tag of <see cref="FixField.EncodedSecurityDescLen"/>.</summary>
-	public const int EncodedSecurityDescLen = 350;
+	/// <summary>EncodedSecurityDescLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedSecurityDescLen = 350,
 
-	/// <summary>The tag of <see cref="FixField.EncodedSecurityDesc"/>.</summary>
-	public const int EncodedSecurityDesc = 351;
+	/// <summary>EncodedSecurityDesc, a <see cref="FixField.Data"/>.</summary>
+	EncodedSecurityDesc = 351,
 
-	/// <summary>The tag of <see cref="FixField.EncodedListExecInstLen"/>.</summary>
-	public const int EncodedListExecInstLen = 352;
+	/// <summary>EncodedListExecInstLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedListExecInstLen = 352,
 
-	/// <summary>The tag of <see cref="FixField.EncodedListExecInst"/>.</summary>
-	public const int EncodedListExecInst = 353;
+	/// <summary>EncodedListExecInst, a <see cref="FixField.Data"/>.</summary>
+	EncodedListExecInst = 353,
 
-	/// <summary>The tag of <see cref="FixField.EncodedTextLen"/>.</summary>
-	public const int EncodedTextLen = 354;
+	/// <summary>EncodedTextLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedTextLen = 354,
 
-	/// <summary>The tag of <see cref="FixField.EncodedText"/>.</summary>
-	public const int EncodedText = 355;
+	/// <summary>EncodedText, a <see cref="FixField.Data"/>.</summary>
+	EncodedText = 355,
 
-	/// <summary>The tag of <see cref="FixField.EncodedSubjectLen"/>.</summary>
-	public const int EncodedSubjectLen = 356;
+	/// <summary>EncodedSubjectLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedSubjectLen = 356,
 
-	/// <summary>The tag of <see cref="FixField.EncodedSubject"/>.</summary>
-	public const int EncodedSubject = 357;
+	/// <summary>EncodedSubject, a <see cref="FixField.Data"/>.</summary>
+	EncodedSubject = 357,
 
-	/// <summary>The tag of <see cref="FixField.EncodedHeadlineLen"/>.</summary>
-	public const int EncodedHeadlineLen = 358;
+	/// <summary>EncodedHeadlineLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedHeadlineLen = 358,
 
-	/// <summary>The tag of <see cref="FixField.EncodedHeadline"/>.</summary>
-	public const int EncodedHeadline = 359;
+	/// <summary>EncodedHeadline, a <see cref="FixField.Data"/>.</summary>
+	EncodedHeadline = 359,
 
-	/// <summary>The tag of <see cref="FixField.EncodedAllocTextLen"/>.</summary>
-	public const int EncodedAllocTextLen = 360;
+	/// <summary>EncodedAllocTextLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedAllocTextLen = 360,
 
-	/// <summary>The tag of <see cref="FixField.EncodedAllocText"/>.</summary>
-	public const int EncodedAllocText = 361;
+	/// <summary>EncodedAllocText, a <see cref="FixField.Data"/>.</summary>
+	EncodedAllocText = 361,
 
-	/// <summary>The tag of <see cref="FixField.EncodedUnderlyingIssuerLen"/>.</summary>
-	public const int EncodedUnderlyingIssuerLen = 362;
+	/// <summary>EncodedUnderlyingIssuerLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedUnderlyingIssuerLen = 362,
 
-	/// <summary>The tag of <see cref="FixField.EncodedUnderlyingIssuer"/>.</summary>
-	public const int EncodedUnderlyingIssuer = 363;
+	/// <summary>EncodedUnderlyingIssuer, a <see cref="FixField.Data"/>.</summary>
+	EncodedUnderlyingIssuer = 363,
 
-	/// <summary>The tag of <see cref="FixField.EncodedUnderlyingSecurityDescLen"/>.</summary>
-	public const int EncodedUnderlyingSecurityDescLen = 364;
+	/// <summary>EncodedUnderlyingSecurityDescLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedUnderlyingSecurityDescLen = 364,
 
-	/// <summary>The tag of <see cref="FixField.EncodedUnderlyingSecurityDesc"/>.</summary>
-	public const int EncodedUnderlyingSecurityDesc = 365;
+	/// <summary>EncodedUnderlyingSecurityDesc, a <see cref="FixField.Data"/>.</summary>
+	EncodedUnderlyingSecurityDesc = 365,
 
-	/// <summary>The tag of <see cref="FixField.AllocPrice"/>.</summary>
-	public const int AllocPrice = 366;
+	/// <summary>AllocPrice, a <see cref="FixField.Decimal"/>.</summary>
+	AllocPrice = 366,
 
-	/// <summary>The tag of <see cref="FixField.QuoteSetValidUntilTime"/>.</summary>
-	public const int QuoteSetValidUntilTime = 367;
+	/// <summary>QuoteSetValidUntilTime, a <see cref="FixField.Timestamp"/>.</summary>
+	QuoteSetValidUntilTime = 367,
 
-	/// <summary>The tag of <see cref="FixField.QuoteEntryRejectReason"/>.</summary>
-	public const int QuoteEntryRejectReason = 368;
+	/// <summary>QuoteEntryRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	QuoteEntryRejectReason = 368,
 
-	/// <summary>The tag of <see cref="FixField.LastMsgSeqNumProcessed"/>.</summary>
-	public const int LastMsgSeqNumProcessed = 369;
+	/// <summary>LastMsgSeqNumProcessed, a <see cref="FixField.Integer"/>.</summary>
+	LastMsgSeqNumProcessed = 369,
 
-	/// <summary>The tag of <see cref="FixField.RefTagID"/>.</summary>
-	public const int RefTagID = 371;
+	/// <summary>RefTagID, a <see cref="FixField.Integer"/>.</summary>
+	RefTagID = 371,
 
-	/// <summary>The tag of <see cref="FixField.RefMsgType"/>.</summary>
-	public const int RefMsgType = 372;
+	/// <summary>RefMsgType, a <see cref="FixField.Text"/>.</summary>
+	RefMsgType = 372,
 
-	/// <summary>The tag of <see cref="FixField.SessionRejectReason"/>.</summary>
-	public const int SessionRejectReason = 373;
+	/// <summary>SessionRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	SessionRejectReason = 373,
 
-	/// <summary>The tag of <see cref="FixField.BidRequestTransType"/>.</summary>
-	public const int BidRequestTransType = 374;
+	/// <summary>BidRequestTransType, a <see cref="FixField.Character"/>.</summary>
+	BidRequestTransType = 374,
 
-	/// <summary>The tag of <see cref="FixField.ContraBroker"/>.</summary>
-	public const int ContraBroker = 375;
+	/// <summary>ContraBroker, a <see cref="FixField.Text"/>.</summary>
+	ContraBroker = 375,
 
-	/// <summary>The tag of <see cref="FixField.ComplianceID"/>.</summary>
-	public const int ComplianceID = 376;
+	/// <summary>ComplianceID, a <see cref="FixField.Text"/>.</summary>
+	ComplianceID = 376,
 
-	/// <summary>The tag of <see cref="FixField.SolicitedFlag"/>.</summary>
-	public const int SolicitedFlag = 377;
+	/// <summary>SolicitedFlag, a <see cref="FixField.Boolean"/>.</summary>
+	SolicitedFlag = 377,
 
-	/// <summary>The tag of <see cref="FixField.ExecRestatementReason"/>.</summary>
-	public const int ExecRestatementReason = 378;
+	/// <summary>ExecRestatementReason, a <see cref="FixField.Integer"/>.</summary>
+	ExecRestatementReason = 378,
 
-	/// <summary>The tag of <see cref="FixField.BusinessRejectRefID"/>.</summary>
-	public const int BusinessRejectRefID = 379;
+	/// <summary>BusinessRejectRefID, a <see cref="FixField.Text"/>.</summary>
+	BusinessRejectRefID = 379,
 
-	/// <summary>The tag of <see cref="FixField.BusinessRejectReason"/>.</summary>
-	public const int BusinessRejectReason = 380;
+	/// <summary>BusinessRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	BusinessRejectReason = 380,
 
-	/// <summary>The tag of <see cref="FixField.GrossTradeAmt"/>.</summary>
-	public const int GrossTradeAmt = 381;
+	/// <summary>GrossTradeAmt, a <see cref="FixField.Decimal"/>.</summary>
+	GrossTradeAmt = 381,
 
-	/// <summary>The tag of <see cref="FixField.NoContraBrokers"/>.</summary>
-	public const int NoContraBrokers = 382;
+	/// <summary>NoContraBrokers, a <see cref="FixField.Integer"/>.</summary>
+	NoContraBrokers = 382,
 
-	/// <summary>The tag of <see cref="FixField.MaxMessageSize"/>.</summary>
-	public const int MaxMessageSize = 383;
+	/// <summary>MaxMessageSize, a <see cref="FixField.Integer"/>.</summary>
+	MaxMessageSize = 383,
 
-	/// <summary>The tag of <see cref="FixField.NoMsgTypes"/>.</summary>
-	public const int NoMsgTypes = 384;
+	/// <summary>NoMsgTypes, a <see cref="FixField.Integer"/>.</summary>
+	NoMsgTypes = 384,
 
-	/// <summary>The tag of <see cref="FixField.MsgDirection"/>.</summary>
-	public const int MsgDirection = 385;
+	/// <summary>MsgDirection, a <see cref="FixField.Character"/>.</summary>
+	MsgDirection = 385,
 
-	/// <summary>The tag of <see cref="FixField.NoTradingSessions"/>.</summary>
-	public const int NoTradingSessions = 386;
+	/// <summary>NoTradingSessions, a <see cref="FixField.Integer"/>.</summary>
+	NoTradingSessions = 386,
 
-	/// <summary>The tag of <see cref="FixField.TotalVolumeTraded"/>.</summary>
-	public const int TotalVolumeTraded = 387;
+	/// <summary>TotalVolumeTraded, a <see cref="FixField.Decimal"/>.</summary>
+	TotalVolumeTraded = 387,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionInst"/>.</summary>
-	public const int DiscretionInst = 388;
+	/// <summary>DiscretionInst, a <see cref="FixField.Character"/>.</summary>
+	DiscretionInst = 388,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionOffsetValue"/>.</summary>
-	public const int DiscretionOffsetValue = 389;
+	/// <summary>DiscretionOffsetValue, a <see cref="FixField.Decimal"/>.</summary>
+	DiscretionOffsetValue = 389,
 
-	/// <summary>The tag of <see cref="FixField.BidID"/>.</summary>
-	public const int BidID = 390;
+	/// <summary>BidID, a <see cref="FixField.Text"/>.</summary>
+	BidID = 390,
 
-	/// <summary>The tag of <see cref="FixField.ClientBidID"/>.</summary>
-	public const int ClientBidID = 391;
+	/// <summary>ClientBidID, a <see cref="FixField.Text"/>.</summary>
+	ClientBidID = 391,
 
-	/// <summary>The tag of <see cref="FixField.ListName"/>.</summary>
-	public const int ListName = 392;
+	/// <summary>ListName, a <see cref="FixField.Text"/>.</summary>
+	ListName = 392,
 
-	/// <summary>The tag of <see cref="FixField.TotNoRelatedSym"/>.</summary>
-	public const int TotNoRelatedSym = 393;
+	/// <summary>TotNoRelatedSym, a <see cref="FixField.Integer"/>.</summary>
+	TotNoRelatedSym = 393,
 
-	/// <summary>The tag of <see cref="FixField.BidType"/>.</summary>
-	public const int BidType = 394;
+	/// <summary>BidType, a <see cref="FixField.Integer"/>.</summary>
+	BidType = 394,
 
-	/// <summary>The tag of <see cref="FixField.NumTickets"/>.</summary>
-	public const int NumTickets = 395;
+	/// <summary>NumTickets, a <see cref="FixField.Integer"/>.</summary>
+	NumTickets = 395,
 
-	/// <summary>The tag of <see cref="FixField.SideValue1"/>.</summary>
-	public const int SideValue1 = 396;
+	/// <summary>SideValue1, a <see cref="FixField.Decimal"/>.</summary>
+	SideValue1 = 396,
 
-	/// <summary>The tag of <see cref="FixField.SideValue2"/>.</summary>
-	public const int SideValue2 = 397;
+	/// <summary>SideValue2, a <see cref="FixField.Decimal"/>.</summary>
+	SideValue2 = 397,
 
-	/// <summary>The tag of <see cref="FixField.NoBidDescriptors"/>.</summary>
-	public const int NoBidDescriptors = 398;
+	/// <summary>NoBidDescriptors, a <see cref="FixField.Integer"/>.</summary>
+	NoBidDescriptors = 398,
 
-	/// <summary>The tag of <see cref="FixField.BidDescriptorType"/>.</summary>
-	public const int BidDescriptorType = 399;
+	/// <summary>BidDescriptorType, a <see cref="FixField.Integer"/>.</summary>
+	BidDescriptorType = 399,
 
-	/// <summary>The tag of <see cref="FixField.BidDescriptor"/>.</summary>
-	public const int BidDescriptor = 400;
+	/// <summary>BidDescriptor, a <see cref="FixField.Text"/>.</summary>
+	BidDescriptor = 400,
 
-	/// <summary>The tag of <see cref="FixField.SideValueInd"/>.</summary>
-	public const int SideValueInd = 401;
+	/// <summary>SideValueInd, a <see cref="FixField.Integer"/>.</summary>
+	SideValueInd = 401,
 
-	/// <summary>The tag of <see cref="FixField.LiquidityPctLow"/>.</summary>
-	public const int LiquidityPctLow = 402;
+	/// <summary>LiquidityPctLow, a <see cref="FixField.Decimal"/>.</summary>
+	LiquidityPctLow = 402,
 
-	/// <summary>The tag of <see cref="FixField.LiquidityPctHigh"/>.</summary>
-	public const int LiquidityPctHigh = 403;
+	/// <summary>LiquidityPctHigh, a <see cref="FixField.Decimal"/>.</summary>
+	LiquidityPctHigh = 403,
 
-	/// <summary>The tag of <see cref="FixField.LiquidityValue"/>.</summary>
-	public const int LiquidityValue = 404;
+	/// <summary>LiquidityValue, a <see cref="FixField.Decimal"/>.</summary>
+	LiquidityValue = 404,
 
-	/// <summary>The tag of <see cref="FixField.EFPTrackingError"/>.</summary>
-	public const int EFPTrackingError = 405;
+	/// <summary>EFPTrackingError, a <see cref="FixField.Decimal"/>.</summary>
+	EFPTrackingError = 405,
 
-	/// <summary>The tag of <see cref="FixField.FairValue"/>.</summary>
-	public const int FairValue = 406;
+	/// <summary>FairValue, a <see cref="FixField.Decimal"/>.</summary>
+	FairValue = 406,
 
-	/// <summary>The tag of <see cref="FixField.OutsideIndexPct"/>.</summary>
-	public const int OutsideIndexPct = 407;
+	/// <summary>OutsideIndexPct, a <see cref="FixField.Decimal"/>.</summary>
+	OutsideIndexPct = 407,
 
-	/// <summary>The tag of <see cref="FixField.ValueOfFutures"/>.</summary>
-	public const int ValueOfFutures = 408;
+	/// <summary>ValueOfFutures, a <see cref="FixField.Decimal"/>.</summary>
+	ValueOfFutures = 408,
 
-	/// <summary>The tag of <see cref="FixField.LiquidityIndType"/>.</summary>
-	public const int LiquidityIndType = 409;
+	/// <summary>LiquidityIndType, a <see cref="FixField.Integer"/>.</summary>
+	LiquidityIndType = 409,
 
-	/// <summary>The tag of <see cref="FixField.WtAverageLiquidity"/>.</summary>
-	public const int WtAverageLiquidity = 410;
+	/// <summary>WtAverageLiquidity, a <see cref="FixField.Decimal"/>.</summary>
+	WtAverageLiquidity = 410,
 
-	/// <summary>The tag of <see cref="FixField.ExchangeForPhysical"/>.</summary>
-	public const int ExchangeForPhysical = 411;
+	/// <summary>ExchangeForPhysical, a <see cref="FixField.Boolean"/>.</summary>
+	ExchangeForPhysical = 411,
 
-	/// <summary>The tag of <see cref="FixField.OutMainCntryUIndex"/>.</summary>
-	public const int OutMainCntryUIndex = 412;
+	/// <summary>OutMainCntryUIndex, a <see cref="FixField.Decimal"/>.</summary>
+	OutMainCntryUIndex = 412,
 
-	/// <summary>The tag of <see cref="FixField.CrossPercent"/>.</summary>
-	public const int CrossPercent = 413;
+	/// <summary>CrossPercent, a <see cref="FixField.Decimal"/>.</summary>
+	CrossPercent = 413,
 
-	/// <summary>The tag of <see cref="FixField.ProgRptReqs"/>.</summary>
-	public const int ProgRptReqs = 414;
+	/// <summary>ProgRptReqs, a <see cref="FixField.Integer"/>.</summary>
+	ProgRptReqs = 414,
 
-	/// <summary>The tag of <see cref="FixField.ProgPeriodInterval"/>.</summary>
-	public const int ProgPeriodInterval = 415;
+	/// <summary>ProgPeriodInterval, a <see cref="FixField.Integer"/>.</summary>
+	ProgPeriodInterval = 415,
 
-	/// <summary>The tag of <see cref="FixField.IncTaxInd"/>.</summary>
-	public const int IncTaxInd = 416;
+	/// <summary>IncTaxInd, a <see cref="FixField.Integer"/>.</summary>
+	IncTaxInd = 416,
 
-	/// <summary>The tag of <see cref="FixField.NumBidders"/>.</summary>
-	public const int NumBidders = 417;
+	/// <summary>NumBidders, a <see cref="FixField.Integer"/>.</summary>
+	NumBidders = 417,
 
-	/// <summary>The tag of <see cref="FixField.BidTradeType"/>.</summary>
-	public const int BidTradeType = 418;
+	/// <summary>BidTradeType, a <see cref="FixField.Character"/>.</summary>
+	BidTradeType = 418,
 
-	/// <summary>The tag of <see cref="FixField.BasisPxType"/>.</summary>
-	public const int BasisPxType = 419;
+	/// <summary>BasisPxType, a <see cref="FixField.Character"/>.</summary>
+	BasisPxType = 419,
 
-	/// <summary>The tag of <see cref="FixField.NoBidComponents"/>.</summary>
-	public const int NoBidComponents = 420;
+	/// <summary>NoBidComponents, a <see cref="FixField.Integer"/>.</summary>
+	NoBidComponents = 420,
 
-	/// <summary>The tag of <see cref="FixField.Country"/>.</summary>
-	public const int Country = 421;
+	/// <summary>Country, a <see cref="FixField.Text"/>.</summary>
+	Country = 421,
 
-	/// <summary>The tag of <see cref="FixField.TotNoStrikes"/>.</summary>
-	public const int TotNoStrikes = 422;
+	/// <summary>TotNoStrikes, a <see cref="FixField.Integer"/>.</summary>
+	TotNoStrikes = 422,
 
-	/// <summary>The tag of <see cref="FixField.PriceType"/>.</summary>
-	public const int PriceType = 423;
+	/// <summary>PriceType, a <see cref="FixField.Integer"/>.</summary>
+	PriceType = 423,
 
-	/// <summary>The tag of <see cref="FixField.DayOrderQty"/>.</summary>
-	public const int DayOrderQty = 424;
+	/// <summary>DayOrderQty, a <see cref="FixField.Decimal"/>.</summary>
+	DayOrderQty = 424,
 
-	/// <summary>The tag of <see cref="FixField.DayCumQty"/>.</summary>
-	public const int DayCumQty = 425;
+	/// <summary>DayCumQty, a <see cref="FixField.Decimal"/>.</summary>
+	DayCumQty = 425,
 
-	/// <summary>The tag of <see cref="FixField.DayAvgPx"/>.</summary>
-	public const int DayAvgPx = 426;
+	/// <summary>DayAvgPx, a <see cref="FixField.Decimal"/>.</summary>
+	DayAvgPx = 426,
 
-	/// <summary>The tag of <see cref="FixField.GTBookingInst"/>.</summary>
-	public const int GTBookingInst = 427;
+	/// <summary>GTBookingInst, a <see cref="FixField.Integer"/>.</summary>
+	GTBookingInst = 427,
 
-	/// <summary>The tag of <see cref="FixField.NoStrikes"/>.</summary>
-	public const int NoStrikes = 428;
+	/// <summary>NoStrikes, a <see cref="FixField.Integer"/>.</summary>
+	NoStrikes = 428,
 
-	/// <summary>The tag of <see cref="FixField.ListStatusType"/>.</summary>
-	public const int ListStatusType = 429;
+	/// <summary>ListStatusType, a <see cref="FixField.Integer"/>.</summary>
+	ListStatusType = 429,
 
-	/// <summary>The tag of <see cref="FixField.NetGrossInd"/>.</summary>
-	public const int NetGrossInd = 430;
+	/// <summary>NetGrossInd, a <see cref="FixField.Integer"/>.</summary>
+	NetGrossInd = 430,
 
-	/// <summary>The tag of <see cref="FixField.ListOrderStatus"/>.</summary>
-	public const int ListOrderStatus = 431;
+	/// <summary>ListOrderStatus, a <see cref="FixField.Integer"/>.</summary>
+	ListOrderStatus = 431,
 
-	/// <summary>The tag of <see cref="FixField.ExpireDate"/>.</summary>
-	public const int ExpireDate = 432;
+	/// <summary>ExpireDate, a <see cref="FixField.Date"/>.</summary>
+	ExpireDate = 432,
 
-	/// <summary>The tag of <see cref="FixField.ListExecInstType"/>.</summary>
-	public const int ListExecInstType = 433;
+	/// <summary>ListExecInstType, a <see cref="FixField.Character"/>.</summary>
+	ListExecInstType = 433,
 
-	/// <summary>The tag of <see cref="FixField.CxlRejResponseTo"/>.</summary>
-	public const int CxlRejResponseTo = 434;
+	/// <summary>CxlRejResponseTo, a <see cref="FixField.Character"/>.</summary>
+	CxlRejResponseTo = 434,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCouponRate"/>.</summary>
-	public const int UnderlyingCouponRate = 435;
+	/// <summary>UnderlyingCouponRate, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingCouponRate = 435,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingContractMultiplier"/>.</summary>
-	public const int UnderlyingContractMultiplier = 436;
+	/// <summary>UnderlyingContractMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingContractMultiplier = 436,
 
-	/// <summary>The tag of <see cref="FixField.ContraTradeQty"/>.</summary>
-	public const int ContraTradeQty = 437;
+	/// <summary>ContraTradeQty, a <see cref="FixField.Decimal"/>.</summary>
+	ContraTradeQty = 437,
 
-	/// <summary>The tag of <see cref="FixField.ContraTradeTime"/>.</summary>
-	public const int ContraTradeTime = 438;
+	/// <summary>ContraTradeTime, a <see cref="FixField.Timestamp"/>.</summary>
+	ContraTradeTime = 438,
 
-	/// <summary>The tag of <see cref="FixField.LiquidityNumSecurities"/>.</summary>
-	public const int LiquidityNumSecurities = 441;
+	/// <summary>LiquidityNumSecurities, a <see cref="FixField.Integer"/>.</summary>
+	LiquidityNumSecurities = 441,
 
-	/// <summary>The tag of <see cref="FixField.MultiLegReportingType"/>.</summary>
-	public const int MultiLegReportingType = 442;
+	/// <summary>MultiLegReportingType, a <see cref="FixField.Character"/>.</summary>
+	MultiLegReportingType = 442,
 
-	/// <summary>The tag of <see cref="FixField.StrikeTime"/>.</summary>
-	public const int StrikeTime = 443;
+	/// <summary>StrikeTime, a <see cref="FixField.Timestamp"/>.</summary>
+	StrikeTime = 443,
 
-	/// <summary>The tag of <see cref="FixField.ListStatusText"/>.</summary>
-	public const int ListStatusText = 444;
+	/// <summary>ListStatusText, a <see cref="FixField.Text"/>.</summary>
+	ListStatusText = 444,
 
-	/// <summary>The tag of <see cref="FixField.EncodedListStatusTextLen"/>.</summary>
-	public const int EncodedListStatusTextLen = 445;
+	/// <summary>EncodedListStatusTextLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedListStatusTextLen = 445,
 
-	/// <summary>The tag of <see cref="FixField.EncodedListStatusText"/>.</summary>
-	public const int EncodedListStatusText = 446;
+	/// <summary>EncodedListStatusText, a <see cref="FixField.Data"/>.</summary>
+	EncodedListStatusText = 446,
 
-	/// <summary>The tag of <see cref="FixField.PartyIDSource"/>.</summary>
-	public const int PartyIDSource = 447;
+	/// <summary>PartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	PartyIDSource = 447,
 
-	/// <summary>The tag of <see cref="FixField.PartyID"/>.</summary>
-	public const int PartyID = 448;
+	/// <summary>PartyID, a <see cref="FixField.Text"/>.</summary>
+	PartyID = 448,
 
-	/// <summary>The tag of <see cref="FixField.NetChgPrevDay"/>.</summary>
-	public const int NetChgPrevDay = 451;
+	/// <summary>NetChgPrevDay, a <see cref="FixField.Decimal"/>.</summary>
+	NetChgPrevDay = 451,
 
-	/// <summary>The tag of <see cref="FixField.PartyRole"/>.</summary>
-	public const int PartyRole = 452;
+	/// <summary>PartyRole, a <see cref="FixField.Integer"/>.</summary>
+	PartyRole = 452,
 
-	/// <summary>The tag of <see cref="FixField.NoPartyIDs"/>.</summary>
-	public const int NoPartyIDs = 453;
+	/// <summary>NoPartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoPartyIDs = 453,
 
-	/// <summary>The tag of <see cref="FixField.NoSecurityAltID"/>.</summary>
-	public const int NoSecurityAltID = 454;
+	/// <summary>NoSecurityAltID, a <see cref="FixField.Integer"/>.</summary>
+	NoSecurityAltID = 454,
 
-	/// <summary>The tag of <see cref="FixField.SecurityAltID"/>.</summary>
-	public const int SecurityAltID = 455;
+	/// <summary>SecurityAltID, a <see cref="FixField.Text"/>.</summary>
+	SecurityAltID = 455,
 
-	/// <summary>The tag of <see cref="FixField.SecurityAltIDSource"/>.</summary>
-	public const int SecurityAltIDSource = 456;
+	/// <summary>SecurityAltIDSource, a <see cref="FixField.Text"/>.</summary>
+	SecurityAltIDSource = 456,
 
-	/// <summary>The tag of <see cref="FixField.NoUnderlyingSecurityAltID"/>.</summary>
-	public const int NoUnderlyingSecurityAltID = 457;
+	/// <summary>NoUnderlyingSecurityAltID, a <see cref="FixField.Integer"/>.</summary>
+	NoUnderlyingSecurityAltID = 457,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityAltID"/>.</summary>
-	public const int UnderlyingSecurityAltID = 458;
+	/// <summary>UnderlyingSecurityAltID, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityAltID = 458,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecurityAltIDSource"/>.</summary>
-	public const int UnderlyingSecurityAltIDSource = 459;
+	/// <summary>UnderlyingSecurityAltIDSource, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecurityAltIDSource = 459,
 
-	/// <summary>The tag of <see cref="FixField.Product"/>.</summary>
-	public const int Product = 460;
+	/// <summary>Product, a <see cref="FixField.Integer"/>.</summary>
+	Product = 460,
 
-	/// <summary>The tag of <see cref="FixField.CFICode"/>.</summary>
-	public const int CFICode = 461;
+	/// <summary>CFICode, a <see cref="FixField.Text"/>.</summary>
+	CFICode = 461,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingProduct"/>.</summary>
-	public const int UnderlyingProduct = 462;
+	/// <summary>UnderlyingProduct, a <see cref="FixField.Integer"/>.</summary>
+	UnderlyingProduct = 462,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCFICode"/>.</summary>
-	public const int UnderlyingCFICode = 463;
+	/// <summary>UnderlyingCFICode, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCFICode = 463,
 
-	/// <summary>The tag of <see cref="FixField.TestMessageIndicator"/>.</summary>
-	public const int TestMessageIndicator = 464;
+	/// <summary>TestMessageIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	TestMessageIndicator = 464,
 
-	/// <summary>The tag of <see cref="FixField.BookingRefID"/>.</summary>
-	public const int BookingRefID = 466;
+	/// <summary>BookingRefID, a <see cref="FixField.Text"/>.</summary>
+	BookingRefID = 466,
 
-	/// <summary>The tag of <see cref="FixField.IndividualAllocID"/>.</summary>
-	public const int IndividualAllocID = 467;
+	/// <summary>IndividualAllocID, a <see cref="FixField.Text"/>.</summary>
+	IndividualAllocID = 467,
 
-	/// <summary>The tag of <see cref="FixField.RoundingDirection"/>.</summary>
-	public const int RoundingDirection = 468;
+	/// <summary>RoundingDirection, a <see cref="FixField.Character"/>.</summary>
+	RoundingDirection = 468,
 
-	/// <summary>The tag of <see cref="FixField.RoundingModulus"/>.</summary>
-	public const int RoundingModulus = 469;
+	/// <summary>RoundingModulus, a <see cref="FixField.Decimal"/>.</summary>
+	RoundingModulus = 469,
 
-	/// <summary>The tag of <see cref="FixField.CountryOfIssue"/>.</summary>
-	public const int CountryOfIssue = 470;
+	/// <summary>CountryOfIssue, a <see cref="FixField.Text"/>.</summary>
+	CountryOfIssue = 470,
 
-	/// <summary>The tag of <see cref="FixField.StateOrProvinceOfIssue"/>.</summary>
-	public const int StateOrProvinceOfIssue = 471;
+	/// <summary>StateOrProvinceOfIssue, a <see cref="FixField.Text"/>.</summary>
+	StateOrProvinceOfIssue = 471,
 
-	/// <summary>The tag of <see cref="FixField.LocaleOfIssue"/>.</summary>
-	public const int LocaleOfIssue = 472;
+	/// <summary>LocaleOfIssue, a <see cref="FixField.Text"/>.</summary>
+	LocaleOfIssue = 472,
 
-	/// <summary>The tag of <see cref="FixField.NoRegistDtls"/>.</summary>
-	public const int NoRegistDtls = 473;
+	/// <summary>NoRegistDtls, a <see cref="FixField.Integer"/>.</summary>
+	NoRegistDtls = 473,
 
-	/// <summary>The tag of <see cref="FixField.MailingDtls"/>.</summary>
-	public const int MailingDtls = 474;
+	/// <summary>MailingDtls, a <see cref="FixField.Text"/>.</summary>
+	MailingDtls = 474,
 
-	/// <summary>The tag of <see cref="FixField.InvestorCountryOfResidence"/>.</summary>
-	public const int InvestorCountryOfResidence = 475;
+	/// <summary>InvestorCountryOfResidence, a <see cref="FixField.Text"/>.</summary>
+	InvestorCountryOfResidence = 475,
 
-	/// <summary>The tag of <see cref="FixField.PaymentRef"/>.</summary>
-	public const int PaymentRef = 476;
+	/// <summary>PaymentRef, a <see cref="FixField.Text"/>.</summary>
+	PaymentRef = 476,
 
-	/// <summary>The tag of <see cref="FixField.DistribPaymentMethod"/>.</summary>
-	public const int DistribPaymentMethod = 477;
+	/// <summary>DistribPaymentMethod, a <see cref="FixField.Integer"/>.</summary>
+	DistribPaymentMethod = 477,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribCurr"/>.</summary>
-	public const int CashDistribCurr = 478;
+	/// <summary>CashDistribCurr, a <see cref="FixField.Text"/>.</summary>
+	CashDistribCurr = 478,
 
-	/// <summary>The tag of <see cref="FixField.CommCurrency"/>.</summary>
-	public const int CommCurrency = 479;
+	/// <summary>CommCurrency, a <see cref="FixField.Text"/>.</summary>
+	CommCurrency = 479,
 
-	/// <summary>The tag of <see cref="FixField.CancellationRights"/>.</summary>
-	public const int CancellationRights = 480;
+	/// <summary>CancellationRights, a <see cref="FixField.Character"/>.</summary>
+	CancellationRights = 480,
 
-	/// <summary>The tag of <see cref="FixField.MoneyLaunderingStatus"/>.</summary>
-	public const int MoneyLaunderingStatus = 481;
+	/// <summary>MoneyLaunderingStatus, a <see cref="FixField.Character"/>.</summary>
+	MoneyLaunderingStatus = 481,
 
-	/// <summary>The tag of <see cref="FixField.MailingInst"/>.</summary>
-	public const int MailingInst = 482;
+	/// <summary>MailingInst, a <see cref="FixField.Text"/>.</summary>
+	MailingInst = 482,
 
-	/// <summary>The tag of <see cref="FixField.TransBkdTime"/>.</summary>
-	public const int TransBkdTime = 483;
+	/// <summary>TransBkdTime, a <see cref="FixField.Timestamp"/>.</summary>
+	TransBkdTime = 483,
 
-	/// <summary>The tag of <see cref="FixField.ExecPriceType"/>.</summary>
-	public const int ExecPriceType = 484;
+	/// <summary>ExecPriceType, a <see cref="FixField.Character"/>.</summary>
+	ExecPriceType = 484,
 
-	/// <summary>The tag of <see cref="FixField.ExecPriceAdjustment"/>.</summary>
-	public const int ExecPriceAdjustment = 485;
+	/// <summary>ExecPriceAdjustment, a <see cref="FixField.Decimal"/>.</summary>
+	ExecPriceAdjustment = 485,
 
-	/// <summary>The tag of <see cref="FixField.DateOfBirth"/>.</summary>
-	public const int DateOfBirth = 486;
+	/// <summary>DateOfBirth, a <see cref="FixField.Date"/>.</summary>
+	DateOfBirth = 486,
 
-	/// <summary>The tag of <see cref="FixField.TradeReportTransType"/>.</summary>
-	public const int TradeReportTransType = 487;
+	/// <summary>TradeReportTransType, a <see cref="FixField.Integer"/>.</summary>
+	TradeReportTransType = 487,
 
-	/// <summary>The tag of <see cref="FixField.CardHolderName"/>.</summary>
-	public const int CardHolderName = 488;
+	/// <summary>CardHolderName, a <see cref="FixField.Text"/>.</summary>
+	CardHolderName = 488,
 
-	/// <summary>The tag of <see cref="FixField.CardNumber"/>.</summary>
-	public const int CardNumber = 489;
+	/// <summary>CardNumber, a <see cref="FixField.Text"/>.</summary>
+	CardNumber = 489,
 
-	/// <summary>The tag of <see cref="FixField.CardExpDate"/>.</summary>
-	public const int CardExpDate = 490;
+	/// <summary>CardExpDate, a <see cref="FixField.Date"/>.</summary>
+	CardExpDate = 490,
 
-	/// <summary>The tag of <see cref="FixField.CardIssNum"/>.</summary>
-	public const int CardIssNum = 491;
+	/// <summary>CardIssNum, a <see cref="FixField.Text"/>.</summary>
+	CardIssNum = 491,
 
-	/// <summary>The tag of <see cref="FixField.PaymentMethod"/>.</summary>
-	public const int PaymentMethod = 492;
+	/// <summary>PaymentMethod, a <see cref="FixField.Integer"/>.</summary>
+	PaymentMethod = 492,
 
-	/// <summary>The tag of <see cref="FixField.RegistAcctType"/>.</summary>
-	public const int RegistAcctType = 493;
+	/// <summary>RegistAcctType, a <see cref="FixField.Text"/>.</summary>
+	RegistAcctType = 493,
 
-	/// <summary>The tag of <see cref="FixField.Designation"/>.</summary>
-	public const int Designation = 494;
+	/// <summary>Designation, a <see cref="FixField.Text"/>.</summary>
+	Designation = 494,
 
-	/// <summary>The tag of <see cref="FixField.TaxAdvantageType"/>.</summary>
-	public const int TaxAdvantageType = 495;
+	/// <summary>TaxAdvantageType, a <see cref="FixField.Integer"/>.</summary>
+	TaxAdvantageType = 495,
 
-	/// <summary>The tag of <see cref="FixField.RegistRejReasonText"/>.</summary>
-	public const int RegistRejReasonText = 496;
+	/// <summary>RegistRejReasonText, a <see cref="FixField.Text"/>.</summary>
+	RegistRejReasonText = 496,
 
-	/// <summary>The tag of <see cref="FixField.FundRenewWaiv"/>.</summary>
-	public const int FundRenewWaiv = 497;
+	/// <summary>FundRenewWaiv, a <see cref="FixField.Character"/>.</summary>
+	FundRenewWaiv = 497,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribAgentName"/>.</summary>
-	public const int CashDistribAgentName = 498;
+	/// <summary>CashDistribAgentName, a <see cref="FixField.Text"/>.</summary>
+	CashDistribAgentName = 498,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribAgentCode"/>.</summary>
-	public const int CashDistribAgentCode = 499;
+	/// <summary>CashDistribAgentCode, a <see cref="FixField.Text"/>.</summary>
+	CashDistribAgentCode = 499,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribAgentAcctNumber"/>.</summary>
-	public const int CashDistribAgentAcctNumber = 500;
+	/// <summary>CashDistribAgentAcctNumber, a <see cref="FixField.Text"/>.</summary>
+	CashDistribAgentAcctNumber = 500,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribPayRef"/>.</summary>
-	public const int CashDistribPayRef = 501;
+	/// <summary>CashDistribPayRef, a <see cref="FixField.Text"/>.</summary>
+	CashDistribPayRef = 501,
 
-	/// <summary>The tag of <see cref="FixField.CashDistribAgentAcctName"/>.</summary>
-	public const int CashDistribAgentAcctName = 502;
+	/// <summary>CashDistribAgentAcctName, a <see cref="FixField.Text"/>.</summary>
+	CashDistribAgentAcctName = 502,
 
-	/// <summary>The tag of <see cref="FixField.CardStartDate"/>.</summary>
-	public const int CardStartDate = 503;
+	/// <summary>CardStartDate, a <see cref="FixField.Date"/>.</summary>
+	CardStartDate = 503,
 
-	/// <summary>The tag of <see cref="FixField.PaymentDate"/>.</summary>
-	public const int PaymentDate = 504;
+	/// <summary>PaymentDate, a <see cref="FixField.Date"/>.</summary>
+	PaymentDate = 504,
 
-	/// <summary>The tag of <see cref="FixField.PaymentRemitterID"/>.</summary>
-	public const int PaymentRemitterID = 505;
+	/// <summary>PaymentRemitterID, a <see cref="FixField.Text"/>.</summary>
+	PaymentRemitterID = 505,
 
-	/// <summary>The tag of <see cref="FixField.RegistStatus"/>.</summary>
-	public const int RegistStatus = 506;
+	/// <summary>RegistStatus, a <see cref="FixField.Character"/>.</summary>
+	RegistStatus = 506,
 
-	/// <summary>The tag of <see cref="FixField.RegistRejReasonCode"/>.</summary>
-	public const int RegistRejReasonCode = 507;
+	/// <summary>RegistRejReasonCode, a <see cref="FixField.Integer"/>.</summary>
+	RegistRejReasonCode = 507,
 
-	/// <summary>The tag of <see cref="FixField.RegistRefID"/>.</summary>
-	public const int RegistRefID = 508;
+	/// <summary>RegistRefID, a <see cref="FixField.Text"/>.</summary>
+	RegistRefID = 508,
 
-	/// <summary>The tag of <see cref="FixField.RegistDtls"/>.</summary>
-	public const int RegistDtls = 509;
+	/// <summary>RegistDtls, a <see cref="FixField.Text"/>.</summary>
+	RegistDtls = 509,
 
-	/// <summary>The tag of <see cref="FixField.NoDistribInsts"/>.</summary>
-	public const int NoDistribInsts = 510;
+	/// <summary>NoDistribInsts, a <see cref="FixField.Integer"/>.</summary>
+	NoDistribInsts = 510,
 
-	/// <summary>The tag of <see cref="FixField.RegistEmail"/>.</summary>
-	public const int RegistEmail = 511;
+	/// <summary>RegistEmail, a <see cref="FixField.Text"/>.</summary>
+	RegistEmail = 511,
 
-	/// <summary>The tag of <see cref="FixField.DistribPercentage"/>.</summary>
-	public const int DistribPercentage = 512;
+	/// <summary>DistribPercentage, a <see cref="FixField.Decimal"/>.</summary>
+	DistribPercentage = 512,
 
-	/// <summary>The tag of <see cref="FixField.RegistID"/>.</summary>
-	public const int RegistID = 513;
+	/// <summary>RegistID, a <see cref="FixField.Text"/>.</summary>
+	RegistID = 513,
 
-	/// <summary>The tag of <see cref="FixField.RegistTransType"/>.</summary>
-	public const int RegistTransType = 514;
+	/// <summary>RegistTransType, a <see cref="FixField.Character"/>.</summary>
+	RegistTransType = 514,
 
-	/// <summary>The tag of <see cref="FixField.ExecValuationPoint"/>.</summary>
-	public const int ExecValuationPoint = 515;
+	/// <summary>ExecValuationPoint, a <see cref="FixField.Timestamp"/>.</summary>
+	ExecValuationPoint = 515,
 
-	/// <summary>The tag of <see cref="FixField.OrderPercent"/>.</summary>
-	public const int OrderPercent = 516;
+	/// <summary>OrderPercent, a <see cref="FixField.Decimal"/>.</summary>
+	OrderPercent = 516,
 
-	/// <summary>The tag of <see cref="FixField.OwnershipType"/>.</summary>
-	public const int OwnershipType = 517;
+	/// <summary>OwnershipType, a <see cref="FixField.Character"/>.</summary>
+	OwnershipType = 517,
 
-	/// <summary>The tag of <see cref="FixField.NoContAmts"/>.</summary>
-	public const int NoContAmts = 518;
+	/// <summary>NoContAmts, a <see cref="FixField.Integer"/>.</summary>
+	NoContAmts = 518,
 
-	/// <summary>The tag of <see cref="FixField.ContAmtType"/>.</summary>
-	public const int ContAmtType = 519;
+	/// <summary>ContAmtType, a <see cref="FixField.Integer"/>.</summary>
+	ContAmtType = 519,
 
-	/// <summary>The tag of <see cref="FixField.ContAmtValue"/>.</summary>
-	public const int ContAmtValue = 520;
+	/// <summary>ContAmtValue, a <see cref="FixField.Decimal"/>.</summary>
+	ContAmtValue = 520,
 
-	/// <summary>The tag of <see cref="FixField.ContAmtCurr"/>.</summary>
-	public const int ContAmtCurr = 521;
+	/// <summary>ContAmtCurr, a <see cref="FixField.Text"/>.</summary>
+	ContAmtCurr = 521,
 
-	/// <summary>The tag of <see cref="FixField.OwnerType"/>.</summary>
-	public const int OwnerType = 522;
+	/// <summary>OwnerType, a <see cref="FixField.Integer"/>.</summary>
+	OwnerType = 522,
 
-	/// <summary>The tag of <see cref="FixField.PartySubID"/>.</summary>
-	public const int PartySubID = 523;
+	/// <summary>PartySubID, a <see cref="FixField.Text"/>.</summary>
+	PartySubID = 523,
 
-	/// <summary>The tag of <see cref="FixField.NestedPartyID"/>.</summary>
-	public const int NestedPartyID = 524;
+	/// <summary>NestedPartyID, a <see cref="FixField.Text"/>.</summary>
+	NestedPartyID = 524,
 
-	/// <summary>The tag of <see cref="FixField.NestedPartyIDSource"/>.</summary>
-	public const int NestedPartyIDSource = 525;
+	/// <summary>NestedPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	NestedPartyIDSource = 525,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryClOrdID"/>.</summary>
-	public const int SecondaryClOrdID = 526;
+	/// <summary>SecondaryClOrdID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryClOrdID = 526,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryExecID"/>.</summary>
-	public const int SecondaryExecID = 527;
+	/// <summary>SecondaryExecID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryExecID = 527,
 
-	/// <summary>The tag of <see cref="FixField.OrderCapacity"/>.</summary>
-	public const int OrderCapacity = 528;
+	/// <summary>OrderCapacity, a <see cref="FixField.Character"/>.</summary>
+	OrderCapacity = 528,
 
-	/// <summary>The tag of <see cref="FixField.OrderRestrictions"/>.</summary>
-	public const int OrderRestrictions = 529;
+	/// <summary>OrderRestrictions, a <see cref="FixField.Multiple"/>.</summary>
+	OrderRestrictions = 529,
 
-	/// <summary>The tag of <see cref="FixField.MassCancelRequestType"/>.</summary>
-	public const int MassCancelRequestType = 530;
+	/// <summary>MassCancelRequestType, a <see cref="FixField.Character"/>.</summary>
+	MassCancelRequestType = 530,
 
-	/// <summary>The tag of <see cref="FixField.MassCancelResponse"/>.</summary>
-	public const int MassCancelResponse = 531;
+	/// <summary>MassCancelResponse, a <see cref="FixField.Character"/>.</summary>
+	MassCancelResponse = 531,
 
-	/// <summary>The tag of <see cref="FixField.MassCancelRejectReason"/>.</summary>
-	public const int MassCancelRejectReason = 532;
+	/// <summary>MassCancelRejectReason, a <see cref="FixField.Text"/>.</summary>
+	MassCancelRejectReason = 532,
 
-	/// <summary>The tag of <see cref="FixField.TotalAffectedOrders"/>.</summary>
-	public const int TotalAffectedOrders = 533;
+	/// <summary>TotalAffectedOrders, a <see cref="FixField.Integer"/>.</summary>
+	TotalAffectedOrders = 533,
 
-	/// <summary>The tag of <see cref="FixField.NoAffectedOrders"/>.</summary>
-	public const int NoAffectedOrders = 534;
+	/// <summary>NoAffectedOrders, a <see cref="FixField.Integer"/>.</summary>
+	NoAffectedOrders = 534,
 
-	/// <summary>The tag of <see cref="FixField.AffectedOrderID"/>.</summary>
-	public const int AffectedOrderID = 535;
+	/// <summary>AffectedOrderID, a <see cref="FixField.Text"/>.</summary>
+	AffectedOrderID = 535,
 
-	/// <summary>The tag of <see cref="FixField.AffectedSecondaryOrderID"/>.</summary>
-	public const int AffectedSecondaryOrderID = 536;
+	/// <summary>AffectedSecondaryOrderID, a <see cref="FixField.Text"/>.</summary>
+	AffectedSecondaryOrderID = 536,
 
-	/// <summary>The tag of <see cref="FixField.QuoteType"/>.</summary>
-	public const int QuoteType = 537;
+	/// <summary>QuoteType, a <see cref="FixField.Integer"/>.</summary>
+	QuoteType = 537,
 
-	/// <summary>The tag of <see cref="FixField.NestedPartyRole"/>.</summary>
-	public const int NestedPartyRole = 538;
+	/// <summary>NestedPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	NestedPartyRole = 538,
 
-	/// <summary>The tag of <see cref="FixField.NoNestedPartyIDs"/>.</summary>
-	public const int NoNestedPartyIDs = 539;
+	/// <summary>NoNestedPartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNestedPartyIDs = 539,
 
-	/// <summary>The tag of <see cref="FixField.TotalAccruedInterestAmt"/>.</summary>
-	public const int TotalAccruedInterestAmt = 540;
+	/// <summary>TotalAccruedInterestAmt, a <see cref="FixField.Decimal"/>.</summary>
+	TotalAccruedInterestAmt = 540,
 
-	/// <summary>The tag of <see cref="FixField.MaturityDate"/>.</summary>
-	public const int MaturityDate = 541;
+	/// <summary>MaturityDate, a <see cref="FixField.Date"/>.</summary>
+	MaturityDate = 541,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingMaturityDate"/>.</summary>
-	public const int UnderlyingMaturityDate = 542;
+	/// <summary>UnderlyingMaturityDate, a <see cref="FixField.Date"/>.</summary>
+	UnderlyingMaturityDate = 542,
 
-	/// <summary>The tag of <see cref="FixField.InstrRegistry"/>.</summary>
-	public const int InstrRegistry = 543;
+	/// <summary>InstrRegistry, a <see cref="FixField.Text"/>.</summary>
+	InstrRegistry = 543,
 
-	/// <summary>The tag of <see cref="FixField.CashMargin"/>.</summary>
-	public const int CashMargin = 544;
+	/// <summary>CashMargin, a <see cref="FixField.Character"/>.</summary>
+	CashMargin = 544,
 
-	/// <summary>The tag of <see cref="FixField.NestedPartySubID"/>.</summary>
-	public const int NestedPartySubID = 545;
+	/// <summary>NestedPartySubID, a <see cref="FixField.Text"/>.</summary>
+	NestedPartySubID = 545,
 
-	/// <summary>The tag of <see cref="FixField.Scope"/>.</summary>
-	public const int Scope = 546;
+	/// <summary>Scope, a <see cref="FixField.Multiple"/>.</summary>
+	Scope = 546,
 
-	/// <summary>The tag of <see cref="FixField.MDImplicitDelete"/>.</summary>
-	public const int MDImplicitDelete = 547;
+	/// <summary>MDImplicitDelete, a <see cref="FixField.Boolean"/>.</summary>
+	MDImplicitDelete = 547,
 
-	/// <summary>The tag of <see cref="FixField.CrossID"/>.</summary>
-	public const int CrossID = 548;
+	/// <summary>CrossID, a <see cref="FixField.Text"/>.</summary>
+	CrossID = 548,
 
-	/// <summary>The tag of <see cref="FixField.CrossType"/>.</summary>
-	public const int CrossType = 549;
+	/// <summary>CrossType, a <see cref="FixField.Integer"/>.</summary>
+	CrossType = 549,
 
-	/// <summary>The tag of <see cref="FixField.CrossPrioritization"/>.</summary>
-	public const int CrossPrioritization = 550;
+	/// <summary>CrossPrioritization, a <see cref="FixField.Integer"/>.</summary>
+	CrossPrioritization = 550,
 
-	/// <summary>The tag of <see cref="FixField.OrigCrossID"/>.</summary>
-	public const int OrigCrossID = 551;
+	/// <summary>OrigCrossID, a <see cref="FixField.Text"/>.</summary>
+	OrigCrossID = 551,
 
-	/// <summary>The tag of <see cref="FixField.NoSides"/>.</summary>
-	public const int NoSides = 552;
+	/// <summary>NoSides, a <see cref="FixField.Integer"/>.</summary>
+	NoSides = 552,
 
-	/// <summary>The tag of <see cref="FixField.Username"/>.</summary>
-	public const int Username = 553;
+	/// <summary>Username, a <see cref="FixField.Text"/>.</summary>
+	Username = 553,
 
-	/// <summary>The tag of <see cref="FixField.Password"/>.</summary>
-	public const int Password = 554;
+	/// <summary>Password, a <see cref="FixField.Text"/>.</summary>
+	Password = 554,
 
-	/// <summary>The tag of <see cref="FixField.NoLegs"/>.</summary>
-	public const int NoLegs = 555;
+	/// <summary>NoLegs, a <see cref="FixField.Integer"/>.</summary>
+	NoLegs = 555,
 
-	/// <summary>The tag of <see cref="FixField.LegCurrency"/>.</summary>
-	public const int LegCurrency = 556;
+	/// <summary>LegCurrency, a <see cref="FixField.Text"/>.</summary>
+	LegCurrency = 556,
 
-	/// <summary>The tag of <see cref="FixField.TotNoSecurityTypes"/>.</summary>
-	public const int TotNoSecurityTypes = 557;
+	/// <summary>TotNoSecurityTypes, a <see cref="FixField.Integer"/>.</summary>
+	TotNoSecurityTypes = 557,
 
-	/// <summary>The tag of <see cref="FixField.NoSecurityTypes"/>.</summary>
-	public const int NoSecurityTypes = 558;
+	/// <summary>NoSecurityTypes, a <see cref="FixField.Integer"/>.</summary>
+	NoSecurityTypes = 558,
 
-	/// <summary>The tag of <see cref="FixField.SecurityListRequestType"/>.</summary>
-	public const int SecurityListRequestType = 559;
+	/// <summary>SecurityListRequestType, a <see cref="FixField.Integer"/>.</summary>
+	SecurityListRequestType = 559,
 
-	/// <summary>The tag of <see cref="FixField.SecurityRequestResult"/>.</summary>
-	public const int SecurityRequestResult = 560;
+	/// <summary>SecurityRequestResult, a <see cref="FixField.Integer"/>.</summary>
+	SecurityRequestResult = 560,
 
-	/// <summary>The tag of <see cref="FixField.RoundLot"/>.</summary>
-	public const int RoundLot = 561;
+	/// <summary>RoundLot, a <see cref="FixField.Decimal"/>.</summary>
+	RoundLot = 561,
 
-	/// <summary>The tag of <see cref="FixField.MinTradeVol"/>.</summary>
-	public const int MinTradeVol = 562;
+	/// <summary>MinTradeVol, a <see cref="FixField.Decimal"/>.</summary>
+	MinTradeVol = 562,
 
-	/// <summary>The tag of <see cref="FixField.MultiLegRptTypeReq"/>.</summary>
-	public const int MultiLegRptTypeReq = 563;
+	/// <summary>MultiLegRptTypeReq, a <see cref="FixField.Integer"/>.</summary>
+	MultiLegRptTypeReq = 563,
 
-	/// <summary>The tag of <see cref="FixField.LegPositionEffect"/>.</summary>
-	public const int LegPositionEffect = 564;
+	/// <summary>LegPositionEffect, a <see cref="FixField.Character"/>.</summary>
+	LegPositionEffect = 564,
 
-	/// <summary>The tag of <see cref="FixField.LegCoveredOrUncovered"/>.</summary>
-	public const int LegCoveredOrUncovered = 565;
+	/// <summary>LegCoveredOrUncovered, a <see cref="FixField.Integer"/>.</summary>
+	LegCoveredOrUncovered = 565,
 
-	/// <summary>The tag of <see cref="FixField.LegPrice"/>.</summary>
-	public const int LegPrice = 566;
+	/// <summary>LegPrice, a <see cref="FixField.Decimal"/>.</summary>
+	LegPrice = 566,
 
-	/// <summary>The tag of <see cref="FixField.TradSesStatusRejReason"/>.</summary>
-	public const int TradSesStatusRejReason = 567;
+	/// <summary>TradSesStatusRejReason, a <see cref="FixField.Integer"/>.</summary>
+	TradSesStatusRejReason = 567,
 
-	/// <summary>The tag of <see cref="FixField.TradeRequestID"/>.</summary>
-	public const int TradeRequestID = 568;
+	/// <summary>TradeRequestID, a <see cref="FixField.Text"/>.</summary>
+	TradeRequestID = 568,
 
-	/// <summary>The tag of <see cref="FixField.TradeRequestType"/>.</summary>
-	public const int TradeRequestType = 569;
+	/// <summary>TradeRequestType, a <see cref="FixField.Integer"/>.</summary>
+	TradeRequestType = 569,
 
-	/// <summary>The tag of <see cref="FixField.PreviouslyReported"/>.</summary>
-	public const int PreviouslyReported = 570;
+	/// <summary>PreviouslyReported, a <see cref="FixField.Boolean"/>.</summary>
+	PreviouslyReported = 570,
 
-	/// <summary>The tag of <see cref="FixField.TradeReportID"/>.</summary>
-	public const int TradeReportID = 571;
+	/// <summary>TradeReportID, a <see cref="FixField.Text"/>.</summary>
+	TradeReportID = 571,
 
-	/// <summary>The tag of <see cref="FixField.TradeReportRefID"/>.</summary>
-	public const int TradeReportRefID = 572;
+	/// <summary>TradeReportRefID, a <see cref="FixField.Text"/>.</summary>
+	TradeReportRefID = 572,
 
-	/// <summary>The tag of <see cref="FixField.MatchStatus"/>.</summary>
-	public const int MatchStatus = 573;
+	/// <summary>MatchStatus, a <see cref="FixField.Character"/>.</summary>
+	MatchStatus = 573,
 
-	/// <summary>The tag of <see cref="FixField.MatchType"/>.</summary>
-	public const int MatchType = 574;
+	/// <summary>MatchType, a <see cref="FixField.Text"/>.</summary>
+	MatchType = 574,
 
-	/// <summary>The tag of <see cref="FixField.OddLot"/>.</summary>
-	public const int OddLot = 575;
+	/// <summary>OddLot, a <see cref="FixField.Boolean"/>.</summary>
+	OddLot = 575,
 
-	/// <summary>The tag of <see cref="FixField.NoClearingInstructions"/>.</summary>
-	public const int NoClearingInstructions = 576;
+	/// <summary>NoClearingInstructions, a <see cref="FixField.Integer"/>.</summary>
+	NoClearingInstructions = 576,
 
-	/// <summary>The tag of <see cref="FixField.ClearingInstruction"/>.</summary>
-	public const int ClearingInstruction = 577;
+	/// <summary>ClearingInstruction, a <see cref="FixField.Integer"/>.</summary>
+	ClearingInstruction = 577,
 
-	/// <summary>The tag of <see cref="FixField.TradeInputSource"/>.</summary>
-	public const int TradeInputSource = 578;
+	/// <summary>TradeInputSource, a <see cref="FixField.Text"/>.</summary>
+	TradeInputSource = 578,
 
-	/// <summary>The tag of <see cref="FixField.TradeInputDevice"/>.</summary>
-	public const int TradeInputDevice = 579;
+	/// <summary>TradeInputDevice, a <see cref="FixField.Text"/>.</summary>
+	TradeInputDevice = 579,
 
-	/// <summary>The tag of <see cref="FixField.NoDates"/>.</summary>
-	public const int NoDates = 580;
+	/// <summary>NoDates, a <see cref="FixField.Integer"/>.</summary>
+	NoDates = 580,
 
-	/// <summary>The tag of <see cref="FixField.AccountType"/>.</summary>
-	public const int AccountType = 581;
+	/// <summary>AccountType, a <see cref="FixField.Integer"/>.</summary>
+	AccountType = 581,
 
-	/// <summary>The tag of <see cref="FixField.CustOrderCapacity"/>.</summary>
-	public const int CustOrderCapacity = 582;
+	/// <summary>CustOrderCapacity, a <see cref="FixField.Integer"/>.</summary>
+	CustOrderCapacity = 582,
 
-	/// <summary>The tag of <see cref="FixField.ClOrdLinkID"/>.</summary>
-	public const int ClOrdLinkID = 583;
+	/// <summary>ClOrdLinkID, a <see cref="FixField.Text"/>.</summary>
+	ClOrdLinkID = 583,
 
-	/// <summary>The tag of <see cref="FixField.MassStatusReqID"/>.</summary>
-	public const int MassStatusReqID = 584;
+	/// <summary>MassStatusReqID, a <see cref="FixField.Text"/>.</summary>
+	MassStatusReqID = 584,
 
-	/// <summary>The tag of <see cref="FixField.MassStatusReqType"/>.</summary>
-	public const int MassStatusReqType = 585;
+	/// <summary>MassStatusReqType, a <see cref="FixField.Integer"/>.</summary>
+	MassStatusReqType = 585,
 
-	/// <summary>The tag of <see cref="FixField.OrigOrdModTime"/>.</summary>
-	public const int OrigOrdModTime = 586;
+	/// <summary>OrigOrdModTime, a <see cref="FixField.Timestamp"/>.</summary>
+	OrigOrdModTime = 586,
 
-	/// <summary>The tag of <see cref="FixField.LegSettlType"/>.</summary>
-	public const int LegSettlType = 587;
+	/// <summary>LegSettlType, a <see cref="FixField.Character"/>.</summary>
+	LegSettlType = 587,
 
-	/// <summary>The tag of <see cref="FixField.LegSettlDate"/>.</summary>
-	public const int LegSettlDate = 588;
+	/// <summary>LegSettlDate, a <see cref="FixField.Date"/>.</summary>
+	LegSettlDate = 588,
 
-	/// <summary>The tag of <see cref="FixField.DayBookingInst"/>.</summary>
-	public const int DayBookingInst = 589;
+	/// <summary>DayBookingInst, a <see cref="FixField.Character"/>.</summary>
+	DayBookingInst = 589,
 
-	/// <summary>The tag of <see cref="FixField.BookingUnit"/>.</summary>
-	public const int BookingUnit = 590;
+	/// <summary>BookingUnit, a <see cref="FixField.Character"/>.</summary>
+	BookingUnit = 590,
 
-	/// <summary>The tag of <see cref="FixField.PreallocMethod"/>.</summary>
-	public const int PreallocMethod = 591;
+	/// <summary>PreallocMethod, a <see cref="FixField.Character"/>.</summary>
+	PreallocMethod = 591,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCountryOfIssue"/>.</summary>
-	public const int UnderlyingCountryOfIssue = 592;
+	/// <summary>UnderlyingCountryOfIssue, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCountryOfIssue = 592,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStateOrProvinceOfIssue"/>.</summary>
-	public const int UnderlyingStateOrProvinceOfIssue = 593;
+	/// <summary>UnderlyingStateOrProvinceOfIssue, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingStateOrProvinceOfIssue = 593,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingLocaleOfIssue"/>.</summary>
-	public const int UnderlyingLocaleOfIssue = 594;
+	/// <summary>UnderlyingLocaleOfIssue, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingLocaleOfIssue = 594,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingInstrRegistry"/>.</summary>
-	public const int UnderlyingInstrRegistry = 595;
+	/// <summary>UnderlyingInstrRegistry, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingInstrRegistry = 595,
 
-	/// <summary>The tag of <see cref="FixField.LegCountryOfIssue"/>.</summary>
-	public const int LegCountryOfIssue = 596;
+	/// <summary>LegCountryOfIssue, a <see cref="FixField.Text"/>.</summary>
+	LegCountryOfIssue = 596,
 
-	/// <summary>The tag of <see cref="FixField.LegStateOrProvinceOfIssue"/>.</summary>
-	public const int LegStateOrProvinceOfIssue = 597;
+	/// <summary>LegStateOrProvinceOfIssue, a <see cref="FixField.Text"/>.</summary>
+	LegStateOrProvinceOfIssue = 597,
 
-	/// <summary>The tag of <see cref="FixField.LegLocaleOfIssue"/>.</summary>
-	public const int LegLocaleOfIssue = 598;
+	/// <summary>LegLocaleOfIssue, a <see cref="FixField.Text"/>.</summary>
+	LegLocaleOfIssue = 598,
 
-	/// <summary>The tag of <see cref="FixField.LegInstrRegistry"/>.</summary>
-	public const int LegInstrRegistry = 599;
+	/// <summary>LegInstrRegistry, a <see cref="FixField.Text"/>.</summary>
+	LegInstrRegistry = 599,
 
-	/// <summary>The tag of <see cref="FixField.LegSymbol"/>.</summary>
-	public const int LegSymbol = 600;
+	/// <summary>LegSymbol, a <see cref="FixField.Text"/>.</summary>
+	LegSymbol = 600,
 
-	/// <summary>The tag of <see cref="FixField.LegSymbolSfx"/>.</summary>
-	public const int LegSymbolSfx = 601;
+	/// <summary>LegSymbolSfx, a <see cref="FixField.Text"/>.</summary>
+	LegSymbolSfx = 601,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityID"/>.</summary>
-	public const int LegSecurityID = 602;
+	/// <summary>LegSecurityID, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityID = 602,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityIDSource"/>.</summary>
-	public const int LegSecurityIDSource = 603;
+	/// <summary>LegSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityIDSource = 603,
 
-	/// <summary>The tag of <see cref="FixField.NoLegSecurityAltID"/>.</summary>
-	public const int NoLegSecurityAltID = 604;
+	/// <summary>NoLegSecurityAltID, a <see cref="FixField.Integer"/>.</summary>
+	NoLegSecurityAltID = 604,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityAltID"/>.</summary>
-	public const int LegSecurityAltID = 605;
+	/// <summary>LegSecurityAltID, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityAltID = 605,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityAltIDSource"/>.</summary>
-	public const int LegSecurityAltIDSource = 606;
+	/// <summary>LegSecurityAltIDSource, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityAltIDSource = 606,
 
-	/// <summary>The tag of <see cref="FixField.LegProduct"/>.</summary>
-	public const int LegProduct = 607;
+	/// <summary>LegProduct, a <see cref="FixField.Integer"/>.</summary>
+	LegProduct = 607,
 
-	/// <summary>The tag of <see cref="FixField.LegCFICode"/>.</summary>
-	public const int LegCFICode = 608;
+	/// <summary>LegCFICode, a <see cref="FixField.Text"/>.</summary>
+	LegCFICode = 608,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityType"/>.</summary>
-	public const int LegSecurityType = 609;
+	/// <summary>LegSecurityType, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityType = 609,
 
-	/// <summary>The tag of <see cref="FixField.LegMaturityMonthYear"/>.</summary>
-	public const int LegMaturityMonthYear = 610;
+	/// <summary>LegMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	LegMaturityMonthYear = 610,
 
-	/// <summary>The tag of <see cref="FixField.LegMaturityDate"/>.</summary>
-	public const int LegMaturityDate = 611;
+	/// <summary>LegMaturityDate, a <see cref="FixField.Date"/>.</summary>
+	LegMaturityDate = 611,
 
-	/// <summary>The tag of <see cref="FixField.LegStrikePrice"/>.</summary>
-	public const int LegStrikePrice = 612;
+	/// <summary>LegStrikePrice, a <see cref="FixField.Decimal"/>.</summary>
+	LegStrikePrice = 612,
 
-	/// <summary>The tag of <see cref="FixField.LegOptAttribute"/>.</summary>
-	public const int LegOptAttribute = 613;
+	/// <summary>LegOptAttribute, a <see cref="FixField.Character"/>.</summary>
+	LegOptAttribute = 613,
 
-	/// <summary>The tag of <see cref="FixField.LegContractMultiplier"/>.</summary>
-	public const int LegContractMultiplier = 614;
+	/// <summary>LegContractMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	LegContractMultiplier = 614,
 
-	/// <summary>The tag of <see cref="FixField.LegCouponRate"/>.</summary>
-	public const int LegCouponRate = 615;
+	/// <summary>LegCouponRate, a <see cref="FixField.Decimal"/>.</summary>
+	LegCouponRate = 615,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityExchange"/>.</summary>
-	public const int LegSecurityExchange = 616;
+	/// <summary>LegSecurityExchange, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityExchange = 616,
 
-	/// <summary>The tag of <see cref="FixField.LegIssuer"/>.</summary>
-	public const int LegIssuer = 617;
+	/// <summary>LegIssuer, a <see cref="FixField.Text"/>.</summary>
+	LegIssuer = 617,
 
-	/// <summary>The tag of <see cref="FixField.EncodedLegIssuerLen"/>.</summary>
-	public const int EncodedLegIssuerLen = 618;
+	/// <summary>EncodedLegIssuerLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedLegIssuerLen = 618,
 
-	/// <summary>The tag of <see cref="FixField.EncodedLegIssuer"/>.</summary>
-	public const int EncodedLegIssuer = 619;
+	/// <summary>EncodedLegIssuer, a <see cref="FixField.Data"/>.</summary>
+	EncodedLegIssuer = 619,
 
-	/// <summary>The tag of <see cref="FixField.LegSecurityDesc"/>.</summary>
-	public const int LegSecurityDesc = 620;
+	/// <summary>LegSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	LegSecurityDesc = 620,
 
-	/// <summary>The tag of <see cref="FixField.EncodedLegSecurityDescLen"/>.</summary>
-	public const int EncodedLegSecurityDescLen = 621;
+	/// <summary>EncodedLegSecurityDescLen, a <see cref="FixField.Integer"/>.</summary>
+	EncodedLegSecurityDescLen = 621,
 
-	/// <summary>The tag of <see cref="FixField.EncodedLegSecurityDesc"/>.</summary>
-	public const int EncodedLegSecurityDesc = 622;
+	/// <summary>EncodedLegSecurityDesc, a <see cref="FixField.Data"/>.</summary>
+	EncodedLegSecurityDesc = 622,
 
-	/// <summary>The tag of <see cref="FixField.LegRatioQty"/>.</summary>
-	public const int LegRatioQty = 623;
+	/// <summary>LegRatioQty, a <see cref="FixField.Decimal"/>.</summary>
+	LegRatioQty = 623,
 
-	/// <summary>The tag of <see cref="FixField.LegSide"/>.</summary>
-	public const int LegSide = 624;
+	/// <summary>LegSide, a <see cref="FixField.Character"/>.</summary>
+	LegSide = 624,
 
-	/// <summary>The tag of <see cref="FixField.TradingSessionSubID"/>.</summary>
-	public const int TradingSessionSubID = 625;
+	/// <summary>TradingSessionSubID, a <see cref="FixField.Text"/>.</summary>
+	TradingSessionSubID = 625,
 
-	/// <summary>The tag of <see cref="FixField.AllocType"/>.</summary>
-	public const int AllocType = 626;
+	/// <summary>AllocType, a <see cref="FixField.Integer"/>.</summary>
+	AllocType = 626,
 
-	/// <summary>The tag of <see cref="FixField.NoHops"/>.</summary>
-	public const int NoHops = 627;
+	/// <summary>NoHops, a <see cref="FixField.Integer"/>.</summary>
+	NoHops = 627,
 
-	/// <summary>The tag of <see cref="FixField.HopCompID"/>.</summary>
-	public const int HopCompID = 628;
+	/// <summary>HopCompID, a <see cref="FixField.Text"/>.</summary>
+	HopCompID = 628,
 
-	/// <summary>The tag of <see cref="FixField.HopSendingTime"/>.</summary>
-	public const int HopSendingTime = 629;
+	/// <summary>HopSendingTime, a <see cref="FixField.Timestamp"/>.</summary>
+	HopSendingTime = 629,
 
-	/// <summary>The tag of <see cref="FixField.HopRefID"/>.</summary>
-	public const int HopRefID = 630;
+	/// <summary>HopRefID, a <see cref="FixField.Integer"/>.</summary>
+	HopRefID = 630,
 
-	/// <summary>The tag of <see cref="FixField.MidPx"/>.</summary>
-	public const int MidPx = 631;
+	/// <summary>MidPx, a <see cref="FixField.Decimal"/>.</summary>
+	MidPx = 631,
 
-	/// <summary>The tag of <see cref="FixField.BidYield"/>.</summary>
-	public const int BidYield = 632;
+	/// <summary>BidYield, a <see cref="FixField.Decimal"/>.</summary>
+	BidYield = 632,
 
-	/// <summary>The tag of <see cref="FixField.MidYield"/>.</summary>
-	public const int MidYield = 633;
+	/// <summary>MidYield, a <see cref="FixField.Decimal"/>.</summary>
+	MidYield = 633,
 
-	/// <summary>The tag of <see cref="FixField.OfferYield"/>.</summary>
-	public const int OfferYield = 634;
+	/// <summary>OfferYield, a <see cref="FixField.Decimal"/>.</summary>
+	OfferYield = 634,
 
-	/// <summary>The tag of <see cref="FixField.ClearingFeeIndicator"/>.</summary>
-	public const int ClearingFeeIndicator = 635;
+	/// <summary>ClearingFeeIndicator, a <see cref="FixField.Text"/>.</summary>
+	ClearingFeeIndicator = 635,
 
-	/// <summary>The tag of <see cref="FixField.WorkingIndicator"/>.</summary>
-	public const int WorkingIndicator = 636;
+	/// <summary>WorkingIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	WorkingIndicator = 636,
 
-	/// <summary>The tag of <see cref="FixField.LegLastPx"/>.</summary>
-	public const int LegLastPx = 637;
+	/// <summary>LegLastPx, a <see cref="FixField.Decimal"/>.</summary>
+	LegLastPx = 637,
 
-	/// <summary>The tag of <see cref="FixField.PriorityIndicator"/>.</summary>
-	public const int PriorityIndicator = 638;
+	/// <summary>PriorityIndicator, a <see cref="FixField.Integer"/>.</summary>
+	PriorityIndicator = 638,
 
-	/// <summary>The tag of <see cref="FixField.PriceImprovement"/>.</summary>
-	public const int PriceImprovement = 639;
+	/// <summary>PriceImprovement, a <see cref="FixField.Decimal"/>.</summary>
+	PriceImprovement = 639,
 
-	/// <summary>The tag of <see cref="FixField.Price2"/>.</summary>
-	public const int Price2 = 640;
+	/// <summary>Price2, a <see cref="FixField.Decimal"/>.</summary>
+	Price2 = 640,
 
-	/// <summary>The tag of <see cref="FixField.LastForwardPoints2"/>.</summary>
-	public const int LastForwardPoints2 = 641;
+	/// <summary>LastForwardPoints2, a <see cref="FixField.Decimal"/>.</summary>
+	LastForwardPoints2 = 641,
 
-	/// <summary>The tag of <see cref="FixField.BidForwardPoints2"/>.</summary>
-	public const int BidForwardPoints2 = 642;
+	/// <summary>BidForwardPoints2, a <see cref="FixField.Decimal"/>.</summary>
+	BidForwardPoints2 = 642,
 
-	/// <summary>The tag of <see cref="FixField.OfferForwardPoints2"/>.</summary>
-	public const int OfferForwardPoints2 = 643;
+	/// <summary>OfferForwardPoints2, a <see cref="FixField.Decimal"/>.</summary>
+	OfferForwardPoints2 = 643,
 
-	/// <summary>The tag of <see cref="FixField.RFQReqID"/>.</summary>
-	public const int RFQReqID = 644;
+	/// <summary>RFQReqID, a <see cref="FixField.Text"/>.</summary>
+	RFQReqID = 644,
 
-	/// <summary>The tag of <see cref="FixField.MktBidPx"/>.</summary>
-	public const int MktBidPx = 645;
+	/// <summary>MktBidPx, a <see cref="FixField.Decimal"/>.</summary>
+	MktBidPx = 645,
 
-	/// <summary>The tag of <see cref="FixField.MktOfferPx"/>.</summary>
-	public const int MktOfferPx = 646;
+	/// <summary>MktOfferPx, a <see cref="FixField.Decimal"/>.</summary>
+	MktOfferPx = 646,
 
-	/// <summary>The tag of <see cref="FixField.MinBidSize"/>.</summary>
-	public const int MinBidSize = 647;
+	/// <summary>MinBidSize, a <see cref="FixField.Decimal"/>.</summary>
+	MinBidSize = 647,
 
-	/// <summary>The tag of <see cref="FixField.MinOfferSize"/>.</summary>
-	public const int MinOfferSize = 648;
+	/// <summary>MinOfferSize, a <see cref="FixField.Decimal"/>.</summary>
+	MinOfferSize = 648,
 
-	/// <summary>The tag of <see cref="FixField.QuoteStatusReqID"/>.</summary>
-	public const int QuoteStatusReqID = 649;
+	/// <summary>QuoteStatusReqID, a <see cref="FixField.Text"/>.</summary>
+	QuoteStatusReqID = 649,
 
-	/// <summary>The tag of <see cref="FixField.LegalConfirm"/>.</summary>
-	public const int LegalConfirm = 650;
+	/// <summary>LegalConfirm, a <see cref="FixField.Boolean"/>.</summary>
+	LegalConfirm = 650,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingLastPx"/>.</summary>
-	public const int UnderlyingLastPx = 651;
+	/// <summary>UnderlyingLastPx, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingLastPx = 651,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingLastQty"/>.</summary>
-	public const int UnderlyingLastQty = 652;
+	/// <summary>UnderlyingLastQty, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingLastQty = 652,
 
-	/// <summary>The tag of <see cref="FixField.LegRefID"/>.</summary>
-	public const int LegRefID = 654;
+	/// <summary>LegRefID, a <see cref="FixField.Text"/>.</summary>
+	LegRefID = 654,
 
-	/// <summary>The tag of <see cref="FixField.ContraLegRefID"/>.</summary>
-	public const int ContraLegRefID = 655;
+	/// <summary>ContraLegRefID, a <see cref="FixField.Text"/>.</summary>
+	ContraLegRefID = 655,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrBidFxRate"/>.</summary>
-	public const int SettlCurrBidFxRate = 656;
+	/// <summary>SettlCurrBidFxRate, a <see cref="FixField.Decimal"/>.</summary>
+	SettlCurrBidFxRate = 656,
 
-	/// <summary>The tag of <see cref="FixField.SettlCurrOfferFxRate"/>.</summary>
-	public const int SettlCurrOfferFxRate = 657;
+	/// <summary>SettlCurrOfferFxRate, a <see cref="FixField.Decimal"/>.</summary>
+	SettlCurrOfferFxRate = 657,
 
-	/// <summary>The tag of <see cref="FixField.QuoteRequestRejectReason"/>.</summary>
-	public const int QuoteRequestRejectReason = 658;
+	/// <summary>QuoteRequestRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	QuoteRequestRejectReason = 658,
 
-	/// <summary>The tag of <see cref="FixField.SideComplianceID"/>.</summary>
-	public const int SideComplianceID = 659;
+	/// <summary>SideComplianceID, a <see cref="FixField.Text"/>.</summary>
+	SideComplianceID = 659,
 
-	/// <summary>The tag of <see cref="FixField.AcctIDSource"/>.</summary>
-	public const int AcctIDSource = 660;
+	/// <summary>AcctIDSource, a <see cref="FixField.Integer"/>.</summary>
+	AcctIDSource = 660,
 
-	/// <summary>The tag of <see cref="FixField.AllocAcctIDSource"/>.</summary>
-	public const int AllocAcctIDSource = 661;
+	/// <summary>AllocAcctIDSource, a <see cref="FixField.Integer"/>.</summary>
+	AllocAcctIDSource = 661,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkPrice"/>.</summary>
-	public const int BenchmarkPrice = 662;
+	/// <summary>BenchmarkPrice, a <see cref="FixField.Decimal"/>.</summary>
+	BenchmarkPrice = 662,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkPriceType"/>.</summary>
-	public const int BenchmarkPriceType = 663;
+	/// <summary>BenchmarkPriceType, a <see cref="FixField.Integer"/>.</summary>
+	BenchmarkPriceType = 663,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmID"/>.</summary>
-	public const int ConfirmID = 664;
+	/// <summary>ConfirmID, a <see cref="FixField.Text"/>.</summary>
+	ConfirmID = 664,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmStatus"/>.</summary>
-	public const int ConfirmStatus = 665;
+	/// <summary>ConfirmStatus, a <see cref="FixField.Integer"/>.</summary>
+	ConfirmStatus = 665,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmTransType"/>.</summary>
-	public const int ConfirmTransType = 666;
+	/// <summary>ConfirmTransType, a <see cref="FixField.Integer"/>.</summary>
+	ConfirmTransType = 666,
 
-	/// <summary>The tag of <see cref="FixField.ContractSettlMonth"/>.</summary>
-	public const int ContractSettlMonth = 667;
+	/// <summary>ContractSettlMonth, a <see cref="FixField.MonthYear"/>.</summary>
+	ContractSettlMonth = 667,
 
-	/// <summary>The tag of <see cref="FixField.DeliveryForm"/>.</summary>
-	public const int DeliveryForm = 668;
+	/// <summary>DeliveryForm, a <see cref="FixField.Integer"/>.</summary>
+	DeliveryForm = 668,
 
-	/// <summary>The tag of <see cref="FixField.LastParPx"/>.</summary>
-	public const int LastParPx = 669;
+	/// <summary>LastParPx, a <see cref="FixField.Decimal"/>.</summary>
+	LastParPx = 669,
 
-	/// <summary>The tag of <see cref="FixField.NoLegAllocs"/>.</summary>
-	public const int NoLegAllocs = 670;
+	/// <summary>NoLegAllocs, a <see cref="FixField.Integer"/>.</summary>
+	NoLegAllocs = 670,
 
-	/// <summary>The tag of <see cref="FixField.LegAllocAccount"/>.</summary>
-	public const int LegAllocAccount = 671;
+	/// <summary>LegAllocAccount, a <see cref="FixField.Text"/>.</summary>
+	LegAllocAccount = 671,
 
-	/// <summary>The tag of <see cref="FixField.LegIndividualAllocID"/>.</summary>
-	public const int LegIndividualAllocID = 672;
+	/// <summary>LegIndividualAllocID, a <see cref="FixField.Text"/>.</summary>
+	LegIndividualAllocID = 672,
 
-	/// <summary>The tag of <see cref="FixField.LegAllocQty"/>.</summary>
-	public const int LegAllocQty = 673;
+	/// <summary>LegAllocQty, a <see cref="FixField.Decimal"/>.</summary>
+	LegAllocQty = 673,
 
-	/// <summary>The tag of <see cref="FixField.LegAllocAcctIDSource"/>.</summary>
-	public const int LegAllocAcctIDSource = 674;
+	/// <summary>LegAllocAcctIDSource, a <see cref="FixField.Text"/>.</summary>
+	LegAllocAcctIDSource = 674,
 
-	/// <summary>The tag of <see cref="FixField.LegSettlCurrency"/>.</summary>
-	public const int LegSettlCurrency = 675;
+	/// <summary>LegSettlCurrency, a <see cref="FixField.Text"/>.</summary>
+	LegSettlCurrency = 675,
 
-	/// <summary>The tag of <see cref="FixField.LegBenchmarkCurveCurrency"/>.</summary>
-	public const int LegBenchmarkCurveCurrency = 676;
+	/// <summary>LegBenchmarkCurveCurrency, a <see cref="FixField.Text"/>.</summary>
+	LegBenchmarkCurveCurrency = 676,
 
-	/// <summary>The tag of <see cref="FixField.LegBenchmarkCurveName"/>.</summary>
-	public const int LegBenchmarkCurveName = 677;
+	/// <summary>LegBenchmarkCurveName, a <see cref="FixField.Text"/>.</summary>
+	LegBenchmarkCurveName = 677,
 
-	/// <summary>The tag of <see cref="FixField.LegBenchmarkCurvePoint"/>.</summary>
-	public const int LegBenchmarkCurvePoint = 678;
+	/// <summary>LegBenchmarkCurvePoint, a <see cref="FixField.Text"/>.</summary>
+	LegBenchmarkCurvePoint = 678,
 
-	/// <summary>The tag of <see cref="FixField.LegBenchmarkPrice"/>.</summary>
-	public const int LegBenchmarkPrice = 679;
+	/// <summary>LegBenchmarkPrice, a <see cref="FixField.Decimal"/>.</summary>
+	LegBenchmarkPrice = 679,
 
-	/// <summary>The tag of <see cref="FixField.LegBenchmarkPriceType"/>.</summary>
-	public const int LegBenchmarkPriceType = 680;
+	/// <summary>LegBenchmarkPriceType, a <see cref="FixField.Integer"/>.</summary>
+	LegBenchmarkPriceType = 680,
 
-	/// <summary>The tag of <see cref="FixField.LegBidPx"/>.</summary>
-	public const int LegBidPx = 681;
+	/// <summary>LegBidPx, a <see cref="FixField.Decimal"/>.</summary>
+	LegBidPx = 681,
 
-	/// <summary>The tag of <see cref="FixField.LegIOIQty"/>.</summary>
-	public const int LegIOIQty = 682;
+	/// <summary>LegIOIQty, a <see cref="FixField.Text"/>.</summary>
+	LegIOIQty = 682,
 
-	/// <summary>The tag of <see cref="FixField.NoLegStipulations"/>.</summary>
-	public const int NoLegStipulations = 683;
+	/// <summary>NoLegStipulations, a <see cref="FixField.Integer"/>.</summary>
+	NoLegStipulations = 683,
 
-	/// <summary>The tag of <see cref="FixField.LegOfferPx"/>.</summary>
-	public const int LegOfferPx = 684;
+	/// <summary>LegOfferPx, a <see cref="FixField.Decimal"/>.</summary>
+	LegOfferPx = 684,
 
-	/// <summary>The tag of <see cref="FixField.LegPriceType"/>.</summary>
-	public const int LegPriceType = 686;
+	/// <summary>LegPriceType, a <see cref="FixField.Integer"/>.</summary>
+	LegPriceType = 686,
 
-	/// <summary>The tag of <see cref="FixField.LegQty"/>.</summary>
-	public const int LegQty = 687;
+	/// <summary>LegQty, a <see cref="FixField.Decimal"/>.</summary>
+	LegQty = 687,
 
-	/// <summary>The tag of <see cref="FixField.LegStipulationType"/>.</summary>
-	public const int LegStipulationType = 688;
+	/// <summary>LegStipulationType, a <see cref="FixField.Text"/>.</summary>
+	LegStipulationType = 688,
 
-	/// <summary>The tag of <see cref="FixField.LegStipulationValue"/>.</summary>
-	public const int LegStipulationValue = 689;
+	/// <summary>LegStipulationValue, a <see cref="FixField.Text"/>.</summary>
+	LegStipulationValue = 689,
 
-	/// <summary>The tag of <see cref="FixField.LegSwapType"/>.</summary>
-	public const int LegSwapType = 690;
+	/// <summary>LegSwapType, a <see cref="FixField.Integer"/>.</summary>
+	LegSwapType = 690,
 
-	/// <summary>The tag of <see cref="FixField.Pool"/>.</summary>
-	public const int Pool = 691;
+	/// <summary>Pool, a <see cref="FixField.Text"/>.</summary>
+	Pool = 691,
 
-	/// <summary>The tag of <see cref="FixField.QuotePriceType"/>.</summary>
-	public const int QuotePriceType = 692;
+	/// <summary>QuotePriceType, a <see cref="FixField.Integer"/>.</summary>
+	QuotePriceType = 692,
 
-	/// <summary>The tag of <see cref="FixField.QuoteRespID"/>.</summary>
-	public const int QuoteRespID = 693;
+	/// <summary>QuoteRespID, a <see cref="FixField.Text"/>.</summary>
+	QuoteRespID = 693,
 
-	/// <summary>The tag of <see cref="FixField.QuoteRespType"/>.</summary>
-	public const int QuoteRespType = 694;
+	/// <summary>QuoteRespType, a <see cref="FixField.Integer"/>.</summary>
+	QuoteRespType = 694,
 
-	/// <summary>The tag of <see cref="FixField.QuoteQualifier"/>.</summary>
-	public const int QuoteQualifier = 695;
+	/// <summary>QuoteQualifier, a <see cref="FixField.Character"/>.</summary>
+	QuoteQualifier = 695,
 
-	/// <summary>The tag of <see cref="FixField.YieldRedemptionDate"/>.</summary>
-	public const int YieldRedemptionDate = 696;
+	/// <summary>YieldRedemptionDate, a <see cref="FixField.Date"/>.</summary>
+	YieldRedemptionDate = 696,
 
-	/// <summary>The tag of <see cref="FixField.YieldRedemptionPrice"/>.</summary>
-	public const int YieldRedemptionPrice = 697;
+	/// <summary>YieldRedemptionPrice, a <see cref="FixField.Decimal"/>.</summary>
+	YieldRedemptionPrice = 697,
 
-	/// <summary>The tag of <see cref="FixField.YieldRedemptionPriceType"/>.</summary>
-	public const int YieldRedemptionPriceType = 698;
+	/// <summary>YieldRedemptionPriceType, a <see cref="FixField.Integer"/>.</summary>
+	YieldRedemptionPriceType = 698,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkSecurityID"/>.</summary>
-	public const int BenchmarkSecurityID = 699;
+	/// <summary>BenchmarkSecurityID, a <see cref="FixField.Text"/>.</summary>
+	BenchmarkSecurityID = 699,
 
-	/// <summary>The tag of <see cref="FixField.ReversalIndicator"/>.</summary>
-	public const int ReversalIndicator = 700;
+	/// <summary>ReversalIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	ReversalIndicator = 700,
 
-	/// <summary>The tag of <see cref="FixField.YieldCalcDate"/>.</summary>
-	public const int YieldCalcDate = 701;
+	/// <summary>YieldCalcDate, a <see cref="FixField.Date"/>.</summary>
+	YieldCalcDate = 701,
 
-	/// <summary>The tag of <see cref="FixField.NoPositions"/>.</summary>
-	public const int NoPositions = 702;
+	/// <summary>NoPositions, a <see cref="FixField.Integer"/>.</summary>
+	NoPositions = 702,
 
-	/// <summary>The tag of <see cref="FixField.PosType"/>.</summary>
-	public const int PosType = 703;
+	/// <summary>PosType, a <see cref="FixField.Text"/>.</summary>
+	PosType = 703,
 
-	/// <summary>The tag of <see cref="FixField.LongQty"/>.</summary>
-	public const int LongQty = 704;
+	/// <summary>LongQty, a <see cref="FixField.Decimal"/>.</summary>
+	LongQty = 704,
 
-	/// <summary>The tag of <see cref="FixField.ShortQty"/>.</summary>
-	public const int ShortQty = 705;
+	/// <summary>ShortQty, a <see cref="FixField.Decimal"/>.</summary>
+	ShortQty = 705,
 
-	/// <summary>The tag of <see cref="FixField.PosQtyStatus"/>.</summary>
-	public const int PosQtyStatus = 706;
+	/// <summary>PosQtyStatus, a <see cref="FixField.Integer"/>.</summary>
+	PosQtyStatus = 706,
 
-	/// <summary>The tag of <see cref="FixField.PosAmtType"/>.</summary>
-	public const int PosAmtType = 707;
+	/// <summary>PosAmtType, a <see cref="FixField.Text"/>.</summary>
+	PosAmtType = 707,
 
-	/// <summary>The tag of <see cref="FixField.PosAmt"/>.</summary>
-	public const int PosAmt = 708;
+	/// <summary>PosAmt, a <see cref="FixField.Decimal"/>.</summary>
+	PosAmt = 708,
 
-	/// <summary>The tag of <see cref="FixField.PosTransType"/>.</summary>
-	public const int PosTransType = 709;
+	/// <summary>PosTransType, a <see cref="FixField.Integer"/>.</summary>
+	PosTransType = 709,
 
-	/// <summary>The tag of <see cref="FixField.PosReqID"/>.</summary>
-	public const int PosReqID = 710;
+	/// <summary>PosReqID, a <see cref="FixField.Text"/>.</summary>
+	PosReqID = 710,
 
-	/// <summary>The tag of <see cref="FixField.NoUnderlyings"/>.</summary>
-	public const int NoUnderlyings = 711;
+	/// <summary>NoUnderlyings, a <see cref="FixField.Integer"/>.</summary>
+	NoUnderlyings = 711,
 
-	/// <summary>The tag of <see cref="FixField.PosMaintAction"/>.</summary>
-	public const int PosMaintAction = 712;
+	/// <summary>PosMaintAction, a <see cref="FixField.Integer"/>.</summary>
+	PosMaintAction = 712,
 
-	/// <summary>The tag of <see cref="FixField.OrigPosReqRefID"/>.</summary>
-	public const int OrigPosReqRefID = 713;
+	/// <summary>OrigPosReqRefID, a <see cref="FixField.Text"/>.</summary>
+	OrigPosReqRefID = 713,
 
-	/// <summary>The tag of <see cref="FixField.PosMaintRptRefID"/>.</summary>
-	public const int PosMaintRptRefID = 714;
+	/// <summary>PosMaintRptRefID, a <see cref="FixField.Text"/>.</summary>
+	PosMaintRptRefID = 714,
 
-	/// <summary>The tag of <see cref="FixField.ClearingBusinessDate"/>.</summary>
-	public const int ClearingBusinessDate = 715;
+	/// <summary>ClearingBusinessDate, a <see cref="FixField.Date"/>.</summary>
+	ClearingBusinessDate = 715,
 
-	/// <summary>The tag of <see cref="FixField.SettlSessID"/>.</summary>
-	public const int SettlSessID = 716;
+	/// <summary>SettlSessID, a <see cref="FixField.Text"/>.</summary>
+	SettlSessID = 716,
 
-	/// <summary>The tag of <see cref="FixField.SettlSessSubID"/>.</summary>
-	public const int SettlSessSubID = 717;
+	/// <summary>SettlSessSubID, a <see cref="FixField.Text"/>.</summary>
+	SettlSessSubID = 717,
 
-	/// <summary>The tag of <see cref="FixField.AdjustmentType"/>.</summary>
-	public const int AdjustmentType = 718;
+	/// <summary>AdjustmentType, a <see cref="FixField.Integer"/>.</summary>
+	AdjustmentType = 718,
 
-	/// <summary>The tag of <see cref="FixField.ContraryInstructionIndicator"/>.</summary>
-	public const int ContraryInstructionIndicator = 719;
+	/// <summary>ContraryInstructionIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	ContraryInstructionIndicator = 719,
 
-	/// <summary>The tag of <see cref="FixField.PriorSpreadIndicator"/>.</summary>
-	public const int PriorSpreadIndicator = 720;
+	/// <summary>PriorSpreadIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	PriorSpreadIndicator = 720,
 
-	/// <summary>The tag of <see cref="FixField.PosMaintRptID"/>.</summary>
-	public const int PosMaintRptID = 721;
+	/// <summary>PosMaintRptID, a <see cref="FixField.Text"/>.</summary>
+	PosMaintRptID = 721,
 
-	/// <summary>The tag of <see cref="FixField.PosMaintStatus"/>.</summary>
-	public const int PosMaintStatus = 722;
+	/// <summary>PosMaintStatus, a <see cref="FixField.Integer"/>.</summary>
+	PosMaintStatus = 722,
 
-	/// <summary>The tag of <see cref="FixField.PosMaintResult"/>.</summary>
-	public const int PosMaintResult = 723;
+	/// <summary>PosMaintResult, a <see cref="FixField.Integer"/>.</summary>
+	PosMaintResult = 723,
 
-	/// <summary>The tag of <see cref="FixField.PosReqType"/>.</summary>
-	public const int PosReqType = 724;
+	/// <summary>PosReqType, a <see cref="FixField.Integer"/>.</summary>
+	PosReqType = 724,
 
-	/// <summary>The tag of <see cref="FixField.ResponseTransportType"/>.</summary>
-	public const int ResponseTransportType = 725;
+	/// <summary>ResponseTransportType, a <see cref="FixField.Integer"/>.</summary>
+	ResponseTransportType = 725,
 
-	/// <summary>The tag of <see cref="FixField.ResponseDestination"/>.</summary>
-	public const int ResponseDestination = 726;
+	/// <summary>ResponseDestination, a <see cref="FixField.Text"/>.</summary>
+	ResponseDestination = 726,
 
-	/// <summary>The tag of <see cref="FixField.TotalNumPosReports"/>.</summary>
-	public const int TotalNumPosReports = 727;
+	/// <summary>TotalNumPosReports, a <see cref="FixField.Integer"/>.</summary>
+	TotalNumPosReports = 727,
 
-	/// <summary>The tag of <see cref="FixField.PosReqResult"/>.</summary>
-	public const int PosReqResult = 728;
+	/// <summary>PosReqResult, a <see cref="FixField.Integer"/>.</summary>
+	PosReqResult = 728,
 
-	/// <summary>The tag of <see cref="FixField.PosReqStatus"/>.</summary>
-	public const int PosReqStatus = 729;
+	/// <summary>PosReqStatus, a <see cref="FixField.Integer"/>.</summary>
+	PosReqStatus = 729,
 
-	/// <summary>The tag of <see cref="FixField.SettlPrice"/>.</summary>
-	public const int SettlPrice = 730;
+	/// <summary>SettlPrice, a <see cref="FixField.Decimal"/>.</summary>
+	SettlPrice = 730,
 
-	/// <summary>The tag of <see cref="FixField.SettlPriceType"/>.</summary>
-	public const int SettlPriceType = 731;
+	/// <summary>SettlPriceType, a <see cref="FixField.Integer"/>.</summary>
+	SettlPriceType = 731,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSettlPrice"/>.</summary>
-	public const int UnderlyingSettlPrice = 732;
+	/// <summary>UnderlyingSettlPrice, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingSettlPrice = 732,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSettlPriceType"/>.</summary>
-	public const int UnderlyingSettlPriceType = 733;
+	/// <summary>UnderlyingSettlPriceType, a <see cref="FixField.Integer"/>.</summary>
+	UnderlyingSettlPriceType = 733,
 
-	/// <summary>The tag of <see cref="FixField.PriorSettlPrice"/>.</summary>
-	public const int PriorSettlPrice = 734;
+	/// <summary>PriorSettlPrice, a <see cref="FixField.Decimal"/>.</summary>
+	PriorSettlPrice = 734,
 
-	/// <summary>The tag of <see cref="FixField.NoQuoteQualifiers"/>.</summary>
-	public const int NoQuoteQualifiers = 735;
+	/// <summary>NoQuoteQualifiers, a <see cref="FixField.Integer"/>.</summary>
+	NoQuoteQualifiers = 735,
 
-	/// <summary>The tag of <see cref="FixField.AllocSettlCurrency"/>.</summary>
-	public const int AllocSettlCurrency = 736;
+	/// <summary>AllocSettlCurrency, a <see cref="FixField.Text"/>.</summary>
+	AllocSettlCurrency = 736,
 
-	/// <summary>The tag of <see cref="FixField.AllocSettlCurrAmt"/>.</summary>
-	public const int AllocSettlCurrAmt = 737;
+	/// <summary>AllocSettlCurrAmt, a <see cref="FixField.Decimal"/>.</summary>
+	AllocSettlCurrAmt = 737,
 
-	/// <summary>The tag of <see cref="FixField.InterestAtMaturity"/>.</summary>
-	public const int InterestAtMaturity = 738;
+	/// <summary>InterestAtMaturity, a <see cref="FixField.Decimal"/>.</summary>
+	InterestAtMaturity = 738,
 
-	/// <summary>The tag of <see cref="FixField.LegDatedDate"/>.</summary>
-	public const int LegDatedDate = 739;
+	/// <summary>LegDatedDate, a <see cref="FixField.Date"/>.</summary>
+	LegDatedDate = 739,
 
-	/// <summary>The tag of <see cref="FixField.LegPool"/>.</summary>
-	public const int LegPool = 740;
+	/// <summary>LegPool, a <see cref="FixField.Text"/>.</summary>
+	LegPool = 740,
 
-	/// <summary>The tag of <see cref="FixField.AllocInterestAtMaturity"/>.</summary>
-	public const int AllocInterestAtMaturity = 741;
+	/// <summary>AllocInterestAtMaturity, a <see cref="FixField.Decimal"/>.</summary>
+	AllocInterestAtMaturity = 741,
 
-	/// <summary>The tag of <see cref="FixField.AllocAccruedInterestAmt"/>.</summary>
-	public const int AllocAccruedInterestAmt = 742;
+	/// <summary>AllocAccruedInterestAmt, a <see cref="FixField.Decimal"/>.</summary>
+	AllocAccruedInterestAmt = 742,
 
-	/// <summary>The tag of <see cref="FixField.DeliveryDate"/>.</summary>
-	public const int DeliveryDate = 743;
+	/// <summary>DeliveryDate, a <see cref="FixField.Date"/>.</summary>
+	DeliveryDate = 743,
 
-	/// <summary>The tag of <see cref="FixField.AssignmentMethod"/>.</summary>
-	public const int AssignmentMethod = 744;
+	/// <summary>AssignmentMethod, a <see cref="FixField.Character"/>.</summary>
+	AssignmentMethod = 744,
 
-	/// <summary>The tag of <see cref="FixField.AssignmentUnit"/>.</summary>
-	public const int AssignmentUnit = 745;
+	/// <summary>AssignmentUnit, a <see cref="FixField.Decimal"/>.</summary>
+	AssignmentUnit = 745,
 
-	/// <summary>The tag of <see cref="FixField.OpenInterest"/>.</summary>
-	public const int OpenInterest = 746;
+	/// <summary>OpenInterest, a <see cref="FixField.Decimal"/>.</summary>
+	OpenInterest = 746,
 
-	/// <summary>The tag of <see cref="FixField.ExerciseMethod"/>.</summary>
-	public const int ExerciseMethod = 747;
+	/// <summary>ExerciseMethod, a <see cref="FixField.Character"/>.</summary>
+	ExerciseMethod = 747,
 
-	/// <summary>The tag of <see cref="FixField.TotNumTradeReports"/>.</summary>
-	public const int TotNumTradeReports = 748;
+	/// <summary>TotNumTradeReports, a <see cref="FixField.Integer"/>.</summary>
+	TotNumTradeReports = 748,
 
-	/// <summary>The tag of <see cref="FixField.TradeRequestResult"/>.</summary>
-	public const int TradeRequestResult = 749;
+	/// <summary>TradeRequestResult, a <see cref="FixField.Integer"/>.</summary>
+	TradeRequestResult = 749,
 
-	/// <summary>The tag of <see cref="FixField.TradeRequestStatus"/>.</summary>
-	public const int TradeRequestStatus = 750;
+	/// <summary>TradeRequestStatus, a <see cref="FixField.Integer"/>.</summary>
+	TradeRequestStatus = 750,
 
-	/// <summary>The tag of <see cref="FixField.TradeReportRejectReason"/>.</summary>
-	public const int TradeReportRejectReason = 751;
+	/// <summary>TradeReportRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	TradeReportRejectReason = 751,
 
-	/// <summary>The tag of <see cref="FixField.SideMultiLegReportingType"/>.</summary>
-	public const int SideMultiLegReportingType = 752;
+	/// <summary>SideMultiLegReportingType, a <see cref="FixField.Integer"/>.</summary>
+	SideMultiLegReportingType = 752,
 
-	/// <summary>The tag of <see cref="FixField.NoPosAmt"/>.</summary>
-	public const int NoPosAmt = 753;
+	/// <summary>NoPosAmt, a <see cref="FixField.Integer"/>.</summary>
+	NoPosAmt = 753,
 
-	/// <summary>The tag of <see cref="FixField.AutoAcceptIndicator"/>.</summary>
-	public const int AutoAcceptIndicator = 754;
+	/// <summary>AutoAcceptIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	AutoAcceptIndicator = 754,
 
-	/// <summary>The tag of <see cref="FixField.AllocReportID"/>.</summary>
-	public const int AllocReportID = 755;
+	/// <summary>AllocReportID, a <see cref="FixField.Text"/>.</summary>
+	AllocReportID = 755,
 
-	/// <summary>The tag of <see cref="FixField.NoNested2PartyIDs"/>.</summary>
-	public const int NoNested2PartyIDs = 756;
+	/// <summary>NoNested2PartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNested2PartyIDs = 756,
 
-	/// <summary>The tag of <see cref="FixField.Nested2PartyID"/>.</summary>
-	public const int Nested2PartyID = 757;
+	/// <summary>Nested2PartyID, a <see cref="FixField.Text"/>.</summary>
+	Nested2PartyID = 757,
 
-	/// <summary>The tag of <see cref="FixField.Nested2PartyIDSource"/>.</summary>
-	public const int Nested2PartyIDSource = 758;
+	/// <summary>Nested2PartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	Nested2PartyIDSource = 758,
 
-	/// <summary>The tag of <see cref="FixField.Nested2PartyRole"/>.</summary>
-	public const int Nested2PartyRole = 759;
+	/// <summary>Nested2PartyRole, a <see cref="FixField.Integer"/>.</summary>
+	Nested2PartyRole = 759,
 
-	/// <summary>The tag of <see cref="FixField.Nested2PartySubID"/>.</summary>
-	public const int Nested2PartySubID = 760;
+	/// <summary>Nested2PartySubID, a <see cref="FixField.Text"/>.</summary>
+	Nested2PartySubID = 760,
 
-	/// <summary>The tag of <see cref="FixField.BenchmarkSecurityIDSource"/>.</summary>
-	public const int BenchmarkSecurityIDSource = 761;
+	/// <summary>BenchmarkSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	BenchmarkSecurityIDSource = 761,
 
-	/// <summary>The tag of <see cref="FixField.SecuritySubType"/>.</summary>
-	public const int SecuritySubType = 762;
+	/// <summary>SecuritySubType, a <see cref="FixField.Text"/>.</summary>
+	SecuritySubType = 762,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingSecuritySubType"/>.</summary>
-	public const int UnderlyingSecuritySubType = 763;
+	/// <summary>UnderlyingSecuritySubType, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingSecuritySubType = 763,
 
-	/// <summary>The tag of <see cref="FixField.LegSecuritySubType"/>.</summary>
-	public const int LegSecuritySubType = 764;
+	/// <summary>LegSecuritySubType, a <see cref="FixField.Text"/>.</summary>
+	LegSecuritySubType = 764,
 
-	/// <summary>The tag of <see cref="FixField.AllowableOneSidednessPct"/>.</summary>
-	public const int AllowableOneSidednessPct = 765;
+	/// <summary>AllowableOneSidednessPct, a <see cref="FixField.Decimal"/>.</summary>
+	AllowableOneSidednessPct = 765,
 
-	/// <summary>The tag of <see cref="FixField.AllowableOneSidednessValue"/>.</summary>
-	public const int AllowableOneSidednessValue = 766;
+	/// <summary>AllowableOneSidednessValue, a <see cref="FixField.Decimal"/>.</summary>
+	AllowableOneSidednessValue = 766,
 
-	/// <summary>The tag of <see cref="FixField.AllowableOneSidednessCurr"/>.</summary>
-	public const int AllowableOneSidednessCurr = 767;
+	/// <summary>AllowableOneSidednessCurr, a <see cref="FixField.Text"/>.</summary>
+	AllowableOneSidednessCurr = 767,
 
-	/// <summary>The tag of <see cref="FixField.NoTrdRegTimestamps"/>.</summary>
-	public const int NoTrdRegTimestamps = 768;
+	/// <summary>NoTrdRegTimestamps, a <see cref="FixField.Integer"/>.</summary>
+	NoTrdRegTimestamps = 768,
 
-	/// <summary>The tag of <see cref="FixField.TrdRegTimestamp"/>.</summary>
-	public const int TrdRegTimestamp = 769;
+	/// <summary>TrdRegTimestamp, a <see cref="FixField.Timestamp"/>.</summary>
+	TrdRegTimestamp = 769,
 
-	/// <summary>The tag of <see cref="FixField.TrdRegTimestampType"/>.</summary>
-	public const int TrdRegTimestampType = 770;
+	/// <summary>TrdRegTimestampType, a <see cref="FixField.Integer"/>.</summary>
+	TrdRegTimestampType = 770,
 
-	/// <summary>The tag of <see cref="FixField.TrdRegTimestampOrigin"/>.</summary>
-	public const int TrdRegTimestampOrigin = 771;
+	/// <summary>TrdRegTimestampOrigin, a <see cref="FixField.Text"/>.</summary>
+	TrdRegTimestampOrigin = 771,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmRefID"/>.</summary>
-	public const int ConfirmRefID = 772;
+	/// <summary>ConfirmRefID, a <see cref="FixField.Text"/>.</summary>
+	ConfirmRefID = 772,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmType"/>.</summary>
-	public const int ConfirmType = 773;
+	/// <summary>ConfirmType, a <see cref="FixField.Integer"/>.</summary>
+	ConfirmType = 773,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmRejReason"/>.</summary>
-	public const int ConfirmRejReason = 774;
+	/// <summary>ConfirmRejReason, a <see cref="FixField.Integer"/>.</summary>
+	ConfirmRejReason = 774,
 
-	/// <summary>The tag of <see cref="FixField.BookingType"/>.</summary>
-	public const int BookingType = 775;
+	/// <summary>BookingType, a <see cref="FixField.Integer"/>.</summary>
+	BookingType = 775,
 
-	/// <summary>The tag of <see cref="FixField.IndividualAllocRejCode"/>.</summary>
-	public const int IndividualAllocRejCode = 776;
+	/// <summary>IndividualAllocRejCode, a <see cref="FixField.Integer"/>.</summary>
+	IndividualAllocRejCode = 776,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstMsgID"/>.</summary>
-	public const int SettlInstMsgID = 777;
+	/// <summary>SettlInstMsgID, a <see cref="FixField.Text"/>.</summary>
+	SettlInstMsgID = 777,
 
-	/// <summary>The tag of <see cref="FixField.NoSettlInst"/>.</summary>
-	public const int NoSettlInst = 778;
+	/// <summary>NoSettlInst, a <see cref="FixField.Integer"/>.</summary>
+	NoSettlInst = 778,
 
-	/// <summary>The tag of <see cref="FixField.LastUpdateTime"/>.</summary>
-	public const int LastUpdateTime = 779;
+	/// <summary>LastUpdateTime, a <see cref="FixField.Timestamp"/>.</summary>
+	LastUpdateTime = 779,
 
-	/// <summary>The tag of <see cref="FixField.AllocSettlInstType"/>.</summary>
-	public const int AllocSettlInstType = 780;
+	/// <summary>AllocSettlInstType, a <see cref="FixField.Integer"/>.</summary>
+	AllocSettlInstType = 780,
 
-	/// <summary>The tag of <see cref="FixField.NoSettlPartyIDs"/>.</summary>
-	public const int NoSettlPartyIDs = 781;
+	/// <summary>NoSettlPartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoSettlPartyIDs = 781,
 
-	/// <summary>The tag of <see cref="FixField.SettlPartyID"/>.</summary>
-	public const int SettlPartyID = 782;
+	/// <summary>SettlPartyID, a <see cref="FixField.Text"/>.</summary>
+	SettlPartyID = 782,
 
-	/// <summary>The tag of <see cref="FixField.SettlPartyIDSource"/>.</summary>
-	public const int SettlPartyIDSource = 783;
+	/// <summary>SettlPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	SettlPartyIDSource = 783,
 
-	/// <summary>The tag of <see cref="FixField.SettlPartyRole"/>.</summary>
-	public const int SettlPartyRole = 784;
+	/// <summary>SettlPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	SettlPartyRole = 784,
 
-	/// <summary>The tag of <see cref="FixField.SettlPartySubID"/>.</summary>
-	public const int SettlPartySubID = 785;
+	/// <summary>SettlPartySubID, a <see cref="FixField.Text"/>.</summary>
+	SettlPartySubID = 785,
 
-	/// <summary>The tag of <see cref="FixField.SettlPartySubIDType"/>.</summary>
-	public const int SettlPartySubIDType = 786;
+	/// <summary>SettlPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	SettlPartySubIDType = 786,
 
-	/// <summary>The tag of <see cref="FixField.DlvyInstType"/>.</summary>
-	public const int DlvyInstType = 787;
+	/// <summary>DlvyInstType, a <see cref="FixField.Character"/>.</summary>
+	DlvyInstType = 787,
 
-	/// <summary>The tag of <see cref="FixField.TerminationType"/>.</summary>
-	public const int TerminationType = 788;
+	/// <summary>TerminationType, a <see cref="FixField.Integer"/>.</summary>
+	TerminationType = 788,
 
-	/// <summary>The tag of <see cref="FixField.NextExpectedMsgSeqNum"/>.</summary>
-	public const int NextExpectedMsgSeqNum = 789;
+	/// <summary>NextExpectedMsgSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	NextExpectedMsgSeqNum = 789,
 
-	/// <summary>The tag of <see cref="FixField.OrdStatusReqID"/>.</summary>
-	public const int OrdStatusReqID = 790;
+	/// <summary>OrdStatusReqID, a <see cref="FixField.Text"/>.</summary>
+	OrdStatusReqID = 790,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstReqID"/>.</summary>
-	public const int SettlInstReqID = 791;
+	/// <summary>SettlInstReqID, a <see cref="FixField.Text"/>.</summary>
+	SettlInstReqID = 791,
 
-	/// <summary>The tag of <see cref="FixField.SettlInstReqRejCode"/>.</summary>
-	public const int SettlInstReqRejCode = 792;
+	/// <summary>SettlInstReqRejCode, a <see cref="FixField.Integer"/>.</summary>
+	SettlInstReqRejCode = 792,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryAllocID"/>.</summary>
-	public const int SecondaryAllocID = 793;
+	/// <summary>SecondaryAllocID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryAllocID = 793,
 
-	/// <summary>The tag of <see cref="FixField.AllocReportType"/>.</summary>
-	public const int AllocReportType = 794;
+	/// <summary>AllocReportType, a <see cref="FixField.Integer"/>.</summary>
+	AllocReportType = 794,
 
-	/// <summary>The tag of <see cref="FixField.AllocReportRefID"/>.</summary>
-	public const int AllocReportRefID = 795;
+	/// <summary>AllocReportRefID, a <see cref="FixField.Text"/>.</summary>
+	AllocReportRefID = 795,
 
-	/// <summary>The tag of <see cref="FixField.AllocCancReplaceReason"/>.</summary>
-	public const int AllocCancReplaceReason = 796;
+	/// <summary>AllocCancReplaceReason, a <see cref="FixField.Integer"/>.</summary>
+	AllocCancReplaceReason = 796,
 
-	/// <summary>The tag of <see cref="FixField.CopyMsgIndicator"/>.</summary>
-	public const int CopyMsgIndicator = 797;
+	/// <summary>CopyMsgIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	CopyMsgIndicator = 797,
 
-	/// <summary>The tag of <see cref="FixField.AllocAccountType"/>.</summary>
-	public const int AllocAccountType = 798;
+	/// <summary>AllocAccountType, a <see cref="FixField.Integer"/>.</summary>
+	AllocAccountType = 798,
 
-	/// <summary>The tag of <see cref="FixField.OrderAvgPx"/>.</summary>
-	public const int OrderAvgPx = 799;
+	/// <summary>OrderAvgPx, a <see cref="FixField.Decimal"/>.</summary>
+	OrderAvgPx = 799,
 
-	/// <summary>The tag of <see cref="FixField.OrderBookingQty"/>.</summary>
-	public const int OrderBookingQty = 800;
+	/// <summary>OrderBookingQty, a <see cref="FixField.Decimal"/>.</summary>
+	OrderBookingQty = 800,
 
-	/// <summary>The tag of <see cref="FixField.NoSettlPartySubIDs"/>.</summary>
-	public const int NoSettlPartySubIDs = 801;
+	/// <summary>NoSettlPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoSettlPartySubIDs = 801,
 
-	/// <summary>The tag of <see cref="FixField.NoPartySubIDs"/>.</summary>
-	public const int NoPartySubIDs = 802;
+	/// <summary>NoPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoPartySubIDs = 802,
 
-	/// <summary>The tag of <see cref="FixField.PartySubIDType"/>.</summary>
-	public const int PartySubIDType = 803;
+	/// <summary>PartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	PartySubIDType = 803,
 
-	/// <summary>The tag of <see cref="FixField.NoNestedPartySubIDs"/>.</summary>
-	public const int NoNestedPartySubIDs = 804;
+	/// <summary>NoNestedPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNestedPartySubIDs = 804,
 
-	/// <summary>The tag of <see cref="FixField.NestedPartySubIDType"/>.</summary>
-	public const int NestedPartySubIDType = 805;
+	/// <summary>NestedPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	NestedPartySubIDType = 805,
 
-	/// <summary>The tag of <see cref="FixField.NoNested2PartySubIDs"/>.</summary>
-	public const int NoNested2PartySubIDs = 806;
+	/// <summary>NoNested2PartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNested2PartySubIDs = 806,
 
-	/// <summary>The tag of <see cref="FixField.Nested2PartySubIDType"/>.</summary>
-	public const int Nested2PartySubIDType = 807;
+	/// <summary>Nested2PartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	Nested2PartySubIDType = 807,
 
-	/// <summary>The tag of <see cref="FixField.AllocIntermedReqType"/>.</summary>
-	public const int AllocIntermedReqType = 808;
+	/// <summary>AllocIntermedReqType, a <see cref="FixField.Integer"/>.</summary>
+	AllocIntermedReqType = 808,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingPx"/>.</summary>
-	public const int UnderlyingPx = 810;
+	/// <summary>UnderlyingPx, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingPx = 810,
 
-	/// <summary>The tag of <see cref="FixField.PriceDelta"/>.</summary>
-	public const int PriceDelta = 811;
+	/// <summary>PriceDelta, a <see cref="FixField.Decimal"/>.</summary>
+	PriceDelta = 811,
 
-	/// <summary>The tag of <see cref="FixField.ApplQueueMax"/>.</summary>
-	public const int ApplQueueMax = 812;
+	/// <summary>ApplQueueMax, a <see cref="FixField.Integer"/>.</summary>
+	ApplQueueMax = 812,
 
-	/// <summary>The tag of <see cref="FixField.ApplQueueDepth"/>.</summary>
-	public const int ApplQueueDepth = 813;
+	/// <summary>ApplQueueDepth, a <see cref="FixField.Integer"/>.</summary>
+	ApplQueueDepth = 813,
 
-	/// <summary>The tag of <see cref="FixField.ApplQueueResolution"/>.</summary>
-	public const int ApplQueueResolution = 814;
+	/// <summary>ApplQueueResolution, a <see cref="FixField.Integer"/>.</summary>
+	ApplQueueResolution = 814,
 
-	/// <summary>The tag of <see cref="FixField.ApplQueueAction"/>.</summary>
-	public const int ApplQueueAction = 815;
+	/// <summary>ApplQueueAction, a <see cref="FixField.Integer"/>.</summary>
+	ApplQueueAction = 815,
 
-	/// <summary>The tag of <see cref="FixField.NoAltMDSource"/>.</summary>
-	public const int NoAltMDSource = 816;
+	/// <summary>NoAltMDSource, a <see cref="FixField.Integer"/>.</summary>
+	NoAltMDSource = 816,
 
-	/// <summary>The tag of <see cref="FixField.AltMDSourceID"/>.</summary>
-	public const int AltMDSourceID = 817;
+	/// <summary>AltMDSourceID, a <see cref="FixField.Text"/>.</summary>
+	AltMDSourceID = 817,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryTradeReportID"/>.</summary>
-	public const int SecondaryTradeReportID = 818;
+	/// <summary>SecondaryTradeReportID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryTradeReportID = 818,
 
-	/// <summary>The tag of <see cref="FixField.AvgPxIndicator"/>.</summary>
-	public const int AvgPxIndicator = 819;
+	/// <summary>AvgPxIndicator, a <see cref="FixField.Integer"/>.</summary>
+	AvgPxIndicator = 819,
 
-	/// <summary>The tag of <see cref="FixField.TradeLinkID"/>.</summary>
-	public const int TradeLinkID = 820;
+	/// <summary>TradeLinkID, a <see cref="FixField.Text"/>.</summary>
+	TradeLinkID = 820,
 
-	/// <summary>The tag of <see cref="FixField.OrderInputDevice"/>.</summary>
-	public const int OrderInputDevice = 821;
+	/// <summary>OrderInputDevice, a <see cref="FixField.Text"/>.</summary>
+	OrderInputDevice = 821,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingTradingSessionID"/>.</summary>
-	public const int UnderlyingTradingSessionID = 822;
+	/// <summary>UnderlyingTradingSessionID, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingTradingSessionID = 822,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingTradingSessionSubID"/>.</summary>
-	public const int UnderlyingTradingSessionSubID = 823;
+	/// <summary>UnderlyingTradingSessionSubID, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingTradingSessionSubID = 823,
 
-	/// <summary>The tag of <see cref="FixField.TradeLegRefID"/>.</summary>
-	public const int TradeLegRefID = 824;
+	/// <summary>TradeLegRefID, a <see cref="FixField.Text"/>.</summary>
+	TradeLegRefID = 824,
 
-	/// <summary>The tag of <see cref="FixField.ExchangeRule"/>.</summary>
-	public const int ExchangeRule = 825;
+	/// <summary>ExchangeRule, a <see cref="FixField.Text"/>.</summary>
+	ExchangeRule = 825,
 
-	/// <summary>The tag of <see cref="FixField.TradeAllocIndicator"/>.</summary>
-	public const int TradeAllocIndicator = 826;
+	/// <summary>TradeAllocIndicator, a <see cref="FixField.Integer"/>.</summary>
+	TradeAllocIndicator = 826,
 
-	/// <summary>The tag of <see cref="FixField.ExpirationCycle"/>.</summary>
-	public const int ExpirationCycle = 827;
+	/// <summary>ExpirationCycle, a <see cref="FixField.Integer"/>.</summary>
+	ExpirationCycle = 827,
 
-	/// <summary>The tag of <see cref="FixField.TrdType"/>.</summary>
-	public const int TrdType = 828;
+	/// <summary>TrdType, a <see cref="FixField.Integer"/>.</summary>
+	TrdType = 828,
 
-	/// <summary>The tag of <see cref="FixField.TrdSubType"/>.</summary>
-	public const int TrdSubType = 829;
+	/// <summary>TrdSubType, a <see cref="FixField.Integer"/>.</summary>
+	TrdSubType = 829,
 
-	/// <summary>The tag of <see cref="FixField.TransferReason"/>.</summary>
-	public const int TransferReason = 830;
+	/// <summary>TransferReason, a <see cref="FixField.Text"/>.</summary>
+	TransferReason = 830,
 
-	/// <summary>The tag of <see cref="FixField.TotNumAssignmentReports"/>.</summary>
-	public const int TotNumAssignmentReports = 832;
+	/// <summary>TotNumAssignmentReports, a <see cref="FixField.Integer"/>.</summary>
+	TotNumAssignmentReports = 832,
 
-	/// <summary>The tag of <see cref="FixField.AsgnRptID"/>.</summary>
-	public const int AsgnRptID = 833;
+	/// <summary>AsgnRptID, a <see cref="FixField.Text"/>.</summary>
+	AsgnRptID = 833,
 
-	/// <summary>The tag of <see cref="FixField.ThresholdAmount"/>.</summary>
-	public const int ThresholdAmount = 834;
+	/// <summary>ThresholdAmount, a <see cref="FixField.Decimal"/>.</summary>
+	ThresholdAmount = 834,
 
-	/// <summary>The tag of <see cref="FixField.PegMoveType"/>.</summary>
-	public const int PegMoveType = 835;
+	/// <summary>PegMoveType, a <see cref="FixField.Integer"/>.</summary>
+	PegMoveType = 835,
 
-	/// <summary>The tag of <see cref="FixField.PegOffsetType"/>.</summary>
-	public const int PegOffsetType = 836;
+	/// <summary>PegOffsetType, a <see cref="FixField.Integer"/>.</summary>
+	PegOffsetType = 836,
 
-	/// <summary>The tag of <see cref="FixField.PegLimitType"/>.</summary>
-	public const int PegLimitType = 837;
+	/// <summary>PegLimitType, a <see cref="FixField.Integer"/>.</summary>
+	PegLimitType = 837,
 
-	/// <summary>The tag of <see cref="FixField.PegRoundDirection"/>.</summary>
-	public const int PegRoundDirection = 838;
+	/// <summary>PegRoundDirection, a <see cref="FixField.Integer"/>.</summary>
+	PegRoundDirection = 838,
 
-	/// <summary>The tag of <see cref="FixField.PeggedPrice"/>.</summary>
-	public const int PeggedPrice = 839;
+	/// <summary>PeggedPrice, a <see cref="FixField.Decimal"/>.</summary>
+	PeggedPrice = 839,
 
-	/// <summary>The tag of <see cref="FixField.PegScope"/>.</summary>
-	public const int PegScope = 840;
+	/// <summary>PegScope, a <see cref="FixField.Integer"/>.</summary>
+	PegScope = 840,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionMoveType"/>.</summary>
-	public const int DiscretionMoveType = 841;
+	/// <summary>DiscretionMoveType, a <see cref="FixField.Integer"/>.</summary>
+	DiscretionMoveType = 841,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionOffsetType"/>.</summary>
-	public const int DiscretionOffsetType = 842;
+	/// <summary>DiscretionOffsetType, a <see cref="FixField.Integer"/>.</summary>
+	DiscretionOffsetType = 842,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionLimitType"/>.</summary>
-	public const int DiscretionLimitType = 843;
+	/// <summary>DiscretionLimitType, a <see cref="FixField.Integer"/>.</summary>
+	DiscretionLimitType = 843,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionRoundDirection"/>.</summary>
-	public const int DiscretionRoundDirection = 844;
+	/// <summary>DiscretionRoundDirection, a <see cref="FixField.Integer"/>.</summary>
+	DiscretionRoundDirection = 844,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionPrice"/>.</summary>
-	public const int DiscretionPrice = 845;
+	/// <summary>DiscretionPrice, a <see cref="FixField.Decimal"/>.</summary>
+	DiscretionPrice = 845,
 
-	/// <summary>The tag of <see cref="FixField.DiscretionScope"/>.</summary>
-	public const int DiscretionScope = 846;
+	/// <summary>DiscretionScope, a <see cref="FixField.Integer"/>.</summary>
+	DiscretionScope = 846,
 
-	/// <summary>The tag of <see cref="FixField.TargetStrategy"/>.</summary>
-	public const int TargetStrategy = 847;
+	/// <summary>TargetStrategy, a <see cref="FixField.Integer"/>.</summary>
+	TargetStrategy = 847,
 
-	/// <summary>The tag of <see cref="FixField.TargetStrategyParameters"/>.</summary>
-	public const int TargetStrategyParameters = 848;
+	/// <summary>TargetStrategyParameters, a <see cref="FixField.Text"/>.</summary>
+	TargetStrategyParameters = 848,
 
-	/// <summary>The tag of <see cref="FixField.ParticipationRate"/>.</summary>
-	public const int ParticipationRate = 849;
+	/// <summary>ParticipationRate, a <see cref="FixField.Decimal"/>.</summary>
+	ParticipationRate = 849,
 
-	/// <summary>The tag of <see cref="FixField.TargetStrategyPerformance"/>.</summary>
-	public const int TargetStrategyPerformance = 850;
+	/// <summary>TargetStrategyPerformance, a <see cref="FixField.Decimal"/>.</summary>
+	TargetStrategyPerformance = 850,
 
-	/// <summary>The tag of <see cref="FixField.LastLiquidityInd"/>.</summary>
-	public const int LastLiquidityInd = 851;
+	/// <summary>LastLiquidityInd, a <see cref="FixField.Integer"/>.</summary>
+	LastLiquidityInd = 851,
 
-	/// <summary>The tag of <see cref="FixField.PublishTrdIndicator"/>.</summary>
-	public const int PublishTrdIndicator = 852;
+	/// <summary>PublishTrdIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	PublishTrdIndicator = 852,
 
-	/// <summary>The tag of <see cref="FixField.ShortSaleReason"/>.</summary>
-	public const int ShortSaleReason = 853;
+	/// <summary>ShortSaleReason, a <see cref="FixField.Integer"/>.</summary>
+	ShortSaleReason = 853,
 
-	/// <summary>The tag of <see cref="FixField.QtyType"/>.</summary>
-	public const int QtyType = 854;
+	/// <summary>QtyType, a <see cref="FixField.Integer"/>.</summary>
+	QtyType = 854,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryTrdType"/>.</summary>
-	public const int SecondaryTrdType = 855;
+	/// <summary>SecondaryTrdType, a <see cref="FixField.Integer"/>.</summary>
+	SecondaryTrdType = 855,
 
-	/// <summary>The tag of <see cref="FixField.TradeReportType"/>.</summary>
-	public const int TradeReportType = 856;
+	/// <summary>TradeReportType, a <see cref="FixField.Integer"/>.</summary>
+	TradeReportType = 856,
 
-	/// <summary>The tag of <see cref="FixField.AllocNoOrdersType"/>.</summary>
-	public const int AllocNoOrdersType = 857;
+	/// <summary>AllocNoOrdersType, a <see cref="FixField.Integer"/>.</summary>
+	AllocNoOrdersType = 857,
 
-	/// <summary>The tag of <see cref="FixField.SharedCommission"/>.</summary>
-	public const int SharedCommission = 858;
+	/// <summary>SharedCommission, a <see cref="FixField.Decimal"/>.</summary>
+	SharedCommission = 858,
 
-	/// <summary>The tag of <see cref="FixField.ConfirmReqID"/>.</summary>
-	public const int ConfirmReqID = 859;
+	/// <summary>ConfirmReqID, a <see cref="FixField.Text"/>.</summary>
+	ConfirmReqID = 859,
 
-	/// <summary>The tag of <see cref="FixField.AvgParPx"/>.</summary>
-	public const int AvgParPx = 860;
+	/// <summary>AvgParPx, a <see cref="FixField.Decimal"/>.</summary>
+	AvgParPx = 860,
 
-	/// <summary>The tag of <see cref="FixField.ReportedPx"/>.</summary>
-	public const int ReportedPx = 861;
+	/// <summary>ReportedPx, a <see cref="FixField.Decimal"/>.</summary>
+	ReportedPx = 861,
 
-	/// <summary>The tag of <see cref="FixField.NoCapacities"/>.</summary>
-	public const int NoCapacities = 862;
+	/// <summary>NoCapacities, a <see cref="FixField.Integer"/>.</summary>
+	NoCapacities = 862,
 
-	/// <summary>The tag of <see cref="FixField.OrderCapacityQty"/>.</summary>
-	public const int OrderCapacityQty = 863;
+	/// <summary>OrderCapacityQty, a <see cref="FixField.Decimal"/>.</summary>
+	OrderCapacityQty = 863,
 
-	/// <summary>The tag of <see cref="FixField.NoEvents"/>.</summary>
-	public const int NoEvents = 864;
+	/// <summary>NoEvents, a <see cref="FixField.Integer"/>.</summary>
+	NoEvents = 864,
 
-	/// <summary>The tag of <see cref="FixField.EventType"/>.</summary>
-	public const int EventType = 865;
+	/// <summary>EventType, a <see cref="FixField.Integer"/>.</summary>
+	EventType = 865,
 
-	/// <summary>The tag of <see cref="FixField.EventDate"/>.</summary>
-	public const int EventDate = 866;
+	/// <summary>EventDate, a <see cref="FixField.Date"/>.</summary>
+	EventDate = 866,
 
-	/// <summary>The tag of <see cref="FixField.EventPx"/>.</summary>
-	public const int EventPx = 867;
+	/// <summary>EventPx, a <see cref="FixField.Decimal"/>.</summary>
+	EventPx = 867,
 
-	/// <summary>The tag of <see cref="FixField.EventText"/>.</summary>
-	public const int EventText = 868;
+	/// <summary>EventText, a <see cref="FixField.Text"/>.</summary>
+	EventText = 868,
 
-	/// <summary>The tag of <see cref="FixField.PctAtRisk"/>.</summary>
-	public const int PctAtRisk = 869;
+	/// <summary>PctAtRisk, a <see cref="FixField.Decimal"/>.</summary>
+	PctAtRisk = 869,
 
-	/// <summary>The tag of <see cref="FixField.NoInstrAttrib"/>.</summary>
-	public const int NoInstrAttrib = 870;
+	/// <summary>NoInstrAttrib, a <see cref="FixField.Integer"/>.</summary>
+	NoInstrAttrib = 870,
 
-	/// <summary>The tag of <see cref="FixField.InstrAttribType"/>.</summary>
-	public const int InstrAttribType = 871;
+	/// <summary>InstrAttribType, a <see cref="FixField.Integer"/>.</summary>
+	InstrAttribType = 871,
 
-	/// <summary>The tag of <see cref="FixField.InstrAttribValue"/>.</summary>
-	public const int InstrAttribValue = 872;
+	/// <summary>InstrAttribValue, a <see cref="FixField.Text"/>.</summary>
+	InstrAttribValue = 872,
 
-	/// <summary>The tag of <see cref="FixField.DatedDate"/>.</summary>
-	public const int DatedDate = 873;
+	/// <summary>DatedDate, a <see cref="FixField.Date"/>.</summary>
+	DatedDate = 873,
 
-	/// <summary>The tag of <see cref="FixField.InterestAccrualDate"/>.</summary>
-	public const int InterestAccrualDate = 874;
+	/// <summary>InterestAccrualDate, a <see cref="FixField.Date"/>.</summary>
+	InterestAccrualDate = 874,
 
-	/// <summary>The tag of <see cref="FixField.CPProgram"/>.</summary>
-	public const int CPProgram = 875;
+	/// <summary>CPProgram, a <see cref="FixField.Integer"/>.</summary>
+	CPProgram = 875,
 
-	/// <summary>The tag of <see cref="FixField.CPRegType"/>.</summary>
-	public const int CPRegType = 876;
+	/// <summary>CPRegType, a <see cref="FixField.Text"/>.</summary>
+	CPRegType = 876,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCPProgram"/>.</summary>
-	public const int UnderlyingCPProgram = 877;
+	/// <summary>UnderlyingCPProgram, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCPProgram = 877,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCPRegType"/>.</summary>
-	public const int UnderlyingCPRegType = 878;
+	/// <summary>UnderlyingCPRegType, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingCPRegType = 878,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingQty"/>.</summary>
-	public const int UnderlyingQty = 879;
+	/// <summary>UnderlyingQty, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingQty = 879,
 
-	/// <summary>The tag of <see cref="FixField.TrdMatchID"/>.</summary>
-	public const int TrdMatchID = 880;
+	/// <summary>TrdMatchID, a <see cref="FixField.Text"/>.</summary>
+	TrdMatchID = 880,
 
-	/// <summary>The tag of <see cref="FixField.SecondaryTradeReportRefID"/>.</summary>
-	public const int SecondaryTradeReportRefID = 881;
+	/// <summary>SecondaryTradeReportRefID, a <see cref="FixField.Text"/>.</summary>
+	SecondaryTradeReportRefID = 881,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingDirtyPrice"/>.</summary>
-	public const int UnderlyingDirtyPrice = 882;
+	/// <summary>UnderlyingDirtyPrice, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingDirtyPrice = 882,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingEndPrice"/>.</summary>
-	public const int UnderlyingEndPrice = 883;
+	/// <summary>UnderlyingEndPrice, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingEndPrice = 883,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStartValue"/>.</summary>
-	public const int UnderlyingStartValue = 884;
+	/// <summary>UnderlyingStartValue, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingStartValue = 884,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingCurrentValue"/>.</summary>
-	public const int UnderlyingCurrentValue = 885;
+	/// <summary>UnderlyingCurrentValue, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingCurrentValue = 885,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingEndValue"/>.</summary>
-	public const int UnderlyingEndValue = 886;
+	/// <summary>UnderlyingEndValue, a <see cref="FixField.Decimal"/>.</summary>
+	UnderlyingEndValue = 886,
 
-	/// <summary>The tag of <see cref="FixField.NoUnderlyingStips"/>.</summary>
-	public const int NoUnderlyingStips = 887;
+	/// <summary>NoUnderlyingStips, a <see cref="FixField.Integer"/>.</summary>
+	NoUnderlyingStips = 887,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStipType"/>.</summary>
-	public const int UnderlyingStipType = 888;
+	/// <summary>UnderlyingStipType, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingStipType = 888,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStipValue"/>.</summary>
-	public const int UnderlyingStipValue = 889;
+	/// <summary>UnderlyingStipValue, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingStipValue = 889,
 
-	/// <summary>The tag of <see cref="FixField.MaturityNetMoney"/>.</summary>
-	public const int MaturityNetMoney = 890;
+	/// <summary>MaturityNetMoney, a <see cref="FixField.Decimal"/>.</summary>
+	MaturityNetMoney = 890,
 
-	/// <summary>The tag of <see cref="FixField.MiscFeeBasis"/>.</summary>
-	public const int MiscFeeBasis = 891;
+	/// <summary>MiscFeeBasis, a <see cref="FixField.Integer"/>.</summary>
+	MiscFeeBasis = 891,
 
-	/// <summary>The tag of <see cref="FixField.TotNoAllocs"/>.</summary>
-	public const int TotNoAllocs = 892;
+	/// <summary>TotNoAllocs, a <see cref="FixField.Integer"/>.</summary>
+	TotNoAllocs = 892,
 
-	/// <summary>The tag of <see cref="FixField.LastFragment"/>.</summary>
-	public const int LastFragment = 893;
+	/// <summary>LastFragment, a <see cref="FixField.Boolean"/>.</summary>
+	LastFragment = 893,
 
-	/// <summary>The tag of <see cref="FixField.CollReqID"/>.</summary>
-	public const int CollReqID = 894;
+	/// <summary>CollReqID, a <see cref="FixField.Text"/>.</summary>
+	CollReqID = 894,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnReason"/>.</summary>
-	public const int CollAsgnReason = 895;
+	/// <summary>CollAsgnReason, a <see cref="FixField.Integer"/>.</summary>
+	CollAsgnReason = 895,
 
-	/// <summary>The tag of <see cref="FixField.CollInquiryQualifier"/>.</summary>
-	public const int CollInquiryQualifier = 896;
+	/// <summary>CollInquiryQualifier, a <see cref="FixField.Integer"/>.</summary>
+	CollInquiryQualifier = 896,
 
-	/// <summary>The tag of <see cref="FixField.NoTrades"/>.</summary>
-	public const int NoTrades = 897;
+	/// <summary>NoTrades, a <see cref="FixField.Integer"/>.</summary>
+	NoTrades = 897,
 
-	/// <summary>The tag of <see cref="FixField.MarginRatio"/>.</summary>
-	public const int MarginRatio = 898;
+	/// <summary>MarginRatio, a <see cref="FixField.Decimal"/>.</summary>
+	MarginRatio = 898,
 
-	/// <summary>The tag of <see cref="FixField.MarginExcess"/>.</summary>
-	public const int MarginExcess = 899;
+	/// <summary>MarginExcess, a <see cref="FixField.Decimal"/>.</summary>
+	MarginExcess = 899,
 
-	/// <summary>The tag of <see cref="FixField.TotalNetValue"/>.</summary>
-	public const int TotalNetValue = 900;
+	/// <summary>TotalNetValue, a <see cref="FixField.Decimal"/>.</summary>
+	TotalNetValue = 900,
 
-	/// <summary>The tag of <see cref="FixField.CashOutstanding"/>.</summary>
-	public const int CashOutstanding = 901;
+	/// <summary>CashOutstanding, a <see cref="FixField.Decimal"/>.</summary>
+	CashOutstanding = 901,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnID"/>.</summary>
-	public const int CollAsgnID = 902;
+	/// <summary>CollAsgnID, a <see cref="FixField.Text"/>.</summary>
+	CollAsgnID = 902,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnTransType"/>.</summary>
-	public const int CollAsgnTransType = 903;
+	/// <summary>CollAsgnTransType, a <see cref="FixField.Integer"/>.</summary>
+	CollAsgnTransType = 903,
 
-	/// <summary>The tag of <see cref="FixField.CollRespID"/>.</summary>
-	public const int CollRespID = 904;
+	/// <summary>CollRespID, a <see cref="FixField.Text"/>.</summary>
+	CollRespID = 904,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnRespType"/>.</summary>
-	public const int CollAsgnRespType = 905;
+	/// <summary>CollAsgnRespType, a <see cref="FixField.Integer"/>.</summary>
+	CollAsgnRespType = 905,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnRejectReason"/>.</summary>
-	public const int CollAsgnRejectReason = 906;
+	/// <summary>CollAsgnRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	CollAsgnRejectReason = 906,
 
-	/// <summary>The tag of <see cref="FixField.CollAsgnRefID"/>.</summary>
-	public const int CollAsgnRefID = 907;
+	/// <summary>CollAsgnRefID, a <see cref="FixField.Text"/>.</summary>
+	CollAsgnRefID = 907,
 
-	/// <summary>The tag of <see cref="FixField.CollRptID"/>.</summary>
-	public const int CollRptID = 908;
+	/// <summary>CollRptID, a <see cref="FixField.Text"/>.</summary>
+	CollRptID = 908,
 
-	/// <summary>The tag of <see cref="FixField.CollInquiryID"/>.</summary>
-	public const int CollInquiryID = 909;
+	/// <summary>CollInquiryID, a <see cref="FixField.Text"/>.</summary>
+	CollInquiryID = 909,
 
-	/// <summary>The tag of <see cref="FixField.CollStatus"/>.</summary>
-	public const int CollStatus = 910;
+	/// <summary>CollStatus, a <see cref="FixField.Integer"/>.</summary>
+	CollStatus = 910,
 
-	/// <summary>The tag of <see cref="FixField.TotNumReports"/>.</summary>
-	public const int TotNumReports = 911;
+	/// <summary>TotNumReports, a <see cref="FixField.Integer"/>.</summary>
+	TotNumReports = 911,
 
-	/// <summary>The tag of <see cref="FixField.LastRptRequested"/>.</summary>
-	public const int LastRptRequested = 912;
+	/// <summary>LastRptRequested, a <see cref="FixField.Boolean"/>.</summary>
+	LastRptRequested = 912,
 
-	/// <summary>The tag of <see cref="FixField.AgreementDesc"/>.</summary>
-	public const int AgreementDesc = 913;
+	/// <summary>AgreementDesc, a <see cref="FixField.Text"/>.</summary>
+	AgreementDesc = 913,
 
-	/// <summary>The tag of <see cref="FixField.AgreementID"/>.</summary>
-	public const int AgreementID = 914;
+	/// <summary>AgreementID, a <see cref="FixField.Text"/>.</summary>
+	AgreementID = 914,
 
-	/// <summary>The tag of <see cref="FixField.AgreementDate"/>.</summary>
-	public const int AgreementDate = 915;
+	/// <summary>AgreementDate, a <see cref="FixField.Date"/>.</summary>
+	AgreementDate = 915,
 
-	/// <summary>The tag of <see cref="FixField.StartDate"/>.</summary>
-	public const int StartDate = 916;
+	/// <summary>StartDate, a <see cref="FixField.Date"/>.</summary>
+	StartDate = 916,
 
-	/// <summary>The tag of <see cref="FixField.EndDate"/>.</summary>
-	public const int EndDate = 917;
+	/// <summary>EndDate, a <see cref="FixField.Date"/>.</summary>
+	EndDate = 917,
 
-	/// <summary>The tag of <see cref="FixField.AgreementCurrency"/>.</summary>
-	public const int AgreementCurrency = 918;
+	/// <summary>AgreementCurrency, a <see cref="FixField.Text"/>.</summary>
+	AgreementCurrency = 918,
 
-	/// <summary>The tag of <see cref="FixField.DeliveryType"/>.</summary>
-	public const int DeliveryType = 919;
+	/// <summary>DeliveryType, a <see cref="FixField.Integer"/>.</summary>
+	DeliveryType = 919,
 
-	/// <summary>The tag of <see cref="FixField.EndAccruedInterestAmt"/>.</summary>
-	public const int EndAccruedInterestAmt = 920;
+	/// <summary>EndAccruedInterestAmt, a <see cref="FixField.Decimal"/>.</summary>
+	EndAccruedInterestAmt = 920,
 
-	/// <summary>The tag of <see cref="FixField.StartCash"/>.</summary>
-	public const int StartCash = 921;
+	/// <summary>StartCash, a <see cref="FixField.Decimal"/>.</summary>
+	StartCash = 921,
 
-	/// <summary>The tag of <see cref="FixField.EndCash"/>.</summary>
-	public const int EndCash = 922;
+	/// <summary>EndCash, a <see cref="FixField.Decimal"/>.</summary>
+	EndCash = 922,
 
-	/// <summary>The tag of <see cref="FixField.UserRequestID"/>.</summary>
-	public const int UserRequestID = 923;
+	/// <summary>UserRequestID, a <see cref="FixField.Text"/>.</summary>
+	UserRequestID = 923,
 
-	/// <summary>The tag of <see cref="FixField.UserRequestType"/>.</summary>
-	public const int UserRequestType = 924;
+	/// <summary>UserRequestType, a <see cref="FixField.Integer"/>.</summary>
+	UserRequestType = 924,
 
-	/// <summary>The tag of <see cref="FixField.NewPassword"/>.</summary>
-	public const int NewPassword = 925;
+	/// <summary>NewPassword, a <see cref="FixField.Text"/>.</summary>
+	NewPassword = 925,
 
-	/// <summary>The tag of <see cref="FixField.UserStatus"/>.</summary>
-	public const int UserStatus = 926;
+	/// <summary>UserStatus, a <see cref="FixField.Integer"/>.</summary>
+	UserStatus = 926,
 
-	/// <summary>The tag of <see cref="FixField.UserStatusText"/>.</summary>
-	public const int UserStatusText = 927;
+	/// <summary>UserStatusText, a <see cref="FixField.Text"/>.</summary>
+	UserStatusText = 927,
 
-	/// <summary>The tag of <see cref="FixField.StatusValue"/>.</summary>
-	public const int StatusValue = 928;
+	/// <summary>StatusValue, a <see cref="FixField.Integer"/>.</summary>
+	StatusValue = 928,
 
-	/// <summary>The tag of <see cref="FixField.StatusText"/>.</summary>
-	public const int StatusText = 929;
+	/// <summary>StatusText, a <see cref="FixField.Text"/>.</summary>
+	StatusText = 929,
 
-	/// <summary>The tag of <see cref="FixField.RefCompID"/>.</summary>
-	public const int RefCompID = 930;
+	/// <summary>RefCompID, a <see cref="FixField.Text"/>.</summary>
+	RefCompID = 930,
 
-	/// <summary>The tag of <see cref="FixField.RefSubID"/>.</summary>
-	public const int RefSubID = 931;
+	/// <summary>RefSubID, a <see cref="FixField.Text"/>.</summary>
+	RefSubID = 931,
 
-	/// <summary>The tag of <see cref="FixField.NetworkResponseID"/>.</summary>
-	public const int NetworkResponseID = 932;
+	/// <summary>NetworkResponseID, a <see cref="FixField.Text"/>.</summary>
+	NetworkResponseID = 932,
 
-	/// <summary>The tag of <see cref="FixField.NetworkRequestID"/>.</summary>
-	public const int NetworkRequestID = 933;
+	/// <summary>NetworkRequestID, a <see cref="FixField.Text"/>.</summary>
+	NetworkRequestID = 933,
 
-	/// <summary>The tag of <see cref="FixField.LastNetworkResponseID"/>.</summary>
-	public const int LastNetworkResponseID = 934;
+	/// <summary>LastNetworkResponseID, a <see cref="FixField.Text"/>.</summary>
+	LastNetworkResponseID = 934,
 
-	/// <summary>The tag of <see cref="FixField.NetworkRequestType"/>.</summary>
-	public const int NetworkRequestType = 935;
+	/// <summary>NetworkRequestType, a <see cref="FixField.Integer"/>.</summary>
+	NetworkRequestType = 935,
 
-	/// <summary>The tag of <see cref="FixField.NoCompIDs"/>.</summary>
-	public const int NoCompIDs = 936;
+	/// <summary>NoCompIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoCompIDs = 936,
 
-	/// <summary>The tag of <see cref="FixField.NetworkStatusResponseType"/>.</summary>
-	public const int NetworkStatusResponseType = 937;
+	/// <summary>NetworkStatusResponseType, a <see cref="FixField.Integer"/>.</summary>
+	NetworkStatusResponseType = 937,
 
-	/// <summary>The tag of <see cref="FixField.NoCollInquiryQualifier"/>.</summary>
-	public const int NoCollInquiryQualifier = 938;
+	/// <summary>NoCollInquiryQualifier, a <see cref="FixField.Integer"/>.</summary>
+	NoCollInquiryQualifier = 938,
 
-	/// <summary>The tag of <see cref="FixField.TrdRptStatus"/>.</summary>
-	public const int TrdRptStatus = 939;
+	/// <summary>TrdRptStatus, a <see cref="FixField.Integer"/>.</summary>
+	TrdRptStatus = 939,
 
-	/// <summary>The tag of <see cref="FixField.AffirmStatus"/>.</summary>
-	public const int AffirmStatus = 940;
+	/// <summary>AffirmStatus, a <see cref="FixField.Integer"/>.</summary>
+	AffirmStatus = 940,
 
-	/// <summary>The tag of <see cref="FixField.UnderlyingStrikeCurrency"/>.</summary>
-	public const int UnderlyingStrikeCurrency = 941;
+	/// <summary>UnderlyingStrikeCurrency, a <see cref="FixField.Text"/>.</summary>
+	UnderlyingStrikeCurrency = 941,
 
-	/// <summary>The tag of <see cref="FixField.LegStrikeCurrency"/>.</summary>
-	public const int LegStrikeCurrency = 942;
+	/// <summary>LegStrikeCurrency, a <see cref="FixField.Text"/>.</summary>
+	LegStrikeCurrency = 942,
 
-	/// <summary>The tag of <see cref="FixField.TimeBracket"/>.</summary>
-	public const int TimeBracket = 943;
+	/// <summary>TimeBracket, a <see cref="FixField.Text"/>.</summary>
+	TimeBracket = 943,
 
-	/// <summary>The tag of <see cref="FixField.CollAction"/>.</summary>
-	public const int CollAction = 944;
+	/// <summary>CollAction, a <see cref="FixField.Integer"/>.</summary>
+	CollAction = 944,
 
-	/// <summary>The tag of <see cref="FixField.CollInquiryStatus"/>.</summary>
-	public const int CollInquiryStatus = 945;
+	/// <summary>CollInquiryStatus, a <see cref="FixField.Integer"/>.</summary>
+	CollInquiryStatus = 945,
 
-	/// <summary>The tag of <see cref="FixField.CollInquiryResult"/>.</summary>
-	public const int CollInquiryResult = 946;
+	/// <summary>CollInquiryResult, a <see cref="FixField.Integer"/>.</summary>
+	CollInquiryResult = 946,
 
-	/// <summary>The tag of <see cref="FixField.StrikeCurrency"/>.</summary>
-	public const int StrikeCurrency = 947;
+	/// <summary>StrikeCurrency, a <see cref="FixField.Text"/>.</summary>
+	StrikeCurrency = 947,
 
-	/// <summary>The tag of <see cref="FixField.NoNested3PartyIDs"/>.</summary>
-	public const int NoNested3PartyIDs = 948;
+	/// <summary>NoNested3PartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNested3PartyIDs = 948,
 
-	/// <summary>The tag of <see cref="FixField.Nested3PartyID"/>.</summary>
-	public const int Nested3PartyID = 949;
+	/// <summary>Nested3PartyID, a <see cref="FixField.Text"/>.</summary>
+	Nested3PartyID = 949,
 
-	/// <summary>The tag of <see cref="FixField.Nested3PartyIDSource"/>.</summary>
-	public const int Nested3PartyIDSource = 950;
+	/// <summary>Nested3PartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	Nested3PartyIDSource = 950,
 
-	/// <summary>The tag of <see cref="FixField.Nested3PartyRole"/>.</summary>
-	public const int Nested3PartyRole = 951;
+	/// <summary>Nested3PartyRole, a <see cref="FixField.Integer"/>.</summary>
+	Nested3PartyRole = 951,
 
-	/// <summary>The tag of <see cref="FixField.NoNested3PartySubIDs"/>.</summary>
-	public const int NoNested3PartySubIDs = 952;
+	/// <summary>NoNested3PartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	NoNested3PartySubIDs = 952,
 
-	/// <summary>The tag of <see cref="FixField.Nested3PartySubID"/>.</summary>
-	public const int Nested3PartySubID = 953;
+	/// <summary>Nested3PartySubID, a <see cref="FixField.Text"/>.</summary>
+	Nested3PartySubID = 953,
 
-	/// <summary>The tag of <see cref="FixField.Nested3PartySubIDType"/>.</summary>
-	public const int Nested3PartySubIDType = 954;
+	/// <summary>Nested3PartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	Nested3PartySubIDType = 954,
 
-	/// <summary>The tag of <see cref="FixField.LegContractSettlMonth"/>.</summary>
-	public const int LegContractSettlMonth = 955;
+	/// <summary>LegContractSettlMonth, a <see cref="FixField.MonthYear"/>.</summary>
+	LegContractSettlMonth = 955,
 
-	/// <summary>The tag of <see cref="FixField.LegInterestAccrualDate"/>.</summary>
-	public const int LegInterestAccrualDate = 956;
+	/// <summary>LegInterestAccrualDate, a <see cref="FixField.Date"/>.</summary>
+	LegInterestAccrualDate = 956,
 }

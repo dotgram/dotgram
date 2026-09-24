@@ -59,7 +59,7 @@ public sealed class FixOctetRoadTests
 	}
 
 	/// <summary>Every field as the tag it carries and the extent it was read from.</summary>
-	static (int Tag, int Position, int Length)[] Extents(FixMessage message)
+	static (FixTag Tag, int Position, int Length)[] Extents(FixMessage message)
 	{
 		return message.Fields.Select(field => (field.Tag, field.Position, field.Length)).ToArray();
 	}
@@ -75,7 +75,7 @@ public sealed class FixOctetRoadTests
 	/// </summary>
 	static FixField Find(FixMessage message, int tag)
 	{
-		return message.Fields.First(field => field.Tag == tag);
+		return message.Fields.First(field => (int)field.Tag == tag);
 	}
 
 	const string Head  = "35=D|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|";
@@ -94,13 +94,13 @@ public sealed class FixOctetRoadTests
 		byte[] payload = [(byte)'a', Soh, (byte)'b', Soh, (byte)'c'];
 
 		var message = FixParser.ParseMessage(Framed(Logon + "95=5|96=", payload, "141=N|"));
-		var data    = Assert.IsType<FixField.RawData>(Find(message, 96));
+		var data    = FixFixtures.Typed<FixField.Data>(FixTag.RawData, Find(message, 96));
 
 		Assert.True(data.IsValid);
 		Assert.Equal(payload, data.Value.ToArray());
 
 		// And the field after it is read as a field, which is what "cut by the length" has to mean.
-		Assert.False(Assert.IsType<FixField.ResetSeqNumFlag>(Find(message, 141)).Value);
+		Assert.False(FixFixtures.Typed<FixField.Boolean>(FixTag.ResetSeqNumFlag, Find(message, 141)).Value);
 	}
 
 	/// <summary>XmlData, a header pair, behaves the same way.</summary>
@@ -109,7 +109,7 @@ public sealed class FixOctetRoadTests
 	{
 		var payload = Octets("<a>|</a>");
 		var message = FixParser.ParseMessage(Framed(Head + "212=" + payload.Length + "|213=", payload, Order));
-		var data    = Assert.IsType<FixField.XmlData>(Find(message, 213));
+		var data    = FixFixtures.Typed<FixField.Data>(FixTag.XmlData, Find(message, 213));
 
 		Assert.Equal(payload, data.Value.ToArray());
 	}
@@ -139,7 +139,7 @@ public sealed class FixOctetRoadTests
 			.ToArray();
 		var fields = FixParser.ParseFields(input);
 
-		Assert.Equal([lengthTag, dataTag], fields.Select(one => one.Tag));
+		Assert.Equal([lengthTag, dataTag], fields.Select(one => (int)one.Tag));
 
 		var field = fields[1];
 
@@ -159,8 +159,8 @@ public sealed class FixOctetRoadTests
 		var message = FixParser.ParseMessage(
 			Framed(Head + "347=Shift_JIS|" + Order + "58=note|354=" + payload.Length + "|355=", payload, ""));
 
-		Assert.Equal("Shift_JIS", Assert.IsType<FixField.MessageEncoding>(Find(message, 347)).Value);
-		Assert.Equal(payload, Assert.IsType<FixField.EncodedText>(Find(message, 355)).Value.ToArray());
+		Assert.Equal("Shift_JIS", FixFixtures.Typed<FixField.Text>(FixTag.MessageEncoding, Find(message, 347)).Value);
+		Assert.Equal(payload, FixFixtures.Typed<FixField.Data>(FixTag.EncodedText, Find(message, 355)).Value.ToArray());
 	}
 
 	// ── what the octet road asks of a caller, and what the string road asks ──────────────────

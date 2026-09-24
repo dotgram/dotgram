@@ -48,10 +48,10 @@ public abstract class FixFieldReaderTests
 		{
 			var fields = parser.ParseLog("55=ABC|38=bad|54=Z|55=DEF|");
 
-			Assert.Equal([55, 38, 54, 55], fields.Select(f => f.Tag));
-			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(fields[0]).Value);
+			Assert.Equal([55, 38, 54, 55], fields.Select(f => (int)f.Tag));
+			Assert.Equal("ABC", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
 			Assert.False(fields[1].IsValid);
-			Assert.Equal('Z', Assert.IsType<FixField.Side>(fields[2]).Value);
+			Assert.Equal('Z', FixFixtures.Typed<FixField.Character>(FixTag.Side, fields[2]).Value);
 			Assert.Empty(parser.Parse(""));
 		});
 	}
@@ -147,9 +147,9 @@ public abstract class FixFieldReaderTests
 
 			var fields = parser.ParseLog(stream, bufferSize: 3).ToArray();
 
-			Assert.Equal(size, Assert.IsType<FixField.RawDataLength>(fields[0]).Value);
-			Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
+			Assert.Equal(size, FixFixtures.Typed<FixField.Integer>(FixTag.RawDataLength, fields[0]).Value);
+			Assert.Equal(Encoding.Latin1.GetBytes(payload), FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields[1]).Value.ToArray());
+			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[2]).Value);
 		});
 	}
 
@@ -160,7 +160,7 @@ public abstract class FixFieldReaderTests
 		{
 			var fields = parser.ParseLog("9000=3|9001=abc|");
 
-			Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => f.Tag));
+			Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => (int)f.Tag));
 			Assert.All(fields, field => Assert.IsType<FixField.Invalid>(field));
 			Assert.Contains(parser.ParseLog("9000=3|9001=a|b|"), field => field is FixField.Invalid);
 
@@ -267,9 +267,9 @@ public abstract class FixFieldReaderTests
 			using var fields = parser.Parse(stream, bufferSize: 1).GetEnumerator();
 
 			Assert.True(fields.MoveNext());
-			Assert.Equal(3, Assert.IsType<FixField.RawDataLength>(fields.Current).Value);
+			Assert.Equal(3, FixFixtures.Typed<FixField.Integer>(FixTag.RawDataLength, fields.Current).Value);
 			Assert.True(fields.MoveNext());
-			Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields.Current).Value.ToArray());
+			Assert.Equal(new byte[] { 97, 124, 98 }, FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields.Current).Value.ToArray());
 			Assert.Equal(pair.Length, stream.ReadCount);
 		});
 	}
@@ -303,7 +303,7 @@ public abstract class FixFieldReaderTests
 			{
 				Assert.Equal(0, stream.ReadCount);
 				Assert.True(iterator.MoveNext());
-				Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(iterator.Current).Value);
+				Assert.Equal("ABC", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, iterator.Current).Value);
 				Assert.Equal(7, stream.ReadCount);
 			}
 
@@ -325,7 +325,7 @@ public abstract class FixFieldReaderTests
 			using var iterator = fields.GetEnumerator();
 
 			Assert.True(iterator.MoveNext());
-			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(iterator.Current).Value);
+			Assert.Equal("ABC", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, iterator.Current).Value);
 			Assert.Equal(7, reader.ReadCount);
 		});
 	}
@@ -341,7 +341,7 @@ public abstract class FixFieldReaderTests
 			using var fields = parser.ParseLog(stream, bufferSize: 1).GetEnumerator();
 
 			Assert.True(fields.MoveNext());
-			Assert.IsType<FixField.Symbol>(fields.Current);
+			FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields.Current);
 
 			var invalid = false;
 
@@ -366,7 +366,7 @@ public abstract class FixFieldReaderTests
 			var fields = parser.ParseLog(stream, bufferSize: 3, maxRetained: 32).ToArray();
 
 			Assert.Equal(3000, fields.Length);
-			Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
+			Assert.Equal(new byte[] { 97, 124, 98 }, FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields[1]).Value.ToArray());
 			Assert.Equal(wire.Length - 5, fields[^1].Position);
 			Assert.True(stream.CanRead);
 		});
@@ -398,8 +398,8 @@ public abstract class FixFieldReaderTests
 			var fields  = source.ToArray();
 			var invalid = fields.OfType<FixField.Invalid>().ToArray();
 
-			Assert.Equal(new[] { 55, 0, 38, 0, 55, 0 }, fields.Select(field => field.Tag));
-			Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[4]).Value);
+			Assert.Equal(new[] { 55, 0, 38, 0, 55, 0 }, fields.Select(field => (int)field.Tag));
+			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[4]).Value);
 			Assert.Equal(new[] { 7, 16, 27 }, invalid.Select(field => field.Position));
 			Assert.Equal(new[] { "bad", "0=X", "tail" }, invalid.Select(field => bytes ? Encoding.Latin1.GetString(field.RawBytes.Span) : field.RawText));
 			Assert.All(invalid, field =>
@@ -421,7 +421,7 @@ public abstract class FixFieldReaderTests
 			var bytes = parser.ParseLog(new byte[] { 255, 0, 124, 53, 53, 61, 88 });
 
 			Assert.Equal(new byte[] { 255, 0 }, Assert.IsType<FixField.Invalid>(bytes[0]).RawBytes.ToArray());
-			Assert.Equal("X", Assert.IsType<FixField.Symbol>(bytes[1]).Value);
+			Assert.Equal("X", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, bytes[1]).Value);
 
 			var fields = parser.ParseLog("ошибка|55=X");
 
@@ -449,10 +449,10 @@ public abstract class FixFieldReaderTests
 			foreach (var fields in new[] { direct, chars, bytes })
 			{
 				AssertExtents(wire, fields);
-				Assert.Equal("arbitrary text", Assert.IsType<FixField.Account>(fields[0]).Value);
+				Assert.Equal("arbitrary text", FixFixtures.Typed<FixField.Text>(FixTag.Account, fields[0]).Value);
 				Assert.True(fields[0].IsValid);
 
-				var invalid = Assert.IsType<FixField.LegProduct>(fields[2]);
+				var invalid = FixFixtures.Typed<FixField.Integer>(FixTag.LegProduct, fields[2]);
 
 				Assert.False(invalid.TryGetValue(out _));
 				Assert.Throws<InvalidOperationException>(() => invalid.Value);
@@ -496,7 +496,7 @@ public abstract class FixFieldReaderTests
 				{
 					Assert.DoesNotContain(fields, field => field is FixField.Invalid);
 					AssertExtents(text, fields);
-					Assert.Equal(Latin1(raw), Assert.IsType<FixField.RawData>(fields.Single(f => f.Tag == 96)).Value.ToArray());
+					Assert.Equal(Latin1(raw), FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields.Single(f => f.Tag == FixTag.RawData)).Value.ToArray());
 				}
 			}
 		});
@@ -521,7 +521,7 @@ public abstract class FixFieldReaderTests
 
 		foreach (var field in fields)
 		{
-			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
+			var prefix = ((int)field.Tag).ToString(CultureInfo.InvariantCulture) + "=";
 
 			Assert.Equal(position, field.Position);
 			Assert.Equal(prefix, wire.Substring(field.Position, prefix.Length));

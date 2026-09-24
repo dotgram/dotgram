@@ -48,7 +48,7 @@ public sealed class Fix44Tests
 	[Fact]
 	public void No_standard_fixture_carries_a_tag_its_message_cannot_place()
 	{
-		var unplaced = new List<(string Type, int Tag)>();
+		var unplaced = new List<(string Type, FixTag Tag)>();
 
 		foreach (var data in FixFixtures.Messages())
 		{
@@ -60,7 +60,7 @@ public sealed class Fix44Tests
 		}
 
 		Assert.Equal(
-			[("CrossOrderCancelReplaceRequest", 586), ("NewOrderCross", 586), ("TradeCaptureReport", 635)],
+			[("CrossOrderCancelReplaceRequest", FixTag.OrigOrdModTime), ("NewOrderCross", FixTag.OrigOrdModTime), ("TradeCaptureReport", FixTag.ClearingFeeIndicator)],
 			unplaced.OrderBy(one => one.Tag).ThenBy(one => one.Type, StringComparer.Ordinal).ToArray());
 	}
 
@@ -72,7 +72,7 @@ public sealed class Fix44Tests
 		Assert.False(message.IsValid);
 		Assert.Equal(
 			[9001, 44],
-			message.InvalidFindings!.Where(one => one.Rule == FixRule.FieldNotInScope).Select(one => one.Tag).ToArray());
+			message.InvalidFindings!.Where(one => one.Rule == FixRule.FieldNotInScope).Select(one => (int)one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -140,7 +140,7 @@ public sealed class Fix44Tests
 		var wire = FixFixtures.Wire("0", "9001=A|112=TEST|9002=B|");
 
 		Assert.True(FixParser.TryParseMessage(wire, out var result, out var error), error?.ToString());
-		Assert.Equal(new[] { 9001, 112, 9002 }, Body(result!).Select(f => f.Tag));
+		Assert.Equal(new[] { 9001, 112, 9002 }, Body(result!).Select(f => (int)f.Tag));
 	}
 
 	[Fact]
@@ -150,7 +150,7 @@ public sealed class Fix44Tests
 		var wire    = FixFixtures.Wire("A", "98=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001");
 		var message = FixParser.ParseMessage(wire);
 
-		Assert.Equal(raw, Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(Field(message, 96)).Value.Span));
+		Assert.Equal(raw, Encoding.Latin1.GetString(FixFixtures.Typed<FixField.Data>(FixTag.RawData, Field(message, 96)).Value.Span));
 	}
 
 	[Fact]
@@ -161,12 +161,12 @@ public sealed class Fix44Tests
 		var checksum = FixParser.ParseMessage(wire[..^4] + "999\u0001");
 
 		Assert.False(checksum.Validate(FixContext.Default));
-		Assert.Contains(checksum.InvalidFindings!, finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: 10 });
+		Assert.Contains(checksum.InvalidFindings!, finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: FixTag.CheckSum });
 
 		var length = FixParser.ParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal));
 
 		Assert.False(length.Validate(FixContext.Default));
-		Assert.Contains(length.InvalidFindings!, finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: 9 });
+		Assert.Contains(length.InvalidFindings!, finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: FixTag.BodyLength });
 	}
 
 	[Fact]
@@ -176,13 +176,13 @@ public sealed class Fix44Tests
 		var other = FixParser.ParseMessage(wire.Replace("FIX.4.4", "FIX.4.2", StringComparison.Ordinal));
 
 		Assert.False(other.Validate(FixContext.Default));
-		Assert.Contains(other.InvalidFindings!, finding => finding is { Rule: FixRule.InvalidValue, Tag: 8 });
+		Assert.Contains(other.InvalidFindings!, finding => finding is { Rule: FixRule.InvalidValue, Tag: FixTag.BeginString });
 
 		// MsgType moved behind SenderCompID: the octets are the same, so only the order is wrong.
 		var moved = FixParser.ParseMessage(wire.Replace("35=0\u000149=SENDER\u0001", "49=SENDER\u000135=0\u0001", StringComparison.Ordinal));
 
 		Assert.False(moved.Validate(FixContext.Default));
-		Assert.Contains(moved.InvalidFindings!, finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: 35 });
+		Assert.Contains(moved.InvalidFindings!, finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: FixTag.MsgType });
 		Assert.DoesNotContain(moved.InvalidFindings!, finding => finding.Rule is FixRule.CheckSumMismatch or FixRule.BodyLengthMismatch);
 	}
 
@@ -203,7 +203,7 @@ public sealed class Fix44Tests
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=3|"));
 
 		Assert.False(message.Validate(FixContext.Default));
-		Assert.Contains(message.InvalidFindings!, finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: 95 });
+		Assert.Contains(message.InvalidFindings!, finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: FixTag.RawDataLength });
 	}
 
 	[Theory]
@@ -222,7 +222,7 @@ public sealed class Fix44Tests
 	{
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=0|96=|"));
 
-		Assert.Equal(0, Assert.IsType<FixField.RawData>(Field(message, 96)).Value.Length);
+		Assert.Equal(0, FixFixtures.Typed<FixField.Data>(FixTag.RawData, Field(message, 96)).Value.Length);
 	}
 
 	[Fact]
@@ -237,7 +237,7 @@ public sealed class Fix44Tests
 		var order = Assert.IsType<FixMessage.NewOrderSingle>(message);
 
 		Assert.Equal("P1", order.NoPartyIDsGroups![0].PartyID.Value);
-		Assert.Contains(order.Fields, f => f.Tag == 9001);
+		Assert.Contains(order.Fields, f => f.Tag == (FixTag)9001);
 	}
 
 	[Fact]
@@ -250,7 +250,7 @@ public sealed class Fix44Tests
 		var custom = Assert.IsType<FixMessage.Invalid>(result);
 
 		Assert.Equal("U1", custom.MessageType);
-		Assert.Equal(new[] { 9001, 9002 }, Body(custom).Select(f => f.Tag));
+		Assert.Equal(new[] { 9001, 9002 }, Body(custom).Select(f => (int)f.Tag));
 	}
 
 	[Fact]
@@ -286,7 +286,7 @@ public sealed class Fix44Tests
 
 		foreach (var data in FixFixtures.Messages())
 			foreach (var field in FixParser.ParseMessage((string)data[1]).Fields)
-				tags.Add(field.Tag);
+				tags.Add((int)field.Tag);
 
 		using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FieldCases.json")));
 
@@ -299,7 +299,7 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Every_standard_data_pair_accepts_embedded_delimiters()
 	{
-		var covered = new HashSet<int>();
+		var covered = new HashSet<FixTag>();
 		const string payload = "A\u0001=\0\u00ff";
 
 		foreach (var data in FixFixtures.Messages())
@@ -318,7 +318,7 @@ public sealed class Fix44Tests
 
 				Assert.Equal(lengthTag, preceding.Tag);
 
-				var changed = wire[..preceding.Position] + lengthTag + "=5\u0001" + current.Tag + "=" + payload + "\u0001" + wire[(current.ValuePosition + current.Length + 1)..];
+				var changed = wire[..preceding.Position] + (int)lengthTag + "=5\u0001" + (int)current.Tag + "=" + payload + "\u0001" + wire[(current.ValuePosition + current.Length + 1)..];
 				var result  = FixParser.ParseMessage(Reframe(changed));
 				var built   = (FixField.Typed<ReadOnlyMemory<byte>>)result.Fields.First(f => f.Tag == current.Tag);
 
@@ -332,13 +332,13 @@ public sealed class Fix44Tests
 	/// <summary>The field with that tag, wherever the message put it.</summary>
 	static FixField Field(FixMessage message, int tag)
 	{
-		return message.Fields.First(field => field.Tag == tag);
+		return message.Fields.First(field => (int)field.Tag == tag);
 	}
 
 	/// <summary>The fields a message carries of its own, without the standard header and trailer.</summary>
 	static IEnumerable<FixField> Body(FixMessage message)
 	{
-		return message.Fields.Where(field => field.Tag is not (8 or 9 or 10 or 34 or 35 or 49 or 52 or 56));
+		return message.Fields.Where(field => (int)field.Tag is not (8 or 9 or 10 or 34 or 35 or 49 or 52 or 56));
 	}
 
 	static string Reframe(string wire)

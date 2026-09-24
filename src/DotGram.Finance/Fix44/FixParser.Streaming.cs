@@ -118,14 +118,14 @@ public static partial class FixParser
 				return false;
 
 			if (_maximum < _prefix.Length)
-				return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+				return Fail(_count, FixTag.BodyLength, null, "Message exceeds maxMessageLength.", out error);
 
 			if (!ReadTo(_prefix.Length))
-				return Fail(_count, 8, null, "Truncated FIX header.", out error);
+				return Fail(_count, FixTag.BeginString, null, "Truncated FIX header.", out error);
 
 			for (var i = 0; i < _prefix.Length; i++)
 				if (At(i) != _prefix[i])
-					return Fail(i, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+					return Fail(i, FixTag.BeginString, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
 
 			var length = 0;
 			var digits = 0;
@@ -133,10 +133,10 @@ public static partial class FixParser
 			while (true)
 			{
 				if (_count == _maximum)
-					return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+					return Fail(_count, FixTag.BodyLength, null, "Message exceeds maxMessageLength.", out error);
 
 				if (!ReadTo(_count + 1))
-					return Fail(_count, 9, null, "Truncated BodyLength.", out error);
+					return Fail(_count, FixTag.BodyLength, null, "Truncated BodyLength.", out error);
 
 				var c = At(_count - 1);
 
@@ -144,17 +144,17 @@ public static partial class FixParser
 					break;
 
 				if (c < '0' || c > '9')
-					return Fail(_count - 1, 9, null, "BodyLength must contain decimal digits.", out error);
+					return Fail(_count - 1, FixTag.BodyLength, null, "BodyLength must contain decimal digits.", out error);
 
 				if (length > (_maximum - (c - '0')) / 10 || c - '0' > _maximum)
-					return Fail(_count - 1, 9, null, "Message exceeds maxMessageLength.", out error);
+					return Fail(_count - 1, FixTag.BodyLength, null, "Message exceeds maxMessageLength.", out error);
 
 				length = length * 10 + c - '0';
 				digits++;
 			}
 
 			if ((long)_count + length + 7 > _maximum)
-				return Fail(_count, 9, null, "Message exceeds maxMessageLength.", out error);
+				return Fail(_count, FixTag.BodyLength, null, "Message exceeds maxMessageLength.", out error);
 
 			if (!ReadTo(_count + length + 7))
 				return Fail(_count, null, null, "Truncated FIX message.", out error);

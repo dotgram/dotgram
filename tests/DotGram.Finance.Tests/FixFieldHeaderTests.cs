@@ -58,8 +58,8 @@ public sealed class FixFieldHeaderTests
 
 		foreach (var fields in Parse(input, false))
 		{
-			var length = Assert.IsType<FixField.RawDataLength>(fields[0]);
-			var data   = Assert.IsType<FixField.RawData>(fields[1]);
+			var length = FixFixtures.Typed<FixField.Integer>(FixTag.RawDataLength, fields[0]);
+			var data   = FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields[1]);
 
 			Assert.Equal(0, length.Position);
 			Assert.Equal(5, length.Value);

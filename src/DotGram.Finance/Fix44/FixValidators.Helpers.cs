@@ -6,20 +6,20 @@ namespace DotGram.Finance.Fix44;
 partial class FixValidators
 {
 	/// <summary>A field the schema requires of this type, and the message does not have.</summary>
-	internal static void Missing(FixMessage message, int tag)
+	internal static void Missing(FixMessage message, FixTag tag)
 	{
 		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, 0, null, -1));
 	}
 
 	/// <summary>A field the schema requires of an entry, and the entry does not have: said at the field the entry opened with.</summary>
-	internal static void Missing(FixMessage message, int tag, int position, int index)
+	internal static void Missing(FixMessage message, FixTag tag, int position, int index)
 	{
 		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, position, null, index));
 	}
 
 	/// <summary>A block the schema requires of this type, and the carrier has no field of.</summary>
 	/// <remarks>Named by the first tag it would have held, since a block has no tag of its own.</remarks>
-	internal static void Absent(FixMessage message, int tag)
+	internal static void Absent(FixMessage message, FixTag tag)
 	{
 		message.AddFinding(new FixFinding(FixRule.RequiredComponentMissing, tag, 0, null, -1));
 	}

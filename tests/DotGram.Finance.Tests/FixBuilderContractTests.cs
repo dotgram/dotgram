@@ -98,7 +98,7 @@ public sealed class FixBuilderContractTests
 			out var message, out var error), error?.ToString());
 
 		Assert.IsType<FixMessage.Heartbeat>(message);
-		Assert.Contains(message!.Fields, field => field.Tag == 58);
+		Assert.Contains(message!.Fields, field => field.Tag == FixTag.Text);
 	}
 
 	// ── what an unknown message type gets ────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ public sealed class FixBuilderContractTests
 		// Everything that is not the standard header or the trailer, in wire order.
 		Assert.Equal(
 			[453, 448, 447, 9999, 58],
-			message.Fields.Select(one => one.Tag).Where(one => one is not (8 or 9 or 10 or 34 or 35 or 49 or 52 or 56)).ToArray());
+			message.Fields.Select(one => (int)one.Tag).Where(one => one is not (8 or 9 or 10 or 34 or 35 or 49 or 52 or 56)).ToArray());
 
 		// The standard header is still read as the header.
 		Assert.Equal("S", message.SenderCompID!.Value);
@@ -139,8 +139,8 @@ public sealed class FixBuilderContractTests
 	{
 		var wire = FixWire("35=ZZ|49=S|56=T|34=1|52=20260920-12:00:00|453=1|448=P|9999=x|");
 
-		var flat  = FixParser.ParseFields(wire).Select(one => one.Tag).Where(one => one != 8 && one != 9 && one != 10);
-		var built = FixParser.ParseMessage(wire).Fields.Select(one => one.Tag).Where(one => one != 8 && one != 9 && one != 10);
+		var flat  = FixParser.ParseFields(wire).Select(one => (int)one.Tag).Where(one => one != 8 && one != 9 && one != 10);
+		var built = FixParser.ParseMessage(wire).Fields.Select(one => (int)one.Tag).Where(one => one != 8 && one != 9 && one != 10);
 
 		Assert.Equal(flat, built);
 	}

@@ -6,8 +6,8 @@ namespace DotGram.Finance.Fix44;
 
 /// <summary>The conversions a FIX value is read by, one a type of the standard's.</summary>
 /// <remarks>
-/// Every standard field is read by one of these, and a field of a consumer's own
-/// (<see cref="FixCustomField"/>) is read by the one of its type. Each takes the value as the wire had it,
+/// Every field is read by the one of its type: the standard's, or the one a loaded dictionary gives
+/// it. Each takes the value as the wire had it,
 /// as characters or as octets, and answers whether it is valid with the value, as a pair or as an out
 /// parameter; none throws. The rules are the protocol's, not .NET's: <see cref="ToDecimal(ReadOnlySpan{char})"/>
 /// reads no exponent and no culture. Each is an extension of the span it reads, <c>value.ToInteger()</c>,

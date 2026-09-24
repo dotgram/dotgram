@@ -68,13 +68,13 @@ partial class FixValidators
 
 		foreach (var field in dictionary.Fields.Values)
 		{
-			// A field the package has no class for has no slot, and nothing a check could hold.
-			if (field.Codes is not { } codes || typeof(FixField).GetNestedType(field.Name) is not { } type)
+			// A field the standard does not define has no slot, and nothing a check could hold.
+			if (field.Codes is not { } codes || FieldSlot(field.Name) is not { } type)
 				continue;
 
 			jobs.Add(writing =>
 			{
-				if (FieldText(field.Name, type, codes) is { } text)
+				if (FieldText(type, codes) is { } text)
 					writing.Write(field.Name, text);
 			});
 		}
@@ -265,7 +265,17 @@ partial class FixValidators
 		return First(members[0], dictionary);
 	}
 
-	static string? FieldText(string name, Type field, string[] codes)
+	// The class of the field a field's slot is handed, where the name is a field's slot.
+	static Type? FieldSlot(string name)
+	{
+		var slot = typeof(FixValidators).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)?.PropertyType;
+
+		return slot is { IsGenericType: true } && slot.GetGenericTypeDefinition() == typeof(Func<,,,>) && slot.GetGenericArguments()[2] is var field && field.IsSubclassOf(typeof(FixField))
+			? field
+			: null;
+	}
+
+	static string? FieldText(Type field, string[] codes)
 	{
 		var value = field.BaseType!.GetGenericArguments()[0];
 		var body  = new StringBuilder();
@@ -288,7 +298,7 @@ partial class FixValidators
 			body.Append(") FixValidators.Invalid(message, field);\n");
 		}
 
-		return Using + "(FixContext context, FixMessage message, FixField." + name + " field) => {\n" + body + "return message.IsValid; }";
+		return Using + "(FixContext context, FixMessage message, FixField." + field.Name + " field) => {\n" + body + "return message.IsValid; }";
 	}
 
 	// The value is none of the codes: a switch over them, in the literal form its type reads,

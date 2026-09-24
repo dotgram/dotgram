@@ -77,31 +77,32 @@ foreach (var field in FixParser.ParseFields(wire))
             Console.WriteLine($"{invalid.Position}: {invalid.Message}");
             break;
 
-        case FixField.OrderQty quantity when quantity.IsValid:
+        case FixField.Decimal { Tag: FixTag.OrderQty, IsValid: true } quantity:
             decimal value = quantity.Value;
             break;
 
-        case FixField.Symbol symbol:              // text fields are always valid
+        case FixField.Text { Tag: FixTag.Symbol } symbol:   // text fields are always valid
             string text = symbol.Value;
             break;
     }
 }
 ```
 
-- Each of the 912 standard tags has its own case, `FixField.<Name>`, with a typed
-  `Value`: text as `string`, numbers as `decimal` or `long`, dates and times as
-  `DateOnly`, `TimeOnly` and `DateTimeOffset` (a MonthYear stays a `string`). `FixTag.<Name>` is
-  each tag's number as a constant, for code that should not spell numbers: `case FixTag.ClOrdID:`.
+- A field is a class of the type of its value, and its `Tag` says which field it is:
+  `FixField.Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`, `Date`,
+  `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
+  `decimal` or `long`, dates and times as `DateOnly`, `TimeOnly` and `DateTimeOffset` (a
+  MonthYear stays a `string`). `Tag` is a `FixTag`, which names the 912 standard tags:
+  `FixField.Decimal { Tag: FixTag.OrderQty }`. A tag it does not name is its number, `(FixTag)25005`.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
-- A tag the package does not know goes through the context's `FixFieldFactory`, handed the tag
-  and the value: `(tag, value) => tag == 25005 ? new FixCustomField<long>(tag, value.ToInteger()) : null`.
-  A class of your own derives from `FixCustomField<T>`. A loaded dictionary builds its own fields
-  by their types where your factory answers null. A MsgType it does not know is built by
-  `FixMessageFactory` (a `FixCustomMessage` that places its own fields). Where either answers null,
-  the field is a `FixField.Invalid` of that tag with its octets, and the message a `FixMessage.Invalid`.
-  A standard message has no property for a tag outside FIX 4.4, so such a field is out of scope in it.
+- A tag the package does not know is read as the type a dictionary loaded into the context gives
+  it: `FixContext.Default.Load(venueXml)`. A MsgType it does not know is built by
+  `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing defines is a
+  `FixField.Invalid` of that tag with its octets, and a type the factory answers null for a
+  `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a
+  field is out of scope in it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 
@@ -138,7 +139,7 @@ switch (message)
   `FixMessage.Invalid`, carrying the type it read and its fields — that case is why the set can
   be closed without covering every MsgType that exists.
 - A message's properties are named after its fields and are the typed fields themselves:
-  `FixField.Symbol?`, `FixField.OrderQty?`, null when the field is absent. `Value` on one is
+  `order.Symbol` is a `FixField.Text?`, `order.OrderQty` a `FixField.Decimal?`, null when the field is absent. `Value` on one is
   the CLR value — a `string`, a `decimal`, a `long` — and `IsValid` says whether the
   characters fitted it. A repeating group is named as QuickFIX names it: the list
   `<Counter>Groups` beside its counter, of entries of the class `<Counter>Group` nested in
@@ -164,7 +165,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 
 var context = new FixContext
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // length tag to data tag, added to the standard's sixteen
+    LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // length tag to data tag, added to the standard's sixteen
 };
 
 var fields  = FixParser.ParseFields(wire, context);
@@ -172,7 +173,8 @@ var message = FixParser.ParseMessage(wire, context);   // the same value reads b
 ```
 
 The dictionary **adds to** the standard's sixteen pairs: list only what the standard does
-not define. The same object goes to the message calls, which refuse a length not followed by
+not define. A pair's tags that nothing gives a type are read as a `FixField.Integer` and a
+`FixField.Data`. The same object goes to the message calls, which refuse a length not followed by
 its data. When reading a stream, the context's `MaxRetained` bounds one field, from its tag
 through the separator that ends it: 16 Mi characters from a `TextReader` or bytes from a
 `Stream` by default. A field that needs more throws `IOException`, so give the context a larger

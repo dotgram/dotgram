@@ -42,7 +42,7 @@ public sealed class FixLoadTests
 		Assert.False(bare.Validate(context));
 		Assert.Equal(
 			[141],
-			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => (int)one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A fragment that wants the standard as well says so.
 		const string logonWantsAll =
@@ -63,7 +63,7 @@ public sealed class FixLoadTests
 		Assert.False(all.Validate(FixContext.Default.Load(logonWantsAll)));
 		Assert.Equal(
 			[98, 108, 141],
-			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => (int)one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A message that has what the fragment wants is valid under it.
 		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|")).Validate(context));
@@ -100,7 +100,7 @@ public sealed class FixLoadTests
 
 		// Only the second fragment speaks for a Logon now; the first spoke for it until then.
 		Assert.False(message.Validate(context));
-		Assert.Equal([383], message.InvalidFindings!.Select(one => one.Tag).ToArray());
+		Assert.Equal([383], message.InvalidFindings!.Select(one => (int)one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -148,8 +148,8 @@ public sealed class FixLoadTests
 
 		Assert.False(order.Validate(context));
 		Assert.False(quote.Validate(context));
-		Assert.Equal(48, Assert.Single(order.InvalidFindings!).Tag);
-		Assert.Equal(48, Assert.Single(quote.InvalidFindings!).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(order.InvalidFindings!).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(quote.InvalidFindings!).Tag);
 	}
 
 	[Fact]
@@ -192,7 +192,7 @@ public sealed class FixLoadTests
 		var finding = Assert.Single(order.InvalidFindings!);
 
 		Assert.Equal(FixRule.RequiredFieldMissing, finding.Rule);
-		Assert.Equal(452, finding.Tag);
+		Assert.Equal(FixTag.PartyRole, finding.Tag);
 		Assert.Equal(1, finding.EntryIndex);
 		Assert.Equal(((FixMessage.NewOrderSingle)order).NoPartyIDsGroups![1].PartyID.Position, finding.Position);
 	}

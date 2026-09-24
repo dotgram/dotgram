@@ -18,14 +18,14 @@ partial class FixValidators
 
 	static bool ValidateStandardHeader(FixContext context, FixMessage message)
 	{
-		if (message.BeginString  is null) Missing(message, 8);
-		if (message.BodyLength   is null) Missing(message, 9);
-		if (message.MsgType      is null) Missing(message, 35);
-		if (message.SenderCompID is null) Missing(message, 49);
-		if (message.TargetCompID is null) Missing(message, 56);
-		if (message.MsgSeqNum    is null) Missing(message, 34);
-		if (message.SendingTime  is null) Missing(message, 52);
-		if (message.CheckSum     is null) Missing(message, 10);
+		if (message.BeginString  is null) Missing(message, FixTag.BeginString);
+		if (message.BodyLength   is null) Missing(message, FixTag.BodyLength);
+		if (message.MsgType      is null) Missing(message, FixTag.MsgType);
+		if (message.SenderCompID is null) Missing(message, FixTag.SenderCompID);
+		if (message.TargetCompID is null) Missing(message, FixTag.TargetCompID);
+		if (message.MsgSeqNum    is null) Missing(message, FixTag.MsgSeqNum);
+		if (message.SendingTime  is null) Missing(message, FixTag.SendingTime);
+		if (message.CheckSum     is null) Missing(message, FixTag.CheckSum);
 
 		// BeginString, BodyLength and MsgType are the first three fields, in that order.
 		First(message, 0, message.BeginString);
@@ -33,18 +33,18 @@ partial class FixValidators
 		First(message, 2, message.MsgType);
 
 		if (message.BeginString is { IsValid: true } begin && begin.Value != "FIX.4.4")
-			message.AddFinding(new FixFinding(FixRule.InvalidValue, 8, begin.Position, begin, -1));
+			message.AddFinding(new FixFinding(FixRule.InvalidValue, FixTag.BeginString, begin.Position, begin, -1));
 
 		// What the reading measured of the octets, which the message does not keep.
 		if (message.BodyLength is { IsValid: true } declared && message.MeasuredBodyLength >= 0 && declared.Value != message.MeasuredBodyLength)
-			message.AddFinding(new FixFinding(FixRule.BodyLengthMismatch, 9, declared.Position, declared, -1));
+			message.AddFinding(new FixFinding(FixRule.BodyLengthMismatch, FixTag.BodyLength, declared.Position, declared, -1));
 
 		if (message.CheckSum is { } sum)
 		{
 			if (sum.Value.Length != 3 || sum.Value.AsSpan().ToTag() is var expected && expected < 0)
-				message.AddFinding(new FixFinding(FixRule.InvalidValue, 10, sum.Position, sum, -1));
+				message.AddFinding(new FixFinding(FixRule.InvalidValue, FixTag.CheckSum, sum.Position, sum, -1));
 			else if (message.MeasuredCheckSum >= 0 && expected != message.MeasuredCheckSum)
-				message.AddFinding(new FixFinding(FixRule.CheckSumMismatch, 10, sum.Position, sum, -1));
+				message.AddFinding(new FixFinding(FixRule.CheckSumMismatch, FixTag.CheckSum, sum.Position, sum, -1));
 		}
 
 		// The header is read before the body, and a header tag met after the body has begun is
@@ -52,15 +52,15 @@ partial class FixValidators
 		// asked here.
 		var body = false;
 
-		var length = 0;
+		var length = (FixTag)0;
 
 		foreach (var field in message.Fields)
 		{
 			// A length field is followed by the data it measures, and by nothing else.
-			if (length != 0 && field.Tag != context.DataTag(length))
+			if (length != 0 && (int)field.Tag != context.DataTag((int)length))
 				message.AddFinding(new FixFinding(FixRule.LengthFieldNotBeforeData, length, field.Position, field, -1));
 
-			length = context.Kind(field.Tag) > 0 ? field.Tag : 0;
+			length = context.Kind((int)field.Tag) > 0 ? field.Tag : 0;
 
 			if (IsTrailer(field.Tag))
 				continue;
@@ -83,14 +83,19 @@ partial class FixValidators
 			message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 	}
 
-	static bool IsHeader(int tag)
+	static bool IsHeader(FixTag tag)
 	{
-		return tag is 8 or 9 or 35 or 49 or 56 or 115 or 128 or 90 or 91 or 34 or 50 or 142 or 57 or 143 or 116 or 144 or 129 or 145
-			or 43 or 97 or 52 or 122 or 212 or 213 or 347 or 369 or 627 or 628 or 629 or 630;
+		return tag is FixTag.BeginString or FixTag.BodyLength or FixTag.MsgType or FixTag.SenderCompID or FixTag.TargetCompID
+			or FixTag.OnBehalfOfCompID or FixTag.DeliverToCompID or FixTag.SecureDataLen or FixTag.SecureData or FixTag.MsgSeqNum
+			or FixTag.SenderSubID or FixTag.SenderLocationID or FixTag.TargetSubID or FixTag.TargetLocationID or FixTag.OnBehalfOfSubID
+			or FixTag.OnBehalfOfLocationID or FixTag.DeliverToSubID or FixTag.DeliverToLocationID or FixTag.PossDupFlag
+			or FixTag.PossResend or FixTag.SendingTime or FixTag.OrigSendingTime or FixTag.XmlDataLen or FixTag.XmlData
+			or FixTag.MessageEncoding or FixTag.LastMsgSeqNumProcessed or FixTag.NoHops or FixTag.HopCompID or FixTag.HopSendingTime
+			or FixTag.HopRefID;
 	}
 
-	static bool IsTrailer(int tag)
+	static bool IsTrailer(FixTag tag)
 	{
-		return tag is 93 or 89 or 10;
+		return tag is FixTag.SignatureLength or FixTag.Signature or FixTag.CheckSum;
 	}
 }

@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text;
-
-using DotGram.ExpressionLanguage;
 
 namespace DotGram.Finance.Fix44;
 
-/// <summary>What a reading is done by: the framing, the length/data pairs, the fields a consumer builds, and the schema a message is held to.</summary>
+/// <summary>What a reading is done by: the framing, the type of every field and the length/data pairs, and the schema a message is held to.</summary>
 /// <remarks>
 /// <para>
 /// One value, passed to every call that reads and to <see cref="FixMessage.Validate"/>, rather
@@ -16,13 +12,15 @@ namespace DotGram.Finance.Fix44;
 /// Immutable, and changed with <c>with</c>: <c>FixContext.Default with { Framing = FixFraming.Log }</c>.
 /// </para>
 /// <para>
-/// FIX carries binary values as a pair of fields: a length, then the tag whose value is that many
-/// octets and may hold the separator itself. Which tags are such a pair is the one thing a parse has
-/// to know before it reads a value, and the standard settles it for sixteen pairs. A counterparty
-/// may define more, in the bilateral range, and <see cref="LengthDataPairs"/> is where. The answer
-/// is worked out once, when the value is made, into a table the tag indexes — so the reader's
-/// question on every field is an array read, and a consumer's dictionary is never consulted in
-/// the middle of a parse.
+/// What a reading has to know of a tag is the type its value is read as, which is the class of the
+/// field, and whether it is half of a pair. FIX carries binary values as a pair of fields: a length,
+/// then the tag whose value is that many octets and may hold the separator itself. The standard
+/// settles both for the tags it defines; a counterparty may define more, in the bilateral range,
+/// and a dictionary given to <see cref="Load(string, string)"/> types them while
+/// <see cref="LengthDataPairs"/> pairs them. Both are worked out once, when the value is made, into
+/// a table the tag indexes — so the reader's question on every field is an array read, and nothing
+/// a consumer supplies is consulted in the middle of a parse. A tag neither the standard nor a
+/// loaded dictionary defines is read as a <see cref="FixField.Invalid"/>.
 /// </para>
 /// <para>
 /// The schema is the check of each message type, of each block and of each field, held as one
@@ -47,57 +45,36 @@ public sealed record FixContext
 	public static FixContext WithLogFraming => Default with { Framing = FixFraming.Log };
 
 	// The standard's sixteen pairs, length tag to data tag, and the table the reader indexes, built
-	// from them once. A class of their own so that they exist before Default, which is built from them.
+	// from them and from the type of every field once. A class of their own so that they exist before
+	// Default, which is built from them.
 	static class Standard
 	{
-		public static readonly Dictionary<int,int> Pairs = new()
+		public static readonly Dictionary<FixTag,FixTag> Pairs = new()
 		{
-			{  93,  89 }, {  90,  91 }, {  95,  96 }, { 212, 213 },
-			{ 348, 349 }, { 350, 351 }, { 352, 353 }, { 354, 355 },
-			{ 356, 357 }, { 358, 359 }, { 360, 361 }, { 362, 363 },
-			{ 364, 365 }, { 445, 446 }, { 618, 619 }, { 621, 622 },
+			{ FixTag.SignatureLength,                  FixTag.Signature                     },
+			{ FixTag.SecureDataLen,                    FixTag.SecureData                    },
+			{ FixTag.RawDataLength,                    FixTag.RawData                       },
+			{ FixTag.XmlDataLen,                       FixTag.XmlData                       },
+			{ FixTag.EncodedIssuerLen,                 FixTag.EncodedIssuer                 },
+			{ FixTag.EncodedSecurityDescLen,           FixTag.EncodedSecurityDesc           },
+			{ FixTag.EncodedListExecInstLen,           FixTag.EncodedListExecInst           },
+			{ FixTag.EncodedTextLen,                   FixTag.EncodedText                   },
+			{ FixTag.EncodedSubjectLen,                FixTag.EncodedSubject                },
+			{ FixTag.EncodedHeadlineLen,               FixTag.EncodedHeadline               },
+			{ FixTag.EncodedAllocTextLen,              FixTag.EncodedAllocText              },
+			{ FixTag.EncodedUnderlyingIssuerLen,       FixTag.EncodedUnderlyingIssuer       },
+			{ FixTag.EncodedUnderlyingSecurityDescLen, FixTag.EncodedUnderlyingSecurityDesc },
+			{ FixTag.EncodedListStatusTextLen,         FixTag.EncodedListStatusText         },
+			{ FixTag.EncodedLegIssuerLen,              FixTag.EncodedLegIssuer              },
+			{ FixTag.EncodedLegSecurityDescLen,        FixTag.EncodedLegSecurityDesc        },
 		};
 
-		public static readonly sbyte[] Kinds = KindsOf(Pairs);
-	}
-
-	// What the reader asks of a tag: 1 is a length, -1 the data it measures, 0 an ordinary value.
-	const sbyte Ordinary = 0, Length = 1, Data = -1;
-
-	// The table covers every tag anyone writes, the bilateral range ending at 39,999; a tag past it
-	// is looked up in the pairs themselves.
-	const int Tabled = 65536;
-
-	static sbyte[] KindsOf(Dictionary<int,int> pairs)
-	{
-		var kinds = new sbyte[Tabled];
-
-		foreach (var pair in pairs)
-		{
-			if (pair.Key < Tabled)
-				kinds[pair.Key] = Length;
-
-			if (pair.Value < Tabled)
-				kinds[pair.Value] = Data;
-		}
-
-		return kinds;
+		public static readonly Codes Codes = Codes.Of(Pairs);
 	}
 
 	/// <summary>How the input separates one field from the next: the wire's SOH, or a log's pipe.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
-
-	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new FixCustomField&lt;long&gt;(tag, value.ToInteger()) : null</c>.</summary>
-	/// <remarks>
-	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. It is
-	/// handed the tag and the value, and builds a <see cref="FixCustomField{T}"/>, or a class derived from
-	/// one, the way the standard's fields are built; where it answers null, or there is none, the field is
-	/// a <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
-	/// builds the fields it describes that the standard does not, by the types it gives them, where this
-	/// answers null.
-	/// </remarks>
-	public FixFieldFactory? FixFieldFactory { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
@@ -131,23 +108,29 @@ public sealed record FixContext
 		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
 	} = FixGrammar.DefaultMaxRetained;
 
-	readonly Dictionary<int,int> _pairs = Standard.Pairs;
-	readonly sbyte[]             _kinds = Standard.Kinds;
+	readonly Dictionary<FixTag,FixTag> _pairs = Standard.Pairs;
+
+	// What the reader knows of every tag; set by LengthDataPairs and by a load.
+	Codes Coded { get; init; } = Standard.Codes;
 
 	/// <summary>The length/data pairs, length tag to data tag: the standard's sixteen and a consumer's own.</summary>
-	/// <remarks>What is set is added to the standard's pairs; a length tag set again replaces its pair.</remarks>
-	public IReadOnlyDictionary<int,int> LengthDataPairs
+	/// <remarks>
+	/// What is set is added to the standard's pairs; a length tag set again replaces its pair. A tag of
+	/// a pair that neither the standard nor a loaded dictionary gives a type is read as its half of the
+	/// pair is: a length as a <see cref="FixField.Integer"/>, the data as a <see cref="FixField.Data"/>.
+	/// </remarks>
+	public IReadOnlyDictionary<FixTag,FixTag> LengthDataPairs
 	{
 		get => _pairs;
 		init
 		{
-			var pairs = new Dictionary<int,int>(Standard.Pairs);
+			var pairs = new Dictionary<FixTag,FixTag>(Standard.Pairs);
 
 			foreach (var pair in value)
 				pairs[pair.Key] = pair.Value;
 
 			_pairs = pairs;
-			_kinds = KindsOf(pairs);
+			Coded  = Coded.Paired(pairs);
 		}
 	}
 
@@ -157,10 +140,14 @@ public sealed record FixContext
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	internal int Kind(int tag)
 	{
-		if ((uint)tag < Tabled)
-			return _kinds[tag];
+		return Coded.Kind(tag);
+	}
 
-		return _pairs.ContainsKey(tag) ? Length : _pairs.ContainsValue(tag) ? Data : Ordinary;
+	/// <summary>The type a tag's value is read as: the standard's, a loaded dictionary's, or its half of a pair's.</summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	internal FixValueType Type(int tag)
+	{
+		return Coded.Type(tag);
 	}
 
 	/// <summary>The check of each message type, of each block, and of each field.</summary>
@@ -255,72 +242,41 @@ public sealed record FixContext
 	}
 
 	// A dictionary's checks go over this context's, and the fields it describes that the standard does
-	// not are built by a factory compiled from it, asked where the consumer's own answers null.
+	// not are read, from then on, as the types it gives them.
 	FixContext Loaded(FixDictionary dictionary, string? emitTo)
 	{
-		var emit    = Emitter(emitTo);
-		var loaded  = Fields(dictionary, emit);
-		var factory = FixFieldFactory;
+		var types = new List<(int Tag, FixValueType Type)>();
+
+		foreach (var field in dictionary.Fields)
+			if (FixFieldBuilder.Standard((FixTag)field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
+				types.Add((field.Key, type));
 
 		return this with
 		{
-			Validators      = Validators.Load(dictionary, emit),
-			FixFieldFactory = loaded is null ? factory : factory is null ? loaded : (tag, value) => factory(tag, value) ?? loaded(tag, value),
+			Validators = Validators.Load(dictionary, Emitter(emitTo)),
+			Coded      = Coded.Typed(types),
 		};
 	}
 
-	// The factory of the fields a dictionary describes that the standard does not, written as the
-	// expression language's text and compiled: each tag read by the conversion of the type the file gives it.
-	static FixFieldFactory? Fields(FixDictionary dictionary, Action<string, string>? emit)
-	{
-		var arms = new StringBuilder();
-
-		foreach (var field in dictionary.Fields.OrderBy(static field => field.Key))
-			if (!Defined.Tags.Contains(field.Key) && Built(field.Value.Type) is { } built)
-				arms.Append('\t').Append(field.Key.ToString(CultureInfo.InvariantCulture)).Append(" => ").Append(built).Append(",\n");
-
-		if (arms.Length == 0)
-			return null;
-
-		var text = "using System;\nusing DotGram.Finance.Fix44;\n(tag, value) => tag switch\n{\n" + arms + "\t_ => null,\n}";
-
-		emit?.Invoke(nameof(FixFieldFactory), text);
-
-		try
-		{
-			return ExpressionParser.Compile<FixFieldFactory>(text, typeof(FixContext).Assembly);
-		}
-		catch (Exception e) when (e is FormatException or InvalidOperationException)
-		{
-			throw new FormatException("The fields of the dictionary could not be compiled: " + e.Message + Environment.NewLine + text, e);
-		}
-	}
-
-	// The field of a type as a QuickFIX dictionary names it, as the expression that builds it; a type
-	// the file does not name builds nothing, and a name this does not know is text.
-	static string? Built(string? type)
+	// The type of a field as a QuickFIX dictionary names it; a field the file gives no type is not
+	// typed by it, and a name this does not know is text.
+	static FixValueType? TypeOf(string? type)
 	{
 		return type?.ToUpperInvariant() switch
 		{
 			null                                                                                => null,
-			"CHAR"                                                                              => "new FixCustomField<char>(tag, value.ToCharacter())",
-			"BOOLEAN"                                                                           => "new FixCustomField<bool>(tag, value.ToBoolean())",
-			"INT" or "LENGTH" or "SEQNUM" or "NUMINGROUP" or "DAYOFMONTH" or "TAGNUM"           => "new FixCustomField<long>(tag, value.ToInteger())",
-			"FLOAT" or "QTY" or "QUANTITY" or "PRICE" or "PRICEOFFSET" or "AMT" or "PERCENTAGE" => "new FixCustomField<decimal>(tag, value.ToDecimal())",
-			"UTCTIMESTAMP" or "TZTIMESTAMP" or "TIME"                                           => "new FixCustomField<DateTimeOffset>(tag, value.ToTimestamp())",
-			"UTCTIMEONLY" or "TZTIMEONLY"                                                       => "new FixCustomField<TimeOnly>(tag, value.ToTime())",
-			"UTCDATEONLY" or "UTCDATE" or "LOCALMKTDATE" or "DATE"                              => "new FixCustomField<DateOnly>(tag, value.ToDate())",
-			"MONTHYEAR"                                                                         => "new FixCustomField<string>(tag, value.ToMonthYear())",
-			"MULTIPLEVALUESTRING" or "MULTIPLECHARVALUE" or "MULTIPLESTRINGVALUE"               => "new FixCustomField<string[]>(tag, value.ToMultiple())",
-			"DATA" or "XMLDATA"                                                                 => "new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData())",
-			_                                                                                   => "new FixCustomField<string>(tag, (true, value.ToText()))",
+			"CHAR"                                                                              => FixValueType.Character,
+			"BOOLEAN"                                                                           => FixValueType.Boolean,
+			"INT" or "LENGTH" or "SEQNUM" or "NUMINGROUP" or "DAYOFMONTH" or "TAGNUM"           => FixValueType.Integer,
+			"FLOAT" or "QTY" or "QUANTITY" or "PRICE" or "PRICEOFFSET" or "AMT" or "PERCENTAGE" => FixValueType.Decimal,
+			"UTCTIMESTAMP" or "TZTIMESTAMP" or "TIME"                                           => FixValueType.Timestamp,
+			"UTCTIMEONLY" or "TZTIMEONLY"                                                       => FixValueType.Time,
+			"UTCDATEONLY" or "UTCDATE" or "LOCALMKTDATE" or "DATE"                              => FixValueType.Date,
+			"MONTHYEAR"                                                                         => FixValueType.MonthYear,
+			"MULTIPLEVALUESTRING" or "MULTIPLECHARVALUE" or "MULTIPLESTRINGVALUE"               => FixValueType.Multiple,
+			"DATA" or "XMLDATA"                                                                 => FixValueType.Data,
+			_                                                                                   => FixValueType.Text,
 		};
-	}
-
-	// The tags the standard defines, from the constants that name them: asked only by a load.
-	static class Defined
-	{
-		public static readonly HashSet<int> Tags = [.. typeof(FixTag).GetFields().Select(static field => (int)field.GetRawConstantValue()!)];
 	}
 
 	// The texts a load writes are the expression language's, one file a slot, so that what a
@@ -339,12 +295,134 @@ public sealed record FixContext
 	/// <summary>The data tag a length tag is paired with, or zero where it is not a length tag.</summary>
 	internal int DataTag(int lengthTag)
 	{
-		return _pairs.GetValueOrDefault(lengthTag, 0);
+		return (int)_pairs.GetValueOrDefault((FixTag)lengthTag);
 	}
 
 	/// <summary>Whether a tag carries binary data — the standard's, or one this consumer declared.</summary>
 	internal bool IsData(int tag)
 	{
-		return Kind(tag) == Data;
+		return Kind(tag) < 0;
+	}
+
+	/// <summary>
+	/// What the reader knows of every tag, one byte a tag: the type its value is read as, and whether
+	/// it is the length or the data of a pair. Immutable: a context changed is a context with another.
+	/// </summary>
+	sealed class Codes
+	{
+		// The low bits are the type a standard or a dictionary gives the tag, and a pair's half is a
+		// bit of its own, so that pairing a tag again leaves its type as it was.
+		const byte TypeMask = 0x0F, Length = 0x10, Data = 0x20;
+
+		// The table covers every tag anyone writes, the bilateral range ending at 39,999; a tag past it
+		// is looked up in Wide.
+		const int Tabled = 65536;
+
+		readonly byte[]               _table;
+		readonly Dictionary<int,byte> _wide;
+
+		Codes(byte[] table, Dictionary<int,byte> wide)
+		{
+			_table = table;
+			_wide  = wide;
+		}
+
+		public static Codes Of(Dictionary<FixTag,FixTag> pairs)
+		{
+			var table = new byte[(int)FixTag.LegInterestAccrualDate + 1];
+
+			for (var tag = 1; tag < table.Length; tag++)
+				table[tag] = (byte)FixFieldBuilder.Standard((FixTag)tag);
+
+			return new Codes(table, []).Paired(pairs);
+		}
+
+		byte Code(int tag)
+		{
+			if ((uint)tag < (uint)_table.Length)
+				return _table[tag];
+
+			return _wide.Count != 0 && _wide.TryGetValue(tag, out var code) ? code : (byte)0;
+		}
+
+		/// <summary>1 a length, -1 the data a length measures, 0 an ordinary value.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int Kind(int tag)
+		{
+			var code = Code(tag);
+
+			return (code & Length) != 0 ? 1 : (code & Data) != 0 ? -1 : 0;
+		}
+
+		/// <summary>The type the tag's value is read as; a pair's half no type is given is read as that half.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FixValueType Type(int tag)
+		{
+			var code = Code(tag);
+			var type = (FixValueType)(code & TypeMask);
+
+			if (type != FixValueType.None)
+				return type;
+
+			return (code & Length) != 0 ? FixValueType.Integer : (code & Data) != 0 ? FixValueType.Data : FixValueType.None;
+		}
+
+		/// <summary>These codes with every pair's halves those of <paramref name="pairs"/>, and the types as they were.</summary>
+		public Codes Paired(Dictionary<FixTag,FixTag> pairs)
+		{
+			var codes = With(pairs.SelectMany(static pair => new[] { (int)pair.Key, (int)pair.Value }));
+
+			for (var tag = 0; tag < codes._table.Length; tag++)
+				codes._table[tag] &= TypeMask;
+
+			foreach (var tag in codes._wide.Keys.ToArray())
+				codes._wide[tag] &= TypeMask;
+
+			foreach (var pair in pairs)
+			{
+				codes.Set((int)pair.Key,   (byte)(codes.Code((int)pair.Key)   | Length));
+				codes.Set((int)pair.Value, (byte)(codes.Code((int)pair.Value) | Data));
+			}
+
+			return codes;
+		}
+
+		/// <summary>These codes with the tags given their types, and the pairs as they were.</summary>
+		public Codes Typed(List<(int Tag, FixValueType Type)> types)
+		{
+			if (types.Count == 0)
+				return this;
+
+			var codes = With(types.Select(static type => type.Tag));
+
+			foreach (var (tag, type) in types)
+				codes.Set(tag, (byte)((codes.Code(tag) & ~TypeMask) | (byte)type));
+
+			return codes;
+		}
+
+		// A copy, its table long enough for the tags about to be set.
+		Codes With(IEnumerable<int> tags)
+		{
+			var length = _table.Length;
+
+			foreach (var tag in tags)
+				if (tag >= length && tag < Tabled)
+					length = tag + 1;
+
+			var table = new byte[length];
+
+			_table.CopyTo(table, 0);
+
+			return new Codes(table, new Dictionary<int,byte>(_wide));
+		}
+
+		void Set(int tag, byte code)
+		{
+			if ((uint)tag < (uint)_table.Length)
+				_table[tag] = code;
+			else if (tag > 0)
+				_wide[tag] = code;
+		}
 	}
 }

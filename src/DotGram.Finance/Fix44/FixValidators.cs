@@ -1074,12 +1074,12 @@ partial class FixValidators
 
 	static bool ValidateAdvertisement(FixContext context, FixMessage.Advertisement message)
 	{
-		if (message.AdvId is null) Missing(message, 2);
+		if (message.AdvId is null) Missing(message, FixTag.AdvId);
 		else context.Validators.AdvId(context, message, message.AdvId);
-		if (message.AdvTransType is null) Missing(message, 5);
+		if (message.AdvTransType is null) Missing(message, FixTag.AdvTransType);
 		else context.Validators.AdvTransType(context, message, message.AdvTransType);
 		if (message.AdvRefID is not null) context.Validators.AdvRefID(context, message, message.AdvRefID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoLegs is not null) context.Validators.NoLegs(context, message, message.NoLegs);
 		Counted(message, message.NoLegs, message.NoLegsGroups);
@@ -1091,9 +1091,9 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.Advertisement_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.AdvSide is null) Missing(message, 4);
+		if (message.AdvSide is null) Missing(message, FixTag.AdvSide);
 		else context.Validators.AdvSide(context, message, message.AdvSide);
-		if (message.Quantity is null) Missing(message, 53);
+		if (message.Quantity is null) Missing(message, FixTag.Quantity);
 		else context.Validators.Quantity(context, message, message.Quantity);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -1113,11 +1113,11 @@ partial class FixValidators
 
 	static bool ValidateAllocationInstruction(FixContext context, FixMessage.AllocationInstruction message)
 	{
-		if (message.AllocID is null) Missing(message, 70);
+		if (message.AllocID is null) Missing(message, FixTag.AllocID);
 		else context.Validators.AllocID(context, message, message.AllocID);
-		if (message.AllocTransType is null) Missing(message, 71);
+		if (message.AllocTransType is null) Missing(message, FixTag.AllocTransType);
 		else context.Validators.AllocTransType(context, message, message.AllocTransType);
-		if (message.AllocType is null) Missing(message, 626);
+		if (message.AllocType is null) Missing(message, FixTag.AllocType);
 		else context.Validators.AllocType(context, message, message.AllocType);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
 		if (message.RefAllocID is not null) context.Validators.RefAllocID(context, message, message.RefAllocID);
@@ -1126,7 +1126,7 @@ partial class FixValidators
 		if (message.AllocLinkID is not null) context.Validators.AllocLinkID(context, message, message.AllocLinkID);
 		if (message.AllocLinkType is not null) context.Validators.AllocLinkType(context, message, message.AllocLinkType);
 		if (message.BookingRefID is not null) context.Validators.BookingRefID(context, message, message.BookingRefID);
-		if (message.AllocNoOrdersType is null) Missing(message, 857);
+		if (message.AllocNoOrdersType is null) Missing(message, FixTag.AllocNoOrdersType);
 		else context.Validators.AllocNoOrdersType(context, message, message.AllocNoOrdersType);
 		if (message.NoOrders is not null) context.Validators.NoOrders(context, message, message.NoOrders);
 		Counted(message, message.NoOrders, message.NoOrdersGroups);
@@ -1141,9 +1141,9 @@ partial class FixValidators
 		if (message.PreviouslyReported is not null) context.Validators.PreviouslyReported(context, message, message.PreviouslyReported);
 		if (message.ReversalIndicator is not null) context.Validators.ReversalIndicator(context, message, message.ReversalIndicator);
 		if (message.MatchType is not null) context.Validators.MatchType(context, message, message.MatchType);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
@@ -1157,7 +1157,7 @@ partial class FixValidators
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.AllocationInstruction_NoLegs(context, message, message.NoLegsGroups[i], i);
-		if (message.Quantity is null) Missing(message, 53);
+		if (message.Quantity is null) Missing(message, FixTag.Quantity);
 		else context.Validators.Quantity(context, message, message.Quantity);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
 		if (message.LastMkt is not null) context.Validators.LastMkt(context, message, message.LastMkt);
@@ -1165,14 +1165,14 @@ partial class FixValidators
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
-		if (message.AvgPx is null) Missing(message, 6);
+		if (message.AvgPx is null) Missing(message, FixTag.AvgPx);
 		else context.Validators.AvgPx(context, message, message.AvgPx);
 		if (message.AvgParPx is not null) context.Validators.AvgParPx(context, message, message.AvgParPx);
 		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.AvgPxPrecision is not null) context.Validators.AvgPxPrecision(context, message, message.AvgPxPrecision);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
-		if (message.TradeDate is null) Missing(message, 75);
+		if (message.TradeDate is null) Missing(message, FixTag.TradeDate);
 		else context.Validators.TradeDate(context, message, message.TradeDate);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.SettlType is not null) context.Validators.SettlType(context, message, message.SettlType);
@@ -1211,14 +1211,14 @@ partial class FixValidators
 
 	static bool ValidateAllocationInstructionAck(FixContext context, FixMessage.AllocationInstructionAck message)
 	{
-		if (message.AllocID is null) Missing(message, 70);
+		if (message.AllocID is null) Missing(message, FixTag.AllocID);
 		else context.Validators.AllocID(context, message, message.AllocID);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.AllocStatus is null) Missing(message, 87);
+		if (message.AllocStatus is null) Missing(message, FixTag.AllocStatus);
 		else context.Validators.AllocStatus(context, message, message.AllocStatus);
 		if (message.AllocRejCode is not null) context.Validators.AllocRejCode(context, message, message.AllocRejCode);
 		if (message.AllocType is not null) context.Validators.AllocType(context, message, message.AllocType);
@@ -1240,17 +1240,17 @@ partial class FixValidators
 
 	static bool ValidateAllocationReport(FixContext context, FixMessage.AllocationReport message)
 	{
-		if (message.AllocReportID is null) Missing(message, 755);
+		if (message.AllocReportID is null) Missing(message, FixTag.AllocReportID);
 		else context.Validators.AllocReportID(context, message, message.AllocReportID);
 		if (message.AllocID is not null) context.Validators.AllocID(context, message, message.AllocID);
-		if (message.AllocTransType is null) Missing(message, 71);
+		if (message.AllocTransType is null) Missing(message, FixTag.AllocTransType);
 		else context.Validators.AllocTransType(context, message, message.AllocTransType);
 		if (message.AllocReportRefID is not null) context.Validators.AllocReportRefID(context, message, message.AllocReportRefID);
 		if (message.AllocCancReplaceReason is not null) context.Validators.AllocCancReplaceReason(context, message, message.AllocCancReplaceReason);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
-		if (message.AllocReportType is null) Missing(message, 794);
+		if (message.AllocReportType is null) Missing(message, FixTag.AllocReportType);
 		else context.Validators.AllocReportType(context, message, message.AllocReportType);
-		if (message.AllocStatus is null) Missing(message, 87);
+		if (message.AllocStatus is null) Missing(message, FixTag.AllocStatus);
 		else context.Validators.AllocStatus(context, message, message.AllocStatus);
 		if (message.AllocRejCode is not null) context.Validators.AllocRejCode(context, message, message.AllocRejCode);
 		if (message.RefAllocID is not null) context.Validators.RefAllocID(context, message, message.RefAllocID);
@@ -1258,7 +1258,7 @@ partial class FixValidators
 		if (message.AllocLinkID is not null) context.Validators.AllocLinkID(context, message, message.AllocLinkID);
 		if (message.AllocLinkType is not null) context.Validators.AllocLinkType(context, message, message.AllocLinkType);
 		if (message.BookingRefID is not null) context.Validators.BookingRefID(context, message, message.BookingRefID);
-		if (message.AllocNoOrdersType is null) Missing(message, 857);
+		if (message.AllocNoOrdersType is null) Missing(message, FixTag.AllocNoOrdersType);
 		else context.Validators.AllocNoOrdersType(context, message, message.AllocNoOrdersType);
 		if (message.NoOrders is not null) context.Validators.NoOrders(context, message, message.NoOrders);
 		Counted(message, message.NoOrders, message.NoOrdersGroups);
@@ -1273,9 +1273,9 @@ partial class FixValidators
 		if (message.PreviouslyReported is not null) context.Validators.PreviouslyReported(context, message, message.PreviouslyReported);
 		if (message.ReversalIndicator is not null) context.Validators.ReversalIndicator(context, message, message.ReversalIndicator);
 		if (message.MatchType is not null) context.Validators.MatchType(context, message, message.MatchType);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
@@ -1289,7 +1289,7 @@ partial class FixValidators
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.AllocationReport_NoLegs(context, message, message.NoLegsGroups[i], i);
-		if (message.Quantity is null) Missing(message, 53);
+		if (message.Quantity is null) Missing(message, FixTag.Quantity);
 		else context.Validators.Quantity(context, message, message.Quantity);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
 		if (message.LastMkt is not null) context.Validators.LastMkt(context, message, message.LastMkt);
@@ -1297,14 +1297,14 @@ partial class FixValidators
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
-		if (message.AvgPx is null) Missing(message, 6);
+		if (message.AvgPx is null) Missing(message, FixTag.AvgPx);
 		else context.Validators.AvgPx(context, message, message.AvgPx);
 		if (message.AvgParPx is not null) context.Validators.AvgParPx(context, message, message.AvgParPx);
 		if (!Empty((ISpreadOrBenchmarkCurveData)message)) context.Validators.SpreadOrBenchmarkCurveData(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.AvgPxPrecision is not null) context.Validators.AvgPxPrecision(context, message, message.AvgPxPrecision);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
-		if (message.TradeDate is null) Missing(message, 75);
+		if (message.TradeDate is null) Missing(message, FixTag.TradeDate);
 		else context.Validators.TradeDate(context, message, message.TradeDate);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.SettlType is not null) context.Validators.SettlType(context, message, message.SettlType);
@@ -1343,16 +1343,16 @@ partial class FixValidators
 
 	static bool ValidateAllocationReportAck(FixContext context, FixMessage.AllocationReportAck message)
 	{
-		if (message.AllocReportID is null) Missing(message, 755);
+		if (message.AllocReportID is null) Missing(message, FixTag.AllocReportID);
 		else context.Validators.AllocReportID(context, message, message.AllocReportID);
-		if (message.AllocID is null) Missing(message, 70);
+		if (message.AllocID is null) Missing(message, FixTag.AllocID);
 		else context.Validators.AllocID(context, message, message.AllocID);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.AllocStatus is null) Missing(message, 87);
+		if (message.AllocStatus is null) Missing(message, FixTag.AllocStatus);
 		else context.Validators.AllocStatus(context, message, message.AllocStatus);
 		if (message.AllocRejCode is not null) context.Validators.AllocRejCode(context, message, message.AllocRejCode);
 		if (message.AllocReportType is not null) context.Validators.AllocReportType(context, message, message.AllocReportType);
@@ -1374,14 +1374,14 @@ partial class FixValidators
 
 	static bool ValidateAssignmentReport(FixContext context, FixMessage.AssignmentReport message)
 	{
-		if (message.AsgnRptID is null) Missing(message, 833);
+		if (message.AsgnRptID is null) Missing(message, FixTag.AsgnRptID);
 		else context.Validators.AsgnRptID(context, message, message.AsgnRptID);
 		if (message.TotNumAssignmentReports is not null) context.Validators.TotNumAssignmentReports(context, message, message.TotNumAssignmentReports);
 		if (message.LastRptRequested is not null) context.Validators.LastRptRequested(context, message, message.LastRptRequested);
-		if (Empty((IParties)message)) Absent(message, 453);
+		if (Empty((IParties)message)) Absent(message, FixTag.NoPartyIDs);
 		else context.Validators.Parties(context, message, message);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
@@ -1395,30 +1395,30 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.AssignmentReport_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (Empty((IPositionQty)message)) Absent(message, 702);
+		if (Empty((IPositionQty)message)) Absent(message, FixTag.NoPositions);
 		else context.Validators.PositionQty(context, message, message);
-		if (Empty((IPositionAmountData)message)) Absent(message, 753);
+		if (Empty((IPositionAmountData)message)) Absent(message, FixTag.NoPosAmt);
 		else context.Validators.PositionAmountData(context, message, message);
 		if (message.ThresholdAmount is not null) context.Validators.ThresholdAmount(context, message, message.ThresholdAmount);
-		if (message.SettlPrice is null) Missing(message, 730);
+		if (message.SettlPrice is null) Missing(message, FixTag.SettlPrice);
 		else context.Validators.SettlPrice(context, message, message.SettlPrice);
-		if (message.SettlPriceType is null) Missing(message, 731);
+		if (message.SettlPriceType is null) Missing(message, FixTag.SettlPriceType);
 		else context.Validators.SettlPriceType(context, message, message.SettlPriceType);
-		if (message.UnderlyingSettlPrice is null) Missing(message, 732);
+		if (message.UnderlyingSettlPrice is null) Missing(message, FixTag.UnderlyingSettlPrice);
 		else context.Validators.UnderlyingSettlPrice(context, message, message.UnderlyingSettlPrice);
 		if (message.ExpireDate is not null) context.Validators.ExpireDate(context, message, message.ExpireDate);
-		if (message.AssignmentMethod is null) Missing(message, 744);
+		if (message.AssignmentMethod is null) Missing(message, FixTag.AssignmentMethod);
 		else context.Validators.AssignmentMethod(context, message, message.AssignmentMethod);
 		if (message.AssignmentUnit is not null) context.Validators.AssignmentUnit(context, message, message.AssignmentUnit);
-		if (message.OpenInterest is null) Missing(message, 746);
+		if (message.OpenInterest is null) Missing(message, FixTag.OpenInterest);
 		else context.Validators.OpenInterest(context, message, message.OpenInterest);
-		if (message.ExerciseMethod is null) Missing(message, 747);
+		if (message.ExerciseMethod is null) Missing(message, FixTag.ExerciseMethod);
 		else context.Validators.ExerciseMethod(context, message, message.ExerciseMethod);
-		if (message.SettlSessID is null) Missing(message, 716);
+		if (message.SettlSessID is null) Missing(message, FixTag.SettlSessID);
 		else context.Validators.SettlSessID(context, message, message.SettlSessID);
-		if (message.SettlSessSubID is null) Missing(message, 717);
+		if (message.SettlSessSubID is null) Missing(message, FixTag.SettlSessSubID);
 		else context.Validators.SettlSessSubID(context, message, message.SettlSessSubID);
-		if (message.ClearingBusinessDate is null) Missing(message, 715);
+		if (message.ClearingBusinessDate is null) Missing(message, FixTag.ClearingBusinessDate);
 		else context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -1430,14 +1430,14 @@ partial class FixValidators
 	static bool ValidateBidRequest(FixContext context, FixMessage.BidRequest message)
 	{
 		if (message.BidID is not null) context.Validators.BidID(context, message, message.BidID);
-		if (message.ClientBidID is null) Missing(message, 391);
+		if (message.ClientBidID is null) Missing(message, FixTag.ClientBidID);
 		else context.Validators.ClientBidID(context, message, message.ClientBidID);
-		if (message.BidRequestTransType is null) Missing(message, 374);
+		if (message.BidRequestTransType is null) Missing(message, FixTag.BidRequestTransType);
 		else context.Validators.BidRequestTransType(context, message, message.BidRequestTransType);
 		if (message.ListName is not null) context.Validators.ListName(context, message, message.ListName);
-		if (message.TotNoRelatedSym is null) Missing(message, 393);
+		if (message.TotNoRelatedSym is null) Missing(message, FixTag.TotNoRelatedSym);
 		else context.Validators.TotNoRelatedSym(context, message, message.TotNoRelatedSym);
-		if (message.BidType is null) Missing(message, 394);
+		if (message.BidType is null) Missing(message, FixTag.BidType);
 		else context.Validators.BidType(context, message, message.BidType);
 		if (message.NumTickets is not null) context.Validators.NumTickets(context, message, message.NumTickets);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
@@ -1464,9 +1464,9 @@ partial class FixValidators
 		if (message.ForexReq is not null) context.Validators.ForexReq(context, message, message.ForexReq);
 		if (message.NumBidders is not null) context.Validators.NumBidders(context, message, message.NumBidders);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
-		if (message.BidTradeType is null) Missing(message, 418);
+		if (message.BidTradeType is null) Missing(message, FixTag.BidTradeType);
 		else context.Validators.BidTradeType(context, message, message.BidTradeType);
-		if (message.BasisPxType is null) Missing(message, 419);
+		if (message.BasisPxType is null) Missing(message, FixTag.BasisPxType);
 		else context.Validators.BasisPxType(context, message, message.BasisPxType);
 		if (message.StrikeTime is not null) context.Validators.StrikeTime(context, message, message.StrikeTime);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
@@ -1480,7 +1480,7 @@ partial class FixValidators
 	{
 		if (message.BidID is not null) context.Validators.BidID(context, message, message.BidID);
 		if (message.ClientBidID is not null) context.Validators.ClientBidID(context, message, message.ClientBidID);
-		if (message.NoBidComponents is null) Missing(message, 420);
+		if (message.NoBidComponents is null) Missing(message, FixTag.NoBidComponents);
 		else context.Validators.NoBidComponents(context, message, message.NoBidComponents);
 		Counted(message, message.NoBidComponents, message.NoBidComponentsGroups);
 		if (message.NoBidComponentsGroups is not null)
@@ -1493,10 +1493,10 @@ partial class FixValidators
 	static bool ValidateBusinessMessageReject(FixContext context, FixMessage.BusinessMessageReject message)
 	{
 		if (message.RefSeqNum is not null) context.Validators.RefSeqNum(context, message, message.RefSeqNum);
-		if (message.RefMsgType is null) Missing(message, 372);
+		if (message.RefMsgType is null) Missing(message, FixTag.RefMsgType);
 		else context.Validators.RefMsgType(context, message, message.RefMsgType);
 		if (message.BusinessRejectRefID is not null) context.Validators.BusinessRejectRefID(context, message, message.BusinessRejectRefID);
-		if (message.BusinessRejectReason is null) Missing(message, 380);
+		if (message.BusinessRejectReason is null) Missing(message, FixTag.BusinessRejectReason);
 		else context.Validators.BusinessRejectReason(context, message, message.BusinessRejectReason);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -1507,15 +1507,15 @@ partial class FixValidators
 
 	static bool ValidateCollateralAssignment(FixContext context, FixMessage.CollateralAssignment message)
 	{
-		if (message.CollAsgnID is null) Missing(message, 902);
+		if (message.CollAsgnID is null) Missing(message, FixTag.CollAsgnID);
 		else context.Validators.CollAsgnID(context, message, message.CollAsgnID);
 		if (message.CollReqID is not null) context.Validators.CollReqID(context, message, message.CollReqID);
-		if (message.CollAsgnReason is null) Missing(message, 895);
+		if (message.CollAsgnReason is null) Missing(message, FixTag.CollAsgnReason);
 		else context.Validators.CollAsgnReason(context, message, message.CollAsgnReason);
-		if (message.CollAsgnTransType is null) Missing(message, 903);
+		if (message.CollAsgnTransType is null) Missing(message, FixTag.CollAsgnTransType);
 		else context.Validators.CollAsgnTransType(context, message, message.CollAsgnTransType);
 		if (message.CollAsgnRefID is not null) context.Validators.CollAsgnRefID(context, message, message.CollAsgnRefID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.ExpireTime is not null) context.Validators.ExpireTime(context, message, message.ExpireTime);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
@@ -1654,9 +1654,9 @@ partial class FixValidators
 
 	static bool ValidateCollateralInquiryAck(FixContext context, FixMessage.CollateralInquiryAck message)
 	{
-		if (message.CollInquiryID is null) Missing(message, 909);
+		if (message.CollInquiryID is null) Missing(message, FixTag.CollInquiryID);
 		else context.Validators.CollInquiryID(context, message, message.CollInquiryID);
-		if (message.CollInquiryStatus is null) Missing(message, 945);
+		if (message.CollInquiryStatus is null) Missing(message, FixTag.CollInquiryStatus);
 		else context.Validators.CollInquiryStatus(context, message, message.CollInquiryStatus);
 		if (message.CollInquiryResult is not null) context.Validators.CollInquiryResult(context, message, message.CollInquiryResult);
 		if (message.NoCollInquiryQualifier is not null) context.Validators.NoCollInquiryQualifier(context, message, message.NoCollInquiryQualifier);
@@ -1714,10 +1714,10 @@ partial class FixValidators
 
 	static bool ValidateCollateralReport(FixContext context, FixMessage.CollateralReport message)
 	{
-		if (message.CollRptID is null) Missing(message, 908);
+		if (message.CollRptID is null) Missing(message, FixTag.CollRptID);
 		else context.Validators.CollRptID(context, message, message.CollRptID);
 		if (message.CollInquiryID is not null) context.Validators.CollInquiryID(context, message, message.CollInquiryID);
-		if (message.CollStatus is null) Missing(message, 910);
+		if (message.CollStatus is null) Missing(message, FixTag.CollStatus);
 		else context.Validators.CollStatus(context, message, message.CollStatus);
 		if (message.TotNumReports is not null) context.Validators.TotNumReports(context, message, message.TotNumReports);
 		if (message.LastRptRequested is not null) context.Validators.LastRptRequested(context, message, message.LastRptRequested);
@@ -1787,11 +1787,11 @@ partial class FixValidators
 
 	static bool ValidateCollateralRequest(FixContext context, FixMessage.CollateralRequest message)
 	{
-		if (message.CollReqID is null) Missing(message, 894);
+		if (message.CollReqID is null) Missing(message, FixTag.CollReqID);
 		else context.Validators.CollReqID(context, message, message.CollReqID);
-		if (message.CollAsgnReason is null) Missing(message, 895);
+		if (message.CollAsgnReason is null) Missing(message, FixTag.CollAsgnReason);
 		else context.Validators.CollAsgnReason(context, message, message.CollAsgnReason);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.ExpireTime is not null) context.Validators.ExpireTime(context, message, message.ExpireTime);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
@@ -1859,18 +1859,18 @@ partial class FixValidators
 
 	static bool ValidateCollateralResponse(FixContext context, FixMessage.CollateralResponse message)
 	{
-		if (message.CollRespID is null) Missing(message, 904);
+		if (message.CollRespID is null) Missing(message, FixTag.CollRespID);
 		else context.Validators.CollRespID(context, message, message.CollRespID);
-		if (message.CollAsgnID is null) Missing(message, 902);
+		if (message.CollAsgnID is null) Missing(message, FixTag.CollAsgnID);
 		else context.Validators.CollAsgnID(context, message, message.CollAsgnID);
 		if (message.CollReqID is not null) context.Validators.CollReqID(context, message, message.CollReqID);
-		if (message.CollAsgnReason is null) Missing(message, 895);
+		if (message.CollAsgnReason is null) Missing(message, FixTag.CollAsgnReason);
 		else context.Validators.CollAsgnReason(context, message, message.CollAsgnReason);
 		if (message.CollAsgnTransType is not null) context.Validators.CollAsgnTransType(context, message, message.CollAsgnTransType);
-		if (message.CollAsgnRespType is null) Missing(message, 905);
+		if (message.CollAsgnRespType is null) Missing(message, FixTag.CollAsgnRespType);
 		else context.Validators.CollAsgnRespType(context, message, message.CollAsgnRespType);
 		if (message.CollAsgnRejectReason is not null) context.Validators.CollAsgnRejectReason(context, message, message.CollAsgnRejectReason);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
@@ -1932,17 +1932,17 @@ partial class FixValidators
 
 	static bool ValidateConfirmation(FixContext context, FixMessage.Confirmation message)
 	{
-		if (message.ConfirmID is null) Missing(message, 664);
+		if (message.ConfirmID is null) Missing(message, FixTag.ConfirmID);
 		else context.Validators.ConfirmID(context, message, message.ConfirmID);
 		if (message.ConfirmRefID is not null) context.Validators.ConfirmRefID(context, message, message.ConfirmRefID);
 		if (message.ConfirmReqID is not null) context.Validators.ConfirmReqID(context, message, message.ConfirmReqID);
-		if (message.ConfirmTransType is null) Missing(message, 666);
+		if (message.ConfirmTransType is null) Missing(message, FixTag.ConfirmTransType);
 		else context.Validators.ConfirmTransType(context, message, message.ConfirmTransType);
-		if (message.ConfirmType is null) Missing(message, 773);
+		if (message.ConfirmType is null) Missing(message, FixTag.ConfirmType);
 		else context.Validators.ConfirmType(context, message, message.ConfirmType);
 		if (message.CopyMsgIndicator is not null) context.Validators.CopyMsgIndicator(context, message, message.CopyMsgIndicator);
 		if (message.LegalConfirm is not null) context.Validators.LegalConfirm(context, message, message.LegalConfirm);
-		if (message.ConfirmStatus is null) Missing(message, 665);
+		if (message.ConfirmStatus is null) Missing(message, FixTag.ConfirmStatus);
 		else context.Validators.ConfirmStatus(context, message, message.ConfirmStatus);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.NoOrders is not null) context.Validators.NoOrders(context, message, message.NoOrders);
@@ -1953,46 +1953,46 @@ partial class FixValidators
 		if (message.AllocID is not null) context.Validators.AllocID(context, message, message.AllocID);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
 		if (message.IndividualAllocID is not null) context.Validators.IndividualAllocID(context, message, message.IndividualAllocID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.TradeDate is null) Missing(message, 75);
+		if (message.TradeDate is null) Missing(message, FixTag.TradeDate);
 		else context.Validators.TradeDate(context, message, message.TradeDate);
 		if (!Empty((ITrdRegTimestamps)message)) context.Validators.TrdRegTimestamps(context, message, message);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
-		if (message.NoUnderlyings is null) Missing(message, 711);
+		if (message.NoUnderlyings is null) Missing(message, FixTag.NoUnderlyings);
 		else context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.Confirmation_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.NoLegs is null) Missing(message, 555);
+		if (message.NoLegs is null) Missing(message, FixTag.NoLegs);
 		else context.Validators.NoLegs(context, message, message.NoLegs);
 		Counted(message, message.NoLegs, message.NoLegsGroups);
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.Confirmation_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (!Empty((IYieldData)message)) context.Validators.YieldData(context, message, message);
-		if (message.AllocQty is null) Missing(message, 80);
+		if (message.AllocQty is null) Missing(message, FixTag.AllocQty);
 		else context.Validators.AllocQty(context, message, message.AllocQty);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.LastMkt is not null) context.Validators.LastMkt(context, message, message.LastMkt);
-		if (message.NoCapacities is null) Missing(message, 862);
+		if (message.NoCapacities is null) Missing(message, FixTag.NoCapacities);
 		else context.Validators.NoCapacities(context, message, message.NoCapacities);
 		Counted(message, message.NoCapacities, message.NoCapacitiesGroups);
 		if (message.NoCapacitiesGroups is not null)
 			for (var i = 0; i < message.NoCapacitiesGroups.Count; i++)
 				context.Validators.Confirmation_NoCapacities(context, message, message.NoCapacitiesGroups[i], i);
-		if (message.AllocAccount is null) Missing(message, 79);
+		if (message.AllocAccount is null) Missing(message, FixTag.AllocAccount);
 		else context.Validators.AllocAccount(context, message, message.AllocAccount);
 		if (message.AllocAcctIDSource is not null) context.Validators.AllocAcctIDSource(context, message, message.AllocAcctIDSource);
 		if (message.AllocAccountType is not null) context.Validators.AllocAccountType(context, message, message.AllocAccountType);
-		if (message.AvgPx is null) Missing(message, 6);
+		if (message.AvgPx is null) Missing(message, FixTag.AvgPx);
 		else context.Validators.AvgPx(context, message, message.AvgPx);
 		if (message.AvgPxPrecision is not null) context.Validators.AvgPxPrecision(context, message, message.AvgPxPrecision);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
@@ -2003,7 +2003,7 @@ partial class FixValidators
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
 		if (message.EncodedText is not null) context.Validators.EncodedText(context, message, message.EncodedText);
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
-		if (message.GrossTradeAmt is null) Missing(message, 381);
+		if (message.GrossTradeAmt is null) Missing(message, FixTag.GrossTradeAmt);
 		else context.Validators.GrossTradeAmt(context, message, message.GrossTradeAmt);
 		if (message.NumDaysInterest is not null) context.Validators.NumDaysInterest(context, message, message.NumDaysInterest);
 		if (message.ExDate is not null) context.Validators.ExDate(context, message, message.ExDate);
@@ -2015,7 +2015,7 @@ partial class FixValidators
 		if (message.EndCash is not null) context.Validators.EndCash(context, message, message.EndCash);
 		if (message.Concession is not null) context.Validators.Concession(context, message, message.Concession);
 		if (message.TotalTakedown is not null) context.Validators.TotalTakedown(context, message, message.TotalTakedown);
-		if (message.NetMoney is null) Missing(message, 118);
+		if (message.NetMoney is null) Missing(message, FixTag.NetMoney);
 		else context.Validators.NetMoney(context, message, message.NetMoney);
 		if (message.MaturityNetMoney is not null) context.Validators.MaturityNetMoney(context, message, message.MaturityNetMoney);
 		if (message.SettlCurrAmt is not null) context.Validators.SettlCurrAmt(context, message, message.SettlCurrAmt);
@@ -2039,13 +2039,13 @@ partial class FixValidators
 
 	static bool ValidateConfirmationAck(FixContext context, FixMessage.ConfirmationAck message)
 	{
-		if (message.ConfirmID is null) Missing(message, 664);
+		if (message.ConfirmID is null) Missing(message, FixTag.ConfirmID);
 		else context.Validators.ConfirmID(context, message, message.ConfirmID);
-		if (message.TradeDate is null) Missing(message, 75);
+		if (message.TradeDate is null) Missing(message, FixTag.TradeDate);
 		else context.Validators.TradeDate(context, message, message.TradeDate);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.AffirmStatus is null) Missing(message, 940);
+		if (message.AffirmStatus is null) Missing(message, FixTag.AffirmStatus);
 		else context.Validators.AffirmStatus(context, message, message.AffirmStatus);
 		if (message.ConfirmRejReason is not null) context.Validators.ConfirmRejReason(context, message, message.ConfirmRejReason);
 		if (message.MatchStatus is not null) context.Validators.MatchStatus(context, message, message.MatchStatus);
@@ -2058,9 +2058,9 @@ partial class FixValidators
 
 	static bool ValidateConfirmationRequest(FixContext context, FixMessage.ConfirmationRequest message)
 	{
-		if (message.ConfirmReqID is null) Missing(message, 859);
+		if (message.ConfirmReqID is null) Missing(message, FixTag.ConfirmReqID);
 		else context.Validators.ConfirmReqID(context, message, message.ConfirmReqID);
-		if (message.ConfirmType is null) Missing(message, 773);
+		if (message.ConfirmType is null) Missing(message, FixTag.ConfirmType);
 		else context.Validators.ConfirmType(context, message, message.ConfirmType);
 		if (message.NoOrders is not null) context.Validators.NoOrders(context, message, message.NoOrders);
 		Counted(message, message.NoOrders, message.NoOrdersGroups);
@@ -2070,7 +2070,7 @@ partial class FixValidators
 		if (message.AllocID is not null) context.Validators.AllocID(context, message, message.AllocID);
 		if (message.SecondaryAllocID is not null) context.Validators.SecondaryAllocID(context, message, message.SecondaryAllocID);
 		if (message.IndividualAllocID is not null) context.Validators.IndividualAllocID(context, message, message.IndividualAllocID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.AllocAccount is not null) context.Validators.AllocAccount(context, message, message.AllocAccount);
 		if (message.AllocAcctIDSource is not null) context.Validators.AllocAcctIDSource(context, message, message.AllocAcctIDSource);
@@ -2085,21 +2085,21 @@ partial class FixValidators
 	static bool ValidateCrossOrderCancelReplaceRequest(FixContext context, FixMessage.CrossOrderCancelReplaceRequest message)
 	{
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
-		if (message.CrossID is null) Missing(message, 548);
+		if (message.CrossID is null) Missing(message, FixTag.CrossID);
 		else context.Validators.CrossID(context, message, message.CrossID);
-		if (message.OrigCrossID is null) Missing(message, 551);
+		if (message.OrigCrossID is null) Missing(message, FixTag.OrigCrossID);
 		else context.Validators.OrigCrossID(context, message, message.OrigCrossID);
-		if (message.CrossType is null) Missing(message, 549);
+		if (message.CrossType is null) Missing(message, FixTag.CrossType);
 		else context.Validators.CrossType(context, message, message.CrossType);
-		if (message.CrossPrioritization is null) Missing(message, 550);
+		if (message.CrossPrioritization is null) Missing(message, FixTag.CrossPrioritization);
 		else context.Validators.CrossPrioritization(context, message, message.CrossPrioritization);
-		if (message.NoSides is null) Missing(message, 552);
+		if (message.NoSides is null) Missing(message, FixTag.NoSides);
 		else context.Validators.NoSides(context, message, message.NoSides);
 		Counted(message, message.NoSides, message.NoSidesGroups);
 		if (message.NoSidesGroups is not null)
 			for (var i = 0; i < message.NoSidesGroups.Count; i++)
 				context.Validators.CrossOrderCancelReplaceRequest_NoSides(context, message, message.NoSidesGroups[i], i);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2126,10 +2126,10 @@ partial class FixValidators
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
 		if (message.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, message.PrevClosePx);
 		if (message.LocateReqd is not null) context.Validators.LocateReqd(context, message, message.LocateReqd);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((IStipulations)message)) context.Validators.Stipulations(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -2162,21 +2162,21 @@ partial class FixValidators
 	static bool ValidateCrossOrderCancelRequest(FixContext context, FixMessage.CrossOrderCancelRequest message)
 	{
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
-		if (message.CrossID is null) Missing(message, 548);
+		if (message.CrossID is null) Missing(message, FixTag.CrossID);
 		else context.Validators.CrossID(context, message, message.CrossID);
-		if (message.OrigCrossID is null) Missing(message, 551);
+		if (message.OrigCrossID is null) Missing(message, FixTag.OrigCrossID);
 		else context.Validators.OrigCrossID(context, message, message.OrigCrossID);
-		if (message.CrossType is null) Missing(message, 549);
+		if (message.CrossType is null) Missing(message, FixTag.CrossType);
 		else context.Validators.CrossType(context, message, message.CrossType);
-		if (message.CrossPrioritization is null) Missing(message, 550);
+		if (message.CrossPrioritization is null) Missing(message, FixTag.CrossPrioritization);
 		else context.Validators.CrossPrioritization(context, message, message.CrossPrioritization);
-		if (message.NoSides is null) Missing(message, 552);
+		if (message.NoSides is null) Missing(message, FixTag.NoSides);
 		else context.Validators.NoSides(context, message, message.NoSides);
 		Counted(message, message.NoSides, message.NoSidesGroups);
 		if (message.NoSidesGroups is not null)
 			for (var i = 0; i < message.NoSidesGroups.Count; i++)
 				context.Validators.CrossOrderCancelRequest_NoSides(context, message, message.NoSidesGroups[i], i);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2188,7 +2188,7 @@ partial class FixValidators
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.CrossOrderCancelRequest_NoLegs(context, message, message.NoLegsGroups[i], i);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 
 		return message.IsValid;
@@ -2196,11 +2196,11 @@ partial class FixValidators
 
 	static bool ValidateDerivativeSecurityList(FixContext context, FixMessage.DerivativeSecurityList message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityResponseID is null) Missing(message, 322);
+		if (message.SecurityResponseID is null) Missing(message, FixTag.SecurityResponseID);
 		else context.Validators.SecurityResponseID(context, message, message.SecurityResponseID);
-		if (message.SecurityRequestResult is null) Missing(message, 560);
+		if (message.SecurityRequestResult is null) Missing(message, FixTag.SecurityRequestResult);
 		else context.Validators.SecurityRequestResult(context, message, message.SecurityRequestResult);
 		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 		if (message.TotNoRelatedSym is not null) context.Validators.TotNoRelatedSym(context, message, message.TotNoRelatedSym);
@@ -2216,9 +2216,9 @@ partial class FixValidators
 
 	static bool ValidateDerivativeSecurityListRequest(FixContext context, FixMessage.DerivativeSecurityListRequest message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityListRequestType is null) Missing(message, 559);
+		if (message.SecurityListRequestType is null) Missing(message, FixTag.SecurityListRequestType);
 		else context.Validators.SecurityListRequestType(context, message, message.SecurityListRequestType);
 		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 		if (message.SecuritySubType is not null) context.Validators.SecuritySubType(context, message, message.SecuritySubType);
@@ -2235,14 +2235,14 @@ partial class FixValidators
 
 	static bool ValidateDontKnowTrade(FixContext context, FixMessage.DontKnowTrade message)
 	{
-		if (message.OrderID is null) Missing(message, 37);
+		if (message.OrderID is null) Missing(message, FixTag.OrderID);
 		else context.Validators.OrderID(context, message, message.OrderID);
 		if (message.SecondaryOrderID is not null) context.Validators.SecondaryOrderID(context, message, message.SecondaryOrderID);
-		if (message.ExecID is null) Missing(message, 17);
+		if (message.ExecID is null) Missing(message, FixTag.ExecID);
 		else context.Validators.ExecID(context, message, message.ExecID);
-		if (message.DKReason is null) Missing(message, 127);
+		if (message.DKReason is null) Missing(message, FixTag.DKReason);
 		else context.Validators.DKReason(context, message, message.DKReason);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2254,9 +2254,9 @@ partial class FixValidators
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.DontKnowTrade_NoLegs(context, message, message.NoLegsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
 		if (message.LastQty is not null) context.Validators.LastQty(context, message, message.LastQty);
 		if (message.LastPx is not null) context.Validators.LastPx(context, message, message.LastPx);
@@ -2269,12 +2269,12 @@ partial class FixValidators
 
 	static bool ValidateEmail(FixContext context, FixMessage.Email message)
 	{
-		if (message.EmailThreadID is null) Missing(message, 164);
+		if (message.EmailThreadID is null) Missing(message, FixTag.EmailThreadID);
 		else context.Validators.EmailThreadID(context, message, message.EmailThreadID);
-		if (message.EmailType is null) Missing(message, 94);
+		if (message.EmailType is null) Missing(message, FixTag.EmailType);
 		else context.Validators.EmailType(context, message, message.EmailType);
 		if (message.OrigTime is not null) context.Validators.OrigTime(context, message, message.OrigTime);
-		if (message.Subject is null) Missing(message, 147);
+		if (message.Subject is null) Missing(message, FixTag.Subject);
 		else context.Validators.Subject(context, message, message.Subject);
 		if (message.EncodedSubjectLen is not null) context.Validators.EncodedSubjectLen(context, message, message.EncodedSubjectLen);
 		if (message.EncodedSubject is not null) context.Validators.EncodedSubject(context, message, message.EncodedSubject);
@@ -2300,7 +2300,7 @@ partial class FixValidators
 				context.Validators.Email_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
-		if (message.LinesOfText is null) Missing(message, 33);
+		if (message.LinesOfText is null) Missing(message, FixTag.LinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
 		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
 		if (message.LinesOfTextGroups is not null)
@@ -2314,7 +2314,7 @@ partial class FixValidators
 
 	static bool ValidateExecutionReport(FixContext context, FixMessage.ExecutionReport message)
 	{
-		if (message.OrderID is null) Missing(message, 37);
+		if (message.OrderID is null) Missing(message, FixTag.OrderID);
 		else context.Validators.OrderID(context, message, message.OrderID);
 		if (message.SecondaryOrderID is not null) context.Validators.SecondaryOrderID(context, message, message.SecondaryOrderID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
@@ -2338,12 +2338,12 @@ partial class FixValidators
 		if (message.CrossID is not null) context.Validators.CrossID(context, message, message.CrossID);
 		if (message.OrigCrossID is not null) context.Validators.OrigCrossID(context, message, message.OrigCrossID);
 		if (message.CrossType is not null) context.Validators.CrossType(context, message, message.CrossType);
-		if (message.ExecID is null) Missing(message, 17);
+		if (message.ExecID is null) Missing(message, FixTag.ExecID);
 		else context.Validators.ExecID(context, message, message.ExecID);
 		if (message.ExecRefID is not null) context.Validators.ExecRefID(context, message, message.ExecRefID);
-		if (message.ExecType is null) Missing(message, 150);
+		if (message.ExecType is null) Missing(message, FixTag.ExecType);
 		else context.Validators.ExecType(context, message, message.ExecType);
-		if (message.OrdStatus is null) Missing(message, 39);
+		if (message.OrdStatus is null) Missing(message, FixTag.OrdStatus);
 		else context.Validators.OrdStatus(context, message, message.OrdStatus);
 		if (message.WorkingIndicator is not null) context.Validators.WorkingIndicator(context, message, message.WorkingIndicator);
 		if (message.OrdRejReason is not null) context.Validators.OrdRejReason(context, message, message.OrdRejReason);
@@ -2358,7 +2358,7 @@ partial class FixValidators
 		if (message.SettlDate is not null) context.Validators.SettlDate(context, message, message.SettlDate);
 		if (message.CashMargin is not null) context.Validators.CashMargin(context, message, message.CashMargin);
 		if (message.ClearingFeeIndicator is not null) context.Validators.ClearingFeeIndicator(context, message, message.ClearingFeeIndicator);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -2366,7 +2366,7 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.ExecutionReport_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 		if (!Empty((IStipulations)message)) context.Validators.Stipulations(context, message, message);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
@@ -2406,11 +2406,11 @@ partial class FixValidators
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (message.TimeBracket is not null) context.Validators.TimeBracket(context, message, message.TimeBracket);
 		if (message.LastCapacity is not null) context.Validators.LastCapacity(context, message, message.LastCapacity);
-		if (message.LeavesQty is null) Missing(message, 151);
+		if (message.LeavesQty is null) Missing(message, FixTag.LeavesQty);
 		else context.Validators.LeavesQty(context, message, message.LeavesQty);
-		if (message.CumQty is null) Missing(message, 14);
+		if (message.CumQty is null) Missing(message, FixTag.CumQty);
 		else context.Validators.CumQty(context, message, message.CumQty);
-		if (message.AvgPx is null) Missing(message, 6);
+		if (message.AvgPx is null) Missing(message, FixTag.AvgPx);
 		else context.Validators.AvgPx(context, message, message.AvgPx);
 		if (message.DayOrderQty is not null) context.Validators.DayOrderQty(context, message, message.DayOrderQty);
 		if (message.DayCumQty is not null) context.Validators.DayCumQty(context, message, message.DayCumQty);
@@ -2494,12 +2494,12 @@ partial class FixValidators
 
 	static bool ValidateIndicationOfInterest(FixContext context, FixMessage.IndicationOfInterest message)
 	{
-		if (message.IOIid is null) Missing(message, 23);
+		if (message.IOIid is null) Missing(message, FixTag.IOIid);
 		else context.Validators.IOIid(context, message, message.IOIid);
-		if (message.IOITransType is null) Missing(message, 28);
+		if (message.IOITransType is null) Missing(message, FixTag.IOITransType);
 		else context.Validators.IOITransType(context, message, message.IOITransType);
 		if (message.IOIRefID is not null) context.Validators.IOIRefID(context, message, message.IOIRefID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -2507,11 +2507,11 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.IndicationOfInterest_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
 		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
-		if (message.IOIQty is null) Missing(message, 27);
+		if (message.IOIQty is null) Missing(message, FixTag.IOIQty);
 		else context.Validators.IOIQty(context, message, message.IOIQty);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (!Empty((IStipulations)message)) context.Validators.Stipulations(context, message, message);
@@ -2548,9 +2548,9 @@ partial class FixValidators
 
 	static bool ValidateListCancelRequest(FixContext context, FixMessage.ListCancelRequest message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, message.TradeOriginationDate);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
@@ -2563,11 +2563,11 @@ partial class FixValidators
 
 	static bool ValidateListExecute(FixContext context, FixMessage.ListExecute message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
 		if (message.ClientBidID is not null) context.Validators.ClientBidID(context, message, message.ClientBidID);
 		if (message.BidID is not null) context.Validators.BidID(context, message, message.BidID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -2578,24 +2578,24 @@ partial class FixValidators
 
 	static bool ValidateListStatus(FixContext context, FixMessage.ListStatus message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
-		if (message.ListStatusType is null) Missing(message, 429);
+		if (message.ListStatusType is null) Missing(message, FixTag.ListStatusType);
 		else context.Validators.ListStatusType(context, message, message.ListStatusType);
-		if (message.NoRpts is null) Missing(message, 82);
+		if (message.NoRpts is null) Missing(message, FixTag.NoRpts);
 		else context.Validators.NoRpts(context, message, message.NoRpts);
-		if (message.ListOrderStatus is null) Missing(message, 431);
+		if (message.ListOrderStatus is null) Missing(message, FixTag.ListOrderStatus);
 		else context.Validators.ListOrderStatus(context, message, message.ListOrderStatus);
-		if (message.RptSeq is null) Missing(message, 83);
+		if (message.RptSeq is null) Missing(message, FixTag.RptSeq);
 		else context.Validators.RptSeq(context, message, message.RptSeq);
 		if (message.ListStatusText is not null) context.Validators.ListStatusText(context, message, message.ListStatusText);
 		if (message.EncodedListStatusTextLen is not null) context.Validators.EncodedListStatusTextLen(context, message, message.EncodedListStatusTextLen);
 		if (message.EncodedListStatusText is not null) context.Validators.EncodedListStatusText(context, message, message.EncodedListStatusText);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.TotNoOrders is null) Missing(message, 68);
+		if (message.TotNoOrders is null) Missing(message, FixTag.TotNoOrders);
 		else context.Validators.TotNoOrders(context, message, message.TotNoOrders);
 		if (message.LastFragment is not null) context.Validators.LastFragment(context, message, message.LastFragment);
-		if (message.NoOrders is null) Missing(message, 73);
+		if (message.NoOrders is null) Missing(message, FixTag.NoOrders);
 		else context.Validators.NoOrders(context, message, message.NoOrders);
 		Counted(message, message.NoOrders, message.NoOrdersGroups);
 		if (message.NoOrdersGroups is not null)
@@ -2607,7 +2607,7 @@ partial class FixValidators
 
 	static bool ValidateListStatusRequest(FixContext context, FixMessage.ListStatusRequest message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -2618,12 +2618,12 @@ partial class FixValidators
 
 	static bool ValidateListStrikePrice(FixContext context, FixMessage.ListStrikePrice message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
-		if (message.TotNoStrikes is null) Missing(message, 422);
+		if (message.TotNoStrikes is null) Missing(message, FixTag.TotNoStrikes);
 		else context.Validators.TotNoStrikes(context, message, message.TotNoStrikes);
 		if (message.LastFragment is not null) context.Validators.LastFragment(context, message, message.LastFragment);
-		if (message.NoStrikes is null) Missing(message, 428);
+		if (message.NoStrikes is null) Missing(message, FixTag.NoStrikes);
 		else context.Validators.NoStrikes(context, message, message.NoStrikes);
 		Counted(message, message.NoStrikes, message.NoStrikesGroups);
 		if (message.NoStrikesGroups is not null)
@@ -2640,9 +2640,9 @@ partial class FixValidators
 
 	static bool ValidateLogon(FixContext context, FixMessage.Logon message)
 	{
-		if (message.EncryptMethod is null) Missing(message, 98);
+		if (message.EncryptMethod is null) Missing(message, FixTag.EncryptMethod);
 		else context.Validators.EncryptMethod(context, message, message.EncryptMethod);
-		if (message.HeartBtInt is null) Missing(message, 108);
+		if (message.HeartBtInt is null) Missing(message, FixTag.HeartBtInt);
 		else context.Validators.HeartBtInt(context, message, message.HeartBtInt);
 		if (message.RawDataLength is not null) context.Validators.RawDataLength(context, message, message.RawDataLength);
 		if (message.RawData is not null) context.Validators.RawData(context, message, message.RawData);
@@ -2673,7 +2673,7 @@ partial class FixValidators
 	static bool ValidateMarketDataIncrementalRefresh(FixContext context, FixMessage.MarketDataIncrementalRefresh message)
 	{
 		if (message.MDReqID is not null) context.Validators.MDReqID(context, message, message.MDReqID);
-		if (message.NoMDEntries is null) Missing(message, 268);
+		if (message.NoMDEntries is null) Missing(message, FixTag.NoMDEntries);
 		else context.Validators.NoMDEntries(context, message, message.NoMDEntries);
 		Counted(message, message.NoMDEntries, message.NoMDEntriesGroups);
 		if (message.NoMDEntriesGroups is not null)
@@ -2687,24 +2687,24 @@ partial class FixValidators
 
 	static bool ValidateMarketDataRequest(FixContext context, FixMessage.MarketDataRequest message)
 	{
-		if (message.MDReqID is null) Missing(message, 262);
+		if (message.MDReqID is null) Missing(message, FixTag.MDReqID);
 		else context.Validators.MDReqID(context, message, message.MDReqID);
-		if (message.SubscriptionRequestType is null) Missing(message, 263);
+		if (message.SubscriptionRequestType is null) Missing(message, FixTag.SubscriptionRequestType);
 		else context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
-		if (message.MarketDepth is null) Missing(message, 264);
+		if (message.MarketDepth is null) Missing(message, FixTag.MarketDepth);
 		else context.Validators.MarketDepth(context, message, message.MarketDepth);
 		if (message.MDUpdateType is not null) context.Validators.MDUpdateType(context, message, message.MDUpdateType);
 		if (message.AggregatedBook is not null) context.Validators.AggregatedBook(context, message, message.AggregatedBook);
 		if (message.OpenCloseSettlFlag is not null) context.Validators.OpenCloseSettlFlag(context, message, message.OpenCloseSettlFlag);
 		if (message.Scope is not null) context.Validators.Scope(context, message, message.Scope);
 		if (message.MDImplicitDelete is not null) context.Validators.MDImplicitDelete(context, message, message.MDImplicitDelete);
-		if (message.NoMDEntryTypes is null) Missing(message, 267);
+		if (message.NoMDEntryTypes is null) Missing(message, FixTag.NoMDEntryTypes);
 		else context.Validators.NoMDEntryTypes(context, message, message.NoMDEntryTypes);
 		Counted(message, message.NoMDEntryTypes, message.NoMDEntryTypesGroups);
 		if (message.NoMDEntryTypesGroups is not null)
 			for (var i = 0; i < message.NoMDEntryTypesGroups.Count; i++)
 				context.Validators.MarketDataRequest_NoMDEntryTypes(context, message, message.NoMDEntryTypesGroups[i], i);
-		if (message.NoRelatedSym is null) Missing(message, 146);
+		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
 		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
 		if (message.NoRelatedSymGroups is not null)
@@ -2723,7 +2723,7 @@ partial class FixValidators
 
 	static bool ValidateMarketDataRequestReject(FixContext context, FixMessage.MarketDataRequestReject message)
 	{
-		if (message.MDReqID is null) Missing(message, 262);
+		if (message.MDReqID is null) Missing(message, FixTag.MDReqID);
 		else context.Validators.MDReqID(context, message, message.MDReqID);
 		if (message.MDReqRejReason is not null) context.Validators.MDReqRejReason(context, message, message.MDReqRejReason);
 		if (message.NoAltMDSource is not null) context.Validators.NoAltMDSource(context, message, message.NoAltMDSource);
@@ -2741,7 +2741,7 @@ partial class FixValidators
 	static bool ValidateMarketDataSnapshotFullRefresh(FixContext context, FixMessage.MarketDataSnapshotFullRefresh message)
 	{
 		if (message.MDReqID is not null) context.Validators.MDReqID(context, message, message.MDReqID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2756,7 +2756,7 @@ partial class FixValidators
 		if (message.FinancialStatus is not null) context.Validators.FinancialStatus(context, message, message.FinancialStatus);
 		if (message.CorporateAction is not null) context.Validators.CorporateAction(context, message, message.CorporateAction);
 		if (message.NetChgPrevDay is not null) context.Validators.NetChgPrevDay(context, message, message.NetChgPrevDay);
-		if (message.NoMDEntries is null) Missing(message, 268);
+		if (message.NoMDEntries is null) Missing(message, FixTag.NoMDEntries);
 		else context.Validators.NoMDEntries(context, message, message.NoMDEntries);
 		Counted(message, message.NoMDEntries, message.NoMDEntriesGroups);
 		if (message.NoMDEntriesGroups is not null)
@@ -2771,7 +2771,7 @@ partial class FixValidators
 	static bool ValidateMassQuote(FixContext context, FixMessage.MassQuote message)
 	{
 		if (message.QuoteReqID is not null) context.Validators.QuoteReqID(context, message, message.QuoteReqID);
-		if (message.QuoteID is null) Missing(message, 117);
+		if (message.QuoteID is null) Missing(message, FixTag.QuoteID);
 		else context.Validators.QuoteID(context, message, message.QuoteID);
 		if (message.QuoteType is not null) context.Validators.QuoteType(context, message, message.QuoteType);
 		if (message.QuoteResponseLevel is not null) context.Validators.QuoteResponseLevel(context, message, message.QuoteResponseLevel);
@@ -2781,7 +2781,7 @@ partial class FixValidators
 		if (message.AccountType is not null) context.Validators.AccountType(context, message, message.AccountType);
 		if (message.DefBidSize is not null) context.Validators.DefBidSize(context, message, message.DefBidSize);
 		if (message.DefOfferSize is not null) context.Validators.DefOfferSize(context, message, message.DefOfferSize);
-		if (message.NoQuoteSets is null) Missing(message, 296);
+		if (message.NoQuoteSets is null) Missing(message, FixTag.NoQuoteSets);
 		else context.Validators.NoQuoteSets(context, message, message.NoQuoteSets);
 		Counted(message, message.NoQuoteSets, message.NoQuoteSetsGroups);
 		if (message.NoQuoteSetsGroups is not null)
@@ -2795,7 +2795,7 @@ partial class FixValidators
 	{
 		if (message.QuoteReqID is not null) context.Validators.QuoteReqID(context, message, message.QuoteReqID);
 		if (message.QuoteID is not null) context.Validators.QuoteID(context, message, message.QuoteID);
-		if (message.QuoteStatus is null) Missing(message, 297);
+		if (message.QuoteStatus is null) Missing(message, FixTag.QuoteStatus);
 		else context.Validators.QuoteStatus(context, message, message.QuoteStatus);
 		if (message.QuoteRejectReason is not null) context.Validators.QuoteRejectReason(context, message, message.QuoteRejectReason);
 		if (message.QuoteResponseLevel is not null) context.Validators.QuoteResponseLevel(context, message, message.QuoteResponseLevel);
@@ -2819,9 +2819,9 @@ partial class FixValidators
 	static bool ValidateMultilegOrderCancelReplaceRequest(FixContext context, FixMessage.MultilegOrderCancelReplaceRequest message)
 	{
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
-		if (message.OrigClOrdID is null) Missing(message, 41);
+		if (message.OrigClOrdID is null) Missing(message, FixTag.OrigClOrdID);
 		else context.Validators.OrigClOrdID(context, message, message.OrigClOrdID);
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -2856,9 +2856,9 @@ partial class FixValidators
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.MultilegOrderCancelReplaceRequest_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2866,19 +2866,19 @@ partial class FixValidators
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.MultilegOrderCancelReplaceRequest_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
 		if (message.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, message.PrevClosePx);
-		if (message.NoLegs is null) Missing(message, 555);
+		if (message.NoLegs is null) Missing(message, FixTag.NoLegs);
 		else context.Validators.NoLegs(context, message, message.NoLegs);
 		Counted(message, message.NoLegs, message.NoLegsGroups);
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.MultilegOrderCancelReplaceRequest_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (message.LocateReqd is not null) context.Validators.LocateReqd(context, message, message.LocateReqd);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -2922,9 +2922,9 @@ partial class FixValidators
 
 	static bool ValidateNetworkStatusRequest(FixContext context, FixMessage.NetworkStatusRequest message)
 	{
-		if (message.NetworkRequestType is null) Missing(message, 935);
+		if (message.NetworkRequestType is null) Missing(message, FixTag.NetworkRequestType);
 		else context.Validators.NetworkRequestType(context, message, message.NetworkRequestType);
-		if (message.NetworkRequestID is null) Missing(message, 933);
+		if (message.NetworkRequestID is null) Missing(message, FixTag.NetworkRequestID);
 		else context.Validators.NetworkRequestID(context, message, message.NetworkRequestID);
 		if (message.NoCompIDs is not null) context.Validators.NoCompIDs(context, message, message.NoCompIDs);
 		Counted(message, message.NoCompIDs, message.NoCompIDsGroups);
@@ -2937,13 +2937,13 @@ partial class FixValidators
 
 	static bool ValidateNetworkStatusResponse(FixContext context, FixMessage.NetworkStatusResponse message)
 	{
-		if (message.NetworkStatusResponseType is null) Missing(message, 937);
+		if (message.NetworkStatusResponseType is null) Missing(message, FixTag.NetworkStatusResponseType);
 		else context.Validators.NetworkStatusResponseType(context, message, message.NetworkStatusResponseType);
 		if (message.NetworkRequestID is not null) context.Validators.NetworkRequestID(context, message, message.NetworkRequestID);
-		if (message.NetworkResponseID is null) Missing(message, 932);
+		if (message.NetworkResponseID is null) Missing(message, FixTag.NetworkResponseID);
 		else context.Validators.NetworkResponseID(context, message, message.NetworkResponseID);
 		if (message.LastNetworkResponseID is not null) context.Validators.LastNetworkResponseID(context, message, message.LastNetworkResponseID);
-		if (message.NoCompIDs is null) Missing(message, 936);
+		if (message.NoCompIDs is null) Missing(message, FixTag.NoCompIDs);
 		else context.Validators.NoCompIDs(context, message, message.NoCompIDs);
 		Counted(message, message.NoCompIDs, message.NoCompIDsGroups);
 		if (message.NoCompIDsGroups is not null)
@@ -2955,19 +2955,19 @@ partial class FixValidators
 
 	static bool ValidateNewOrderCross(FixContext context, FixMessage.NewOrderCross message)
 	{
-		if (message.CrossID is null) Missing(message, 548);
+		if (message.CrossID is null) Missing(message, FixTag.CrossID);
 		else context.Validators.CrossID(context, message, message.CrossID);
-		if (message.CrossType is null) Missing(message, 549);
+		if (message.CrossType is null) Missing(message, FixTag.CrossType);
 		else context.Validators.CrossType(context, message, message.CrossType);
-		if (message.CrossPrioritization is null) Missing(message, 550);
+		if (message.CrossPrioritization is null) Missing(message, FixTag.CrossPrioritization);
 		else context.Validators.CrossPrioritization(context, message, message.CrossPrioritization);
-		if (message.NoSides is null) Missing(message, 552);
+		if (message.NoSides is null) Missing(message, FixTag.NoSides);
 		else context.Validators.NoSides(context, message, message.NoSides);
 		Counted(message, message.NoSides, message.NoSidesGroups);
 		if (message.NoSidesGroups is not null)
 			for (var i = 0; i < message.NoSidesGroups.Count; i++)
 				context.Validators.NewOrderCross_NoSides(context, message, message.NoSidesGroups[i], i);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -2994,10 +2994,10 @@ partial class FixValidators
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
 		if (message.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, message.PrevClosePx);
 		if (message.LocateReqd is not null) context.Validators.LocateReqd(context, message, message.LocateReqd);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((IStipulations)message)) context.Validators.Stipulations(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -3029,12 +3029,12 @@ partial class FixValidators
 
 	static bool ValidateNewOrderList(FixContext context, FixMessage.NewOrderList message)
 	{
-		if (message.ListID is null) Missing(message, 66);
+		if (message.ListID is null) Missing(message, FixTag.ListID);
 		else context.Validators.ListID(context, message, message.ListID);
 		if (message.BidID is not null) context.Validators.BidID(context, message, message.BidID);
 		if (message.ClientBidID is not null) context.Validators.ClientBidID(context, message, message.ClientBidID);
 		if (message.ProgRptReqs is not null) context.Validators.ProgRptReqs(context, message, message.ProgRptReqs);
-		if (message.BidType is null) Missing(message, 394);
+		if (message.BidType is null) Missing(message, FixTag.BidType);
 		else context.Validators.BidType(context, message, message.BidType);
 		if (message.ProgPeriodInterval is not null) context.Validators.ProgPeriodInterval(context, message, message.ProgPeriodInterval);
 		if (message.CancellationRights is not null) context.Validators.CancellationRights(context, message, message.CancellationRights);
@@ -3047,10 +3047,10 @@ partial class FixValidators
 		if (message.AllowableOneSidednessPct is not null) context.Validators.AllowableOneSidednessPct(context, message, message.AllowableOneSidednessPct);
 		if (message.AllowableOneSidednessValue is not null) context.Validators.AllowableOneSidednessValue(context, message, message.AllowableOneSidednessValue);
 		if (message.AllowableOneSidednessCurr is not null) context.Validators.AllowableOneSidednessCurr(context, message, message.AllowableOneSidednessCurr);
-		if (message.TotNoOrders is null) Missing(message, 68);
+		if (message.TotNoOrders is null) Missing(message, FixTag.TotNoOrders);
 		else context.Validators.TotNoOrders(context, message, message.TotNoOrders);
 		if (message.LastFragment is not null) context.Validators.LastFragment(context, message, message.LastFragment);
-		if (message.NoOrders is null) Missing(message, 73);
+		if (message.NoOrders is null) Missing(message, FixTag.NoOrders);
 		else context.Validators.NoOrders(context, message, message.NoOrders);
 		Counted(message, message.NoOrders, message.NoOrdersGroups);
 		if (message.NoOrdersGroups is not null)
@@ -3062,7 +3062,7 @@ partial class FixValidators
 
 	static bool ValidateNewOrderMultileg(FixContext context, FixMessage.NewOrderMultileg message)
 	{
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -3096,9 +3096,9 @@ partial class FixValidators
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.NewOrderMultileg_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -3106,19 +3106,19 @@ partial class FixValidators
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.NewOrderMultileg_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
 		if (message.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, message.PrevClosePx);
-		if (message.NoLegs is null) Missing(message, 555);
+		if (message.NoLegs is null) Missing(message, FixTag.NoLegs);
 		else context.Validators.NoLegs(context, message, message.NoLegs);
 		Counted(message, message.NoLegs, message.NoLegsGroups);
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.NewOrderMultileg_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (message.LocateReqd is not null) context.Validators.LocateReqd(context, message, message.LocateReqd);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -3162,7 +3162,7 @@ partial class FixValidators
 
 	static bool ValidateNewOrderSingle(FixContext context, FixMessage.NewOrderSingle message)
 	{
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -3196,7 +3196,7 @@ partial class FixValidators
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.NewOrderSingle_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3205,16 +3205,16 @@ partial class FixValidators
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.NewOrderSingle_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
 		if (message.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, message.PrevClosePx);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 		if (message.LocateReqd is not null) context.Validators.LocateReqd(context, message, message.LocateReqd);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((IStipulations)message)) context.Validators.Stipulations(context, message, message);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -3264,7 +3264,7 @@ partial class FixValidators
 	{
 		if (message.OrigTime is not null) context.Validators.OrigTime(context, message, message.OrigTime);
 		if (message.Urgency is not null) context.Validators.Urgency(context, message, message.Urgency);
-		if (message.Headline is null) Missing(message, 148);
+		if (message.Headline is null) Missing(message, FixTag.Headline);
 		else context.Validators.Headline(context, message, message.Headline);
 		if (message.EncodedHeadlineLen is not null) context.Validators.EncodedHeadlineLen(context, message, message.EncodedHeadlineLen);
 		if (message.EncodedHeadline is not null) context.Validators.EncodedHeadline(context, message, message.EncodedHeadline);
@@ -3288,7 +3288,7 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.News_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.LinesOfText is null) Missing(message, 33);
+		if (message.LinesOfText is null) Missing(message, FixTag.LinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
 		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
 		if (message.LinesOfTextGroups is not null)
@@ -3303,16 +3303,16 @@ partial class FixValidators
 
 	static bool ValidateOrderCancelReject(FixContext context, FixMessage.OrderCancelReject message)
 	{
-		if (message.OrderID is null) Missing(message, 37);
+		if (message.OrderID is null) Missing(message, FixTag.OrderID);
 		else context.Validators.OrderID(context, message, message.OrderID);
 		if (message.SecondaryOrderID is not null) context.Validators.SecondaryOrderID(context, message, message.SecondaryOrderID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
-		if (message.OrigClOrdID is null) Missing(message, 41);
+		if (message.OrigClOrdID is null) Missing(message, FixTag.OrigClOrdID);
 		else context.Validators.OrigClOrdID(context, message, message.OrigClOrdID);
-		if (message.OrdStatus is null) Missing(message, 39);
+		if (message.OrdStatus is null) Missing(message, FixTag.OrdStatus);
 		else context.Validators.OrdStatus(context, message, message.OrdStatus);
 		if (message.WorkingIndicator is not null) context.Validators.WorkingIndicator(context, message, message.WorkingIndicator);
 		if (message.OrigOrdModTime is not null) context.Validators.OrigOrdModTime(context, message, message.OrigOrdModTime);
@@ -3323,7 +3323,7 @@ partial class FixValidators
 		if (message.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, message.TradeOriginationDate);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
-		if (message.CxlRejResponseTo is null) Missing(message, 434);
+		if (message.CxlRejResponseTo is null) Missing(message, FixTag.CxlRejResponseTo);
 		else context.Validators.CxlRejResponseTo(context, message, message.CxlRejResponseTo);
 		if (message.CxlRejReason is not null) context.Validators.CxlRejReason(context, message, message.CxlRejReason);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
@@ -3339,9 +3339,9 @@ partial class FixValidators
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, message.TradeOriginationDate);
 		if (message.TradeDate is not null) context.Validators.TradeDate(context, message, message.TradeDate);
-		if (message.OrigClOrdID is null) Missing(message, 41);
+		if (message.OrigClOrdID is null) Missing(message, FixTag.OrigClOrdID);
 		else context.Validators.OrigClOrdID(context, message, message.OrigClOrdID);
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -3373,7 +3373,7 @@ partial class FixValidators
 		if (message.NoTradingSessionsGroups is not null)
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.OrderCancelReplaceRequest_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3381,14 +3381,14 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.OrderCancelReplaceRequest_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.QtyType is not null) context.Validators.QtyType(context, message, message.QtyType);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
-		if (message.OrdType is null) Missing(message, 40);
+		if (message.OrdType is null) Missing(message, FixTag.OrdType);
 		else context.Validators.OrdType(context, message, message.OrdType);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
 		if (message.Price is not null) context.Validators.Price(context, message, message.Price);
@@ -3435,10 +3435,10 @@ partial class FixValidators
 
 	static bool ValidateOrderCancelRequest(FixContext context, FixMessage.OrderCancelRequest message)
 	{
-		if (message.OrigClOrdID is null) Missing(message, 41);
+		if (message.OrigClOrdID is null) Missing(message, FixTag.OrigClOrdID);
 		else context.Validators.OrigClOrdID(context, message, message.OrigClOrdID);
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -3448,7 +3448,7 @@ partial class FixValidators
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
 		if (message.AccountType is not null) context.Validators.AccountType(context, message, message.AccountType);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3456,11 +3456,11 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.OrderCancelRequest_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (Empty((IOrderQtyData)message)) Absent(message, 38);
+		if (Empty((IOrderQtyData)message)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, message);
 		if (message.ComplianceID is not null) context.Validators.ComplianceID(context, message, message.ComplianceID);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
@@ -3474,12 +3474,12 @@ partial class FixValidators
 	{
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
-		if (message.OrderID is null) Missing(message, 37);
+		if (message.OrderID is null) Missing(message, FixTag.OrderID);
 		else context.Validators.OrderID(context, message, message.OrderID);
 		if (message.SecondaryOrderID is not null) context.Validators.SecondaryOrderID(context, message, message.SecondaryOrderID);
-		if (message.MassCancelRequestType is null) Missing(message, 530);
+		if (message.MassCancelRequestType is null) Missing(message, FixTag.MassCancelRequestType);
 		else context.Validators.MassCancelRequestType(context, message, message.MassCancelRequestType);
-		if (message.MassCancelResponse is null) Missing(message, 531);
+		if (message.MassCancelResponse is null) Missing(message, FixTag.MassCancelResponse);
 		else context.Validators.MassCancelResponse(context, message, message.MassCancelResponse);
 		if (message.MassCancelRejectReason is not null) context.Validators.MassCancelRejectReason(context, message, message.MassCancelRejectReason);
 		if (message.TotalAffectedOrders is not null) context.Validators.TotalAffectedOrders(context, message, message.TotalAffectedOrders);
@@ -3503,17 +3503,17 @@ partial class FixValidators
 
 	static bool ValidateOrderMassCancelRequest(FixContext context, FixMessage.OrderMassCancelRequest message)
 	{
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
-		if (message.MassCancelRequestType is null) Missing(message, 530);
+		if (message.MassCancelRequestType is null) Missing(message, FixTag.MassCancelRequestType);
 		else context.Validators.MassCancelRequestType(context, message, message.MassCancelRequestType);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (!Empty((IUnderlyingInstrument)message)) context.Validators.UnderlyingInstrument(context, message, message);
 		if (message.Side is not null) context.Validators.Side(context, message, message.Side);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -3524,9 +3524,9 @@ partial class FixValidators
 
 	static bool ValidateOrderMassStatusRequest(FixContext context, FixMessage.OrderMassStatusRequest message)
 	{
-		if (message.MassStatusReqID is null) Missing(message, 584);
+		if (message.MassStatusReqID is null) Missing(message, FixTag.MassStatusReqID);
 		else context.Validators.MassStatusReqID(context, message, message.MassStatusReqID);
-		if (message.MassStatusReqType is null) Missing(message, 585);
+		if (message.MassStatusReqType is null) Missing(message, FixTag.MassStatusReqType);
 		else context.Validators.MassStatusReqType(context, message, message.MassStatusReqType);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
@@ -3543,7 +3543,7 @@ partial class FixValidators
 	static bool ValidateOrderStatusRequest(FixContext context, FixMessage.OrderStatusRequest message)
 	{
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
-		if (message.ClOrdID is null) Missing(message, 11);
+		if (message.ClOrdID is null) Missing(message, FixTag.ClOrdID);
 		else context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, message.SecondaryClOrdID);
 		if (message.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, message.ClOrdLinkID);
@@ -3551,7 +3551,7 @@ partial class FixValidators
 		if (message.OrdStatusReqID is not null) context.Validators.OrdStatusReqID(context, message, message.OrdStatusReqID);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3559,7 +3559,7 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.OrderStatusRequest_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.Side is null) Missing(message, 54);
+		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 
 		return message.IsValid;
@@ -3567,29 +3567,29 @@ partial class FixValidators
 
 	static bool ValidatePositionMaintenanceReport(FixContext context, FixMessage.PositionMaintenanceReport message)
 	{
-		if (message.PosMaintRptID is null) Missing(message, 721);
+		if (message.PosMaintRptID is null) Missing(message, FixTag.PosMaintRptID);
 		else context.Validators.PosMaintRptID(context, message, message.PosMaintRptID);
-		if (message.PosTransType is null) Missing(message, 709);
+		if (message.PosTransType is null) Missing(message, FixTag.PosTransType);
 		else context.Validators.PosTransType(context, message, message.PosTransType);
 		if (message.PosReqID is not null) context.Validators.PosReqID(context, message, message.PosReqID);
-		if (message.PosMaintAction is null) Missing(message, 712);
+		if (message.PosMaintAction is null) Missing(message, FixTag.PosMaintAction);
 		else context.Validators.PosMaintAction(context, message, message.PosMaintAction);
-		if (message.OrigPosReqRefID is null) Missing(message, 713);
+		if (message.OrigPosReqRefID is null) Missing(message, FixTag.OrigPosReqRefID);
 		else context.Validators.OrigPosReqRefID(context, message, message.OrigPosReqRefID);
-		if (message.PosMaintStatus is null) Missing(message, 722);
+		if (message.PosMaintStatus is null) Missing(message, FixTag.PosMaintStatus);
 		else context.Validators.PosMaintStatus(context, message, message.PosMaintStatus);
 		if (message.PosMaintResult is not null) context.Validators.PosMaintResult(context, message, message.PosMaintResult);
-		if (message.ClearingBusinessDate is null) Missing(message, 715);
+		if (message.ClearingBusinessDate is null) Missing(message, FixTag.ClearingBusinessDate);
 		else context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.SettlSessID is not null) context.Validators.SettlSessID(context, message, message.SettlSessID);
 		if (message.SettlSessSubID is not null) context.Validators.SettlSessSubID(context, message, message.SettlSessSubID);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
-		if (message.Account is null) Missing(message, 1);
+		if (message.Account is null) Missing(message, FixTag.Account);
 		else context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.NoLegs is not null) context.Validators.NoLegs(context, message, message.NoLegs);
@@ -3607,11 +3607,11 @@ partial class FixValidators
 		if (message.NoTradingSessionsGroups is not null)
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.PositionMaintenanceReport_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (Empty((IPositionQty)message)) Absent(message, 702);
+		if (Empty((IPositionQty)message)) Absent(message, FixTag.NoPositions);
 		else context.Validators.PositionQty(context, message, message);
-		if (Empty((IPositionAmountData)message)) Absent(message, 753);
+		if (Empty((IPositionAmountData)message)) Absent(message, FixTag.NoPosAmt);
 		else context.Validators.PositionAmountData(context, message, message);
 		if (message.AdjustmentType is not null) context.Validators.AdjustmentType(context, message, message.AdjustmentType);
 		if (message.ThresholdAmount is not null) context.Validators.ThresholdAmount(context, message, message.ThresholdAmount);
@@ -3624,26 +3624,26 @@ partial class FixValidators
 
 	static bool ValidatePositionMaintenanceRequest(FixContext context, FixMessage.PositionMaintenanceRequest message)
 	{
-		if (message.PosReqID is null) Missing(message, 710);
+		if (message.PosReqID is null) Missing(message, FixTag.PosReqID);
 		else context.Validators.PosReqID(context, message, message.PosReqID);
-		if (message.PosTransType is null) Missing(message, 709);
+		if (message.PosTransType is null) Missing(message, FixTag.PosTransType);
 		else context.Validators.PosTransType(context, message, message.PosTransType);
-		if (message.PosMaintAction is null) Missing(message, 712);
+		if (message.PosMaintAction is null) Missing(message, FixTag.PosMaintAction);
 		else context.Validators.PosMaintAction(context, message, message.PosMaintAction);
 		if (message.OrigPosReqRefID is not null) context.Validators.OrigPosReqRefID(context, message, message.OrigPosReqRefID);
 		if (message.PosMaintRptRefID is not null) context.Validators.PosMaintRptRefID(context, message, message.PosMaintRptRefID);
-		if (message.ClearingBusinessDate is null) Missing(message, 715);
+		if (message.ClearingBusinessDate is null) Missing(message, FixTag.ClearingBusinessDate);
 		else context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.SettlSessID is not null) context.Validators.SettlSessID(context, message, message.SettlSessID);
 		if (message.SettlSessSubID is not null) context.Validators.SettlSessSubID(context, message, message.SettlSessSubID);
-		if (Empty((IParties)message)) Absent(message, 453);
+		if (Empty((IParties)message)) Absent(message, FixTag.NoPartyIDs);
 		else context.Validators.Parties(context, message, message);
-		if (message.Account is null) Missing(message, 1);
+		if (message.Account is null) Missing(message, FixTag.Account);
 		else context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
 		if (message.NoLegs is not null) context.Validators.NoLegs(context, message, message.NoLegs);
@@ -3661,9 +3661,9 @@ partial class FixValidators
 		if (message.NoTradingSessionsGroups is not null)
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.PositionMaintenanceRequest_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
-		if (Empty((IPositionQty)message)) Absent(message, 702);
+		if (Empty((IPositionQty)message)) Absent(message, FixTag.NoPositions);
 		else context.Validators.PositionQty(context, message, message);
 		if (message.AdjustmentType is not null) context.Validators.AdjustmentType(context, message, message.AdjustmentType);
 		if (message.ContraryInstructionIndicator is not null) context.Validators.ContraryInstructionIndicator(context, message, message.ContraryInstructionIndicator);
@@ -3678,33 +3678,33 @@ partial class FixValidators
 
 	static bool ValidatePositionReport(FixContext context, FixMessage.PositionReport message)
 	{
-		if (message.PosMaintRptID is null) Missing(message, 721);
+		if (message.PosMaintRptID is null) Missing(message, FixTag.PosMaintRptID);
 		else context.Validators.PosMaintRptID(context, message, message.PosMaintRptID);
 		if (message.PosReqID is not null) context.Validators.PosReqID(context, message, message.PosReqID);
 		if (message.PosReqType is not null) context.Validators.PosReqType(context, message, message.PosReqType);
 		if (message.SubscriptionRequestType is not null) context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
 		if (message.TotalNumPosReports is not null) context.Validators.TotalNumPosReports(context, message, message.TotalNumPosReports);
 		if (message.UnsolicitedIndicator is not null) context.Validators.UnsolicitedIndicator(context, message, message.UnsolicitedIndicator);
-		if (message.PosReqResult is null) Missing(message, 728);
+		if (message.PosReqResult is null) Missing(message, FixTag.PosReqResult);
 		else context.Validators.PosReqResult(context, message, message.PosReqResult);
-		if (message.ClearingBusinessDate is null) Missing(message, 715);
+		if (message.ClearingBusinessDate is null) Missing(message, FixTag.ClearingBusinessDate);
 		else context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.SettlSessID is not null) context.Validators.SettlSessID(context, message, message.SettlSessID);
 		if (message.SettlSessSubID is not null) context.Validators.SettlSessSubID(context, message, message.SettlSessSubID);
-		if (Empty((IParties)message)) Absent(message, 453);
+		if (Empty((IParties)message)) Absent(message, FixTag.NoPartyIDs);
 		else context.Validators.Parties(context, message, message);
-		if (message.Account is null) Missing(message, 1);
+		if (message.Account is null) Missing(message, FixTag.Account);
 		else context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
-		if (message.SettlPrice is null) Missing(message, 730);
+		if (message.SettlPrice is null) Missing(message, FixTag.SettlPrice);
 		else context.Validators.SettlPrice(context, message, message.SettlPrice);
-		if (message.SettlPriceType is null) Missing(message, 731);
+		if (message.SettlPriceType is null) Missing(message, FixTag.SettlPriceType);
 		else context.Validators.SettlPriceType(context, message, message.SettlPriceType);
-		if (message.PriorSettlPrice is null) Missing(message, 734);
+		if (message.PriorSettlPrice is null) Missing(message, FixTag.PriorSettlPrice);
 		else context.Validators.PriorSettlPrice(context, message, message.PriorSettlPrice);
 		if (message.NoLegs is not null) context.Validators.NoLegs(context, message, message.NoLegs);
 		Counted(message, message.NoLegs, message.NoLegsGroups);
@@ -3716,9 +3716,9 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.PositionReport_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (Empty((IPositionQty)message)) Absent(message, 702);
+		if (Empty((IPositionQty)message)) Absent(message, FixTag.NoPositions);
 		else context.Validators.PositionQty(context, message, message);
-		if (Empty((IPositionAmountData)message)) Absent(message, 753);
+		if (Empty((IPositionAmountData)message)) Absent(message, FixTag.NoPosAmt);
 		else context.Validators.PositionAmountData(context, message, message);
 		if (message.RegistStatus is not null) context.Validators.RegistStatus(context, message, message.RegistStatus);
 		if (message.DeliveryDate is not null) context.Validators.DeliveryDate(context, message, message.DeliveryDate);
@@ -3732,7 +3732,7 @@ partial class FixValidators
 	static bool ValidateQuote(FixContext context, FixMessage.Quote message)
 	{
 		if (message.QuoteReqID is not null) context.Validators.QuoteReqID(context, message, message.QuoteReqID);
-		if (message.QuoteID is null) Missing(message, 117);
+		if (message.QuoteID is null) Missing(message, FixTag.QuoteID);
 		else context.Validators.QuoteID(context, message, message.QuoteID);
 		if (message.QuoteRespID is not null) context.Validators.QuoteRespID(context, message, message.QuoteRespID);
 		if (message.QuoteType is not null) context.Validators.QuoteType(context, message, message.QuoteType);
@@ -3745,7 +3745,7 @@ partial class FixValidators
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3811,9 +3811,9 @@ partial class FixValidators
 	static bool ValidateQuoteCancel(FixContext context, FixMessage.QuoteCancel message)
 	{
 		if (message.QuoteReqID is not null) context.Validators.QuoteReqID(context, message, message.QuoteReqID);
-		if (message.QuoteID is null) Missing(message, 117);
+		if (message.QuoteID is null) Missing(message, FixTag.QuoteID);
 		else context.Validators.QuoteID(context, message, message.QuoteID);
-		if (message.QuoteCancelType is null) Missing(message, 298);
+		if (message.QuoteCancelType is null) Missing(message, FixTag.QuoteCancelType);
 		else context.Validators.QuoteCancelType(context, message, message.QuoteCancelType);
 		if (message.QuoteResponseLevel is not null) context.Validators.QuoteResponseLevel(context, message, message.QuoteResponseLevel);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
@@ -3833,12 +3833,12 @@ partial class FixValidators
 
 	static bool ValidateQuoteRequest(FixContext context, FixMessage.QuoteRequest message)
 	{
-		if (message.QuoteReqID is null) Missing(message, 131);
+		if (message.QuoteReqID is null) Missing(message, FixTag.QuoteReqID);
 		else context.Validators.QuoteReqID(context, message, message.QuoteReqID);
 		if (message.RFQReqID is not null) context.Validators.RFQReqID(context, message, message.RFQReqID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.OrderCapacity is not null) context.Validators.OrderCapacity(context, message, message.OrderCapacity);
-		if (message.NoRelatedSym is null) Missing(message, 146);
+		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
 		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
 		if (message.NoRelatedSymGroups is not null)
@@ -3853,12 +3853,12 @@ partial class FixValidators
 
 	static bool ValidateQuoteRequestReject(FixContext context, FixMessage.QuoteRequestReject message)
 	{
-		if (message.QuoteReqID is null) Missing(message, 131);
+		if (message.QuoteReqID is null) Missing(message, FixTag.QuoteReqID);
 		else context.Validators.QuoteReqID(context, message, message.QuoteReqID);
 		if (message.RFQReqID is not null) context.Validators.RFQReqID(context, message, message.RFQReqID);
-		if (message.QuoteRequestRejectReason is null) Missing(message, 658);
+		if (message.QuoteRequestRejectReason is null) Missing(message, FixTag.QuoteRequestRejectReason);
 		else context.Validators.QuoteRequestRejectReason(context, message, message.QuoteRequestRejectReason);
-		if (message.NoRelatedSym is null) Missing(message, 146);
+		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
 		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
 		if (message.NoRelatedSymGroups is not null)
@@ -3873,10 +3873,10 @@ partial class FixValidators
 
 	static bool ValidateQuoteResponse(FixContext context, FixMessage.QuoteResponse message)
 	{
-		if (message.QuoteRespID is null) Missing(message, 693);
+		if (message.QuoteRespID is null) Missing(message, FixTag.QuoteRespID);
 		else context.Validators.QuoteRespID(context, message, message.QuoteRespID);
 		if (message.QuoteID is not null) context.Validators.QuoteID(context, message, message.QuoteID);
-		if (message.QuoteRespType is null) Missing(message, 694);
+		if (message.QuoteRespType is null) Missing(message, FixTag.QuoteRespType);
 		else context.Validators.QuoteRespType(context, message, message.QuoteRespType);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.OrderCapacity is not null) context.Validators.OrderCapacity(context, message, message.OrderCapacity);
@@ -3890,7 +3890,7 @@ partial class FixValidators
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -3957,14 +3957,14 @@ partial class FixValidators
 	{
 		if (message.QuoteStatusReqID is not null) context.Validators.QuoteStatusReqID(context, message, message.QuoteStatusReqID);
 		if (message.QuoteReqID is not null) context.Validators.QuoteReqID(context, message, message.QuoteReqID);
-		if (message.QuoteID is null) Missing(message, 117);
+		if (message.QuoteID is null) Missing(message, FixTag.QuoteID);
 		else context.Validators.QuoteID(context, message, message.QuoteID);
 		if (message.QuoteRespID is not null) context.Validators.QuoteRespID(context, message, message.QuoteRespID);
 		if (message.QuoteType is not null) context.Validators.QuoteType(context, message, message.QuoteType);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -4038,7 +4038,7 @@ partial class FixValidators
 	{
 		if (message.QuoteStatusReqID is not null) context.Validators.QuoteStatusReqID(context, message, message.QuoteStatusReqID);
 		if (message.QuoteID is not null) context.Validators.QuoteID(context, message, message.QuoteID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -4064,9 +4064,9 @@ partial class FixValidators
 
 	static bool ValidateRFQRequest(FixContext context, FixMessage.RFQRequest message)
 	{
-		if (message.RFQReqID is null) Missing(message, 644);
+		if (message.RFQReqID is null) Missing(message, FixTag.RFQReqID);
 		else context.Validators.RFQReqID(context, message, message.RFQReqID);
-		if (message.NoRelatedSym is null) Missing(message, 146);
+		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
 		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
 		if (message.NoRelatedSymGroups is not null)
@@ -4079,11 +4079,11 @@ partial class FixValidators
 
 	static bool ValidateRegistrationInstructions(FixContext context, FixMessage.RegistrationInstructions message)
 	{
-		if (message.RegistID is null) Missing(message, 513);
+		if (message.RegistID is null) Missing(message, FixTag.RegistID);
 		else context.Validators.RegistID(context, message, message.RegistID);
-		if (message.RegistTransType is null) Missing(message, 514);
+		if (message.RegistTransType is null) Missing(message, FixTag.RegistTransType);
 		else context.Validators.RegistTransType(context, message, message.RegistTransType);
-		if (message.RegistRefID is null) Missing(message, 508);
+		if (message.RegistRefID is null) Missing(message, FixTag.RegistRefID);
 		else context.Validators.RegistRefID(context, message, message.RegistRefID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
@@ -4108,17 +4108,17 @@ partial class FixValidators
 
 	static bool ValidateRegistrationInstructionsResponse(FixContext context, FixMessage.RegistrationInstructionsResponse message)
 	{
-		if (message.RegistID is null) Missing(message, 513);
+		if (message.RegistID is null) Missing(message, FixTag.RegistID);
 		else context.Validators.RegistID(context, message, message.RegistID);
-		if (message.RegistTransType is null) Missing(message, 514);
+		if (message.RegistTransType is null) Missing(message, FixTag.RegistTransType);
 		else context.Validators.RegistTransType(context, message, message.RegistTransType);
-		if (message.RegistRefID is null) Missing(message, 508);
+		if (message.RegistRefID is null) Missing(message, FixTag.RegistRefID);
 		else context.Validators.RegistRefID(context, message, message.RegistRefID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.RegistStatus is null) Missing(message, 506);
+		if (message.RegistStatus is null) Missing(message, FixTag.RegistStatus);
 		else context.Validators.RegistStatus(context, message, message.RegistStatus);
 		if (message.RegistRejReasonCode is not null) context.Validators.RegistRejReasonCode(context, message, message.RegistRejReasonCode);
 		if (message.RegistRejReasonText is not null) context.Validators.RegistRejReasonText(context, message, message.RegistRejReasonText);
@@ -4128,7 +4128,7 @@ partial class FixValidators
 
 	static bool ValidateReject(FixContext context, FixMessage.Reject message)
 	{
-		if (message.RefSeqNum is null) Missing(message, 45);
+		if (message.RefSeqNum is null) Missing(message, FixTag.RefSeqNum);
 		else context.Validators.RefSeqNum(context, message, message.RefSeqNum);
 		if (message.RefTagID is not null) context.Validators.RefTagID(context, message, message.RefTagID);
 		if (message.RefMsgType is not null) context.Validators.RefMsgType(context, message, message.RefMsgType);
@@ -4142,18 +4142,18 @@ partial class FixValidators
 
 	static bool ValidateRequestForPositions(FixContext context, FixMessage.RequestForPositions message)
 	{
-		if (message.PosReqID is null) Missing(message, 710);
+		if (message.PosReqID is null) Missing(message, FixTag.PosReqID);
 		else context.Validators.PosReqID(context, message, message.PosReqID);
-		if (message.PosReqType is null) Missing(message, 724);
+		if (message.PosReqType is null) Missing(message, FixTag.PosReqType);
 		else context.Validators.PosReqType(context, message, message.PosReqType);
 		if (message.MatchStatus is not null) context.Validators.MatchStatus(context, message, message.MatchStatus);
 		if (message.SubscriptionRequestType is not null) context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
-		if (Empty((IParties)message)) Absent(message, 453);
+		if (Empty((IParties)message)) Absent(message, FixTag.NoPartyIDs);
 		else context.Validators.Parties(context, message, message);
-		if (message.Account is null) Missing(message, 1);
+		if (message.Account is null) Missing(message, FixTag.Account);
 		else context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
@@ -4167,7 +4167,7 @@ partial class FixValidators
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.RequestForPositions_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.ClearingBusinessDate is null) Missing(message, 715);
+		if (message.ClearingBusinessDate is null) Missing(message, FixTag.ClearingBusinessDate);
 		else context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.SettlSessID is not null) context.Validators.SettlSessID(context, message, message.SettlSessID);
 		if (message.SettlSessSubID is not null) context.Validators.SettlSessSubID(context, message, message.SettlSessSubID);
@@ -4176,7 +4176,7 @@ partial class FixValidators
 		if (message.NoTradingSessionsGroups is not null)
 			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
 				context.Validators.RequestForPositions_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.ResponseTransportType is not null) context.Validators.ResponseTransportType(context, message, message.ResponseTransportType);
 		if (message.ResponseDestination is not null) context.Validators.ResponseDestination(context, message, message.ResponseDestination);
@@ -4189,21 +4189,21 @@ partial class FixValidators
 
 	static bool ValidateRequestForPositionsAck(FixContext context, FixMessage.RequestForPositionsAck message)
 	{
-		if (message.PosMaintRptID is null) Missing(message, 721);
+		if (message.PosMaintRptID is null) Missing(message, FixTag.PosMaintRptID);
 		else context.Validators.PosMaintRptID(context, message, message.PosMaintRptID);
 		if (message.PosReqID is not null) context.Validators.PosReqID(context, message, message.PosReqID);
 		if (message.TotalNumPosReports is not null) context.Validators.TotalNumPosReports(context, message, message.TotalNumPosReports);
 		if (message.UnsolicitedIndicator is not null) context.Validators.UnsolicitedIndicator(context, message, message.UnsolicitedIndicator);
-		if (message.PosReqResult is null) Missing(message, 728);
+		if (message.PosReqResult is null) Missing(message, FixTag.PosReqResult);
 		else context.Validators.PosReqResult(context, message, message.PosReqResult);
-		if (message.PosReqStatus is null) Missing(message, 729);
+		if (message.PosReqStatus is null) Missing(message, FixTag.PosReqStatus);
 		else context.Validators.PosReqStatus(context, message, message.PosReqStatus);
-		if (Empty((IParties)message)) Absent(message, 453);
+		if (Empty((IParties)message)) Absent(message, FixTag.NoPartyIDs);
 		else context.Validators.Parties(context, message, message);
-		if (message.Account is null) Missing(message, 1);
+		if (message.Account is null) Missing(message, FixTag.Account);
 		else context.Validators.Account(context, message, message.Account);
 		if (message.AcctIDSource is not null) context.Validators.AcctIDSource(context, message, message.AcctIDSource);
-		if (message.AccountType is null) Missing(message, 581);
+		if (message.AccountType is null) Missing(message, FixTag.AccountType);
 		else context.Validators.AccountType(context, message, message.AccountType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
@@ -4228,9 +4228,9 @@ partial class FixValidators
 
 	static bool ValidateResendRequest(FixContext context, FixMessage.ResendRequest message)
 	{
-		if (message.BeginSeqNo is null) Missing(message, 7);
+		if (message.BeginSeqNo is null) Missing(message, FixTag.BeginSeqNo);
 		else context.Validators.BeginSeqNo(context, message, message.BeginSeqNo);
-		if (message.EndSeqNo is null) Missing(message, 16);
+		if (message.EndSeqNo is null) Missing(message, FixTag.EndSeqNo);
 		else context.Validators.EndSeqNo(context, message, message.EndSeqNo);
 
 		return message.IsValid;
@@ -4238,11 +4238,11 @@ partial class FixValidators
 
 	static bool ValidateSecurityDefinition(FixContext context, FixMessage.SecurityDefinition message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityResponseID is null) Missing(message, 322);
+		if (message.SecurityResponseID is null) Missing(message, FixTag.SecurityResponseID);
 		else context.Validators.SecurityResponseID(context, message, message.SecurityResponseID);
-		if (message.SecurityResponseType is null) Missing(message, 323);
+		if (message.SecurityResponseType is null) Missing(message, FixTag.SecurityResponseType);
 		else context.Validators.SecurityResponseType(context, message, message.SecurityResponseType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
@@ -4271,9 +4271,9 @@ partial class FixValidators
 
 	static bool ValidateSecurityDefinitionRequest(FixContext context, FixMessage.SecurityDefinitionRequest message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityRequestType is null) Missing(message, 321);
+		if (message.SecurityRequestType is null) Missing(message, FixTag.SecurityRequestType);
 		else context.Validators.SecurityRequestType(context, message, message.SecurityRequestType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
@@ -4301,11 +4301,11 @@ partial class FixValidators
 
 	static bool ValidateSecurityList(FixContext context, FixMessage.SecurityList message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityResponseID is null) Missing(message, 322);
+		if (message.SecurityResponseID is null) Missing(message, FixTag.SecurityResponseID);
 		else context.Validators.SecurityResponseID(context, message, message.SecurityResponseID);
-		if (message.SecurityRequestResult is null) Missing(message, 560);
+		if (message.SecurityRequestResult is null) Missing(message, FixTag.SecurityRequestResult);
 		else context.Validators.SecurityRequestResult(context, message, message.SecurityRequestResult);
 		if (message.TotNoRelatedSym is not null) context.Validators.TotNoRelatedSym(context, message, message.TotNoRelatedSym);
 		if (message.LastFragment is not null) context.Validators.LastFragment(context, message, message.LastFragment);
@@ -4320,9 +4320,9 @@ partial class FixValidators
 
 	static bool ValidateSecurityListRequest(FixContext context, FixMessage.SecurityListRequest message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityListRequestType is null) Missing(message, 559);
+		if (message.SecurityListRequestType is null) Missing(message, FixTag.SecurityListRequestType);
 		else context.Validators.SecurityListRequestType(context, message, message.SecurityListRequestType);
 		if (!Empty((IInstrument)message)) context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
@@ -4351,7 +4351,7 @@ partial class FixValidators
 	static bool ValidateSecurityStatus(FixContext context, FixMessage.SecurityStatus message)
 	{
 		if (message.SecurityStatusReqID is not null) context.Validators.SecurityStatusReqID(context, message, message.SecurityStatusReqID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -4390,9 +4390,9 @@ partial class FixValidators
 
 	static bool ValidateSecurityStatusRequest(FixContext context, FixMessage.SecurityStatusRequest message)
 	{
-		if (message.SecurityStatusReqID is null) Missing(message, 324);
+		if (message.SecurityStatusReqID is null) Missing(message, FixTag.SecurityStatusReqID);
 		else context.Validators.SecurityStatusReqID(context, message, message.SecurityStatusReqID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IInstrumentExtension)message)) context.Validators.InstrumentExtension(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
@@ -4406,7 +4406,7 @@ partial class FixValidators
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.SecurityStatusRequest_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (message.Currency is not null) context.Validators.Currency(context, message, message.Currency);
-		if (message.SubscriptionRequestType is null) Missing(message, 263);
+		if (message.SubscriptionRequestType is null) Missing(message, FixTag.SubscriptionRequestType);
 		else context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
@@ -4416,7 +4416,7 @@ partial class FixValidators
 
 	static bool ValidateSecurityTypeRequest(FixContext context, FixMessage.SecurityTypeRequest message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
@@ -4432,11 +4432,11 @@ partial class FixValidators
 
 	static bool ValidateSecurityTypes(FixContext context, FixMessage.SecurityTypes message)
 	{
-		if (message.SecurityReqID is null) Missing(message, 320);
+		if (message.SecurityReqID is null) Missing(message, FixTag.SecurityReqID);
 		else context.Validators.SecurityReqID(context, message, message.SecurityReqID);
-		if (message.SecurityResponseID is null) Missing(message, 322);
+		if (message.SecurityResponseID is null) Missing(message, FixTag.SecurityResponseID);
 		else context.Validators.SecurityResponseID(context, message, message.SecurityResponseID);
-		if (message.SecurityResponseType is null) Missing(message, 323);
+		if (message.SecurityResponseType is null) Missing(message, FixTag.SecurityResponseType);
 		else context.Validators.SecurityResponseType(context, message, message.SecurityResponseType);
 		if (message.TotNoSecurityTypes is not null) context.Validators.TotNoSecurityTypes(context, message, message.TotNoSecurityTypes);
 		if (message.LastFragment is not null) context.Validators.LastFragment(context, message, message.LastFragment);
@@ -4458,7 +4458,7 @@ partial class FixValidators
 	static bool ValidateSequenceReset(FixContext context, FixMessage.SequenceReset message)
 	{
 		if (message.GapFillFlag is not null) context.Validators.GapFillFlag(context, message, message.GapFillFlag);
-		if (message.NewSeqNo is null) Missing(message, 36);
+		if (message.NewSeqNo is null) Missing(message, FixTag.NewSeqNo);
 		else context.Validators.NewSeqNo(context, message, message.NewSeqNo);
 
 		return message.IsValid;
@@ -4466,9 +4466,9 @@ partial class FixValidators
 
 	static bool ValidateSettlementInstructionRequest(FixContext context, FixMessage.SettlementInstructionRequest message)
 	{
-		if (message.SettlInstReqID is null) Missing(message, 791);
+		if (message.SettlInstReqID is null) Missing(message, FixTag.SettlInstReqID);
 		else context.Validators.SettlInstReqID(context, message, message.SettlInstReqID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((IParties)message)) context.Validators.Parties(context, message, message);
 		if (message.AllocAccount is not null) context.Validators.AllocAccount(context, message, message.AllocAccount);
@@ -4489,17 +4489,17 @@ partial class FixValidators
 
 	static bool ValidateSettlementInstructions(FixContext context, FixMessage.SettlementInstructions message)
 	{
-		if (message.SettlInstMsgID is null) Missing(message, 777);
+		if (message.SettlInstMsgID is null) Missing(message, FixTag.SettlInstMsgID);
 		else context.Validators.SettlInstMsgID(context, message, message.SettlInstMsgID);
 		if (message.SettlInstReqID is not null) context.Validators.SettlInstReqID(context, message, message.SettlInstReqID);
-		if (message.SettlInstMode is null) Missing(message, 160);
+		if (message.SettlInstMode is null) Missing(message, FixTag.SettlInstMode);
 		else context.Validators.SettlInstMode(context, message, message.SettlInstMode);
 		if (message.SettlInstReqRejCode is not null) context.Validators.SettlInstReqRejCode(context, message, message.SettlInstReqRejCode);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
 		if (message.EncodedText is not null) context.Validators.EncodedText(context, message, message.EncodedText);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.NoSettlInst is not null) context.Validators.NoSettlInst(context, message, message.NoSettlInst);
 		Counted(message, message.NoSettlInst, message.NoSettlInstGroups);
@@ -4512,7 +4512,7 @@ partial class FixValidators
 
 	static bool ValidateTestRequest(FixContext context, FixMessage.TestRequest message)
 	{
-		if (message.TestReqID is null) Missing(message, 112);
+		if (message.TestReqID is null) Missing(message, FixTag.TestReqID);
 		else context.Validators.TestReqID(context, message, message.TestReqID);
 
 		return message.IsValid;
@@ -4520,7 +4520,7 @@ partial class FixValidators
 
 	static bool ValidateTradeCaptureReport(FixContext context, FixMessage.TradeCaptureReport message)
 	{
-		if (message.TradeReportID is null) Missing(message, 571);
+		if (message.TradeReportID is null) Missing(message, FixTag.TradeReportID);
 		else context.Validators.TradeReportID(context, message, message.TradeReportID);
 		if (message.TradeReportTransType is not null) context.Validators.TradeReportTransType(context, message, message.TradeReportTransType);
 		if (message.TradeReportType is not null) context.Validators.TradeReportType(context, message, message.TradeReportType);
@@ -4543,10 +4543,10 @@ partial class FixValidators
 		if (message.OrdStatus is not null) context.Validators.OrdStatus(context, message, message.OrdStatus);
 		if (message.SecondaryExecID is not null) context.Validators.SecondaryExecID(context, message, message.SecondaryExecID);
 		if (message.ExecRestatementReason is not null) context.Validators.ExecRestatementReason(context, message, message.ExecRestatementReason);
-		if (message.PreviouslyReported is null) Missing(message, 570);
+		if (message.PreviouslyReported is null) Missing(message, FixTag.PreviouslyReported);
 		else context.Validators.PreviouslyReported(context, message, message.PreviouslyReported);
 		if (message.PriceType is not null) context.Validators.PriceType(context, message, message.PriceType);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (!Empty((IFinancingDetails)message)) context.Validators.FinancingDetails(context, message, message);
 		if (!Empty((IOrderQtyData)message)) context.Validators.OrderQtyData(context, message, message);
@@ -4559,15 +4559,15 @@ partial class FixValidators
 				context.Validators.TradeCaptureReport_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
 		if (message.UnderlyingTradingSessionID is not null) context.Validators.UnderlyingTradingSessionID(context, message, message.UnderlyingTradingSessionID);
 		if (message.UnderlyingTradingSessionSubID is not null) context.Validators.UnderlyingTradingSessionSubID(context, message, message.UnderlyingTradingSessionSubID);
-		if (message.LastQty is null) Missing(message, 32);
+		if (message.LastQty is null) Missing(message, FixTag.LastQty);
 		else context.Validators.LastQty(context, message, message.LastQty);
-		if (message.LastPx is null) Missing(message, 31);
+		if (message.LastPx is null) Missing(message, FixTag.LastPx);
 		else context.Validators.LastPx(context, message, message.LastPx);
 		if (message.LastParPx is not null) context.Validators.LastParPx(context, message, message.LastParPx);
 		if (message.LastSpotRate is not null) context.Validators.LastSpotRate(context, message, message.LastSpotRate);
 		if (message.LastForwardPoints is not null) context.Validators.LastForwardPoints(context, message, message.LastForwardPoints);
 		if (message.LastMkt is not null) context.Validators.LastMkt(context, message, message.LastMkt);
-		if (message.TradeDate is null) Missing(message, 75);
+		if (message.TradeDate is null) Missing(message, FixTag.TradeDate);
 		else context.Validators.TradeDate(context, message, message.TradeDate);
 		if (message.ClearingBusinessDate is not null) context.Validators.ClearingBusinessDate(context, message, message.ClearingBusinessDate);
 		if (message.AvgPx is not null) context.Validators.AvgPx(context, message, message.AvgPx);
@@ -4581,14 +4581,14 @@ partial class FixValidators
 		if (message.NoLegsGroups is not null)
 			for (var i = 0; i < message.NoLegsGroups.Count; i++)
 				context.Validators.TradeCaptureReport_NoLegs(context, message, message.NoLegsGroups[i], i);
-		if (message.TransactTime is null) Missing(message, 60);
+		if (message.TransactTime is null) Missing(message, FixTag.TransactTime);
 		else context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((ITrdRegTimestamps)message)) context.Validators.TrdRegTimestamps(context, message, message);
 		if (message.SettlType is not null) context.Validators.SettlType(context, message, message.SettlType);
 		if (message.SettlDate is not null) context.Validators.SettlDate(context, message, message.SettlDate);
 		if (message.MatchStatus is not null) context.Validators.MatchStatus(context, message, message.MatchStatus);
 		if (message.MatchType is not null) context.Validators.MatchType(context, message, message.MatchType);
-		if (message.NoSides is null) Missing(message, 552);
+		if (message.NoSides is null) Missing(message, FixTag.NoSides);
 		else context.Validators.NoSides(context, message, message.NoSides);
 		Counted(message, message.NoSides, message.NoSidesGroups);
 		if (message.NoSidesGroups is not null)
@@ -4603,7 +4603,7 @@ partial class FixValidators
 
 	static bool ValidateTradeCaptureReportAck(FixContext context, FixMessage.TradeCaptureReportAck message)
 	{
-		if (message.TradeReportID is null) Missing(message, 571);
+		if (message.TradeReportID is null) Missing(message, FixTag.TradeReportID);
 		else context.Validators.TradeReportID(context, message, message.TradeReportID);
 		if (message.TradeReportTransType is not null) context.Validators.TradeReportTransType(context, message, message.TradeReportTransType);
 		if (message.TradeReportType is not null) context.Validators.TradeReportType(context, message, message.TradeReportType);
@@ -4611,7 +4611,7 @@ partial class FixValidators
 		if (message.TrdSubType is not null) context.Validators.TrdSubType(context, message, message.TrdSubType);
 		if (message.SecondaryTrdType is not null) context.Validators.SecondaryTrdType(context, message, message.SecondaryTrdType);
 		if (message.TransferReason is not null) context.Validators.TransferReason(context, message, message.TransferReason);
-		if (message.ExecType is null) Missing(message, 150);
+		if (message.ExecType is null) Missing(message, FixTag.ExecType);
 		else context.Validators.ExecType(context, message, message.ExecType);
 		if (message.TradeReportRefID is not null) context.Validators.TradeReportRefID(context, message, message.TradeReportRefID);
 		if (message.SecondaryTradeReportRefID is not null) context.Validators.SecondaryTradeReportRefID(context, message, message.SecondaryTradeReportRefID);
@@ -4623,7 +4623,7 @@ partial class FixValidators
 		if (message.TrdMatchID is not null) context.Validators.TrdMatchID(context, message, message.TrdMatchID);
 		if (message.ExecID is not null) context.Validators.ExecID(context, message, message.ExecID);
 		if (message.SecondaryExecID is not null) context.Validators.SecondaryExecID(context, message, message.SecondaryExecID);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
 		if (!Empty((ITrdRegTimestamps)message)) context.Validators.TrdRegTimestamps(context, message, message);
@@ -4657,9 +4657,9 @@ partial class FixValidators
 
 	static bool ValidateTradeCaptureReportRequest(FixContext context, FixMessage.TradeCaptureReportRequest message)
 	{
-		if (message.TradeRequestID is null) Missing(message, 568);
+		if (message.TradeRequestID is null) Missing(message, FixTag.TradeRequestID);
 		else context.Validators.TradeRequestID(context, message, message.TradeRequestID);
-		if (message.TradeRequestType is null) Missing(message, 569);
+		if (message.TradeRequestType is null) Missing(message, FixTag.TradeRequestType);
 		else context.Validators.TradeRequestType(context, message, message.TradeRequestType);
 		if (message.SubscriptionRequestType is not null) context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
 		if (message.TradeReportID is not null) context.Validators.TradeReportID(context, message, message.TradeReportID);
@@ -4713,17 +4713,17 @@ partial class FixValidators
 
 	static bool ValidateTradeCaptureReportRequestAck(FixContext context, FixMessage.TradeCaptureReportRequestAck message)
 	{
-		if (message.TradeRequestID is null) Missing(message, 568);
+		if (message.TradeRequestID is null) Missing(message, FixTag.TradeRequestID);
 		else context.Validators.TradeRequestID(context, message, message.TradeRequestID);
-		if (message.TradeRequestType is null) Missing(message, 569);
+		if (message.TradeRequestType is null) Missing(message, FixTag.TradeRequestType);
 		else context.Validators.TradeRequestType(context, message, message.TradeRequestType);
 		if (message.SubscriptionRequestType is not null) context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
 		if (message.TotNumTradeReports is not null) context.Validators.TotNumTradeReports(context, message, message.TotNumTradeReports);
-		if (message.TradeRequestResult is null) Missing(message, 749);
+		if (message.TradeRequestResult is null) Missing(message, FixTag.TradeRequestResult);
 		else context.Validators.TradeRequestResult(context, message, message.TradeRequestResult);
-		if (message.TradeRequestStatus is null) Missing(message, 750);
+		if (message.TradeRequestStatus is null) Missing(message, FixTag.TradeRequestStatus);
 		else context.Validators.TradeRequestStatus(context, message, message.TradeRequestStatus);
-		if (Empty((IInstrument)message)) Absent(message, 55);
+		if (Empty((IInstrument)message)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, message);
 		if (message.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, message.NoUnderlyings);
 		Counted(message, message.NoUnderlyings, message.NoUnderlyingsGroups);
@@ -4748,13 +4748,13 @@ partial class FixValidators
 	static bool ValidateTradingSessionStatus(FixContext context, FixMessage.TradingSessionStatus message)
 	{
 		if (message.TradSesReqID is not null) context.Validators.TradSesReqID(context, message, message.TradSesReqID);
-		if (message.TradingSessionID is null) Missing(message, 336);
+		if (message.TradingSessionID is null) Missing(message, FixTag.TradingSessionID);
 		else context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (message.TradSesMethod is not null) context.Validators.TradSesMethod(context, message, message.TradSesMethod);
 		if (message.TradSesMode is not null) context.Validators.TradSesMode(context, message, message.TradSesMode);
 		if (message.UnsolicitedIndicator is not null) context.Validators.UnsolicitedIndicator(context, message, message.UnsolicitedIndicator);
-		if (message.TradSesStatus is null) Missing(message, 340);
+		if (message.TradSesStatus is null) Missing(message, FixTag.TradSesStatus);
 		else context.Validators.TradSesStatus(context, message, message.TradSesStatus);
 		if (message.TradSesStatusRejReason is not null) context.Validators.TradSesStatusRejReason(context, message, message.TradSesStatusRejReason);
 		if (message.TradSesStartTime is not null) context.Validators.TradSesStartTime(context, message, message.TradSesStartTime);
@@ -4772,13 +4772,13 @@ partial class FixValidators
 
 	static bool ValidateTradingSessionStatusRequest(FixContext context, FixMessage.TradingSessionStatusRequest message)
 	{
-		if (message.TradSesReqID is null) Missing(message, 335);
+		if (message.TradSesReqID is null) Missing(message, FixTag.TradSesReqID);
 		else context.Validators.TradSesReqID(context, message, message.TradSesReqID);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.TradingSessionSubID is not null) context.Validators.TradingSessionSubID(context, message, message.TradingSessionSubID);
 		if (message.TradSesMethod is not null) context.Validators.TradSesMethod(context, message, message.TradSesMethod);
 		if (message.TradSesMode is not null) context.Validators.TradSesMode(context, message, message.TradSesMode);
-		if (message.SubscriptionRequestType is null) Missing(message, 263);
+		if (message.SubscriptionRequestType is null) Missing(message, FixTag.SubscriptionRequestType);
 		else context.Validators.SubscriptionRequestType(context, message, message.SubscriptionRequestType);
 
 		return message.IsValid;
@@ -4786,11 +4786,11 @@ partial class FixValidators
 
 	static bool ValidateUserRequest(FixContext context, FixMessage.UserRequest message)
 	{
-		if (message.UserRequestID is null) Missing(message, 923);
+		if (message.UserRequestID is null) Missing(message, FixTag.UserRequestID);
 		else context.Validators.UserRequestID(context, message, message.UserRequestID);
-		if (message.UserRequestType is null) Missing(message, 924);
+		if (message.UserRequestType is null) Missing(message, FixTag.UserRequestType);
 		else context.Validators.UserRequestType(context, message, message.UserRequestType);
-		if (message.Username is null) Missing(message, 553);
+		if (message.Username is null) Missing(message, FixTag.Username);
 		else context.Validators.Username(context, message, message.Username);
 		if (message.Password is not null) context.Validators.Password(context, message, message.Password);
 		if (message.NewPassword is not null) context.Validators.NewPassword(context, message, message.NewPassword);
@@ -4802,9 +4802,9 @@ partial class FixValidators
 
 	static bool ValidateUserResponse(FixContext context, FixMessage.UserResponse message)
 	{
-		if (message.UserRequestID is null) Missing(message, 923);
+		if (message.UserRequestID is null) Missing(message, FixTag.UserRequestID);
 		else context.Validators.UserRequestID(context, message, message.UserRequestID);
-		if (message.Username is null) Missing(message, 553);
+		if (message.Username is null) Missing(message, FixTag.Username);
 		else context.Validators.Username(context, message, message.Username);
 		if (message.UserStatus is not null) context.Validators.UserStatus(context, message, message.UserStatus);
 		if (message.UserStatusText is not null) context.Validators.UserStatusText(context, message, message.UserStatusText);
@@ -5734,7 +5734,7 @@ partial class FixValidators
 
 	static bool ValidateBidResponse_NoBidComponents(FixContext context, FixMessage message, FixMessage.BidResponse.NoBidComponentsGroup entry, int index)
 	{
-		if (Empty((ICommissionData)entry)) Absent(message, 12);
+		if (Empty((ICommissionData)entry)) Absent(message, FixTag.Commission);
 		else context.Validators.CommissionData(context, message, entry);
 		if (entry.ListID is not null) context.Validators.ListID(context, message, entry.ListID);
 		if (entry.Country is not null) context.Validators.Country(context, message, entry.Country);
@@ -6018,7 +6018,7 @@ partial class FixValidators
 	{
 		context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
 		if (entry.OrderRestrictions is not null) context.Validators.OrderRestrictions(context, message, entry.OrderRestrictions);
-		if (entry.OrderCapacityQty is null) Missing(message, 863, entry.OrderCapacity.Position, index);
+		if (entry.OrderCapacityQty is null) Missing(message, FixTag.OrderCapacityQty, entry.OrderCapacity.Position, index);
 		else context.Validators.OrderCapacityQty(context, message, entry.OrderCapacityQty);
 
 		return message.IsValid;
@@ -6052,7 +6052,7 @@ partial class FixValidators
 	static bool ValidateCrossOrderCancelReplaceRequest_NoSides(FixContext context, FixMessage message, FixMessage.CrossOrderCancelReplaceRequest.NoSidesGroup entry, int index)
 	{
 		context.Validators.Side(context, message, entry.Side);
-		if (entry.ClOrdID is null) Missing(message, 11, entry.Side.Position, index);
+		if (entry.ClOrdID is null) Missing(message, FixTag.ClOrdID, entry.Side.Position, index);
 		else context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
 		if (entry.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
@@ -6072,7 +6072,7 @@ partial class FixValidators
 			for (var i = 0; i < entry.NoAllocsGroups.Count; i++)
 				context.Validators.CrossOrderCancelReplaceRequest_NoSides_NoAllocs(context, message, entry.NoAllocsGroups[i], i);
 		if (entry.QtyType is not null) context.Validators.QtyType(context, message, entry.QtyType);
-		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		if (Empty((IOrderQtyData)entry)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, entry);
 		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
 		if (entry.OrderCapacity is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
@@ -6131,9 +6131,9 @@ partial class FixValidators
 	static bool ValidateCrossOrderCancelRequest_NoSides(FixContext context, FixMessage message, FixMessage.CrossOrderCancelRequest.NoSidesGroup entry, int index)
 	{
 		context.Validators.Side(context, message, entry.Side);
-		if (entry.OrigClOrdID is null) Missing(message, 41, entry.Side.Position, index);
+		if (entry.OrigClOrdID is null) Missing(message, FixTag.OrigClOrdID, entry.Side.Position, index);
 		else context.Validators.OrigClOrdID(context, message, entry.OrigClOrdID);
-		if (entry.ClOrdID is null) Missing(message, 11, entry.Side.Position, index);
+		if (entry.ClOrdID is null) Missing(message, FixTag.ClOrdID, entry.Side.Position, index);
 		else context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
 		if (entry.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
@@ -6141,7 +6141,7 @@ partial class FixValidators
 		if (!Empty((IParties)entry)) context.Validators.Parties(context, message, entry);
 		if (entry.TradeOriginationDate is not null) context.Validators.TradeOriginationDate(context, message, entry.TradeOriginationDate);
 		if (entry.TradeDate is not null) context.Validators.TradeDate(context, message, entry.TradeDate);
-		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		if (Empty((IOrderQtyData)entry)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, entry);
 		if (entry.ComplianceID is not null) context.Validators.ComplianceID(context, message, entry.ComplianceID);
 		if (entry.Text is not null) context.Validators.Text(context, message, entry.Text);
@@ -6334,16 +6334,16 @@ partial class FixValidators
 	{
 		context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
-		if (entry.CumQty is null) Missing(message, 14, entry.ClOrdID.Position, index);
+		if (entry.CumQty is null) Missing(message, FixTag.CumQty, entry.ClOrdID.Position, index);
 		else context.Validators.CumQty(context, message, entry.CumQty);
-		if (entry.OrdStatus is null) Missing(message, 39, entry.ClOrdID.Position, index);
+		if (entry.OrdStatus is null) Missing(message, FixTag.OrdStatus, entry.ClOrdID.Position, index);
 		else context.Validators.OrdStatus(context, message, entry.OrdStatus);
 		if (entry.WorkingIndicator is not null) context.Validators.WorkingIndicator(context, message, entry.WorkingIndicator);
-		if (entry.LeavesQty is null) Missing(message, 151, entry.ClOrdID.Position, index);
+		if (entry.LeavesQty is null) Missing(message, FixTag.LeavesQty, entry.ClOrdID.Position, index);
 		else context.Validators.LeavesQty(context, message, entry.LeavesQty);
-		if (entry.CxlQty is null) Missing(message, 84, entry.ClOrdID.Position, index);
+		if (entry.CxlQty is null) Missing(message, FixTag.CxlQty, entry.ClOrdID.Position, index);
 		else context.Validators.CxlQty(context, message, entry.CxlQty);
-		if (entry.AvgPx is null) Missing(message, 6, entry.ClOrdID.Position, index);
+		if (entry.AvgPx is null) Missing(message, FixTag.AvgPx, entry.ClOrdID.Position, index);
 		else context.Validators.AvgPx(context, message, entry.AvgPx);
 		if (entry.OrdRejReason is not null) context.Validators.OrdRejReason(context, message, entry.OrdRejReason);
 		if (entry.Text is not null) context.Validators.Text(context, message, entry.Text);
@@ -6355,7 +6355,7 @@ partial class FixValidators
 
 	static bool ValidateListStrikePrice_NoStrikes(FixContext context, FixMessage message, FixMessage.ListStrikePrice.NoStrikesGroup entry, int index)
 	{
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 
 		return message.IsValid;
@@ -6368,7 +6368,7 @@ partial class FixValidators
 		if (entry.ClOrdID is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
 		if (entry.Side is not null) context.Validators.Side(context, message, entry.Side);
-		if (entry.Price is null) Missing(message, 44, entry.UnderlyingSymbol.Position, index);
+		if (entry.Price is null) Missing(message, FixTag.Price, entry.UnderlyingSymbol.Position, index);
 		else context.Validators.Price(context, message, entry.Price);
 		if (entry.Currency is not null) context.Validators.Currency(context, message, entry.Currency);
 		if (entry.Text is not null) context.Validators.Text(context, message, entry.Text);
@@ -6466,7 +6466,7 @@ partial class FixValidators
 
 	static bool ValidateMarketDataRequest_NoRelatedSym(FixContext context, FixMessage message, FixMessage.MarketDataRequest.NoRelatedSymGroup entry, int index)
 	{
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 		if (entry.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
 		Counted(message, entry.NoUnderlyings, entry.NoUnderlyingsGroups);
@@ -6569,10 +6569,10 @@ partial class FixValidators
 		context.Validators.QuoteSetID(context, message, entry.QuoteSetID);
 		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
 		if (entry.QuoteSetValidUntilTime is not null) context.Validators.QuoteSetValidUntilTime(context, message, entry.QuoteSetValidUntilTime);
-		if (entry.TotNoQuoteEntries is null) Missing(message, 304, entry.QuoteSetID.Position, index);
+		if (entry.TotNoQuoteEntries is null) Missing(message, FixTag.TotNoQuoteEntries, entry.QuoteSetID.Position, index);
 		else context.Validators.TotNoQuoteEntries(context, message, entry.TotNoQuoteEntries);
 		if (entry.LastFragment is not null) context.Validators.LastFragment(context, message, entry.LastFragment);
-		if (entry.NoQuoteEntries is null) Missing(message, 295, entry.QuoteSetID.Position, index);
+		if (entry.NoQuoteEntries is null) Missing(message, FixTag.NoQuoteEntries, entry.QuoteSetID.Position, index);
 		else context.Validators.NoQuoteEntries(context, message, entry.NoQuoteEntries);
 		Counted(message, entry.NoQuoteEntries, entry.NoQuoteEntriesGroups);
 		if (entry.NoQuoteEntriesGroups is not null)
@@ -6770,7 +6770,7 @@ partial class FixValidators
 	static bool ValidateNewOrderCross_NoSides(FixContext context, FixMessage message, FixMessage.NewOrderCross.NoSidesGroup entry, int index)
 	{
 		context.Validators.Side(context, message, entry.Side);
-		if (entry.ClOrdID is null) Missing(message, 11, entry.Side.Position, index);
+		if (entry.ClOrdID is null) Missing(message, FixTag.ClOrdID, entry.Side.Position, index);
 		else context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
 		if (entry.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
@@ -6790,7 +6790,7 @@ partial class FixValidators
 			for (var i = 0; i < entry.NoAllocsGroups.Count; i++)
 				context.Validators.NewOrderCross_NoSides_NoAllocs(context, message, entry.NoAllocsGroups[i], i);
 		if (entry.QtyType is not null) context.Validators.QtyType(context, message, entry.QtyType);
-		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		if (Empty((IOrderQtyData)entry)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, entry);
 		if (!Empty((ICommissionData)entry)) context.Validators.CommissionData(context, message, entry);
 		if (entry.OrderCapacity is not null) context.Validators.OrderCapacity(context, message, entry.OrderCapacity);
@@ -6850,7 +6850,7 @@ partial class FixValidators
 	{
 		context.Validators.ClOrdID(context, message, entry.ClOrdID);
 		if (entry.SecondaryClOrdID is not null) context.Validators.SecondaryClOrdID(context, message, entry.SecondaryClOrdID);
-		if (entry.ListSeqNo is null) Missing(message, 67, entry.ClOrdID.Position, index);
+		if (entry.ListSeqNo is null) Missing(message, FixTag.ListSeqNo, entry.ClOrdID.Position, index);
 		else context.Validators.ListSeqNo(context, message, entry.ListSeqNo);
 		if (entry.ClOrdLinkID is not null) context.Validators.ClOrdLinkID(context, message, entry.ClOrdLinkID);
 		if (entry.SettlInstMode is not null) context.Validators.SettlInstMode(context, message, entry.SettlInstMode);
@@ -6884,7 +6884,7 @@ partial class FixValidators
 			for (var i = 0; i < entry.NoTradingSessionsGroups.Count; i++)
 				context.Validators.NewOrderList_NoOrders_NoTradingSessions(context, message, entry.NoTradingSessionsGroups[i], i);
 		if (entry.ProcessCode is not null) context.Validators.ProcessCode(context, message, entry.ProcessCode);
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 		if (entry.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
 		Counted(message, entry.NoUnderlyings, entry.NoUnderlyingsGroups);
@@ -6892,14 +6892,14 @@ partial class FixValidators
 			for (var i = 0; i < entry.NoUnderlyingsGroups.Count; i++)
 				context.Validators.NewOrderList_NoOrders_NoUnderlyings(context, message, entry.NoUnderlyingsGroups[i], i);
 		if (entry.PrevClosePx is not null) context.Validators.PrevClosePx(context, message, entry.PrevClosePx);
-		if (entry.Side is null) Missing(message, 54, entry.ClOrdID.Position, index);
+		if (entry.Side is null) Missing(message, FixTag.Side, entry.ClOrdID.Position, index);
 		else context.Validators.Side(context, message, entry.Side);
 		if (entry.SideValueInd is not null) context.Validators.SideValueInd(context, message, entry.SideValueInd);
 		if (entry.LocateReqd is not null) context.Validators.LocateReqd(context, message, entry.LocateReqd);
 		if (entry.TransactTime is not null) context.Validators.TransactTime(context, message, entry.TransactTime);
 		if (!Empty((IStipulations)entry)) context.Validators.Stipulations(context, message, entry);
 		if (entry.QtyType is not null) context.Validators.QtyType(context, message, entry.QtyType);
-		if (Empty((IOrderQtyData)entry)) Absent(message, 38);
+		if (Empty((IOrderQtyData)entry)) Absent(message, FixTag.OrderQty);
 		else context.Validators.OrderQtyData(context, message, entry);
 		if (entry.OrdType is not null) context.Validators.OrdType(context, message, entry.OrdType);
 		if (entry.PriceType is not null) context.Validators.PriceType(context, message, entry.PriceType);
@@ -7200,9 +7200,9 @@ partial class FixValidators
 	static bool ValidatePositionReport_NoUnderlyings(FixContext context, FixMessage message, FixMessage.PositionReport.NoUnderlyingsGroup entry, int index)
 	{
 		if (!Empty((IUnderlyingInstrument)entry)) context.Validators.UnderlyingInstrument(context, message, entry);
-		if (entry.UnderlyingSettlPrice is null) Missing(message, 732, entry.UnderlyingSymbol.Position, index);
+		if (entry.UnderlyingSettlPrice is null) Missing(message, FixTag.UnderlyingSettlPrice, entry.UnderlyingSymbol.Position, index);
 		else context.Validators.UnderlyingSettlPrice(context, message, entry.UnderlyingSettlPrice);
-		if (entry.UnderlyingSettlPriceType is null) Missing(message, 733, entry.UnderlyingSymbol.Position, index);
+		if (entry.UnderlyingSettlPriceType is null) Missing(message, FixTag.UnderlyingSettlPriceType, entry.UnderlyingSymbol.Position, index);
 		else context.Validators.UnderlyingSettlPriceType(context, message, entry.UnderlyingSettlPriceType);
 
 		return message.IsValid;
@@ -7273,7 +7273,7 @@ partial class FixValidators
 
 	static bool ValidateQuoteRequest_NoRelatedSym(FixContext context, FixMessage message, FixMessage.QuoteRequest.NoRelatedSymGroup entry, int index)
 	{
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
 		if (entry.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
@@ -7354,7 +7354,7 @@ partial class FixValidators
 
 	static bool ValidateQuoteRequestReject_NoRelatedSym(FixContext context, FixMessage message, FixMessage.QuoteRequestReject.NoRelatedSymGroup entry, int index)
 	{
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 		if (!Empty((IFinancingDetails)entry)) context.Validators.FinancingDetails(context, message, entry);
 		if (entry.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
@@ -7506,7 +7506,7 @@ partial class FixValidators
 
 	static bool ValidateRFQRequest_NoRelatedSym(FixContext context, FixMessage message, FixMessage.RFQRequest.NoRelatedSymGroup entry, int index)
 	{
-		if (Empty((IInstrument)entry)) Absent(message, 55);
+		if (Empty((IInstrument)entry)) Absent(message, FixTag.Symbol);
 		else context.Validators.Instrument(context, message, entry);
 		if (entry.NoUnderlyings is not null) context.Validators.NoUnderlyings(context, message, entry.NoUnderlyings);
 		Counted(message, entry.NoUnderlyings, entry.NoUnderlyingsGroups);
@@ -7789,7 +7789,7 @@ partial class FixValidators
 	static bool ValidateTradeCaptureReport_NoSides(FixContext context, FixMessage message, FixMessage.TradeCaptureReport.NoSidesGroup entry, int index)
 	{
 		context.Validators.Side(context, message, entry.Side);
-		if (entry.OrderID is null) Missing(message, 37, entry.Side.Position, index);
+		if (entry.OrderID is null) Missing(message, FixTag.OrderID, entry.Side.Position, index);
 		else context.Validators.OrderID(context, message, entry.OrderID);
 		if (entry.SecondaryOrderID is not null) context.Validators.SecondaryOrderID(context, message, entry.SecondaryOrderID);
 		if (entry.ClOrdID is not null) context.Validators.ClOrdID(context, message, entry.ClOrdID);

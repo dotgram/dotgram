@@ -186,7 +186,7 @@ public static class HandFixParser
 		if (!Separator(input, log, ref position) && input.Peek(position) >= 0)
 			return null;
 
-		var field = Create(input, tag, valueStart, end, kind < 0, options.FixFieldFactory);
+		var field = Create(input, tag, valueStart, end, options.Type(tag));
 		field.WithTerminator(position - end).Locate(start, position - start);
 		error = null;
 		return field;
@@ -257,26 +257,14 @@ public static class HandFixParser
 		return position;
 	}
 
-	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, FixFieldFactory? custom)
+	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, FixValueType type)
 		where T : unmanaged
 	{
 		var value = input.Slice(valueStart, end - valueStart);
 		if (typeof(T) == typeof(char))
-		{
-			var chars = MemoryMarshal.Cast<T, char>(value);
-			if (!binary)
-				return FixFieldBuilder.Value(tag, chars, custom);
+			return FixFieldBuilder.Value((FixTag)tag, type, MemoryMarshal.Cast<T, char>(value));
 
-			return FixFieldBuilder.Binary(tag, FixConvert.ToData(chars), custom);
-		}
-		else
-		{
-			var bytes = MemoryMarshal.Cast<T, byte>(value);
-			if (!binary)
-				return FixFieldBuilder.Value(tag, bytes, custom);
-
-			return FixFieldBuilder.Binary(tag, FixConvert.ToData(bytes), custom);
-		}
+		return FixFieldBuilder.Value((FixTag)tag, type, MemoryMarshal.Cast<T, byte>(value));
 	}
 
 	static FixField Invalid<T>(Input<T> input, int start, int end, string error)

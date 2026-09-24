@@ -219,19 +219,19 @@ public sealed class FixConvertFastPathTests
 		var options = new FixContext();
 
 		for (var tag = -2; tag < 2000; tag++)
-			Assert.Equal(tag > 0 && FixFieldBuilder.Value(tag, "0".AsSpan(), options.FixFieldFactory) is FixField.Typed<ReadOnlyMemory<byte>>, options.IsData(tag));
+			Assert.Equal(tag > 0 && FixFieldBuilder.Standard((FixTag)tag) == FixValueType.Data, options.IsData(tag));
 
 		Assert.False(options.IsData(int.MaxValue));
 		Assert.False(options.IsData(int.MinValue));
 	}
 
-	/// <summary>A custom data tag is answered by the options' own dictionary, past the schema's tags.</summary>
+	/// <summary>A custom data tag is answered by the options' own pairs, past the schema's tags, and read as data.</summary>
 	[Fact]
 	public void Custom_data_tags_come_from_the_options()
 	{
-		var options = new FixContext { LengthDataPairs = new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 } };
+		var options = new FixContext { LengthDataPairs = new System.Collections.Generic.Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 
-		Assert.IsType<FixField.Invalid>(FixFieldBuilder.Value(5001, "0".AsSpan(), options.FixFieldFactory));
+		Assert.IsType<FixField.Data>(FixFieldBuilder.Value((FixTag)5001, options.Type(5001), "0".AsSpan()));
 		Assert.True(options.IsData(5001));
 		Assert.False(options.IsData(5000));
 		Assert.True(options.IsData(96));

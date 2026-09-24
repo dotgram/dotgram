@@ -33,7 +33,7 @@ static class FixFramings
 /// <summary>A malformed message, identified by its zero-based character offset.</summary>
 public sealed class FixParseError
 {
-	internal FixParseError(int position, int? tag, string? messageType, string reason)
+	internal FixParseError(int position, FixTag? tag, string? messageType, string reason)
 	{
 		Position = position;
 		Tag = tag;
@@ -48,7 +48,7 @@ public sealed class FixParseError
 	/// <summary>
 	/// The tag of the field involved, or null when the problem is not in one field.
 	/// </summary>
-	public int? Tag { get; }
+	public FixTag? Tag { get; }
 	/// <summary>
 	/// The MsgType, or null when the problem comes before it is known.
 	/// </summary>
@@ -62,6 +62,6 @@ public sealed class FixParseError
 	/// </summary>
 	public override string ToString()
 	{
-		return $"FIX {MessageType ?? "?"}, tag {Tag?.ToString(CultureInfo.InvariantCulture) ?? "?"}, offset {Position}: {Reason}";
+		return $"FIX {MessageType ?? "?"}, tag {((int?)Tag)?.ToString(CultureInfo.InvariantCulture) ?? "?"}, offset {Position}: {Reason}";
 	}
 }

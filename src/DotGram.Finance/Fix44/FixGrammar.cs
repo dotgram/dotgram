@@ -80,29 +80,21 @@ sealed partial class FixGrammar
 		public FixField Field(int tag, ReadOnlySpan<char> wire)
 		{
 			var value = wire.Slice(wire.IndexOf('=') + 1);
-			var kind  = context.Kind(tag);
 
-			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, value.ToData(), context.FixFieldFactory);
-
-			if (kind > 0)
+			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());
 
-			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
+			return FixFieldBuilder.Value((FixTag)tag, context.Type(tag), value);
 		}
 
 		public FixField Field(int tag, ReadOnlySpan<byte> wire)
 		{
 			var value = wire.Slice(wire.IndexOf((byte)'=') + 1);
-			var kind  = context.Kind(tag);
 
-			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, value.ToData(), context.FixFieldFactory);
-
-			if (kind > 0)
+			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());
 
-			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
+			return FixFieldBuilder.Value((FixTag)tag, context.Type(tag), value);
 		}
 
 		void Expect(int tag, int size)

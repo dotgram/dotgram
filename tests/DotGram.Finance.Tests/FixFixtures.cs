@@ -7,6 +7,8 @@ using System.Text.Json;
 
 using DotGram.Finance.Fix44;
 
+using Xunit;
+
 namespace DotGram.Finance.Tests;
 
 /// <summary>
@@ -24,6 +26,17 @@ public static class FixFixtures
 
 		foreach (var item in fixtures.RootElement.EnumerateArray())
 			yield return new object[] { item.GetProperty("name").GetString()!, item.GetProperty("wire").GetString()! };
+	}
+
+	/// <summary>The field as the class of its value, which has to be the field of that tag.</summary>
+	public static T Typed<T>(FixTag tag, FixField field)
+		where T : FixField
+	{
+		var typed = Assert.IsType<T>(field);
+
+		Assert.Equal(tag, typed.Tag);
+
+		return typed;
 	}
 
 	/// <summary>A context that reads a reader or a stream through a buffer of this size, bounding a field by that many.</summary>

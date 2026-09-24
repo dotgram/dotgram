@@ -10,89 +10,84 @@ using Xunit;
 namespace DotGram.Finance.Tests;
 
 /// <summary>
-/// What a consumer writes for the tags and the message types FIX 4.4 does not define: the type of each
-/// tag of their own, and a factory of messages asked with the MsgType.
+/// What a consumer writes for the tags and the message types FIX 4.4 does not define: a dictionary
+/// that gives each tag of their own its type, the pairs among them, and a factory of messages asked
+/// with the MsgType.
 /// </summary>
 public sealed class FixCustomFieldsTests
 {
-	// What a consumer writes when a field wants a class of its own: the standard's conversion, held to more.
-	sealed class Status(int tag, (bool Valid, string Value) value)
-		: FixCustomField<string>(tag, (value.Valid && value.Value is "OPEN" or "CLOSED", value.Value));
+	const string Venue =
+		"""
+		<fix>
+		  <fields>
+		    <field number="25005" name="VenueStatus" type="STRING" />
+		    <field number="25006" name="VenuePrice" type="PRICE" />
+		    <field number="25011" name="VenueFlag" type="BOOLEAN" />
+		  </fields>
+		</fix>
+		""";
 
-	static FixCustomField? Build(int tag, ReadOnlySpan<char> value)
+	static FixContext Context(bool pairs = false)
 	{
-		return tag switch
+		return new FixContext
 		{
-			25005 => new Status(tag, (true, value.ToText())),
-			25006 => new FixCustomField<decimal>(tag, value.ToDecimal()),
-			25000 => new FixCustomField<long>(tag, value.ToInteger()),
-			25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData()),
-			55    => new FixCustomField<long>(tag, value.ToInteger()),
-			_     => null,
-		};
-	}
-
-	static FixContext Context(bool pairs = false, List<int>? asked = null)
-	{
-		return new()
-		{
-			LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : new Dictionary<int, int>(),
-			FixFieldFactory = (tag, value) =>
-			{
-				asked?.Add(tag);
-
-				return Build(tag, value);
-			},
-			Framing = FixFraming.Log,
-		};
+			LengthDataPairs = pairs ? new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 } : new Dictionary<FixTag, FixTag>(),
+			Framing         = FixFraming.Log,
+		}.Load(Venue);
 	}
 
 	[Fact]
-	public void A_tag_the_package_knows_never_reaches_the_factory()
-	{
-		var asked  = new List<int>();
-		var fields = FixParser.ParseFields("55=AAPL|54=1|25005=OPEN|", Context(asked: asked));
-
-		Assert.Equal("AAPL", Assert.IsType<FixField.Symbol>(fields[0]).Value);
-		Assert.Equal([25005], asked);
-	}
-
-	[Fact]
-	public void A_declared_tag_is_read_by_its_type_from_characters_and_from_bytes()
+	public void A_loaded_tag_is_read_by_its_type_from_characters_and_from_bytes()
 	{
 		foreach (var bytes in new[] { false, true })
 		{
-			const string text = "25005=OPEN|25006=12.50|";
+			const string text = "25005=OPEN|25006=12.50|25011=Y|55=X|";
 
 			var fields = bytes
 				? FixParser.ParseFields(Encoding.Latin1.GetBytes(text), Context())
 				: FixParser.ParseFields(text, Context());
 
-			var status = Assert.IsType<Status>(fields[0]);
-
-			Assert.Equal("OPEN", status.Value);
-			Assert.True(status.IsValid);
-			Assert.Equal(12.50m, Assert.IsType<FixCustomField<decimal>>(fields[1]).Value);
+			Assert.Equal("OPEN", Assert.IsType<FixField.Text>(fields[0]).Value);
+			Assert.Equal((FixTag)25005, fields[0].Tag);
+			Assert.Equal(12.50m, Assert.IsType<FixField.Decimal>(fields[1]).Value);
+			Assert.True(Assert.IsType<FixField.Boolean>(fields[2]).Value);
+			Assert.IsType<FixField.Text>(fields[3]);
 		}
 	}
 
 	[Fact]
-	public void A_value_that_does_not_fit_is_not_valid()
+	public void A_value_that_does_not_fit_its_type_is_not_valid()
 	{
-		var fields = FixParser.ParseFields("25005=MAYBE|25006=abc|", Context());
+		var fields = FixParser.ParseFields("25006=abc|", Context());
 
-		Assert.False(Assert.IsType<Status>(fields[0]).IsValid);
-		Assert.False(Assert.IsType<FixCustomField<decimal>>(fields[1]).IsValid);
+		Assert.False(Assert.IsType<FixField.Decimal>(Assert.Single(fields)).IsValid);
 	}
 
 	[Fact]
-	public void A_tag_nothing_declares_is_Invalid_and_keeps_its_tag_and_value()
+	public void A_dictionary_does_not_retype_a_tag_the_standard_defines()
+	{
+		var context = FixContext.WithLogFraming.Load(
+			"""
+			<fix>
+			  <fields>
+			    <field number="55" name="Symbol" type="INT" />
+			  </fields>
+			</fix>
+			""");
+
+		var symbol = Assert.IsType<FixField.Text>(Assert.Single(FixParser.ParseFields("55=AAPL|", context)));
+
+		Assert.Equal("AAPL", symbol.Value);
+	}
+
+	[Fact]
+	public void A_tag_nothing_defines_is_Invalid_and_keeps_its_tag_and_value()
 	{
 		foreach (var context in new[] { Context(), FixContext.WithLogFraming })
 		{
 			var invalid = Assert.IsType<FixField.Invalid>(Assert.Single(FixParser.ParseFields("28905=20261231|", context)));
 
-			Assert.Equal(28905, invalid.Tag);
+			Assert.Equal((FixTag)28905, invalid.Tag);
 			Assert.False(invalid.IsValid);
 			Assert.Equal("20261231", Encoding.Latin1.GetString(invalid.RawBytes.Span));
 		}
@@ -103,8 +98,20 @@ public sealed class FixCustomFieldsTests
 	{
 		var fields = FixParser.ParseFields("25000=3|25001=a|b|55=END|", Context(pairs: true));
 
-		Assert.Equal(3, Assert.IsType<FixCustomField<long>>(fields[0]).Value);
-		Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixCustomField<ReadOnlyMemory<byte>>>(fields[1]).Value.Span));
+		Assert.Equal(3, Assert.IsType<FixField.Integer>(fields[0]).Value);
+		Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.Data>(fields[1]).Value.Span));
+		Assert.Equal("END", Assert.IsType<FixField.Text>(fields[2]).Value);
+	}
+
+	[Fact]
+	public void A_pair_declared_after_a_load_keeps_the_types_the_load_gave()
+	{
+		var context = Context() with { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 } };
+		var fields  = FixParser.ParseFields("25006=1.5|25000=1|25001=||", context);
+
+		Assert.Equal(1.5m, Assert.IsType<FixField.Decimal>(fields[0]).Value);
+		Assert.IsType<FixField.Integer>(fields[1]);
+		Assert.Equal("|", Encoding.Latin1.GetString(Assert.IsType<FixField.Data>(fields[2]).Value.Span));
 	}
 
 	[Fact]
@@ -114,71 +121,20 @@ public sealed class FixCustomFieldsTests
 		var read = FixParser.TryParseMessage(wire, out var message, out var error, Context(pairs: true) with { Framing = FixFraming.Wire });
 
 		Assert.True(read, error?.Reason);
-		Assert.Contains(message!.Fields, field => field is FixCustomField<long> { Tag: 25000 });
-		Assert.Contains(message.Fields, field => field is FixCustomField<ReadOnlyMemory<byte>> { Tag: 25001 });
-	}
-
-	[Fact]
-	public void A_class_built_with_another_tag_is_refused()
-	{
-		var context = new FixContext
-		{
-			FixFieldFactory = static (_, value) => new Status(25005, (true, value.ToText())),
-			Framing      = FixFraming.Log,
-		};
-
-		Assert.Throws<InvalidOperationException>(() => FixParser.ParseFields("25006=X|", context));
-	}
-
-	[Fact]
-	public void A_loaded_dictionary_answers_for_the_fields_the_standard_does_not()
-	{
-		var context = FixContext.WithLogFraming.Load(
-			"""
-			<fix>
-			  <fields>
-			    <field number="25010" name="VenuePrice" type="PRICE" />
-			    <field number="25011" name="VenueFlag" type="BOOLEAN" />
-			  </fields>
-			</fix>
-			""");
-
-		var fields = FixParser.ParseFields("25010=1.25|25011=Y|55=X|", context);
-
-		Assert.Equal(1.25m, Assert.IsType<FixCustomField<decimal>>(fields[0]).Value);
-		Assert.True(Assert.IsType<FixCustomField<bool>>(fields[1]).Value);
-		Assert.IsType<FixField.Symbol>(fields[2]);
-	}
-
-	[Fact]
-	public void The_factory_answers_before_a_loaded_dictionary()
-	{
-		var context = (FixContext.WithLogFraming with { FixFieldFactory = static (tag, value) => tag == 25010 ? new FixCustomField<string>(tag, (true, value.ToText())) : null }).Load(
-			"""
-			<fix>
-			  <fields>
-			    <field number="25010" name="VenuePrice" type="PRICE" />
-			    <field number="25011" name="VenueFlag" type="BOOLEAN" />
-			  </fields>
-			</fix>
-			""");
-
-		var fields = FixParser.ParseFields("25010=1.25|25011=Y|", context);
-
-		Assert.Equal("1.25", Assert.IsType<FixCustomField<string>>(fields[0]).Value);
-		Assert.True(Assert.IsType<FixCustomField<bool>>(fields[1]).Value);
+		Assert.Contains(message!.Fields, field => field is FixField.Integer { Tag: (FixTag)25000 });
+		Assert.Contains(message.Fields, field => field is FixField.Data { Tag: (FixTag)25001 });
 	}
 
 	// ── messages ─────────────────────────────────────────────────────────────────────────────────
 
-	// A venue's message: it keeps its Status, and nothing else it does not know belongs to it.
+	// A venue's message: it keeps its status, and nothing else it does not know belongs to it.
 	sealed class VenueQuote : FixCustomMessage
 	{
-		public Status? Status { get; private set; }
+		public FixField.Text? Status { get; private set; }
 
 		protected override bool Place(FixField field)
 		{
-			if (field is not Status status)
+			if (field is not FixField.Text { Tag: (FixTag)25005 } status)
 				return false;
 
 			Status = status;
@@ -189,13 +145,13 @@ public sealed class FixCustomFieldsTests
 		protected override void OnValidate(FixContext context)
 		{
 			if (Status is null)
-				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
+				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
 		}
 	}
 
 	static FixContext Venues()
 	{
-		return new() { FixFieldFactory = Build, FixMessageFactory = type => type == "U1" ? new VenueQuote() : null };
+		return new FixContext { FixMessageFactory = type => type == "U1" ? new VenueQuote() : null }.Load(Venue);
 	}
 
 	[Fact]
@@ -218,7 +174,7 @@ public sealed class FixCustomFieldsTests
 
 		Assert.False(quote.Validate(context));
 		Assert.Equal(
-			[(FixRule.FieldNotInScope, 58), (FixRule.RequiredFieldMissing, 25005)],
+			[(FixRule.FieldNotInScope, FixTag.Text), (FixRule.RequiredFieldMissing, (FixTag)25005)],
 			quote.InvalidFindings!.Select(one => (one.Rule, one.Tag)));
 	}
 

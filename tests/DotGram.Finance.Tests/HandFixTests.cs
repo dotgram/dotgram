@@ -60,7 +60,7 @@ public sealed class HandFixTests
 		var payload = new string(Enumerable.Range(0, length).Select(i => " |=\0ÿ"[i % 5]).ToArray());
 		Compare("55=A | 95=" + length + " | 96=" + payload + " | 55=Z", true);
 		Compare("55=A\u000195=" + length + "\u000196=" + payload + "\u000155=Z", false);
-		var options = new FixContext { LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 } };
+		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 		Compare("5000=" + length + " | 5001=" + payload + " | 55=Z", true, options);
 		Compare("5000=2|5002=ab|5001=X|55=Z", true, options);
 	}
@@ -94,9 +94,9 @@ public sealed class HandFixTests
 		using (var fields = source.GetEnumerator())
 		{
 			Assert.True(fields.MoveNext());
-			Assert.Equal(3, Assert.IsType<FixField.RawDataLength>(fields.Current).Value);
+			Assert.Equal(3, FixFixtures.Typed<FixField.Integer>(FixTag.RawDataLength, fields.Current).Value);
 			Assert.True(fields.MoveNext());
-			Assert.Equal("a|b", Encoding.Latin1.GetString(Assert.IsType<FixField.RawData>(fields.Current).Value.Span));
+			Assert.Equal("a|b", Encoding.Latin1.GetString(FixFixtures.Typed<FixField.Data>(FixTag.RawData, fields.Current).Value.Span));
 			Assert.Equal(first.Length + 1, stream.Position);
 		}
 		Assert.True(stream.CanRead);
@@ -120,8 +120,8 @@ public sealed class HandFixTests
 		Assert.True(b.MoveNext());
 		Assert.True(a.MoveNext());
 		Assert.True(b.MoveNext());
-		Assert.Equal("A", Assert.IsType<FixField.Symbol>(a.Current).Value);
-		Assert.Equal("B", Assert.IsType<FixField.Symbol>(b.Current).Value);
+		Assert.Equal("A", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, a.Current).Value);
+		Assert.Equal("B", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, b.Current).Value);
 	}
 
 	static void Compare(string input, bool log, FixContext? options = null)

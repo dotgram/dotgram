@@ -666,7 +666,7 @@ static partial class Stand
 		{
 			var value = matches[i].Groups[2];
 
-			if (fields[i].Tag != int.Parse(matches[i].Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture) ||
+			if ((int)fields[i].Tag != int.Parse(matches[i].Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture) ||
 				fields[i].ValuePosition != value.Index || fields[i].Length != value.Length)
 			{
 				return $"  field {i}: the hand parser has tag {fields[i].Tag} at {fields[i].ValuePosition} for {fields[i].Length}, the pattern '{matches[i].Value.TrimEnd('\u0001')}'";

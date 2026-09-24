@@ -24,10 +24,11 @@ namespace DotGram.Finance.Tests;
 /// </para>
 /// <para>
 /// So this reads the grammar as text, which costs milliseconds, and asks of every rule in it the
-/// one question the compiler would have asked: does what <c>FixConvert</c> returns fit what the
-/// <c>FixField</c> class takes. Both sides are read by reflection rather than from a table here,
-/// so there is nothing in this test to keep up to date — it compares the two things that must
-/// agree, through the same types the fixture would be compiled against.
+/// question the compiler would have asked: does what <c>FixConvert</c> returns fit what the
+/// <c>FixField</c> class takes. And one it would not: is the class the one the package builds for
+/// that tag. Both sides are read from the package rather than from a table here, so there is
+/// nothing in this test to keep up to date — it compares the things that must agree, through the
+/// same types the fixture would be compiled against.
 /// </para>
 /// </remarks>
 public sealed class FixFixtureGrammarTests
@@ -45,25 +46,28 @@ public sealed class FixFixtureGrammarTests
 
 		foreach (Match rule in Regex.Matches(
 			File.ReadAllText(Grammar),
-			@"new FixField\.(?<field>\w+)\(FixConvert\.(?<converter>\w+)\(value\)\)"))
+			@"new FixField\.(?<field>\w+)\(FixTag\.(?<tag>\w+), FixConvert\.(?<converter>\w+)\(value\)\)"))
 		{
-			var name      = rule.Groups["field"].Value;
+			var name      = rule.Groups["tag"].Value;
 			var converter = rule.Groups["converter"].Value;
-			var field     = typeof(FixField).GetNestedType(name, BindingFlags.Public);
+			var field     = typeof(FixField).GetNestedType(rule.Groups["field"].Value, BindingFlags.Public);
 
 			seen++;
 
 			if (field is null)
 			{
-				wrong.Add($"{name}: the package has no such field class, and the fixture builds one.");
+				wrong.Add($"{name}: the package has no class {rule.Groups["field"].Value}, and the fixture builds one.");
 
 				continue;
 			}
 
+			if (FixFieldBuilder.Standard(Enum.Parse<FixTag>(name)).ToString() is var built && built != field.Name)
+				wrong.Add($"{name}: the fixture builds a {field.Name}, and the package a {built}.");
+
 			var takes = field.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
 				.Select(one => one.GetParameters())
-				.Where(one => one.Length == 1)
-				.Select(one => one[0].ParameterType)
+				.Where(one => one.Length == 2)
+				.Select(one => one[1].ParameterType)
 				.ToArray();
 
 			var gives = typeof(FixConvert)

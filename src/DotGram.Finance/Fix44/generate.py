@@ -3,11 +3,12 @@
 #     FixMessage.Types.cs   a class a message type, its fields read in one switch
 #     FixComponents.cs      an interface a component, its repeating groups nested in it
 #     FixValidators.cs      the check of every message type, component and group entry
-#     FixTag.cs             the number of every field, as a constant named for it
+#     FixTag.cs             the number of every field, as a member named for it
+#     FixFieldBuilder.Standard.cs   the type of the value of every field
 #
-# The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as its class in
-# FixField.cs is named (QuickFIX's name where the two differ). FixTag.cs is written from the same
-# classes: a constant a tag, which is what a check written at run time says a tag with. Groups are named as QuickFIX names them: a group is the
+# The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as the
+# repository names it, or as QuickFIX does where the two differ. A field is a class of the type of
+# its value, FixField.Decimal, and its tag says which field it is. Groups are named as QuickFIX names them: a group is the
 # class <Counter>Group, nested in whatever carries it — a message, a component's interface, or the
 # entry of another group — and its entries are the list <Counter>Groups beside the counter. So the
 # names a QuickFIX dictionary uses are the names of the code, and a dictionary loaded at run time
@@ -19,7 +20,6 @@
 # the base class (FixMessage.cs) and the helpers are written by hand and not touched here.
 
 import os
-import re
 import collections
 import xml.etree.ElementTree as ET
 
@@ -35,11 +35,34 @@ def rows(name):
 
 # ── what the repository says ───────────────────────────────────────────────────────────────────
 
-# The names of the fields, as the field classes are named: each class passes its tag to its base.
-field_source = open(os.path.join(here, "FixField.cs"), encoding="utf-8-sig").read()
-field_name   = {int(tag): name for name, tag in re.findall(r"public sealed class (\w+)\([^\n]*\)\r?\n\s*:\s*Typed<.+?>\((\d+),", field_source)}
+fields     = list(rows("Fields.xml"))
+field_type = {int(f["Tag"]): f["Type"] for f in fields}
 
-field_type = {int(f["Tag"]): f["Type"] for f in rows("Fields.xml")}
+# The names of the fields: the repository's, and QuickFIX's for the two it names otherwise.
+field_name = {int(f["Tag"]): f["Name"] for f in fields}
+field_name.update({23: "IOIid", 33: "LinesOfText"})
+
+# The class a field's value is read into, by the type the repository gives the field.
+value_class = {
+    "String": "Text", "Currency": "Text", "Exchange": "Text", "Country": "Text",
+    "char": "Character",
+    "Boolean": "Boolean",
+    "int": "Integer", "Length": "Integer", "SeqNum": "Integer", "NumInGroup": "Integer",
+    "float": "Decimal", "Qty": "Decimal", "Price": "Decimal", "PriceOffset": "Decimal", "Amt": "Decimal", "Percentage": "Decimal",
+    "UTCTimestamp": "Timestamp",
+    "UTCTimeOnly": "Time",
+    "UTCDateOnly": "Date", "LocalMktDate": "Date",
+    "MonthYear": "MonthYear",
+    "MultipleValueString": "Multiple",
+    "data": "Data",
+}
+
+# FIX 4.4 declares these two char and, in the same table, publishes values a single character
+# cannot hold: 10, 11 and 12 for MiscFeeType, 99 for MassCancelRejectReason. Where the declared type
+# cannot hold what the specification publishes, the field is read as text: it keeps every value the
+# document prints, and which of them are allowed is the code set's answer rather than the type's shape.
+field_class = {tag: value_class[type_] for tag, type_ in field_type.items()}
+field_class.update({139: "Text", 532: "Text"})
 
 components = {c["Name"]: c for c in rows("Components.xml")}
 contents   = collections.defaultdict(list)
@@ -69,6 +92,10 @@ class Field:
     def __init__(self, tag, required):
         self.tag, self.required = tag, required
         self.name = field_name[tag]
+
+    @property
+    def type_name(self):
+        return "FixField." + field_class[self.tag]
 
 class Block:
     def __init__(self, name, required):
@@ -254,9 +281,9 @@ def class_body(members, indent, setter, opener=None):
             out.append(f"{pad}/// <summary>{field_doc(m)}</summary>")
 
             if opener is not None and m.tag == opener.tag:
-                out.append(f"{pad}public required FixField.{m.name} {m.name} {{ get; init; }}")
+                out.append(f"{pad}public required {m.type_name} {m.name} {{ get; init; }}")
             else:
-                out.append(f"{pad}public FixField.{m.name}? {m.name} {{ get; {setter}; }}")
+                out.append(f"{pad}public {m.type_name}? {m.name} {{ get; {setter}; }}")
         else:
             out.append(f"{pad}/// <summary>{list_doc(m)}</summary>")
             out.append(f"{pad}public List<{m.entry.type_name}>? {m.list} {{ get; {setter}; }}")
@@ -295,16 +322,16 @@ def arms(members, holder, lists, index):
 
     def place(f):
         if not lists:
-            out.append(f"\t\t\t\t\tcase {f.tag}: if ({f.name} is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); {f.name} = (FixField.{f.name})field; break;")
+            out.append(f"\t\t\t\t\tcase FixTag.{f.name}: if ({f.name} is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); {f.name} = ({f.type_name})field; break;")
             return
 
-        out.append(f"\t\t\t\t\tcase {f.tag}:")
+        out.append(f"\t\t\t\t\tcase FixTag.{f.name}:")
         out.append(f"\t\t\t\t\t\tif ({failing()})")
         out.append( "\t\t\t\t\t\t\tAddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));")
         out.append(f"\t\t\t\t\t\telse if ({holder}{f.name} is not null)")
         out.append(f"\t\t\t\t\t\t\tAddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, {index}));")
         out.append( "\t\t\t\t\t\telse")
-        out.append(f"\t\t\t\t\t\t\t{holder}{f.name} = (FixField.{f.name})field;")
+        out.append(f"\t\t\t\t\t\t\t{holder}{f.name} = ({f.type_name})field;")
         out.append( "\t\t\t\t\t\tbreak;")
 
     def walk(members, skip):
@@ -322,16 +349,16 @@ def arms(members, holder, lists, index):
 
                 # The first entry of a group whose counter has not been read is entries nothing counts:
                 # said once, at the entry, by the counter's tag.
-                uncounted = f"if ({target} is null && {holder}{m.counter.name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, {m.counter.tag}, field.Position, field, -1));"
-                add       = f"({target} ??= []).Add(new () {{ {opener.name} = (FixField.{opener.name})field }});"
+                uncounted = f"if ({target} is null && {holder}{m.counter.name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.{m.counter.name}, field.Position, field, -1));"
+                add       = f"({target} ??= []).Add(new () {{ {opener.name} = ({opener.type_name})field }});"
 
                 if not lists:
-                    out.append(f"\t\t\t\t\tcase {opener.tag}:")
+                    out.append(f"\t\t\t\t\tcase FixTag.{opener.name}:")
                     out.append(f"\t\t\t\t\t\t{uncounted}")
                     out.append(f"\t\t\t\t\t\t{add}")
                     out.append( "\t\t\t\t\t\tbreak;")
                 else:
-                    out.append(f"\t\t\t\t\tcase {opener.tag}:")
+                    out.append(f"\t\t\t\t\tcase FixTag.{opener.name}:")
                     out.append(f"\t\t\t\t\t\tif ({failing()})")
                     out.append( "\t\t\t\t\t\t\tAddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));")
                     out.append( "\t\t\t\t\t\telse")
@@ -375,9 +402,9 @@ def interface_text(i):
 
     for m in i.members:
         if isinstance(m, Field):
-            out += [f"\t/// <summary>The FIX {m.name}, tag {m.tag}.</summary>", f"\tFixField.{m.name}? {m.name} {{ get; }}", ""]
+            out += [f"\t/// <summary>The FIX {m.name}, tag {m.tag}.</summary>", f"\t{m.type_name}? {m.name} {{ get; }}", ""]
         elif isinstance(m, Group):
-            out += [f"\t/// <summary>The FIX {m.counter.name}, tag {m.counter.tag}.</summary>", f"\tFixField.{m.counter.name}? {m.counter.name} {{ get; }}", ""]
+            out += [f"\t/// <summary>The FIX {m.counter.name}, tag {m.counter.tag}.</summary>", f"\t{m.counter.type_name}? {m.counter.name} {{ get; }}", ""]
             out += [f"\t/// <summary>{list_doc(m)}</summary>", f"\tList<{m.entry.type_name}>? {m.list} {{ get; }}", ""]
 
     for g in entries_in(i.members):
@@ -403,7 +430,7 @@ def check_body(members, subject, entry_opener=None):
             first = first_field(interfaces[m.name].members)
 
             if m.required:
-                out.append(f"\t\tif (Empty((I{m.name}){subject})) Absent(message, {first.tag});")
+                out.append(f"\t\tif (Empty((I{m.name}){subject})) Absent(message, FixTag.{first.name});")
                 out.append(f"\t\telse context.Validators.{m.name}(context, message, {subject});")
             else:
                 out.append(f"\t\tif (!Empty((I{m.name}){subject})) context.Validators.{m.name}(context, message, {subject});")
@@ -425,7 +452,7 @@ def field(f, out, subject, entry_opener):
         out.append(f"		{call}")
     elif f.required:
         where = f", {subject}.{entry_opener.name}.Position, index" if entry_opener is not None else ""
-        out.append(f"\t\tif ({subject}.{f.name} is null) Missing(message, {f.tag}{where});")
+        out.append(f"\t\tif ({subject}.{f.name} is null) Missing(message, FixTag.{f.name}{where});")
         out.append(f"\t\telse {call}")
     else:
         out.append(f"\t\tif ({subject}.{f.name} is not null) {call}")
@@ -540,19 +567,42 @@ for i in interfaces.values():
 tag_lines = [
     "namespace DotGram.Finance.Fix44;",
     "",
-    "// Written by generate.py from the field classes of FixField.cs; not edited by hand.",
+    "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "",
-    "/// <summary>The number of every field of FIX 4.4, named for the field: <c>case FixTag.ClOrdID:</c> rather than <c>case 11:</c>.</summary>",
-    "public static class FixTag",
+    "/// <summary>The tag of every field of FIX 4.4, named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>",
+    "/// <remarks>A tag FIX 4.4 does not define is its number, <c>(FixTag)25005</c>, and has no name here.</remarks>",
+    "public enum FixTag",
     "{",
 ]
 
 for tag, name in sorted(field_name.items()):
-    tag_lines += [f"\t/// <summary>The tag of <see cref=\"FixField.{name}\"/>.</summary>", f"\tpublic const int {name} = {tag};", ""]
+    tag_lines += [f"\t/// <summary>{name}, a <see cref=\"FixField.{field_class[tag]}\"/>.</summary>", f"\t{name} = {tag},", ""]
 
 tag_lines[-1:] = ["}", ""]
 
+width = max(len(name) for name in field_name.values())
+
+standard_lines = [
+    "namespace DotGram.Finance.Fix44;",
+    "",
+    "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
+    "",
+    "partial class FixFieldBuilder",
+    "{",
+    "\t/// <summary>The type of the value of a field FIX 4.4 defines; <see cref=\"FixValueType.None\"/> for a tag it does not.</summary>",
+    "\tinternal static FixValueType Standard(FixTag tag)",
+    "\t{",
+    "\t\treturn tag switch",
+    "\t\t{",
+]
+
+for tag, name in sorted(field_name.items()):
+    standard_lines.append(f"\t\t\tFixTag.{name.ljust(width)} => FixValueType.{field_class[tag]},")
+
+standard_lines += [f"\t\t\t{'_'.ljust(width + 7)} => FixValueType.None,", "\t\t};", "\t}", "}", ""]
+
 write("FixTag.cs", tag_lines)
+write("FixFieldBuilder.Standard.cs", standard_lines)
 write("FixMessage.Types.cs", types)
 write("FixComponents.cs", component_lines[:-1] + [""])
 write("FixValidators.cs", validators_text())

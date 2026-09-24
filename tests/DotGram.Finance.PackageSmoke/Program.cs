@@ -29,8 +29,8 @@ if (heartbeat.SenderCompID?.Value != "S" || heartbeat.MsgSeqNum?.Value != 1L)
 if (heartbeat.SendingTime?.Value != new DateTimeOffset(2026, 9, 15, 12, 0, 0, 250, TimeSpan.Zero))
 	throw new Exception("Expected SendingTime as an instant at offset zero.");
 
-if (typeof(FixField.SettlDate).BaseType?.GetGenericArguments()[0] != typeof(DateOnly)
-	|| typeof(FixField.MDEntryTime).BaseType?.GetGenericArguments()[0] != typeof(TimeOnly))
+if (typeof(FixField.Date).BaseType?.GetGenericArguments()[0] != typeof(DateOnly)
+	|| typeof(FixField.Time).BaseType?.GetGenericArguments()[0] != typeof(TimeOnly))
 	throw new Exception("A date and a time of day must be the runtime's own DateOnly and TimeOnly.");
 
 // The schema: the compiled-in one, and one loaded over it from a fragment of a QuickFIX dictionary.
@@ -72,7 +72,7 @@ if (FixParser.ParseMessages(octets).Length != 1 || !FixParser.TryParseMessage(oc
 
 var fields = FixParser.ParseFields(wire);
 
-if (fields.Length != 8 || fields[0] is not FixField.BeginString)
+if (fields.Length != 8 || fields[0] is not FixField.Text { Tag: FixTag.BeginString })
 	throw new Exception("Expected flat typed fields from FixParser.");
 
 if (typeof(FixParser).Assembly.GetType("DotGram.Finance.Fix44.Fix44Parser") != null ||
