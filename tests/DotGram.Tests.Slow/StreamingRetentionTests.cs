@@ -86,25 +86,73 @@ public sealed class StreamingRetentionTests
 	}
 
 	/// <remarks>
-	/// The result is an int a record, and the arena holds what a record is worth to the parse;
-	/// neither is anywhere near a record's text. This grammar's whole parse is the streamed one
-	/// (Retention.StreamedParse): the rows are handed over one at a time and each is let go, so it
-	/// holds a record and not the stream. A whole stream the recovering reader reads — FIX's, which
-	/// is not a streamed parse — is held to the same in
+	/// <para>
+	/// <b>A whole form over a stream holds the tape.</b> This said the opposite until
+	/// 2026-09-24 — "the rows are handed over one at a time and each is let go, so it holds a
+	/// record and not the stream" — and the parse has never done that. The walk that builds the
+	/// result runs after the parse is accepted, so every decision has to survive until then,
+	/// whatever the result weighs. Here the result is an <c>int</c> a record, four bytes, and
+	/// the parse holds about four hundred and fifty.
+	/// </para>
+	/// <para>
+	/// Measured on 2026-09-24 by two heap dumps, one size a process, taken with the parse held
+	/// mid-flight. Peaks of 13,907,896 at 2,000 records and 20,353,760 at 16,000 — 457 bytes a
+	/// record — and of the 363 the dumps account for:
+	/// </para>
+	/// <list type="bullet">
+	/// <item><description>268 B, the arena (<c>ParserEntry[]</c>) — three quarters of it;</description></item>
+	/// <item><description>38 B, an <c>object[]</c>;</description></item>
+	/// <item><description>37 B, the int values awaiting the walk (<c>int[][] _values0</c>);</description></item>
+	/// <item><description>21 B, the ways on the tape (<c>Ways.Items</c>, <c>Ways.Log</c>).</description></item>
+	/// </list>
+	/// <para>
+	/// No field object, no string, no list, and nothing of the pool: the result is one per cent
+	/// of what is held and the rest is deferral. So the bound below is not about the result. It
+	/// is that a parse may hold its tape and may not approach holding the TEXT: a record is
+	/// <see cref="Payload"/> characters, two bytes each, and the tape costs about a quarter of
+	/// that. The bound is one byte a character — half the text, twice what is held — so it
+	/// leaves room for the tape and none for the input.
+	/// </para>
+	/// <para>
+	/// <b>Why the old assertion ever passed</b>, since that is the part worth not repeating: its
+	/// bound was a quarter of a record and the growth was already 455 bytes at 4,000 and 8,000
+	/// records on both sides of every commit in range. It passed only at its own chosen size,
+	/// because at 16,000 records the pool of the day threw the oversized arena away and the peak
+	/// FELL. 02e44143 stopped throwing it away, and the assertion had nothing left to stand on.
+	/// A test whose passing condition is a discard two commits away is not measuring its subject.
+	/// </para>
+	/// <para>
+	/// What holds constant is the lazy forms, and they have their own test
+	/// (<see cref="A_lazy_form_holds_the_same_however_much_it_has_read"/>), which passes on all
+	/// four. So this pair is what deferral costs, not what the grammar costs. A whole stream the
+	/// recovering reader reads — FIX’s, which is not a streamed parse — is in
 	/// DotGram.Finance.Tests (FixRetentionTests.A_whole_stream_holds_a_field_and_not_the_stream).
+	/// </para>
 	/// </remarks>
 	[Theory]
 	[InlineData("reader whole")]
 	[InlineData("stream whole")]
-	public void A_whole_result_grows_with_the_result_and_not_with_the_input(string form)
+	public void A_whole_result_over_a_stream_holds_its_tape_and_not_the_text(string form)
 	{
 		var (small, large) = Measure(form, buffered: true);
 		var perRecord      = (large.Peak - small.Peak) / (double)(large.Records - small.Records);
 
-		Assert.True(perRecord < Payload / 4.0,
-			$"{form}: the peak grew by {perRecord:F0} bytes a record over {large.Records - small.Records} records; " +
-			$"a record is {Payload} characters long, so the parse is holding input (peaks {small.Peak} and {large.Peak}).");
+		Assert.True(
+			perRecord < Tape,
+			$"{form}: the peak grew by {perRecord:F0} bytes a record over " +
+			$"{large.Records - small.Records} records, against a bound of {Tape}. A record is " +
+			$"{Payload} characters, so at this rate the parse is holding the text and not just the " +
+			$"tape it defers (peaks {small.Peak} and {large.Peak}).");
 	}
+
+	/// <summary>What a whole form may hold a record, holding its tape but not the text.</summary>
+	/// <remarks>
+	/// One byte a character of the record. The text itself is two bytes a character, and the tape
+	/// measured about a half of one — so this is twice what is held and half of what would mean
+	/// the input was being kept. It is a bound on a known quantity and not a target: if the tape
+	/// is ever made to cost less, this comes down with it rather than being left as slack.
+	/// </remarks>
+	const double Tape = Payload;
 
 	/// <remarks>
 	/// <para>

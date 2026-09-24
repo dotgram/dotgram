@@ -23,6 +23,22 @@ namespace DotGram.Tests;
 [Collection(nameof(Alone))]
 public sealed class StockCountScalingTests
 {
+	/// <summary>What ten times the lines may take, as a multiple of what one tenth of them takes.</summary>
+	/// <remarks>
+	/// <b>Derived, not chosen.</b> Three numbers fix it. The reading is linear and measures
+	/// 10.2 and 10.8 for ten times the input on a quiet machine (2026-09-24, both forms). The
+	/// defect this guards is quadratic — <c>parserLine</c> counted from the start of the input
+	/// for every broken line — which is about a hundred at ten times the input. And CI is a
+	/// shared runner, where the large size is inflated more than the small one, which is what
+	/// the previous bound of 15 could not survive: it left 1.4x over a measurement of 10.5.
+	/// <para>
+	/// Thirty sits near the geometric middle of 10.5 and 100: 2.9x of room above what the
+	/// reading costs, and 3.3x of margin below what the defect costs. Both margins are stated
+	/// because a bound with only one of them is either flaky or decorative.
+	/// </para>
+	/// </remarks>
+	const double Linear = 30;
+
 	[Fact]
 	public void A_count_with_broken_lines_reads_in_time_linear_in_its_length_from_a_string()
 	{
@@ -45,7 +61,10 @@ public sealed class StockCountScalingTests
 
 	static void AssertLinear(double shorter, double longer)
 	{
-		Assert.True(longer / shorter < 15, $"Ten times the lines took {longer / shorter:F1} times as long ({shorter:F0} µs against {longer:F0} µs).");
+		Assert.True(
+			longer / shorter < Linear,
+			$"Ten times the lines took {longer / shorter:F1} times as long " +
+			$"({shorter:F0} µs against {longer:F0} µs), against a bound of {Linear}.");
 	}
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
