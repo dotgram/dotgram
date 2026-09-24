@@ -20,7 +20,7 @@
 "(int x, int y) => (x + y) * 3 - x / 5" | accepted | same
 "(int x, in" | NoMatch at 8: Expected a type. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x, int y) " | Starved at 15: Expected "=>". Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x, int y) => (x" | Starved at 20: Expected '.', '<', '[', '=', "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", '(', "++", "--", ')' or ':'. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x, int y) => (x" | Starved at 20: Expected '.', '<', ':', '[', '=', "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", '(', "++", "--" or ')'. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x, int y) => (x + y)" | accepted | same
 "(int x, int y) => (x + y) * 3 " | accepted | same
 "(int x, int y) => (x + y) * 3 - x /" | Starved at 35: Expected an expression. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -70,7 +70,7 @@
 "(in x) => (x & 3) | (x ^ 1)" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>(x & 3) | (x ^ 1)" | accepted | same
 "(int x) => (x & 3 | (x ^ 1)" | Starved at 27: Expected ')'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => (x & 3) | (x  1)" | NoMatch at 25: Expected '.', '<', '[', '=', "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", '(', "++", "--", '?', "is", "as", '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '+', '-', '*', '/', '%', ')' or ':'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => (x & 3) | (x  1)" | NoMatch at 25: Expected '.', '<', ':', '[', '=', "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", '(', "++", "--", '?', "is", "as", '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '+', '-', '*', '/', '%' or ')'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => x << 2" | accepted | same
 "(int x) => x <<" | Starved at 15: Expected an expression. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => x << 2" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, RefusedAt = -1, Refusal = , Deferred = False } | same

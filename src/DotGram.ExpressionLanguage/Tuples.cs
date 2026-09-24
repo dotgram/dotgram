@@ -23,6 +23,33 @@ public static partial class ExpressionParser
 	/// <summary>How many elements one <c>ValueTuple</c> holds before the rest nest in the eighth.</summary>
 	const int Flat = 7;
 
+	/// <summary>What stood in the brackets: an expression, a tuple, or a name that cannot be kept.</summary>
+	/// <remarks>
+	/// <para>
+	/// One construction for the three forms because they are one way in the grammar, and they
+	/// are one way for a reason that is measured rather than tidy: three ways each beginning
+	/// <c>'(' &amp; Expression</c> read the whole of what follows three times over, so a
+	/// parenthesis that is never closed cost ×3 for every one before it. Read once, the tail
+	/// says which form it was.
+	/// </para>
+	/// <para>
+	/// The order of the three questions is the order C# asks them in. A name is refused first,
+	/// because a named tuple is a thing the author meant and got wrong, and saying so is worth
+	/// more than whatever the elements would have been refused for. Then a single element is
+	/// the expression itself, brackets and all — `(a)` is `a` and was never a tuple of one.
+	/// </para>
+	/// </remarks>
+	internal static Expression Bracketed(Expression first, Expression[]? rest, string? named, string[]? later)
+	{
+		if (first is null)
+			throw new ArgumentNullException(nameof(first));
+
+		if ((named ?? (later is { Length: > 0 } written ? written[0] : null)) is { } name)
+			return Unnamed(name);
+
+		return rest is null || rest.Length == 0 ? first : Tupled(first, rest);
+	}
+
 	/// <summary>The tuple `(a, b, …)` those elements make.</summary>
 	/// <remarks>
 	/// <para>

@@ -1301,32 +1301,22 @@ namespace DotGram.ExpressionLanguage;
 
 		| u: Untyped => @(u)
 
-		| '(' & inner: Expression & ')' => @(inner)
-
-		// C#'s tuple literal, told from a parenthesis by the comma alone: `(a)` is the
-		// expression `a`, and `(a, b)` is a `ValueTuple` of the two. It stands after the
-		// parenthesis and not before it because a parenthesis is what nearly every `(` opens,
-		// and whichever of the two is written second is the one a `(` makes the parse read
-		// twice.
+		// A parenthesis and a tuple, read as ONE way and told apart by what follows the first
+		// expression. `(a)` is the expression `a`; `(a, b)` is a `ValueTuple` of the two; a name
+		// written on an element is read and then refused, in words about the name rather than
+		// about the colon or about a name nothing declares.
 		//
-		| '(' & first: Expression & (',' & rest: Expression)+ & ')'
-		  => @(ExpressionParser.Tupled(first, rest))
-
-		// An element name is READ and then refused, rather than left to fall out of the grammar:
-		// written `(Valid: true, …)` it would otherwise be read as far as the name and refused in
-		// words about a name nothing declares — true of what the parse tried, and no help at all
-		// about what was written. `Unnamed` says why it cannot be kept.
-		//
-		// It is a way of its own rather than an optional name on the rule above, and the two cost
-		// the same: 1,976,832 bytes of assembly against 1,963,008, over 1,729,536 before any of
-		// this (one worktree, 2026-09-24). Measured apart from the untyped-lambda way below, this
-		// one looked six times cheaper — and that did not survive putting the two together, where
-		// the growth is almost all interaction: the two ways apart cost 17 KB and 35 KB, and
-		// together 247 KB. So this shape is kept for reading and not for size, and what the whole
-		// of it costs the package is +13.5%.
-		| '(' & (named: Identifier & ':')? & Expression & (',' & (later: Identifier & ':')? & Expression)* & ')'
-		  & when @(named is not null || later.Length > 0)
-		  => @(ExpressionParser.Unnamed(named ?? later[0]))
+		// Written as three ways — one per form, as it was between 5bfa7b7b and this — each began
+		// `'(' & Expression` and each read the whole of what followed before failing at its own
+		// tail. Nothing was shared, so a `(` that is never closed cost three times what the next
+		// one in cost: `(int x) => ((((x` allocated 17 KB at four parentheses and 296 MB at
+		// twelve. Measured by taking one way away, the base is exactly the number of ways that
+		// open `'(' & Expression`: one is flat, two is ×2.00, three is ×2.95 (2026-09-24). This
+		// is the `(A+)*` shape of D57 with the repetition spelled as alternatives, and the cure
+		// is the same one: read the shared beginning once.
+		| '(' & (named: Identifier & ':')? & first: Expression
+		  & (',' & (later: Identifier & ':')? & rest: Expression)* & ')'
+		  => @(ExpressionParser.Bracketed(first, rest, named, later))
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
