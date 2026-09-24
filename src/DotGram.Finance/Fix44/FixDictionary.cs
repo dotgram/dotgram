@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Xml;
 
 namespace DotGram.Finance.Fix44;
@@ -158,12 +156,12 @@ sealed class FixDictionary
 
 			switch (reader.Name)
 			{
-				case "header":     Members(reader, read.Header);  break;
-				case "trailer":    Members(reader, read.Trailer); break;
-				case "messages":   ReadMessages(reader, read);   break;
-				case "components": ReadComponents(reader, read); break;
-				case "fields":     ReadFields(reader, read);     break;
-				default:           reader.Skip();                 break;
+				case "header":     Members       (reader, read.Header);  break;
+				case "trailer":    Members       (reader, read.Trailer); break;
+				case "messages":   ReadMessages  (reader, read);         break;
+				case "components": ReadComponents(reader, read);         break;
+				case "fields":     ReadFields    (reader, read);         break;
+				default:           reader.Skip();                        break;
 			}
 		}
 
@@ -216,10 +214,8 @@ sealed class FixDictionary
 
 			Members(reader, members);
 
-			if (read.Components.ContainsKey(name))
+			if (!read.Components.TryAdd(name, members))
 				throw Bad(reader, $"The component '{name}' is declared twice.");
-
-			read.Components.Add(name, members);
 		}
 	}
 
@@ -248,7 +244,7 @@ sealed class FixDictionary
 
 			var codes = Values(reader);
 
-			if (read.Fields.ContainsKey(tag))
+			if (!read.Fields.TryAdd(tag, new Field(name, type, codes)))
 				throw Bad(reader, $"Tag {tag} is declared twice.");
 
 			// A name is how every member refers to a field, so a name that means two tags would
@@ -257,7 +253,6 @@ sealed class FixDictionary
 			if (read.Tags.TryGetValue(name, out var already))
 				throw Bad(reader, $"The name '{name}' is given to tags {already} and {tag}.");
 
-			read.Fields.Add(tag, new Field(name, type, codes));
 			read.Tags.Add(name, tag);
 		}
 	}
