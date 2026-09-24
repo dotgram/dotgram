@@ -23,11 +23,11 @@ public sealed class FixCustomFieldsTests
 	{
 		return tag switch
 		{
-			25005 => new Status(tag, (true, FixConvert.ToText(value))),
-			25006 => new FixCustomField<decimal>(tag, FixConvert.ToDecimal(value)),
-			25000 => new FixCustomField<long>(tag, FixConvert.ToInteger(value)),
-			25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, FixConvert.ToData(value)),
-			55    => new FixCustomField<long>(tag, FixConvert.ToInteger(value)),
+			25005 => new Status(tag, (true, value.ToText())),
+			25006 => new FixCustomField<decimal>(tag, value.ToDecimal()),
+			25000 => new FixCustomField<long>(tag, value.ToInteger()),
+			25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData()),
+			55    => new FixCustomField<long>(tag, value.ToInteger()),
 			_     => null,
 		};
 	}
@@ -123,7 +123,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var context = new FixContext
 		{
-			FixFieldFactory = static (_, value) => new Status(25005, (true, FixConvert.ToText(value))),
+			FixFieldFactory = static (_, value) => new Status(25005, (true, value.ToText())),
 			Framing      = FixFraming.Log,
 		};
 
@@ -153,7 +153,7 @@ public sealed class FixCustomFieldsTests
 	[Fact(Skip = "Load builds the fields of a dictionary once the expression language can hand a span to a method (the architect's task to expr, 2026-09-23).")]
 	public void The_factory_answers_before_a_loaded_dictionary()
 	{
-		var context = (FixContext.WithLogFraming with { FixFieldFactory = static (tag, value) => tag == 25010 ? new FixCustomField<string>(tag, (true, FixConvert.ToText(value))) : null }).Load(
+		var context = (FixContext.WithLogFraming with { FixFieldFactory = static (tag, value) => tag == 25010 ? new FixCustomField<string>(tag, (true, value.ToText())) : null }).Load(
 			"""
 			<fix>
 			  <fields>

@@ -96,7 +96,7 @@ foreach (var field in FixParser.ParseFields(wire))
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
 - A tag the package does not know goes through the context's `FixFieldFactory`, handed the tag
-  and the value: `(tag, value) => tag == 25005 ? new FixCustomField<long>(tag, FixConvert.ToInteger(value)) : null`.
+  and the value: `(tag, value) => tag == 25005 ? new FixCustomField<long>(tag, value.ToInteger()) : null`.
   A class of your own derives from `FixCustomField<T>`. A MsgType it does not know is built by
   `FixMessageFactory` (a `FixCustomMessage` that places its own fields). Where either answers null,
   the field is a `FixField.Invalid` of that tag with its octets, and the message a `FixMessage.Invalid`.

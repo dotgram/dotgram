@@ -84,7 +84,7 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new Status(FixConvert.ToText(value)) : null</c>.</summary>
+	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new Status(value.ToText()) : null</c>.</summary>
 	/// <remarks>
 	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. It is
 	/// handed the tag and the value, and builds a <see cref="FixCustomField{T}"/>, or a class derived from

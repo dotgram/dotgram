@@ -411,7 +411,8 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 A tag or a MsgType FIX 4.4 does not define goes through a factory the context holds. The field
 factory is handed the tag and its value and builds the field the way the standard's fields are built:
-the value is read by the `FixConvert` conversion of its type and handed to a `FixCustomField<T>`, or to
+the value is read by the `FixConvert` conversion of its type, an extension of the span such as
+`value.ToDecimal()`, and handed to a `FixCustomField<T>`, or to
 a class of the consumer's derived from one. The message factory is handed the MsgType and answers the
 message to build. Either answers null for what it does not know:
 
@@ -422,10 +423,10 @@ var context = new FixContext
 {
     FixFieldFactory = (tag, value) => tag switch
     {
-        25005 => new Status(tag, (true, FixConvert.ToText(value))),                    // a class of the consumer's
-        25006 => new FixCustomField<decimal>(tag, FixConvert.ToDecimal(value)),
-        25000 => new FixCustomField<long>(tag, FixConvert.ToInteger(value)),
-        25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, FixConvert.ToData(value)),
+        25005 => new Status(tag, (true, value.ToText())),                    // a class of the consumer's
+        25006 => new FixCustomField<decimal>(tag, value.ToDecimal()),
+        25000 => new FixCustomField<long>(tag, value.ToInteger()),
+        25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, value.ToData()),
         _     => null,
     },
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
@@ -509,7 +510,7 @@ declarations contain no conversion or location logic. `FixFieldView` provides
 access to the original source text.
 
 The C# factory constructs field cases, for example
-`new FixField.LegProduct(FixConvert.ToInteger(value))`. Primitive conversions return
+`new FixField.LegProduct(value.ToInteger())`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions
 on a particular field (such as currency syntax or a code set) remain semantic checks.
