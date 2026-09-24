@@ -27,22 +27,15 @@ jobs:
       - name: Build
         run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
 
+      # The runner names each failure inline -- "failed <test>", its message and its stack --
+      # so this step IS the report. A "Show the test log" step used to follow, reading
+      # tests/*/bin/Release/*/TestResults/*.log; it printed "No test log" on every red build
+      # there has ever been, because Microsoft.Testing.Platform writes no such log and the
+      # directory it looked in does not exist. Collecting one needs the TrxReport extension in
+      # every test project, which is a change to the projects rather than to CI; it is worth
+      # doing the day someone wants failures as an artifact rather than as output.
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Linux
-
-      # The runner names the failures in a log it leaves behind, and a test step that
-      # cannot tell you what broke is only half a test step.
-      - name: Show the test log
-        if: failure()
-        shell: bash
-        run: |
-          shopt -s nullglob
-          logs=(tests/*/bin/Release/*/TestResults/*.log)
-          if [ ${#logs[@]} -eq 0 ]; then
-            echo "No test log: the build failed before any test ran."
-          else
-            cat "${logs[@]}"
-          fi
 
       - name: Pack
         run: |
