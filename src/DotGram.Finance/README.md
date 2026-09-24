@@ -374,8 +374,8 @@ Trailing fractional zeros do not cause a loss of precision.
 The source-backed semantic model retains malformed primitive text. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
-A tag the package does not define is a `FixField.Custom<T>` of the type the context's
-`FixFieldFactory` answers for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
+A tag the package does not define is the `FixCustomField` the context's `FixFieldFactory` builds
+for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
 has no property for such a tag, so it is out of scope there whoever built the field; a message the
 consumer builds places it (below).
 
@@ -409,21 +409,23 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 ## Custom fields and messages
 
-A tag or a MsgType FIX 4.4 does not define goes through a factory the context holds. A counterparty's
-own fields are of the standard's types, so the field factory answers a tag with its type; the message
-factory answers a MsgType with the message to build. Either answers null for what it does not know:
+A tag or a MsgType FIX 4.4 does not define goes through a factory the context holds. The field
+factory is handed the tag and its value and builds the field the way the standard's fields are built:
+the value is read by the `FixConvert` conversion of its type and handed to a `FixCustomField<T>`, or to
+a class of the consumer's derived from one. The message factory is handed the MsgType and answers the
+message to build. Either answers null for what it does not know:
 
 ```csharp
 using System.Collections.Generic;
 
 var context = new FixContext
 {
-    FixFieldFactory = tag => tag switch
+    FixFieldFactory = (tag, value) => tag switch
     {
-        25005 => FixCustom.Text.As((tag, value) => new Status(tag, value)),   // a class of the consumer's
-        25006 => FixCustom.Decimal,                                           // FixField.Custom<decimal>
-        25000 => FixCustom.Integer,
-        25001 => FixCustom.Data,
+        25005 => new Status(tag, (true, FixConvert.ToText(value))),                    // a class of the consumer's
+        25006 => new FixCustomField<decimal>(tag, FixConvert.ToDecimal(value)),
+        25000 => new FixCustomField<long>(tag, FixConvert.ToInteger(value)),
+        25001 => new FixCustomField<ReadOnlyMemory<byte>>(tag, FixConvert.ToData(value)),
         _     => null,
     },
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
@@ -432,7 +434,7 @@ var context = new FixContext
 
 // The standard's conversion, held to more: what is passed on is the field's IsValid.
 sealed class Status(int tag, (bool Valid, string Value) value)
-    : FixField.Custom<string>(tag, (value.Valid && value.Value is "OPEN" or "CLOSED", value.Value));
+    : FixCustomField<string>(tag, (value.Valid && value.Value is "OPEN" or "CLOSED", value.Value));
 
 sealed class VenueQuote : FixCustomMessage
 {
@@ -457,16 +459,12 @@ sealed class VenueQuote : FixCustomMessage
 }
 ```
 
-`FixCustom` has one declaration a type of the standard's: `Text`, `Character`, `Boolean`, `Integer`,
-`Decimal`, `Timestamp`, `Time`, `Date`, `MonthYear`, `Multiple` and `Data`. The field is read by the
-conversion the standard's fields of that type are, and is not valid where the value does not convert.
-A dictionary loaded into the context answers for the fields it describes that the standard does not,
-by the types it gives them, wherever the factory answers null: the consumer's answer comes first. The factory is asked only of a tag the package has no class for, so a
-standard tag pays nothing.
+The value is handed as characters, one to an octet from byte input as from text, and may not be kept.
+The factory is asked only of a tag the package has no class for, so a standard tag pays nothing.
 
-A tag the factory answers null for is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and
-a type the factory answers null for is a `FixMessage.Invalid`, not valid from the moment it is read,
-its finding `UnknownMessageType`.
+A tag the factory answers null for, or with no factory, is a `FixField.Invalid` of that tag with its
+value's octets in `RawBytes`, and a type the message factory answers null for is a `FixMessage.Invalid`,
+not valid from the moment it is read, its finding `UnknownMessageType`.
 
 ## Definition maintenance
 
@@ -511,7 +509,7 @@ declarations contain no conversion or location logic. `FixFieldView` provides
 access to the original source text.
 
 The C# factory constructs field cases, for example
-`new FixField.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
+`new FixField.LegProduct(FixConvert.ToInteger(value))`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions
 on a particular field (such as currency syntax or a code set) remain semantic checks.

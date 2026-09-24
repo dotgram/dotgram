@@ -654,7 +654,7 @@ public static partial class FixParser
 
 		lengthEnd += 12;
 
-		var bodyLength = FixConvert.Tag(input.Slice(12, lengthEnd - 12));
+		var bodyLength = FixConvert.ToTag(input.Slice(12, lengthEnd - 12));
 
 		if (bodyLength < 0)
 			return Fail(12, 9, null, "Invalid BodyLength.", out error);
@@ -669,7 +669,7 @@ public static partial class FixParser
 		if (typeLength < 0)
 			return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
 
-		type = FixConvert.Text(input.Slice(bodyStart + 3, typeLength));
+		type = FixConvert.ToText(input.Slice(bodyStart + 3, typeLength));
 
 		if (bodyLength != input.Length - bodyStart - 7)
 			return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
@@ -679,7 +679,7 @@ public static partial class FixParser
 		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator)
 			return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
 
-		var expected = FixConvert.Tag(input.Slice(checksumStart + 3, 3));
+		var expected = FixConvert.ToTag(input.Slice(checksumStart + 3, 3));
 
 		if (expected < 0)
 			return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);

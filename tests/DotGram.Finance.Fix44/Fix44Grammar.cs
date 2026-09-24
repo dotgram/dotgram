@@ -78,11 +78,11 @@ sealed class Fix44Context
 
 	public static int Tag(ReadOnlySpan<char> value)
 	{
-		return FixConvert.Tag(value);
+		return FixConvert.ToTag(value);
 	}
 
 	public static int Tag(ReadOnlySpan<byte> value)
 	{
-		return FixConvert.Tag(value);
+		return FixConvert.ToTag(value);
 	}
 }

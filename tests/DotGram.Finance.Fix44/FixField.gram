@@ -4,3520 +4,3520 @@
 KnownField(text) : @FixField =
 	// 1: Account (String)
 	{ "1=" & value: text }
-	  => @(new FixField.Account(FixConvert.Text(value)))
+	  => @(new FixField.Account(FixConvert.ToText(value)))
 
 	// 2: AdvId (String)
 	| { "2=" & value: text }
-	  => @(new FixField.AdvId(FixConvert.Text(value)))
+	  => @(new FixField.AdvId(FixConvert.ToText(value)))
 
 	// 3: AdvRefID (String)
 	| { "3=" & value: text }
-	  => @(new FixField.AdvRefID(FixConvert.Text(value)))
+	  => @(new FixField.AdvRefID(FixConvert.ToText(value)))
 
 	// 4: AdvSide (char)
 	| { "4=" & value: text }
-	  => @(new FixField.AdvSide(FixConvert.Character(value)))
+	  => @(new FixField.AdvSide(FixConvert.ToCharacter(value)))
 
 	// 5: AdvTransType (String)
 	| { "5=" & value: text }
-	  => @(new FixField.AdvTransType(FixConvert.Text(value)))
+	  => @(new FixField.AdvTransType(FixConvert.ToText(value)))
 
 	// 6: AvgPx (Price)
 	| { "6=" & value: text }
-	  => @(new FixField.AvgPx(FixConvert.Decimal(value)))
+	  => @(new FixField.AvgPx(FixConvert.ToDecimal(value)))
 
 	// 7: BeginSeqNo (SeqNum)
 	| { "7=" & value: text }
-	  => @(new FixField.BeginSeqNo(FixConvert.Integer(value)))
+	  => @(new FixField.BeginSeqNo(FixConvert.ToInteger(value)))
 
 	// 8: BeginString (String)
 	| { "8=" & value: text }
-	  => @(new FixField.BeginString(FixConvert.Text(value)))
+	  => @(new FixField.BeginString(FixConvert.ToText(value)))
 
 	// 9: BodyLength (Length)
 	| { "9=" & value: text }
-	  => @(new FixField.BodyLength(FixConvert.Integer(value)))
+	  => @(new FixField.BodyLength(FixConvert.ToInteger(value)))
 
 	// 10: CheckSum (String)
 	| { "10=" & value: text }
-	  => @(new FixField.CheckSum(FixConvert.Text(value)))
+	  => @(new FixField.CheckSum(FixConvert.ToText(value)))
 
 	// 11: ClOrdID (String)
 	| { "11=" & value: text }
-	  => @(new FixField.ClOrdID(FixConvert.Text(value)))
+	  => @(new FixField.ClOrdID(FixConvert.ToText(value)))
 
 	// 12: Commission (Amt)
 	| { "12=" & value: text }
-	  => @(new FixField.Commission(FixConvert.Decimal(value)))
+	  => @(new FixField.Commission(FixConvert.ToDecimal(value)))
 
 	// 13: CommType (char)
 	| { "13=" & value: text }
-	  => @(new FixField.CommType(FixConvert.Character(value)))
+	  => @(new FixField.CommType(FixConvert.ToCharacter(value)))
 
 	// 14: CumQty (Qty)
 	| { "14=" & value: text }
-	  => @(new FixField.CumQty(FixConvert.Decimal(value)))
+	  => @(new FixField.CumQty(FixConvert.ToDecimal(value)))
 
 	// 15: Currency (Currency)
 	| { "15=" & value: text }
-	  => @(new FixField.Currency(FixConvert.Text(value)))
+	  => @(new FixField.Currency(FixConvert.ToText(value)))
 
 	// 16: EndSeqNo (SeqNum)
 	| { "16=" & value: text }
-	  => @(new FixField.EndSeqNo(FixConvert.Integer(value)))
+	  => @(new FixField.EndSeqNo(FixConvert.ToInteger(value)))
 
 	// 17: ExecID (String)
 	| { "17=" & value: text }
-	  => @(new FixField.ExecID(FixConvert.Text(value)))
+	  => @(new FixField.ExecID(FixConvert.ToText(value)))
 
 	// 18: ExecInst (MultipleValueString)
 	| { "18=" & value: text }
-	  => @(new FixField.ExecInst(FixConvert.Multiple(value)))
+	  => @(new FixField.ExecInst(FixConvert.ToMultiple(value)))
 
 	// 19: ExecRefID (String)
 	| { "19=" & value: text }
-	  => @(new FixField.ExecRefID(FixConvert.Text(value)))
+	  => @(new FixField.ExecRefID(FixConvert.ToText(value)))
 
 	// 21: HandlInst (char)
 	| { "21=" & value: text }
-	  => @(new FixField.HandlInst(FixConvert.Character(value)))
+	  => @(new FixField.HandlInst(FixConvert.ToCharacter(value)))
 
 	// 22: SecurityIDSource (String)
 	| { "22=" & value: text }
-	  => @(new FixField.SecurityIDSource(FixConvert.Text(value)))
+	  => @(new FixField.SecurityIDSource(FixConvert.ToText(value)))
 
 	// 23: IOIid (String)
 	| { "23=" & value: text }
-	  => @(new FixField.IOIid(FixConvert.Text(value)))
+	  => @(new FixField.IOIid(FixConvert.ToText(value)))
 
 	// 25: IOIQltyInd (char)
 	| { "25=" & value: text }
-	  => @(new FixField.IOIQltyInd(FixConvert.Character(value)))
+	  => @(new FixField.IOIQltyInd(FixConvert.ToCharacter(value)))
 
 	// 26: IOIRefID (String)
 	| { "26=" & value: text }
-	  => @(new FixField.IOIRefID(FixConvert.Text(value)))
+	  => @(new FixField.IOIRefID(FixConvert.ToText(value)))
 
 	// 27: IOIQty (String)
 	| { "27=" & value: text }
-	  => @(new FixField.IOIQty(FixConvert.Text(value)))
+	  => @(new FixField.IOIQty(FixConvert.ToText(value)))
 
 	// 28: IOITransType (char)
 	| { "28=" & value: text }
-	  => @(new FixField.IOITransType(FixConvert.Character(value)))
+	  => @(new FixField.IOITransType(FixConvert.ToCharacter(value)))
 
 	// 29: LastCapacity (char)
 	| { "29=" & value: text }
-	  => @(new FixField.LastCapacity(FixConvert.Character(value)))
+	  => @(new FixField.LastCapacity(FixConvert.ToCharacter(value)))
 
 	// 30: LastMkt (Exchange)
 	| { "30=" & value: text }
-	  => @(new FixField.LastMkt(FixConvert.Text(value)))
+	  => @(new FixField.LastMkt(FixConvert.ToText(value)))
 
 	// 31: LastPx (Price)
 	| { "31=" & value: text }
-	  => @(new FixField.LastPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LastPx(FixConvert.ToDecimal(value)))
 
 	// 32: LastQty (Qty)
 	| { "32=" & value: text }
-	  => @(new FixField.LastQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LastQty(FixConvert.ToDecimal(value)))
 
 	// 33: LinesOfText (NumInGroup)
 	| { "33=" & value: text }
-	  => @(new FixField.LinesOfText(FixConvert.Integer(value)))
+	  => @(new FixField.LinesOfText(FixConvert.ToInteger(value)))
 
 	// 34: MsgSeqNum (SeqNum)
 	| { "34=" & value: text }
-	  => @(new FixField.MsgSeqNum(FixConvert.Integer(value)))
+	  => @(new FixField.MsgSeqNum(FixConvert.ToInteger(value)))
 
 	// 35: MsgType (String)
 	| { "35=" & value: text }
-	  => @(new FixField.MsgType(FixConvert.Text(value)))
+	  => @(new FixField.MsgType(FixConvert.ToText(value)))
 
 	// 36: NewSeqNo (SeqNum)
 	| { "36=" & value: text }
-	  => @(new FixField.NewSeqNo(FixConvert.Integer(value)))
+	  => @(new FixField.NewSeqNo(FixConvert.ToInteger(value)))
 
 	// 37: OrderID (String)
 	| { "37=" & value: text }
-	  => @(new FixField.OrderID(FixConvert.Text(value)))
+	  => @(new FixField.OrderID(FixConvert.ToText(value)))
 
 	// 38: OrderQty (Qty)
 	| { "38=" & value: text }
-	  => @(new FixField.OrderQty(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderQty(FixConvert.ToDecimal(value)))
 
 	// 39: OrdStatus (char)
 	| { "39=" & value: text }
-	  => @(new FixField.OrdStatus(FixConvert.Character(value)))
+	  => @(new FixField.OrdStatus(FixConvert.ToCharacter(value)))
 
 	// 40: OrdType (char)
 	| { "40=" & value: text }
-	  => @(new FixField.OrdType(FixConvert.Character(value)))
+	  => @(new FixField.OrdType(FixConvert.ToCharacter(value)))
 
 	// 41: OrigClOrdID (String)
 	| { "41=" & value: text }
-	  => @(new FixField.OrigClOrdID(FixConvert.Text(value)))
+	  => @(new FixField.OrigClOrdID(FixConvert.ToText(value)))
 
 	// 42: OrigTime (UTCTimestamp)
 	| { "42=" & value: text }
-	  => @(new FixField.OrigTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.OrigTime(FixConvert.ToTimestamp(value)))
 
 	// 43: PossDupFlag (Boolean)
 	| { "43=" & value: text }
-	  => @(new FixField.PossDupFlag(FixConvert.Boolean(value)))
+	  => @(new FixField.PossDupFlag(FixConvert.ToBoolean(value)))
 
 	// 44: Price (Price)
 	| { "44=" & value: text }
-	  => @(new FixField.Price(FixConvert.Decimal(value)))
+	  => @(new FixField.Price(FixConvert.ToDecimal(value)))
 
 	// 45: RefSeqNum (SeqNum)
 	| { "45=" & value: text }
-	  => @(new FixField.RefSeqNum(FixConvert.Integer(value)))
+	  => @(new FixField.RefSeqNum(FixConvert.ToInteger(value)))
 
 	// 48: SecurityID (String)
 	| { "48=" & value: text }
-	  => @(new FixField.SecurityID(FixConvert.Text(value)))
+	  => @(new FixField.SecurityID(FixConvert.ToText(value)))
 
 	// 49: SenderCompID (String)
 	| { "49=" & value: text }
-	  => @(new FixField.SenderCompID(FixConvert.Text(value)))
+	  => @(new FixField.SenderCompID(FixConvert.ToText(value)))
 
 	// 50: SenderSubID (String)
 	| { "50=" & value: text }
-	  => @(new FixField.SenderSubID(FixConvert.Text(value)))
+	  => @(new FixField.SenderSubID(FixConvert.ToText(value)))
 
 	// 52: SendingTime (UTCTimestamp)
 	| { "52=" & value: text }
-	  => @(new FixField.SendingTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.SendingTime(FixConvert.ToTimestamp(value)))
 
 	// 53: Quantity (Qty)
 	| { "53=" & value: text }
-	  => @(new FixField.Quantity(FixConvert.Decimal(value)))
+	  => @(new FixField.Quantity(FixConvert.ToDecimal(value)))
 
 	// 54: Side (char)
 	| { "54=" & value: text }
-	  => @(new FixField.Side(FixConvert.Character(value)))
+	  => @(new FixField.Side(FixConvert.ToCharacter(value)))
 
 	// 55: Symbol (String)
 	| { "55=" & value: text }
-	  => @(new FixField.Symbol(FixConvert.Text(value)))
+	  => @(new FixField.Symbol(FixConvert.ToText(value)))
 
 	// 56: TargetCompID (String)
 	| { "56=" & value: text }
-	  => @(new FixField.TargetCompID(FixConvert.Text(value)))
+	  => @(new FixField.TargetCompID(FixConvert.ToText(value)))
 
 	// 57: TargetSubID (String)
 	| { "57=" & value: text }
-	  => @(new FixField.TargetSubID(FixConvert.Text(value)))
+	  => @(new FixField.TargetSubID(FixConvert.ToText(value)))
 
 	// 58: Text (String)
 	| { "58=" & value: text }
-	  => @(new FixField.Text(FixConvert.Text(value)))
+	  => @(new FixField.Text(FixConvert.ToText(value)))
 
 	// 59: TimeInForce (char)
 	| { "59=" & value: text }
-	  => @(new FixField.TimeInForce(FixConvert.Character(value)))
+	  => @(new FixField.TimeInForce(FixConvert.ToCharacter(value)))
 
 	// 60: TransactTime (UTCTimestamp)
 	| { "60=" & value: text }
-	  => @(new FixField.TransactTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TransactTime(FixConvert.ToTimestamp(value)))
 
 	// 61: Urgency (char)
 	| { "61=" & value: text }
-	  => @(new FixField.Urgency(FixConvert.Character(value)))
+	  => @(new FixField.Urgency(FixConvert.ToCharacter(value)))
 
 	// 62: ValidUntilTime (UTCTimestamp)
 	| { "62=" & value: text }
-	  => @(new FixField.ValidUntilTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.ValidUntilTime(FixConvert.ToTimestamp(value)))
 
 	// 63: SettlType (char)
 	| { "63=" & value: text }
-	  => @(new FixField.SettlType(FixConvert.Character(value)))
+	  => @(new FixField.SettlType(FixConvert.ToCharacter(value)))
 
 	// 64: SettlDate (LocalMktDate)
 	| { "64=" & value: text }
-	  => @(new FixField.SettlDate(FixConvert.Date(value)))
+	  => @(new FixField.SettlDate(FixConvert.ToDate(value)))
 
 	// 65: SymbolSfx (String)
 	| { "65=" & value: text }
-	  => @(new FixField.SymbolSfx(FixConvert.Text(value)))
+	  => @(new FixField.SymbolSfx(FixConvert.ToText(value)))
 
 	// 66: ListID (String)
 	| { "66=" & value: text }
-	  => @(new FixField.ListID(FixConvert.Text(value)))
+	  => @(new FixField.ListID(FixConvert.ToText(value)))
 
 	// 67: ListSeqNo (int)
 	| { "67=" & value: text }
-	  => @(new FixField.ListSeqNo(FixConvert.Integer(value)))
+	  => @(new FixField.ListSeqNo(FixConvert.ToInteger(value)))
 
 	// 68: TotNoOrders (int)
 	| { "68=" & value: text }
-	  => @(new FixField.TotNoOrders(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoOrders(FixConvert.ToInteger(value)))
 
 	// 69: ListExecInst (String)
 	| { "69=" & value: text }
-	  => @(new FixField.ListExecInst(FixConvert.Text(value)))
+	  => @(new FixField.ListExecInst(FixConvert.ToText(value)))
 
 	// 70: AllocID (String)
 	| { "70=" & value: text }
-	  => @(new FixField.AllocID(FixConvert.Text(value)))
+	  => @(new FixField.AllocID(FixConvert.ToText(value)))
 
 	// 71: AllocTransType (char)
 	| { "71=" & value: text }
-	  => @(new FixField.AllocTransType(FixConvert.Character(value)))
+	  => @(new FixField.AllocTransType(FixConvert.ToCharacter(value)))
 
 	// 72: RefAllocID (String)
 	| { "72=" & value: text }
-	  => @(new FixField.RefAllocID(FixConvert.Text(value)))
+	  => @(new FixField.RefAllocID(FixConvert.ToText(value)))
 
 	// 73: NoOrders (NumInGroup)
 	| { "73=" & value: text }
-	  => @(new FixField.NoOrders(FixConvert.Integer(value)))
+	  => @(new FixField.NoOrders(FixConvert.ToInteger(value)))
 
 	// 74: AvgPxPrecision (int)
 	| { "74=" & value: text }
-	  => @(new FixField.AvgPxPrecision(FixConvert.Integer(value)))
+	  => @(new FixField.AvgPxPrecision(FixConvert.ToInteger(value)))
 
 	// 75: TradeDate (LocalMktDate)
 	| { "75=" & value: text }
-	  => @(new FixField.TradeDate(FixConvert.Date(value)))
+	  => @(new FixField.TradeDate(FixConvert.ToDate(value)))
 
 	// 77: PositionEffect (char)
 	| { "77=" & value: text }
-	  => @(new FixField.PositionEffect(FixConvert.Character(value)))
+	  => @(new FixField.PositionEffect(FixConvert.ToCharacter(value)))
 
 	// 78: NoAllocs (NumInGroup)
 	| { "78=" & value: text }
-	  => @(new FixField.NoAllocs(FixConvert.Integer(value)))
+	  => @(new FixField.NoAllocs(FixConvert.ToInteger(value)))
 
 	// 79: AllocAccount (String)
 	| { "79=" & value: text }
-	  => @(new FixField.AllocAccount(FixConvert.Text(value)))
+	  => @(new FixField.AllocAccount(FixConvert.ToText(value)))
 
 	// 80: AllocQty (Qty)
 	| { "80=" & value: text }
-	  => @(new FixField.AllocQty(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocQty(FixConvert.ToDecimal(value)))
 
 	// 81: ProcessCode (char)
 	| { "81=" & value: text }
-	  => @(new FixField.ProcessCode(FixConvert.Character(value)))
+	  => @(new FixField.ProcessCode(FixConvert.ToCharacter(value)))
 
 	// 82: NoRpts (int)
 	| { "82=" & value: text }
-	  => @(new FixField.NoRpts(FixConvert.Integer(value)))
+	  => @(new FixField.NoRpts(FixConvert.ToInteger(value)))
 
 	// 83: RptSeq (int)
 	| { "83=" & value: text }
-	  => @(new FixField.RptSeq(FixConvert.Integer(value)))
+	  => @(new FixField.RptSeq(FixConvert.ToInteger(value)))
 
 	// 84: CxlQty (Qty)
 	| { "84=" & value: text }
-	  => @(new FixField.CxlQty(FixConvert.Decimal(value)))
+	  => @(new FixField.CxlQty(FixConvert.ToDecimal(value)))
 
 	// 85: NoDlvyInst (NumInGroup)
 	| { "85=" & value: text }
-	  => @(new FixField.NoDlvyInst(FixConvert.Integer(value)))
+	  => @(new FixField.NoDlvyInst(FixConvert.ToInteger(value)))
 
 	// 87: AllocStatus (int)
 	| { "87=" & value: text }
-	  => @(new FixField.AllocStatus(FixConvert.Integer(value)))
+	  => @(new FixField.AllocStatus(FixConvert.ToInteger(value)))
 
 	// 88: AllocRejCode (int)
 	| { "88=" & value: text }
-	  => @(new FixField.AllocRejCode(FixConvert.Integer(value)))
+	  => @(new FixField.AllocRejCode(FixConvert.ToInteger(value)))
 
 	// 94: EmailType (char)
 	| { "94=" & value: text }
-	  => @(new FixField.EmailType(FixConvert.Character(value)))
+	  => @(new FixField.EmailType(FixConvert.ToCharacter(value)))
 
 	// 97: PossResend (Boolean)
 	| { "97=" & value: text }
-	  => @(new FixField.PossResend(FixConvert.Boolean(value)))
+	  => @(new FixField.PossResend(FixConvert.ToBoolean(value)))
 
 	// 98: EncryptMethod (int)
 	| { "98=" & value: text }
-	  => @(new FixField.EncryptMethod(FixConvert.Integer(value)))
+	  => @(new FixField.EncryptMethod(FixConvert.ToInteger(value)))
 
 	// 99: StopPx (Price)
 	| { "99=" & value: text }
-	  => @(new FixField.StopPx(FixConvert.Decimal(value)))
+	  => @(new FixField.StopPx(FixConvert.ToDecimal(value)))
 
 	// 100: ExDestination (Exchange)
 	| { "100=" & value: text }
-	  => @(new FixField.ExDestination(FixConvert.Text(value)))
+	  => @(new FixField.ExDestination(FixConvert.ToText(value)))
 
 	// 102: CxlRejReason (int)
 	| { "102=" & value: text }
-	  => @(new FixField.CxlRejReason(FixConvert.Integer(value)))
+	  => @(new FixField.CxlRejReason(FixConvert.ToInteger(value)))
 
 	// 103: OrdRejReason (int)
 	| { "103=" & value: text }
-	  => @(new FixField.OrdRejReason(FixConvert.Integer(value)))
+	  => @(new FixField.OrdRejReason(FixConvert.ToInteger(value)))
 
 	// 104: IOIQualifier (char)
 	| { "104=" & value: text }
-	  => @(new FixField.IOIQualifier(FixConvert.Character(value)))
+	  => @(new FixField.IOIQualifier(FixConvert.ToCharacter(value)))
 
 	// 106: Issuer (String)
 	| { "106=" & value: text }
-	  => @(new FixField.Issuer(FixConvert.Text(value)))
+	  => @(new FixField.Issuer(FixConvert.ToText(value)))
 
 	// 107: SecurityDesc (String)
 	| { "107=" & value: text }
-	  => @(new FixField.SecurityDesc(FixConvert.Text(value)))
+	  => @(new FixField.SecurityDesc(FixConvert.ToText(value)))
 
 	// 108: HeartBtInt (int)
 	| { "108=" & value: text }
-	  => @(new FixField.HeartBtInt(FixConvert.Integer(value)))
+	  => @(new FixField.HeartBtInt(FixConvert.ToInteger(value)))
 
 	// 110: MinQty (Qty)
 	| { "110=" & value: text }
-	  => @(new FixField.MinQty(FixConvert.Decimal(value)))
+	  => @(new FixField.MinQty(FixConvert.ToDecimal(value)))
 
 	// 111: MaxFloor (Qty)
 	| { "111=" & value: text }
-	  => @(new FixField.MaxFloor(FixConvert.Decimal(value)))
+	  => @(new FixField.MaxFloor(FixConvert.ToDecimal(value)))
 
 	// 112: TestReqID (String)
 	| { "112=" & value: text }
-	  => @(new FixField.TestReqID(FixConvert.Text(value)))
+	  => @(new FixField.TestReqID(FixConvert.ToText(value)))
 
 	// 113: ReportToExch (Boolean)
 	| { "113=" & value: text }
-	  => @(new FixField.ReportToExch(FixConvert.Boolean(value)))
+	  => @(new FixField.ReportToExch(FixConvert.ToBoolean(value)))
 
 	// 114: LocateReqd (Boolean)
 	| { "114=" & value: text }
-	  => @(new FixField.LocateReqd(FixConvert.Boolean(value)))
+	  => @(new FixField.LocateReqd(FixConvert.ToBoolean(value)))
 
 	// 115: OnBehalfOfCompID (String)
 	| { "115=" & value: text }
-	  => @(new FixField.OnBehalfOfCompID(FixConvert.Text(value)))
+	  => @(new FixField.OnBehalfOfCompID(FixConvert.ToText(value)))
 
 	// 116: OnBehalfOfSubID (String)
 	| { "116=" & value: text }
-	  => @(new FixField.OnBehalfOfSubID(FixConvert.Text(value)))
+	  => @(new FixField.OnBehalfOfSubID(FixConvert.ToText(value)))
 
 	// 117: QuoteID (String)
 	| { "117=" & value: text }
-	  => @(new FixField.QuoteID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteID(FixConvert.ToText(value)))
 
 	// 118: NetMoney (Amt)
 	| { "118=" & value: text }
-	  => @(new FixField.NetMoney(FixConvert.Decimal(value)))
+	  => @(new FixField.NetMoney(FixConvert.ToDecimal(value)))
 
 	// 119: SettlCurrAmt (Amt)
 	| { "119=" & value: text }
-	  => @(new FixField.SettlCurrAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.SettlCurrAmt(FixConvert.ToDecimal(value)))
 
 	// 120: SettlCurrency (Currency)
 	| { "120=" & value: text }
-	  => @(new FixField.SettlCurrency(FixConvert.Text(value)))
+	  => @(new FixField.SettlCurrency(FixConvert.ToText(value)))
 
 	// 121: ForexReq (Boolean)
 	| { "121=" & value: text }
-	  => @(new FixField.ForexReq(FixConvert.Boolean(value)))
+	  => @(new FixField.ForexReq(FixConvert.ToBoolean(value)))
 
 	// 122: OrigSendingTime (UTCTimestamp)
 	| { "122=" & value: text }
-	  => @(new FixField.OrigSendingTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.OrigSendingTime(FixConvert.ToTimestamp(value)))
 
 	// 123: GapFillFlag (Boolean)
 	| { "123=" & value: text }
-	  => @(new FixField.GapFillFlag(FixConvert.Boolean(value)))
+	  => @(new FixField.GapFillFlag(FixConvert.ToBoolean(value)))
 
 	// 124: NoExecs (NumInGroup)
 	| { "124=" & value: text }
-	  => @(new FixField.NoExecs(FixConvert.Integer(value)))
+	  => @(new FixField.NoExecs(FixConvert.ToInteger(value)))
 
 	// 126: ExpireTime (UTCTimestamp)
 	| { "126=" & value: text }
-	  => @(new FixField.ExpireTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.ExpireTime(FixConvert.ToTimestamp(value)))
 
 	// 127: DKReason (char)
 	| { "127=" & value: text }
-	  => @(new FixField.DKReason(FixConvert.Character(value)))
+	  => @(new FixField.DKReason(FixConvert.ToCharacter(value)))
 
 	// 128: DeliverToCompID (String)
 	| { "128=" & value: text }
-	  => @(new FixField.DeliverToCompID(FixConvert.Text(value)))
+	  => @(new FixField.DeliverToCompID(FixConvert.ToText(value)))
 
 	// 129: DeliverToSubID (String)
 	| { "129=" & value: text }
-	  => @(new FixField.DeliverToSubID(FixConvert.Text(value)))
+	  => @(new FixField.DeliverToSubID(FixConvert.ToText(value)))
 
 	// 130: IOINaturalFlag (Boolean)
 	| { "130=" & value: text }
-	  => @(new FixField.IOINaturalFlag(FixConvert.Boolean(value)))
+	  => @(new FixField.IOINaturalFlag(FixConvert.ToBoolean(value)))
 
 	// 131: QuoteReqID (String)
 	| { "131=" & value: text }
-	  => @(new FixField.QuoteReqID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteReqID(FixConvert.ToText(value)))
 
 	// 132: BidPx (Price)
 	| { "132=" & value: text }
-	  => @(new FixField.BidPx(FixConvert.Decimal(value)))
+	  => @(new FixField.BidPx(FixConvert.ToDecimal(value)))
 
 	// 133: OfferPx (Price)
 	| { "133=" & value: text }
-	  => @(new FixField.OfferPx(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferPx(FixConvert.ToDecimal(value)))
 
 	// 134: BidSize (Qty)
 	| { "134=" & value: text }
-	  => @(new FixField.BidSize(FixConvert.Decimal(value)))
+	  => @(new FixField.BidSize(FixConvert.ToDecimal(value)))
 
 	// 135: OfferSize (Qty)
 	| { "135=" & value: text }
-	  => @(new FixField.OfferSize(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferSize(FixConvert.ToDecimal(value)))
 
 	// 136: NoMiscFees (NumInGroup)
 	| { "136=" & value: text }
-	  => @(new FixField.NoMiscFees(FixConvert.Integer(value)))
+	  => @(new FixField.NoMiscFees(FixConvert.ToInteger(value)))
 
 	// 137: MiscFeeAmt (Amt)
 	| { "137=" & value: text }
-	  => @(new FixField.MiscFeeAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.MiscFeeAmt(FixConvert.ToDecimal(value)))
 
 	// 138: MiscFeeCurr (Currency)
 	| { "138=" & value: text }
-	  => @(new FixField.MiscFeeCurr(FixConvert.Text(value)))
+	  => @(new FixField.MiscFeeCurr(FixConvert.ToText(value)))
 
 	// 139: MiscFeeType (String)
 	| { "139=" & value: text }
-	  => @(new FixField.MiscFeeType(FixConvert.Text(value)))
+	  => @(new FixField.MiscFeeType(FixConvert.ToText(value)))
 
 	// 140: PrevClosePx (Price)
 	| { "140=" & value: text }
-	  => @(new FixField.PrevClosePx(FixConvert.Decimal(value)))
+	  => @(new FixField.PrevClosePx(FixConvert.ToDecimal(value)))
 
 	// 141: ResetSeqNumFlag (Boolean)
 	| { "141=" & value: text }
-	  => @(new FixField.ResetSeqNumFlag(FixConvert.Boolean(value)))
+	  => @(new FixField.ResetSeqNumFlag(FixConvert.ToBoolean(value)))
 
 	// 142: SenderLocationID (String)
 	| { "142=" & value: text }
-	  => @(new FixField.SenderLocationID(FixConvert.Text(value)))
+	  => @(new FixField.SenderLocationID(FixConvert.ToText(value)))
 
 	// 143: TargetLocationID (String)
 	| { "143=" & value: text }
-	  => @(new FixField.TargetLocationID(FixConvert.Text(value)))
+	  => @(new FixField.TargetLocationID(FixConvert.ToText(value)))
 
 	// 144: OnBehalfOfLocationID (String)
 	| { "144=" & value: text }
-	  => @(new FixField.OnBehalfOfLocationID(FixConvert.Text(value)))
+	  => @(new FixField.OnBehalfOfLocationID(FixConvert.ToText(value)))
 
 	// 145: DeliverToLocationID (String)
 	| { "145=" & value: text }
-	  => @(new FixField.DeliverToLocationID(FixConvert.Text(value)))
+	  => @(new FixField.DeliverToLocationID(FixConvert.ToText(value)))
 
 	// 146: NoRelatedSym (NumInGroup)
 	| { "146=" & value: text }
-	  => @(new FixField.NoRelatedSym(FixConvert.Integer(value)))
+	  => @(new FixField.NoRelatedSym(FixConvert.ToInteger(value)))
 
 	// 147: Subject (String)
 	| { "147=" & value: text }
-	  => @(new FixField.Subject(FixConvert.Text(value)))
+	  => @(new FixField.Subject(FixConvert.ToText(value)))
 
 	// 148: Headline (String)
 	| { "148=" & value: text }
-	  => @(new FixField.Headline(FixConvert.Text(value)))
+	  => @(new FixField.Headline(FixConvert.ToText(value)))
 
 	// 149: URLLink (String)
 	| { "149=" & value: text }
-	  => @(new FixField.URLLink(FixConvert.Text(value)))
+	  => @(new FixField.URLLink(FixConvert.ToText(value)))
 
 	// 150: ExecType (char)
 	| { "150=" & value: text }
-	  => @(new FixField.ExecType(FixConvert.Character(value)))
+	  => @(new FixField.ExecType(FixConvert.ToCharacter(value)))
 
 	// 151: LeavesQty (Qty)
 	| { "151=" & value: text }
-	  => @(new FixField.LeavesQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LeavesQty(FixConvert.ToDecimal(value)))
 
 	// 152: CashOrderQty (Qty)
 	| { "152=" & value: text }
-	  => @(new FixField.CashOrderQty(FixConvert.Decimal(value)))
+	  => @(new FixField.CashOrderQty(FixConvert.ToDecimal(value)))
 
 	// 153: AllocAvgPx (Price)
 	| { "153=" & value: text }
-	  => @(new FixField.AllocAvgPx(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocAvgPx(FixConvert.ToDecimal(value)))
 
 	// 154: AllocNetMoney (Amt)
 	| { "154=" & value: text }
-	  => @(new FixField.AllocNetMoney(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocNetMoney(FixConvert.ToDecimal(value)))
 
 	// 155: SettlCurrFxRate (float)
 	| { "155=" & value: text }
-	  => @(new FixField.SettlCurrFxRate(FixConvert.Decimal(value)))
+	  => @(new FixField.SettlCurrFxRate(FixConvert.ToDecimal(value)))
 
 	// 156: SettlCurrFxRateCalc (char)
 	| { "156=" & value: text }
-	  => @(new FixField.SettlCurrFxRateCalc(FixConvert.Character(value)))
+	  => @(new FixField.SettlCurrFxRateCalc(FixConvert.ToCharacter(value)))
 
 	// 157: NumDaysInterest (int)
 	| { "157=" & value: text }
-	  => @(new FixField.NumDaysInterest(FixConvert.Integer(value)))
+	  => @(new FixField.NumDaysInterest(FixConvert.ToInteger(value)))
 
 	// 158: AccruedInterestRate (Percentage)
 	| { "158=" & value: text }
-	  => @(new FixField.AccruedInterestRate(FixConvert.Decimal(value)))
+	  => @(new FixField.AccruedInterestRate(FixConvert.ToDecimal(value)))
 
 	// 159: AccruedInterestAmt (Amt)
 	| { "159=" & value: text }
-	  => @(new FixField.AccruedInterestAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.AccruedInterestAmt(FixConvert.ToDecimal(value)))
 
 	// 160: SettlInstMode (char)
 	| { "160=" & value: text }
-	  => @(new FixField.SettlInstMode(FixConvert.Character(value)))
+	  => @(new FixField.SettlInstMode(FixConvert.ToCharacter(value)))
 
 	// 161: AllocText (String)
 	| { "161=" & value: text }
-	  => @(new FixField.AllocText(FixConvert.Text(value)))
+	  => @(new FixField.AllocText(FixConvert.ToText(value)))
 
 	// 162: SettlInstID (String)
 	| { "162=" & value: text }
-	  => @(new FixField.SettlInstID(FixConvert.Text(value)))
+	  => @(new FixField.SettlInstID(FixConvert.ToText(value)))
 
 	// 163: SettlInstTransType (char)
 	| { "163=" & value: text }
-	  => @(new FixField.SettlInstTransType(FixConvert.Character(value)))
+	  => @(new FixField.SettlInstTransType(FixConvert.ToCharacter(value)))
 
 	// 164: EmailThreadID (String)
 	| { "164=" & value: text }
-	  => @(new FixField.EmailThreadID(FixConvert.Text(value)))
+	  => @(new FixField.EmailThreadID(FixConvert.ToText(value)))
 
 	// 165: SettlInstSource (char)
 	| { "165=" & value: text }
-	  => @(new FixField.SettlInstSource(FixConvert.Character(value)))
+	  => @(new FixField.SettlInstSource(FixConvert.ToCharacter(value)))
 
 	// 167: SecurityType (String)
 	| { "167=" & value: text }
-	  => @(new FixField.SecurityType(FixConvert.Text(value)))
+	  => @(new FixField.SecurityType(FixConvert.ToText(value)))
 
 	// 168: EffectiveTime (UTCTimestamp)
 	| { "168=" & value: text }
-	  => @(new FixField.EffectiveTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.EffectiveTime(FixConvert.ToTimestamp(value)))
 
 	// 169: StandInstDbType (int)
 	| { "169=" & value: text }
-	  => @(new FixField.StandInstDbType(FixConvert.Integer(value)))
+	  => @(new FixField.StandInstDbType(FixConvert.ToInteger(value)))
 
 	// 170: StandInstDbName (String)
 	| { "170=" & value: text }
-	  => @(new FixField.StandInstDbName(FixConvert.Text(value)))
+	  => @(new FixField.StandInstDbName(FixConvert.ToText(value)))
 
 	// 171: StandInstDbID (String)
 	| { "171=" & value: text }
-	  => @(new FixField.StandInstDbID(FixConvert.Text(value)))
+	  => @(new FixField.StandInstDbID(FixConvert.ToText(value)))
 
 	// 172: SettlDeliveryType (int)
 	| { "172=" & value: text }
-	  => @(new FixField.SettlDeliveryType(FixConvert.Integer(value)))
+	  => @(new FixField.SettlDeliveryType(FixConvert.ToInteger(value)))
 
 	// 188: BidSpotRate (Price)
 	| { "188=" & value: text }
-	  => @(new FixField.BidSpotRate(FixConvert.Decimal(value)))
+	  => @(new FixField.BidSpotRate(FixConvert.ToDecimal(value)))
 
 	// 189: BidForwardPoints (PriceOffset)
 	| { "189=" & value: text }
-	  => @(new FixField.BidForwardPoints(FixConvert.Decimal(value)))
+	  => @(new FixField.BidForwardPoints(FixConvert.ToDecimal(value)))
 
 	// 190: OfferSpotRate (Price)
 	| { "190=" & value: text }
-	  => @(new FixField.OfferSpotRate(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferSpotRate(FixConvert.ToDecimal(value)))
 
 	// 191: OfferForwardPoints (PriceOffset)
 	| { "191=" & value: text }
-	  => @(new FixField.OfferForwardPoints(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferForwardPoints(FixConvert.ToDecimal(value)))
 
 	// 192: OrderQty2 (Qty)
 	| { "192=" & value: text }
-	  => @(new FixField.OrderQty2(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderQty2(FixConvert.ToDecimal(value)))
 
 	// 193: SettlDate2 (LocalMktDate)
 	| { "193=" & value: text }
-	  => @(new FixField.SettlDate2(FixConvert.Date(value)))
+	  => @(new FixField.SettlDate2(FixConvert.ToDate(value)))
 
 	// 194: LastSpotRate (Price)
 	| { "194=" & value: text }
-	  => @(new FixField.LastSpotRate(FixConvert.Decimal(value)))
+	  => @(new FixField.LastSpotRate(FixConvert.ToDecimal(value)))
 
 	// 195: LastForwardPoints (PriceOffset)
 	| { "195=" & value: text }
-	  => @(new FixField.LastForwardPoints(FixConvert.Decimal(value)))
+	  => @(new FixField.LastForwardPoints(FixConvert.ToDecimal(value)))
 
 	// 196: AllocLinkID (String)
 	| { "196=" & value: text }
-	  => @(new FixField.AllocLinkID(FixConvert.Text(value)))
+	  => @(new FixField.AllocLinkID(FixConvert.ToText(value)))
 
 	// 197: AllocLinkType (int)
 	| { "197=" & value: text }
-	  => @(new FixField.AllocLinkType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocLinkType(FixConvert.ToInteger(value)))
 
 	// 198: SecondaryOrderID (String)
 	| { "198=" & value: text }
-	  => @(new FixField.SecondaryOrderID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryOrderID(FixConvert.ToText(value)))
 
 	// 199: NoIOIQualifiers (NumInGroup)
 	| { "199=" & value: text }
-	  => @(new FixField.NoIOIQualifiers(FixConvert.Integer(value)))
+	  => @(new FixField.NoIOIQualifiers(FixConvert.ToInteger(value)))
 
 	// 200: MaturityMonthYear (MonthYear)
 	| { "200=" & value: text }
-	  => @(new FixField.MaturityMonthYear(FixConvert.MonthYear(value)))
+	  => @(new FixField.MaturityMonthYear(FixConvert.ToMonthYear(value)))
 
 	// 201: PutOrCall (int)
 	| { "201=" & value: text }
-	  => @(new FixField.PutOrCall(FixConvert.Integer(value)))
+	  => @(new FixField.PutOrCall(FixConvert.ToInteger(value)))
 
 	// 202: StrikePrice (Price)
 	| { "202=" & value: text }
-	  => @(new FixField.StrikePrice(FixConvert.Decimal(value)))
+	  => @(new FixField.StrikePrice(FixConvert.ToDecimal(value)))
 
 	// 203: CoveredOrUncovered (int)
 	| { "203=" & value: text }
-	  => @(new FixField.CoveredOrUncovered(FixConvert.Integer(value)))
+	  => @(new FixField.CoveredOrUncovered(FixConvert.ToInteger(value)))
 
 	// 206: OptAttribute (char)
 	| { "206=" & value: text }
-	  => @(new FixField.OptAttribute(FixConvert.Character(value)))
+	  => @(new FixField.OptAttribute(FixConvert.ToCharacter(value)))
 
 	// 207: SecurityExchange (Exchange)
 	| { "207=" & value: text }
-	  => @(new FixField.SecurityExchange(FixConvert.Text(value)))
+	  => @(new FixField.SecurityExchange(FixConvert.ToText(value)))
 
 	// 208: NotifyBrokerOfCredit (Boolean)
 	| { "208=" & value: text }
-	  => @(new FixField.NotifyBrokerOfCredit(FixConvert.Boolean(value)))
+	  => @(new FixField.NotifyBrokerOfCredit(FixConvert.ToBoolean(value)))
 
 	// 209: AllocHandlInst (int)
 	| { "209=" & value: text }
-	  => @(new FixField.AllocHandlInst(FixConvert.Integer(value)))
+	  => @(new FixField.AllocHandlInst(FixConvert.ToInteger(value)))
 
 	// 210: MaxShow (Qty)
 	| { "210=" & value: text }
-	  => @(new FixField.MaxShow(FixConvert.Decimal(value)))
+	  => @(new FixField.MaxShow(FixConvert.ToDecimal(value)))
 
 	// 211: PegOffsetValue (float)
 	| { "211=" & value: text }
-	  => @(new FixField.PegOffsetValue(FixConvert.Decimal(value)))
+	  => @(new FixField.PegOffsetValue(FixConvert.ToDecimal(value)))
 
 	// 214: SettlInstRefID (String)
 	| { "214=" & value: text }
-	  => @(new FixField.SettlInstRefID(FixConvert.Text(value)))
+	  => @(new FixField.SettlInstRefID(FixConvert.ToText(value)))
 
 	// 215: NoRoutingIDs (NumInGroup)
 	| { "215=" & value: text }
-	  => @(new FixField.NoRoutingIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoRoutingIDs(FixConvert.ToInteger(value)))
 
 	// 216: RoutingType (int)
 	| { "216=" & value: text }
-	  => @(new FixField.RoutingType(FixConvert.Integer(value)))
+	  => @(new FixField.RoutingType(FixConvert.ToInteger(value)))
 
 	// 217: RoutingID (String)
 	| { "217=" & value: text }
-	  => @(new FixField.RoutingID(FixConvert.Text(value)))
+	  => @(new FixField.RoutingID(FixConvert.ToText(value)))
 
 	// 218: Spread (PriceOffset)
 	| { "218=" & value: text }
-	  => @(new FixField.Spread(FixConvert.Decimal(value)))
+	  => @(new FixField.Spread(FixConvert.ToDecimal(value)))
 
 	// 220: BenchmarkCurveCurrency (Currency)
 	| { "220=" & value: text }
-	  => @(new FixField.BenchmarkCurveCurrency(FixConvert.Text(value)))
+	  => @(new FixField.BenchmarkCurveCurrency(FixConvert.ToText(value)))
 
 	// 221: BenchmarkCurveName (String)
 	| { "221=" & value: text }
-	  => @(new FixField.BenchmarkCurveName(FixConvert.Text(value)))
+	  => @(new FixField.BenchmarkCurveName(FixConvert.ToText(value)))
 
 	// 222: BenchmarkCurvePoint (String)
 	| { "222=" & value: text }
-	  => @(new FixField.BenchmarkCurvePoint(FixConvert.Text(value)))
+	  => @(new FixField.BenchmarkCurvePoint(FixConvert.ToText(value)))
 
 	// 223: CouponRate (Percentage)
 	| { "223=" & value: text }
-	  => @(new FixField.CouponRate(FixConvert.Decimal(value)))
+	  => @(new FixField.CouponRate(FixConvert.ToDecimal(value)))
 
 	// 224: CouponPaymentDate (LocalMktDate)
 	| { "224=" & value: text }
-	  => @(new FixField.CouponPaymentDate(FixConvert.Date(value)))
+	  => @(new FixField.CouponPaymentDate(FixConvert.ToDate(value)))
 
 	// 225: IssueDate (LocalMktDate)
 	| { "225=" & value: text }
-	  => @(new FixField.IssueDate(FixConvert.Date(value)))
+	  => @(new FixField.IssueDate(FixConvert.ToDate(value)))
 
 	// 226: RepurchaseTerm (int)
 	| { "226=" & value: text }
-	  => @(new FixField.RepurchaseTerm(FixConvert.Integer(value)))
+	  => @(new FixField.RepurchaseTerm(FixConvert.ToInteger(value)))
 
 	// 227: RepurchaseRate (Percentage)
 	| { "227=" & value: text }
-	  => @(new FixField.RepurchaseRate(FixConvert.Decimal(value)))
+	  => @(new FixField.RepurchaseRate(FixConvert.ToDecimal(value)))
 
 	// 228: Factor (float)
 	| { "228=" & value: text }
-	  => @(new FixField.Factor(FixConvert.Decimal(value)))
+	  => @(new FixField.Factor(FixConvert.ToDecimal(value)))
 
 	// 229: TradeOriginationDate (LocalMktDate)
 	| { "229=" & value: text }
-	  => @(new FixField.TradeOriginationDate(FixConvert.Date(value)))
+	  => @(new FixField.TradeOriginationDate(FixConvert.ToDate(value)))
 
 	// 230: ExDate (LocalMktDate)
 	| { "230=" & value: text }
-	  => @(new FixField.ExDate(FixConvert.Date(value)))
+	  => @(new FixField.ExDate(FixConvert.ToDate(value)))
 
 	// 231: ContractMultiplier (float)
 	| { "231=" & value: text }
-	  => @(new FixField.ContractMultiplier(FixConvert.Decimal(value)))
+	  => @(new FixField.ContractMultiplier(FixConvert.ToDecimal(value)))
 
 	// 232: NoStipulations (NumInGroup)
 	| { "232=" & value: text }
-	  => @(new FixField.NoStipulations(FixConvert.Integer(value)))
+	  => @(new FixField.NoStipulations(FixConvert.ToInteger(value)))
 
 	// 233: StipulationType (String)
 	| { "233=" & value: text }
-	  => @(new FixField.StipulationType(FixConvert.Text(value)))
+	  => @(new FixField.StipulationType(FixConvert.ToText(value)))
 
 	// 234: StipulationValue (String)
 	| { "234=" & value: text }
-	  => @(new FixField.StipulationValue(FixConvert.Text(value)))
+	  => @(new FixField.StipulationValue(FixConvert.ToText(value)))
 
 	// 235: YieldType (String)
 	| { "235=" & value: text }
-	  => @(new FixField.YieldType(FixConvert.Text(value)))
+	  => @(new FixField.YieldType(FixConvert.ToText(value)))
 
 	// 236: Yield (Percentage)
 	| { "236=" & value: text }
-	  => @(new FixField.Yield(FixConvert.Decimal(value)))
+	  => @(new FixField.Yield(FixConvert.ToDecimal(value)))
 
 	// 237: TotalTakedown (Amt)
 	| { "237=" & value: text }
-	  => @(new FixField.TotalTakedown(FixConvert.Decimal(value)))
+	  => @(new FixField.TotalTakedown(FixConvert.ToDecimal(value)))
 
 	// 238: Concession (Amt)
 	| { "238=" & value: text }
-	  => @(new FixField.Concession(FixConvert.Decimal(value)))
+	  => @(new FixField.Concession(FixConvert.ToDecimal(value)))
 
 	// 239: RepoCollateralSecurityType (String)
 	| { "239=" & value: text }
-	  => @(new FixField.RepoCollateralSecurityType(FixConvert.Text(value)))
+	  => @(new FixField.RepoCollateralSecurityType(FixConvert.ToText(value)))
 
 	// 240: RedemptionDate (LocalMktDate)
 	| { "240=" & value: text }
-	  => @(new FixField.RedemptionDate(FixConvert.Date(value)))
+	  => @(new FixField.RedemptionDate(FixConvert.ToDate(value)))
 
 	// 241: UnderlyingCouponPaymentDate (LocalMktDate)
 	| { "241=" & value: text }
-	  => @(new FixField.UnderlyingCouponPaymentDate(FixConvert.Date(value)))
+	  => @(new FixField.UnderlyingCouponPaymentDate(FixConvert.ToDate(value)))
 
 	// 242: UnderlyingIssueDate (LocalMktDate)
 	| { "242=" & value: text }
-	  => @(new FixField.UnderlyingIssueDate(FixConvert.Date(value)))
+	  => @(new FixField.UnderlyingIssueDate(FixConvert.ToDate(value)))
 
 	// 243: UnderlyingRepoCollateralSecurityType (String)
 	| { "243=" & value: text }
-	  => @(new FixField.UnderlyingRepoCollateralSecurityType(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingRepoCollateralSecurityType(FixConvert.ToText(value)))
 
 	// 244: UnderlyingRepurchaseTerm (int)
 	| { "244=" & value: text }
-	  => @(new FixField.UnderlyingRepurchaseTerm(FixConvert.Integer(value)))
+	  => @(new FixField.UnderlyingRepurchaseTerm(FixConvert.ToInteger(value)))
 
 	// 245: UnderlyingRepurchaseRate (Percentage)
 	| { "245=" & value: text }
-	  => @(new FixField.UnderlyingRepurchaseRate(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingRepurchaseRate(FixConvert.ToDecimal(value)))
 
 	// 246: UnderlyingFactor (float)
 	| { "246=" & value: text }
-	  => @(new FixField.UnderlyingFactor(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingFactor(FixConvert.ToDecimal(value)))
 
 	// 247: UnderlyingRedemptionDate (LocalMktDate)
 	| { "247=" & value: text }
-	  => @(new FixField.UnderlyingRedemptionDate(FixConvert.Date(value)))
+	  => @(new FixField.UnderlyingRedemptionDate(FixConvert.ToDate(value)))
 
 	// 248: LegCouponPaymentDate (LocalMktDate)
 	| { "248=" & value: text }
-	  => @(new FixField.LegCouponPaymentDate(FixConvert.Date(value)))
+	  => @(new FixField.LegCouponPaymentDate(FixConvert.ToDate(value)))
 
 	// 249: LegIssueDate (LocalMktDate)
 	| { "249=" & value: text }
-	  => @(new FixField.LegIssueDate(FixConvert.Date(value)))
+	  => @(new FixField.LegIssueDate(FixConvert.ToDate(value)))
 
 	// 250: LegRepoCollateralSecurityType (String)
 	| { "250=" & value: text }
-	  => @(new FixField.LegRepoCollateralSecurityType(FixConvert.Text(value)))
+	  => @(new FixField.LegRepoCollateralSecurityType(FixConvert.ToText(value)))
 
 	// 251: LegRepurchaseTerm (int)
 	| { "251=" & value: text }
-	  => @(new FixField.LegRepurchaseTerm(FixConvert.Integer(value)))
+	  => @(new FixField.LegRepurchaseTerm(FixConvert.ToInteger(value)))
 
 	// 252: LegRepurchaseRate (Percentage)
 	| { "252=" & value: text }
-	  => @(new FixField.LegRepurchaseRate(FixConvert.Decimal(value)))
+	  => @(new FixField.LegRepurchaseRate(FixConvert.ToDecimal(value)))
 
 	// 253: LegFactor (float)
 	| { "253=" & value: text }
-	  => @(new FixField.LegFactor(FixConvert.Decimal(value)))
+	  => @(new FixField.LegFactor(FixConvert.ToDecimal(value)))
 
 	// 254: LegRedemptionDate (LocalMktDate)
 	| { "254=" & value: text }
-	  => @(new FixField.LegRedemptionDate(FixConvert.Date(value)))
+	  => @(new FixField.LegRedemptionDate(FixConvert.ToDate(value)))
 
 	// 255: CreditRating (String)
 	| { "255=" & value: text }
-	  => @(new FixField.CreditRating(FixConvert.Text(value)))
+	  => @(new FixField.CreditRating(FixConvert.ToText(value)))
 
 	// 256: UnderlyingCreditRating (String)
 	| { "256=" & value: text }
-	  => @(new FixField.UnderlyingCreditRating(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCreditRating(FixConvert.ToText(value)))
 
 	// 257: LegCreditRating (String)
 	| { "257=" & value: text }
-	  => @(new FixField.LegCreditRating(FixConvert.Text(value)))
+	  => @(new FixField.LegCreditRating(FixConvert.ToText(value)))
 
 	// 258: TradedFlatSwitch (Boolean)
 	| { "258=" & value: text }
-	  => @(new FixField.TradedFlatSwitch(FixConvert.Boolean(value)))
+	  => @(new FixField.TradedFlatSwitch(FixConvert.ToBoolean(value)))
 
 	// 259: BasisFeatureDate (LocalMktDate)
 	| { "259=" & value: text }
-	  => @(new FixField.BasisFeatureDate(FixConvert.Date(value)))
+	  => @(new FixField.BasisFeatureDate(FixConvert.ToDate(value)))
 
 	// 260: BasisFeaturePrice (Price)
 	| { "260=" & value: text }
-	  => @(new FixField.BasisFeaturePrice(FixConvert.Decimal(value)))
+	  => @(new FixField.BasisFeaturePrice(FixConvert.ToDecimal(value)))
 
 	// 262: MDReqID (String)
 	| { "262=" & value: text }
-	  => @(new FixField.MDReqID(FixConvert.Text(value)))
+	  => @(new FixField.MDReqID(FixConvert.ToText(value)))
 
 	// 263: SubscriptionRequestType (char)
 	| { "263=" & value: text }
-	  => @(new FixField.SubscriptionRequestType(FixConvert.Character(value)))
+	  => @(new FixField.SubscriptionRequestType(FixConvert.ToCharacter(value)))
 
 	// 264: MarketDepth (int)
 	| { "264=" & value: text }
-	  => @(new FixField.MarketDepth(FixConvert.Integer(value)))
+	  => @(new FixField.MarketDepth(FixConvert.ToInteger(value)))
 
 	// 265: MDUpdateType (int)
 	| { "265=" & value: text }
-	  => @(new FixField.MDUpdateType(FixConvert.Integer(value)))
+	  => @(new FixField.MDUpdateType(FixConvert.ToInteger(value)))
 
 	// 266: AggregatedBook (Boolean)
 	| { "266=" & value: text }
-	  => @(new FixField.AggregatedBook(FixConvert.Boolean(value)))
+	  => @(new FixField.AggregatedBook(FixConvert.ToBoolean(value)))
 
 	// 267: NoMDEntryTypes (NumInGroup)
 	| { "267=" & value: text }
-	  => @(new FixField.NoMDEntryTypes(FixConvert.Integer(value)))
+	  => @(new FixField.NoMDEntryTypes(FixConvert.ToInteger(value)))
 
 	// 268: NoMDEntries (NumInGroup)
 	| { "268=" & value: text }
-	  => @(new FixField.NoMDEntries(FixConvert.Integer(value)))
+	  => @(new FixField.NoMDEntries(FixConvert.ToInteger(value)))
 
 	// 269: MDEntryType (char)
 	| { "269=" & value: text }
-	  => @(new FixField.MDEntryType(FixConvert.Character(value)))
+	  => @(new FixField.MDEntryType(FixConvert.ToCharacter(value)))
 
 	// 270: MDEntryPx (Price)
 	| { "270=" & value: text }
-	  => @(new FixField.MDEntryPx(FixConvert.Decimal(value)))
+	  => @(new FixField.MDEntryPx(FixConvert.ToDecimal(value)))
 
 	// 271: MDEntrySize (Qty)
 	| { "271=" & value: text }
-	  => @(new FixField.MDEntrySize(FixConvert.Decimal(value)))
+	  => @(new FixField.MDEntrySize(FixConvert.ToDecimal(value)))
 
 	// 272: MDEntryDate (UTCDateOnly)
 	| { "272=" & value: text }
-	  => @(new FixField.MDEntryDate(FixConvert.Date(value)))
+	  => @(new FixField.MDEntryDate(FixConvert.ToDate(value)))
 
 	// 273: MDEntryTime (UTCTimeOnly)
 	| { "273=" & value: text }
-	  => @(new FixField.MDEntryTime(FixConvert.Time(value)))
+	  => @(new FixField.MDEntryTime(FixConvert.ToTime(value)))
 
 	// 274: TickDirection (char)
 	| { "274=" & value: text }
-	  => @(new FixField.TickDirection(FixConvert.Character(value)))
+	  => @(new FixField.TickDirection(FixConvert.ToCharacter(value)))
 
 	// 275: MDMkt (Exchange)
 	| { "275=" & value: text }
-	  => @(new FixField.MDMkt(FixConvert.Text(value)))
+	  => @(new FixField.MDMkt(FixConvert.ToText(value)))
 
 	// 276: QuoteCondition (MultipleValueString)
 	| { "276=" & value: text }
-	  => @(new FixField.QuoteCondition(FixConvert.Multiple(value)))
+	  => @(new FixField.QuoteCondition(FixConvert.ToMultiple(value)))
 
 	// 277: TradeCondition (MultipleValueString)
 	| { "277=" & value: text }
-	  => @(new FixField.TradeCondition(FixConvert.Multiple(value)))
+	  => @(new FixField.TradeCondition(FixConvert.ToMultiple(value)))
 
 	// 278: MDEntryID (String)
 	| { "278=" & value: text }
-	  => @(new FixField.MDEntryID(FixConvert.Text(value)))
+	  => @(new FixField.MDEntryID(FixConvert.ToText(value)))
 
 	// 279: MDUpdateAction (char)
 	| { "279=" & value: text }
-	  => @(new FixField.MDUpdateAction(FixConvert.Character(value)))
+	  => @(new FixField.MDUpdateAction(FixConvert.ToCharacter(value)))
 
 	// 280: MDEntryRefID (String)
 	| { "280=" & value: text }
-	  => @(new FixField.MDEntryRefID(FixConvert.Text(value)))
+	  => @(new FixField.MDEntryRefID(FixConvert.ToText(value)))
 
 	// 281: MDReqRejReason (char)
 	| { "281=" & value: text }
-	  => @(new FixField.MDReqRejReason(FixConvert.Character(value)))
+	  => @(new FixField.MDReqRejReason(FixConvert.ToCharacter(value)))
 
 	// 282: MDEntryOriginator (String)
 	| { "282=" & value: text }
-	  => @(new FixField.MDEntryOriginator(FixConvert.Text(value)))
+	  => @(new FixField.MDEntryOriginator(FixConvert.ToText(value)))
 
 	// 283: LocationID (String)
 	| { "283=" & value: text }
-	  => @(new FixField.LocationID(FixConvert.Text(value)))
+	  => @(new FixField.LocationID(FixConvert.ToText(value)))
 
 	// 284: DeskID (String)
 	| { "284=" & value: text }
-	  => @(new FixField.DeskID(FixConvert.Text(value)))
+	  => @(new FixField.DeskID(FixConvert.ToText(value)))
 
 	// 285: DeleteReason (char)
 	| { "285=" & value: text }
-	  => @(new FixField.DeleteReason(FixConvert.Character(value)))
+	  => @(new FixField.DeleteReason(FixConvert.ToCharacter(value)))
 
 	// 286: OpenCloseSettlFlag (MultipleValueString)
 	| { "286=" & value: text }
-	  => @(new FixField.OpenCloseSettlFlag(FixConvert.Multiple(value)))
+	  => @(new FixField.OpenCloseSettlFlag(FixConvert.ToMultiple(value)))
 
 	// 287: SellerDays (int)
 	| { "287=" & value: text }
-	  => @(new FixField.SellerDays(FixConvert.Integer(value)))
+	  => @(new FixField.SellerDays(FixConvert.ToInteger(value)))
 
 	// 288: MDEntryBuyer (String)
 	| { "288=" & value: text }
-	  => @(new FixField.MDEntryBuyer(FixConvert.Text(value)))
+	  => @(new FixField.MDEntryBuyer(FixConvert.ToText(value)))
 
 	// 289: MDEntrySeller (String)
 	| { "289=" & value: text }
-	  => @(new FixField.MDEntrySeller(FixConvert.Text(value)))
+	  => @(new FixField.MDEntrySeller(FixConvert.ToText(value)))
 
 	// 290: MDEntryPositionNo (int)
 	| { "290=" & value: text }
-	  => @(new FixField.MDEntryPositionNo(FixConvert.Integer(value)))
+	  => @(new FixField.MDEntryPositionNo(FixConvert.ToInteger(value)))
 
 	// 291: FinancialStatus (MultipleValueString)
 	| { "291=" & value: text }
-	  => @(new FixField.FinancialStatus(FixConvert.Multiple(value)))
+	  => @(new FixField.FinancialStatus(FixConvert.ToMultiple(value)))
 
 	// 292: CorporateAction (MultipleValueString)
 	| { "292=" & value: text }
-	  => @(new FixField.CorporateAction(FixConvert.Multiple(value)))
+	  => @(new FixField.CorporateAction(FixConvert.ToMultiple(value)))
 
 	// 293: DefBidSize (Qty)
 	| { "293=" & value: text }
-	  => @(new FixField.DefBidSize(FixConvert.Decimal(value)))
+	  => @(new FixField.DefBidSize(FixConvert.ToDecimal(value)))
 
 	// 294: DefOfferSize (Qty)
 	| { "294=" & value: text }
-	  => @(new FixField.DefOfferSize(FixConvert.Decimal(value)))
+	  => @(new FixField.DefOfferSize(FixConvert.ToDecimal(value)))
 
 	// 295: NoQuoteEntries (NumInGroup)
 	| { "295=" & value: text }
-	  => @(new FixField.NoQuoteEntries(FixConvert.Integer(value)))
+	  => @(new FixField.NoQuoteEntries(FixConvert.ToInteger(value)))
 
 	// 296: NoQuoteSets (NumInGroup)
 	| { "296=" & value: text }
-	  => @(new FixField.NoQuoteSets(FixConvert.Integer(value)))
+	  => @(new FixField.NoQuoteSets(FixConvert.ToInteger(value)))
 
 	// 297: QuoteStatus (int)
 	| { "297=" & value: text }
-	  => @(new FixField.QuoteStatus(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteStatus(FixConvert.ToInteger(value)))
 
 	// 298: QuoteCancelType (int)
 	| { "298=" & value: text }
-	  => @(new FixField.QuoteCancelType(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteCancelType(FixConvert.ToInteger(value)))
 
 	// 299: QuoteEntryID (String)
 	| { "299=" & value: text }
-	  => @(new FixField.QuoteEntryID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteEntryID(FixConvert.ToText(value)))
 
 	// 300: QuoteRejectReason (int)
 	| { "300=" & value: text }
-	  => @(new FixField.QuoteRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteRejectReason(FixConvert.ToInteger(value)))
 
 	// 301: QuoteResponseLevel (int)
 	| { "301=" & value: text }
-	  => @(new FixField.QuoteResponseLevel(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteResponseLevel(FixConvert.ToInteger(value)))
 
 	// 302: QuoteSetID (String)
 	| { "302=" & value: text }
-	  => @(new FixField.QuoteSetID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteSetID(FixConvert.ToText(value)))
 
 	// 303: QuoteRequestType (int)
 	| { "303=" & value: text }
-	  => @(new FixField.QuoteRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteRequestType(FixConvert.ToInteger(value)))
 
 	// 304: TotNoQuoteEntries (int)
 	| { "304=" & value: text }
-	  => @(new FixField.TotNoQuoteEntries(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoQuoteEntries(FixConvert.ToInteger(value)))
 
 	// 305: UnderlyingSecurityIDSource (String)
 	| { "305=" & value: text }
-	  => @(new FixField.UnderlyingSecurityIDSource(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityIDSource(FixConvert.ToText(value)))
 
 	// 306: UnderlyingIssuer (String)
 	| { "306=" & value: text }
-	  => @(new FixField.UnderlyingIssuer(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingIssuer(FixConvert.ToText(value)))
 
 	// 307: UnderlyingSecurityDesc (String)
 	| { "307=" & value: text }
-	  => @(new FixField.UnderlyingSecurityDesc(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityDesc(FixConvert.ToText(value)))
 
 	// 308: UnderlyingSecurityExchange (Exchange)
 	| { "308=" & value: text }
-	  => @(new FixField.UnderlyingSecurityExchange(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityExchange(FixConvert.ToText(value)))
 
 	// 309: UnderlyingSecurityID (String)
 	| { "309=" & value: text }
-	  => @(new FixField.UnderlyingSecurityID(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityID(FixConvert.ToText(value)))
 
 	// 310: UnderlyingSecurityType (String)
 	| { "310=" & value: text }
-	  => @(new FixField.UnderlyingSecurityType(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityType(FixConvert.ToText(value)))
 
 	// 311: UnderlyingSymbol (String)
 	| { "311=" & value: text }
-	  => @(new FixField.UnderlyingSymbol(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSymbol(FixConvert.ToText(value)))
 
 	// 312: UnderlyingSymbolSfx (String)
 	| { "312=" & value: text }
-	  => @(new FixField.UnderlyingSymbolSfx(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSymbolSfx(FixConvert.ToText(value)))
 
 	// 313: UnderlyingMaturityMonthYear (MonthYear)
 	| { "313=" & value: text }
-	  => @(new FixField.UnderlyingMaturityMonthYear(FixConvert.MonthYear(value)))
+	  => @(new FixField.UnderlyingMaturityMonthYear(FixConvert.ToMonthYear(value)))
 
 	// 315: UnderlyingPutOrCall (int)
 	| { "315=" & value: text }
-	  => @(new FixField.UnderlyingPutOrCall(FixConvert.Integer(value)))
+	  => @(new FixField.UnderlyingPutOrCall(FixConvert.ToInteger(value)))
 
 	// 316: UnderlyingStrikePrice (Price)
 	| { "316=" & value: text }
-	  => @(new FixField.UnderlyingStrikePrice(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingStrikePrice(FixConvert.ToDecimal(value)))
 
 	// 317: UnderlyingOptAttribute (char)
 	| { "317=" & value: text }
-	  => @(new FixField.UnderlyingOptAttribute(FixConvert.Character(value)))
+	  => @(new FixField.UnderlyingOptAttribute(FixConvert.ToCharacter(value)))
 
 	// 318: UnderlyingCurrency (Currency)
 	| { "318=" & value: text }
-	  => @(new FixField.UnderlyingCurrency(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCurrency(FixConvert.ToText(value)))
 
 	// 320: SecurityReqID (String)
 	| { "320=" & value: text }
-	  => @(new FixField.SecurityReqID(FixConvert.Text(value)))
+	  => @(new FixField.SecurityReqID(FixConvert.ToText(value)))
 
 	// 321: SecurityRequestType (int)
 	| { "321=" & value: text }
-	  => @(new FixField.SecurityRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.SecurityRequestType(FixConvert.ToInteger(value)))
 
 	// 322: SecurityResponseID (String)
 	| { "322=" & value: text }
-	  => @(new FixField.SecurityResponseID(FixConvert.Text(value)))
+	  => @(new FixField.SecurityResponseID(FixConvert.ToText(value)))
 
 	// 323: SecurityResponseType (int)
 	| { "323=" & value: text }
-	  => @(new FixField.SecurityResponseType(FixConvert.Integer(value)))
+	  => @(new FixField.SecurityResponseType(FixConvert.ToInteger(value)))
 
 	// 324: SecurityStatusReqID (String)
 	| { "324=" & value: text }
-	  => @(new FixField.SecurityStatusReqID(FixConvert.Text(value)))
+	  => @(new FixField.SecurityStatusReqID(FixConvert.ToText(value)))
 
 	// 325: UnsolicitedIndicator (Boolean)
 	| { "325=" & value: text }
-	  => @(new FixField.UnsolicitedIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.UnsolicitedIndicator(FixConvert.ToBoolean(value)))
 
 	// 326: SecurityTradingStatus (int)
 	| { "326=" & value: text }
-	  => @(new FixField.SecurityTradingStatus(FixConvert.Integer(value)))
+	  => @(new FixField.SecurityTradingStatus(FixConvert.ToInteger(value)))
 
 	// 327: HaltReason (char)
 	| { "327=" & value: text }
-	  => @(new FixField.HaltReason(FixConvert.Character(value)))
+	  => @(new FixField.HaltReason(FixConvert.ToCharacter(value)))
 
 	// 328: InViewOfCommon (Boolean)
 	| { "328=" & value: text }
-	  => @(new FixField.InViewOfCommon(FixConvert.Boolean(value)))
+	  => @(new FixField.InViewOfCommon(FixConvert.ToBoolean(value)))
 
 	// 329: DueToRelated (Boolean)
 	| { "329=" & value: text }
-	  => @(new FixField.DueToRelated(FixConvert.Boolean(value)))
+	  => @(new FixField.DueToRelated(FixConvert.ToBoolean(value)))
 
 	// 330: BuyVolume (Qty)
 	| { "330=" & value: text }
-	  => @(new FixField.BuyVolume(FixConvert.Decimal(value)))
+	  => @(new FixField.BuyVolume(FixConvert.ToDecimal(value)))
 
 	// 331: SellVolume (Qty)
 	| { "331=" & value: text }
-	  => @(new FixField.SellVolume(FixConvert.Decimal(value)))
+	  => @(new FixField.SellVolume(FixConvert.ToDecimal(value)))
 
 	// 332: HighPx (Price)
 	| { "332=" & value: text }
-	  => @(new FixField.HighPx(FixConvert.Decimal(value)))
+	  => @(new FixField.HighPx(FixConvert.ToDecimal(value)))
 
 	// 333: LowPx (Price)
 	| { "333=" & value: text }
-	  => @(new FixField.LowPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LowPx(FixConvert.ToDecimal(value)))
 
 	// 334: Adjustment (int)
 	| { "334=" & value: text }
-	  => @(new FixField.Adjustment(FixConvert.Integer(value)))
+	  => @(new FixField.Adjustment(FixConvert.ToInteger(value)))
 
 	// 335: TradSesReqID (String)
 	| { "335=" & value: text }
-	  => @(new FixField.TradSesReqID(FixConvert.Text(value)))
+	  => @(new FixField.TradSesReqID(FixConvert.ToText(value)))
 
 	// 336: TradingSessionID (String)
 	| { "336=" & value: text }
-	  => @(new FixField.TradingSessionID(FixConvert.Text(value)))
+	  => @(new FixField.TradingSessionID(FixConvert.ToText(value)))
 
 	// 337: ContraTrader (String)
 	| { "337=" & value: text }
-	  => @(new FixField.ContraTrader(FixConvert.Text(value)))
+	  => @(new FixField.ContraTrader(FixConvert.ToText(value)))
 
 	// 338: TradSesMethod (int)
 	| { "338=" & value: text }
-	  => @(new FixField.TradSesMethod(FixConvert.Integer(value)))
+	  => @(new FixField.TradSesMethod(FixConvert.ToInteger(value)))
 
 	// 339: TradSesMode (int)
 	| { "339=" & value: text }
-	  => @(new FixField.TradSesMode(FixConvert.Integer(value)))
+	  => @(new FixField.TradSesMode(FixConvert.ToInteger(value)))
 
 	// 340: TradSesStatus (int)
 	| { "340=" & value: text }
-	  => @(new FixField.TradSesStatus(FixConvert.Integer(value)))
+	  => @(new FixField.TradSesStatus(FixConvert.ToInteger(value)))
 
 	// 341: TradSesStartTime (UTCTimestamp)
 	| { "341=" & value: text }
-	  => @(new FixField.TradSesStartTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TradSesStartTime(FixConvert.ToTimestamp(value)))
 
 	// 342: TradSesOpenTime (UTCTimestamp)
 	| { "342=" & value: text }
-	  => @(new FixField.TradSesOpenTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TradSesOpenTime(FixConvert.ToTimestamp(value)))
 
 	// 343: TradSesPreCloseTime (UTCTimestamp)
 	| { "343=" & value: text }
-	  => @(new FixField.TradSesPreCloseTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TradSesPreCloseTime(FixConvert.ToTimestamp(value)))
 
 	// 344: TradSesCloseTime (UTCTimestamp)
 	| { "344=" & value: text }
-	  => @(new FixField.TradSesCloseTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TradSesCloseTime(FixConvert.ToTimestamp(value)))
 
 	// 345: TradSesEndTime (UTCTimestamp)
 	| { "345=" & value: text }
-	  => @(new FixField.TradSesEndTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TradSesEndTime(FixConvert.ToTimestamp(value)))
 
 	// 346: NumberOfOrders (int)
 	| { "346=" & value: text }
-	  => @(new FixField.NumberOfOrders(FixConvert.Integer(value)))
+	  => @(new FixField.NumberOfOrders(FixConvert.ToInteger(value)))
 
 	// 347: MessageEncoding (String)
 	| { "347=" & value: text }
-	  => @(new FixField.MessageEncoding(FixConvert.Text(value)))
+	  => @(new FixField.MessageEncoding(FixConvert.ToText(value)))
 
 	// 366: AllocPrice (Price)
 	| { "366=" & value: text }
-	  => @(new FixField.AllocPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocPrice(FixConvert.ToDecimal(value)))
 
 	// 367: QuoteSetValidUntilTime (UTCTimestamp)
 	| { "367=" & value: text }
-	  => @(new FixField.QuoteSetValidUntilTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.QuoteSetValidUntilTime(FixConvert.ToTimestamp(value)))
 
 	// 368: QuoteEntryRejectReason (int)
 	| { "368=" & value: text }
-	  => @(new FixField.QuoteEntryRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteEntryRejectReason(FixConvert.ToInteger(value)))
 
 	// 369: LastMsgSeqNumProcessed (SeqNum)
 	| { "369=" & value: text }
-	  => @(new FixField.LastMsgSeqNumProcessed(FixConvert.Integer(value)))
+	  => @(new FixField.LastMsgSeqNumProcessed(FixConvert.ToInteger(value)))
 
 	// 371: RefTagID (int)
 	| { "371=" & value: text }
-	  => @(new FixField.RefTagID(FixConvert.Integer(value)))
+	  => @(new FixField.RefTagID(FixConvert.ToInteger(value)))
 
 	// 372: RefMsgType (String)
 	| { "372=" & value: text }
-	  => @(new FixField.RefMsgType(FixConvert.Text(value)))
+	  => @(new FixField.RefMsgType(FixConvert.ToText(value)))
 
 	// 373: SessionRejectReason (int)
 	| { "373=" & value: text }
-	  => @(new FixField.SessionRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.SessionRejectReason(FixConvert.ToInteger(value)))
 
 	// 374: BidRequestTransType (char)
 	| { "374=" & value: text }
-	  => @(new FixField.BidRequestTransType(FixConvert.Character(value)))
+	  => @(new FixField.BidRequestTransType(FixConvert.ToCharacter(value)))
 
 	// 375: ContraBroker (String)
 	| { "375=" & value: text }
-	  => @(new FixField.ContraBroker(FixConvert.Text(value)))
+	  => @(new FixField.ContraBroker(FixConvert.ToText(value)))
 
 	// 376: ComplianceID (String)
 	| { "376=" & value: text }
-	  => @(new FixField.ComplianceID(FixConvert.Text(value)))
+	  => @(new FixField.ComplianceID(FixConvert.ToText(value)))
 
 	// 377: SolicitedFlag (Boolean)
 	| { "377=" & value: text }
-	  => @(new FixField.SolicitedFlag(FixConvert.Boolean(value)))
+	  => @(new FixField.SolicitedFlag(FixConvert.ToBoolean(value)))
 
 	// 378: ExecRestatementReason (int)
 	| { "378=" & value: text }
-	  => @(new FixField.ExecRestatementReason(FixConvert.Integer(value)))
+	  => @(new FixField.ExecRestatementReason(FixConvert.ToInteger(value)))
 
 	// 379: BusinessRejectRefID (String)
 	| { "379=" & value: text }
-	  => @(new FixField.BusinessRejectRefID(FixConvert.Text(value)))
+	  => @(new FixField.BusinessRejectRefID(FixConvert.ToText(value)))
 
 	// 380: BusinessRejectReason (int)
 	| { "380=" & value: text }
-	  => @(new FixField.BusinessRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.BusinessRejectReason(FixConvert.ToInteger(value)))
 
 	// 381: GrossTradeAmt (Amt)
 	| { "381=" & value: text }
-	  => @(new FixField.GrossTradeAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.GrossTradeAmt(FixConvert.ToDecimal(value)))
 
 	// 382: NoContraBrokers (NumInGroup)
 	| { "382=" & value: text }
-	  => @(new FixField.NoContraBrokers(FixConvert.Integer(value)))
+	  => @(new FixField.NoContraBrokers(FixConvert.ToInteger(value)))
 
 	// 383: MaxMessageSize (Length)
 	| { "383=" & value: text }
-	  => @(new FixField.MaxMessageSize(FixConvert.Integer(value)))
+	  => @(new FixField.MaxMessageSize(FixConvert.ToInteger(value)))
 
 	// 384: NoMsgTypes (NumInGroup)
 	| { "384=" & value: text }
-	  => @(new FixField.NoMsgTypes(FixConvert.Integer(value)))
+	  => @(new FixField.NoMsgTypes(FixConvert.ToInteger(value)))
 
 	// 385: MsgDirection (char)
 	| { "385=" & value: text }
-	  => @(new FixField.MsgDirection(FixConvert.Character(value)))
+	  => @(new FixField.MsgDirection(FixConvert.ToCharacter(value)))
 
 	// 386: NoTradingSessions (NumInGroup)
 	| { "386=" & value: text }
-	  => @(new FixField.NoTradingSessions(FixConvert.Integer(value)))
+	  => @(new FixField.NoTradingSessions(FixConvert.ToInteger(value)))
 
 	// 387: TotalVolumeTraded (Qty)
 	| { "387=" & value: text }
-	  => @(new FixField.TotalVolumeTraded(FixConvert.Decimal(value)))
+	  => @(new FixField.TotalVolumeTraded(FixConvert.ToDecimal(value)))
 
 	// 388: DiscretionInst (char)
 	| { "388=" & value: text }
-	  => @(new FixField.DiscretionInst(FixConvert.Character(value)))
+	  => @(new FixField.DiscretionInst(FixConvert.ToCharacter(value)))
 
 	// 389: DiscretionOffsetValue (float)
 	| { "389=" & value: text }
-	  => @(new FixField.DiscretionOffsetValue(FixConvert.Decimal(value)))
+	  => @(new FixField.DiscretionOffsetValue(FixConvert.ToDecimal(value)))
 
 	// 390: BidID (String)
 	| { "390=" & value: text }
-	  => @(new FixField.BidID(FixConvert.Text(value)))
+	  => @(new FixField.BidID(FixConvert.ToText(value)))
 
 	// 391: ClientBidID (String)
 	| { "391=" & value: text }
-	  => @(new FixField.ClientBidID(FixConvert.Text(value)))
+	  => @(new FixField.ClientBidID(FixConvert.ToText(value)))
 
 	// 392: ListName (String)
 	| { "392=" & value: text }
-	  => @(new FixField.ListName(FixConvert.Text(value)))
+	  => @(new FixField.ListName(FixConvert.ToText(value)))
 
 	// 393: TotNoRelatedSym (int)
 	| { "393=" & value: text }
-	  => @(new FixField.TotNoRelatedSym(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoRelatedSym(FixConvert.ToInteger(value)))
 
 	// 394: BidType (int)
 	| { "394=" & value: text }
-	  => @(new FixField.BidType(FixConvert.Integer(value)))
+	  => @(new FixField.BidType(FixConvert.ToInteger(value)))
 
 	// 395: NumTickets (int)
 	| { "395=" & value: text }
-	  => @(new FixField.NumTickets(FixConvert.Integer(value)))
+	  => @(new FixField.NumTickets(FixConvert.ToInteger(value)))
 
 	// 396: SideValue1 (Amt)
 	| { "396=" & value: text }
-	  => @(new FixField.SideValue1(FixConvert.Decimal(value)))
+	  => @(new FixField.SideValue1(FixConvert.ToDecimal(value)))
 
 	// 397: SideValue2 (Amt)
 	| { "397=" & value: text }
-	  => @(new FixField.SideValue2(FixConvert.Decimal(value)))
+	  => @(new FixField.SideValue2(FixConvert.ToDecimal(value)))
 
 	// 398: NoBidDescriptors (NumInGroup)
 	| { "398=" & value: text }
-	  => @(new FixField.NoBidDescriptors(FixConvert.Integer(value)))
+	  => @(new FixField.NoBidDescriptors(FixConvert.ToInteger(value)))
 
 	// 399: BidDescriptorType (int)
 	| { "399=" & value: text }
-	  => @(new FixField.BidDescriptorType(FixConvert.Integer(value)))
+	  => @(new FixField.BidDescriptorType(FixConvert.ToInteger(value)))
 
 	// 400: BidDescriptor (String)
 	| { "400=" & value: text }
-	  => @(new FixField.BidDescriptor(FixConvert.Text(value)))
+	  => @(new FixField.BidDescriptor(FixConvert.ToText(value)))
 
 	// 401: SideValueInd (int)
 	| { "401=" & value: text }
-	  => @(new FixField.SideValueInd(FixConvert.Integer(value)))
+	  => @(new FixField.SideValueInd(FixConvert.ToInteger(value)))
 
 	// 402: LiquidityPctLow (Percentage)
 	| { "402=" & value: text }
-	  => @(new FixField.LiquidityPctLow(FixConvert.Decimal(value)))
+	  => @(new FixField.LiquidityPctLow(FixConvert.ToDecimal(value)))
 
 	// 403: LiquidityPctHigh (Percentage)
 	| { "403=" & value: text }
-	  => @(new FixField.LiquidityPctHigh(FixConvert.Decimal(value)))
+	  => @(new FixField.LiquidityPctHigh(FixConvert.ToDecimal(value)))
 
 	// 404: LiquidityValue (Amt)
 	| { "404=" & value: text }
-	  => @(new FixField.LiquidityValue(FixConvert.Decimal(value)))
+	  => @(new FixField.LiquidityValue(FixConvert.ToDecimal(value)))
 
 	// 405: EFPTrackingError (Percentage)
 	| { "405=" & value: text }
-	  => @(new FixField.EFPTrackingError(FixConvert.Decimal(value)))
+	  => @(new FixField.EFPTrackingError(FixConvert.ToDecimal(value)))
 
 	// 406: FairValue (Amt)
 	| { "406=" & value: text }
-	  => @(new FixField.FairValue(FixConvert.Decimal(value)))
+	  => @(new FixField.FairValue(FixConvert.ToDecimal(value)))
 
 	// 407: OutsideIndexPct (Percentage)
 	| { "407=" & value: text }
-	  => @(new FixField.OutsideIndexPct(FixConvert.Decimal(value)))
+	  => @(new FixField.OutsideIndexPct(FixConvert.ToDecimal(value)))
 
 	// 408: ValueOfFutures (Amt)
 	| { "408=" & value: text }
-	  => @(new FixField.ValueOfFutures(FixConvert.Decimal(value)))
+	  => @(new FixField.ValueOfFutures(FixConvert.ToDecimal(value)))
 
 	// 409: LiquidityIndType (int)
 	| { "409=" & value: text }
-	  => @(new FixField.LiquidityIndType(FixConvert.Integer(value)))
+	  => @(new FixField.LiquidityIndType(FixConvert.ToInteger(value)))
 
 	// 410: WtAverageLiquidity (Percentage)
 	| { "410=" & value: text }
-	  => @(new FixField.WtAverageLiquidity(FixConvert.Decimal(value)))
+	  => @(new FixField.WtAverageLiquidity(FixConvert.ToDecimal(value)))
 
 	// 411: ExchangeForPhysical (Boolean)
 	| { "411=" & value: text }
-	  => @(new FixField.ExchangeForPhysical(FixConvert.Boolean(value)))
+	  => @(new FixField.ExchangeForPhysical(FixConvert.ToBoolean(value)))
 
 	// 412: OutMainCntryUIndex (Amt)
 	| { "412=" & value: text }
-	  => @(new FixField.OutMainCntryUIndex(FixConvert.Decimal(value)))
+	  => @(new FixField.OutMainCntryUIndex(FixConvert.ToDecimal(value)))
 
 	// 413: CrossPercent (Percentage)
 	| { "413=" & value: text }
-	  => @(new FixField.CrossPercent(FixConvert.Decimal(value)))
+	  => @(new FixField.CrossPercent(FixConvert.ToDecimal(value)))
 
 	// 414: ProgRptReqs (int)
 	| { "414=" & value: text }
-	  => @(new FixField.ProgRptReqs(FixConvert.Integer(value)))
+	  => @(new FixField.ProgRptReqs(FixConvert.ToInteger(value)))
 
 	// 415: ProgPeriodInterval (int)
 	| { "415=" & value: text }
-	  => @(new FixField.ProgPeriodInterval(FixConvert.Integer(value)))
+	  => @(new FixField.ProgPeriodInterval(FixConvert.ToInteger(value)))
 
 	// 416: IncTaxInd (int)
 	| { "416=" & value: text }
-	  => @(new FixField.IncTaxInd(FixConvert.Integer(value)))
+	  => @(new FixField.IncTaxInd(FixConvert.ToInteger(value)))
 
 	// 417: NumBidders (int)
 	| { "417=" & value: text }
-	  => @(new FixField.NumBidders(FixConvert.Integer(value)))
+	  => @(new FixField.NumBidders(FixConvert.ToInteger(value)))
 
 	// 418: BidTradeType (char)
 	| { "418=" & value: text }
-	  => @(new FixField.BidTradeType(FixConvert.Character(value)))
+	  => @(new FixField.BidTradeType(FixConvert.ToCharacter(value)))
 
 	// 419: BasisPxType (char)
 	| { "419=" & value: text }
-	  => @(new FixField.BasisPxType(FixConvert.Character(value)))
+	  => @(new FixField.BasisPxType(FixConvert.ToCharacter(value)))
 
 	// 420: NoBidComponents (NumInGroup)
 	| { "420=" & value: text }
-	  => @(new FixField.NoBidComponents(FixConvert.Integer(value)))
+	  => @(new FixField.NoBidComponents(FixConvert.ToInteger(value)))
 
 	// 421: Country (Country)
 	| { "421=" & value: text }
-	  => @(new FixField.Country(FixConvert.Text(value)))
+	  => @(new FixField.Country(FixConvert.ToText(value)))
 
 	// 422: TotNoStrikes (int)
 	| { "422=" & value: text }
-	  => @(new FixField.TotNoStrikes(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoStrikes(FixConvert.ToInteger(value)))
 
 	// 423: PriceType (int)
 	| { "423=" & value: text }
-	  => @(new FixField.PriceType(FixConvert.Integer(value)))
+	  => @(new FixField.PriceType(FixConvert.ToInteger(value)))
 
 	// 424: DayOrderQty (Qty)
 	| { "424=" & value: text }
-	  => @(new FixField.DayOrderQty(FixConvert.Decimal(value)))
+	  => @(new FixField.DayOrderQty(FixConvert.ToDecimal(value)))
 
 	// 425: DayCumQty (Qty)
 	| { "425=" & value: text }
-	  => @(new FixField.DayCumQty(FixConvert.Decimal(value)))
+	  => @(new FixField.DayCumQty(FixConvert.ToDecimal(value)))
 
 	// 426: DayAvgPx (Price)
 	| { "426=" & value: text }
-	  => @(new FixField.DayAvgPx(FixConvert.Decimal(value)))
+	  => @(new FixField.DayAvgPx(FixConvert.ToDecimal(value)))
 
 	// 427: GTBookingInst (int)
 	| { "427=" & value: text }
-	  => @(new FixField.GTBookingInst(FixConvert.Integer(value)))
+	  => @(new FixField.GTBookingInst(FixConvert.ToInteger(value)))
 
 	// 428: NoStrikes (NumInGroup)
 	| { "428=" & value: text }
-	  => @(new FixField.NoStrikes(FixConvert.Integer(value)))
+	  => @(new FixField.NoStrikes(FixConvert.ToInteger(value)))
 
 	// 429: ListStatusType (int)
 	| { "429=" & value: text }
-	  => @(new FixField.ListStatusType(FixConvert.Integer(value)))
+	  => @(new FixField.ListStatusType(FixConvert.ToInteger(value)))
 
 	// 430: NetGrossInd (int)
 	| { "430=" & value: text }
-	  => @(new FixField.NetGrossInd(FixConvert.Integer(value)))
+	  => @(new FixField.NetGrossInd(FixConvert.ToInteger(value)))
 
 	// 431: ListOrderStatus (int)
 	| { "431=" & value: text }
-	  => @(new FixField.ListOrderStatus(FixConvert.Integer(value)))
+	  => @(new FixField.ListOrderStatus(FixConvert.ToInteger(value)))
 
 	// 432: ExpireDate (LocalMktDate)
 	| { "432=" & value: text }
-	  => @(new FixField.ExpireDate(FixConvert.Date(value)))
+	  => @(new FixField.ExpireDate(FixConvert.ToDate(value)))
 
 	// 433: ListExecInstType (char)
 	| { "433=" & value: text }
-	  => @(new FixField.ListExecInstType(FixConvert.Character(value)))
+	  => @(new FixField.ListExecInstType(FixConvert.ToCharacter(value)))
 
 	// 434: CxlRejResponseTo (char)
 	| { "434=" & value: text }
-	  => @(new FixField.CxlRejResponseTo(FixConvert.Character(value)))
+	  => @(new FixField.CxlRejResponseTo(FixConvert.ToCharacter(value)))
 
 	// 435: UnderlyingCouponRate (Percentage)
 	| { "435=" & value: text }
-	  => @(new FixField.UnderlyingCouponRate(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingCouponRate(FixConvert.ToDecimal(value)))
 
 	// 436: UnderlyingContractMultiplier (float)
 	| { "436=" & value: text }
-	  => @(new FixField.UnderlyingContractMultiplier(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingContractMultiplier(FixConvert.ToDecimal(value)))
 
 	// 437: ContraTradeQty (Qty)
 	| { "437=" & value: text }
-	  => @(new FixField.ContraTradeQty(FixConvert.Decimal(value)))
+	  => @(new FixField.ContraTradeQty(FixConvert.ToDecimal(value)))
 
 	// 438: ContraTradeTime (UTCTimestamp)
 	| { "438=" & value: text }
-	  => @(new FixField.ContraTradeTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.ContraTradeTime(FixConvert.ToTimestamp(value)))
 
 	// 441: LiquidityNumSecurities (int)
 	| { "441=" & value: text }
-	  => @(new FixField.LiquidityNumSecurities(FixConvert.Integer(value)))
+	  => @(new FixField.LiquidityNumSecurities(FixConvert.ToInteger(value)))
 
 	// 442: MultiLegReportingType (char)
 	| { "442=" & value: text }
-	  => @(new FixField.MultiLegReportingType(FixConvert.Character(value)))
+	  => @(new FixField.MultiLegReportingType(FixConvert.ToCharacter(value)))
 
 	// 443: StrikeTime (UTCTimestamp)
 	| { "443=" & value: text }
-	  => @(new FixField.StrikeTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.StrikeTime(FixConvert.ToTimestamp(value)))
 
 	// 444: ListStatusText (String)
 	| { "444=" & value: text }
-	  => @(new FixField.ListStatusText(FixConvert.Text(value)))
+	  => @(new FixField.ListStatusText(FixConvert.ToText(value)))
 
 	// 447: PartyIDSource (char)
 	| { "447=" & value: text }
-	  => @(new FixField.PartyIDSource(FixConvert.Character(value)))
+	  => @(new FixField.PartyIDSource(FixConvert.ToCharacter(value)))
 
 	// 448: PartyID (String)
 	| { "448=" & value: text }
-	  => @(new FixField.PartyID(FixConvert.Text(value)))
+	  => @(new FixField.PartyID(FixConvert.ToText(value)))
 
 	// 451: NetChgPrevDay (PriceOffset)
 	| { "451=" & value: text }
-	  => @(new FixField.NetChgPrevDay(FixConvert.Decimal(value)))
+	  => @(new FixField.NetChgPrevDay(FixConvert.ToDecimal(value)))
 
 	// 452: PartyRole (int)
 	| { "452=" & value: text }
-	  => @(new FixField.PartyRole(FixConvert.Integer(value)))
+	  => @(new FixField.PartyRole(FixConvert.ToInteger(value)))
 
 	// 453: NoPartyIDs (NumInGroup)
 	| { "453=" & value: text }
-	  => @(new FixField.NoPartyIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoPartyIDs(FixConvert.ToInteger(value)))
 
 	// 454: NoSecurityAltID (NumInGroup)
 	| { "454=" & value: text }
-	  => @(new FixField.NoSecurityAltID(FixConvert.Integer(value)))
+	  => @(new FixField.NoSecurityAltID(FixConvert.ToInteger(value)))
 
 	// 455: SecurityAltID (String)
 	| { "455=" & value: text }
-	  => @(new FixField.SecurityAltID(FixConvert.Text(value)))
+	  => @(new FixField.SecurityAltID(FixConvert.ToText(value)))
 
 	// 456: SecurityAltIDSource (String)
 	| { "456=" & value: text }
-	  => @(new FixField.SecurityAltIDSource(FixConvert.Text(value)))
+	  => @(new FixField.SecurityAltIDSource(FixConvert.ToText(value)))
 
 	// 457: NoUnderlyingSecurityAltID (NumInGroup)
 	| { "457=" & value: text }
-	  => @(new FixField.NoUnderlyingSecurityAltID(FixConvert.Integer(value)))
+	  => @(new FixField.NoUnderlyingSecurityAltID(FixConvert.ToInteger(value)))
 
 	// 458: UnderlyingSecurityAltID (String)
 	| { "458=" & value: text }
-	  => @(new FixField.UnderlyingSecurityAltID(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityAltID(FixConvert.ToText(value)))
 
 	// 459: UnderlyingSecurityAltIDSource (String)
 	| { "459=" & value: text }
-	  => @(new FixField.UnderlyingSecurityAltIDSource(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecurityAltIDSource(FixConvert.ToText(value)))
 
 	// 460: Product (int)
 	| { "460=" & value: text }
-	  => @(new FixField.Product(FixConvert.Integer(value)))
+	  => @(new FixField.Product(FixConvert.ToInteger(value)))
 
 	// 461: CFICode (String)
 	| { "461=" & value: text }
-	  => @(new FixField.CFICode(FixConvert.Text(value)))
+	  => @(new FixField.CFICode(FixConvert.ToText(value)))
 
 	// 462: UnderlyingProduct (int)
 	| { "462=" & value: text }
-	  => @(new FixField.UnderlyingProduct(FixConvert.Integer(value)))
+	  => @(new FixField.UnderlyingProduct(FixConvert.ToInteger(value)))
 
 	// 463: UnderlyingCFICode (String)
 	| { "463=" & value: text }
-	  => @(new FixField.UnderlyingCFICode(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCFICode(FixConvert.ToText(value)))
 
 	// 464: TestMessageIndicator (Boolean)
 	| { "464=" & value: text }
-	  => @(new FixField.TestMessageIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.TestMessageIndicator(FixConvert.ToBoolean(value)))
 
 	// 466: BookingRefID (String)
 	| { "466=" & value: text }
-	  => @(new FixField.BookingRefID(FixConvert.Text(value)))
+	  => @(new FixField.BookingRefID(FixConvert.ToText(value)))
 
 	// 467: IndividualAllocID (String)
 	| { "467=" & value: text }
-	  => @(new FixField.IndividualAllocID(FixConvert.Text(value)))
+	  => @(new FixField.IndividualAllocID(FixConvert.ToText(value)))
 
 	// 468: RoundingDirection (char)
 	| { "468=" & value: text }
-	  => @(new FixField.RoundingDirection(FixConvert.Character(value)))
+	  => @(new FixField.RoundingDirection(FixConvert.ToCharacter(value)))
 
 	// 469: RoundingModulus (float)
 	| { "469=" & value: text }
-	  => @(new FixField.RoundingModulus(FixConvert.Decimal(value)))
+	  => @(new FixField.RoundingModulus(FixConvert.ToDecimal(value)))
 
 	// 470: CountryOfIssue (Country)
 	| { "470=" & value: text }
-	  => @(new FixField.CountryOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.CountryOfIssue(FixConvert.ToText(value)))
 
 	// 471: StateOrProvinceOfIssue (String)
 	| { "471=" & value: text }
-	  => @(new FixField.StateOrProvinceOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.StateOrProvinceOfIssue(FixConvert.ToText(value)))
 
 	// 472: LocaleOfIssue (String)
 	| { "472=" & value: text }
-	  => @(new FixField.LocaleOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.LocaleOfIssue(FixConvert.ToText(value)))
 
 	// 473: NoRegistDtls (NumInGroup)
 	| { "473=" & value: text }
-	  => @(new FixField.NoRegistDtls(FixConvert.Integer(value)))
+	  => @(new FixField.NoRegistDtls(FixConvert.ToInteger(value)))
 
 	// 474: MailingDtls (String)
 	| { "474=" & value: text }
-	  => @(new FixField.MailingDtls(FixConvert.Text(value)))
+	  => @(new FixField.MailingDtls(FixConvert.ToText(value)))
 
 	// 475: InvestorCountryOfResidence (Country)
 	| { "475=" & value: text }
-	  => @(new FixField.InvestorCountryOfResidence(FixConvert.Text(value)))
+	  => @(new FixField.InvestorCountryOfResidence(FixConvert.ToText(value)))
 
 	// 476: PaymentRef (String)
 	| { "476=" & value: text }
-	  => @(new FixField.PaymentRef(FixConvert.Text(value)))
+	  => @(new FixField.PaymentRef(FixConvert.ToText(value)))
 
 	// 477: DistribPaymentMethod (int)
 	| { "477=" & value: text }
-	  => @(new FixField.DistribPaymentMethod(FixConvert.Integer(value)))
+	  => @(new FixField.DistribPaymentMethod(FixConvert.ToInteger(value)))
 
 	// 478: CashDistribCurr (Currency)
 	| { "478=" & value: text }
-	  => @(new FixField.CashDistribCurr(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribCurr(FixConvert.ToText(value)))
 
 	// 479: CommCurrency (Currency)
 	| { "479=" & value: text }
-	  => @(new FixField.CommCurrency(FixConvert.Text(value)))
+	  => @(new FixField.CommCurrency(FixConvert.ToText(value)))
 
 	// 480: CancellationRights (char)
 	| { "480=" & value: text }
-	  => @(new FixField.CancellationRights(FixConvert.Character(value)))
+	  => @(new FixField.CancellationRights(FixConvert.ToCharacter(value)))
 
 	// 481: MoneyLaunderingStatus (char)
 	| { "481=" & value: text }
-	  => @(new FixField.MoneyLaunderingStatus(FixConvert.Character(value)))
+	  => @(new FixField.MoneyLaunderingStatus(FixConvert.ToCharacter(value)))
 
 	// 482: MailingInst (String)
 	| { "482=" & value: text }
-	  => @(new FixField.MailingInst(FixConvert.Text(value)))
+	  => @(new FixField.MailingInst(FixConvert.ToText(value)))
 
 	// 483: TransBkdTime (UTCTimestamp)
 	| { "483=" & value: text }
-	  => @(new FixField.TransBkdTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.TransBkdTime(FixConvert.ToTimestamp(value)))
 
 	// 484: ExecPriceType (char)
 	| { "484=" & value: text }
-	  => @(new FixField.ExecPriceType(FixConvert.Character(value)))
+	  => @(new FixField.ExecPriceType(FixConvert.ToCharacter(value)))
 
 	// 485: ExecPriceAdjustment (float)
 	| { "485=" & value: text }
-	  => @(new FixField.ExecPriceAdjustment(FixConvert.Decimal(value)))
+	  => @(new FixField.ExecPriceAdjustment(FixConvert.ToDecimal(value)))
 
 	// 486: DateOfBirth (LocalMktDate)
 	| { "486=" & value: text }
-	  => @(new FixField.DateOfBirth(FixConvert.Date(value)))
+	  => @(new FixField.DateOfBirth(FixConvert.ToDate(value)))
 
 	// 487: TradeReportTransType (int)
 	| { "487=" & value: text }
-	  => @(new FixField.TradeReportTransType(FixConvert.Integer(value)))
+	  => @(new FixField.TradeReportTransType(FixConvert.ToInteger(value)))
 
 	// 488: CardHolderName (String)
 	| { "488=" & value: text }
-	  => @(new FixField.CardHolderName(FixConvert.Text(value)))
+	  => @(new FixField.CardHolderName(FixConvert.ToText(value)))
 
 	// 489: CardNumber (String)
 	| { "489=" & value: text }
-	  => @(new FixField.CardNumber(FixConvert.Text(value)))
+	  => @(new FixField.CardNumber(FixConvert.ToText(value)))
 
 	// 490: CardExpDate (LocalMktDate)
 	| { "490=" & value: text }
-	  => @(new FixField.CardExpDate(FixConvert.Date(value)))
+	  => @(new FixField.CardExpDate(FixConvert.ToDate(value)))
 
 	// 491: CardIssNum (String)
 	| { "491=" & value: text }
-	  => @(new FixField.CardIssNum(FixConvert.Text(value)))
+	  => @(new FixField.CardIssNum(FixConvert.ToText(value)))
 
 	// 492: PaymentMethod (int)
 	| { "492=" & value: text }
-	  => @(new FixField.PaymentMethod(FixConvert.Integer(value)))
+	  => @(new FixField.PaymentMethod(FixConvert.ToInteger(value)))
 
 	// 493: RegistAcctType (String)
 	| { "493=" & value: text }
-	  => @(new FixField.RegistAcctType(FixConvert.Text(value)))
+	  => @(new FixField.RegistAcctType(FixConvert.ToText(value)))
 
 	// 494: Designation (String)
 	| { "494=" & value: text }
-	  => @(new FixField.Designation(FixConvert.Text(value)))
+	  => @(new FixField.Designation(FixConvert.ToText(value)))
 
 	// 495: TaxAdvantageType (int)
 	| { "495=" & value: text }
-	  => @(new FixField.TaxAdvantageType(FixConvert.Integer(value)))
+	  => @(new FixField.TaxAdvantageType(FixConvert.ToInteger(value)))
 
 	// 496: RegistRejReasonText (String)
 	| { "496=" & value: text }
-	  => @(new FixField.RegistRejReasonText(FixConvert.Text(value)))
+	  => @(new FixField.RegistRejReasonText(FixConvert.ToText(value)))
 
 	// 497: FundRenewWaiv (char)
 	| { "497=" & value: text }
-	  => @(new FixField.FundRenewWaiv(FixConvert.Character(value)))
+	  => @(new FixField.FundRenewWaiv(FixConvert.ToCharacter(value)))
 
 	// 498: CashDistribAgentName (String)
 	| { "498=" & value: text }
-	  => @(new FixField.CashDistribAgentName(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribAgentName(FixConvert.ToText(value)))
 
 	// 499: CashDistribAgentCode (String)
 	| { "499=" & value: text }
-	  => @(new FixField.CashDistribAgentCode(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribAgentCode(FixConvert.ToText(value)))
 
 	// 500: CashDistribAgentAcctNumber (String)
 	| { "500=" & value: text }
-	  => @(new FixField.CashDistribAgentAcctNumber(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribAgentAcctNumber(FixConvert.ToText(value)))
 
 	// 501: CashDistribPayRef (String)
 	| { "501=" & value: text }
-	  => @(new FixField.CashDistribPayRef(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribPayRef(FixConvert.ToText(value)))
 
 	// 502: CashDistribAgentAcctName (String)
 	| { "502=" & value: text }
-	  => @(new FixField.CashDistribAgentAcctName(FixConvert.Text(value)))
+	  => @(new FixField.CashDistribAgentAcctName(FixConvert.ToText(value)))
 
 	// 503: CardStartDate (LocalMktDate)
 	| { "503=" & value: text }
-	  => @(new FixField.CardStartDate(FixConvert.Date(value)))
+	  => @(new FixField.CardStartDate(FixConvert.ToDate(value)))
 
 	// 504: PaymentDate (LocalMktDate)
 	| { "504=" & value: text }
-	  => @(new FixField.PaymentDate(FixConvert.Date(value)))
+	  => @(new FixField.PaymentDate(FixConvert.ToDate(value)))
 
 	// 505: PaymentRemitterID (String)
 	| { "505=" & value: text }
-	  => @(new FixField.PaymentRemitterID(FixConvert.Text(value)))
+	  => @(new FixField.PaymentRemitterID(FixConvert.ToText(value)))
 
 	// 506: RegistStatus (char)
 	| { "506=" & value: text }
-	  => @(new FixField.RegistStatus(FixConvert.Character(value)))
+	  => @(new FixField.RegistStatus(FixConvert.ToCharacter(value)))
 
 	// 507: RegistRejReasonCode (int)
 	| { "507=" & value: text }
-	  => @(new FixField.RegistRejReasonCode(FixConvert.Integer(value)))
+	  => @(new FixField.RegistRejReasonCode(FixConvert.ToInteger(value)))
 
 	// 508: RegistRefID (String)
 	| { "508=" & value: text }
-	  => @(new FixField.RegistRefID(FixConvert.Text(value)))
+	  => @(new FixField.RegistRefID(FixConvert.ToText(value)))
 
 	// 509: RegistDtls (String)
 	| { "509=" & value: text }
-	  => @(new FixField.RegistDtls(FixConvert.Text(value)))
+	  => @(new FixField.RegistDtls(FixConvert.ToText(value)))
 
 	// 510: NoDistribInsts (NumInGroup)
 	| { "510=" & value: text }
-	  => @(new FixField.NoDistribInsts(FixConvert.Integer(value)))
+	  => @(new FixField.NoDistribInsts(FixConvert.ToInteger(value)))
 
 	// 511: RegistEmail (String)
 	| { "511=" & value: text }
-	  => @(new FixField.RegistEmail(FixConvert.Text(value)))
+	  => @(new FixField.RegistEmail(FixConvert.ToText(value)))
 
 	// 512: DistribPercentage (Percentage)
 	| { "512=" & value: text }
-	  => @(new FixField.DistribPercentage(FixConvert.Decimal(value)))
+	  => @(new FixField.DistribPercentage(FixConvert.ToDecimal(value)))
 
 	// 513: RegistID (String)
 	| { "513=" & value: text }
-	  => @(new FixField.RegistID(FixConvert.Text(value)))
+	  => @(new FixField.RegistID(FixConvert.ToText(value)))
 
 	// 514: RegistTransType (char)
 	| { "514=" & value: text }
-	  => @(new FixField.RegistTransType(FixConvert.Character(value)))
+	  => @(new FixField.RegistTransType(FixConvert.ToCharacter(value)))
 
 	// 515: ExecValuationPoint (UTCTimestamp)
 	| { "515=" & value: text }
-	  => @(new FixField.ExecValuationPoint(FixConvert.Timestamp(value)))
+	  => @(new FixField.ExecValuationPoint(FixConvert.ToTimestamp(value)))
 
 	// 516: OrderPercent (Percentage)
 	| { "516=" & value: text }
-	  => @(new FixField.OrderPercent(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderPercent(FixConvert.ToDecimal(value)))
 
 	// 517: OwnershipType (char)
 	| { "517=" & value: text }
-	  => @(new FixField.OwnershipType(FixConvert.Character(value)))
+	  => @(new FixField.OwnershipType(FixConvert.ToCharacter(value)))
 
 	// 518: NoContAmts (NumInGroup)
 	| { "518=" & value: text }
-	  => @(new FixField.NoContAmts(FixConvert.Integer(value)))
+	  => @(new FixField.NoContAmts(FixConvert.ToInteger(value)))
 
 	// 519: ContAmtType (int)
 	| { "519=" & value: text }
-	  => @(new FixField.ContAmtType(FixConvert.Integer(value)))
+	  => @(new FixField.ContAmtType(FixConvert.ToInteger(value)))
 
 	// 520: ContAmtValue (float)
 	| { "520=" & value: text }
-	  => @(new FixField.ContAmtValue(FixConvert.Decimal(value)))
+	  => @(new FixField.ContAmtValue(FixConvert.ToDecimal(value)))
 
 	// 521: ContAmtCurr (Currency)
 	| { "521=" & value: text }
-	  => @(new FixField.ContAmtCurr(FixConvert.Text(value)))
+	  => @(new FixField.ContAmtCurr(FixConvert.ToText(value)))
 
 	// 522: OwnerType (int)
 	| { "522=" & value: text }
-	  => @(new FixField.OwnerType(FixConvert.Integer(value)))
+	  => @(new FixField.OwnerType(FixConvert.ToInteger(value)))
 
 	// 523: PartySubID (String)
 	| { "523=" & value: text }
-	  => @(new FixField.PartySubID(FixConvert.Text(value)))
+	  => @(new FixField.PartySubID(FixConvert.ToText(value)))
 
 	// 524: NestedPartyID (String)
 	| { "524=" & value: text }
-	  => @(new FixField.NestedPartyID(FixConvert.Text(value)))
+	  => @(new FixField.NestedPartyID(FixConvert.ToText(value)))
 
 	// 525: NestedPartyIDSource (char)
 	| { "525=" & value: text }
-	  => @(new FixField.NestedPartyIDSource(FixConvert.Character(value)))
+	  => @(new FixField.NestedPartyIDSource(FixConvert.ToCharacter(value)))
 
 	// 526: SecondaryClOrdID (String)
 	| { "526=" & value: text }
-	  => @(new FixField.SecondaryClOrdID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryClOrdID(FixConvert.ToText(value)))
 
 	// 527: SecondaryExecID (String)
 	| { "527=" & value: text }
-	  => @(new FixField.SecondaryExecID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryExecID(FixConvert.ToText(value)))
 
 	// 528: OrderCapacity (char)
 	| { "528=" & value: text }
-	  => @(new FixField.OrderCapacity(FixConvert.Character(value)))
+	  => @(new FixField.OrderCapacity(FixConvert.ToCharacter(value)))
 
 	// 529: OrderRestrictions (MultipleValueString)
 	| { "529=" & value: text }
-	  => @(new FixField.OrderRestrictions(FixConvert.Multiple(value)))
+	  => @(new FixField.OrderRestrictions(FixConvert.ToMultiple(value)))
 
 	// 530: MassCancelRequestType (char)
 	| { "530=" & value: text }
-	  => @(new FixField.MassCancelRequestType(FixConvert.Character(value)))
+	  => @(new FixField.MassCancelRequestType(FixConvert.ToCharacter(value)))
 
 	// 531: MassCancelResponse (char)
 	| { "531=" & value: text }
-	  => @(new FixField.MassCancelResponse(FixConvert.Character(value)))
+	  => @(new FixField.MassCancelResponse(FixConvert.ToCharacter(value)))
 
 	// 532: MassCancelRejectReason (String)
 	| { "532=" & value: text }
-	  => @(new FixField.MassCancelRejectReason(FixConvert.Text(value)))
+	  => @(new FixField.MassCancelRejectReason(FixConvert.ToText(value)))
 
 	// 533: TotalAffectedOrders (int)
 	| { "533=" & value: text }
-	  => @(new FixField.TotalAffectedOrders(FixConvert.Integer(value)))
+	  => @(new FixField.TotalAffectedOrders(FixConvert.ToInteger(value)))
 
 	// 534: NoAffectedOrders (NumInGroup)
 	| { "534=" & value: text }
-	  => @(new FixField.NoAffectedOrders(FixConvert.Integer(value)))
+	  => @(new FixField.NoAffectedOrders(FixConvert.ToInteger(value)))
 
 	// 535: AffectedOrderID (String)
 	| { "535=" & value: text }
-	  => @(new FixField.AffectedOrderID(FixConvert.Text(value)))
+	  => @(new FixField.AffectedOrderID(FixConvert.ToText(value)))
 
 	// 536: AffectedSecondaryOrderID (String)
 	| { "536=" & value: text }
-	  => @(new FixField.AffectedSecondaryOrderID(FixConvert.Text(value)))
+	  => @(new FixField.AffectedSecondaryOrderID(FixConvert.ToText(value)))
 
 	// 537: QuoteType (int)
 	| { "537=" & value: text }
-	  => @(new FixField.QuoteType(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteType(FixConvert.ToInteger(value)))
 
 	// 538: NestedPartyRole (int)
 	| { "538=" & value: text }
-	  => @(new FixField.NestedPartyRole(FixConvert.Integer(value)))
+	  => @(new FixField.NestedPartyRole(FixConvert.ToInteger(value)))
 
 	// 539: NoNestedPartyIDs (NumInGroup)
 	| { "539=" & value: text }
-	  => @(new FixField.NoNestedPartyIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNestedPartyIDs(FixConvert.ToInteger(value)))
 
 	// 540: TotalAccruedInterestAmt (Amt)
 	| { "540=" & value: text }
-	  => @(new FixField.TotalAccruedInterestAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.TotalAccruedInterestAmt(FixConvert.ToDecimal(value)))
 
 	// 541: MaturityDate (LocalMktDate)
 	| { "541=" & value: text }
-	  => @(new FixField.MaturityDate(FixConvert.Date(value)))
+	  => @(new FixField.MaturityDate(FixConvert.ToDate(value)))
 
 	// 542: UnderlyingMaturityDate (LocalMktDate)
 	| { "542=" & value: text }
-	  => @(new FixField.UnderlyingMaturityDate(FixConvert.Date(value)))
+	  => @(new FixField.UnderlyingMaturityDate(FixConvert.ToDate(value)))
 
 	// 543: InstrRegistry (String)
 	| { "543=" & value: text }
-	  => @(new FixField.InstrRegistry(FixConvert.Text(value)))
+	  => @(new FixField.InstrRegistry(FixConvert.ToText(value)))
 
 	// 544: CashMargin (char)
 	| { "544=" & value: text }
-	  => @(new FixField.CashMargin(FixConvert.Character(value)))
+	  => @(new FixField.CashMargin(FixConvert.ToCharacter(value)))
 
 	// 545: NestedPartySubID (String)
 	| { "545=" & value: text }
-	  => @(new FixField.NestedPartySubID(FixConvert.Text(value)))
+	  => @(new FixField.NestedPartySubID(FixConvert.ToText(value)))
 
 	// 546: Scope (MultipleValueString)
 	| { "546=" & value: text }
-	  => @(new FixField.Scope(FixConvert.Multiple(value)))
+	  => @(new FixField.Scope(FixConvert.ToMultiple(value)))
 
 	// 547: MDImplicitDelete (Boolean)
 	| { "547=" & value: text }
-	  => @(new FixField.MDImplicitDelete(FixConvert.Boolean(value)))
+	  => @(new FixField.MDImplicitDelete(FixConvert.ToBoolean(value)))
 
 	// 548: CrossID (String)
 	| { "548=" & value: text }
-	  => @(new FixField.CrossID(FixConvert.Text(value)))
+	  => @(new FixField.CrossID(FixConvert.ToText(value)))
 
 	// 549: CrossType (int)
 	| { "549=" & value: text }
-	  => @(new FixField.CrossType(FixConvert.Integer(value)))
+	  => @(new FixField.CrossType(FixConvert.ToInteger(value)))
 
 	// 550: CrossPrioritization (int)
 	| { "550=" & value: text }
-	  => @(new FixField.CrossPrioritization(FixConvert.Integer(value)))
+	  => @(new FixField.CrossPrioritization(FixConvert.ToInteger(value)))
 
 	// 551: OrigCrossID (String)
 	| { "551=" & value: text }
-	  => @(new FixField.OrigCrossID(FixConvert.Text(value)))
+	  => @(new FixField.OrigCrossID(FixConvert.ToText(value)))
 
 	// 552: NoSides (NumInGroup)
 	| { "552=" & value: text }
-	  => @(new FixField.NoSides(FixConvert.Integer(value)))
+	  => @(new FixField.NoSides(FixConvert.ToInteger(value)))
 
 	// 553: Username (String)
 	| { "553=" & value: text }
-	  => @(new FixField.Username(FixConvert.Text(value)))
+	  => @(new FixField.Username(FixConvert.ToText(value)))
 
 	// 554: Password (String)
 	| { "554=" & value: text }
-	  => @(new FixField.Password(FixConvert.Text(value)))
+	  => @(new FixField.Password(FixConvert.ToText(value)))
 
 	// 555: NoLegs (NumInGroup)
 	| { "555=" & value: text }
-	  => @(new FixField.NoLegs(FixConvert.Integer(value)))
+	  => @(new FixField.NoLegs(FixConvert.ToInteger(value)))
 
 	// 556: LegCurrency (Currency)
 	| { "556=" & value: text }
-	  => @(new FixField.LegCurrency(FixConvert.Text(value)))
+	  => @(new FixField.LegCurrency(FixConvert.ToText(value)))
 
 	// 557: TotNoSecurityTypes (int)
 	| { "557=" & value: text }
-	  => @(new FixField.TotNoSecurityTypes(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoSecurityTypes(FixConvert.ToInteger(value)))
 
 	// 558: NoSecurityTypes (NumInGroup)
 	| { "558=" & value: text }
-	  => @(new FixField.NoSecurityTypes(FixConvert.Integer(value)))
+	  => @(new FixField.NoSecurityTypes(FixConvert.ToInteger(value)))
 
 	// 559: SecurityListRequestType (int)
 	| { "559=" & value: text }
-	  => @(new FixField.SecurityListRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.SecurityListRequestType(FixConvert.ToInteger(value)))
 
 	// 560: SecurityRequestResult (int)
 	| { "560=" & value: text }
-	  => @(new FixField.SecurityRequestResult(FixConvert.Integer(value)))
+	  => @(new FixField.SecurityRequestResult(FixConvert.ToInteger(value)))
 
 	// 561: RoundLot (Qty)
 	| { "561=" & value: text }
-	  => @(new FixField.RoundLot(FixConvert.Decimal(value)))
+	  => @(new FixField.RoundLot(FixConvert.ToDecimal(value)))
 
 	// 562: MinTradeVol (Qty)
 	| { "562=" & value: text }
-	  => @(new FixField.MinTradeVol(FixConvert.Decimal(value)))
+	  => @(new FixField.MinTradeVol(FixConvert.ToDecimal(value)))
 
 	// 563: MultiLegRptTypeReq (int)
 	| { "563=" & value: text }
-	  => @(new FixField.MultiLegRptTypeReq(FixConvert.Integer(value)))
+	  => @(new FixField.MultiLegRptTypeReq(FixConvert.ToInteger(value)))
 
 	// 564: LegPositionEffect (char)
 	| { "564=" & value: text }
-	  => @(new FixField.LegPositionEffect(FixConvert.Character(value)))
+	  => @(new FixField.LegPositionEffect(FixConvert.ToCharacter(value)))
 
 	// 565: LegCoveredOrUncovered (int)
 	| { "565=" & value: text }
-	  => @(new FixField.LegCoveredOrUncovered(FixConvert.Integer(value)))
+	  => @(new FixField.LegCoveredOrUncovered(FixConvert.ToInteger(value)))
 
 	// 566: LegPrice (Price)
 	| { "566=" & value: text }
-	  => @(new FixField.LegPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.LegPrice(FixConvert.ToDecimal(value)))
 
 	// 567: TradSesStatusRejReason (int)
 	| { "567=" & value: text }
-	  => @(new FixField.TradSesStatusRejReason(FixConvert.Integer(value)))
+	  => @(new FixField.TradSesStatusRejReason(FixConvert.ToInteger(value)))
 
 	// 568: TradeRequestID (String)
 	| { "568=" & value: text }
-	  => @(new FixField.TradeRequestID(FixConvert.Text(value)))
+	  => @(new FixField.TradeRequestID(FixConvert.ToText(value)))
 
 	// 569: TradeRequestType (int)
 	| { "569=" & value: text }
-	  => @(new FixField.TradeRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.TradeRequestType(FixConvert.ToInteger(value)))
 
 	// 570: PreviouslyReported (Boolean)
 	| { "570=" & value: text }
-	  => @(new FixField.PreviouslyReported(FixConvert.Boolean(value)))
+	  => @(new FixField.PreviouslyReported(FixConvert.ToBoolean(value)))
 
 	// 571: TradeReportID (String)
 	| { "571=" & value: text }
-	  => @(new FixField.TradeReportID(FixConvert.Text(value)))
+	  => @(new FixField.TradeReportID(FixConvert.ToText(value)))
 
 	// 572: TradeReportRefID (String)
 	| { "572=" & value: text }
-	  => @(new FixField.TradeReportRefID(FixConvert.Text(value)))
+	  => @(new FixField.TradeReportRefID(FixConvert.ToText(value)))
 
 	// 573: MatchStatus (char)
 	| { "573=" & value: text }
-	  => @(new FixField.MatchStatus(FixConvert.Character(value)))
+	  => @(new FixField.MatchStatus(FixConvert.ToCharacter(value)))
 
 	// 574: MatchType (String)
 	| { "574=" & value: text }
-	  => @(new FixField.MatchType(FixConvert.Text(value)))
+	  => @(new FixField.MatchType(FixConvert.ToText(value)))
 
 	// 575: OddLot (Boolean)
 	| { "575=" & value: text }
-	  => @(new FixField.OddLot(FixConvert.Boolean(value)))
+	  => @(new FixField.OddLot(FixConvert.ToBoolean(value)))
 
 	// 576: NoClearingInstructions (NumInGroup)
 	| { "576=" & value: text }
-	  => @(new FixField.NoClearingInstructions(FixConvert.Integer(value)))
+	  => @(new FixField.NoClearingInstructions(FixConvert.ToInteger(value)))
 
 	// 577: ClearingInstruction (int)
 	| { "577=" & value: text }
-	  => @(new FixField.ClearingInstruction(FixConvert.Integer(value)))
+	  => @(new FixField.ClearingInstruction(FixConvert.ToInteger(value)))
 
 	// 578: TradeInputSource (String)
 	| { "578=" & value: text }
-	  => @(new FixField.TradeInputSource(FixConvert.Text(value)))
+	  => @(new FixField.TradeInputSource(FixConvert.ToText(value)))
 
 	// 579: TradeInputDevice (String)
 	| { "579=" & value: text }
-	  => @(new FixField.TradeInputDevice(FixConvert.Text(value)))
+	  => @(new FixField.TradeInputDevice(FixConvert.ToText(value)))
 
 	// 580: NoDates (NumInGroup)
 	| { "580=" & value: text }
-	  => @(new FixField.NoDates(FixConvert.Integer(value)))
+	  => @(new FixField.NoDates(FixConvert.ToInteger(value)))
 
 	// 581: AccountType (int)
 	| { "581=" & value: text }
-	  => @(new FixField.AccountType(FixConvert.Integer(value)))
+	  => @(new FixField.AccountType(FixConvert.ToInteger(value)))
 
 	// 582: CustOrderCapacity (int)
 	| { "582=" & value: text }
-	  => @(new FixField.CustOrderCapacity(FixConvert.Integer(value)))
+	  => @(new FixField.CustOrderCapacity(FixConvert.ToInteger(value)))
 
 	// 583: ClOrdLinkID (String)
 	| { "583=" & value: text }
-	  => @(new FixField.ClOrdLinkID(FixConvert.Text(value)))
+	  => @(new FixField.ClOrdLinkID(FixConvert.ToText(value)))
 
 	// 584: MassStatusReqID (String)
 	| { "584=" & value: text }
-	  => @(new FixField.MassStatusReqID(FixConvert.Text(value)))
+	  => @(new FixField.MassStatusReqID(FixConvert.ToText(value)))
 
 	// 585: MassStatusReqType (int)
 	| { "585=" & value: text }
-	  => @(new FixField.MassStatusReqType(FixConvert.Integer(value)))
+	  => @(new FixField.MassStatusReqType(FixConvert.ToInteger(value)))
 
 	// 586: OrigOrdModTime (UTCTimestamp)
 	| { "586=" & value: text }
-	  => @(new FixField.OrigOrdModTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.OrigOrdModTime(FixConvert.ToTimestamp(value)))
 
 	// 587: LegSettlType (char)
 	| { "587=" & value: text }
-	  => @(new FixField.LegSettlType(FixConvert.Character(value)))
+	  => @(new FixField.LegSettlType(FixConvert.ToCharacter(value)))
 
 	// 588: LegSettlDate (LocalMktDate)
 	| { "588=" & value: text }
-	  => @(new FixField.LegSettlDate(FixConvert.Date(value)))
+	  => @(new FixField.LegSettlDate(FixConvert.ToDate(value)))
 
 	// 589: DayBookingInst (char)
 	| { "589=" & value: text }
-	  => @(new FixField.DayBookingInst(FixConvert.Character(value)))
+	  => @(new FixField.DayBookingInst(FixConvert.ToCharacter(value)))
 
 	// 590: BookingUnit (char)
 	| { "590=" & value: text }
-	  => @(new FixField.BookingUnit(FixConvert.Character(value)))
+	  => @(new FixField.BookingUnit(FixConvert.ToCharacter(value)))
 
 	// 591: PreallocMethod (char)
 	| { "591=" & value: text }
-	  => @(new FixField.PreallocMethod(FixConvert.Character(value)))
+	  => @(new FixField.PreallocMethod(FixConvert.ToCharacter(value)))
 
 	// 592: UnderlyingCountryOfIssue (Country)
 	| { "592=" & value: text }
-	  => @(new FixField.UnderlyingCountryOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCountryOfIssue(FixConvert.ToText(value)))
 
 	// 593: UnderlyingStateOrProvinceOfIssue (String)
 	| { "593=" & value: text }
-	  => @(new FixField.UnderlyingStateOrProvinceOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingStateOrProvinceOfIssue(FixConvert.ToText(value)))
 
 	// 594: UnderlyingLocaleOfIssue (String)
 	| { "594=" & value: text }
-	  => @(new FixField.UnderlyingLocaleOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingLocaleOfIssue(FixConvert.ToText(value)))
 
 	// 595: UnderlyingInstrRegistry (String)
 	| { "595=" & value: text }
-	  => @(new FixField.UnderlyingInstrRegistry(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingInstrRegistry(FixConvert.ToText(value)))
 
 	// 596: LegCountryOfIssue (Country)
 	| { "596=" & value: text }
-	  => @(new FixField.LegCountryOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.LegCountryOfIssue(FixConvert.ToText(value)))
 
 	// 597: LegStateOrProvinceOfIssue (String)
 	| { "597=" & value: text }
-	  => @(new FixField.LegStateOrProvinceOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.LegStateOrProvinceOfIssue(FixConvert.ToText(value)))
 
 	// 598: LegLocaleOfIssue (String)
 	| { "598=" & value: text }
-	  => @(new FixField.LegLocaleOfIssue(FixConvert.Text(value)))
+	  => @(new FixField.LegLocaleOfIssue(FixConvert.ToText(value)))
 
 	// 599: LegInstrRegistry (String)
 	| { "599=" & value: text }
-	  => @(new FixField.LegInstrRegistry(FixConvert.Text(value)))
+	  => @(new FixField.LegInstrRegistry(FixConvert.ToText(value)))
 
 	// 600: LegSymbol (String)
 	| { "600=" & value: text }
-	  => @(new FixField.LegSymbol(FixConvert.Text(value)))
+	  => @(new FixField.LegSymbol(FixConvert.ToText(value)))
 
 	// 601: LegSymbolSfx (String)
 	| { "601=" & value: text }
-	  => @(new FixField.LegSymbolSfx(FixConvert.Text(value)))
+	  => @(new FixField.LegSymbolSfx(FixConvert.ToText(value)))
 
 	// 602: LegSecurityID (String)
 	| { "602=" & value: text }
-	  => @(new FixField.LegSecurityID(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityID(FixConvert.ToText(value)))
 
 	// 603: LegSecurityIDSource (String)
 	| { "603=" & value: text }
-	  => @(new FixField.LegSecurityIDSource(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityIDSource(FixConvert.ToText(value)))
 
 	// 604: NoLegSecurityAltID (NumInGroup)
 	| { "604=" & value: text }
-	  => @(new FixField.NoLegSecurityAltID(FixConvert.Integer(value)))
+	  => @(new FixField.NoLegSecurityAltID(FixConvert.ToInteger(value)))
 
 	// 605: LegSecurityAltID (String)
 	| { "605=" & value: text }
-	  => @(new FixField.LegSecurityAltID(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityAltID(FixConvert.ToText(value)))
 
 	// 606: LegSecurityAltIDSource (String)
 	| { "606=" & value: text }
-	  => @(new FixField.LegSecurityAltIDSource(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityAltIDSource(FixConvert.ToText(value)))
 
 	// 607: LegProduct (int)
 	| { "607=" & value: text }
-	  => @(new FixField.LegProduct(FixConvert.Integer(value)))
+	  => @(new FixField.LegProduct(FixConvert.ToInteger(value)))
 
 	// 608: LegCFICode (String)
 	| { "608=" & value: text }
-	  => @(new FixField.LegCFICode(FixConvert.Text(value)))
+	  => @(new FixField.LegCFICode(FixConvert.ToText(value)))
 
 	// 609: LegSecurityType (String)
 	| { "609=" & value: text }
-	  => @(new FixField.LegSecurityType(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityType(FixConvert.ToText(value)))
 
 	// 610: LegMaturityMonthYear (MonthYear)
 	| { "610=" & value: text }
-	  => @(new FixField.LegMaturityMonthYear(FixConvert.MonthYear(value)))
+	  => @(new FixField.LegMaturityMonthYear(FixConvert.ToMonthYear(value)))
 
 	// 611: LegMaturityDate (LocalMktDate)
 	| { "611=" & value: text }
-	  => @(new FixField.LegMaturityDate(FixConvert.Date(value)))
+	  => @(new FixField.LegMaturityDate(FixConvert.ToDate(value)))
 
 	// 612: LegStrikePrice (Price)
 	| { "612=" & value: text }
-	  => @(new FixField.LegStrikePrice(FixConvert.Decimal(value)))
+	  => @(new FixField.LegStrikePrice(FixConvert.ToDecimal(value)))
 
 	// 613: LegOptAttribute (char)
 	| { "613=" & value: text }
-	  => @(new FixField.LegOptAttribute(FixConvert.Character(value)))
+	  => @(new FixField.LegOptAttribute(FixConvert.ToCharacter(value)))
 
 	// 614: LegContractMultiplier (float)
 	| { "614=" & value: text }
-	  => @(new FixField.LegContractMultiplier(FixConvert.Decimal(value)))
+	  => @(new FixField.LegContractMultiplier(FixConvert.ToDecimal(value)))
 
 	// 615: LegCouponRate (Percentage)
 	| { "615=" & value: text }
-	  => @(new FixField.LegCouponRate(FixConvert.Decimal(value)))
+	  => @(new FixField.LegCouponRate(FixConvert.ToDecimal(value)))
 
 	// 616: LegSecurityExchange (Exchange)
 	| { "616=" & value: text }
-	  => @(new FixField.LegSecurityExchange(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityExchange(FixConvert.ToText(value)))
 
 	// 617: LegIssuer (String)
 	| { "617=" & value: text }
-	  => @(new FixField.LegIssuer(FixConvert.Text(value)))
+	  => @(new FixField.LegIssuer(FixConvert.ToText(value)))
 
 	// 620: LegSecurityDesc (String)
 	| { "620=" & value: text }
-	  => @(new FixField.LegSecurityDesc(FixConvert.Text(value)))
+	  => @(new FixField.LegSecurityDesc(FixConvert.ToText(value)))
 
 	// 623: LegRatioQty (float)
 	| { "623=" & value: text }
-	  => @(new FixField.LegRatioQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LegRatioQty(FixConvert.ToDecimal(value)))
 
 	// 624: LegSide (char)
 	| { "624=" & value: text }
-	  => @(new FixField.LegSide(FixConvert.Character(value)))
+	  => @(new FixField.LegSide(FixConvert.ToCharacter(value)))
 
 	// 625: TradingSessionSubID (String)
 	| { "625=" & value: text }
-	  => @(new FixField.TradingSessionSubID(FixConvert.Text(value)))
+	  => @(new FixField.TradingSessionSubID(FixConvert.ToText(value)))
 
 	// 626: AllocType (int)
 	| { "626=" & value: text }
-	  => @(new FixField.AllocType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocType(FixConvert.ToInteger(value)))
 
 	// 627: NoHops (NumInGroup)
 	| { "627=" & value: text }
-	  => @(new FixField.NoHops(FixConvert.Integer(value)))
+	  => @(new FixField.NoHops(FixConvert.ToInteger(value)))
 
 	// 628: HopCompID (String)
 	| { "628=" & value: text }
-	  => @(new FixField.HopCompID(FixConvert.Text(value)))
+	  => @(new FixField.HopCompID(FixConvert.ToText(value)))
 
 	// 629: HopSendingTime (UTCTimestamp)
 	| { "629=" & value: text }
-	  => @(new FixField.HopSendingTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.HopSendingTime(FixConvert.ToTimestamp(value)))
 
 	// 630: HopRefID (SeqNum)
 	| { "630=" & value: text }
-	  => @(new FixField.HopRefID(FixConvert.Integer(value)))
+	  => @(new FixField.HopRefID(FixConvert.ToInteger(value)))
 
 	// 631: MidPx (Price)
 	| { "631=" & value: text }
-	  => @(new FixField.MidPx(FixConvert.Decimal(value)))
+	  => @(new FixField.MidPx(FixConvert.ToDecimal(value)))
 
 	// 632: BidYield (Percentage)
 	| { "632=" & value: text }
-	  => @(new FixField.BidYield(FixConvert.Decimal(value)))
+	  => @(new FixField.BidYield(FixConvert.ToDecimal(value)))
 
 	// 633: MidYield (Percentage)
 	| { "633=" & value: text }
-	  => @(new FixField.MidYield(FixConvert.Decimal(value)))
+	  => @(new FixField.MidYield(FixConvert.ToDecimal(value)))
 
 	// 634: OfferYield (Percentage)
 	| { "634=" & value: text }
-	  => @(new FixField.OfferYield(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferYield(FixConvert.ToDecimal(value)))
 
 	// 635: ClearingFeeIndicator (String)
 	| { "635=" & value: text }
-	  => @(new FixField.ClearingFeeIndicator(FixConvert.Text(value)))
+	  => @(new FixField.ClearingFeeIndicator(FixConvert.ToText(value)))
 
 	// 636: WorkingIndicator (Boolean)
 	| { "636=" & value: text }
-	  => @(new FixField.WorkingIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.WorkingIndicator(FixConvert.ToBoolean(value)))
 
 	// 637: LegLastPx (Price)
 	| { "637=" & value: text }
-	  => @(new FixField.LegLastPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LegLastPx(FixConvert.ToDecimal(value)))
 
 	// 638: PriorityIndicator (int)
 	| { "638=" & value: text }
-	  => @(new FixField.PriorityIndicator(FixConvert.Integer(value)))
+	  => @(new FixField.PriorityIndicator(FixConvert.ToInteger(value)))
 
 	// 639: PriceImprovement (PriceOffset)
 	| { "639=" & value: text }
-	  => @(new FixField.PriceImprovement(FixConvert.Decimal(value)))
+	  => @(new FixField.PriceImprovement(FixConvert.ToDecimal(value)))
 
 	// 640: Price2 (Price)
 	| { "640=" & value: text }
-	  => @(new FixField.Price2(FixConvert.Decimal(value)))
+	  => @(new FixField.Price2(FixConvert.ToDecimal(value)))
 
 	// 641: LastForwardPoints2 (PriceOffset)
 	| { "641=" & value: text }
-	  => @(new FixField.LastForwardPoints2(FixConvert.Decimal(value)))
+	  => @(new FixField.LastForwardPoints2(FixConvert.ToDecimal(value)))
 
 	// 642: BidForwardPoints2 (PriceOffset)
 	| { "642=" & value: text }
-	  => @(new FixField.BidForwardPoints2(FixConvert.Decimal(value)))
+	  => @(new FixField.BidForwardPoints2(FixConvert.ToDecimal(value)))
 
 	// 643: OfferForwardPoints2 (PriceOffset)
 	| { "643=" & value: text }
-	  => @(new FixField.OfferForwardPoints2(FixConvert.Decimal(value)))
+	  => @(new FixField.OfferForwardPoints2(FixConvert.ToDecimal(value)))
 
 	// 644: RFQReqID (String)
 	| { "644=" & value: text }
-	  => @(new FixField.RFQReqID(FixConvert.Text(value)))
+	  => @(new FixField.RFQReqID(FixConvert.ToText(value)))
 
 	// 645: MktBidPx (Price)
 	| { "645=" & value: text }
-	  => @(new FixField.MktBidPx(FixConvert.Decimal(value)))
+	  => @(new FixField.MktBidPx(FixConvert.ToDecimal(value)))
 
 	// 646: MktOfferPx (Price)
 	| { "646=" & value: text }
-	  => @(new FixField.MktOfferPx(FixConvert.Decimal(value)))
+	  => @(new FixField.MktOfferPx(FixConvert.ToDecimal(value)))
 
 	// 647: MinBidSize (Qty)
 	| { "647=" & value: text }
-	  => @(new FixField.MinBidSize(FixConvert.Decimal(value)))
+	  => @(new FixField.MinBidSize(FixConvert.ToDecimal(value)))
 
 	// 648: MinOfferSize (Qty)
 	| { "648=" & value: text }
-	  => @(new FixField.MinOfferSize(FixConvert.Decimal(value)))
+	  => @(new FixField.MinOfferSize(FixConvert.ToDecimal(value)))
 
 	// 649: QuoteStatusReqID (String)
 	| { "649=" & value: text }
-	  => @(new FixField.QuoteStatusReqID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteStatusReqID(FixConvert.ToText(value)))
 
 	// 650: LegalConfirm (Boolean)
 	| { "650=" & value: text }
-	  => @(new FixField.LegalConfirm(FixConvert.Boolean(value)))
+	  => @(new FixField.LegalConfirm(FixConvert.ToBoolean(value)))
 
 	// 651: UnderlyingLastPx (Price)
 	| { "651=" & value: text }
-	  => @(new FixField.UnderlyingLastPx(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingLastPx(FixConvert.ToDecimal(value)))
 
 	// 652: UnderlyingLastQty (Qty)
 	| { "652=" & value: text }
-	  => @(new FixField.UnderlyingLastQty(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingLastQty(FixConvert.ToDecimal(value)))
 
 	// 654: LegRefID (String)
 	| { "654=" & value: text }
-	  => @(new FixField.LegRefID(FixConvert.Text(value)))
+	  => @(new FixField.LegRefID(FixConvert.ToText(value)))
 
 	// 655: ContraLegRefID (String)
 	| { "655=" & value: text }
-	  => @(new FixField.ContraLegRefID(FixConvert.Text(value)))
+	  => @(new FixField.ContraLegRefID(FixConvert.ToText(value)))
 
 	// 656: SettlCurrBidFxRate (float)
 	| { "656=" & value: text }
-	  => @(new FixField.SettlCurrBidFxRate(FixConvert.Decimal(value)))
+	  => @(new FixField.SettlCurrBidFxRate(FixConvert.ToDecimal(value)))
 
 	// 657: SettlCurrOfferFxRate (float)
 	| { "657=" & value: text }
-	  => @(new FixField.SettlCurrOfferFxRate(FixConvert.Decimal(value)))
+	  => @(new FixField.SettlCurrOfferFxRate(FixConvert.ToDecimal(value)))
 
 	// 658: QuoteRequestRejectReason (int)
 	| { "658=" & value: text }
-	  => @(new FixField.QuoteRequestRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteRequestRejectReason(FixConvert.ToInteger(value)))
 
 	// 659: SideComplianceID (String)
 	| { "659=" & value: text }
-	  => @(new FixField.SideComplianceID(FixConvert.Text(value)))
+	  => @(new FixField.SideComplianceID(FixConvert.ToText(value)))
 
 	// 660: AcctIDSource (int)
 	| { "660=" & value: text }
-	  => @(new FixField.AcctIDSource(FixConvert.Integer(value)))
+	  => @(new FixField.AcctIDSource(FixConvert.ToInteger(value)))
 
 	// 661: AllocAcctIDSource (int)
 	| { "661=" & value: text }
-	  => @(new FixField.AllocAcctIDSource(FixConvert.Integer(value)))
+	  => @(new FixField.AllocAcctIDSource(FixConvert.ToInteger(value)))
 
 	// 662: BenchmarkPrice (Price)
 	| { "662=" & value: text }
-	  => @(new FixField.BenchmarkPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.BenchmarkPrice(FixConvert.ToDecimal(value)))
 
 	// 663: BenchmarkPriceType (int)
 	| { "663=" & value: text }
-	  => @(new FixField.BenchmarkPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.BenchmarkPriceType(FixConvert.ToInteger(value)))
 
 	// 664: ConfirmID (String)
 	| { "664=" & value: text }
-	  => @(new FixField.ConfirmID(FixConvert.Text(value)))
+	  => @(new FixField.ConfirmID(FixConvert.ToText(value)))
 
 	// 665: ConfirmStatus (int)
 	| { "665=" & value: text }
-	  => @(new FixField.ConfirmStatus(FixConvert.Integer(value)))
+	  => @(new FixField.ConfirmStatus(FixConvert.ToInteger(value)))
 
 	// 666: ConfirmTransType (int)
 	| { "666=" & value: text }
-	  => @(new FixField.ConfirmTransType(FixConvert.Integer(value)))
+	  => @(new FixField.ConfirmTransType(FixConvert.ToInteger(value)))
 
 	// 667: ContractSettlMonth (MonthYear)
 	| { "667=" & value: text }
-	  => @(new FixField.ContractSettlMonth(FixConvert.MonthYear(value)))
+	  => @(new FixField.ContractSettlMonth(FixConvert.ToMonthYear(value)))
 
 	// 668: DeliveryForm (int)
 	| { "668=" & value: text }
-	  => @(new FixField.DeliveryForm(FixConvert.Integer(value)))
+	  => @(new FixField.DeliveryForm(FixConvert.ToInteger(value)))
 
 	// 669: LastParPx (Price)
 	| { "669=" & value: text }
-	  => @(new FixField.LastParPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LastParPx(FixConvert.ToDecimal(value)))
 
 	// 670: NoLegAllocs (NumInGroup)
 	| { "670=" & value: text }
-	  => @(new FixField.NoLegAllocs(FixConvert.Integer(value)))
+	  => @(new FixField.NoLegAllocs(FixConvert.ToInteger(value)))
 
 	// 671: LegAllocAccount (String)
 	| { "671=" & value: text }
-	  => @(new FixField.LegAllocAccount(FixConvert.Text(value)))
+	  => @(new FixField.LegAllocAccount(FixConvert.ToText(value)))
 
 	// 672: LegIndividualAllocID (String)
 	| { "672=" & value: text }
-	  => @(new FixField.LegIndividualAllocID(FixConvert.Text(value)))
+	  => @(new FixField.LegIndividualAllocID(FixConvert.ToText(value)))
 
 	// 673: LegAllocQty (Qty)
 	| { "673=" & value: text }
-	  => @(new FixField.LegAllocQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LegAllocQty(FixConvert.ToDecimal(value)))
 
 	// 674: LegAllocAcctIDSource (String)
 	| { "674=" & value: text }
-	  => @(new FixField.LegAllocAcctIDSource(FixConvert.Text(value)))
+	  => @(new FixField.LegAllocAcctIDSource(FixConvert.ToText(value)))
 
 	// 675: LegSettlCurrency (Currency)
 	| { "675=" & value: text }
-	  => @(new FixField.LegSettlCurrency(FixConvert.Text(value)))
+	  => @(new FixField.LegSettlCurrency(FixConvert.ToText(value)))
 
 	// 676: LegBenchmarkCurveCurrency (Currency)
 	| { "676=" & value: text }
-	  => @(new FixField.LegBenchmarkCurveCurrency(FixConvert.Text(value)))
+	  => @(new FixField.LegBenchmarkCurveCurrency(FixConvert.ToText(value)))
 
 	// 677: LegBenchmarkCurveName (String)
 	| { "677=" & value: text }
-	  => @(new FixField.LegBenchmarkCurveName(FixConvert.Text(value)))
+	  => @(new FixField.LegBenchmarkCurveName(FixConvert.ToText(value)))
 
 	// 678: LegBenchmarkCurvePoint (String)
 	| { "678=" & value: text }
-	  => @(new FixField.LegBenchmarkCurvePoint(FixConvert.Text(value)))
+	  => @(new FixField.LegBenchmarkCurvePoint(FixConvert.ToText(value)))
 
 	// 679: LegBenchmarkPrice (Price)
 	| { "679=" & value: text }
-	  => @(new FixField.LegBenchmarkPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.LegBenchmarkPrice(FixConvert.ToDecimal(value)))
 
 	// 680: LegBenchmarkPriceType (int)
 	| { "680=" & value: text }
-	  => @(new FixField.LegBenchmarkPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.LegBenchmarkPriceType(FixConvert.ToInteger(value)))
 
 	// 681: LegBidPx (Price)
 	| { "681=" & value: text }
-	  => @(new FixField.LegBidPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LegBidPx(FixConvert.ToDecimal(value)))
 
 	// 682: LegIOIQty (String)
 	| { "682=" & value: text }
-	  => @(new FixField.LegIOIQty(FixConvert.Text(value)))
+	  => @(new FixField.LegIOIQty(FixConvert.ToText(value)))
 
 	// 683: NoLegStipulations (NumInGroup)
 	| { "683=" & value: text }
-	  => @(new FixField.NoLegStipulations(FixConvert.Integer(value)))
+	  => @(new FixField.NoLegStipulations(FixConvert.ToInteger(value)))
 
 	// 684: LegOfferPx (Price)
 	| { "684=" & value: text }
-	  => @(new FixField.LegOfferPx(FixConvert.Decimal(value)))
+	  => @(new FixField.LegOfferPx(FixConvert.ToDecimal(value)))
 
 	// 686: LegPriceType (int)
 	| { "686=" & value: text }
-	  => @(new FixField.LegPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.LegPriceType(FixConvert.ToInteger(value)))
 
 	// 687: LegQty (Qty)
 	| { "687=" & value: text }
-	  => @(new FixField.LegQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LegQty(FixConvert.ToDecimal(value)))
 
 	// 688: LegStipulationType (String)
 	| { "688=" & value: text }
-	  => @(new FixField.LegStipulationType(FixConvert.Text(value)))
+	  => @(new FixField.LegStipulationType(FixConvert.ToText(value)))
 
 	// 689: LegStipulationValue (String)
 	| { "689=" & value: text }
-	  => @(new FixField.LegStipulationValue(FixConvert.Text(value)))
+	  => @(new FixField.LegStipulationValue(FixConvert.ToText(value)))
 
 	// 690: LegSwapType (int)
 	| { "690=" & value: text }
-	  => @(new FixField.LegSwapType(FixConvert.Integer(value)))
+	  => @(new FixField.LegSwapType(FixConvert.ToInteger(value)))
 
 	// 691: Pool (String)
 	| { "691=" & value: text }
-	  => @(new FixField.Pool(FixConvert.Text(value)))
+	  => @(new FixField.Pool(FixConvert.ToText(value)))
 
 	// 692: QuotePriceType (int)
 	| { "692=" & value: text }
-	  => @(new FixField.QuotePriceType(FixConvert.Integer(value)))
+	  => @(new FixField.QuotePriceType(FixConvert.ToInteger(value)))
 
 	// 693: QuoteRespID (String)
 	| { "693=" & value: text }
-	  => @(new FixField.QuoteRespID(FixConvert.Text(value)))
+	  => @(new FixField.QuoteRespID(FixConvert.ToText(value)))
 
 	// 694: QuoteRespType (int)
 	| { "694=" & value: text }
-	  => @(new FixField.QuoteRespType(FixConvert.Integer(value)))
+	  => @(new FixField.QuoteRespType(FixConvert.ToInteger(value)))
 
 	// 695: QuoteQualifier (char)
 	| { "695=" & value: text }
-	  => @(new FixField.QuoteQualifier(FixConvert.Character(value)))
+	  => @(new FixField.QuoteQualifier(FixConvert.ToCharacter(value)))
 
 	// 696: YieldRedemptionDate (LocalMktDate)
 	| { "696=" & value: text }
-	  => @(new FixField.YieldRedemptionDate(FixConvert.Date(value)))
+	  => @(new FixField.YieldRedemptionDate(FixConvert.ToDate(value)))
 
 	// 697: YieldRedemptionPrice (Price)
 	| { "697=" & value: text }
-	  => @(new FixField.YieldRedemptionPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.YieldRedemptionPrice(FixConvert.ToDecimal(value)))
 
 	// 698: YieldRedemptionPriceType (int)
 	| { "698=" & value: text }
-	  => @(new FixField.YieldRedemptionPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.YieldRedemptionPriceType(FixConvert.ToInteger(value)))
 
 	// 699: BenchmarkSecurityID (String)
 	| { "699=" & value: text }
-	  => @(new FixField.BenchmarkSecurityID(FixConvert.Text(value)))
+	  => @(new FixField.BenchmarkSecurityID(FixConvert.ToText(value)))
 
 	// 700: ReversalIndicator (Boolean)
 	| { "700=" & value: text }
-	  => @(new FixField.ReversalIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.ReversalIndicator(FixConvert.ToBoolean(value)))
 
 	// 701: YieldCalcDate (LocalMktDate)
 	| { "701=" & value: text }
-	  => @(new FixField.YieldCalcDate(FixConvert.Date(value)))
+	  => @(new FixField.YieldCalcDate(FixConvert.ToDate(value)))
 
 	// 702: NoPositions (NumInGroup)
 	| { "702=" & value: text }
-	  => @(new FixField.NoPositions(FixConvert.Integer(value)))
+	  => @(new FixField.NoPositions(FixConvert.ToInteger(value)))
 
 	// 703: PosType (String)
 	| { "703=" & value: text }
-	  => @(new FixField.PosType(FixConvert.Text(value)))
+	  => @(new FixField.PosType(FixConvert.ToText(value)))
 
 	// 704: LongQty (Qty)
 	| { "704=" & value: text }
-	  => @(new FixField.LongQty(FixConvert.Decimal(value)))
+	  => @(new FixField.LongQty(FixConvert.ToDecimal(value)))
 
 	// 705: ShortQty (Qty)
 	| { "705=" & value: text }
-	  => @(new FixField.ShortQty(FixConvert.Decimal(value)))
+	  => @(new FixField.ShortQty(FixConvert.ToDecimal(value)))
 
 	// 706: PosQtyStatus (int)
 	| { "706=" & value: text }
-	  => @(new FixField.PosQtyStatus(FixConvert.Integer(value)))
+	  => @(new FixField.PosQtyStatus(FixConvert.ToInteger(value)))
 
 	// 707: PosAmtType (String)
 	| { "707=" & value: text }
-	  => @(new FixField.PosAmtType(FixConvert.Text(value)))
+	  => @(new FixField.PosAmtType(FixConvert.ToText(value)))
 
 	// 708: PosAmt (Amt)
 	| { "708=" & value: text }
-	  => @(new FixField.PosAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.PosAmt(FixConvert.ToDecimal(value)))
 
 	// 709: PosTransType (int)
 	| { "709=" & value: text }
-	  => @(new FixField.PosTransType(FixConvert.Integer(value)))
+	  => @(new FixField.PosTransType(FixConvert.ToInteger(value)))
 
 	// 710: PosReqID (String)
 	| { "710=" & value: text }
-	  => @(new FixField.PosReqID(FixConvert.Text(value)))
+	  => @(new FixField.PosReqID(FixConvert.ToText(value)))
 
 	// 711: NoUnderlyings (NumInGroup)
 	| { "711=" & value: text }
-	  => @(new FixField.NoUnderlyings(FixConvert.Integer(value)))
+	  => @(new FixField.NoUnderlyings(FixConvert.ToInteger(value)))
 
 	// 712: PosMaintAction (int)
 	| { "712=" & value: text }
-	  => @(new FixField.PosMaintAction(FixConvert.Integer(value)))
+	  => @(new FixField.PosMaintAction(FixConvert.ToInteger(value)))
 
 	// 713: OrigPosReqRefID (String)
 	| { "713=" & value: text }
-	  => @(new FixField.OrigPosReqRefID(FixConvert.Text(value)))
+	  => @(new FixField.OrigPosReqRefID(FixConvert.ToText(value)))
 
 	// 714: PosMaintRptRefID (String)
 	| { "714=" & value: text }
-	  => @(new FixField.PosMaintRptRefID(FixConvert.Text(value)))
+	  => @(new FixField.PosMaintRptRefID(FixConvert.ToText(value)))
 
 	// 715: ClearingBusinessDate (LocalMktDate)
 	| { "715=" & value: text }
-	  => @(new FixField.ClearingBusinessDate(FixConvert.Date(value)))
+	  => @(new FixField.ClearingBusinessDate(FixConvert.ToDate(value)))
 
 	// 716: SettlSessID (String)
 	| { "716=" & value: text }
-	  => @(new FixField.SettlSessID(FixConvert.Text(value)))
+	  => @(new FixField.SettlSessID(FixConvert.ToText(value)))
 
 	// 717: SettlSessSubID (String)
 	| { "717=" & value: text }
-	  => @(new FixField.SettlSessSubID(FixConvert.Text(value)))
+	  => @(new FixField.SettlSessSubID(FixConvert.ToText(value)))
 
 	// 718: AdjustmentType (int)
 	| { "718=" & value: text }
-	  => @(new FixField.AdjustmentType(FixConvert.Integer(value)))
+	  => @(new FixField.AdjustmentType(FixConvert.ToInteger(value)))
 
 	// 719: ContraryInstructionIndicator (Boolean)
 	| { "719=" & value: text }
-	  => @(new FixField.ContraryInstructionIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.ContraryInstructionIndicator(FixConvert.ToBoolean(value)))
 
 	// 720: PriorSpreadIndicator (Boolean)
 	| { "720=" & value: text }
-	  => @(new FixField.PriorSpreadIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.PriorSpreadIndicator(FixConvert.ToBoolean(value)))
 
 	// 721: PosMaintRptID (String)
 	| { "721=" & value: text }
-	  => @(new FixField.PosMaintRptID(FixConvert.Text(value)))
+	  => @(new FixField.PosMaintRptID(FixConvert.ToText(value)))
 
 	// 722: PosMaintStatus (int)
 	| { "722=" & value: text }
-	  => @(new FixField.PosMaintStatus(FixConvert.Integer(value)))
+	  => @(new FixField.PosMaintStatus(FixConvert.ToInteger(value)))
 
 	// 723: PosMaintResult (int)
 	| { "723=" & value: text }
-	  => @(new FixField.PosMaintResult(FixConvert.Integer(value)))
+	  => @(new FixField.PosMaintResult(FixConvert.ToInteger(value)))
 
 	// 724: PosReqType (int)
 	| { "724=" & value: text }
-	  => @(new FixField.PosReqType(FixConvert.Integer(value)))
+	  => @(new FixField.PosReqType(FixConvert.ToInteger(value)))
 
 	// 725: ResponseTransportType (int)
 	| { "725=" & value: text }
-	  => @(new FixField.ResponseTransportType(FixConvert.Integer(value)))
+	  => @(new FixField.ResponseTransportType(FixConvert.ToInteger(value)))
 
 	// 726: ResponseDestination (String)
 	| { "726=" & value: text }
-	  => @(new FixField.ResponseDestination(FixConvert.Text(value)))
+	  => @(new FixField.ResponseDestination(FixConvert.ToText(value)))
 
 	// 727: TotalNumPosReports (int)
 	| { "727=" & value: text }
-	  => @(new FixField.TotalNumPosReports(FixConvert.Integer(value)))
+	  => @(new FixField.TotalNumPosReports(FixConvert.ToInteger(value)))
 
 	// 728: PosReqResult (int)
 	| { "728=" & value: text }
-	  => @(new FixField.PosReqResult(FixConvert.Integer(value)))
+	  => @(new FixField.PosReqResult(FixConvert.ToInteger(value)))
 
 	// 729: PosReqStatus (int)
 	| { "729=" & value: text }
-	  => @(new FixField.PosReqStatus(FixConvert.Integer(value)))
+	  => @(new FixField.PosReqStatus(FixConvert.ToInteger(value)))
 
 	// 730: SettlPrice (Price)
 	| { "730=" & value: text }
-	  => @(new FixField.SettlPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.SettlPrice(FixConvert.ToDecimal(value)))
 
 	// 731: SettlPriceType (int)
 	| { "731=" & value: text }
-	  => @(new FixField.SettlPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.SettlPriceType(FixConvert.ToInteger(value)))
 
 	// 732: UnderlyingSettlPrice (Price)
 	| { "732=" & value: text }
-	  => @(new FixField.UnderlyingSettlPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingSettlPrice(FixConvert.ToDecimal(value)))
 
 	// 733: UnderlyingSettlPriceType (int)
 	| { "733=" & value: text }
-	  => @(new FixField.UnderlyingSettlPriceType(FixConvert.Integer(value)))
+	  => @(new FixField.UnderlyingSettlPriceType(FixConvert.ToInteger(value)))
 
 	// 734: PriorSettlPrice (Price)
 	| { "734=" & value: text }
-	  => @(new FixField.PriorSettlPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.PriorSettlPrice(FixConvert.ToDecimal(value)))
 
 	// 735: NoQuoteQualifiers (NumInGroup)
 	| { "735=" & value: text }
-	  => @(new FixField.NoQuoteQualifiers(FixConvert.Integer(value)))
+	  => @(new FixField.NoQuoteQualifiers(FixConvert.ToInteger(value)))
 
 	// 736: AllocSettlCurrency (Currency)
 	| { "736=" & value: text }
-	  => @(new FixField.AllocSettlCurrency(FixConvert.Text(value)))
+	  => @(new FixField.AllocSettlCurrency(FixConvert.ToText(value)))
 
 	// 737: AllocSettlCurrAmt (Amt)
 	| { "737=" & value: text }
-	  => @(new FixField.AllocSettlCurrAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocSettlCurrAmt(FixConvert.ToDecimal(value)))
 
 	// 738: InterestAtMaturity (Amt)
 	| { "738=" & value: text }
-	  => @(new FixField.InterestAtMaturity(FixConvert.Decimal(value)))
+	  => @(new FixField.InterestAtMaturity(FixConvert.ToDecimal(value)))
 
 	// 739: LegDatedDate (LocalMktDate)
 	| { "739=" & value: text }
-	  => @(new FixField.LegDatedDate(FixConvert.Date(value)))
+	  => @(new FixField.LegDatedDate(FixConvert.ToDate(value)))
 
 	// 740: LegPool (String)
 	| { "740=" & value: text }
-	  => @(new FixField.LegPool(FixConvert.Text(value)))
+	  => @(new FixField.LegPool(FixConvert.ToText(value)))
 
 	// 741: AllocInterestAtMaturity (Amt)
 	| { "741=" & value: text }
-	  => @(new FixField.AllocInterestAtMaturity(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocInterestAtMaturity(FixConvert.ToDecimal(value)))
 
 	// 742: AllocAccruedInterestAmt (Amt)
 	| { "742=" & value: text }
-	  => @(new FixField.AllocAccruedInterestAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.AllocAccruedInterestAmt(FixConvert.ToDecimal(value)))
 
 	// 743: DeliveryDate (LocalMktDate)
 	| { "743=" & value: text }
-	  => @(new FixField.DeliveryDate(FixConvert.Date(value)))
+	  => @(new FixField.DeliveryDate(FixConvert.ToDate(value)))
 
 	// 744: AssignmentMethod (char)
 	| { "744=" & value: text }
-	  => @(new FixField.AssignmentMethod(FixConvert.Character(value)))
+	  => @(new FixField.AssignmentMethod(FixConvert.ToCharacter(value)))
 
 	// 745: AssignmentUnit (Qty)
 	| { "745=" & value: text }
-	  => @(new FixField.AssignmentUnit(FixConvert.Decimal(value)))
+	  => @(new FixField.AssignmentUnit(FixConvert.ToDecimal(value)))
 
 	// 746: OpenInterest (Amt)
 	| { "746=" & value: text }
-	  => @(new FixField.OpenInterest(FixConvert.Decimal(value)))
+	  => @(new FixField.OpenInterest(FixConvert.ToDecimal(value)))
 
 	// 747: ExerciseMethod (char)
 	| { "747=" & value: text }
-	  => @(new FixField.ExerciseMethod(FixConvert.Character(value)))
+	  => @(new FixField.ExerciseMethod(FixConvert.ToCharacter(value)))
 
 	// 748: TotNumTradeReports (int)
 	| { "748=" & value: text }
-	  => @(new FixField.TotNumTradeReports(FixConvert.Integer(value)))
+	  => @(new FixField.TotNumTradeReports(FixConvert.ToInteger(value)))
 
 	// 749: TradeRequestResult (int)
 	| { "749=" & value: text }
-	  => @(new FixField.TradeRequestResult(FixConvert.Integer(value)))
+	  => @(new FixField.TradeRequestResult(FixConvert.ToInteger(value)))
 
 	// 750: TradeRequestStatus (int)
 	| { "750=" & value: text }
-	  => @(new FixField.TradeRequestStatus(FixConvert.Integer(value)))
+	  => @(new FixField.TradeRequestStatus(FixConvert.ToInteger(value)))
 
 	// 751: TradeReportRejectReason (int)
 	| { "751=" & value: text }
-	  => @(new FixField.TradeReportRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.TradeReportRejectReason(FixConvert.ToInteger(value)))
 
 	// 752: SideMultiLegReportingType (int)
 	| { "752=" & value: text }
-	  => @(new FixField.SideMultiLegReportingType(FixConvert.Integer(value)))
+	  => @(new FixField.SideMultiLegReportingType(FixConvert.ToInteger(value)))
 
 	// 753: NoPosAmt (NumInGroup)
 	| { "753=" & value: text }
-	  => @(new FixField.NoPosAmt(FixConvert.Integer(value)))
+	  => @(new FixField.NoPosAmt(FixConvert.ToInteger(value)))
 
 	// 754: AutoAcceptIndicator (Boolean)
 	| { "754=" & value: text }
-	  => @(new FixField.AutoAcceptIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.AutoAcceptIndicator(FixConvert.ToBoolean(value)))
 
 	// 755: AllocReportID (String)
 	| { "755=" & value: text }
-	  => @(new FixField.AllocReportID(FixConvert.Text(value)))
+	  => @(new FixField.AllocReportID(FixConvert.ToText(value)))
 
 	// 756: NoNested2PartyIDs (NumInGroup)
 	| { "756=" & value: text }
-	  => @(new FixField.NoNested2PartyIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNested2PartyIDs(FixConvert.ToInteger(value)))
 
 	// 757: Nested2PartyID (String)
 	| { "757=" & value: text }
-	  => @(new FixField.Nested2PartyID(FixConvert.Text(value)))
+	  => @(new FixField.Nested2PartyID(FixConvert.ToText(value)))
 
 	// 758: Nested2PartyIDSource (char)
 	| { "758=" & value: text }
-	  => @(new FixField.Nested2PartyIDSource(FixConvert.Character(value)))
+	  => @(new FixField.Nested2PartyIDSource(FixConvert.ToCharacter(value)))
 
 	// 759: Nested2PartyRole (int)
 	| { "759=" & value: text }
-	  => @(new FixField.Nested2PartyRole(FixConvert.Integer(value)))
+	  => @(new FixField.Nested2PartyRole(FixConvert.ToInteger(value)))
 
 	// 760: Nested2PartySubID (String)
 	| { "760=" & value: text }
-	  => @(new FixField.Nested2PartySubID(FixConvert.Text(value)))
+	  => @(new FixField.Nested2PartySubID(FixConvert.ToText(value)))
 
 	// 761: BenchmarkSecurityIDSource (String)
 	| { "761=" & value: text }
-	  => @(new FixField.BenchmarkSecurityIDSource(FixConvert.Text(value)))
+	  => @(new FixField.BenchmarkSecurityIDSource(FixConvert.ToText(value)))
 
 	// 762: SecuritySubType (String)
 	| { "762=" & value: text }
-	  => @(new FixField.SecuritySubType(FixConvert.Text(value)))
+	  => @(new FixField.SecuritySubType(FixConvert.ToText(value)))
 
 	// 763: UnderlyingSecuritySubType (String)
 	| { "763=" & value: text }
-	  => @(new FixField.UnderlyingSecuritySubType(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingSecuritySubType(FixConvert.ToText(value)))
 
 	// 764: LegSecuritySubType (String)
 	| { "764=" & value: text }
-	  => @(new FixField.LegSecuritySubType(FixConvert.Text(value)))
+	  => @(new FixField.LegSecuritySubType(FixConvert.ToText(value)))
 
 	// 765: AllowableOneSidednessPct (Percentage)
 	| { "765=" & value: text }
-	  => @(new FixField.AllowableOneSidednessPct(FixConvert.Decimal(value)))
+	  => @(new FixField.AllowableOneSidednessPct(FixConvert.ToDecimal(value)))
 
 	// 766: AllowableOneSidednessValue (Amt)
 	| { "766=" & value: text }
-	  => @(new FixField.AllowableOneSidednessValue(FixConvert.Decimal(value)))
+	  => @(new FixField.AllowableOneSidednessValue(FixConvert.ToDecimal(value)))
 
 	// 767: AllowableOneSidednessCurr (Currency)
 	| { "767=" & value: text }
-	  => @(new FixField.AllowableOneSidednessCurr(FixConvert.Text(value)))
+	  => @(new FixField.AllowableOneSidednessCurr(FixConvert.ToText(value)))
 
 	// 768: NoTrdRegTimestamps (NumInGroup)
 	| { "768=" & value: text }
-	  => @(new FixField.NoTrdRegTimestamps(FixConvert.Integer(value)))
+	  => @(new FixField.NoTrdRegTimestamps(FixConvert.ToInteger(value)))
 
 	// 769: TrdRegTimestamp (UTCTimestamp)
 	| { "769=" & value: text }
-	  => @(new FixField.TrdRegTimestamp(FixConvert.Timestamp(value)))
+	  => @(new FixField.TrdRegTimestamp(FixConvert.ToTimestamp(value)))
 
 	// 770: TrdRegTimestampType (int)
 	| { "770=" & value: text }
-	  => @(new FixField.TrdRegTimestampType(FixConvert.Integer(value)))
+	  => @(new FixField.TrdRegTimestampType(FixConvert.ToInteger(value)))
 
 	// 771: TrdRegTimestampOrigin (String)
 	| { "771=" & value: text }
-	  => @(new FixField.TrdRegTimestampOrigin(FixConvert.Text(value)))
+	  => @(new FixField.TrdRegTimestampOrigin(FixConvert.ToText(value)))
 
 	// 772: ConfirmRefID (String)
 	| { "772=" & value: text }
-	  => @(new FixField.ConfirmRefID(FixConvert.Text(value)))
+	  => @(new FixField.ConfirmRefID(FixConvert.ToText(value)))
 
 	// 773: ConfirmType (int)
 	| { "773=" & value: text }
-	  => @(new FixField.ConfirmType(FixConvert.Integer(value)))
+	  => @(new FixField.ConfirmType(FixConvert.ToInteger(value)))
 
 	// 774: ConfirmRejReason (int)
 	| { "774=" & value: text }
-	  => @(new FixField.ConfirmRejReason(FixConvert.Integer(value)))
+	  => @(new FixField.ConfirmRejReason(FixConvert.ToInteger(value)))
 
 	// 775: BookingType (int)
 	| { "775=" & value: text }
-	  => @(new FixField.BookingType(FixConvert.Integer(value)))
+	  => @(new FixField.BookingType(FixConvert.ToInteger(value)))
 
 	// 776: IndividualAllocRejCode (int)
 	| { "776=" & value: text }
-	  => @(new FixField.IndividualAllocRejCode(FixConvert.Integer(value)))
+	  => @(new FixField.IndividualAllocRejCode(FixConvert.ToInteger(value)))
 
 	// 777: SettlInstMsgID (String)
 	| { "777=" & value: text }
-	  => @(new FixField.SettlInstMsgID(FixConvert.Text(value)))
+	  => @(new FixField.SettlInstMsgID(FixConvert.ToText(value)))
 
 	// 778: NoSettlInst (NumInGroup)
 	| { "778=" & value: text }
-	  => @(new FixField.NoSettlInst(FixConvert.Integer(value)))
+	  => @(new FixField.NoSettlInst(FixConvert.ToInteger(value)))
 
 	// 779: LastUpdateTime (UTCTimestamp)
 	| { "779=" & value: text }
-	  => @(new FixField.LastUpdateTime(FixConvert.Timestamp(value)))
+	  => @(new FixField.LastUpdateTime(FixConvert.ToTimestamp(value)))
 
 	// 780: AllocSettlInstType (int)
 	| { "780=" & value: text }
-	  => @(new FixField.AllocSettlInstType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocSettlInstType(FixConvert.ToInteger(value)))
 
 	// 781: NoSettlPartyIDs (NumInGroup)
 	| { "781=" & value: text }
-	  => @(new FixField.NoSettlPartyIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoSettlPartyIDs(FixConvert.ToInteger(value)))
 
 	// 782: SettlPartyID (String)
 	| { "782=" & value: text }
-	  => @(new FixField.SettlPartyID(FixConvert.Text(value)))
+	  => @(new FixField.SettlPartyID(FixConvert.ToText(value)))
 
 	// 783: SettlPartyIDSource (char)
 	| { "783=" & value: text }
-	  => @(new FixField.SettlPartyIDSource(FixConvert.Character(value)))
+	  => @(new FixField.SettlPartyIDSource(FixConvert.ToCharacter(value)))
 
 	// 784: SettlPartyRole (int)
 	| { "784=" & value: text }
-	  => @(new FixField.SettlPartyRole(FixConvert.Integer(value)))
+	  => @(new FixField.SettlPartyRole(FixConvert.ToInteger(value)))
 
 	// 785: SettlPartySubID (String)
 	| { "785=" & value: text }
-	  => @(new FixField.SettlPartySubID(FixConvert.Text(value)))
+	  => @(new FixField.SettlPartySubID(FixConvert.ToText(value)))
 
 	// 786: SettlPartySubIDType (int)
 	| { "786=" & value: text }
-	  => @(new FixField.SettlPartySubIDType(FixConvert.Integer(value)))
+	  => @(new FixField.SettlPartySubIDType(FixConvert.ToInteger(value)))
 
 	// 787: DlvyInstType (char)
 	| { "787=" & value: text }
-	  => @(new FixField.DlvyInstType(FixConvert.Character(value)))
+	  => @(new FixField.DlvyInstType(FixConvert.ToCharacter(value)))
 
 	// 788: TerminationType (int)
 	| { "788=" & value: text }
-	  => @(new FixField.TerminationType(FixConvert.Integer(value)))
+	  => @(new FixField.TerminationType(FixConvert.ToInteger(value)))
 
 	// 789: NextExpectedMsgSeqNum (SeqNum)
 	| { "789=" & value: text }
-	  => @(new FixField.NextExpectedMsgSeqNum(FixConvert.Integer(value)))
+	  => @(new FixField.NextExpectedMsgSeqNum(FixConvert.ToInteger(value)))
 
 	// 790: OrdStatusReqID (String)
 	| { "790=" & value: text }
-	  => @(new FixField.OrdStatusReqID(FixConvert.Text(value)))
+	  => @(new FixField.OrdStatusReqID(FixConvert.ToText(value)))
 
 	// 791: SettlInstReqID (String)
 	| { "791=" & value: text }
-	  => @(new FixField.SettlInstReqID(FixConvert.Text(value)))
+	  => @(new FixField.SettlInstReqID(FixConvert.ToText(value)))
 
 	// 792: SettlInstReqRejCode (int)
 	| { "792=" & value: text }
-	  => @(new FixField.SettlInstReqRejCode(FixConvert.Integer(value)))
+	  => @(new FixField.SettlInstReqRejCode(FixConvert.ToInteger(value)))
 
 	// 793: SecondaryAllocID (String)
 	| { "793=" & value: text }
-	  => @(new FixField.SecondaryAllocID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryAllocID(FixConvert.ToText(value)))
 
 	// 794: AllocReportType (int)
 	| { "794=" & value: text }
-	  => @(new FixField.AllocReportType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocReportType(FixConvert.ToInteger(value)))
 
 	// 795: AllocReportRefID (String)
 	| { "795=" & value: text }
-	  => @(new FixField.AllocReportRefID(FixConvert.Text(value)))
+	  => @(new FixField.AllocReportRefID(FixConvert.ToText(value)))
 
 	// 796: AllocCancReplaceReason (int)
 	| { "796=" & value: text }
-	  => @(new FixField.AllocCancReplaceReason(FixConvert.Integer(value)))
+	  => @(new FixField.AllocCancReplaceReason(FixConvert.ToInteger(value)))
 
 	// 797: CopyMsgIndicator (Boolean)
 	| { "797=" & value: text }
-	  => @(new FixField.CopyMsgIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.CopyMsgIndicator(FixConvert.ToBoolean(value)))
 
 	// 798: AllocAccountType (int)
 	| { "798=" & value: text }
-	  => @(new FixField.AllocAccountType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocAccountType(FixConvert.ToInteger(value)))
 
 	// 799: OrderAvgPx (Price)
 	| { "799=" & value: text }
-	  => @(new FixField.OrderAvgPx(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderAvgPx(FixConvert.ToDecimal(value)))
 
 	// 800: OrderBookingQty (Qty)
 	| { "800=" & value: text }
-	  => @(new FixField.OrderBookingQty(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderBookingQty(FixConvert.ToDecimal(value)))
 
 	// 801: NoSettlPartySubIDs (NumInGroup)
 	| { "801=" & value: text }
-	  => @(new FixField.NoSettlPartySubIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoSettlPartySubIDs(FixConvert.ToInteger(value)))
 
 	// 802: NoPartySubIDs (NumInGroup)
 	| { "802=" & value: text }
-	  => @(new FixField.NoPartySubIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoPartySubIDs(FixConvert.ToInteger(value)))
 
 	// 803: PartySubIDType (int)
 	| { "803=" & value: text }
-	  => @(new FixField.PartySubIDType(FixConvert.Integer(value)))
+	  => @(new FixField.PartySubIDType(FixConvert.ToInteger(value)))
 
 	// 804: NoNestedPartySubIDs (NumInGroup)
 	| { "804=" & value: text }
-	  => @(new FixField.NoNestedPartySubIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNestedPartySubIDs(FixConvert.ToInteger(value)))
 
 	// 805: NestedPartySubIDType (int)
 	| { "805=" & value: text }
-	  => @(new FixField.NestedPartySubIDType(FixConvert.Integer(value)))
+	  => @(new FixField.NestedPartySubIDType(FixConvert.ToInteger(value)))
 
 	// 806: NoNested2PartySubIDs (NumInGroup)
 	| { "806=" & value: text }
-	  => @(new FixField.NoNested2PartySubIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNested2PartySubIDs(FixConvert.ToInteger(value)))
 
 	// 807: Nested2PartySubIDType (int)
 	| { "807=" & value: text }
-	  => @(new FixField.Nested2PartySubIDType(FixConvert.Integer(value)))
+	  => @(new FixField.Nested2PartySubIDType(FixConvert.ToInteger(value)))
 
 	// 808: AllocIntermedReqType (int)
 	| { "808=" & value: text }
-	  => @(new FixField.AllocIntermedReqType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocIntermedReqType(FixConvert.ToInteger(value)))
 
 	// 810: UnderlyingPx (Price)
 	| { "810=" & value: text }
-	  => @(new FixField.UnderlyingPx(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingPx(FixConvert.ToDecimal(value)))
 
 	// 811: PriceDelta (float)
 	| { "811=" & value: text }
-	  => @(new FixField.PriceDelta(FixConvert.Decimal(value)))
+	  => @(new FixField.PriceDelta(FixConvert.ToDecimal(value)))
 
 	// 812: ApplQueueMax (int)
 	| { "812=" & value: text }
-	  => @(new FixField.ApplQueueMax(FixConvert.Integer(value)))
+	  => @(new FixField.ApplQueueMax(FixConvert.ToInteger(value)))
 
 	// 813: ApplQueueDepth (int)
 	| { "813=" & value: text }
-	  => @(new FixField.ApplQueueDepth(FixConvert.Integer(value)))
+	  => @(new FixField.ApplQueueDepth(FixConvert.ToInteger(value)))
 
 	// 814: ApplQueueResolution (int)
 	| { "814=" & value: text }
-	  => @(new FixField.ApplQueueResolution(FixConvert.Integer(value)))
+	  => @(new FixField.ApplQueueResolution(FixConvert.ToInteger(value)))
 
 	// 815: ApplQueueAction (int)
 	| { "815=" & value: text }
-	  => @(new FixField.ApplQueueAction(FixConvert.Integer(value)))
+	  => @(new FixField.ApplQueueAction(FixConvert.ToInteger(value)))
 
 	// 816: NoAltMDSource (NumInGroup)
 	| { "816=" & value: text }
-	  => @(new FixField.NoAltMDSource(FixConvert.Integer(value)))
+	  => @(new FixField.NoAltMDSource(FixConvert.ToInteger(value)))
 
 	// 817: AltMDSourceID (String)
 	| { "817=" & value: text }
-	  => @(new FixField.AltMDSourceID(FixConvert.Text(value)))
+	  => @(new FixField.AltMDSourceID(FixConvert.ToText(value)))
 
 	// 818: SecondaryTradeReportID (String)
 	| { "818=" & value: text }
-	  => @(new FixField.SecondaryTradeReportID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryTradeReportID(FixConvert.ToText(value)))
 
 	// 819: AvgPxIndicator (int)
 	| { "819=" & value: text }
-	  => @(new FixField.AvgPxIndicator(FixConvert.Integer(value)))
+	  => @(new FixField.AvgPxIndicator(FixConvert.ToInteger(value)))
 
 	// 820: TradeLinkID (String)
 	| { "820=" & value: text }
-	  => @(new FixField.TradeLinkID(FixConvert.Text(value)))
+	  => @(new FixField.TradeLinkID(FixConvert.ToText(value)))
 
 	// 821: OrderInputDevice (String)
 	| { "821=" & value: text }
-	  => @(new FixField.OrderInputDevice(FixConvert.Text(value)))
+	  => @(new FixField.OrderInputDevice(FixConvert.ToText(value)))
 
 	// 822: UnderlyingTradingSessionID (String)
 	| { "822=" & value: text }
-	  => @(new FixField.UnderlyingTradingSessionID(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingTradingSessionID(FixConvert.ToText(value)))
 
 	// 823: UnderlyingTradingSessionSubID (String)
 	| { "823=" & value: text }
-	  => @(new FixField.UnderlyingTradingSessionSubID(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingTradingSessionSubID(FixConvert.ToText(value)))
 
 	// 824: TradeLegRefID (String)
 	| { "824=" & value: text }
-	  => @(new FixField.TradeLegRefID(FixConvert.Text(value)))
+	  => @(new FixField.TradeLegRefID(FixConvert.ToText(value)))
 
 	// 825: ExchangeRule (String)
 	| { "825=" & value: text }
-	  => @(new FixField.ExchangeRule(FixConvert.Text(value)))
+	  => @(new FixField.ExchangeRule(FixConvert.ToText(value)))
 
 	// 826: TradeAllocIndicator (int)
 	| { "826=" & value: text }
-	  => @(new FixField.TradeAllocIndicator(FixConvert.Integer(value)))
+	  => @(new FixField.TradeAllocIndicator(FixConvert.ToInteger(value)))
 
 	// 827: ExpirationCycle (int)
 	| { "827=" & value: text }
-	  => @(new FixField.ExpirationCycle(FixConvert.Integer(value)))
+	  => @(new FixField.ExpirationCycle(FixConvert.ToInteger(value)))
 
 	// 828: TrdType (int)
 	| { "828=" & value: text }
-	  => @(new FixField.TrdType(FixConvert.Integer(value)))
+	  => @(new FixField.TrdType(FixConvert.ToInteger(value)))
 
 	// 829: TrdSubType (int)
 	| { "829=" & value: text }
-	  => @(new FixField.TrdSubType(FixConvert.Integer(value)))
+	  => @(new FixField.TrdSubType(FixConvert.ToInteger(value)))
 
 	// 830: TransferReason (String)
 	| { "830=" & value: text }
-	  => @(new FixField.TransferReason(FixConvert.Text(value)))
+	  => @(new FixField.TransferReason(FixConvert.ToText(value)))
 
 	// 832: TotNumAssignmentReports (int)
 	| { "832=" & value: text }
-	  => @(new FixField.TotNumAssignmentReports(FixConvert.Integer(value)))
+	  => @(new FixField.TotNumAssignmentReports(FixConvert.ToInteger(value)))
 
 	// 833: AsgnRptID (String)
 	| { "833=" & value: text }
-	  => @(new FixField.AsgnRptID(FixConvert.Text(value)))
+	  => @(new FixField.AsgnRptID(FixConvert.ToText(value)))
 
 	// 834: ThresholdAmount (PriceOffset)
 	| { "834=" & value: text }
-	  => @(new FixField.ThresholdAmount(FixConvert.Decimal(value)))
+	  => @(new FixField.ThresholdAmount(FixConvert.ToDecimal(value)))
 
 	// 835: PegMoveType (int)
 	| { "835=" & value: text }
-	  => @(new FixField.PegMoveType(FixConvert.Integer(value)))
+	  => @(new FixField.PegMoveType(FixConvert.ToInteger(value)))
 
 	// 836: PegOffsetType (int)
 	| { "836=" & value: text }
-	  => @(new FixField.PegOffsetType(FixConvert.Integer(value)))
+	  => @(new FixField.PegOffsetType(FixConvert.ToInteger(value)))
 
 	// 837: PegLimitType (int)
 	| { "837=" & value: text }
-	  => @(new FixField.PegLimitType(FixConvert.Integer(value)))
+	  => @(new FixField.PegLimitType(FixConvert.ToInteger(value)))
 
 	// 838: PegRoundDirection (int)
 	| { "838=" & value: text }
-	  => @(new FixField.PegRoundDirection(FixConvert.Integer(value)))
+	  => @(new FixField.PegRoundDirection(FixConvert.ToInteger(value)))
 
 	// 839: PeggedPrice (Price)
 	| { "839=" & value: text }
-	  => @(new FixField.PeggedPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.PeggedPrice(FixConvert.ToDecimal(value)))
 
 	// 840: PegScope (int)
 	| { "840=" & value: text }
-	  => @(new FixField.PegScope(FixConvert.Integer(value)))
+	  => @(new FixField.PegScope(FixConvert.ToInteger(value)))
 
 	// 841: DiscretionMoveType (int)
 	| { "841=" & value: text }
-	  => @(new FixField.DiscretionMoveType(FixConvert.Integer(value)))
+	  => @(new FixField.DiscretionMoveType(FixConvert.ToInteger(value)))
 
 	// 842: DiscretionOffsetType (int)
 	| { "842=" & value: text }
-	  => @(new FixField.DiscretionOffsetType(FixConvert.Integer(value)))
+	  => @(new FixField.DiscretionOffsetType(FixConvert.ToInteger(value)))
 
 	// 843: DiscretionLimitType (int)
 	| { "843=" & value: text }
-	  => @(new FixField.DiscretionLimitType(FixConvert.Integer(value)))
+	  => @(new FixField.DiscretionLimitType(FixConvert.ToInteger(value)))
 
 	// 844: DiscretionRoundDirection (int)
 	| { "844=" & value: text }
-	  => @(new FixField.DiscretionRoundDirection(FixConvert.Integer(value)))
+	  => @(new FixField.DiscretionRoundDirection(FixConvert.ToInteger(value)))
 
 	// 845: DiscretionPrice (Price)
 	| { "845=" & value: text }
-	  => @(new FixField.DiscretionPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.DiscretionPrice(FixConvert.ToDecimal(value)))
 
 	// 846: DiscretionScope (int)
 	| { "846=" & value: text }
-	  => @(new FixField.DiscretionScope(FixConvert.Integer(value)))
+	  => @(new FixField.DiscretionScope(FixConvert.ToInteger(value)))
 
 	// 847: TargetStrategy (int)
 	| { "847=" & value: text }
-	  => @(new FixField.TargetStrategy(FixConvert.Integer(value)))
+	  => @(new FixField.TargetStrategy(FixConvert.ToInteger(value)))
 
 	// 848: TargetStrategyParameters (String)
 	| { "848=" & value: text }
-	  => @(new FixField.TargetStrategyParameters(FixConvert.Text(value)))
+	  => @(new FixField.TargetStrategyParameters(FixConvert.ToText(value)))
 
 	// 849: ParticipationRate (Percentage)
 	| { "849=" & value: text }
-	  => @(new FixField.ParticipationRate(FixConvert.Decimal(value)))
+	  => @(new FixField.ParticipationRate(FixConvert.ToDecimal(value)))
 
 	// 850: TargetStrategyPerformance (float)
 	| { "850=" & value: text }
-	  => @(new FixField.TargetStrategyPerformance(FixConvert.Decimal(value)))
+	  => @(new FixField.TargetStrategyPerformance(FixConvert.ToDecimal(value)))
 
 	// 851: LastLiquidityInd (int)
 	| { "851=" & value: text }
-	  => @(new FixField.LastLiquidityInd(FixConvert.Integer(value)))
+	  => @(new FixField.LastLiquidityInd(FixConvert.ToInteger(value)))
 
 	// 852: PublishTrdIndicator (Boolean)
 	| { "852=" & value: text }
-	  => @(new FixField.PublishTrdIndicator(FixConvert.Boolean(value)))
+	  => @(new FixField.PublishTrdIndicator(FixConvert.ToBoolean(value)))
 
 	// 853: ShortSaleReason (int)
 	| { "853=" & value: text }
-	  => @(new FixField.ShortSaleReason(FixConvert.Integer(value)))
+	  => @(new FixField.ShortSaleReason(FixConvert.ToInteger(value)))
 
 	// 854: QtyType (int)
 	| { "854=" & value: text }
-	  => @(new FixField.QtyType(FixConvert.Integer(value)))
+	  => @(new FixField.QtyType(FixConvert.ToInteger(value)))
 
 	// 855: SecondaryTrdType (int)
 	| { "855=" & value: text }
-	  => @(new FixField.SecondaryTrdType(FixConvert.Integer(value)))
+	  => @(new FixField.SecondaryTrdType(FixConvert.ToInteger(value)))
 
 	// 856: TradeReportType (int)
 	| { "856=" & value: text }
-	  => @(new FixField.TradeReportType(FixConvert.Integer(value)))
+	  => @(new FixField.TradeReportType(FixConvert.ToInteger(value)))
 
 	// 857: AllocNoOrdersType (int)
 	| { "857=" & value: text }
-	  => @(new FixField.AllocNoOrdersType(FixConvert.Integer(value)))
+	  => @(new FixField.AllocNoOrdersType(FixConvert.ToInteger(value)))
 
 	// 858: SharedCommission (Amt)
 	| { "858=" & value: text }
-	  => @(new FixField.SharedCommission(FixConvert.Decimal(value)))
+	  => @(new FixField.SharedCommission(FixConvert.ToDecimal(value)))
 
 	// 859: ConfirmReqID (String)
 	| { "859=" & value: text }
-	  => @(new FixField.ConfirmReqID(FixConvert.Text(value)))
+	  => @(new FixField.ConfirmReqID(FixConvert.ToText(value)))
 
 	// 860: AvgParPx (Price)
 	| { "860=" & value: text }
-	  => @(new FixField.AvgParPx(FixConvert.Decimal(value)))
+	  => @(new FixField.AvgParPx(FixConvert.ToDecimal(value)))
 
 	// 861: ReportedPx (Price)
 	| { "861=" & value: text }
-	  => @(new FixField.ReportedPx(FixConvert.Decimal(value)))
+	  => @(new FixField.ReportedPx(FixConvert.ToDecimal(value)))
 
 	// 862: NoCapacities (NumInGroup)
 	| { "862=" & value: text }
-	  => @(new FixField.NoCapacities(FixConvert.Integer(value)))
+	  => @(new FixField.NoCapacities(FixConvert.ToInteger(value)))
 
 	// 863: OrderCapacityQty (Qty)
 	| { "863=" & value: text }
-	  => @(new FixField.OrderCapacityQty(FixConvert.Decimal(value)))
+	  => @(new FixField.OrderCapacityQty(FixConvert.ToDecimal(value)))
 
 	// 864: NoEvents (NumInGroup)
 	| { "864=" & value: text }
-	  => @(new FixField.NoEvents(FixConvert.Integer(value)))
+	  => @(new FixField.NoEvents(FixConvert.ToInteger(value)))
 
 	// 865: EventType (int)
 	| { "865=" & value: text }
-	  => @(new FixField.EventType(FixConvert.Integer(value)))
+	  => @(new FixField.EventType(FixConvert.ToInteger(value)))
 
 	// 866: EventDate (LocalMktDate)
 	| { "866=" & value: text }
-	  => @(new FixField.EventDate(FixConvert.Date(value)))
+	  => @(new FixField.EventDate(FixConvert.ToDate(value)))
 
 	// 867: EventPx (Price)
 	| { "867=" & value: text }
-	  => @(new FixField.EventPx(FixConvert.Decimal(value)))
+	  => @(new FixField.EventPx(FixConvert.ToDecimal(value)))
 
 	// 868: EventText (String)
 	| { "868=" & value: text }
-	  => @(new FixField.EventText(FixConvert.Text(value)))
+	  => @(new FixField.EventText(FixConvert.ToText(value)))
 
 	// 869: PctAtRisk (Percentage)
 	| { "869=" & value: text }
-	  => @(new FixField.PctAtRisk(FixConvert.Decimal(value)))
+	  => @(new FixField.PctAtRisk(FixConvert.ToDecimal(value)))
 
 	// 870: NoInstrAttrib (NumInGroup)
 	| { "870=" & value: text }
-	  => @(new FixField.NoInstrAttrib(FixConvert.Integer(value)))
+	  => @(new FixField.NoInstrAttrib(FixConvert.ToInteger(value)))
 
 	// 871: InstrAttribType (int)
 	| { "871=" & value: text }
-	  => @(new FixField.InstrAttribType(FixConvert.Integer(value)))
+	  => @(new FixField.InstrAttribType(FixConvert.ToInteger(value)))
 
 	// 872: InstrAttribValue (String)
 	| { "872=" & value: text }
-	  => @(new FixField.InstrAttribValue(FixConvert.Text(value)))
+	  => @(new FixField.InstrAttribValue(FixConvert.ToText(value)))
 
 	// 873: DatedDate (LocalMktDate)
 	| { "873=" & value: text }
-	  => @(new FixField.DatedDate(FixConvert.Date(value)))
+	  => @(new FixField.DatedDate(FixConvert.ToDate(value)))
 
 	// 874: InterestAccrualDate (LocalMktDate)
 	| { "874=" & value: text }
-	  => @(new FixField.InterestAccrualDate(FixConvert.Date(value)))
+	  => @(new FixField.InterestAccrualDate(FixConvert.ToDate(value)))
 
 	// 875: CPProgram (int)
 	| { "875=" & value: text }
-	  => @(new FixField.CPProgram(FixConvert.Integer(value)))
+	  => @(new FixField.CPProgram(FixConvert.ToInteger(value)))
 
 	// 876: CPRegType (String)
 	| { "876=" & value: text }
-	  => @(new FixField.CPRegType(FixConvert.Text(value)))
+	  => @(new FixField.CPRegType(FixConvert.ToText(value)))
 
 	// 877: UnderlyingCPProgram (String)
 	| { "877=" & value: text }
-	  => @(new FixField.UnderlyingCPProgram(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCPProgram(FixConvert.ToText(value)))
 
 	// 878: UnderlyingCPRegType (String)
 	| { "878=" & value: text }
-	  => @(new FixField.UnderlyingCPRegType(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingCPRegType(FixConvert.ToText(value)))
 
 	// 879: UnderlyingQty (Qty)
 	| { "879=" & value: text }
-	  => @(new FixField.UnderlyingQty(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingQty(FixConvert.ToDecimal(value)))
 
 	// 880: TrdMatchID (String)
 	| { "880=" & value: text }
-	  => @(new FixField.TrdMatchID(FixConvert.Text(value)))
+	  => @(new FixField.TrdMatchID(FixConvert.ToText(value)))
 
 	// 881: SecondaryTradeReportRefID (String)
 	| { "881=" & value: text }
-	  => @(new FixField.SecondaryTradeReportRefID(FixConvert.Text(value)))
+	  => @(new FixField.SecondaryTradeReportRefID(FixConvert.ToText(value)))
 
 	// 882: UnderlyingDirtyPrice (Price)
 	| { "882=" & value: text }
-	  => @(new FixField.UnderlyingDirtyPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingDirtyPrice(FixConvert.ToDecimal(value)))
 
 	// 883: UnderlyingEndPrice (Price)
 	| { "883=" & value: text }
-	  => @(new FixField.UnderlyingEndPrice(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingEndPrice(FixConvert.ToDecimal(value)))
 
 	// 884: UnderlyingStartValue (Amt)
 	| { "884=" & value: text }
-	  => @(new FixField.UnderlyingStartValue(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingStartValue(FixConvert.ToDecimal(value)))
 
 	// 885: UnderlyingCurrentValue (Amt)
 	| { "885=" & value: text }
-	  => @(new FixField.UnderlyingCurrentValue(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingCurrentValue(FixConvert.ToDecimal(value)))
 
 	// 886: UnderlyingEndValue (Amt)
 	| { "886=" & value: text }
-	  => @(new FixField.UnderlyingEndValue(FixConvert.Decimal(value)))
+	  => @(new FixField.UnderlyingEndValue(FixConvert.ToDecimal(value)))
 
 	// 887: NoUnderlyingStips (NumInGroup)
 	| { "887=" & value: text }
-	  => @(new FixField.NoUnderlyingStips(FixConvert.Integer(value)))
+	  => @(new FixField.NoUnderlyingStips(FixConvert.ToInteger(value)))
 
 	// 888: UnderlyingStipType (String)
 	| { "888=" & value: text }
-	  => @(new FixField.UnderlyingStipType(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingStipType(FixConvert.ToText(value)))
 
 	// 889: UnderlyingStipValue (String)
 	| { "889=" & value: text }
-	  => @(new FixField.UnderlyingStipValue(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingStipValue(FixConvert.ToText(value)))
 
 	// 890: MaturityNetMoney (Amt)
 	| { "890=" & value: text }
-	  => @(new FixField.MaturityNetMoney(FixConvert.Decimal(value)))
+	  => @(new FixField.MaturityNetMoney(FixConvert.ToDecimal(value)))
 
 	// 891: MiscFeeBasis (int)
 	| { "891=" & value: text }
-	  => @(new FixField.MiscFeeBasis(FixConvert.Integer(value)))
+	  => @(new FixField.MiscFeeBasis(FixConvert.ToInteger(value)))
 
 	// 892: TotNoAllocs (int)
 	| { "892=" & value: text }
-	  => @(new FixField.TotNoAllocs(FixConvert.Integer(value)))
+	  => @(new FixField.TotNoAllocs(FixConvert.ToInteger(value)))
 
 	// 893: LastFragment (Boolean)
 	| { "893=" & value: text }
-	  => @(new FixField.LastFragment(FixConvert.Boolean(value)))
+	  => @(new FixField.LastFragment(FixConvert.ToBoolean(value)))
 
 	// 894: CollReqID (String)
 	| { "894=" & value: text }
-	  => @(new FixField.CollReqID(FixConvert.Text(value)))
+	  => @(new FixField.CollReqID(FixConvert.ToText(value)))
 
 	// 895: CollAsgnReason (int)
 	| { "895=" & value: text }
-	  => @(new FixField.CollAsgnReason(FixConvert.Integer(value)))
+	  => @(new FixField.CollAsgnReason(FixConvert.ToInteger(value)))
 
 	// 896: CollInquiryQualifier (int)
 	| { "896=" & value: text }
-	  => @(new FixField.CollInquiryQualifier(FixConvert.Integer(value)))
+	  => @(new FixField.CollInquiryQualifier(FixConvert.ToInteger(value)))
 
 	// 897: NoTrades (NumInGroup)
 	| { "897=" & value: text }
-	  => @(new FixField.NoTrades(FixConvert.Integer(value)))
+	  => @(new FixField.NoTrades(FixConvert.ToInteger(value)))
 
 	// 898: MarginRatio (Percentage)
 	| { "898=" & value: text }
-	  => @(new FixField.MarginRatio(FixConvert.Decimal(value)))
+	  => @(new FixField.MarginRatio(FixConvert.ToDecimal(value)))
 
 	// 899: MarginExcess (Amt)
 	| { "899=" & value: text }
-	  => @(new FixField.MarginExcess(FixConvert.Decimal(value)))
+	  => @(new FixField.MarginExcess(FixConvert.ToDecimal(value)))
 
 	// 900: TotalNetValue (Amt)
 	| { "900=" & value: text }
-	  => @(new FixField.TotalNetValue(FixConvert.Decimal(value)))
+	  => @(new FixField.TotalNetValue(FixConvert.ToDecimal(value)))
 
 	// 901: CashOutstanding (Amt)
 	| { "901=" & value: text }
-	  => @(new FixField.CashOutstanding(FixConvert.Decimal(value)))
+	  => @(new FixField.CashOutstanding(FixConvert.ToDecimal(value)))
 
 	// 902: CollAsgnID (String)
 	| { "902=" & value: text }
-	  => @(new FixField.CollAsgnID(FixConvert.Text(value)))
+	  => @(new FixField.CollAsgnID(FixConvert.ToText(value)))
 
 	// 903: CollAsgnTransType (int)
 	| { "903=" & value: text }
-	  => @(new FixField.CollAsgnTransType(FixConvert.Integer(value)))
+	  => @(new FixField.CollAsgnTransType(FixConvert.ToInteger(value)))
 
 	// 904: CollRespID (String)
 	| { "904=" & value: text }
-	  => @(new FixField.CollRespID(FixConvert.Text(value)))
+	  => @(new FixField.CollRespID(FixConvert.ToText(value)))
 
 	// 905: CollAsgnRespType (int)
 	| { "905=" & value: text }
-	  => @(new FixField.CollAsgnRespType(FixConvert.Integer(value)))
+	  => @(new FixField.CollAsgnRespType(FixConvert.ToInteger(value)))
 
 	// 906: CollAsgnRejectReason (int)
 	| { "906=" & value: text }
-	  => @(new FixField.CollAsgnRejectReason(FixConvert.Integer(value)))
+	  => @(new FixField.CollAsgnRejectReason(FixConvert.ToInteger(value)))
 
 	// 907: CollAsgnRefID (String)
 	| { "907=" & value: text }
-	  => @(new FixField.CollAsgnRefID(FixConvert.Text(value)))
+	  => @(new FixField.CollAsgnRefID(FixConvert.ToText(value)))
 
 	// 908: CollRptID (String)
 	| { "908=" & value: text }
-	  => @(new FixField.CollRptID(FixConvert.Text(value)))
+	  => @(new FixField.CollRptID(FixConvert.ToText(value)))
 
 	// 909: CollInquiryID (String)
 	| { "909=" & value: text }
-	  => @(new FixField.CollInquiryID(FixConvert.Text(value)))
+	  => @(new FixField.CollInquiryID(FixConvert.ToText(value)))
 
 	// 910: CollStatus (int)
 	| { "910=" & value: text }
-	  => @(new FixField.CollStatus(FixConvert.Integer(value)))
+	  => @(new FixField.CollStatus(FixConvert.ToInteger(value)))
 
 	// 911: TotNumReports (int)
 	| { "911=" & value: text }
-	  => @(new FixField.TotNumReports(FixConvert.Integer(value)))
+	  => @(new FixField.TotNumReports(FixConvert.ToInteger(value)))
 
 	// 912: LastRptRequested (Boolean)
 	| { "912=" & value: text }
-	  => @(new FixField.LastRptRequested(FixConvert.Boolean(value)))
+	  => @(new FixField.LastRptRequested(FixConvert.ToBoolean(value)))
 
 	// 913: AgreementDesc (String)
 	| { "913=" & value: text }
-	  => @(new FixField.AgreementDesc(FixConvert.Text(value)))
+	  => @(new FixField.AgreementDesc(FixConvert.ToText(value)))
 
 	// 914: AgreementID (String)
 	| { "914=" & value: text }
-	  => @(new FixField.AgreementID(FixConvert.Text(value)))
+	  => @(new FixField.AgreementID(FixConvert.ToText(value)))
 
 	// 915: AgreementDate (LocalMktDate)
 	| { "915=" & value: text }
-	  => @(new FixField.AgreementDate(FixConvert.Date(value)))
+	  => @(new FixField.AgreementDate(FixConvert.ToDate(value)))
 
 	// 916: StartDate (LocalMktDate)
 	| { "916=" & value: text }
-	  => @(new FixField.StartDate(FixConvert.Date(value)))
+	  => @(new FixField.StartDate(FixConvert.ToDate(value)))
 
 	// 917: EndDate (LocalMktDate)
 	| { "917=" & value: text }
-	  => @(new FixField.EndDate(FixConvert.Date(value)))
+	  => @(new FixField.EndDate(FixConvert.ToDate(value)))
 
 	// 918: AgreementCurrency (Currency)
 	| { "918=" & value: text }
-	  => @(new FixField.AgreementCurrency(FixConvert.Text(value)))
+	  => @(new FixField.AgreementCurrency(FixConvert.ToText(value)))
 
 	// 919: DeliveryType (int)
 	| { "919=" & value: text }
-	  => @(new FixField.DeliveryType(FixConvert.Integer(value)))
+	  => @(new FixField.DeliveryType(FixConvert.ToInteger(value)))
 
 	// 920: EndAccruedInterestAmt (Amt)
 	| { "920=" & value: text }
-	  => @(new FixField.EndAccruedInterestAmt(FixConvert.Decimal(value)))
+	  => @(new FixField.EndAccruedInterestAmt(FixConvert.ToDecimal(value)))
 
 	// 921: StartCash (Amt)
 	| { "921=" & value: text }
-	  => @(new FixField.StartCash(FixConvert.Decimal(value)))
+	  => @(new FixField.StartCash(FixConvert.ToDecimal(value)))
 
 	// 922: EndCash (Amt)
 	| { "922=" & value: text }
-	  => @(new FixField.EndCash(FixConvert.Decimal(value)))
+	  => @(new FixField.EndCash(FixConvert.ToDecimal(value)))
 
 	// 923: UserRequestID (String)
 	| { "923=" & value: text }
-	  => @(new FixField.UserRequestID(FixConvert.Text(value)))
+	  => @(new FixField.UserRequestID(FixConvert.ToText(value)))
 
 	// 924: UserRequestType (int)
 	| { "924=" & value: text }
-	  => @(new FixField.UserRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.UserRequestType(FixConvert.ToInteger(value)))
 
 	// 925: NewPassword (String)
 	| { "925=" & value: text }
-	  => @(new FixField.NewPassword(FixConvert.Text(value)))
+	  => @(new FixField.NewPassword(FixConvert.ToText(value)))
 
 	// 926: UserStatus (int)
 	| { "926=" & value: text }
-	  => @(new FixField.UserStatus(FixConvert.Integer(value)))
+	  => @(new FixField.UserStatus(FixConvert.ToInteger(value)))
 
 	// 927: UserStatusText (String)
 	| { "927=" & value: text }
-	  => @(new FixField.UserStatusText(FixConvert.Text(value)))
+	  => @(new FixField.UserStatusText(FixConvert.ToText(value)))
 
 	// 928: StatusValue (int)
 	| { "928=" & value: text }
-	  => @(new FixField.StatusValue(FixConvert.Integer(value)))
+	  => @(new FixField.StatusValue(FixConvert.ToInteger(value)))
 
 	// 929: StatusText (String)
 	| { "929=" & value: text }
-	  => @(new FixField.StatusText(FixConvert.Text(value)))
+	  => @(new FixField.StatusText(FixConvert.ToText(value)))
 
 	// 930: RefCompID (String)
 	| { "930=" & value: text }
-	  => @(new FixField.RefCompID(FixConvert.Text(value)))
+	  => @(new FixField.RefCompID(FixConvert.ToText(value)))
 
 	// 931: RefSubID (String)
 	| { "931=" & value: text }
-	  => @(new FixField.RefSubID(FixConvert.Text(value)))
+	  => @(new FixField.RefSubID(FixConvert.ToText(value)))
 
 	// 932: NetworkResponseID (String)
 	| { "932=" & value: text }
-	  => @(new FixField.NetworkResponseID(FixConvert.Text(value)))
+	  => @(new FixField.NetworkResponseID(FixConvert.ToText(value)))
 
 	// 933: NetworkRequestID (String)
 	| { "933=" & value: text }
-	  => @(new FixField.NetworkRequestID(FixConvert.Text(value)))
+	  => @(new FixField.NetworkRequestID(FixConvert.ToText(value)))
 
 	// 934: LastNetworkResponseID (String)
 	| { "934=" & value: text }
-	  => @(new FixField.LastNetworkResponseID(FixConvert.Text(value)))
+	  => @(new FixField.LastNetworkResponseID(FixConvert.ToText(value)))
 
 	// 935: NetworkRequestType (int)
 	| { "935=" & value: text }
-	  => @(new FixField.NetworkRequestType(FixConvert.Integer(value)))
+	  => @(new FixField.NetworkRequestType(FixConvert.ToInteger(value)))
 
 	// 936: NoCompIDs (NumInGroup)
 	| { "936=" & value: text }
-	  => @(new FixField.NoCompIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoCompIDs(FixConvert.ToInteger(value)))
 
 	// 937: NetworkStatusResponseType (int)
 	| { "937=" & value: text }
-	  => @(new FixField.NetworkStatusResponseType(FixConvert.Integer(value)))
+	  => @(new FixField.NetworkStatusResponseType(FixConvert.ToInteger(value)))
 
 	// 938: NoCollInquiryQualifier (NumInGroup)
 	| { "938=" & value: text }
-	  => @(new FixField.NoCollInquiryQualifier(FixConvert.Integer(value)))
+	  => @(new FixField.NoCollInquiryQualifier(FixConvert.ToInteger(value)))
 
 	// 939: TrdRptStatus (int)
 	| { "939=" & value: text }
-	  => @(new FixField.TrdRptStatus(FixConvert.Integer(value)))
+	  => @(new FixField.TrdRptStatus(FixConvert.ToInteger(value)))
 
 	// 940: AffirmStatus (int)
 	| { "940=" & value: text }
-	  => @(new FixField.AffirmStatus(FixConvert.Integer(value)))
+	  => @(new FixField.AffirmStatus(FixConvert.ToInteger(value)))
 
 	// 941: UnderlyingStrikeCurrency (Currency)
 	| { "941=" & value: text }
-	  => @(new FixField.UnderlyingStrikeCurrency(FixConvert.Text(value)))
+	  => @(new FixField.UnderlyingStrikeCurrency(FixConvert.ToText(value)))
 
 	// 942: LegStrikeCurrency (Currency)
 	| { "942=" & value: text }
-	  => @(new FixField.LegStrikeCurrency(FixConvert.Text(value)))
+	  => @(new FixField.LegStrikeCurrency(FixConvert.ToText(value)))
 
 	// 943: TimeBracket (String)
 	| { "943=" & value: text }
-	  => @(new FixField.TimeBracket(FixConvert.Text(value)))
+	  => @(new FixField.TimeBracket(FixConvert.ToText(value)))
 
 	// 944: CollAction (int)
 	| { "944=" & value: text }
-	  => @(new FixField.CollAction(FixConvert.Integer(value)))
+	  => @(new FixField.CollAction(FixConvert.ToInteger(value)))
 
 	// 945: CollInquiryStatus (int)
 	| { "945=" & value: text }
-	  => @(new FixField.CollInquiryStatus(FixConvert.Integer(value)))
+	  => @(new FixField.CollInquiryStatus(FixConvert.ToInteger(value)))
 
 	// 946: CollInquiryResult (int)
 	| { "946=" & value: text }
-	  => @(new FixField.CollInquiryResult(FixConvert.Integer(value)))
+	  => @(new FixField.CollInquiryResult(FixConvert.ToInteger(value)))
 
 	// 947: StrikeCurrency (Currency)
 	| { "947=" & value: text }
-	  => @(new FixField.StrikeCurrency(FixConvert.Text(value)))
+	  => @(new FixField.StrikeCurrency(FixConvert.ToText(value)))
 
 	// 948: NoNested3PartyIDs (NumInGroup)
 	| { "948=" & value: text }
-	  => @(new FixField.NoNested3PartyIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNested3PartyIDs(FixConvert.ToInteger(value)))
 
 	// 949: Nested3PartyID (String)
 	| { "949=" & value: text }
-	  => @(new FixField.Nested3PartyID(FixConvert.Text(value)))
+	  => @(new FixField.Nested3PartyID(FixConvert.ToText(value)))
 
 	// 950: Nested3PartyIDSource (char)
 	| { "950=" & value: text }
-	  => @(new FixField.Nested3PartyIDSource(FixConvert.Character(value)))
+	  => @(new FixField.Nested3PartyIDSource(FixConvert.ToCharacter(value)))
 
 	// 951: Nested3PartyRole (int)
 	| { "951=" & value: text }
-	  => @(new FixField.Nested3PartyRole(FixConvert.Integer(value)))
+	  => @(new FixField.Nested3PartyRole(FixConvert.ToInteger(value)))
 
 	// 952: NoNested3PartySubIDs (NumInGroup)
 	| { "952=" & value: text }
-	  => @(new FixField.NoNested3PartySubIDs(FixConvert.Integer(value)))
+	  => @(new FixField.NoNested3PartySubIDs(FixConvert.ToInteger(value)))
 
 	// 953: Nested3PartySubID (String)
 	| { "953=" & value: text }
-	  => @(new FixField.Nested3PartySubID(FixConvert.Text(value)))
+	  => @(new FixField.Nested3PartySubID(FixConvert.ToText(value)))
 
 	// 954: Nested3PartySubIDType (int)
 	| { "954=" & value: text }
-	  => @(new FixField.Nested3PartySubIDType(FixConvert.Integer(value)))
+	  => @(new FixField.Nested3PartySubIDType(FixConvert.ToInteger(value)))
 
 	// 955: LegContractSettlMonth (MonthYear)
 	| { "955=" & value: text }
-	  => @(new FixField.LegContractSettlMonth(FixConvert.MonthYear(value)))
+	  => @(new FixField.LegContractSettlMonth(FixConvert.ToMonthYear(value)))
 
 	// 956: LegInterestAccrualDate (LocalMktDate)
 	| { "956=" & value: text }
-	  => @(new FixField.LegInterestAccrualDate(FixConvert.Date(value)))
+	  => @(new FixField.LegInterestAccrualDate(FixConvert.ToDate(value)))

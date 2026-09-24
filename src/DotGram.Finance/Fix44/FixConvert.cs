@@ -4,9 +4,20 @@ using System.Text;
 
 namespace DotGram.Finance.Fix44;
 
-static class FixConvert
+/// <summary>The conversions a FIX value is read by, one a type of the standard's.</summary>
+/// <remarks>
+/// Every standard field is read by one of these, and a field of a consumer's own
+/// (<see cref="FixCustomField"/>) is read by the one of its type. Each takes the value as the wire had it,
+/// as characters or as octets, and answers whether it is valid with the value, as a pair or as an out
+/// parameter; none throws. The rules are the protocol's, not .NET's: <see cref="ToDecimal(ReadOnlySpan{char})"/>
+/// reads no exponent and no culture.
+/// </remarks>
+public static class FixConvert
 {
-	public static int Tag(ReadOnlySpan<char> value)
+	/// <summary>Reads a tag: decimal digits that fit an <see cref="int"/>.</summary>
+	/// <param name="value">The digits as the wire had them.</param>
+	/// <returns>The tag, or -1 where the text is empty, holds anything but digits, or does not fit.</returns>
+	public static int ToTag(ReadOnlySpan<char> value)
 	{
 		var result = 0;
 
@@ -26,7 +37,9 @@ static class FixConvert
 		return result;
 	}
 
-	public static int Tag(ReadOnlySpan<byte> value)
+	/// <inheritdoc cref="ToTag(ReadOnlySpan{char})"/>
+	/// <param name="value">The digits as the wire had them, one octet a character.</param>
+	public static int ToTag(ReadOnlySpan<byte> value)
 	{
 		var result = 0;
 
@@ -46,127 +59,181 @@ static class FixConvert
 		return result;
 	}
 
-	public static (bool Valid, long Value) Integer(ReadOnlySpan<char> raw)
+	/// <summary>Reads a whole number: an optional <c>-</c> and decimal digits, which fit a <see cref="long"/>. No <c>+</c>, no spaces; leading zeros are read.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, long Value) ToInteger(ReadOnlySpan<char> raw)
 	{
-		var valid = Integer(raw, out var value);
+		var valid = ToInteger(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, long Value) Integer(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToInteger(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, long Value) ToInteger(ReadOnlySpan<byte> raw)
 	{
-		var valid = Integer(raw, out var value);
+		var valid = ToInteger(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, decimal Value) Decimal(ReadOnlySpan<char> raw)
+	/// <summary>Reads a decimal number: an optional <c>-</c>, decimal digits and at most one <c>.</c>, no exponent. The value is exact: a number <see cref="decimal"/> could only hold rounded is not valid, and its scale, trailing zeros included, is kept.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, decimal Value) ToDecimal(ReadOnlySpan<char> raw)
 	{
-		var valid = Decimal(raw, out var value);
+		var valid = ToDecimal(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, decimal Value) Decimal(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToDecimal(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, decimal Value) ToDecimal(ReadOnlySpan<byte> raw)
 	{
-		var valid = Decimal(raw, out var value);
+		var valid = ToDecimal(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<char> raw)
+	/// <summary>Reads <c>Y</c> as true and <c>N</c> as false.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, bool Value) ToBoolean(ReadOnlySpan<char> raw)
 	{
-		var valid = Boolean(raw, out var value);
+		var valid = ToBoolean(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToBoolean(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, bool Value) ToBoolean(ReadOnlySpan<byte> raw)
 	{
-		var valid = Boolean(raw, out var value);
+		var valid = ToBoolean(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, char Value) Character(ReadOnlySpan<char> raw)
+	/// <summary>Reads exactly one character.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, char Value) ToCharacter(ReadOnlySpan<char> raw)
 	{
-		var valid = Character(raw, out var value);
+		var valid = ToCharacter(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, char Value) Character(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToCharacter(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, char Value) ToCharacter(ReadOnlySpan<byte> raw)
 	{
-		var valid = Character(raw, out var value);
+		var valid = ToCharacter(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<char> raw)
+	/// <summary>Reads octets, copied: from characters each has to be U+0000 through U+00FF, one to an octet.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, ReadOnlyMemory<byte> Value) ToData(ReadOnlySpan<char> raw)
 	{
-		var valid = Data(raw, out var value);
+		var valid = ToData(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToData(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, ReadOnlyMemory<byte> Value) ToData(ReadOnlySpan<byte> raw)
 	{
-		var valid = Data(raw, out var value);
+		var valid = ToData(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, DateTimeOffset Value) Timestamp(ReadOnlySpan<char> raw)
+	/// <summary>Reads <c>YYYYMMDD-HH:MM:SS</c> with an optional fraction of any number of digits, at offset zero. The leap second 23:59:60 is read as the second after it, the year 0000 is not valid, and a fraction is kept to the tick.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, DateTimeOffset Value) ToTimestamp(ReadOnlySpan<char> raw)
 	{
-		var valid = Timestamp(raw, out var value);
+		var valid = ToTimestamp(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, DateTimeOffset Value) Timestamp(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToTimestamp(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, DateTimeOffset Value) ToTimestamp(ReadOnlySpan<byte> raw)
 	{
-		var valid = Timestamp(raw, out var value);
+		var valid = ToTimestamp(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, TimeOnly Value) Time(ReadOnlySpan<char> raw)
+	/// <summary>Reads <c>HH:MM:SS</c> with an optional fraction of any number of digits. The leap second 23:59:60 is read as the second after it, which is midnight.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, TimeOnly Value) ToTime(ReadOnlySpan<char> raw)
 	{
-		var valid = Time(raw, out var value);
+		var valid = ToTime(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, TimeOnly Value) Time(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToTime(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, TimeOnly Value) ToTime(ReadOnlySpan<byte> raw)
 	{
-		var valid = Time(raw, out var value);
+		var valid = ToTime(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, DateOnly Value) Date(ReadOnlySpan<char> raw)
+	/// <summary>Reads <c>YYYYMMDD</c>, a day of the calendar; the year 0000 is not valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, DateOnly Value) ToDate(ReadOnlySpan<char> raw)
 	{
-		var valid = Date(raw, out var value);
+		var valid = ToDate(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, DateOnly Value) Date(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToDate(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, DateOnly Value) ToDate(ReadOnlySpan<byte> raw)
 	{
-		var valid = Date(raw, out var value);
+		var valid = ToDate(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, string Value) MonthYear(ReadOnlySpan<char> raw)
+	/// <summary>Reads <c>YYYYMM</c>, <c>YYYYMMDD</c> or <c>YYYYMMwN</c> with a week from 1 to 5; the value is the text itself, kept even where it is not valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, string Value) ToMonthYear(ReadOnlySpan<char> raw)
 	{
-		var valid = MonthYear(raw, out var value);
+		var valid = ToMonthYear(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, string Value) MonthYear(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToMonthYear(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, string Value) ToMonthYear(ReadOnlySpan<byte> raw)
 	{
-		var valid = MonthYear(raw, out var value);
+		var valid = ToMonthYear(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<char> raw)
+	/// <summary>Reads values separated by single spaces, each exactly one character; the value is the text split at the spaces, kept even where it is not valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, string[] Value) ToMultiple(ReadOnlySpan<char> raw)
 	{
-		var valid = Multiple(raw, out var value);
+		var valid = ToMultiple(raw, out var value);
 		return (valid, value);
 	}
 
-	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToMultiple(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, string[] Value) ToMultiple(ReadOnlySpan<byte> raw)
 	{
-		var valid = Multiple(raw, out var value);
+		var valid = ToMultiple(raw, out var value);
 		return (valid, value);
 	}
 
-	public static bool Integer(ReadOnlySpan<char> raw, out long value)
+	/// <inheritdoc cref="ToInteger(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToInteger(ReadOnlySpan<char> raw, out long value)
 	{
 		value = default;
 
@@ -219,7 +286,10 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Integer(ReadOnlySpan<byte> raw, out long value)
+	/// <inheritdoc cref="ToInteger(ReadOnlySpan{char}, out long)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToInteger(ReadOnlySpan<byte> raw, out long value)
 	{
 		value = default;
 
@@ -269,7 +339,11 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Decimal(ReadOnlySpan<char> raw, out decimal value)
+	/// <inheritdoc cref="ToDecimal(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToDecimal(ReadOnlySpan<char> raw, out decimal value)
 	{
 		value = default;
 
@@ -325,7 +399,10 @@ static class FixConvert
 		return ExactDecimal(ref value, dot < 0 ? 0 : Math.Max(0, lastNonzero - dot));
 	}
 
-	public static bool Decimal(ReadOnlySpan<byte> raw, out decimal value)
+	/// <inheritdoc cref="ToDecimal(ReadOnlySpan{char}, out decimal)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToDecimal(ReadOnlySpan<byte> raw, out decimal value)
 	{
 		value = default;
 
@@ -403,22 +480,28 @@ static class FixConvert
 
 	static int Part(ReadOnlySpan<char> raw)
 	{
-		return Tag(raw);
+		return ToTag(raw);
 	}
 
 	static int Part(ReadOnlySpan<byte> raw)
 	{
-		return Tag(raw);
+		return ToTag(raw);
 	}
 
-	public static string Text(ReadOnlySpan<char> raw)
+	/// <summary>Reads text: the value as it stands, always valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>The text.</returns>
+	public static string ToText(ReadOnlySpan<char> raw)
 	{
 		return raw.ToString();
 	}
 
 	// Each byte becomes the character with the same code, which is what Latin-1 decodes to.
 	// Only the string is allocated: a character array beside it doubled every text field.
-	public static string Text(ReadOnlySpan<byte> raw)
+	/// <summary>Reads text: each octet is the character of the same code, which is Latin-1.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>The text.</returns>
+	public static string ToText(ReadOnlySpan<byte> raw)
 	{
 #if NETSTANDARD2_0
 		Span<char> chars = raw.Length <= 256 ? stackalloc char[raw.Length] : new char[raw.Length];
@@ -432,7 +515,11 @@ static class FixConvert
 #endif
 	}
 
-	public static bool Data(ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)
+	/// <inheritdoc cref="ToData(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToData(ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)
 	{
 		var bytes = new byte[raw.Length];
 
@@ -452,7 +539,10 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Data(ReadOnlySpan<byte> raw, out ReadOnlyMemory<byte> value)
+	/// <inheritdoc cref="ToData(ReadOnlySpan{char}, out ReadOnlyMemory{byte})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToData(ReadOnlySpan<byte> raw, out ReadOnlyMemory<byte> value)
 	{
 		value = raw.ToArray();
 		return true;
@@ -463,21 +553,33 @@ static class FixConvert
 		return month == 2 ? (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) ? 29 : 28) : month is 4 or 6 or 9 or 11 ? 30 : 31;
 	}
 
-	public static bool Boolean(ReadOnlySpan<char> raw, out bool value)
+	/// <inheritdoc cref="ToBoolean(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToBoolean(ReadOnlySpan<char> raw, out bool value)
 	{
 		value = raw.Length == 1 && raw[0] == 'Y';
 		return raw.Length == 1 && (raw[0] == 'Y' || raw[0] == 'N');
 	}
 
-	public static bool Character(ReadOnlySpan<char> raw, out char value)
+	/// <inheritdoc cref="ToCharacter(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToCharacter(ReadOnlySpan<char> raw, out char value)
 	{
 		value = raw.Length == 1 ? (char)raw[0] : default;
 		return raw.Length == 1;
 	}
 
-	public static bool Multiple(ReadOnlySpan<char> raw, out string[] value)
+	/// <inheritdoc cref="ToMultiple(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToMultiple(ReadOnlySpan<char> raw, out string[] value)
 	{
-		var text = Text(raw);
+		var text = ToText(raw);
 
 		value = text.Split(' ');
 
@@ -498,7 +600,11 @@ static class FixConvert
 	// protocol admits and no calendar type holds, and which is not a value. A fraction is kept
 	// to the tick, a hundred nanoseconds; FIX 4.4 writes at most milliseconds.
 
-	public static bool Date(ReadOnlySpan<char> raw, out DateOnly value)
+	/// <inheritdoc cref="ToDate(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToDate(ReadOnlySpan<char> raw, out DateOnly value)
 	{
 		value = default;
 
@@ -510,7 +616,11 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Time(ReadOnlySpan<char> raw, out TimeOnly value)
+	/// <inheritdoc cref="ToTime(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToTime(ReadOnlySpan<char> raw, out TimeOnly value)
 	{
 		value = default;
 
@@ -522,7 +632,11 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Timestamp(ReadOnlySpan<char> raw, out DateTimeOffset value)
+	/// <inheritdoc cref="ToTimestamp(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToTimestamp(ReadOnlySpan<char> raw, out DateTimeOffset value)
 	{
 		value = default;
 
@@ -534,9 +648,13 @@ static class FixConvert
 		return Composed(year, month, day, ticks, leap, out value);
 	}
 
-	public static bool MonthYear(ReadOnlySpan<char> raw, out string value)
+	/// <inheritdoc cref="ToMonthYear(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToMonthYear(ReadOnlySpan<char> raw, out string value)
 	{
-		value = Text(raw);
+		value = ToText(raw);
 
 		if (raw.Length != 6 && raw.Length != 8)
 			return false;
@@ -628,21 +746,30 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Boolean(ReadOnlySpan<byte> raw, out bool value)
+	/// <inheritdoc cref="ToBoolean(ReadOnlySpan{char}, out bool)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToBoolean(ReadOnlySpan<byte> raw, out bool value)
 	{
 		value = raw.Length == 1 && raw[0] == 'Y';
 		return raw.Length == 1 && (raw[0] == 'Y' || raw[0] == 'N');
 	}
 
-	public static bool Character(ReadOnlySpan<byte> raw, out char value)
+	/// <inheritdoc cref="ToCharacter(ReadOnlySpan{char}, out char)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToCharacter(ReadOnlySpan<byte> raw, out char value)
 	{
 		value = raw.Length == 1 ? (char)raw[0] : default;
 		return raw.Length == 1;
 	}
 
-	public static bool Multiple(ReadOnlySpan<byte> raw, out string[] value)
+	/// <inheritdoc cref="ToMultiple(ReadOnlySpan{char}, out string[])"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToMultiple(ReadOnlySpan<byte> raw, out string[] value)
 	{
-		var text = Text(raw);
+		var text = ToText(raw);
 
 		value = text.Split(' ');
 
@@ -653,7 +780,10 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Date(ReadOnlySpan<byte> raw, out DateOnly value)
+	/// <inheritdoc cref="ToDate(ReadOnlySpan{char}, out DateOnly)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToDate(ReadOnlySpan<byte> raw, out DateOnly value)
 	{
 		value = default;
 
@@ -665,7 +795,10 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Time(ReadOnlySpan<byte> raw, out TimeOnly value)
+	/// <inheritdoc cref="ToTime(ReadOnlySpan{char}, out TimeOnly)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToTime(ReadOnlySpan<byte> raw, out TimeOnly value)
 	{
 		value = default;
 
@@ -677,7 +810,10 @@ static class FixConvert
 		return true;
 	}
 
-	public static bool Timestamp(ReadOnlySpan<byte> raw, out DateTimeOffset value)
+	/// <inheritdoc cref="ToTimestamp(ReadOnlySpan{char}, out DateTimeOffset)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToTimestamp(ReadOnlySpan<byte> raw, out DateTimeOffset value)
 	{
 		value = default;
 
@@ -689,9 +825,12 @@ static class FixConvert
 		return Composed(year, month, day, ticks, leap, out value);
 	}
 
-	public static bool MonthYear(ReadOnlySpan<byte> raw, out string value)
+	/// <inheritdoc cref="ToMonthYear(ReadOnlySpan{char}, out string)"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToMonthYear(ReadOnlySpan<byte> raw, out string value)
 	{
-		value = Text(raw);
+		value = ToText(raw);
 
 		if (raw.Length != 6 && raw.Length != 8)
 			return false;

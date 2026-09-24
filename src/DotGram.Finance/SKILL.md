@@ -95,14 +95,12 @@ foreach (var field in FixParser.ParseFields(wire))
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
-- A tag the package does not know goes through the context's `FixFieldFactory`, which answers its
-  type (`tag => tag == 25005 ? FixCustom.Integer : null`); it is then a `FixField.Custom<long>`; a class of your own
-  derives from `FixField.Custom<T>` and is declared with `.As((tag, value) => new Status(tag, value))`.
-  A loaded dictionary answers for its own fields where your factory answers null. A MsgType it does not know is built by
-  `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing declares is a
-  `FixField.Invalid` of that tag with its octets where the factory answers null, and a type the message factory answers null for a
-  `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a field
-  is out of scope in it.
+- A tag the package does not know goes through the context's `FixFieldFactory`, handed the tag
+  and the value: `(tag, value) => tag == 25005 ? new FixCustomField<long>(tag, FixConvert.ToInteger(value)) : null`.
+  A class of your own derives from `FixCustomField<T>`. A MsgType it does not know is built by
+  `FixMessageFactory` (a `FixCustomMessage` that places its own fields). Where either answers null,
+  the field is a `FixField.Invalid` of that tag with its octets, and the message a `FixMessage.Invalid`.
+  A standard message has no property for a tag outside FIX 4.4, so such a field is out of scope in it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 

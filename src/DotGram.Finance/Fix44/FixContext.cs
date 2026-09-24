@@ -84,15 +84,14 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>Says how to read a tag FIX 4.4 does not define: <c>tag =&gt; tag == 25005 ? FixCustom.Integer : null</c>.</summary>
+	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>(tag, value) =&gt; tag == 25005 ? new Status(FixConvert.ToText(value)) : null</c>.</summary>
 	/// <remarks>
-	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. A tag it
-	/// answers a type for is a <see cref="FixField.Custom{T}"/> of that type, or the consumer's class
-	/// declared with <see cref="FixCustom{T}.As"/>; one it answers null for, or with no factory, is a
-	/// <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
-	/// answers for the fields it describes that the standard does not, where the factory answers null.
+	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. It is
+	/// handed the tag and the value, and builds a <see cref="FixCustomField{T}"/>, or a class derived from
+	/// one, the way the standard's fields are built; where it answers null, or there is none, the field is
+	/// a <see cref="FixField.Invalid"/> of that tag.
 	/// </remarks>
-	public Func<int,FixCustom?>? FixFieldFactory { get; init; }
+	public FixFieldFactory? FixFieldFactory { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
@@ -249,29 +248,12 @@ public sealed record FixContext
 		return Load(stream, emitTo);
 	}
 
-	// A dictionary's checks go over this context's, and the fields it describes that the standard does
-	// not are declared by the types it gives them.
+	// A dictionary's checks go over this context's. The fields it describes that the standard does not
+	// are to be built by a factory compiled through the expression language, which cannot yet hand a
+	// span to a method (the architect's task to expr, 2026-09-23).
 	FixContext Loaded(FixDictionary dictionary, string? emitTo)
 	{
-		var types = new Dictionary<int, FixCustom>();
-
-		foreach (var field in dictionary.Fields)
-			if (!Defined.Tags.Contains(field.Key) && FixCustom.Of(field.Value.Type) is { } type)
-				types[field.Key] = type;
-
-		var factory = FixFieldFactory;
-
-		return this with
-		{
-			Validators      = Validators.Load(dictionary, Emitter(emitTo)),
-			FixFieldFactory = tag => factory?.Invoke(tag) ?? (types.Count == 0 ? null : types.GetValueOrDefault(tag)),
-		};
-	}
-
-	// The tags the standard defines, from the constants that name them: asked only by a load.
-	static class Defined
-	{
-		public static readonly HashSet<int> Tags = [.. typeof(FixTag).GetFields().Select(static field => (int)field.GetRawConstantValue()!)];
+		return this with { Validators = Validators.Load(dictionary, Emitter(emitTo)) };
 	}
 
 	// The texts a load writes are the expression language's, one file a slot, so that what a

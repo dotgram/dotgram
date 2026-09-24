@@ -257,7 +257,7 @@ public static class HandFixParser
 		return position;
 	}
 
-	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, Func<int, FixCustom?>? custom)
+	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, FixFieldFactory? custom)
 		where T : unmanaged
 	{
 		var value = input.Slice(valueStart, end - valueStart);
@@ -267,7 +267,7 @@ public static class HandFixParser
 			if (!binary)
 				return FixFieldBuilder.Value(tag, chars, custom);
 
-			return FixFieldBuilder.Binary(tag, FixConvert.Data(chars), custom);
+			return FixFieldBuilder.Binary(tag, FixConvert.ToData(chars), custom);
 		}
 		else
 		{
@@ -275,7 +275,7 @@ public static class HandFixParser
 			if (!binary)
 				return FixFieldBuilder.Value(tag, bytes, custom);
 
-			return FixFieldBuilder.Binary(tag, FixConvert.Data(bytes), custom);
+			return FixFieldBuilder.Binary(tag, FixConvert.ToData(bytes), custom);
 		}
 	}
 

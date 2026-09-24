@@ -43,7 +43,7 @@ public sealed class FixFieldFactoryTests
 	[Fact]
 	public void Every_tag_builds_the_field_its_tag_names()
 	{
-		Func<int, FixCustom?>? custom = null;
+		FixFieldFactory? custom = null;
 		var wrong  = new List<string>();
 		var named  = Named();
 
@@ -84,7 +84,7 @@ public sealed class FixFieldFactoryTests
 	[InlineData(5000)]  // where a counterparty writes its own
 	public void A_tag_past_the_standard_is_Invalid_through_both_doors(int tag)
 	{
-		Func<int, FixCustom?>? custom = null;
+		FixFieldFactory? custom = null;
 
 		foreach (var (door, field) in Both(tag, custom))
 		{
@@ -100,7 +100,7 @@ public sealed class FixFieldFactoryTests
 	}
 
 	/// <summary>The two doors, so that neither is checked alone.</summary>
-	static IEnumerable<(string Door, FixField Field)> Both(int tag, Func<int, FixCustom?>? custom)
+	static IEnumerable<(string Door, FixField Field)> Both(int tag, FixFieldFactory? custom)
 	{
 		yield return ("characters", FixFieldBuilder.Value(tag, "1".AsSpan(), custom));
 		yield return ("octets",     FixFieldBuilder.Value(tag, Encoding.Latin1.GetBytes("1").AsSpan(), custom));

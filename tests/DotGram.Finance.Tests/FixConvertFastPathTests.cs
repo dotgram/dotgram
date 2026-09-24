@@ -35,8 +35,8 @@ public sealed class FixConvertFastPathTests
 	{
 		var expected = long.Parse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
 
-		Assert.True(FixConvert.Integer(text.AsSpan(), out var characters));
-		Assert.True(FixConvert.Integer(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.True(FixConvert.ToInteger(text.AsSpan(), out var characters));
+		Assert.True(FixConvert.ToInteger(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(expected, characters);
 		Assert.Equal(expected, bytes);
 	}
@@ -57,8 +57,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("123456789012345678901234567890")]
 	public void An_integer_refuses_what_is_not_digits_or_does_not_fit_a_long(string text)
 	{
-		Assert.False(FixConvert.Integer(text.AsSpan(), out _));
-		Assert.False(FixConvert.Integer(Encoding.ASCII.GetBytes(text), out _));
+		Assert.False(FixConvert.ToInteger(text.AsSpan(), out _));
+		Assert.False(FixConvert.ToInteger(Encoding.ASCII.GetBytes(text), out _));
 	}
 
 	[Theory]
@@ -89,8 +89,8 @@ public sealed class FixConvertFastPathTests
 		Assert.True(Utf8Parser.TryParse(Encoding.ASCII.GetBytes(text), out decimal utf8, out _));
 		Assert.Equal(expected, decimal.GetBits(utf8));
 
-		Assert.True(FixConvert.Decimal(text.AsSpan(), out var characters));
-		Assert.True(FixConvert.Decimal(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.True(FixConvert.ToDecimal(text.AsSpan(), out var characters));
+		Assert.True(FixConvert.ToDecimal(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(expected, decimal.GetBits(characters));
 		Assert.Equal(expected, decimal.GetBits(bytes));
 	}
@@ -107,8 +107,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("79228162514264337593543950336")]
 	public void A_decimal_refuses_what_it_cannot_hold_or_spell(string text)
 	{
-		Assert.False(FixConvert.Decimal(text.AsSpan(), out var characters));
-		Assert.False(FixConvert.Decimal(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.False(FixConvert.ToDecimal(text.AsSpan(), out var characters));
+		Assert.False(FixConvert.ToDecimal(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(0m, characters);
 		Assert.Equal(0m, bytes);
 	}
@@ -126,8 +126,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("2026-9-1", false)]
 	public void A_date_is_read_from_its_digits(string text, bool valid)
 	{
-		Assert.Equal(valid, FixConvert.Date(text.AsSpan(), out var characters));
-		Assert.Equal(valid, FixConvert.Date(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(valid, FixConvert.ToDate(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.ToDate(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(characters, bytes);
 	}
 
@@ -146,8 +146,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("12:00:00.", false, "")]
 	public void A_time_is_read_from_its_digits(string text, bool valid, string expected)
 	{
-		Assert.Equal(valid, FixConvert.Time(text.AsSpan(), out var characters));
-		Assert.Equal(valid, FixConvert.Time(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(valid, FixConvert.ToTime(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.ToTime(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(characters, bytes);
 
 		if (valid)
@@ -166,8 +166,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("20260922-12:00", false, "")]
 	public void A_timestamp_is_an_instant_at_offset_zero(string text, bool valid, string expected)
 	{
-		Assert.Equal(valid, FixConvert.Timestamp(text.AsSpan(), out var characters));
-		Assert.Equal(valid, FixConvert.Timestamp(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(valid, FixConvert.ToTimestamp(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.ToTimestamp(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(characters, bytes);
 
 		if (valid)
@@ -189,8 +189,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("2026091", false)]
 	public void A_month_year_is_its_text_in_one_of_three_shapes(string text, bool valid)
 	{
-		Assert.Equal(valid, FixConvert.MonthYear(text.AsSpan(), out var characters));
-		Assert.Equal(valid, FixConvert.MonthYear(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(valid, FixConvert.ToMonthYear(text.AsSpan(), out var characters));
+		Assert.Equal(valid, FixConvert.ToMonthYear(Encoding.ASCII.GetBytes(text), out var bytes));
 		Assert.Equal(text, characters);
 		Assert.Equal(text, bytes);
 	}
@@ -208,8 +208,8 @@ public sealed class FixConvertFastPathTests
 	[InlineData("1a", -1)]
 	public void A_tag_is_digits_that_fit_an_int(string text, int expected)
 	{
-		Assert.Equal(expected, FixConvert.Tag(text.AsSpan()));
-		Assert.Equal(expected, FixConvert.Tag(Encoding.ASCII.GetBytes(text)));
+		Assert.Equal(expected, FixConvert.ToTag(text.AsSpan()));
+		Assert.Equal(expected, FixConvert.ToTag(Encoding.ASCII.GetBytes(text)));
 	}
 
 	/// <summary>The data table answers the standard for every standard tag, and nothing beyond it.</summary>
@@ -254,7 +254,7 @@ public sealed class FixConvertFastPathTests
 		for (var i = 0; i < length; i++)
 			bytes[i] = (byte)(i * 7 + 3);
 
-		var text = FixConvert.Text(bytes);
+		var text = FixConvert.ToText(bytes);
 
 		Assert.Equal(length, text.Length);
 

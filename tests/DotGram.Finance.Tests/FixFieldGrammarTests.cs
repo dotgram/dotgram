@@ -44,9 +44,9 @@ public sealed class FixFieldGrammarTests
 			Assert.Equal(TimeSpan.Zero, time.Offset);
 			Assert.Equal(1L, Assert.IsType<FixField.MsgSeqNum>(Field(order, 34)).Value);
 		}
-		Assert.True(FixConvert.Boolean("Y".AsSpan(), out var flag));
+		Assert.True(FixConvert.ToBoolean("Y".AsSpan(), out var flag));
 		Assert.True(flag);
-		Assert.True(FixConvert.Boolean(new byte[] { (byte)'N' }, out flag));
+		Assert.True(FixConvert.ToBoolean(new byte[] { (byte)'N' }, out flag));
 		Assert.False(flag);
 	}
 
@@ -58,8 +58,8 @@ public sealed class FixFieldGrammarTests
 	[InlineData("1.")]
 	public void Decimal_conversion_is_exact_and_equal_for_both_domains(string text)
 	{
-		Assert.True(FixConvert.Decimal(text.AsSpan(), out var chars));
-		Assert.True(FixConvert.Decimal(Bytes(text), out var bytes));
+		Assert.True(FixConvert.ToDecimal(text.AsSpan(), out var chars));
+		Assert.True(FixConvert.ToDecimal(Bytes(text), out var bytes));
 		Assert.Equal(chars, bytes);
 	}
 

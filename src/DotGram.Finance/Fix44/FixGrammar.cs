@@ -16,8 +16,8 @@ namespace DotGram.Finance.Fix44;
 	LogSeparator = ' '* & '|' & ' '*
 	Text         = (?!Separator & any)+
 
-	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.Tag(value))
-	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.Tag(value))
+	Tag  : @int = value: { ['1'..'9'] & ['0'..'9']* } => @(FixConvert.ToTag(value))
+	Size : @int = value: { ['0'..'9']+ }              => @(FixConvert.ToTag(value))
 
 	Field : @FixField =
 		wire: (tag: Tag & '=' & switch @(context.Kind(tag)) {
@@ -83,10 +83,10 @@ sealed partial class FixGrammar
 			var kind  = context.Kind(tag);
 
 			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.FixFieldFactory);
+				return FixFieldBuilder.Binary(tag, FixConvert.ToData(value), context.FixFieldFactory);
 
 			if (kind > 0)
-				Expect(tag, FixConvert.Tag(value));
+				Expect(tag, FixConvert.ToTag(value));
 
 			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
 		}
@@ -97,10 +97,10 @@ sealed partial class FixGrammar
 			var kind  = context.Kind(tag);
 
 			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.FixFieldFactory);
+				return FixFieldBuilder.Binary(tag, FixConvert.ToData(value), context.FixFieldFactory);
 
 			if (kind > 0)
-				Expect(tag, FixConvert.Tag(value));
+				Expect(tag, FixConvert.ToTag(value));
 
 			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
 		}

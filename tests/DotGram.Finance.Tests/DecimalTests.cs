@@ -36,8 +36,8 @@ public sealed class DecimalTests
 	[InlineData("", false)]
 	public void Conversion_is_exact_and_identical_for_characters_and_bytes(string text, bool valid)
 	{
-		Assert.Equal(valid, FixConvert.Decimal(text.AsSpan(), out var chars));
-		Assert.Equal(valid, FixConvert.Decimal(Encoding.ASCII.GetBytes(text), out var bytes));
+		Assert.Equal(valid, FixConvert.ToDecimal(text.AsSpan(), out var chars));
+		Assert.Equal(valid, FixConvert.ToDecimal(Encoding.ASCII.GetBytes(text), out var bytes));
 		if (valid)
 		{
 			Assert.Equal(decimal.Parse(text, CultureInfo.InvariantCulture), chars);
