@@ -131,82 +131,25 @@ public static partial class FixParser
 	{
 		message = null;
 
-		var     started = false;
-		var     ended   = false;
-		var     fields  = new List<FixField>(input is ICollection c ? c.Count : 6);
-		string? type    = null;
-		var     pairs   = context ?? FixContext.Default;
-		var     length  = 0;
+		var     fields = new List<FixField>(input is ICollection c ? c.Count : 6);
+		string? type   = null;
 
 		foreach (var field in input)
 		{
-			// A length field is followed by the data it measures, and by nothing else.
-			if (length != 0 && field.Tag != pairs.DataTag(length))
-			{
-				error = new FixParseError(field.Position, length, null, $"Length ({length}) is not followed by its data ({pairs.DataTag(length)})");
-				return false;
-			}
-
-			length = pairs.Kind(field.Tag) > 0 ? field.Tag : 0;
-
 			fields.Add(field);
 
-			switch (field.Tag)
-			{
-				case 8:
-					if (started)
-					{
-						error = new FixParseError(field.Position, field.Tag, null, "Message has multiple BeginString (8)");
-						return false;
-					}
-
-					started = true;
-					break;
-
-				case 10:
-					if (!started)
-					{
-						error = new FixParseError(field.Position, field.Tag, null, "Message has CheckSum (10) before BeginString (8)");
-						return false;
-					}
-
-					if (ended)
-					{
-						error = new FixParseError(field.Position, field.Tag, null, "Message has multiple CheckSum (10)");
-						return false;
-					}
-
-					ended = true;
-					break;
-
-				case 35:
-					if (!started)
-					{
-						error = new FixParseError(field.Position, field.Tag, null, "Message has MsgType (35) before BeginString (8)");
-						return false;
-					}
-
-					type = ((FixField.MsgType)field).Value;
-
-					break;
-			}
+			if (type is null && field is FixField.MsgType msgType)
+				type = msgType.Value;
 		}
 
-		if (length != 0)
-		{
-			error = new FixParseError(0, length, null, $"Length ({length}) is not followed by its data ({pairs.DataTag(length)})");
-			return false;
-		}
+		// A message ends with its CheckSum, read and closed by its separator: where it does not, the
+		// input stopped short or is not one message, and nothing after this can say what it was.
+		// Everything else wrong with it is a finding of Validate.
+		var last = fields.Count == 0 ? null : fields[fields.Count - 1];
 
-		if (!started)
+		if (last is not FixField.CheckSum { IsValid: true } || !last.Terminated)
 		{
-			error = new FixParseError(0, null, null, "Message has no BeginString (8)");
-			return false;
-		}
-
-		if (!ended)
-		{
-			error = new FixParseError(0, null, null, "Message has no CheckSum (10)");
+			error = new FixParseError(last?.Position ?? 0, last?.Tag, type, "Message does not end with CheckSum (10)");
 			return false;
 		}
 
@@ -547,72 +490,6 @@ public static partial class FixParser
 		throw new FormatException(error!.ToString());
 	}
 
-	static bool Envelope(string input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
-	{
-		type  = "";
-		error = null;
-
-		var separator = framing.Separator();
-
-		for (var i = 0; i < input.Length; i++)
-			if (input[i] > 255)
-				return Fail(i, null, null, "Input must preserve octets as characters U+0000 through U+00FF.", out error);
-
-		if (!input.StartsWith("8=FIX.4.4" + separator + "9=", StringComparison.Ordinal))
-			return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
-
-		var lengthEnd = input.IndexOf(separator, 12);
-
-		if (lengthEnd < 0)
-			return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
-
-		if (!int.TryParse(input.AsSpan(12, lengthEnd - 12), NumberStyles.None, CultureInfo.InvariantCulture, out var bodyLength))
-			return Fail(12, 9, null, "BodyLength must be a nonnegative integer within the input range.", out error);
-
-		var bodyStart = lengthEnd + 1;
-
-		if (input.Length - bodyStart < 4 || !input.AsSpan(bodyStart, 3).SequenceEqual("35=".AsSpan()))
-			return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
-
-		var typeEnd = input.IndexOf(separator, bodyStart + 3);
-
-		if (typeEnd < 0)
-			return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
-
-		type = input.Substring(bodyStart + 3, typeEnd - bodyStart - 3);
-
-		if (bodyLength != input.Length - bodyStart - 7)
-			return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
-
-		var checksumStart = bodyStart + bodyLength;
-
-		if (!input.AsSpan(checksumStart, 3).SequenceEqual("10=".AsSpan()) || input[input.Length - 1] != separator)
-			return Fail(checksumStart, 10, type, "Expected final CheckSum field with three digits and SOH.", out error);
-
-		if (!int.TryParse(input.AsSpan(checksumStart + 3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out var expected))
-			return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
-
-		var checksum = 0;
-
-		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
-
-		if (framing == FixFraming.Log)
-		{
-			if (fields == null) return true;
-
-			foreach (var field in fields)
-			{
-				if (field.ValuePosition + field.Length < checksumStart)
-					checksum = (checksum - separator + 1) & 255;
-			}
-		}
-
-		if (checksum != expected)
-			return Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
-
-		return true;
-	}
-
 	static bool TryParseText(string? input, out FixMessage? message, out FixParseError? error, FixContext? context)
 	{
 		message = null;
@@ -621,106 +498,87 @@ public static partial class FixParser
 		if (input == null)
 			return Fail(0, null, null, "Input is null.", out error);
 
-		var framing = context?.Framing ?? FixFraming.Wire;
-
-		if (!Envelope(input, framing, null, out var type, out error))
-			return false;
-
 		var fields = FixParser.ParseFields(input, context);
 
-		if (!CheckSyntax(fields, out error))
+		if (!CheckSyntax(fields, out error) || !FixParser.TryParseMessage(fields, out message, out error, context))
 			return false;
 
-		if (framing == FixFraming.Log && !Envelope(input, framing, fields, out _, out error))
-			return false;
+		Measure(message!, input.AsSpan());
 
-		return FixParser.TryParseMessage(fields, out message, out error, context);
-	}
-
-	static bool Envelope(ReadOnlySpan<byte> input, FixFraming framing, FixField[]? fields, out string type, out FixParseError? error)
-	{
-		type  = "";
-		error = null;
-
-		var separator = framing.Separator();
-
-		if (input.Length < 12 || !input.Slice(0, 9).SequenceEqual("8=FIX.4.4"u8) || input[9] != separator || input[10] != '9' || input[11] != '=')
-			return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
-
-		var lengthEnd = input.Slice(12).IndexOf((byte)separator);
-
-		if (lengthEnd < 0)
-			return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
-
-		lengthEnd += 12;
-
-		var bodyLength = FixConvert.ToTag(input.Slice(12, lengthEnd - 12));
-
-		if (bodyLength < 0)
-			return Fail(12, 9, null, "Invalid BodyLength.", out error);
-
-		var bodyStart = lengthEnd + 1;
-
-		if (input.Length - bodyStart < 4 || !input.Slice(bodyStart, 3).SequenceEqual("35="u8))
-			return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
-
-		var typeLength = input.Slice(bodyStart + 3).IndexOf((byte)separator);
-
-		if (typeLength < 0)
-			return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
-
-		type = FixConvert.ToText(input.Slice(bodyStart + 3, typeLength));
-
-		if (bodyLength != input.Length - bodyStart - 7)
-			return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
-
-		var checksumStart = bodyStart + bodyLength;
-
-		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator)
-			return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
-
-		var expected = FixConvert.ToTag(input.Slice(checksumStart + 3, 3));
-
-		if (expected < 0)
-			return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
-
-		var checksum = 0;
-
-		for (var i = 0; i < checksumStart; i++)
-			checksum = (checksum + input[i]) & 255;
-
-		if (framing == FixFraming.Log)
-		{
-			if (fields == null)
-				return true;
-
-			foreach (var field in fields)
-			{
-				if (field.ValuePosition + field.Length < checksumStart)
-					checksum = (checksum - separator + 1) & 255;
-			}
-		}
-		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
+		return true;
 	}
 
 	static bool TryParseBytes(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, FixContext? context)
 	{
-		message = null;
-
-		var framing = context?.Framing ?? FixFraming.Wire;
-
-		if (!Envelope(input.Span, framing, null, out _, out error))
-			return false;
-
 		var fields = FixParser.ParseFields(input, context);
 
-		if (!CheckSyntax(fields, out error))
+		if (!CheckSyntax(fields, out error) || !FixParser.TryParseMessage(fields, out message, out error, context))
+		{
+			message = null;
 			return false;
+		}
 
-		if (framing == FixFraming.Log && !Envelope(input.Span, framing, fields, out _, out error))
-			return false;
+		Measure(message!, input.Span);
 
-		return FixParser.TryParseMessage(fields, out message, out error, context);
+		return true;
+	}
+
+	// What Validate holds BodyLength and CheckSum to, taken while the octets are in hand, since the
+	// message keeps its fields and not its source. Each field before CheckSum is its tag, '=' and value
+	// as read, and one separator: the octets of the wire, whatever the framing, so that a log is summed
+	// as the message it renders. The body is what follows BodyLength.
+	static void Measure(FixMessage message, ReadOnlySpan<char> input)
+	{
+		var sum  = 0;
+		var body = -1;
+
+		foreach (var field in message.Fields)
+		{
+			if (field.Tag == 10)
+				break;
+
+			var octets = input.Slice(field.Position, field.ValuePosition + field.Length - field.Position);
+
+			foreach (var octet in octets)
+				sum += octet;
+
+			sum += 1;
+
+			if (body >= 0)
+				body += octets.Length + 1;
+			else if (field.Tag == 9)
+				body = 0;
+		}
+
+		message.MeasuredCheckSum   = sum & 255;
+		message.MeasuredBodyLength = body;
+	}
+
+	static void Measure(FixMessage message, ReadOnlySpan<byte> input)
+	{
+		var sum  = 0;
+		var body = -1;
+
+		foreach (var field in message.Fields)
+		{
+			if (field.Tag == 10)
+				break;
+
+			var octets = input.Slice(field.Position, field.ValuePosition + field.Length - field.Position);
+
+			foreach (var octet in octets)
+				sum += octet;
+
+			sum += 1;
+
+			if (body >= 0)
+				body += octets.Length + 1;
+			else if (field.Tag == 9)
+				body = 0;
+		}
+
+		message.MeasuredCheckSum   = sum & 255;
+		message.MeasuredBodyLength = body;
 	}
 
 	/// <summary>
@@ -737,9 +595,6 @@ public static partial class FixParser
 		var framing   = context?.Framing ?? FixFraming.Wire;
 		var separator = framing.Separator();
 
-		if (!Envelope(source, framing, null, out var type, out error))
-			return false;
-
 		if (!CheckSyntax(fields, out error))
 			return false;
 
@@ -751,26 +606,28 @@ public static partial class FixParser
 				field.ValuePosition < position || field.ValuePosition > source.Length - 1 ||
 				field.Length >= source.Length - field.ValuePosition)
 			{
-				return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
+				return Fail(position, null, null, "Field locations do not cover the supplied source.", out error);
 			}
 
 			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
 				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
 				source[field.ValuePosition + field.Length] != separator)
 			{
-				return Fail(position, field.Tag, type, "Field locations do not match the supplied source.", out error);
+				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
 			}
 
 			position = field.ValuePosition + field.Length + 1;
 		}
 
 		if (position != source.Length)
-			return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
+			return Fail(position, null, null, "Field locations do not cover the supplied source.", out error);
 
-		if (framing == FixFraming.Log && !Envelope(source, framing, fields, out _, out error))
+		if (!FixParser.TryParseMessage(fields, out message, out error, context))
 			return false;
 
-		return FixParser.TryParseMessage(fields, out message, out error, context);
+		Measure(message!, source.AsSpan());
+
+		return true;
 	}
 
 	static bool IsTag(ReadOnlySpan<char> text, int tag)

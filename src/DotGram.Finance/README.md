@@ -193,8 +193,8 @@ byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preser
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
 
-The adapter frames messages using `BodyLength`, then performs the same complete
-checksum, grammar, raw-data and group recognition as the string API. Checking a
+The adapter frames messages using `BodyLength`, then performs the same grammar, raw-data and
+group recognition as the string API. Checking a
 message against the schema is a separate call: see **Validation** below.
 It reuses a growing buffer across `ReadMessages` iterations and creates an owned
 source string for each result. Buffering is bounded by the largest frame seen,
@@ -221,9 +221,9 @@ of subsequent stream reads. See the finance benchmarks for total parsing costs.
 
 The input is a **lossless octet string**: every character represents one octet,
 U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixContext.WithLogFraming`
-reads pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
-`CheckSum` therefore count exactly the octets present on the wire, including raw
-and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
+reads pipe-delimited logs. `BodyLength` and `CheckSum` are held to the octets present on the
+wire, including raw and encoded data, so a string that is not one character an octet is found
+wrong by them. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
 
 **Or hand over the octets and make no claim at all.** Every field and message call also takes
@@ -268,12 +268,12 @@ Flattened component fields are properties of their containing scope.
 Reading the wire and holding the result to a schema are two acts, and they refuse at
 different times for different reasons.
 
-**Recognition refuses, because after it the input's meaning is unknown.** Complete framing,
-`BeginString` and the first three fields, the terminal `CheckSum`, `BodyLength`, a
-length/data pair and the octets it measures including an embedded SOH, a `NumInGroup` that
-would size an array past the fields left, a group entry that does not begin with its
-delimiter, and a field the parser could not read at all. None of these can wait for a
-message to exist: they are how the reader finds where one ends.
+**Recognition refuses, because after it the input's meaning is unknown.** A message that does
+not end with its `CheckSum` closed by a separator, one without a `MsgType`, a data field whose
+length does not measure it, a `NumInGroup` that would size an array past the fields left, a group
+entry that does not begin with its delimiter, and a field the parser could not read at all. None
+of these can wait for a message to exist: they are how the reader finds where one ends. A stream
+is cut into messages by their `BodyLength`, so there a wrong one is a refusal too.
 
 **Everything else is a finding about a message that was built.** `message.Validate()` holds
 it to FIX 4.4 and answers with all of them at once:
@@ -289,6 +289,14 @@ it to FIX 4.4 and answers with all of them at once:
 | `GroupCountMismatch` | a required group announces no entries |
 | `UnknownMessageType` | the schema describes no message of that `MsgType` |
 | `MessageEncodingMissing` | an `Encoded` field is present and tag 347 is not |
+| `BodyLengthMismatch` | `BodyLength` is not the number of octets of the body it was read with |
+| `CheckSumMismatch` | `CheckSum` is not the sum, modulo 256, of the octets before it |
+| `LengthFieldNotBeforeData` | a length field is not followed by the data it measures |
+
+`BeginString` other than `FIX.4.4` is an `InvalidValue`, and `BeginString`, `BodyLength` and
+`MsgType` anywhere but first, second and third a `FieldOutOfOrder`. The octets the length and the
+sum are held to are measured while the message is read, since it keeps its fields and not its
+source.
 
 Each finding names its rule, its scope, its tag, the entry of the repeating group it is in,
 and where in the source it begins — "tag 448 is wrong" says nothing where a message carries
@@ -391,10 +399,9 @@ foreach (var item in FixParser.ReadMessages(logReader, context))
     Console.WriteLine(item.MessageType);
 ```
 
-For logs with added presentation spaces, use the flat `FixParser` API.
-The message-validation APIs below require the lossless representation: replace each
-structural SOH with one pipe without adding formatting spaces, so BodyLength and
-CheckSum can still be verified.
+A log may pad its pipes with spaces: BodyLength and CheckSum are measured over the fields as the
+wire had them, each ended by one separator, so a rendering is held to the message it renders.
+Streamed messages are cut by their BodyLength and want a bare `|`.
 
 The common grammar declares `Separator` and specializes the log publication with
 `with (Separator = LogSeparator)`. The generator recognizes the guarded text run
@@ -402,9 +409,8 @@ The common grammar declares `Separator` and specializes the log publication with
 Only structural SOH separators are rendered as pipes. Raw-data payload octets must
 remain untouched; a log that replaces or escapes payload bytes is not lossless and
 requires its own decoding before this API. Arbitrary log prefixes are not accepted.
-BodyLength counts the wire's octets and the pipe rendering does not change it.
-CheckSum is verified against the original SOH representation
-by normalizing only the recognized field delimiters, never pipes inside raw data.
+BodyLength counts the wire's octets and the pipe rendering does not change it; CheckSum is summed
+as the SOH representation would be, a separator counted as one SOH, never pipes inside raw data.
 `OriginalWire` preserves the supplied log representation.
 
 ## Custom fields and messages

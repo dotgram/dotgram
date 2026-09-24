@@ -158,14 +158,55 @@ public sealed class Fix44Tests
 	{
 		var wire = FixFixtures.Wire("0", "");
 
-		Assert.False(FixParser.TryParseMessage(wire[..^4] + "999\u0001", out _, out var checksum));
-		Assert.Equal(10, checksum!.Tag);
-		Assert.False(FixParser.TryParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal), out _, out var length));
-		Assert.Equal(9, length!.Tag);
+		var checksum = FixParser.ParseMessage(wire[..^4] + "999\u0001");
+
+		Assert.False(checksum.Validate(FixContext.Default));
+		Assert.Contains(checksum.InvalidFindings!, finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: 10 });
+
+		var length = FixParser.ParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal));
+
+		Assert.False(length.Validate(FixContext.Default));
+		Assert.Contains(length.InvalidFindings!, finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: 9 });
+	}
+
+	[Fact]
+	public void Another_version_and_a_header_out_of_order_are_findings()
+	{
+		var wire  = FixFixtures.Wire("0", "");
+		var other = FixParser.ParseMessage(wire.Replace("FIX.4.4", "FIX.4.2", StringComparison.Ordinal));
+
+		Assert.False(other.Validate(FixContext.Default));
+		Assert.Contains(other.InvalidFindings!, finding => finding is { Rule: FixRule.InvalidValue, Tag: 8 });
+
+		// MsgType moved behind SenderCompID: the octets are the same, so only the order is wrong.
+		var moved = FixParser.ParseMessage(wire.Replace("35=0\u000149=SENDER\u0001", "49=SENDER\u000135=0\u0001", StringComparison.Ordinal));
+
+		Assert.False(moved.Validate(FixContext.Default));
+		Assert.Contains(moved.InvalidFindings!, finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: 35 });
+		Assert.DoesNotContain(moved.InvalidFindings!, finding => finding.Rule is FixRule.CheckSumMismatch or FixRule.BodyLengthMismatch);
+	}
+
+	[Fact]
+	public void A_log_padded_around_its_separators_is_summed_as_the_wire_it_renders()
+	{
+		var wire   = FixFixtures.Wire("0", "112=TEST|");
+		var padded = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire)).Replace("|", " | ", StringComparison.Ordinal).TrimEnd();
+
+		var message = FixParser.ParseMessage(padded, FixContext.WithLogFraming);
+
+		Assert.True(message.Validate(FixContext.WithLogFraming), string.Join("; ", message.InvalidFindings ?? []));
+	}
+
+	[Fact]
+	public void A_length_without_its_data_is_a_finding()
+	{
+		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=3|"));
+
+		Assert.False(message.Validate(FixContext.Default));
+		Assert.Contains(message.InvalidFindings!, finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: 95 });
 	}
 
 	[Theory]
-	[InlineData("98=0|108=30|95=3|")]
 	[InlineData("98=0|108=30|95=2|96=ABC|")]
 	[InlineData("98=0|108=30|95=999999999999999999999999|96=A|")]
 	[InlineData("98=0|108=30|96=A|")]

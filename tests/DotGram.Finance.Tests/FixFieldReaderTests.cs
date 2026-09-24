@@ -74,7 +74,10 @@ public abstract class FixFieldReaderTests
 			var corrupt       = wire.Substring(0, wire.Length - 4) + "999" + wire[^1];
 			var corruptFields = parser.Parse(corrupt);
 
-			Assert.Throws<FormatException>(() => FixParser.BuildMessage(corrupt, corruptFields));
+			var corrupted = FixParser.BuildMessage(corrupt, corruptFields);
+
+			Assert.False(corrupted.Validate(FixContext.Default));
+			Assert.Contains(corrupted.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 		});
 	}
 

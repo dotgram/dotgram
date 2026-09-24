@@ -32,6 +32,9 @@ public abstract class FixField : IFixLocation
 
 	int TerminatorLength => _terminatorLength == byte.MaxValue ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
 
+	/// <summary>Whether a separator ends the field, rather than the end of the input.</summary>
+	internal bool Terminated => TerminatorLength > 0;
+
 	// The tag, its digits and the equals sign after them; nothing for skipped input, which has no tag.
 	int PrefixLength
 	{

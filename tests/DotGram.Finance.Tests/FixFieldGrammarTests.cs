@@ -68,7 +68,10 @@ public sealed class FixFieldGrammarTests
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
-		Assert.Throws<FormatException>(() => FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixContext.WithLogFraming));
+		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixContext.WithLogFraming);
+
+		Assert.False(damaged.Validate(FixContext.WithLogFraming));
+		Assert.Contains(damaged.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 
 	static FixField Field(FixMessage message, int tag)

@@ -110,6 +110,12 @@ public abstract partial class FixMessage
 	/// </remarks>
 	public bool IsValid => InvalidFindings is null;
 
+	// What the reading measured of the octets this message was read from, which it does not keep: the
+	// octets of the body and their sum before CheckSum, for Validate to hold BodyLength and CheckSum to;
+	// -1 where it was not read from octets, or has no BodyLength.
+	internal int MeasuredBodyLength = -1;
+	internal int MeasuredCheckSum   = -1;
+
 	// Only so that a second Validate does not fill the findings twice. One pass over an input is
 	// one context, so a message is validated once and a second call answers what the first did.
 	bool _validated;

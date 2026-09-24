@@ -191,33 +191,28 @@ public sealed class FixOctetRoadTests
 		// Latin-1: the claim the string road makes is true, so it reads the same message.
 		Assert.Equal(Extents(message), Extents(FixParser.ParseMessage(Encoding.Latin1.GetString(wire))));
 
-		// UTF-8: the claim is false, and the refusal is about the length rather than the decoding.
-		var refused = Assert.Throws<FormatException>(
-			() => FixParser.ParseMessage(Encoding.UTF8.GetString(wire)));
+		// UTF-8: the claim is false, and what is found is the length rather than the decoding.
+		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.Contains("BodyLength", refused.Message, StringComparison.Ordinal);
+		Assert.False(misread.Validate(FixContext.Default));
+		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
 	/// <summary>
-	/// Where the decoding lifts a character above the octet range, the refusal does name it.
+	/// Where the decoding lifts a character above the octet range, the same length is found wrong.
 	/// </summary>
-	/// <remarks>
-	/// The pair with the test above is the whole account: the string road notices a broken claim
-	/// only when the character is one an octet could not have held. Between U+0080 and U+00FF it
-	/// cannot tell, and says the one true thing it can see.
-	/// </remarks>
 	[Fact]
-	public void A_value_above_the_octet_range_is_refused_by_a_message_that_names_it()
+	public void A_value_above_the_octet_range_is_found_by_its_length()
 	{
 		var body = Encoding.UTF8.GetBytes("35=D|49=S|56=T|34=1|52=20260920-12:00:00|58=€|".Replace('|', '\u0001'));
 		var wire = Framed(body);
 
 		Assert.Equal(3, Find(FixParser.ParseMessage(wire), 58).Length);
 
-		var refused = Assert.Throws<FormatException>(
-			() => FixParser.ParseMessage(Encoding.UTF8.GetString(wire)));
+		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.Contains("octets as characters", refused.Message, StringComparison.Ordinal);
+		Assert.False(misread.Validate(FixContext.Default));
+		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
 	// ── the doors of the octet road answer alike ─────────────────────────────────────────────
@@ -299,26 +294,25 @@ public sealed class FixOctetRoadTests
 			() => FixParser.ParseMessage(Framed(Logon + "95=99|96=", payload, "141=N|")));
 	}
 
-	/// <summary>A checksum that does not match the octets is refused on the octet road too.</summary>
+	/// <summary>A checksum that does not match the octets is found on the octet road too.</summary>
 	[Fact]
-	public void A_wrong_checksum_is_refused_from_octets()
+	public void A_wrong_checksum_is_found_from_octets()
 	{
 		var wire = Framed(Head + Order);
 
 		wire[^2] = (byte)(wire[^2] == (byte)'9' ? '8' : '9');
 
-		var refused = Assert.Throws<FormatException>(() => FixParser.ParseMessage(wire));
+		var message = FixParser.ParseMessage(wire);
 
-		Assert.Contains("CheckSum", refused.Message, StringComparison.Ordinal);
+		Assert.False(message.Validate(FixContext.Default));
+		Assert.Contains(message.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 
-	/// <summary>The trying door answers a malformed message with a diagnostic rather than throwing.</summary>
+	/// <summary>The trying door answers a message cut short with a diagnostic rather than throwing.</summary>
 	[Fact]
 	public void A_malformed_message_of_octets_comes_back_as_a_diagnostic()
 	{
-		var wire = Framed(Head + Order);
-
-		wire[^2] = (byte)(wire[^2] == (byte)'9' ? '8' : '9');
+		var wire = Framed(Head + Order)[..^1];
 
 		Assert.False(FixParser.TryParseMessage(wire, out var message, out var error));
 		Assert.Null(message);

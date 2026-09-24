@@ -42,6 +42,12 @@ public enum FixRule
 
 	/// <summary><c>MessageEncoding</c> is absent where an <c>Encoded</c> field is present.</summary>
 	MessageEncodingMissing,
+
+	/// <summary><c>BodyLength</c> is not the number of octets of the body it was read with.</summary>
+	BodyLengthMismatch,
+
+	/// <summary><c>CheckSum</c> is not the sum, modulo 256, of the octets before it as they were read.</summary>
+	CheckSumMismatch,
 }
 
 /// <summary>One thing wrong with a message, and where.</summary>

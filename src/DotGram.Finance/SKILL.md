@@ -26,8 +26,9 @@ code asks for the wrong one of these two.
   groups, no BodyLength, no CheckSum, no required fields. Use it for logs, for pulling a
   few values out, and for anything that must not reject input.
 - **Messages** — `ParseMessage` and `ParseMessages` from a buffer of characters or of
-  octets, `ReadMessage` and `ReadMessages` from a reader or a stream. The envelope, BodyLength and CheckSum are
-  checked, repeating groups are assembled, and the message's own class comes back. Use it
+  octets, `ReadMessage` and `ReadMessages` from a reader or a stream. Repeating groups are assembled
+  and the message's own class comes back; a message that does not end with its CheckSum is
+  refused, and a wrong BodyLength or CheckSum is a finding of `Validate`. Use it
   when a message's groups matter, or when its fields are wanted as the typed properties of
   the class it is.
 
@@ -41,18 +42,17 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
 
 - **A string is octets, not text.** Every character stands for one byte,
   U+0000 through U+00FF. Decode files and sockets with Latin-1
-  (`Encoding.Latin1`), never UTF-8: UTF-8 changes the byte count, and a message call
-  then rejects the input on BodyLength or CheckSum. A character above U+00FF is
-  refused.
+  (`Encoding.Latin1`), never UTF-8: UTF-8 changes the byte count, and `Validate` then
+  finds BodyLength and CheckSum wrong.
 - **Better: hand over the octets.** `byte[]` and `ReadOnlyMemory<byte>` go to every field
   and message call, and there is then no encoding for anyone to get wrong — the package
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
-  hand. It is not cheaper: the model keeps its source, so the octets are materialised one
-  character to one octet either way. It is right.
+  hand. It is not cheaper: the values are materialised one character to one octet either way.
+  It is right.
 - **Wire or log.** The field calls read SOH-separated fields, and `FixContext.WithLogFraming`
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
-  value goes to every other call. The message calls accept a bare `|` only; read a log
-  padded with spaces with `ParseFields` and `FixContext.WithLogFraming`.
+  value goes to every other call. A message read whole may pad its pipes with spaces;
+  streamed messages, cut by their BodyLength, want a bare `|`.
 - **Forms.** Fields and messages both take `string`, `byte[]`, `ReadOnlyMemory<byte>`,
   `TextReader` and `Stream`. An array or memory is read where it lies, without a copy.
   There is no span overload: it could only copy the span into an array, so a caller who
@@ -190,8 +190,8 @@ is the size of the buffer the input is read through.
 
 1. Decoding input as UTF-8. Use Latin-1.
 2. Reading `Value` from a field without checking `IsValid`.
-3. Expecting the field calls to reject a bad message. They do not: the message calls are
-   what check the envelope, BodyLength and CheckSum.
-4. Feeding a space-padded log to a message call. Only the field calls read padding.
+3. Expecting a message call to refuse a wrong BodyLength or CheckSum. It builds the message;
+   `Validate` reports `BodyLengthMismatch` and `CheckSumMismatch`.
+4. Streaming a space-padded log as messages. A stream is cut by BodyLength and wants a bare `|`.
 5. Writing a pair's data tag without its length right before it. The field calls return it
    as a `FixField.Invalid`: only a length says where the data ends.
