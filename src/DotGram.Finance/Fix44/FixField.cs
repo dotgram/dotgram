@@ -130,7 +130,7 @@ public abstract class FixField : IFixLocation
 	/// synchronization separator and any padding it consumes excluded.
 	/// </para>
 	/// <para>
-	/// A tag FIX 4.4 does not define, and the context's <see cref="FixContext.CustomFields"/> declares
+	/// A tag FIX 4.4 does not define, and the context's <see cref="FixContext.FixFieldFactory"/> answers
 	/// nothing for, keeps its tag and its value: <see cref="RawBytes"/> is the value's octets, from
 	/// character input as from byte input, and the extent is the field's as any field's is.
 	/// </para>
@@ -281,7 +281,7 @@ public abstract class FixField : IFixLocation
 	}
 
 	/// <summary>
-	/// A field of a tag FIX 4.4 does not define, of the type <see cref="FixContext.CustomFields"/>
+	/// A field of a tag FIX 4.4 does not define, of the type <see cref="FixContext.FixFieldFactory"/>
 	/// declares for it.
 	/// </summary>
 	/// <remarks>

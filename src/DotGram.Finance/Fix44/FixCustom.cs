@@ -6,7 +6,7 @@ namespace DotGram.Finance.Fix44;
 /// <remarks>
 /// <para>
 /// A counterparty's own fields are of the types the standard's are, so declaring one is naming its
-/// type: <c>CustomFields = new Dictionary&lt;int, FixCustom&gt; { [25005] = FixCustom.Integer }</c>.
+/// type: <c>FixFieldFactory = tag =&gt; tag == 25005 ? FixCustom.Integer : null</c>.
 /// Its field is then a <see cref="FixField.Custom{T}"/> of that tag, read by the conversion the
 /// standard's fields of that type are read by, and <see cref="FixField.IsValid"/> false where the
 /// value does not convert.
@@ -83,19 +83,19 @@ public abstract class FixCustom
 
 	// ── what the reader does with a tag it has no class for ───────────────────────────────────────
 
-	internal static FixField Build(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	internal static FixField Build(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
-		return custom is not null && custom.TryGetValue(tag, out var declared) ? declared.Build(tag, value) : new FixField.Invalid(tag, value);
+		return custom?.Invoke(tag) is { } declared ? declared.Build(tag, value) : new FixField.Invalid(tag, value);
 	}
 
-	internal static FixField Build(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	internal static FixField Build(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
-		return custom is not null && custom.TryGetValue(tag, out var declared) ? declared.Build(tag, value) : new FixField.Invalid(tag, value);
+		return custom?.Invoke(tag) is { } declared ? declared.Build(tag, value) : new FixField.Invalid(tag, value);
 	}
 
-	internal static FixField Build(int tag, (bool Valid, ReadOnlyMemory<byte> Value) data, IReadOnlyDictionary<int, FixCustom>? custom)
+	internal static FixField Build(int tag, (bool Valid, ReadOnlyMemory<byte> Value) data, Func<int, FixCustom?>? custom)
 	{
-		return custom is not null && custom.TryGetValue(tag, out var declared) ? declared.Build(tag, data) : new FixField.Invalid(tag, data.Value);
+		return custom?.Invoke(tag) is { } declared ? declared.Build(tag, data) : new FixField.Invalid(tag, data.Value);
 	}
 }
 

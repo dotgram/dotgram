@@ -4,7 +4,7 @@ namespace DotGram.Finance.Fix44;
 
 static class FixFieldBuilder
 {
-	public static FixField Value(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	public static FixField Value(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return (tag / 64) switch
 		{
@@ -27,7 +27,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part0(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part0(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -93,7 +93,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part1(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part1(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -158,7 +158,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part2(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part2(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -214,7 +214,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part3(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part3(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -283,7 +283,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part4(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part4(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -352,7 +352,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part5(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part5(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -423,7 +423,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part6(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part6(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -493,7 +493,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part7(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part7(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -562,7 +562,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part8(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part8(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -634,7 +634,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part9(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part9(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -706,7 +706,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part10(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part10(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -776,7 +776,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part11(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part11(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -848,7 +848,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part12(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part12(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -918,7 +918,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part13(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part13(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -990,7 +990,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part14(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part14(int tag, ReadOnlySpan<char> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1059,7 +1059,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	public static FixField Value(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	public static FixField Value(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return (tag / 64) switch
 		{
@@ -1082,7 +1082,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part0(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part0(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1148,7 +1148,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part1(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part1(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1213,7 +1213,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part2(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part2(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1269,7 +1269,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part3(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part3(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1338,7 +1338,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part4(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part4(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1407,7 +1407,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part5(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part5(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1478,7 +1478,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part6(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part6(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1548,7 +1548,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part7(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part7(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1617,7 +1617,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part8(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part8(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1689,7 +1689,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part9(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part9(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1761,7 +1761,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part10(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part10(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1831,7 +1831,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part11(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part11(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1903,7 +1903,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part12(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part12(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -1973,7 +1973,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part13(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part13(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -2045,7 +2045,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	static FixField Part14(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
+	static FixField Part14(int tag, ReadOnlySpan<byte> value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{
@@ -2114,7 +2114,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	public static FixField Binary(int tag, (bool Valid, ReadOnlyMemory<byte> Value) value, IReadOnlyDictionary<int, FixCustom>? custom)
+	public static FixField Binary(int tag, (bool Valid, ReadOnlyMemory<byte> Value) value, Func<int, FixCustom?>? custom)
 	{
 		return tag switch
 		{

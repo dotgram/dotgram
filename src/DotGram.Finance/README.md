@@ -133,7 +133,7 @@ A supplied length/data dictionary, length tag to data tag, **adds to** the stand
 pairs and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
 the standard pairs alone. The same object is what the message calls take, so one value describes
 both kinds of answer. The pair produces two fields; a tag the package does not define is built by
-`CustomFields`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
+`FixFieldFactory`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
@@ -375,7 +375,7 @@ The source-backed semantic model retains malformed primitive text. Such a field 
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
 A tag the package does not define is a `FixField.Custom<T>` of the type the context's
-`CustomFields` declares for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
+`FixFieldFactory` answers for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
 has no property for such a tag, so it is out of scope there whoever built the field; a message the
 consumer builds places it (below).
 
@@ -409,21 +409,22 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 ## Custom fields and messages
 
-A counterparty's own fields are of the standard's types, so a tag FIX 4.4 does not define is declared
-by its type, and a MsgType by a factory the context holds, asked with the type and answering what to
-build, or null:
+A tag or a MsgType FIX 4.4 does not define goes through a factory the context holds. A counterparty's
+own fields are of the standard's types, so the field factory answers a tag with its type; the message
+factory answers a MsgType with the message to build. Either answers null for what it does not know:
 
 ```csharp
 using System.Collections.Generic;
 
 var context = new FixContext
 {
-    CustomFields = new Dictionary<int, FixCustom>
+    FixFieldFactory = tag => tag switch
     {
-        [25005] = FixCustom.Text.As((tag, value) => new Status(tag, value)),   // a class of the consumer's
-        [25006] = FixCustom.Decimal,                                           // FixField.Custom<decimal>
-        [25000] = FixCustom.Integer,
-        [25001] = FixCustom.Data,
+        25005 => FixCustom.Text.As((tag, value) => new Status(tag, value)),   // a class of the consumer's
+        25006 => FixCustom.Decimal,                                           // FixField.Custom<decimal>
+        25000 => FixCustom.Integer,
+        25001 => FixCustom.Data,
+        _     => null,
     },
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
     LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
@@ -459,11 +460,11 @@ sealed class VenueQuote : FixCustomMessage
 `FixCustom` has one declaration a type of the standard's: `Text`, `Character`, `Boolean`, `Integer`,
 `Decimal`, `Timestamp`, `Time`, `Date`, `MonthYear`, `Multiple` and `Data`. The field is read by the
 conversion the standard's fields of that type are, and is not valid where the value does not convert.
-A dictionary loaded into the context declares the fields it describes that the standard does not, by
-the types it gives them. Declarations are asked only of a tag the package has no class for, so a
+A dictionary loaded into the context answers first for the fields it describes that the standard does
+not, by the types it gives them. The factory is asked only of a tag the package has no class for, so a
 standard tag pays nothing.
 
-A tag nothing declares is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and
+A tag the factory answers null for is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and
 a type the factory answers null for is a `FixMessage.Invalid`, not valid from the moment it is read,
 its finding `UnknownMessageType`.
 

@@ -84,14 +84,15 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>The types of a consumer's own tags: <c>new Dictionary&lt;int, FixCustom&gt; { [25005] = FixCustom.Integer }</c>.</summary>
+	/// <summary>Says how to read a tag FIX 4.4 does not define: <c>tag =&gt; tag == 25005 ? FixCustom.Integer : null</c>.</summary>
 	/// <remarks>
-	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. A tag
-	/// declared here is a <see cref="FixField.Custom{T}"/> of its type; one that is not is a
+	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. A tag it
+	/// answers a type for is a <see cref="FixField.Custom{T}"/> of that type, or the consumer's class
+	/// declared with <see cref="FixCustom{T}.As"/>; one it answers null for, or with no factory, is a
 	/// <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
-	/// declares the fields it describes that the standard does not.
+	/// answers first for the fields it describes that the standard does not.
 	/// </remarks>
-	public IReadOnlyDictionary<int, FixCustom>? CustomFields { get; init; }
+	public Func<int, FixCustom?>? FixFieldFactory { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
@@ -145,7 +146,9 @@ public sealed record FixContext
 		}
 	}
 
-	/// <summary>What the reader does with a tag: 1 a length, -1 the data a length measures, 0 an ordinary value.</summary>
+	/// <summary>
+	/// What the reader does with a tag: 1 a length, -1 the data a length measures, 0 an ordinary value.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	internal int Kind(int tag)
 	{
@@ -250,20 +253,18 @@ public sealed record FixContext
 	// not are declared by the types it gives them.
 	FixContext Loaded(FixDictionary dictionary, string? emitTo)
 	{
-		var custom = new Dictionary<int, FixCustom>();
-
-		if (CustomFields is not null)
-			foreach (var declared in CustomFields)
-				custom[declared.Key] = declared.Value;
+		var types = new Dictionary<int, FixCustom>();
 
 		foreach (var field in dictionary.Fields)
 			if (!Defined.Tags.Contains(field.Key) && FixCustom.Of(field.Value.Type) is { } type)
-				custom[field.Key] = type;
+				types[field.Key] = type;
+
+		var factory = FixFieldFactory;
 
 		return this with
 		{
-			Validators   = Validators.Load(dictionary, Emitter(emitTo)),
-			CustomFields = custom.Count == 0 ? CustomFields : custom,
+			Validators      = Validators.Load(dictionary, Emitter(emitTo)),
+			FixFieldFactory = types.Count == 0 ? factory : tag => types.TryGetValue(tag, out var type) ? type : factory?.Invoke(tag),
 		};
 	}
 

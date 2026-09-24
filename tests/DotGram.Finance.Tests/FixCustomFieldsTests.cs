@@ -28,22 +28,29 @@ public sealed class FixCustomFieldsTests
 		[55]    = FixCustom.Integer,
 	};
 
-	static FixContext Context(bool pairs = false)
+	static FixContext Context(bool pairs = false, List<int>? asked = null)
 	{
 		return new()
 		{
 			LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : new Dictionary<int, int>(),
-			CustomFields    = Declared,
-			Framing         = FixFraming.Log,
+			FixFieldFactory = tag =>
+			{
+				asked?.Add(tag);
+
+				return Declared.GetValueOrDefault(tag);
+			},
+			Framing = FixFraming.Log,
 		};
 	}
 
 	[Fact]
-	public void A_tag_the_package_knows_keeps_its_own_field_whatever_is_declared()
+	public void A_tag_the_package_knows_never_reaches_the_factory()
 	{
-		var fields = FixParser.ParseFields("55=AAPL|54=1|", Context());
+		var asked  = new List<int>();
+		var fields = FixParser.ParseFields("55=AAPL|54=1|25005=OPEN|", Context(asked: asked));
 
 		Assert.Equal("AAPL", Assert.IsType<FixField.Symbol>(fields[0]).Value);
+		Assert.Equal([25005], asked);
 	}
 
 	[Fact]
@@ -112,7 +119,7 @@ public sealed class FixCustomFieldsTests
 	{
 		var context = new FixContext
 		{
-			CustomFields = new Dictionary<int, FixCustom> { [25006] = FixCustom.Text.As(static (_, value) => new Status(25005, value)) },
+			FixFieldFactory = static _ => FixCustom.Text.As(static (_, value) => new Status(25005, value)),
 			Framing      = FixFraming.Log,
 		};
 
@@ -120,7 +127,7 @@ public sealed class FixCustomFieldsTests
 	}
 
 	[Fact]
-	public void A_loaded_dictionary_declares_the_fields_the_standard_does_not()
+	public void A_loaded_dictionary_answers_for_the_fields_the_standard_does_not()
 	{
 		var context = FixContext.WithLogFraming.Load(
 			"""
@@ -165,7 +172,7 @@ public sealed class FixCustomFieldsTests
 
 	static FixContext Venues()
 	{
-		return new() { CustomFields = Declared, FixMessageFactory = type => type == "U1" ? new VenueQuote() : null };
+		return new() { FixFieldFactory = static tag => Declared.GetValueOrDefault(tag), FixMessageFactory = type => type == "U1" ? new VenueQuote() : null };
 	}
 
 	[Fact]

@@ -83,12 +83,12 @@ sealed partial class FixGrammar
 			var kind  = context.Kind(tag);
 
 			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.CustomFields);
+				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.FixFieldFactory);
 
 			if (kind > 0)
 				Expect(tag, FixConvert.Tag(value));
 
-			return FixFieldBuilder.Value(tag, value, context.CustomFields);
+			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
 		}
 
 		public FixField Field(int tag, ReadOnlySpan<byte> wire)
@@ -97,12 +97,12 @@ sealed partial class FixGrammar
 			var kind  = context.Kind(tag);
 
 			if (kind < 0)
-				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.CustomFields);
+				return FixFieldBuilder.Binary(tag, FixConvert.Data(value), context.FixFieldFactory);
 
 			if (kind > 0)
 				Expect(tag, FixConvert.Tag(value));
 
-			return FixFieldBuilder.Value(tag, value, context.CustomFields);
+			return FixFieldBuilder.Value(tag, value, context.FixFieldFactory);
 		}
 
 		void Expect(int tag, int size)
