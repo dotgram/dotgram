@@ -133,7 +133,7 @@ A supplied length/data dictionary, length tag to data tag, **adds to** the stand
 pairs and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
 the standard pairs alone. The same object is what the message calls take, so one value describes
 both kinds of answer. The pair produces two fields; a tag the package does not define is built by
-`FixFieldFactory`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
+`CustomFields`, or is a `FixField.Invalid` of that tag carrying its value. Standalone
 data tags are rejected. The parser recognizes binary boundaries; message and business
 validation remain in the explicitly called semantic API.
 
@@ -374,8 +374,8 @@ Trailing fractional zeros do not cause a loss of precision.
 The source-backed semantic model retains malformed primitive text. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
-A tag the package does not define is built by the context's `FixFieldFactory`, typed as the
-consumer likes, or is a `FixField.Invalid` of that tag with its value's octets. A standard message
+A tag the package does not define is a `FixField.Custom<T>` of the type the context's
+`CustomFields` declares for it, or a `FixField.Invalid` of that tag with its value's octets. A standard message
 has no property for such a tag, so it is out of scope there whoever built the field; a message the
 consumer builds places it (below).
 
@@ -409,31 +409,29 @@ by normalizing only the recognized field delimiters, never pipes inside raw data
 
 ## Custom fields and messages
 
-A tag or a MsgType FIX 4.4 does not define is built by a factory the context holds, asked with the
-tag or the type and answering what to build, or null:
+A counterparty's own fields are of the standard's types, so a tag FIX 4.4 does not define is declared
+by its type, and a MsgType by a factory the context holds, asked with the type and answering what to
+build, or null:
 
 ```csharp
 using System.Collections.Generic;
 
 var context = new FixContext
 {
-    FixFieldFactory   = tag  => tag == 25005 ? new Status() : null,
+    CustomFields = new Dictionary<int, FixCustom>
+    {
+        [25005] = FixCustom.Text.As((tag, value) => new Status(tag, value)),   // a class of the consumer's
+        [25006] = FixCustom.Decimal,                                           // FixField.Custom<decimal>
+        [25000] = FixCustom.Integer,
+        [25001] = FixCustom.Data,
+    },
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
     LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
 };
 
-sealed class Status() : FixCustomField(25005)
-{
-    public string? Value { get; private set; }
-
-    // The value as the wire had it; what this returns is the field's IsValid.
-    protected override bool Read(ReadOnlySpan<char> value)
-    {
-        Value = value.ToString();
-
-        return Value is "OPEN" or "CLOSED";
-    }
-}
+// The standard's conversion, held to more: what is passed on is the field's IsValid.
+sealed class Status(int tag, (bool Valid, string Value) value)
+    : FixField.Custom<string>(tag, (value.Valid && value.Value is "OPEN" or "CLOSED", value.Value));
 
 sealed class VenueQuote : FixCustomMessage
 {
@@ -458,15 +456,16 @@ sealed class VenueQuote : FixCustomMessage
 }
 ```
 
-A field is handed its value as characters; bytes arrive as the characters of the same codes unless
-the field overrides the byte form, and the payload of a declared length/data pair arrives as memory
-through a third form, read as bytes by default. A value may not be kept: copy what is needed. The
-factory is asked only of a tag the package has no class for, so a standard tag pays nothing; the
-length of a declared pair is a field like any other, built by it too.
+`FixCustom` has one declaration a type of the standard's: `Text`, `Character`, `Boolean`, `Integer`,
+`Decimal`, `Timestamp`, `Time`, `Date`, `MonthYear`, `Multiple` and `Data`. The field is read by the
+conversion the standard's fields of that type are, and is not valid where the value does not convert.
+A dictionary loaded into the context declares the fields it describes that the standard does not, by
+the types it gives them. Declarations are asked only of a tag the package has no class for, so a
+standard tag pays nothing.
 
-Where a factory answers null, or there is none, the tag is a `FixField.Invalid` of that tag with its
-value's octets in `RawBytes`, and the type is a `FixMessage.Invalid`, not valid from the moment it is
-read, its finding `UnknownMessageType`.
+A tag nothing declares is a `FixField.Invalid` of that tag with its value's octets in `RawBytes`, and
+a type the factory answers null for is a `FixMessage.Invalid`, not valid from the moment it is read,
+its finding `UnknownMessageType`.
 
 ## Definition maintenance
 
@@ -475,7 +474,7 @@ fixtures are maintained together. When changing definitions, update the affected
 factory cases, message classes, checks, Fix44 grammar and test cases together.
 
 - `Fix44/FixField.cs`: field base, typed-value access, locations and typed field cases.
-- `Fix44/FixFieldFactory.cs`: construction of typed fields.
+- `Fix44/FixFieldBuilder.cs`: construction of typed fields.
 - `Fix44/FixMessage.cs`: the message base, the standard header and trailer.
 - `Fix44/FixMessage.Types.cs`, `Fix44/FixComponents.cs`, `Fix44/FixValidators.cs`: the 93 message
   classes, the 24 component interfaces and the check of every message type, component and group
@@ -496,7 +495,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 ### Field construction and locations
 
 `FixGrammar` parses the tag and selects one branch through `switch`.
-`FixFieldFactory.cs` constructs the corresponding typed field in C#.
+`FixFieldBuilder.cs` constructs the corresponding typed field in C#.
 `Field` reads the field contents. `Fields` repeats a constructing group that adds
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.

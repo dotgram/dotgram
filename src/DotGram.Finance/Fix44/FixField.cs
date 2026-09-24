@@ -130,7 +130,7 @@ public abstract class FixField : IFixLocation
 	/// synchronization separator and any padding it consumes excluded.
 	/// </para>
 	/// <para>
-	/// A tag FIX 4.4 does not define, and the context's <see cref="FixContext.FixFieldFactory"/> builds
+	/// A tag FIX 4.4 does not define, and the context's <see cref="FixContext.CustomFields"/> declares
 	/// nothing for, keeps its tag and its value: <see cref="RawBytes"/> is the value's octets, from
 	/// character input as from byte input, and the extent is the field's as any field's is.
 	/// </para>
@@ -279,6 +279,21 @@ public abstract class FixField : IFixLocation
 			return IsValid;
 		}
 	}
+
+	/// <summary>
+	/// A field of a tag FIX 4.4 does not define, of the type <see cref="FixContext.CustomFields"/>
+	/// declares for it.
+	/// </summary>
+	/// <remarks>
+	/// Open to a consumer who wants a class of their own: derive, pass the tag and the converted value
+	/// on, and hold the value to more by passing <c>(value.Valid &amp;&amp; check, value.Value)</c>; then
+	/// declare it with <see cref="FixCustom{T}.As"/>.
+	/// </remarks>
+	/// <typeparam name="T">What the value converts to.</typeparam>
+	/// <param name="tag">The tag the field was read under.</param>
+	/// <param name="value">The conversion status and its resulting value.</param>
+	public class Custom<T>(int tag, (bool Valid, T Value) value)
+		: Typed<T>(tag, value);
 
 	/// <summary>
 	/// Represents Account, FIX tag 1, with wire type <c>String</c>.

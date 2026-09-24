@@ -84,13 +84,14 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
 	public FixFraming Framing { get; init; }
 
-	/// <summary>Builds the field of a tag FIX 4.4 does not define: <c>tag =&gt; tag == 25005 ? new Status() : null</c>.</summary>
+	/// <summary>The types of a consumer's own tags: <c>new Dictionary&lt;int, FixCustom&gt; { [25005] = FixCustom.Integer }</c>.</summary>
 	/// <remarks>
-	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. What it
-	/// builds is handed the value; where it answers null, or there is none, the field is a
-	/// <see cref="FixField.Invalid"/> of that tag.
+	/// Asked only of a tag the package has no class for, so a standard tag pays nothing for it. A tag
+	/// declared here is a <see cref="FixField.Custom{T}"/> of its type; one that is not is a
+	/// <see cref="FixField.Invalid"/> of that tag. A dictionary loaded with <see cref="Load(string, string)"/>
+	/// declares the fields it describes that the standard does not.
 	/// </remarks>
-	public Func<int,FixCustomField?>? FixFieldFactory { get; init; }
+	public IReadOnlyDictionary<int, FixCustom>? CustomFields { get; init; }
 
 	/// <summary>Builds the message of a MsgType FIX 4.4 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
@@ -99,16 +100,13 @@ public sealed record FixContext
 	/// </remarks>
 	public Func<string,FixCustomMessage?>? FixMessageFactory { get; init; }
 
-	int _bufferSize  = 4096;
-	int _maxRetained = FixGrammar.DefaultMaxRetained;
-
 	/// <summary>The initial size of the buffer a reader or a stream is read through, in characters or bytes: 4096 unless given.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
 	public int BufferSize
 	{
-		get  => _bufferSize;
-		init => _bufferSize = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(BufferSize));
-	}
+		get;
+		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(BufferSize));
+	} = 4096;
 
 	/// <summary>
 	/// The most characters or bytes one field read from a reader or a stream may take, from its tag
@@ -123,12 +121,12 @@ public sealed record FixContext
 	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
 	public int MaxRetained
 	{
-		get  => _maxRetained;
-		init => _maxRetained = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
-	}
+		get;
+		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
+	} = FixGrammar.DefaultMaxRetained;
 
-	Dictionary<int,int> _pairs = Standard.Pairs;
-	sbyte[]             _kinds = Standard.Kinds;
+	readonly Dictionary<int,int> _pairs = Standard.Pairs;
+	readonly sbyte[]             _kinds = Standard.Kinds;
 
 	/// <summary>The length/data pairs, length tag to data tag: the standard's sixteen and a consumer's own.</summary>
 	/// <remarks>What is set is added to the standard's pairs; a length tag set again replaces its pair.</remarks>
@@ -188,7 +186,7 @@ public sealed record FixContext
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return this with { Validators = Validators.Load(FixDictionary.Parse(dictionary), Emitter(emitTo)) };
+		return Loaded(FixDictionary.Parse(dictionary), emitTo);
 	}
 
 	/// <inheritdoc cref="Load(string, string)"/>
@@ -198,7 +196,7 @@ public sealed record FixContext
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return this with { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
+		return Loaded(FixDictionary.Read(dictionary), emitTo);
 	}
 
 	/// <inheritdoc cref="Load(string, string)"/>
@@ -208,7 +206,7 @@ public sealed record FixContext
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-		return this with { Validators = Validators.Load(FixDictionary.Read(dictionary), Emitter(emitTo)) };
+		return Loaded(FixDictionary.Read(dictionary), emitTo);
 	}
 
 	/// <summary>This context with several dictionaries loaded over its schema as one: each read over the one before.</summary>
@@ -232,7 +230,7 @@ public sealed record FixContext
 		foreach (var dictionary in dictionaries)
 			read.Add(FixDictionary.Parse(dictionary ?? throw new ArgumentNullException(nameof(dictionaries))));
 
-		return this with { Validators = Validators.Load(FixDictionary.Over(read), Emitter(emitTo)) };
+		return Loaded(FixDictionary.Over(read), emitTo);
 	}
 
 	/// <inheritdoc cref="Load(string, string)"/>
@@ -246,6 +244,33 @@ public sealed record FixContext
 		using var stream = File.OpenRead(fileName);
 
 		return Load(stream, emitTo);
+	}
+
+	// A dictionary's checks go over this context's, and the fields it describes that the standard does
+	// not are declared by the types it gives them.
+	FixContext Loaded(FixDictionary dictionary, string? emitTo)
+	{
+		var custom = new Dictionary<int, FixCustom>();
+
+		if (CustomFields is not null)
+			foreach (var declared in CustomFields)
+				custom[declared.Key] = declared.Value;
+
+		foreach (var field in dictionary.Fields)
+			if (!Defined.Tags.Contains(field.Key) && FixCustom.Of(field.Value.Type) is { } type)
+				custom[field.Key] = type;
+
+		return this with
+		{
+			Validators   = Validators.Load(dictionary, Emitter(emitTo)),
+			CustomFields = custom.Count == 0 ? CustomFields : custom,
+		};
+	}
+
+	// The tags the standard defines, from the constants that name them: asked only by a load.
+	static class Defined
+	{
+		public static readonly HashSet<int> Tags = [.. typeof(FixTag).GetFields().Select(static field => (int)field.GetRawConstantValue()!)];
 	}
 
 	// The texts a load writes are the expression language's, one file a slot, so that what a
@@ -264,7 +289,7 @@ public sealed record FixContext
 	/// <summary>The data tag a length tag is paired with, or zero where it is not a length tag.</summary>
 	internal int DataTag(int lengthTag)
 	{
-		return _pairs.TryGetValue(lengthTag, out var dataTag) ? dataTag : 0;
+		return _pairs.GetValueOrDefault(lengthTag, 0);
 	}
 
 	/// <summary>Whether a tag carries binary data — the standard's, or one this consumer declared.</summary>

@@ -186,7 +186,7 @@ public static class HandFixParser
 		if (!Separator(input, log, ref position) && input.Peek(position) >= 0)
 			return null;
 
-		var field = Create(input, tag, valueStart, end, kind < 0, options.FixFieldFactory);
+		var field = Create(input, tag, valueStart, end, kind < 0, options.CustomFields);
 		field.WithTerminator(position - end).Locate(start, position - start);
 		error = null;
 		return field;
@@ -257,7 +257,7 @@ public static class HandFixParser
 		return position;
 	}
 
-	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, Func<int, FixCustomField?>? custom)
+	static FixField Create<T>(Input<T> input, int tag, int valueStart, int end, bool binary, IReadOnlyDictionary<int, FixCustom>? custom)
 		where T : unmanaged
 	{
 		var value = input.Slice(valueStart, end - valueStart);

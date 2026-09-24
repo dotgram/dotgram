@@ -4,7 +4,7 @@ namespace DotGram.Finance.Fix44;
 
 static class FixFieldBuilder
 {
-	public static FixField Value(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	public static FixField Value(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return (tag / 64) switch
 		{
@@ -23,11 +23,11 @@ static class FixFieldBuilder
 			12 => Part12(tag, value, custom),
 			13 => Part13(tag, value, custom),
 			14 => Part14(tag, value, custom),
-			_  => FixCustomField.Build(tag, value, custom),
+			_  => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part0(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part0(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -89,11 +89,11 @@ static class FixFieldBuilder
 			61 => new FixField.Urgency         (FixConvert.Character(value)),
 			62 => new FixField.ValidUntilTime  (FixConvert.Timestamp(value)),
 			63 => new FixField.SettlType       (FixConvert.Character(value)),
-			_  => FixCustomField.Build(tag, value, custom),
+			_  => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part1(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part1(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -154,11 +154,11 @@ static class FixFieldBuilder
 			124 => new FixField.NoExecs         (FixConvert.Integer  (value)),
 			126 => new FixField.ExpireTime      (FixConvert.Timestamp(value)),
 			127 => new FixField.DKReason        (FixConvert.Character(value)),
-			_   => FixCustomField.Build(tag, value, custom),
+			_   => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part2(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part2(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -210,11 +210,11 @@ static class FixFieldBuilder
 			189 => new FixField.BidForwardPoints(FixConvert.Decimal(value)),
 			190 => new FixField.OfferSpotRate(FixConvert.Decimal(value)),
 			191 => new FixField.OfferForwardPoints(FixConvert.Decimal(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part3(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part3(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -279,11 +279,11 @@ static class FixFieldBuilder
 			253 => new FixField.LegFactor(FixConvert.Decimal(value)),
 			254 => new FixField.LegRedemptionDate(FixConvert.Date(value)),
 			255 => new FixField.CreditRating(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part4(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part4(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -348,11 +348,11 @@ static class FixFieldBuilder
 			316 => new FixField.UnderlyingStrikePrice(FixConvert.Decimal(value)),
 			317 => new FixField.UnderlyingOptAttribute(FixConvert.Character(value)),
 			318 => new FixField.UnderlyingCurrency(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part5(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part5(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -419,11 +419,11 @@ static class FixFieldBuilder
 			381 => new FixField.GrossTradeAmt(FixConvert.Decimal(value)),
 			382 => new FixField.NoContraBrokers(FixConvert.Integer(value)),
 			383 => new FixField.MaxMessageSize(FixConvert.Integer(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part6(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part6(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -489,11 +489,11 @@ static class FixFieldBuilder
 			445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
 			446 => new FixField.EncodedListStatusText(FixConvert.Data(value)),
 			447 => new FixField.PartyIDSource(FixConvert.Character(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part7(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part7(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -558,11 +558,11 @@ static class FixFieldBuilder
 			509 => new FixField.RegistDtls(FixConvert.Text(value)),
 			510 => new FixField.NoDistribInsts(FixConvert.Integer(value)),
 			511 => new FixField.RegistEmail(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part8(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part8(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -630,11 +630,11 @@ static class FixFieldBuilder
 			573 => new FixField.MatchStatus(FixConvert.Character(value)),
 			574 => new FixField.MatchType(FixConvert.Text(value)),
 			575 => new FixField.OddLot(FixConvert.Boolean(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part9(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part9(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -702,11 +702,11 @@ static class FixFieldBuilder
 			637 => new FixField.LegLastPx(FixConvert.Decimal(value)),
 			638 => new FixField.PriorityIndicator(FixConvert.Integer(value)),
 			639 => new FixField.PriceImprovement(FixConvert.Decimal(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part10(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part10(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -772,11 +772,11 @@ static class FixFieldBuilder
 			701 => new FixField.YieldCalcDate(FixConvert.Date(value)),
 			702 => new FixField.NoPositions(FixConvert.Integer(value)),
 			703 => new FixField.PosType(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part11(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part11(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -844,11 +844,11 @@ static class FixFieldBuilder
 			765 => new FixField.AllowableOneSidednessPct(FixConvert.Decimal(value)),
 			766 => new FixField.AllowableOneSidednessValue(FixConvert.Decimal(value)),
 			767 => new FixField.AllowableOneSidednessCurr(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part12(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part12(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -914,11 +914,11 @@ static class FixFieldBuilder
 			828 => new FixField.TrdType(FixConvert.Integer(value)),
 			829 => new FixField.TrdSubType(FixConvert.Integer(value)),
 			830 => new FixField.TransferReason(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part13(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part13(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -986,11 +986,11 @@ static class FixFieldBuilder
 			893 => new FixField.LastFragment(FixConvert.Boolean(value)),
 			894 => new FixField.CollReqID(FixConvert.Text(value)),
 			895 => new FixField.CollAsgnReason(FixConvert.Integer(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part14(int tag, ReadOnlySpan<char> value, Func<int, FixCustomField?>? custom)
+	static FixField Part14(int tag, ReadOnlySpan<char> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1055,11 +1055,11 @@ static class FixFieldBuilder
 			954 => new FixField.Nested3PartySubIDType(FixConvert.Integer(value)),
 			955 => new FixField.LegContractSettlMonth(FixConvert.MonthYear(value)),
 			956 => new FixField.LegInterestAccrualDate(FixConvert.Date(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	public static FixField Value(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	public static FixField Value(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return (tag / 64) switch
 		{
@@ -1078,11 +1078,11 @@ static class FixFieldBuilder
 			12 => Part12(tag, value, custom),
 			13 => Part13(tag, value, custom),
 			14 => Part14(tag, value, custom),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part0(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part0(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1144,11 +1144,11 @@ static class FixFieldBuilder
 			61 => new FixField.Urgency(FixConvert.Character(value)),
 			62 => new FixField.ValidUntilTime(FixConvert.Timestamp(value)),
 			63 => new FixField.SettlType(FixConvert.Character(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part1(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part1(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1209,11 +1209,11 @@ static class FixFieldBuilder
 			124 => new FixField.NoExecs(FixConvert.Integer(value)),
 			126 => new FixField.ExpireTime(FixConvert.Timestamp(value)),
 			127 => new FixField.DKReason(FixConvert.Character(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part2(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part2(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1265,11 +1265,11 @@ static class FixFieldBuilder
 			189 => new FixField.BidForwardPoints(FixConvert.Decimal(value)),
 			190 => new FixField.OfferSpotRate(FixConvert.Decimal(value)),
 			191 => new FixField.OfferForwardPoints(FixConvert.Decimal(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part3(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part3(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1334,11 +1334,11 @@ static class FixFieldBuilder
 			253 => new FixField.LegFactor(FixConvert.Decimal(value)),
 			254 => new FixField.LegRedemptionDate(FixConvert.Date(value)),
 			255 => new FixField.CreditRating(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part4(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part4(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1403,11 +1403,11 @@ static class FixFieldBuilder
 			316 => new FixField.UnderlyingStrikePrice(FixConvert.Decimal(value)),
 			317 => new FixField.UnderlyingOptAttribute(FixConvert.Character(value)),
 			318 => new FixField.UnderlyingCurrency(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part5(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part5(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1474,11 +1474,11 @@ static class FixFieldBuilder
 			381 => new FixField.GrossTradeAmt(FixConvert.Decimal(value)),
 			382 => new FixField.NoContraBrokers(FixConvert.Integer(value)),
 			383 => new FixField.MaxMessageSize(FixConvert.Integer(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part6(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part6(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1544,11 +1544,11 @@ static class FixFieldBuilder
 			445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
 			446 => new FixField.EncodedListStatusText(FixConvert.Data(value)),
 			447 => new FixField.PartyIDSource(FixConvert.Character(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part7(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part7(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1613,11 +1613,11 @@ static class FixFieldBuilder
 			509 => new FixField.RegistDtls(FixConvert.Text(value)),
 			510 => new FixField.NoDistribInsts(FixConvert.Integer(value)),
 			511 => new FixField.RegistEmail(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part8(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part8(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1685,11 +1685,11 @@ static class FixFieldBuilder
 			573 => new FixField.MatchStatus(FixConvert.Character(value)),
 			574 => new FixField.MatchType(FixConvert.Text(value)),
 			575 => new FixField.OddLot(FixConvert.Boolean(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part9(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part9(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1757,11 +1757,11 @@ static class FixFieldBuilder
 			637 => new FixField.LegLastPx(FixConvert.Decimal(value)),
 			638 => new FixField.PriorityIndicator(FixConvert.Integer(value)),
 			639 => new FixField.PriceImprovement(FixConvert.Decimal(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part10(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part10(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1827,11 +1827,11 @@ static class FixFieldBuilder
 			701 => new FixField.YieldCalcDate(FixConvert.Date(value)),
 			702 => new FixField.NoPositions(FixConvert.Integer(value)),
 			703 => new FixField.PosType(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part11(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part11(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1899,11 +1899,11 @@ static class FixFieldBuilder
 			765 => new FixField.AllowableOneSidednessPct(FixConvert.Decimal(value)),
 			766 => new FixField.AllowableOneSidednessValue(FixConvert.Decimal(value)),
 			767 => new FixField.AllowableOneSidednessCurr(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part12(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part12(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -1969,11 +1969,11 @@ static class FixFieldBuilder
 			828 => new FixField.TrdType(FixConvert.Integer(value)),
 			829 => new FixField.TrdSubType(FixConvert.Integer(value)),
 			830 => new FixField.TransferReason(FixConvert.Text(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part13(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part13(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -2041,11 +2041,11 @@ static class FixFieldBuilder
 			893 => new FixField.LastFragment(FixConvert.Boolean(value)),
 			894 => new FixField.CollReqID(FixConvert.Text(value)),
 			895 => new FixField.CollAsgnReason(FixConvert.Integer(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	static FixField Part14(int tag, ReadOnlySpan<byte> value, Func<int, FixCustomField?>? custom)
+	static FixField Part14(int tag, ReadOnlySpan<byte> value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -2110,11 +2110,11 @@ static class FixFieldBuilder
 			954 => new FixField.Nested3PartySubIDType(FixConvert.Integer(value)),
 			955 => new FixField.LegContractSettlMonth(FixConvert.MonthYear(value)),
 			956 => new FixField.LegInterestAccrualDate(FixConvert.Date(value)),
-			_ => FixCustomField.Build(tag, value, custom),
+			_ => FixCustom.Build(tag, value, custom),
 		};
 	}
 
-	public static FixField Binary(int tag, (bool Valid, ReadOnlyMemory<byte> Value) value, Func<int, FixCustomField?>? custom)
+	public static FixField Binary(int tag, (bool Valid, ReadOnlyMemory<byte> Value) value, IReadOnlyDictionary<int, FixCustom>? custom)
 	{
 		return tag switch
 		{
@@ -2134,7 +2134,7 @@ static class FixFieldBuilder
 			446 => new FixField.EncodedListStatusText(value),
 			619 => new FixField.EncodedLegIssuer(value),
 			622 => new FixField.EncodedLegSecurityDesc(value),
-			_   => FixCustomField.Build(tag, value.Value, custom),
+			_   => FixCustom.Build(tag, value, custom),
 		};
 	}
 }

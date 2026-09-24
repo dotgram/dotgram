@@ -58,7 +58,7 @@ CustomFiled : @FixField = any & when @(false) => @(null!)
 
 Unknown : @FixField =
 	tag: Digits & when @(Fix44Context.IsUnknownText(tag)) & '=' & value: ValueText
-	=> @(FixCustomField.Build(Fix44Context.Tag(tag), value, null))
+	=> @(FixCustom.Build(Fix44Context.Tag(tag), value, null))
 
 Field : @FixField =
 	{ ?=any } & when @(context.Next()) & (v: KnownBinary | v: KnownField(ValueText) | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
