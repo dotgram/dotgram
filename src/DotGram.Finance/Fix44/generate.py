@@ -544,7 +544,7 @@ types.pop()
 types += ["}", ""]
 
 component_lines = [
-    "using System.Collections.Generic;",
+    "using System;",
     "",
     "// ReSharper disable InconsistentNaming",
     "",
