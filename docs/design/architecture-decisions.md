@@ -9532,10 +9532,16 @@ still answers at, and that the generated reader's extra stack is extra calls, 1.
   construction is to be chosen per rule cycle, not per grammar: such a cycle builds immediately and
   the rest stays on the tape. The watermark lands as agreed; the rework of the full walk after a
   miss (60% of the remaining work, one tail record after the root at every miss) is stopped, and
-  the refused-input square waits for the design. The design comes first, to the architect and then
-  to Igor: the analysis that finds the cycle and proves eager construction safe for it (D138's
-  question asked of one cycle), the boundary with the tape, which grammars it changes, and its cost
-  to generation.
+  the refused-input square waits for the design.
+  - The per-cycle design (9223d2c5) was dropped the same day: the hot cycle in SQL:2023 is 182 rules,
+    27% of the grammar, it needs a second carrier, and `Replay.Keeps` refuses every rule of every
+    shipped cycle, so its soundness would rest on an argument, not a proof.
+  - Pursued instead: **collapse on materialise.** The outer level re-walks records whose values the
+    inner guards have already built; after a guard materialises a span, the span becomes one "value
+    built" record, so each level's walk is O(1). Construction stays exactly where a `when` already
+    demands it: one carrier, no new exceptions, D138's question does not arise. It is the recursion
+    Igor asked for, done inside the tape. First a reading of what points into a span and what
+    give-back must do, then a count witness, then the note to the architect and to Igor.
 - **The instruments learned:** name the API form in a row (`Match<T>` reads a refused input twice,
   which produced a false "factor two" twice in one day; `syntax.md` says what a refusal costs each
   form, `28650da6`, being corrected for §7.7's exception where no context can be put back); predict
