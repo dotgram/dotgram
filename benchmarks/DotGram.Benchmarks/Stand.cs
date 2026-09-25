@@ -236,11 +236,28 @@ static partial class Stand
 	/// </summary>
 	static void Check(Workload workload)
 	{
+		// The row's own diagnosis comes with the refusal, and did not: Unasserted threw first, so a strict
+		// FIX row that broke a schema rule said "a reading refuses it" and never said WHICH rule, which is the
+		// one thing the layer has to say. A check of the row can itself throw on input a reading refuses, so
+		// what it throws is reported rather than replacing the message that was about to be given.
 		if (Unasserted(workload) is { } wrong)
-			throw new InvalidOperationException($"{workload.Id}: a reading does not do what the row says.\n{wrong}");
+			throw new InvalidOperationException($"{workload.Id}: a reading does not do what the row says.\n{wrong}{Diagnosis(workload)}");
 
 		if (workload.Disagreement() is { } disagreement)
 			throw new InvalidOperationException($"{workload.Id}: the readings disagree, so no ratio would mean anything.\n{disagreement}");
+	}
+
+	/// <summary>What the row says about itself when a reading has already failed, or nothing where it says nothing.</summary>
+	static string Diagnosis(Workload workload)
+	{
+		try
+		{
+			return workload.Disagreement() is { } why ? "\n" + why : "";
+		}
+		catch (Exception refused)
+		{
+			return $"\n  and the row's own check throws on it: {refused.GetType().Name}: {refused.Message}";
+		}
 	}
 
 	/// <summary>An empty input is read to nothing: the slope's first row answers zero and is still an acceptance.</summary>
@@ -391,6 +408,9 @@ static partial class Stand
 
 			// The FIX message layer: Parse and Build of a NewOrderSingle, generated alone.
 			.. FixMessageWorkloads(),
+
+			// The same layer of the other two versions, and a 5.0 report whose groups nest three deep.
+			.. FixVersionWorkloads(),
 
 			Expression("floor",         "(int x) => x"),
 			Expression("ladder",        "(int x, int y) => (x + y) * 3 - x / 5"),
@@ -690,6 +710,10 @@ static partial class Stand
 		readonly Type _fixMessages;
 		readonly Type? _fixParseMode;
 		readonly Type? _fixParseOptions;
+		readonly Type? _fix42;
+		readonly Type? _fix42Context;
+		readonly Type? _fix50;
+		readonly Type? _fix50Context;
 		readonly Type? _stock;
 		readonly Type? _uri;
 		readonly Type _tsql;
@@ -698,6 +722,13 @@ static partial class Stand
 
 		/// <summary>Whether the side was given DotGram.Benchmarks.dll, and so has the document grammar to read.</summary>
 		public bool HasConfig => _config is not null;
+
+		/// <summary>
+		/// Whether the side has the other two FIX versions -- 4.2 since d0aeaeaf (2026-09-24), 5.0 SP2 since
+		/// f787f18b (2026-09-25). A side older than those loses their rows rather than failing the pair: 4.4's
+		/// rows are what every side has.
+		/// </summary>
+		public bool HasFixVersions => _fix42 is not null && _fix42Context is not null && _fix50 is not null && _fix50Context is not null;
 
 		/// <summary>Whether the side was given DotGram.Examples, and so has a stock count to read.</summary>
 		public bool HasStock => _stock is not null;
@@ -757,6 +788,13 @@ static partial class Stand
 
 			_fixParseMode    = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
 			_fixParseOptions = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseOptions") ?? finance.GetType("DotGram.Finance.Fix.FixParseOptions"));
+
+			// FIX 4.2 and FIX 5.0 SP2, each its own generated reader over its own schema (d0aeaeaf, f787f18b). A side
+			// older than those has neither, and the rows that read them are left out of the pair.
+			_fix42        = finance.GetType("DotGram.Finance.Fix.Fix42.FixParser");
+			_fix42Context = finance.GetType("DotGram.Finance.Fix.Fix42.Fix42Context");
+			_fix50        = finance.GetType("DotGram.Finance.Fix.Fix50.FixParser");
+			_fix50Context = finance.GetType("DotGram.Finance.Fix.Fix50.Fix50Context");
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			// A side without this file loses every web row and says nothing: `--only web/` then matches no
@@ -974,6 +1012,40 @@ static partial class Stand
 
 				return count;
 			};
+		}
+
+		/// <summary>
+		/// A form of FIX 4.2 or FIX 5.0 SP2 over one wire: "parse-string" is the string door alone and
+		/// "strict-string" is that door and then <c>Validate</c> against the version's own default schema, the two
+		/// acts a session performs. One for a message read (and, in the strict form, accepted) and zero for none.
+		/// </summary>
+		/// <remarks>
+		/// The context is passed as null so that the door takes its own default, which is what a consumer who
+		/// names no schema gets; the strict form hands <c>Validate</c> the context's <c>Default</c>, since that
+		/// call has no optional parameter to leave out.
+		/// </remarks>
+		public Func<int> FixVersionForm(string version, string form, string wire)
+		{
+			var parser  = version == "42" ? _fix42 : _fix50;
+			var context = version == "42" ? _fix42Context : _fix50Context;
+
+			if (parser is null || context is null)
+				throw new InvalidOperationException($"this side has no FIX {version} reader, and HasFixVersions was not asked");
+
+			var door = parser.GetMethod("ParseMessage", [typeof(string), context])
+				?? throw new InvalidOperationException($"FIX {version}: ParseMessage(string, context) not found");
+
+			if (form == "parse-string")
+				return () => door.Invoke(null, [wire, null]) is null ? 0 : 1;
+
+			var message  = parser.Assembly.GetType("DotGram.Finance.Fix.Fix" + version + ".FixMessage")
+				?? throw new InvalidOperationException($"FIX {version}: FixMessage not found");
+			var validate = message.GetMethod("Validate", [context])
+				?? throw new InvalidOperationException($"FIX {version}: FixMessage.Validate(context) not found");
+			var schema   = context.GetProperty("Default", BindingFlags.Static | BindingFlags.Public)?.GetValue(null)
+				?? throw new InvalidOperationException($"FIX {version}: the context has no Default");
+
+			return () => door.Invoke(null, [wire, null]) is { } one && (bool)validate.Invoke(one, [schema])! ? 1 : 0;
 		}
 
 		/// <summary>

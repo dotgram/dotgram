@@ -10,6 +10,9 @@ using DotGram.Handwritten.Fix;
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
+using Fix42 = DotGram.Finance.Fix.Fix42;
+using Fix50 = DotGram.Finance.Fix.Fix50;
+
 namespace DotGram.Benchmarks;
 
 // The forms of the published API that had no row (the architect's order, 2026-09-19, after docs/design/stand-coverage-2026-09-19.md):
@@ -103,6 +106,25 @@ static partial class Stand
 		foreach (var form in new[] { "read-stream", "read-reader" })
 			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", OwnFixMessagesForm(form, wire, 100), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
 
+		// ── FIX 4.2 and FIX 5.0 SP2: the string door, and the door with the schema ──
+		//
+		// Each version is its own generated reader, so a change to how a reader is written moves them and
+		// nothing about the 4.4 rows says by how much. The report is the deep one: its sides carry parties and
+		// its parties sub-parties, three levels of the walk where an order is one, which is where a change that
+		// costs a level at a time shows. A side older than the versions has neither, and the rows are left out
+		// rather than failing the pair.
+		if (before.HasFixVersions && after.HasFixVersions)
+		{
+			var order42  = FixVersionWire("FIX.4.2", "D", Order42Body);
+			var order50  = FixVersionWire("FIXT.1.1", "D", Order50Body);
+			var report50 = FixVersionWire("FIXT.1.1", "AE", Report50Body());
+
+			foreach (var (row, version, one) in new[] { ("Order42", "42", order42), ("Order50", "50", order50), ("Report50", "50", report50) })
+				foreach (var form in new[] { "parse-string", "strict-string" })
+					yield return PairedFormRow("fixmsg", row + "." + form, "control",
+						OwnFixVersionForm(version, form, one), before.FixVersionForm(version, form, one), after.FixVersionForm(version, form, one));
+		}
+
 		// ── one span row for FIX ──
 		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
 
@@ -115,6 +137,23 @@ static partial class Stand
 
 			yield return PairedFormRow("feeds", "streaming.1000", "control", () => StreamingFeedReader.Read(new StringReader(feed)).Count(), before.StreamingFeed(feed), after.StreamingFeed(feed));
 		}
+	}
+
+	/// <summary>
+	/// This process's own reading of one FIX 4.2 or FIX 5.0 SP2 form: the same door, the same wire, the same
+	/// schema as the sides read by reflection. A control is the form itself, built here, so that a row is held
+	/// to a constant doing its own work and not to another door at another scale.
+	/// </summary>
+	static Func<int> OwnFixVersionForm(string version, string form, string wire)
+	{
+		return (version, form) switch
+		{
+			("42", "parse-string")  => () => Fix42.FixParser.ParseMessage(wire) is null ? 0 : 1,
+			("42", "strict-string") => () => Fix42.FixParser.ParseMessage(wire).Validate(Fix42.Fix42Context.Default) ? 1 : 0,
+			("50", "parse-string")  => () => Fix50.FixParser.ParseMessage(wire) is null ? 0 : 1,
+			("50", "strict-string") => () => Fix50.FixParser.ParseMessage(wire).Validate(Fix50.Fix50Context.Default) ? 1 : 0,
+			_ => throw new ArgumentException($"no reading of this process's own FIX {version} {form}", nameof(form)),
+		};
 	}
 
 	/// <summary>
