@@ -1,4 +1,4 @@
----
+﻿---
 paths:
   - "src/DotGram/**"
   - ".work/genprof/**"
@@ -196,6 +196,19 @@ The report is flat: own and total milliseconds per function, and how many call-t
 has. There are no callers in it. Sorting by `Total` over `DotGram.*` gives the stages; sorting by
 `Own` gives the hot loops. Two snapshots are compared by loading both reports and printing the
 same functions side by side. The call tree itself is in the snapshot, for the UI.
+
+**Reporter refuses a deeply recursive program: it dies with a `StackOverflowException`.** The limit is
+the call tree's DEPTH, not the snapshot's size — it walks the tree recursively. A parse nested 800
+brackets deep failed, and so did 400 and 100; 25 and 50 came back. So profile a recursive reader at a
+depth its reader survives and read the exponent there, where it is the same. There is no flag for it,
+and nothing in the message says depth.
+
+**Two snapshots of the same duration are not comparable until their totals are divided by the number
+of readings.** A profiling loop that runs for a fixed twenty seconds reads a bigger input fewer times,
+so `OwnTime` is per RUN and not per reading. Ranking the raw totals of a 25-deep and a 50-deep parse
+put the function carrying the square at a ratio of 1.11, which exonerates it; per reading it is 3.42.
+Have the harness print its round count and divide by it. And rank by the RATIO between the two sizes
+rather than by share: share says where the time sits, the ratio says what grows with the input.
 
 **Do not use `dotnet-trace`'s thread-time profile to choose what to fix.** It reported
 `Buffer.Memmove` at 20%, `RuntimeHelpers.GetHashCode` at 14% and `Monitor.Enter_Slowpath` at 9%,
