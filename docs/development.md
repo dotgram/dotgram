@@ -431,6 +431,188 @@ class a version beside it, over `FixRepositoryAgreementTests` — which hold eve
 repository read afresh, and the load tests, which write the same checks from a dictionary at
 run time.
 
+## The FIX package's reading, for its maintainers
+
+The package's own page (`src/DotGram.Finance/README.md`) says what a consumer writes; this is how the
+package reads, which that page no longer carries.
+
+### Fields: recovery and binary data
+
+The grammar uses `Field* recover Separator`. A syntax failure returns one
+`FixField.Invalid` in source order, then parsing resumes after the next separator
+(or finishes at EOF). `Invalid.Position` and `Length` describe the rejected input,
+excluding the synchronization separator; `Tag` is 0 and `IsValid` is false.
+`RawText` owns the original character input, while `RawBytes` owns the original
+byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
+I/O errors and exceptions from user C# code still propagate during enumeration.
+
+Valid binary payloads are consumed by length, including embedded separators.
+After a malformed binary header or length, separator recovery is best effort:
+the next separator may be inside damaged payload data. Primitive conversion
+failures still come back as the field of the tag's type, with `IsValid == false`; `recover`
+handles recognition failures, not semantic validation.
+Use `.ToArray()` when a complete list is needed. String, byte-array and memory overloads
+materialize the complete result. Empty input returns no fields.
+Concatenated messages are read as one ordered field sequence.
+
+### The field parser and its grammar
+
+`FixParser` is the main parser, with string, byte-array, `ReadOnlyMemory<byte>`, `TextReader`
+and byte `Stream` input forms. Its small [grammar](../src/DotGram.Finance/Fix/FixGrammar.gram) reads a
+numeric tag and uses `switch` to select text or a length/data pair. C# supplies
+classification and typed field construction.
+
+The large `Fix44` grammar is retained in
+`tests/DotGram.Finance.Fix44` for regression tests and benchmarks.
+It is not included in the Finance package.
+
+### Logs
+
+The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
+before or after a pipe belong to that separator. Spaces inside text values are
+preserved; spaces before EOF are also preserved when no pipe follows. Length-delimited
+binary payloads are never trimmed, even when they contain ` | ` or end in spaces.
+Field positions refer to the original input, including its formatting spaces.
+A streamed log field reads ahead through the padding to the next character or
+EOF before yielding. Wire parsing can yield as soon as SOH is read.
+A length field makes the field right after it its data: when that field has the paired data tag,
+the parser consumes exactly the declared number of data bytes, including any delimiter bytes
+inside the payload. A data field anywhere else is rejected as an `Invalid`; a length followed by
+something else is still a length, and the message calls refuse it. The final field may end at EOF without a separator. Separators between fields
+remain required; the declared binary length still determines the complete payload.
+`FixParser.ParseFields` returns the completed field sequence, including `Invalid` fields.
+Use `FixParser.TryParseMessage` or `FixParser.BuildMessage` to build a message; both refuse a
+recovered syntax error with the first syntax diagnostic, whatever the framing. Typed values own their data;
+no complete source string is retained by a field. Octets held in an array or memory are read
+where they lie; native byte-stream parsing creates no complete character view.
+
+The common grammar declares `Separator` and specializes the log publication with
+`with (Separator = LogSeparator)`. The generator recognizes the guarded text run
+`(?!Separator & any)+` and emits a linear scan for these delimiters.
+Only structural SOH separators are rendered as pipes. Raw-data payload octets must
+remain untouched; a log that replaces or escapes payload bytes is not lossless and
+requires its own decoding before this API. Arbitrary log prefixes are not accepted.
+BodyLength counts the wire's octets and the pipe rendering does not change it; CheckSum is summed
+as the SOH representation would be, a separator counted as one SOH, never pipes inside raw data.
+Positions refer to the log as it was given.
+
+### Streams
+
+The adapter frames messages using `BodyLength`, then performs the same grammar, raw-data and
+group recognition as the string API. Checking a
+message against the schema is a separate call: see **Validation** below.
+It reuses a growing buffer across `ReadMessages` iterations and copies each frame out of it
+before reading it. Buffering is bounded by the largest frame seen, not the length of the stream;
+a message keeps its fields and not the frame. The default `maxMessageLength` is 16 MiB per
+message, including header and trailer; callers can set a different positive
+limit. This is a frame-size limit, not a total allocation budget.
+
+Clean EOF ends `ReadMessages`; EOF before a complete frame is an error.
+`TryReadMessage` returns false with a diagnostic for malformed, oversized, truncated,
+or empty input. `ReadMessage` and `ReadMessages` throw `FormatException` for these
+errors (except clean EOF for enumeration). Diagnostic positions are relative to
+the current frame. I/O exceptions propagate. A failed parse may consume input;
+there is no automatic resynchronization or rollback of the underlying stream.
+
+The framing adapter prevents read-ahead from consuming the next message. The byte
+path retains a byte frame and passes it to the generated buffered byte parser;
+field conversion does not transcode numeric input. This is not a zero-copy API: each field owns
+its value, independently of subsequent stream reads. See the finance benchmarks for total
+parsing costs.
+
+### Where things are
+
+Paths are under `src/DotGram.Finance/` unless they say otherwise.
+
+A version's field types, message classes, components and checks are written by `Fix/generate.py`
+from the FIX repository and are not edited by hand: a change is made in the script or a template
+and the versions are written again. The FIX 4.4 field grammar the tests hold the package against,
+and the test fixtures, are maintained by hand beside them.
+
+What every version shares is in `Fix/`:
+
+- `Fix/FixField.cs`: field base, typed-value access, locations and the class of each value type.
+- `Fix/FixFieldBuilder.cs`: construction of a field from its tag's type.
+- `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
+- `Fix/FixDictionary.cs`: a data dictionary as a value, read, merged and edited.
+- `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the
+  application of a dictionary to a version's checks, each compiled when it is first asked.
+- `Fix/FixTag.cs`: the number of every tag of every version as a constant named for it.
+- `Fix/generate.py`, `Fix/Templates/`: the script that writes every version's directory and
+  `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.
+
+FIX 4.4's own is in `Fix/Fix44/`:
+
+- `Fix/Fix44/Fix44Context.cs`: the version's context, its standard pairs, checks and loads.
+- `Fix/Fix44/FixMessage.cs`, `Fix/Fix44/FixMessage.Header.cs`: the message base, the standard header and trailer.
+- `Fix/Fix44/FixMessage.Types.cs`, `Fix/Fix44/FixComponents.cs`, `Fix/Fix44/FixValidator44.cs`,
+  `Fix/Fix44/FixStandard.cs`: the 93 message classes, the 24 component interfaces, the check of
+  every message type, component and group entry, and the type of every tag.
+- `Fix/Fix44/FixValidator44.Fields.cs`: the check of every field against its type and its code set.
+
+FIX 4.2's is in `Fix/Fix42/`, the same files with 42 for 44 and no `FixComponents.cs`: FIX 4.2
+writes its groups inline and names no component. FIX 5.0 SP2's is in `Fix/Fix50/`, over FIXT 1.1's
+header, trailer and session messages.
+
+A group is named for its counter: the class `<Counter>Group`, nested in whatever carries it —
+a message, a component's interface or another group's entry — and its entries are the list
+`<Counter>Groups` beside the counter: `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`.
+`tests/DotGram.Finance.Tests/FieldCases.json` holds field IDs and code-value regression cases;
+`Fixtures.json` beside it holds message test inputs. Maintain both alongside the definitions.
+DotGram compiles `.gram` files during builds.
+
+Tests and BenchmarkDotNet workloads are separate solution projects. The coverage
+and measurement records are in `docs/design/finance-fix44.md` and
+`benchmarks/DotGram.Finance.Benchmarks/README.md`.
+
+### Field construction and locations
+
+`FixGrammar` parses the tag and selects one branch through `switch`.
+`FixFieldBuilder.cs` constructs the field of the tag's type in C#.
+`Field` reads the field contents. `Fields` repeats a constructing group that adds
+the separator or EOF and records the actual separator length. Publications support
+eager and `yield` parsing.
+
+The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
+`FixField.gram` contains one alternative per standard field. Tests compare
+its results with the production parser using the same shared field model.
+
+`FixField.cs` contains the field base, `FixField.Typed<T>` and a class a value type.
+The base classes implement locations and typed-value access; the classes contain no
+conversion or location logic.
+
+The builder constructs a field of the tag's type, for example
+`new FixField.Integer(FixTag.LegProduct, value.ToInteger())`. Primitive conversions return
+`(Valid, Value)` for the field constructor. Plain text conversion returns a string
+without a validation flag; a string's typed value is always available. Restrictions
+on a particular field (such as currency syntax or a code set) remain semantic checks.
+
+`LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
+The constructing group in `Fields` covers the complete tag, equals sign, value
+and optional final separator; it supplies the field's source extent. `Position`, `ValuePosition` and
+`Length` mean here what they mean everywhere else on this page, unknown and binary
+fields included.
+
+The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
+`FixField.gram` contains one alternative per standard field. Tests compare
+its results with the production parser using the same shared field model.
+
+`FixField.cs` contains the field base, `FixField.Typed<T>` and a class a value type.
+The base classes implement locations and typed-value access; the classes contain no
+conversion or location logic.
+
+The builder constructs a field of the tag's type, for example
+`new FixField.Integer(FixTag.LegProduct, value.ToInteger())`. Primitive conversions return
+`(Valid, Value)` for the field constructor. Plain text conversion returns a string
+without a validation flag; a string's typed value is always available. Restrictions
+on a particular field (such as currency syntax or a code set) remain semantic checks.
+
+`LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
+The constructing group in `Fields` covers the complete tag, equals sign, value
+and optional final separator; it supplies the field's source extent. `Position`, `ValuePosition` and
+`Length` mean here what they mean everywhere else on this page, unknown and binary
+fields included.
+
 ## Large generated source files
 
 File splitting is experimental and disabled by default, including in the Roslyn
