@@ -3,6 +3,7 @@
 namespace DotGram.Finance.Fix.Fix44;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand. From Templates/Validator.Header.cs.in.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>
 /// The standard header and trailer: what every message owes before its own type is asked anything.

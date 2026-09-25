@@ -5,6 +5,7 @@ using System.IO;
 namespace DotGram.Finance.Fix.Fix50;
 
 // Written by generate.py from the FIX 5.0 SP2 repository; not edited by hand. From Templates/Context.cs.in.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>What a reading of FIX 5.0 SP2 is done by: the framing, the type of every field and the length/data pairs, the checks a message is held to, and the messages a consumer builds.</summary>
 /// <remarks>

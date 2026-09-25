@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 namespace DotGram.Finance.Fix.Fix50;
 
 // Written by generate.py from the FIX 5.0 SP2 repository; not edited by hand. From Templates/FixParser.Messages.cs.in.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>
 /// The message half of the package's one door: the same input read as messages rather than as a

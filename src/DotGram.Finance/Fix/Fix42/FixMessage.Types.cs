@@ -3,6 +3,7 @@
 namespace DotGram.Finance.Fix.Fix42;
 
 // Written by generate.py from the FIX 4.2 repository; not edited by hand.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 public abstract partial class FixMessage
 {

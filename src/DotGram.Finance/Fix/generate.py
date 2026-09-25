@@ -36,6 +36,12 @@ root      = os.path.normpath(os.path.join(here, "..", "..", ".."))
 corpus    = os.path.join(root, "tests", "Corpus", "FixRepository")
 templates = os.path.join(here, "Templates")
 
+# The repository's notice lets portions of the specification be extracted into other work provided the
+# origin is referenced and the specification is said to be Copyright FIX Protocol Limited; every table
+# written here is such a portion. It says where the data came from and changes nothing about the
+# licence of this code, which is the repository's own.
+ATTRIBUTION = "// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org."
+
 
 # ── the versions ───────────────────────────────────────────────────────────────────────────────
 
@@ -421,8 +427,11 @@ class Writer:
         self.m, self.v = model, model.v
 
     # The heading every file written here carries.
-    def written(self):
-        return f"// Written by generate.py from the {self.v.title} repository; not edited by hand."
+    def written(self, source=None):
+        """The heading every file written here carries: what wrote it, and where its tables come from,
+        as the repository's notice asks of anything extracted from the specification."""
+        made = f"// Written by generate.py from the {self.v.title} repository; not edited by hand."
+        return made + (f" From {source}." if source else "") + "\n" + ATTRIBUTION
 
     def wire(self, tag):
         return self.m.field_type.get(tag, "String")
@@ -917,7 +926,7 @@ class Writer:
         # A template's own heading, and the reason it is not edited in the version's directory.
         lines = text.split("\n")
         at = next(k for k, l in enumerate(lines) if l.startswith("namespace "))
-        lines[at + 1:at + 1] = ["", self.written() + " From Templates/" + name + "."]
+        lines[at + 1:at + 1] = ["", self.written("Templates/" + name)]
         return lines
 
     def write(self, name, lines):
@@ -987,7 +996,7 @@ def fix_tag(models):
 
     titles = ", ".join(m.v.title for m in models)
     out = ["namespace DotGram.Finance.Fix;", "",
-           f"// Written by generate.py from the {titles} repository; not edited by hand.", "",
+           f"// Written by generate.py from the {titles} repository; not edited by hand.", ATTRIBUTION, "",
            "/// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>",
            "/// <remarks>A tag is its number, and a tag no version defines is only that: <c>25005</c>.</remarks>",
            "public static class FixTag", "{"]

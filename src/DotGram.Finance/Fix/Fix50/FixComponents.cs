@@ -5,6 +5,7 @@
 namespace DotGram.Finance.Fix.Fix50;
 
 // Written by generate.py from the FIX 5.0 SP2 repository; not edited by hand.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 //
 // The components FIX 5.0 SP2 reuses across message types, as the shape a message or a group entry has
 // when it carries one. A component is written into its carrier field by field, because that is

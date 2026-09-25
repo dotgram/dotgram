@@ -556,6 +556,14 @@ and measurement records are in `docs/design/finance-fix44.md` and
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.
 
+## Attribution
+
+The tables of each FIX version — its fields, their types and code sets, its messages and
+components — are derived from the FIX Protocol specification (FIX Unified Repository, 2010
+edition). The FIX Protocol specification is Copyright FIX Protocol Limited,
+<https://www.fixtrading.org>. This package's code is under the MIT licence, as the rest of DotGram is; the
+attribution says where the data came from and grants or restricts nothing.
+
 The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.

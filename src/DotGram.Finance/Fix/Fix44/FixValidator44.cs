@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace DotGram.Finance.Fix.Fix44;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>
 /// The check of every FIX 4.4 message type, of every component it reuses, and of every entry of

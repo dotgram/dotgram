@@ -1,6 +1,7 @@
 ﻿namespace DotGram.Finance.Fix;
 
 // Written by generate.py from the FIX 4.2, FIX 4.4, FIX 5.0 SP2 repository; not edited by hand.
+// Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
 /// <remarks>A tag is its number, and a tag no version defines is only that: <c>25005</c>.</remarks>
