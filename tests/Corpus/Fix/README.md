@@ -21,7 +21,11 @@ package's copy. Its fields are named as the FIX 4.2 repository names them; four 
 tree. They describe a later edition than the repository this package is written from, with
 messages and members the repository does not have (`PartyDetailsListRequest`, a `Username` on
 `UserNotification`); read as one over the standard they are refused at the first such place, and
-`FIXT11.xml` alone loads (`Fix50Tests`). One field is named otherwise than the repository names it,
+`FIXT11.xml` alone loads (`Fix50Tests`). What they place differently from the repository is one
+component: their `UsernameGrp` is the field `Username` alone, where the repository's is the group
+`NoUsernames` (809) of `Username`s, and their file does not declare 809. `quickfixn-fix50sp2-errata.xml`
+says it the repository's way; merged over theirs, with the two later message types removed in code,
+the three apply (`Fix50Tests`). One field is named otherwise than the repository names it,
 `HaltReasonInt` for tag 327, and that is the name `DotGram.Finance.Fix.Fix50` gives it.
 
 Licensed under the QuickFIX Software License 1.0, BSD-three-clause in shape; the notice,

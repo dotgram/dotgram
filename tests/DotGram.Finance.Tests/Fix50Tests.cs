@@ -118,6 +118,38 @@ public sealed class Fix50Tests
 		}
 	}
 
+	/// <summary>
+	/// With the errata read over them (tests/Corpus/Fix/quickfixn-fix50sp2-errata.xml: UsernameGrp as the
+	/// repository's group) the reference dictionaries apply once the two message types the model has no
+	/// class for are removed; a file read over another cannot remove, so that is code. A standard order
+	/// and a UserNotification with its group are held to them as to the standard.
+	/// </summary>
+	[Fact]
+	public void The_errata_and_two_removals_make_the_reference_dictionaries_apply()
+	{
+		var merged = FixDictionary.Parse(File.ReadAllText(Path.Combine(Corpus, "FIXT11.xml")))
+			.Merge(FixDictionary.Parse(File.ReadAllText(Path.Combine(Corpus, "FIX50SP2.xml"))))
+			.Merge(FixDictionary.LoadFile(Path.Combine(Corpus, "quickfixn-fix50sp2-errata.xml")));
+
+		// The errata alone leaves the two later message types, which the model has no class for.
+		var refused = Assert.Throws<FormatException>(() => Fix50Context.Default.With(merged));
+
+		Assert.StartsWith("The dictionary describes 'PartyDetailsList", refused.Message, StringComparison.Ordinal);
+
+		merged.Messages.Remove("CF");
+		merged.Messages.Remove("CG");
+
+		var context = Fix50Context.Default.With(merged);
+		var order   = FixParser.ParseMessage(Wire("D", Order));
+		var notice  = FixParser.ParseMessage(Wire("CB", "809=2|553=ALICE|553=BOB|926=1|"));
+
+		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.True(notice.Validate(context), string.Join("; ", notice.InvalidFindings ?? []));
+
+		// And every other check they describe compiles: nothing is left to fail on a later message's first reading.
+		Assert.True(context.Checks.CompileDeferred() > 500);
+	}
+
 	/// <summary>The session layer's dictionary alone loads, and the order is held to it as to the standard.</summary>
 	[Fact]
 	public void The_session_layers_dictionary_loads()

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What QuickFIX/n's FIXT11.xml and FIX50SP2.xml, read as one, place differently from the FIX 5.0 SP2
+  repository (2010 edition), said the way the repository says it, in that file's format. Read after
+  them: FixDictionary.Parse(FIXT11).Merge(FixDictionary.Parse(FIX50SP2)).Merge(this).
+
+  One component. Their UsernameGrp is the field Username alone; the repository's is the repeating group
+  NoUsernames (809), whose entries each hold a Username (553), and their file does not declare 809 at all.
+
+  Two message types of theirs are of a later edition than the repository and have no class in the
+  model, PartyDetailsListRequest (CF) and PartyDetailsListReport (CG). A file read over another can
+  replace what it describes but not remove it, so they are removed in code (Fix50Tests).
+-->
+<fix>
+  <components>
+    <component name="UsernameGrp">
+      <group name="NoUsernames" required="N">
+        <field name="Username" required="N" />
+      </group>
+    </component>
+  </components>
+</fix>
