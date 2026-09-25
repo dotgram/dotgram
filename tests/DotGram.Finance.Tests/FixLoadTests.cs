@@ -248,8 +248,9 @@ public sealed class FixLoadTests
 	/// file: it carries a group the standard's does not, which the model has no slot for.
 	/// </summary>
 	/// <remarks>
-	/// The file departs in more than one place, and the checks are written side by side; the refusal is
-	/// the first place in the file's order, the same on every run, and not the first that failed in time.
+	/// The file departs in more than one place; the refusal is the first place in the file's order, the
+	/// same on every run, and it is the model that is asked: QuoteRequestReject has no NoQuoteQualifiers
+	/// of its own, since the repository puts that group inside NoRelatedSym.
 	/// </remarks>
 	[Fact]
 	public void The_reference_dictionary_alone_names_where_it_departs_from_the_standard()
@@ -258,8 +259,7 @@ public sealed class FixLoadTests
 		{
 			var refused = Assert.Throws<FormatException>(() => Fix44Context.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
 
-			Assert.StartsWith("The dictionary describes 'QuoteRequestReject_", refused.Message, StringComparison.Ordinal);
-			Assert.Contains("which this package has no slot for", refused.Message, StringComparison.Ordinal);
+			Assert.Equal("The dictionary places the group 'NoQuoteQualifiers' in 'FixMessage.QuoteRequestReject', which has no member of that name.", refused.Message);
 		}
 	}
 

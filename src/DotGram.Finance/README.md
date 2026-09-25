@@ -344,13 +344,33 @@ problem per message; `InvalidFindings` holds all of them, and code that reads on
 drops the rest without a word. A finding is the same story: where a message carries nine parties,
 `EntryIndex` and `Position` are what say which one, and code that reads `Tag` alone throws that away.
 
-**A counterparty's dictionary is loaded into a context.** `Fix44Context.Default.Load(text)`,
-`LoadFile(path)`, or `Load` of a `TextReader`, a `Stream` or several texts read as one, reads a
-FIX data dictionary and answers a new context: a message type, component, group entry or field
-the file describes is held to the file's whole check from then on, and the context it was loaded
-over is unchanged. A file that is not a dictionary this package can read, or that places a field
-where the model has no property for it, is refused whole, because a schema that is half one file
-and half another is worse than a refusal at the door. A type this package has no class for is
+**A counterparty's dictionary is applied to a context.** Reading and applying are two steps, so
+that dictionaries can be merged and edited in between:
+
+```csharp
+var standard = FixDictionary.LoadFile("FIX44.xml");
+var venue    = FixDictionary.LoadFile("venue.xml");
+var merged   = standard.Merge(venue);                // what venue describes replaces standard's, whole
+
+merged.Messages["D"].Members.Add(FixDictionaryMember.Field("ExDestination", required: true));
+merged.Fields[40].Codes.Remove("P");
+
+var context = Fix44Context.Default.With(merged);
+```
+
+`FixDictionary` is the file's messages (by MsgType), components (by name) and fields (by tag), and
+the standard header and trailer, by name and unresolved: reading refuses only what is not a
+dictionary. `With` answers a new context: a message type, component, group entry or field the
+dictionary describes is held to its whole check from then on, and the context it was applied to is
+unchanged. It takes what the dictionary says at that moment; editing the dictionary afterwards changes
+nothing in a context already made. A dictionary that places a field where the model has no property
+for it, lists a code its field's type cannot hold, or gives one name to two tags, is refused whole,
+there, because a schema that is half one file and half another is worse than a refusal at the door.
+Each check is compiled when it is first asked, so applying a whole dictionary costs what reading it
+does, and the first message of each type held to it pays for its own check.
+
+`Load(text)`, `LoadFile(path)`, and `Load` of a `TextReader`, a `Stream` or several texts merged in
+order are the short forms: read and apply in one call. A type this package has no class for is
 still unknown; what to do about such a type is a `FixCustomMessage`. The package ships nobody's
 dictionary: the file is yours, in your repository, and its licence obligations are yours with it.
 
@@ -518,8 +538,9 @@ What every version shares is in `Fix/`:
 - `Fix/FixField.cs`: field base, typed-value access, locations and the class of each value type.
 - `Fix/FixFieldBuilder.cs`: construction of a field from its tag's type.
 - `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
-- `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the load
-  of a dictionary into a version's checks.
+- `Fix/FixDictionary.cs`: a data dictionary as a value, read, merged and edited.
+- `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the
+  application of a dictionary to a version's checks, each compiled when it is first asked.
 - `Fix/FixTag.cs`: the number of every tag of every version as a constant named for it.
 - `Fix/generate.py`, `Fix/Templates/`: the script that writes every version's directory and
   `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.

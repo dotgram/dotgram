@@ -114,7 +114,7 @@ public sealed class Fix50Tests
 				File.ReadAllText(Path.Combine(Corpus, "FIX50SP2.xml")),
 			]));
 
-			Assert.Contains("'UserNotification' has no property or field named 'Username'", refused.Message, StringComparison.Ordinal);
+			Assert.Equal("The dictionary places the field 'Username' in 'FixMessage.UserNotification', which has no member of that name.", refused.Message);
 		}
 	}
 

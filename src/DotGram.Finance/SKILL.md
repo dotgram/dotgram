@@ -109,7 +109,8 @@ foreach (var field in FixParser.ParseFields(wire))
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
 - A tag the package does not know is read as the type a dictionary loaded into the context gives
-  it: `Fix44Context.Default.Load(venueXml)`. A MsgType it does not know is built by
+  it: `Fix44Context.Default.Load(venueXml)`, or read, merge and edit first and then apply:
+  `Fix44Context.Default.With(FixDictionary.LoadFile(path).Merge(FixDictionary.Parse(venueXml)))`. A MsgType it does not know is built by
   `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing defines is a
   `FixField.Invalid` of that tag with its octets, and a type the factory answers null for a
   `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a
