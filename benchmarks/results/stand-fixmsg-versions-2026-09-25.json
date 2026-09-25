@@ -1,0 +1,343 @@
+{
+  "Commit": "5ffbe071 (run in a tree at 93a521d6)",
+  "Machine": "IGOR-DESKTOP",
+  "Runtime": ".NET 10.0.12",
+  "Taken": "2026-09-25T16:04:22.2467666-04:00",
+  "Pinned": true,
+  "Control": 31.80575,
+  "Rows": [
+    {
+      "Id": "fixmsg/slope-8",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 427.117919921875,
+          "Bytes": 1296,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 2.0934280284085225,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-12",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 635.8390808105469,
+          "Bytes": 1864,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05486694976164107,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-13",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 679.3548583984375,
+          "Bytes": 1952,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.039508380089034234,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-20",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1057.6805114746094,
+          "Bytes": 3024,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.09450322904546776,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-21",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1092.9412841796875,
+          "Bytes": 3120,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06626342021863264,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-36",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1844.2459106445312,
+          "Bytes": 5352,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07718726342308949,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-37",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1910.9527587890625,
+          "Bytes": 5448,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08895351344100189,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-68",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 3453.8116455078125,
+          "Bytes": 9984,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06364507905932873,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-69",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 3454.8187255859375,
+          "Bytes": 10080,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.07849126603802752,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/slope-132",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 6512.90283203125,
+          "Bytes": 19224,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.06892492929262638,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order44.parse",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1082.3211669921875,
+          "Bytes": 2920,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "reference-QuickFIXn",
+          "Nanoseconds": 1817.0623779296875,
+          "Bytes": 5784,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.02193751674162214,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order44.strict",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1177.215576171875,
+          "Bytes": 2952,
+          "Warmup": 6,
+          "Rounds": []
+        },
+        {
+          "Reading": "generated-loaded",
+          "Nanoseconds": 1309.43603515625,
+          "Bytes": 2952,
+          "Warmup": 2,
+          "Rounds": []
+        },
+        {
+          "Reading": "reference-QuickFIXn",
+          "Nanoseconds": 2855.853271484375,
+          "Bytes": 6808,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03181594296824368,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order.parse",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 963.7794494628906,
+          "Bytes": 2864,
+          "Warmup": 3,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.05066158979453708,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order.build",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1116.937255859375,
+          "Bytes": 3016,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.03870991098312013,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order42.parse-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1084.1690063476562,
+          "Bytes": 2648,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.040502673390371294,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order50.parse-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1716.8853759765625,
+          "Bytes": 4424,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.035347296161140726,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Report50.parse-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 4363.690185546875,
+          "Bytes": 7976,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.01995672406486075,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order42.strict-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1191.8731689453125,
+          "Bytes": 2680,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08271220551372029,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order50.strict-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1933.612060546875,
+          "Bytes": 4456,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.034648503959874115,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Report50.strict-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 4861.7401123046875,
+          "Bytes": 8008,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.01744277648225624,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order42.build-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1195.1171875,
+          "Bytes": 2840,
+          "Warmup": 4,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08661929032521654,
+      "Ranges": {}
+    },
+    {
+      "Id": "fixmsg/Order50.build-string",
+      "Readings": [
+        {
+          "Reading": "generated",
+          "Nanoseconds": 1934.3276977539062,
+          "Bytes": 4648,
+          "Warmup": 2,
+          "Rounds": []
+        }
+      ],
+      "HandSpread": 0.08587018342942744,
+      "Ranges": {}
+    }
+  ],
+  "FirstCalls": [],
+  "Streamed": [],
+  "Generation": [],
+  "MissingGeneration": []
+}

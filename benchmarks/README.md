@@ -1,4 +1,4 @@
-# Benchmarks
+﻿# Benchmarks
 
 Reusable handwritten parsers live in
 [DotGram.Handwritten](../examples/DotGram.Handwritten/README.md).
@@ -155,6 +155,10 @@ positional `(string, at)` and window `(string, at, length)` forms, over a text w
 `tsql/insert-values.at`, `sql/select20.scan`, `sql/conditions100.scan`, `tsql/select20.scan` and `el/ladder.scan` (the
 token scanner, looped over a text: how many tokens), `fixmsg/Order.parse-stream`, `.parse-reader` and `.parse-span`,
 `fixmsg/Order.read-stream100` and `.read-reader100` (`ReadMessages`, lazy, over a hundred concatenated wires),
+`fixmsg/Order42.{parse,strict}-string`, `Order50.{parse,strict}-string` and `Report50.{parse,strict}-string` (the string
+door of FIX 4.2 and FIX 5.0 SP2 alone, and the door and then `Validate` against the version's default schema; the report is
+a TradeCaptureReport whose sides carry parties and whose parties carry sub-parties, three levels of the walk where an order is
+one),
 `fix/Order.span` and `feeds/streaming.1000` (`StreamingFeedReader.Read(TextReader)`, walked). A span cannot be handed to
 `MethodInfo.Invoke`, so the two span forms are called through a dynamic method that makes the span from a string first.
 The base of these rows is a `control`, this process's own build of the same form, and no reference (two are a `hand` parser and one is `scriptdom`, by what each constant is).
@@ -230,7 +234,7 @@ Beside the parsers, a regular expression, where one can be written honestly:
 
 | family | regex reading | what the pattern does less |
 | --- | --- | --- |
-| `fixmsg/Order.{parse,build}` | N/A | the schema-checked message layer, generated alone (there is no hand layer; the paired stand holds this tree's own layer as the control) |
+| `fixmsg/*`: `Order.{parse,build}`, `Order44.{parse,strict}`, and `Order42`, `Order50` and `Report50` in their `-string` forms | N/A | the schema-checked message layer, generated alone (there is no hand layer; the paired stand holds this tree's own layer as the control). Each version reads its own wire -- the versions do not place the same fields in an order -- so these rows say what a message of that version costs and never that one version is faster than another (benchmarks/results/stand-fixmsg-versions-2026-09-25.md) |
 | `fix/*.text` (plain rows and `slope-N`) | `regex-lesser`, `regex-compiled-lesser`: `(\d+)=([^\x01]*)\x01` | only the split into tag and value: no typed value, no length/data pair, no recovery. Held to the hand parser by field count, tag and where each value sits; a row with a binary pair or a malformed field has none |
 | `web/url.*` | `regex`, `regex-compiled`: the pattern of `UrlBenchmarks` | three schemes, no relative references; held to RFC 3986's parser part by part |
 | `web/date-time.*` | the ABNF of RFC 3339 §5.6 | no calendar and no leap-second rule (§5.7): it says yes to the thirtieth of February |
