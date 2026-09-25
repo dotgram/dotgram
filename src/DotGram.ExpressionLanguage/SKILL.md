@@ -81,6 +81,10 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   (`System.Math.Max(x, 1)`) or brought in by a `using` at the top of the text, before the
   lambda. A text's `using`s are its own; the next text starts with none.
 - A `using` names a namespace: no alias, no `using static`.
+- **A name the global namespace declares wins over one a `using` brings in**, as in C#: a
+  text declares no namespace of its own, so the global one encloses it, and the `using`s
+  are read only where the name means nothing there. Two `using`s that both supply it, with
+  nothing global, is ambiguous and refused — again as in C#.
 - Only **loaded** assemblies are searched. A type in an assembly the process has not loaded
   yet is not there to be named; touch the assembly (`typeof(SomeType)`) before parsing.
 - Keyword types (`int`, `string`, …) name their static members as C# does:

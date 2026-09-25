@@ -3398,13 +3398,28 @@ public static partial class ExpressionParser
 		/// </summary>
 		int Meanings(string name, out Type? first, out Type? second)
 		{
+			// C#'s order, and not a count over equals. A name is looked for in the enclosing
+			// namespace first — for a text that declares none of its own, the global one — and
+			// the `using`s are consulted only where it means nothing there. So a name written
+			// whole, or a bare name the global namespace declares, IS the meaning, and no
+			// `using` can make it ambiguous. `Qualified` reads a dotted name as C# reads one:
+			// the longest prefix that is a type, then what is nested in it, so the first
+			// segment is resolved in the enclosing namespace by construction.
+			if (Qualified(null, name, Caller) is { } written)
+			{
+				first  = written;
+				second = null;
+
+				return 1;
+			}
+
 			Type? one   = null;
 			Type? two   = null;
 			var   count = 0;
 
-			for (var at = -1; at < _imports.Count; at++)
+			for (var at = 0; at < _imports.Count; at++)
 			{
-				var found = Qualified(at < 0 ? null : _imports[at], name, Caller);
+				var found = Qualified(_imports[at], name, Caller);
 
 				if (found is null || found == one || found == two)
 					continue;

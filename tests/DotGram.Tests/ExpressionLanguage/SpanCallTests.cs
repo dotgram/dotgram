@@ -36,15 +36,15 @@ public sealed class SpanCallTests
 	[InlineData("(int tag, ReadOnlySpan<char> value) => value.Length", 4)]
 	[InlineData("(int tag, ReadOnlySpan<char> value) => value.ToString()", "1.25")]
 	// A static method taking a span, of characters and of bytes — the report itself.
-	[InlineData("(int tag, ReadOnlySpan<char> value) => Spans.Length(value)", 4)]
-	[InlineData("(int tag, ReadOnlySpan<char> value) => Spans.Bytes(System.Text.Encoding.UTF8.GetBytes(value.ToString()))", 4)]
+	[InlineData("(int tag, ReadOnlySpan<char> value) => SpanCalls.Length(value)", 4)]
+	[InlineData("(int tag, ReadOnlySpan<char> value) => SpanCalls.Bytes(System.Text.Encoding.UTF8.GetBytes(value.ToString()))", 4)]
 	// An extension method whose receiver is the span, written as a call on it and as the static
 	// call it is. Extensions are found through the text's own `using`s, which is why every text
 	// here carries one.
 	[InlineData("(int tag, ReadOnlySpan<char> value) => value.Doubled()", 8)]
-	[InlineData("(int tag, ReadOnlySpan<char> value) => Spans.Doubled(value)", 8)]
+	[InlineData("(int tag, ReadOnlySpan<char> value) => SpanCalls.Doubled(value)", 8)]
 	// The shape the report came from: a tag switched over, and the span read in one arm.
-	[InlineData("(int tag, ReadOnlySpan<char> value) => tag switch { 25010 => Spans.Number(value), _ => 0.0 }", 1.25)]
+	[InlineData("(int tag, ReadOnlySpan<char> value) => tag switch { 25010 => SpanCalls.Number(value), _ => 0.0 }", 1.25)]
 	public void A_span_reaches_the_method_that_takes_it(string text, object expected)
 	{
 		var made = ExpressionParser.Compile<Reading>(Using + text, typeof(SpanCallTests).Assembly);
@@ -55,7 +55,7 @@ public sealed class SpanCallTests
 	[Fact]
 	public void A_parameter_taken_by_reference_is_still_no_candidate()
 	{
-		var text = Using + "(int tag, ReadOnlySpan<char> value) => Spans.Counted(tag)";
+		var text = Using + "(int tag, ReadOnlySpan<char> value) => SpanCalls.Counted(tag)";
 
 		Assert.Throws<InvalidOperationException>(
 			() => ExpressionParser.Compile<Reading>(text, typeof(SpanCallTests).Assembly));
@@ -66,11 +66,19 @@ public sealed class SpanCallTests
 /// What the texts above call: each method here exists for one row, and says which.
 /// </summary>
 /// <remarks>
+/// <b>The name matters.</b> It was `Spans` until 2026-09-25, and `GeneratorDriverTests` compiles
+/// a class of that name into the global namespace and loads it — after which a text naming
+/// `Spans` means that one, since a name the global namespace declares beats one a `using` brings
+/// in, here as in C#. The four rows that name this class then failed, and only when the driver's
+/// test had run first, which is why it looked like a property of the worktree. A helper a text
+/// names by a bare name wants a name nothing else in the assembly declares.
+/// </remarks>
+/// <remarks>
 /// An extension method has to be declared in a static class that is not nested, which is why this
 /// sits beside <see cref="SpanCallTests"/> rather than within it. What each method does with its
 /// span does not matter — that it takes one is the whole of the question.
 /// </remarks>
-static class Spans
+static class SpanCalls
 {
 	/// <summary>A static method taking a span of characters.</summary>
 	public static int Length(ReadOnlySpan<char> raw)
