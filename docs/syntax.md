@@ -1531,10 +1531,12 @@ is allowed to sit between the matches.**
 | `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)`<br>`bool TryParseR(input, out R value)` — whether it is one, and nothing about why not |
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
 
-The form that describes a refusal pays for the description. A parse reads without recording what
-it would say if refused, and reads a refused input a second time to say it (§7.7), so a refusal
-through `Match<R>` is two readings where the `out` form is one. An accepted input is one reading
-either way.
+The form that describes a refusal may pay for the description, and whether it does is a property
+of the grammar rather than of the form. Where the parse can read without recording — no
+`context`, or one the parser can put back, and no `recover` — it reads quietly first and reads a
+refused input a second time to say where and what was expected, so a refusal through `Match<R>`
+is two readings and the `out` form is one. Where it cannot, every input is read once, recording,
+and the two forms cost the same (§7.7). An accepted input is one reading in every case.
 
 `find` is a sequence and needs no companion for "all of them" or "the first one":
 `First()`, `Where()`, `Take()` are LINQ's job and it would be strange to reinvent

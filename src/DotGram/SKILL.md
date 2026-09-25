@@ -100,10 +100,12 @@ var refused = CssColor.TryParseColor("#xyz").IsSuccess;  // false
 
 A `Match<T>` carries `IsSuccess`, `Value`, `Error` and `Position`.
 
-Saying where a refusal happened and what was expected there costs a second reading: the parser
-reads once without recording, and reads a refused input again to describe it. The `out` form
-never makes that second pass. So on input whose shape you do not control, ask `TryParseR(input,
-out value)` when you only need to know, and ask for the match when you want the message.
+Saying where a refusal happened and what was expected there can cost a second reading. Where the
+grammar lets the parser read without recording — no `context`, or one it can put back, and no
+`recover` — the first reading is quiet and a refused input is read again to describe it; the
+`out` form makes no second pass. Where it does not, every reading records and the two forms cost
+the same. So on input whose shape you do not control, ask `TryParseR(input, out value)` when you
+only need to know: it is never dearer, and on many grammars it is half.
 
 ## What a rule can say
 
