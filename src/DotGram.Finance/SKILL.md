@@ -94,8 +94,8 @@ foreach (var field in FixParser.ParseFields(wire))
   `FixField.Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`, `Date`,
   `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
   `decimal` or `long`, dates and times as `DateOnly`, `TimeOnly` and `DateTimeOffset` (a
-  MonthYear stays a `string`). `Tag` is a `FixTag`, which names the 912 standard tags:
-  `FixField.Decimal { Tag: FixTag.OrderQty }`. A tag it does not name is its number, `(FixTag)25005`.
+  MonthYear stays a `string`). `Tag` is the tag's number, and `FixTag` holds the 912 standard ones as constants
+  named for them: `FixField.Decimal { Tag: FixTag.OrderQty }`. A tag it does not name is just its number, `25005`.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
@@ -167,7 +167,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 
 var context = new Fix44Context
 {
-    LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // length tag to data tag, added to the standard's sixteen
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // length tag to data tag, added to the standard's sixteen
 };
 
 var fields  = FixParser.ParseFields(wire, context);

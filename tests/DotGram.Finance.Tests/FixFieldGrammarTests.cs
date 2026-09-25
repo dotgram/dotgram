@@ -77,7 +77,7 @@ public sealed class FixFieldGrammarTests
 
 	static FixField Field(FixMessage message, int tag)
 	{
-		return message.Fields.First(field => (int)field.Tag == tag);
+		return message.Fields.First(field => field.Tag == tag);
 	}
 
 	static byte[] Bytes(string text)

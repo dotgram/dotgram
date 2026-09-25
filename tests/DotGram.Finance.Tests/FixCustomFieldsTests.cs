@@ -32,7 +32,7 @@ public sealed class FixCustomFieldsTests
 	{
 		return new Fix44Context
 		{
-			LengthDataPairs = pairs ? new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 } : new Dictionary<FixTag, FixTag>(),
+			LengthDataPairs = pairs ? new Dictionary<int, int> { [25000] = 25001 } : new Dictionary<int, int>(),
 			Framing         = FixFraming.Log,
 		}.Load(Venue);
 	}
@@ -49,7 +49,7 @@ public sealed class FixCustomFieldsTests
 				: FixParser.ParseFields(text, Context());
 
 			Assert.Equal("OPEN", Assert.IsType<FixField.Text>(fields[0]).Value);
-			Assert.Equal((FixTag)25005, fields[0].Tag);
+			Assert.Equal(25005, fields[0].Tag);
 			Assert.Equal(12.50m, Assert.IsType<FixField.Decimal>(fields[1]).Value);
 			Assert.True(Assert.IsType<FixField.Boolean>(fields[2]).Value);
 			Assert.IsType<FixField.Text>(fields[3]);
@@ -88,7 +88,7 @@ public sealed class FixCustomFieldsTests
 		{
 			var invalid = Assert.IsType<FixField.Invalid>(Assert.Single(FixParser.ParseFields("28905=20261231|", context)));
 
-			Assert.Equal((FixTag)28905, invalid.Tag);
+			Assert.Equal(28905, invalid.Tag);
 			Assert.False(invalid.IsValid);
 			Assert.Equal("20261231", Encoding.Latin1.GetString(invalid.RawBytes.Span));
 		}
@@ -107,7 +107,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_pair_declared_after_a_load_keeps_the_types_the_load_gave()
 	{
-		var context = Context() with { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 } };
+		var context = Context() with { LengthDataPairs = new Dictionary<int, int> { [25000] = 25001 } };
 		var fields  = FixParser.ParseFields("25006=1.5|25000=1|25001=||", context);
 
 		Assert.Equal(1.5m, Assert.IsType<FixField.Decimal>(fields[0]).Value);
@@ -122,8 +122,8 @@ public sealed class FixCustomFieldsTests
 		var read = FixParser.TryParseMessage(wire, out var message, out var error, Context(pairs: true) with { Framing = FixFraming.Wire });
 
 		Assert.True(read, error?.Reason);
-		Assert.Contains(message!.Fields, field => field is FixField.Integer { Tag: (FixTag)25000 });
-		Assert.Contains(message.Fields, field => field is FixField.Data { Tag: (FixTag)25001 });
+		Assert.Contains(message!.Fields, field => field is FixField.Integer { Tag: 25000 });
+		Assert.Contains(message.Fields, field => field is FixField.Data { Tag: 25001 });
 	}
 
 	// ── messages ─────────────────────────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ public sealed class FixCustomFieldsTests
 
 		protected override bool Place(FixField field)
 		{
-			if (field is not FixField.Text { Tag: (FixTag)25005 } status)
+			if (field is not FixField.Text { Tag: 25005 } status)
 				return false;
 
 			Status = status;
@@ -146,7 +146,7 @@ public sealed class FixCustomFieldsTests
 		protected override void OnValidate(Fix44Context context)
 		{
 			if (Status is null)
-				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
+				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
 		}
 	}
 
@@ -175,7 +175,7 @@ public sealed class FixCustomFieldsTests
 
 		Assert.False(quote.Validate(context));
 		Assert.Equal(
-			[(FixRule.FieldNotInScope, FixTag.Text), (FixRule.RequiredFieldMissing, (FixTag)25005)],
+			[(FixRule.FieldNotInScope, FixTag.Text), (FixRule.RequiredFieldMissing, 25005)],
 			quote.InvalidFindings!.Select(one => (one.Rule, one.Tag)));
 	}
 

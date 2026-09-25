@@ -31,7 +31,7 @@ namespace DotGram.Finance.Fix;
 /// check, and what it does not say the slot no longer asks. A file that mentions no message,
 /// component or field leaves that slot as it was. A field the file lists values for and the
 /// package has no class for has no slot, and nothing is written for it. A tag is written as
-/// its number, <c>(FixTag)11</c>: the file's name for a field need not be the one FixTag gives it.
+/// its number, <c>11</c>: the file's name for a field need not be the one FixTag gives it.
 /// </para>
 /// </remarks>
 abstract partial class FixChecks
@@ -269,8 +269,8 @@ abstract partial class FixChecks
 	// not describe, and that is the standard's field of that name.
 	static string Tag(string name, FixDictionary dictionary)
 	{
-		if (dictionary.Tags.TryGetValue(name, out var tag) || Enum.TryParse<FixTag>(name, out var standard) && (tag = (int)standard) > 0)
-			return "(FixTag)" + tag.ToString(CultureInfo.InvariantCulture);
+		if (dictionary.Tags.TryGetValue(name, out var tag) || typeof(FixTag).GetField(name, BindingFlags.Public | BindingFlags.Static)?.GetRawConstantValue() is int standard && (tag = standard) > 0)
+			return tag.ToString(CultureInfo.InvariantCulture);
 
 		throw new FormatException($"The field '{name}' is used and not described.");
 	}

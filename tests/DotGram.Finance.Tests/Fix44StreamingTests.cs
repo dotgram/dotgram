@@ -70,7 +70,7 @@ public sealed class Fix44StreamingTests
 	}
 
 	/// <summary>Every field as the tag it carries and the extent it was read from.</summary>
-	static (FixTag Tag, int Position, int Length)[] Extents(FixMessage message)
+	static (int Tag, int Position, int Length)[] Extents(FixMessage message)
 	{
 		return message.Fields.Select(field => (field.Tag, field.Position, field.Length)).ToArray();
 	}

@@ -57,13 +57,13 @@ public sealed class FixLogTests
 	[Fact]
 	public void Custom_binary_pairs_also_accept_padded_separators()
 	{
-		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 } };
 		const string input = "5000=3 | 5001= |  | 55=END";
 
 		foreach (var fields in ReadLog(input, options))
 		{
 			Assert.Equal(3, fields.Length);
-			Assert.Equal((FixTag)5000, fields[0].Tag);
+			Assert.Equal(5000, fields[0].Tag);
 			Assert.Equal(" | ", Encoding.Latin1.GetString(Assert.IsType<FixField.Data>(fields[1]).Value.Span));
 			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[2]).Value);
 		}

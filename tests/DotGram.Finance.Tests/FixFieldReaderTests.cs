@@ -49,7 +49,7 @@ public abstract class FixFieldReaderTests
 		{
 			var fields = parser.ParseLog("55=ABC|38=bad|54=Z|55=DEF|");
 
-			Assert.Equal([55, 38, 54, 55], fields.Select(f => (int)f.Tag));
+			Assert.Equal([55, 38, 54, 55], fields.Select(f => f.Tag));
 			Assert.Equal("ABC", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
 			Assert.False(fields[1].IsValid);
 			Assert.Equal('Z', FixFixtures.Typed<FixField.Character>(FixTag.Side, fields[2]).Value);
@@ -161,7 +161,7 @@ public abstract class FixFieldReaderTests
 		{
 			var fields = parser.ParseLog("9000=3|9001=abc|");
 
-			Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => (int)f.Tag));
+			Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => f.Tag));
 			Assert.All(fields, field => Assert.IsType<FixField.Invalid>(field));
 			Assert.Contains(parser.ParseLog("9000=3|9001=a|b|"), field => field is FixField.Invalid);
 
@@ -399,7 +399,7 @@ public abstract class FixFieldReaderTests
 			var fields  = source.ToArray();
 			var invalid = fields.OfType<FixField.Invalid>().ToArray();
 
-			Assert.Equal(new[] { 55, 0, 38, 0, 55, 0 }, fields.Select(field => (int)field.Tag));
+			Assert.Equal(new[] { 55, 0, 38, 0, 55, 0 }, fields.Select(field => field.Tag));
 			Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[4]).Value);
 			Assert.Equal(new[] { 7, 16, 27 }, invalid.Select(field => field.Position));
 			Assert.Equal(new[] { "bad", "0=X", "tail" }, invalid.Select(field => bytes ? Encoding.Latin1.GetString(field.RawBytes.Span) : field.RawText));
@@ -522,7 +522,7 @@ public abstract class FixFieldReaderTests
 
 		foreach (var field in fields)
 		{
-			var prefix = ((int)field.Tag).ToString(CultureInfo.InvariantCulture) + "=";
+			var prefix = (field.Tag).ToString(CultureInfo.InvariantCulture) + "=";
 
 			Assert.Equal(position, field.Position);
 			Assert.Equal(prefix, wire.Substring(field.Position, prefix.Length));

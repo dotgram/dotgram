@@ -43,7 +43,7 @@ public sealed class FixLoadTests
 		Assert.False(bare.Validate(context));
 		Assert.Equal(
 			[141],
-			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => (int)one.Tag).OrderBy(tag => tag).ToArray());
+			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A fragment that wants the standard as well says so.
 		const string logonWantsAll =
@@ -64,7 +64,7 @@ public sealed class FixLoadTests
 		Assert.False(all.Validate(Fix44Context.Default.Load(logonWantsAll)));
 		Assert.Equal(
 			[98, 108, 141],
-			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => (int)one.Tag).OrderBy(tag => tag).ToArray());
+			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A message that has what the fragment wants is valid under it.
 		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|")).Validate(context));
@@ -101,7 +101,7 @@ public sealed class FixLoadTests
 
 		// Only the second fragment speaks for a Logon now; the first spoke for it until then.
 		Assert.False(message.Validate(context));
-		Assert.Equal([383], message.InvalidFindings!.Select(one => (int)one.Tag).ToArray());
+		Assert.Equal([383], message.InvalidFindings!.Select(one => one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -215,7 +215,7 @@ public sealed class FixLoadTests
 
 			// A tag is written as its number, which every version shares, and not as a name FixTag may
 			// spell otherwise than the file.
-			Assert.Contains("FixChecks.Missing(message, (FixTag)141)", text, StringComparison.Ordinal);
+			Assert.Contains("FixChecks.Missing(message, 141)", text, StringComparison.Ordinal);
 			Assert.DoesNotContain("FixTag.", text, StringComparison.Ordinal);
 		}
 		finally

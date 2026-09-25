@@ -22,7 +22,7 @@ enum FixValueType : byte
 
 static class FixFieldBuilder
 {
-	public static FixField Value(FixTag tag, FixValueType type, ReadOnlySpan<char> value)
+	public static FixField Value(int tag, FixValueType type, ReadOnlySpan<char> value)
 	{
 		return type switch
 		{
@@ -41,7 +41,7 @@ static class FixFieldBuilder
 		};
 	}
 
-	public static FixField Value(FixTag tag, FixValueType type, ReadOnlySpan<byte> value)
+	public static FixField Value(int tag, FixValueType type, ReadOnlySpan<byte> value)
 	{
 		return type switch
 		{

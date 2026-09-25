@@ -3,7 +3,7 @@
 #     FixMessage.Types.cs   a class a message type, its fields read in one switch
 #     FixComponents.cs      an interface a component, its repeating groups nested in it
 #     FixValidators.cs      the check of every message type, component and group entry
-#     ../FixTag.cs          the number of every field, as a member named for it
+#     ../FixTag.cs          the number of every field, as a constant named for it
 #     FixStandard.cs        the type of the value of every field
 #
 # The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as the
@@ -569,14 +569,14 @@ tag_lines = [
     "",
     "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "",
-    "/// <summary>The tag of every field of FIX 4.4, named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>",
-    "/// <remarks>A tag FIX 4.4 does not define is its number, <c>(FixTag)25005</c>, and has no name here.</remarks>",
-    "public enum FixTag",
+    "/// <summary>The number of every field of FIX 4.4, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>",
+    "/// <remarks>A tag is its number, and a tag FIX 4.4 does not define is only that: <c>25005</c>.</remarks>",
+    "public static class FixTag",
     "{",
 ]
 
 for tag, name in sorted(field_name.items()):
-    tag_lines += [f"\t/// <summary>{name}, a <see cref=\"FixField.{field_class[tag]}\"/>.</summary>", f"\t{name} = {tag},", ""]
+    tag_lines += [f"\t/// <summary>{name}, a <see cref=\"FixField.{field_class[tag]}\"/>.</summary>", f"\tpublic const int {name} = {tag};", ""]
 
 tag_lines[-1:] = ["}", ""]
 
@@ -590,7 +590,7 @@ standard_lines = [
     "static class FixStandard",
     "{",
     "\t/// <summary>The type of the value of a field FIX 4.4 defines; <see cref=\"FixValueType.None\"/> for a tag it does not.</summary>",
-    "\tinternal static FixValueType Type(FixTag tag)",
+    "\tinternal static FixValueType Type(int tag)",
     "\t{",
     "\t\treturn tag switch",
     "\t\t{",

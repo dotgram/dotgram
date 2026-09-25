@@ -62,7 +62,7 @@ public sealed class FixFixtureGrammarTests
 				continue;
 			}
 
-			if (FixStandard.Type(Enum.Parse<FixTag>(name)).ToString() is var built && built != field.Name)
+			if (FixStandard.Type((int)typeof(FixTag).GetField(name)!.GetRawConstantValue()!).ToString() is var built && built != field.Name)
 				wrong.Add($"{name}: the fixture builds a {field.Name}, and the package a {built}.");
 
 			var takes = field.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)

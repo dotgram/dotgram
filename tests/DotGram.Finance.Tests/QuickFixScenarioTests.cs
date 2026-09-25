@@ -113,7 +113,7 @@ public sealed class QuickFixScenarioTests
 		message!.Validate(Schema.Value);
 
 		Assert.True(
-			(message.InvalidFindings ?? []).Any(one => (int)one.Tag == tag && Rule(reason).Contains(one.Rule)),
+			(message.InvalidFindings ?? []).Any(one => one.Tag == tag && Rule(reason).Contains(one.Rule)),
 			$"{scenario} #{exchange}: expected {string.Join(" or ", Rule(reason))} on tag {tag} (SessionRejectReason {reason}); found {Describe(message)}");
 	}
 

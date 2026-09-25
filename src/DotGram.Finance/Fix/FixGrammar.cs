@@ -84,7 +84,7 @@ sealed partial class FixGrammar
 			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());
 
-			return FixFieldBuilder.Value((FixTag)tag, context.Type(tag), value);
+			return FixFieldBuilder.Value(tag, context.Type(tag), value);
 		}
 
 		public FixField Field(int tag, ReadOnlySpan<byte> wire)
@@ -94,7 +94,7 @@ sealed partial class FixGrammar
 			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());
 
-			return FixFieldBuilder.Value((FixTag)tag, context.Type(tag), value);
+			return FixFieldBuilder.Value(tag, context.Type(tag), value);
 		}
 
 		void Expect(int tag, int size)

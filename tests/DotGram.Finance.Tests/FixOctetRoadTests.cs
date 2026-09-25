@@ -60,7 +60,7 @@ public sealed class FixOctetRoadTests
 	}
 
 	/// <summary>Every field as the tag it carries and the extent it was read from.</summary>
-	static (FixTag Tag, int Position, int Length)[] Extents(FixMessage message)
+	static (int Tag, int Position, int Length)[] Extents(FixMessage message)
 	{
 		return message.Fields.Select(field => (field.Tag, field.Position, field.Length)).ToArray();
 	}
@@ -76,7 +76,7 @@ public sealed class FixOctetRoadTests
 	/// </summary>
 	static FixField Find(FixMessage message, int tag)
 	{
-		return message.Fields.First(field => (int)field.Tag == tag);
+		return message.Fields.First(field => field.Tag == tag);
 	}
 
 	const string Head  = "35=D|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|";
@@ -140,7 +140,7 @@ public sealed class FixOctetRoadTests
 			.ToArray();
 		var fields = FixParser.ParseFields(input);
 
-		Assert.Equal([lengthTag, dataTag], fields.Select(one => (int)one.Tag));
+		Assert.Equal([lengthTag, dataTag], fields.Select(one => one.Tag));
 
 		var field = fields[1];
 

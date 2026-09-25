@@ -56,7 +56,7 @@ partial class FixValidators : FixChecks
 		// asked here.
 		var body = false;
 
-		var length = (FixTag)0;
+		var length = 0;
 
 		// An Encoded field is text in the encoding MessageEncoding names, and without it nobody can
 		// say what the octets are: said once, at the first such field.
@@ -65,10 +65,10 @@ partial class FixValidators : FixChecks
 		foreach (var field in message.Fields)
 		{
 			// A length field is followed by the data it measures, and by nothing else.
-			if (length != 0 && (int)field.Tag != context.DataTag((int)length))
+			if (length != 0 && field.Tag != context.DataTag(length))
 				message.AddFinding(new FixFinding(FixRule.LengthFieldNotBeforeData, length, field.Position, field, -1));
 
-			length = context.Kind((int)field.Tag) > 0 ? field.Tag : 0;
+			length = context.Kind(field.Tag) > 0 ? field.Tag : 0;
 
 			if (!encoding && IsEncoded(field.Tag))
 			{
@@ -97,7 +97,7 @@ partial class FixValidators : FixChecks
 			message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 	}
 
-	static bool IsHeader(FixTag tag)
+	static bool IsHeader(int tag)
 	{
 		return tag is FixTag.BeginString or FixTag.BodyLength or FixTag.MsgType or FixTag.SenderCompID or FixTag.TargetCompID
 			or FixTag.OnBehalfOfCompID or FixTag.DeliverToCompID or FixTag.SecureDataLen or FixTag.SecureData or FixTag.MsgSeqNum
@@ -108,7 +108,7 @@ partial class FixValidators : FixChecks
 			or FixTag.HopRefID;
 	}
 
-	static bool IsEncoded(FixTag tag)
+	static bool IsEncoded(int tag)
 	{
 		return tag is FixTag.EncodedIssuer or FixTag.EncodedSecurityDesc or FixTag.EncodedListExecInst or FixTag.EncodedText
 			or FixTag.EncodedSubject or FixTag.EncodedHeadline or FixTag.EncodedAllocText or FixTag.EncodedUnderlyingIssuer
@@ -116,7 +116,7 @@ partial class FixValidators : FixChecks
 			or FixTag.EncodedLegSecurityDesc;
 	}
 
-	static bool IsTrailer(FixTag tag)
+	static bool IsTrailer(int tag)
 	{
 		return tag is FixTag.SignatureLength or FixTag.Signature or FixTag.CheckSum;
 	}

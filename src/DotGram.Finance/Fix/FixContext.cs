@@ -74,7 +74,7 @@ public abstract record FixContext
 		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
 	} = FixGrammar.DefaultMaxRetained;
 
-	readonly Dictionary<FixTag,FixTag> _pairs;
+	readonly Dictionary<int, int> _pairs;
 
 	// What the reader knows of every tag; set by LengthDataPairs and by a load.
 	Codes Coded { get; init; }
@@ -85,12 +85,12 @@ public abstract record FixContext
 	/// a pair that neither the version nor a loaded dictionary gives a type is read as its half of the
 	/// pair is: a length as a <see cref="FixField.Integer"/>, the data as a <see cref="FixField.Data"/>.
 	/// </remarks>
-	public IReadOnlyDictionary<FixTag,FixTag> LengthDataPairs
+	public IReadOnlyDictionary<int, int> LengthDataPairs
 	{
 		get => _pairs;
 		init
 		{
-			var pairs = new Dictionary<FixTag,FixTag>(_version.Pairs);
+			var pairs = new Dictionary<int, int>(_version.Pairs);
 
 			foreach (var pair in value)
 				pairs[pair.Key] = pair.Value;
@@ -127,7 +127,7 @@ public abstract record FixContext
 		var types = new List<(int Tag, FixValueType Type)>();
 
 		foreach (var field in dictionary.Fields)
-			if (_version.Type((FixTag)field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
+			if (_version.Type(field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
 				types.Add((field.Key, type));
 
 		return this with
@@ -174,7 +174,7 @@ public abstract record FixContext
 	/// <summary>The data tag a length tag is paired with, or zero where it is not a length tag.</summary>
 	internal int DataTag(int lengthTag)
 	{
-		return (int)_pairs.GetValueOrDefault((FixTag)lengthTag);
+		return _pairs.GetValueOrDefault(lengthTag);
 	}
 
 	/// <summary>Whether a tag carries binary data — the version's, or one this consumer declared.</summary>
@@ -206,12 +206,12 @@ public abstract record FixContext
 			_wide  = wide;
 		}
 
-		public static Codes Of(Dictionary<FixTag,FixTag> pairs, Func<FixTag, FixValueType> types, FixTag last)
+		public static Codes Of(Dictionary<int, int> pairs, Func<int, FixValueType> types, int last)
 		{
-			var table = new byte[(int)last + 1];
+			var table = new byte[last + 1];
 
 			for (var tag = 1; tag < table.Length; tag++)
-				table[tag] = (byte)types((FixTag)tag);
+				table[tag] = (byte)types(tag);
 
 			return new Codes(table, []).Paired(pairs);
 		}
@@ -247,9 +247,9 @@ public abstract record FixContext
 		}
 
 		/// <summary>These codes with every pair's halves those of <paramref name="pairs"/>, and the types as they were.</summary>
-		public Codes Paired(Dictionary<FixTag,FixTag> pairs)
+		public Codes Paired(Dictionary<int, int> pairs)
 		{
-			var codes = With(pairs.SelectMany(static pair => new[] { (int)pair.Key, (int)pair.Value }));
+			var codes = With(pairs.SelectMany(static pair => new[] { pair.Key, pair.Value }));
 
 			for (var tag = 0; tag < codes._table.Length; tag++)
 				codes._table[tag] &= TypeMask;
@@ -259,8 +259,8 @@ public abstract record FixContext
 
 			foreach (var pair in pairs)
 			{
-				codes.Set((int)pair.Key,   (byte)(codes.Code((int)pair.Key)   | Length));
-				codes.Set((int)pair.Value, (byte)(codes.Code((int)pair.Value) | Data));
+				codes.Set(pair.Key,   (byte)(codes.Code(pair.Key)   | Length));
+				codes.Set(pair.Value, (byte)(codes.Code(pair.Value) | Data));
 			}
 
 			return codes;

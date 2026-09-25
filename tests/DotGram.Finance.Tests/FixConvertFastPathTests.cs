@@ -220,7 +220,7 @@ public sealed class FixConvertFastPathTests
 		var options = new Fix44Context();
 
 		for (var tag = -2; tag < 2000; tag++)
-			Assert.Equal(tag > 0 && FixStandard.Type((FixTag)tag) == FixValueType.Data, options.IsData(tag));
+			Assert.Equal(tag > 0 && FixStandard.Type(tag) == FixValueType.Data, options.IsData(tag));
 
 		Assert.False(options.IsData(int.MaxValue));
 		Assert.False(options.IsData(int.MinValue));
@@ -230,9 +230,9 @@ public sealed class FixConvertFastPathTests
 	[Fact]
 	public void Custom_data_tags_come_from_the_options()
 	{
-		var options = new Fix44Context { LengthDataPairs = new System.Collections.Generic.Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
+		var options = new Fix44Context { LengthDataPairs = new System.Collections.Generic.Dictionary<int, int> { [5000] = 5001 } };
 
-		Assert.IsType<FixField.Data>(FixFieldBuilder.Value((FixTag)5001, options.Type(5001), "0".AsSpan()));
+		Assert.IsType<FixField.Data>(FixFieldBuilder.Value(5001, options.Type(5001), "0".AsSpan()));
 		Assert.True(options.IsData(5001));
 		Assert.False(options.IsData(5000));
 		Assert.True(options.IsData(96));

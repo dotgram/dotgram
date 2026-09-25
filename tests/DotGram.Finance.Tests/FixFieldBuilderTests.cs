@@ -35,14 +35,15 @@ public sealed class FixFieldBuilderTests
 	{
 		var wrong = new List<string>();
 		var named = Named();
+		var ours  = typeof(FixTag).GetFields().ToDictionary(one => (int)one.GetRawConstantValue()!, one => one.Name);
 
 		foreach (var (tag, (name, _)) in named)
-			if (Enum.GetName((FixTag)tag) != name)
-				wrong.Add($"tag {tag}: FixTag names it {Enum.GetName((FixTag)tag) ?? "nothing"}, and the dictionary {name}.");
+			if (ours.GetValueOrDefault(tag) != name)
+				wrong.Add($"tag {tag}: FixTag names it {ours.GetValueOrDefault(tag) ?? "nothing"}, and the dictionary {name}.");
 
-		foreach (var tag in Enum.GetValues<FixTag>())
-			if (!named.ContainsKey((int)tag))
-				wrong.Add($"FixTag.{tag} is {(int)tag}, which the repository does not define.");
+		foreach (var (tag, name) in ours)
+			if (!named.ContainsKey(tag))
+				wrong.Add($"FixTag.{name} is {tag}, which the repository does not define.");
 
 		Assert.True(wrong.Count == 0, string.Join(Environment.NewLine, wrong));
 	}
@@ -62,8 +63,8 @@ public sealed class FixFieldBuilderTests
 				if (built.GetType().Name != expected)
 					wrong.Add($"tag {tag} through {door}: built {built.GetType().Name}, and its type is {expected}.");
 
-				if ((int)built.Tag != tag)
-					wrong.Add($"tag {tag} through {door}: the field it built carries tag {(int)built.Tag}.");
+				if (built.Tag != tag)
+					wrong.Add($"tag {tag} through {door}: the field it built carries tag {built.Tag}.");
 			}
 		}
 
@@ -86,8 +87,8 @@ public sealed class FixFieldBuilderTests
 	{
 		var type = Fix44Context.Default.Type(tag);
 
-		yield return ("characters", FixFieldBuilder.Value((FixTag)tag, type, "1".AsSpan()));
-		yield return ("octets",     FixFieldBuilder.Value((FixTag)tag, type, Encoding.Latin1.GetBytes("1").AsSpan()));
+		yield return ("characters", FixFieldBuilder.Value(tag, type, "1".AsSpan()));
+		yield return ("octets",     FixFieldBuilder.Value(tag, type, Encoding.Latin1.GetBytes("1").AsSpan()));
 	}
 
 	// The class a type of the repository is read into. MiscFeeType and MassCancelRejectReason are

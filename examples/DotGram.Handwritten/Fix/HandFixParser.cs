@@ -263,9 +263,9 @@ public static class HandFixParser
 	{
 		var value = input.Slice(valueStart, end - valueStart);
 		if (typeof(T) == typeof(char))
-			return FixFieldBuilder.Value((FixTag)tag, type, MemoryMarshal.Cast<T, char>(value));
+			return FixFieldBuilder.Value(tag, type, MemoryMarshal.Cast<T, char>(value));
 
-		return FixFieldBuilder.Value((FixTag)tag, type, MemoryMarshal.Cast<T, byte>(value));
+		return FixFieldBuilder.Value(tag, type, MemoryMarshal.Cast<T, byte>(value));
 	}
 
 	static FixField Invalid<T>(Input<T> input, int start, int end, string error)

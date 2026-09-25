@@ -67,7 +67,7 @@ public enum FixRule
 /// <param name="EntryIndex">Which entry of the repeating group it is in, counting from zero, or -1 outside one.</param>
 public readonly record struct FixFinding(
 	FixRule   Rule,
-	FixTag    Tag,
+	int       Tag,
 	int       Position,
 	FixField? Field,
 	int       EntryIndex)
@@ -79,6 +79,6 @@ public readonly record struct FixFinding(
 
 		return Tag == 0
 			? $"{where}at {Position}: {Rule}"
-			: $"{where}tag {(int)Tag} at {Position}: {Rule}";
+			: $"{where}tag {Tag} at {Position}: {Rule}";
 	}
 }

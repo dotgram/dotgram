@@ -27,14 +27,14 @@ public sealed class FixTests
 	[InlineData(4097)]
 	public void Configured_binary_pairs_preserve_raw_bytes_and_global_locations(int size)
 	{
-		var pairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 };
+		var pairs = new Dictionary<int, int> { [5000] = 5001 };
 		var options = new Fix44Context { LengthDataPairs = pairs };
 		pairs.Clear(); // Configuration owns a snapshot.
 		var payload = new string(Enumerable.Range(0, size).Select(i => "|=\0ÿ"[i % 4]).ToArray());
 		var input = "55=ABC|5000=" + size + "|5001=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 		var fields = FixParser.ReadFields(stream, (options ?? new Fix44Context()) with { Framing = FixFraming.Log, BufferSize = 3 }).ToArray();
-		Assert.Equal(new[] { 55, 5000, 5001, 55 }, fields.Select(field => (int)field.Tag));
+		Assert.Equal(new[] { 55, 5000, 5001, 55 }, fields.Select(field => field.Tag));
 		var binary = Assert.IsType<FixField.Data>(fields[2]);
 		Assert.Equal(Encoding.Latin1.GetBytes(payload), binary.Value.ToArray());
 		Assert.Equal(input.IndexOf("5001=", StringComparison.Ordinal), binary.Position);
@@ -89,13 +89,13 @@ public sealed class FixTests
 	public void Largest_tags_keep_text_and_binary_meanings_on_all_inputs()
 	{
 		var text = "2147483647=X";
-		Assert.Equal((FixTag)int.MaxValue, Assert.Single(FixParser.ParseFields(text)).Tag);
-		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)(int.MaxValue - 1)] = (FixTag)int.MaxValue } };
+		Assert.Equal(int.MaxValue, Assert.Single(FixParser.ParseFields(text)).Tag);
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<int, int> { [(int.MaxValue - 1)] = int.MaxValue } };
 		var wire = "2147483646=3|2147483647=a|b|55=END";
 		var expected = FixParser.ParseFields(wire, (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
-		Assert.Equal((FixTag)(int.MaxValue - 1), Assert.IsType<FixField.Integer>(expected[0]).Tag);
+		Assert.Equal((int.MaxValue - 1), Assert.IsType<FixField.Integer>(expected[0]).Tag);
 		var binary = Assert.IsType<FixField.Data>(expected[1]);
-		Assert.Equal((FixTag)int.MaxValue, binary.Tag);
+		Assert.Equal(int.MaxValue, binary.Tag);
 		Assert.Equal("a|b", Encoding.Latin1.GetString(binary.Value.Span));
 		Assert.Equal(wire.IndexOf("2147483647=", StringComparison.Ordinal), binary.Position);
 		Assert.Equal(wire.IndexOf("a|b", StringComparison.Ordinal), binary.ValuePosition);

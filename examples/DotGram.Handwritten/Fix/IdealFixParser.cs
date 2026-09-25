@@ -72,7 +72,7 @@ public static class IdealFixParser
 
 			p = found < 0 ? end : end + 1;
 
-			var field = FixFieldBuilder.Value((FixTag)tag, known.Type(tag), text.Slice(value, end - value));
+			var field = FixFieldBuilder.Value(tag, known.Type(tag), text.Slice(value, end - value));
 
 			field.WithTerminator(p - end).Locate(start, p - start);
 

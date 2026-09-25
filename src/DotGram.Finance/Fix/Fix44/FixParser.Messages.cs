@@ -610,7 +610,7 @@ public static partial class FixParser
 			}
 
 			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
-				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), (int)field.Tag) ||
+				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
 				source[field.ValuePosition + field.Length] != separator)
 			{
 				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
@@ -658,7 +658,7 @@ public static partial class FixParser
 		return true;
 	}
 
-	static bool Fail(int position, FixTag? tag, string? type, string reason, out FixParseError? error)
+	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{
 		error = new FixParseError(position, tag, type, reason);
 		return false;

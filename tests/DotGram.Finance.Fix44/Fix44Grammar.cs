@@ -57,7 +57,7 @@ sealed class Fix44Reading
 
 	static bool[] KnownTags()
 	{
-		var tags  = Enum.GetValues<FixTag>().Select(one => (int)one).ToArray();
+		var tags  = typeof(FixTag).GetFields().Select(one => (int)one.GetRawConstantValue()!).ToArray();
 		var known = new bool[tags.Max() + 1];
 
 		foreach (var tag in tags)

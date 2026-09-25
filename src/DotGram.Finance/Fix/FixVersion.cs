@@ -12,7 +12,7 @@ sealed class FixVersion
 	/// <param name="pairs">The version's length/data pairs, length tag to data tag.</param>
 	/// <param name="types">The type of the value of a tag the version defines; <see cref="FixValueType.None"/> for one it does not.</param>
 	/// <param name="last">The highest tag the version defines, the length of the table the reader indexes.</param>
-	public FixVersion(Dictionary<FixTag, FixTag> pairs, Func<FixTag, FixValueType> types, FixTag last)
+	public FixVersion(Dictionary<int, int> pairs, Func<int, FixValueType> types, int last)
 	{
 		Pairs = pairs;
 		Type  = types;
@@ -20,10 +20,10 @@ sealed class FixVersion
 	}
 
 	/// <summary>The version's length/data pairs, length tag to data tag.</summary>
-	public Dictionary<FixTag, FixTag> Pairs { get; }
+	public Dictionary<int, int> Pairs { get; }
 
 	/// <summary>The type of the value of a tag the version defines; <see cref="FixValueType.None"/> for one it does not.</summary>
-	public Func<FixTag, FixValueType> Type { get; }
+	public Func<int, FixValueType> Type { get; }
 
 	/// <summary>The table a context of this version starts from.</summary>
 	public FixContext.Codes Codes { get; }

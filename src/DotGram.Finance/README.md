@@ -130,7 +130,7 @@ using System.Collections.Generic;
 var fields  = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.WithLogFraming);
 var context = new Fix44Context
 {
-    LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // added to the standard's own sixteen pairs
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's own sixteen pairs
 };
 var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Framing = FixFraming.Log });
 ```
@@ -330,8 +330,8 @@ leap-second dates are outside it; ISO identifiers are checked for their lexical 
 ## Fields and typed values
 
 A field is a class of the type of its value, and its `Tag` says which field it is: an `OrderQty` is
-a `FixField.Decimal` whose `Tag` is `FixTag.OrderQty`. `FixTag` names every tag FIX 4.4 defines; a
-tag it does not is its number, `(FixTag)25005`. A message's properties are typed the same way:
+a `FixField.Decimal` whose `Tag` is `FixTag.OrderQty`. `Tag` is the tag's number, and `FixTag` holds
+every tag FIX 4.4 defines as a constant named for it; a tag it does not is just its number, `25005`. A message's properties are typed the same way:
 
 ```csharp
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
@@ -423,7 +423,7 @@ using System.Collections.Generic;
 var context = new Fix44Context
 {
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
-    LengthDataPairs   = new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 },
+    LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
 }.Load("""
     <fix>
       <fields>
@@ -440,7 +440,7 @@ sealed class VenueQuote : FixCustomMessage
     // Every field of the body in turn, the header's and the trailer's taken already; false is out of scope.
     protected override bool Place(FixField field)
     {
-        if (field is not FixField.Text { Tag: (FixTag)25005 } status)
+        if (field is not FixField.Text { Tag: 25005 } status)
             return false;
 
         Status = status;
@@ -451,7 +451,7 @@ sealed class VenueQuote : FixCustomMessage
     protected override void OnValidate(Fix44Context context)
     {
         if (Status is null)
-            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
+            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
         else if (Status.Value is not ("OPEN" or "CLOSED"))
             AddFinding(new FixFinding(FixRule.InvalidValue, Status.Tag, Status.Position, Status, -1));
     }
@@ -477,7 +477,7 @@ What every version shares is in `Fix/`:
 - `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
 - `Fix/FixChecks.cs`, `Fix/FixChecks.Load.cs`: what every check says a finding with, and the load
   of a dictionary into a version's checks.
-- `Fix/FixTag.cs`: the name of every tag, written by `Fix/Fix44/generate.py`.
+- `Fix/FixTag.cs`: the number of every tag as a constant named for it, written by `Fix/Fix44/generate.py`.
 
 FIX 4.4's own is in `Fix/Fix44/`:
 

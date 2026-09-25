@@ -30,7 +30,7 @@ public static class FixFixtures
 	}
 
 	/// <summary>The field as the class of its value, which has to be the field of that tag.</summary>
-	public static T Typed<T>(FixTag tag, FixField field)
+	public static T Typed<T>(int tag, FixField field)
 		where T : FixField
 	{
 		var typed = Assert.IsType<T>(field);

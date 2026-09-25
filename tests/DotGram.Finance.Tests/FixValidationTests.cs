@@ -35,7 +35,7 @@ public sealed class FixValidationTests
 	[Fact]
 	public void The_standard_fixtures_report_what_they_report()
 	{
-		var found = new List<(string Type, FixRule Rule, FixTag Tag)>();
+		var found = new List<(string Type, FixRule Rule, int Tag)>();
 
 		foreach (var data in FixFixtures.Messages())
 		{
@@ -53,7 +53,7 @@ public sealed class FixValidationTests
 				"FieldNotInScope 586 in NewOrderCross",
 				"FieldNotInScope 635 in TradeCaptureReport",
 			],
-			found.Select(one => one.Rule + " " + (int)one.Tag + " in " + one.Type).Distinct().Order().ToArray());
+			found.Select(one => one.Rule + " " + one.Tag + " in " + one.Type).Distinct().Order().ToArray());
 	}
 
 	[Fact]

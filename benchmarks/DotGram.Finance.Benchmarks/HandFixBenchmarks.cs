@@ -64,7 +64,7 @@ public class HandFixBenchmarks
 	{
 		var count = 0;
 		foreach (var field in Fields(hand))
-			count += (int)field.Tag;
+			count += field.Tag;
 		return count;
 	}
 
