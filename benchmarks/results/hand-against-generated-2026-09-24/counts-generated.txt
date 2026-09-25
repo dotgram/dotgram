@@ -1,0 +1,42 @@
+generated SQL:2023, rule entries per input
+
+== conditions100: 1275 chars, read, 6,002 entries, 4.71 a char
+          300  Read_Identifier_ValueExpressionTree
+          300  Read_Identifier_ValueExpressionTree_Part0
+          300  Read_ActualIdentifier_ValueExpressionTree
+          200  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          200  Read_Operand_ValueExpressionTree
+          200  Read_Primary_ValueExpressionTree
+          200  Read_CollateClause_ValueExpressionTree
+          200  Read_IntervalQualifier_ValueExpressionTree
+
+== conditions1000: 14775 chars, read, 60,002 entries, 4.06 a char
+        3,000  Read_Identifier_ValueExpressionTree
+        3,000  Read_Identifier_ValueExpressionTree_Part0
+        3,000  Read_ActualIdentifier_ValueExpressionTree
+        2,000  Read_CommonValueExpressionOrRow_ValueExpressionTree
+        2,000  Read_Operand_ValueExpressionTree
+        2,000  Read_Primary_ValueExpressionTree
+        2,000  Read_CollateClause_ValueExpressionTree
+        2,000  Read_IntervalQualifier_ValueExpressionTree
+
+== nested200: 205 chars, refused, 126,326 entries, 616.22 a char
+       40,200  Read_QueryExpressionBody_ValueExpressionTree
+       40,200  Read_QueryTerm_ValueExpressionTree
+       40,200  Read_QueryPrimary_ValueExpressionTree
+          404  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          404  Read_Operand_ValueExpressionTree
+          404  Read_Primary_ValueExpressionTree
+          404  Read_PrimaryReading_ValueExpressionTree
+          402  Read_Disjunction_ValueExpressionTree
+
+== nested400: 405 chars, refused, 492,526 entries, 1216.11 a char
+      160,400  Read_QueryExpressionBody_ValueExpressionTree
+      160,400  Read_QueryTerm_ValueExpressionTree
+      160,400  Read_QueryPrimary_ValueExpressionTree
+          804  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          804  Read_Operand_ValueExpressionTree
+          804  Read_Primary_ValueExpressionTree
+          804  Read_PrimaryReading_ValueExpressionTree
+          802  Read_Disjunction_ValueExpressionTree
+

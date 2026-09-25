@@ -44,6 +44,36 @@ classes. That commit is the whole of the difference between 4.50 and 3.36 -- a q
 is why the gap against the hand parser is now a tenth rather than a half. Any figure from this
 family taken before bafdcf00 has to be read with its revision attached.
 
+CALLS PER CHARACTER, BOTH SIDES, SAME INPUTS, SAME REVISION (counts-hand.txt,
+counts-generated.txt). One entry a rule method on each side, so the two numbers mean the same
+thing: 422 probed methods on the hand side, 2,159 on the generated one.
+
+  input             chars     hand /char   generated /char   generated/hand
+  conditions100     1,275     4.32         4.71              1.09x
+  conditions1000   14,775     3.72         4.06              1.09x
+  nested200           205     410.04       616.22            1.50x
+  nested400           405     810.02       1216.11           1.50x
+
+THE CALL GAP AND THE STACK GAP ARE THE SAME NUMBER on ordinary input: 1.09x of entries a
+character against 1.09x of stack a level, measured by two instruments that share nothing. So they
+are one cause and not two -- the generated reader does about a tenth more work a token, and that
+tenth shows up in both quantities.
+
+AND THE SPEED GAP IS BIGGER THAN EITHER. The stand reads immediate against hand at about 1.3x on
+SQL. Entries explain 1.09 of that, so roughly two thirds of the speed gap is how MANY calls and a
+third is what each call costs. Neither figure is the 2.7 to 5.8x the stand once read for the tape;
+that gap was closed by other work and is not what these numbers are about.
+
+BOTH PARSERS ARE QUADRATIC ON NESTED PARENTHESES, and this is the finding least likely to have
+been guessed. `'(' x n + "a = 1"` gives, on the HAND side, 20,100 entries to QueryExpressionBody at
+n=200 and 80,200 at n=400 -- the triangular numbers 200x201/2 and 400x401/2 exactly -- and 3.90x
+the total entries for twice the input. The generated side does the same shape at twice the
+constant: 40,200 and 160,400, and 3.90x again.
+
+So the quadratic is a property of the grammar's shape, not of the generator: a hand-written
+recursive descent over the same rules re-scans the same way. What the generator adds is the
+constant, and on this input it is 1.5x rather than the 1.09x of ordinary input.
+
 WHAT THIS DOES TO THE QUESTION. Two of the premises the task was set on do not survive:
 
   - "the hand parser does not fall" -- it falls, at a fifth of the depth the generated one is

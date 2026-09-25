@@ -1,0 +1,58 @@
+hand-written SQL:2023, rule entries per input
+
+== conditions100: 1275 chars, read, 5,503 entries, 4.32 a char
+          300  Identifier
+          200  CommonValueExpressionOrRow
+          200  Operator
+          200  Operand
+          200  Postfix
+          200  CollateClause
+          200  Primary
+          200  PrimaryReading
+          200  PrimarySteps
+          200  PrimaryStep
+          200  PrimaryBase
+          200  ValueFunction
+
+== conditions1000: 14775 chars, read, 55,003 entries, 3.72 a char
+        3,000  Identifier
+        2,000  CommonValueExpressionOrRow
+        2,000  Operator
+        2,000  Operand
+        2,000  Postfix
+        2,000  CollateClause
+        2,000  Primary
+        2,000  PrimaryReading
+        2,000  PrimarySteps
+        2,000  PrimaryStep
+        2,000  PrimaryBase
+        2,000  ValueFunction
+
+== nested200: 205 chars, refused, 84,059 entries, 410.04 a char
+       20,100  QueryExpressionBody
+       20,100  QueryTerm
+       20,100  QueryPrimary
+       20,100  SimpleTable
+          202  CommonValueExpressionOrRow
+          202  Operand
+          202  Primary
+          202  PrimaryReading
+          202  ValueFunction
+          202  NumericValueFunction
+          202  StringValueFunction
+          202  DatetimeValueFunction
+
+== nested400: 405 chars, refused, 328,059 entries, 810.02 a char
+       80,200  QueryExpressionBody
+       80,200  QueryTerm
+       80,200  QueryPrimary
+       80,200  SimpleTable
+          402  CommonValueExpressionOrRow
+          402  Operand
+          402  Primary
+          402  PrimaryReading
+          402  ValueFunction
+          402  NumericValueFunction
+          402  StringValueFunction
+          402  DatetimeValueFunction
+
