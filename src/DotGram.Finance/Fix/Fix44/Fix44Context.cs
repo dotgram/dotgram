@@ -45,7 +45,7 @@ public sealed record Fix44Context : FixContext
 	}
 
 	/// <summary>A context of FIX 4.4 as this package compiles it in, reading the wire by the standard's own pairs.</summary>
-	public Fix44Context() : base(Standard.Version, FixValidators.Default)
+	public Fix44Context() : base(Standard.Version, FixValidator44.Default)
 	{
 	}
 
@@ -70,9 +70,9 @@ public sealed record Fix44Context : FixContext
 	public Func<string,FixCustomMessage?>? FixMessageFactory { get; init; }
 
 	/// <summary>The check of each message type, of each block, and of each field.</summary>
-	internal FixValidators Validators
+	internal FixValidator44 Validators
 	{
-		get => (FixValidators)Checks;
+		get => (FixValidator44)Checks;
 		init => Checks = value;
 	}
 

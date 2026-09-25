@@ -215,7 +215,7 @@ public sealed class FixLoadTests
 
 			// A tag is written as its number, which every version shares, and not as a name FixTag may
 			// spell otherwise than the file.
-			Assert.Contains("FixValidatorBase.Missing(message, 141)", text, StringComparison.Ordinal);
+			Assert.Contains("FixValidator.Missing(message, 141)", text, StringComparison.Ordinal);
 			Assert.DoesNotContain("FixTag.", text, StringComparison.Ordinal);
 		}
 		finally

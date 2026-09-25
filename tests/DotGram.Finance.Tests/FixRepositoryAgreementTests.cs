@@ -188,7 +188,7 @@ public sealed class FixRepositoryAgreementTests
 			return false;
 
 		var name  = typeof(FixTag).GetFields().First(one => (int)one.GetRawConstantValue()! == tag).Name;
-		var check = typeof(FixValidators).GetProperty(name)!.GetValue(FixValidators.Default)!;
+		var check = typeof(FixValidator44).GetProperty(name)!.GetValue(FixValidator44.Default)!;
 		var host  = FixParser.ParseMessage(FixFixtures.Wire("0", ""));
 
 		((Delegate)check).DynamicInvoke(Fix44Context.Default, host, field);

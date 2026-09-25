@@ -2,7 +2,7 @@
 #
 #     FixMessage.Types.cs   a class a message type, its fields read in one switch
 #     FixComponents.cs      an interface a component, its repeating groups nested in it
-#     FixValidators.cs      the check of every message type, component and group entry
+#     FixValidator44.cs      the check of every message type, component and group entry
 #     ../FixTag.cs          the number of every field, as a constant named for it
 #     FixStandard.cs        the type of the value of every field
 #
@@ -16,7 +16,7 @@
 #
 #     python src/DotGram.Finance/Fix44/generate.py
 #
-# The fields' own checks (FixValidators.Fields.cs), the standard header (FixValidators.Header.cs),
+# The fields' own checks (FixValidator44.Fields.cs), the standard header (FixValidator44.Header.cs),
 # the base class (FixMessage.cs) and the helpers are written by hand and not touched here.
 
 import os
@@ -500,7 +500,7 @@ def validators_text():
         "",
         "/// <summary>",
         "/// The check of every FIX 4.4 message type, of every component it reuses, and of every entry of",
-        "/// every repeating group; the fields' own are in FixValidators.Fields.cs.",
+        "/// every repeating group; the fields' own are in FixValidator44.Fields.cs.",
         "/// </summary>",
         "/// <remarks>",
         "/// Straight-line checks written against the fields of the class they are about, and nothing else:",
@@ -510,10 +510,10 @@ def validators_text():
         "/// entry by the path to it, <c>NewOrderSingle_NoAllocs</c> — so that a dictionary loaded at run",
         "/// time replaces the slots it describes by name and leaves the rest.",
         "/// </remarks>",
-        "partial class FixValidators",
+        "partial class FixValidator44",
         "{",
         "\t/// <summary>What this package compiles in, which is what a context takes unless it is given another.</summary>",
-        "\tpublic static readonly FixValidators Default = new();",
+        "\tpublic static readonly FixValidator44 Default = new();",
         "",
     ]
 
@@ -605,4 +605,4 @@ write(os.path.join("..", "FixTag.cs"), tag_lines)
 write("FixStandard.cs", standard_lines)
 write("FixMessage.Types.cs", types)
 write("FixComponents.cs", component_lines[:-1] + [""])
-write("FixValidators.cs", validators_text())
+write("FixValidator44.cs", validators_text())

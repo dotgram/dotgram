@@ -7,7 +7,7 @@ namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>
 /// The check of every FIX 4.4 message type, of every component it reuses, and of every entry of
-/// every repeating group; the fields' own are in FixValidators.Fields.cs.
+/// every repeating group; the fields' own are in FixValidator44.Fields.cs.
 /// </summary>
 /// <remarks>
 /// Straight-line checks written against the fields of the class they are about, and nothing else:
@@ -17,10 +17,10 @@ namespace DotGram.Finance.Fix.Fix44;
 /// entry by the path to it, <c>NewOrderSingle_NoAllocs</c> — so that a dictionary loaded at run
 /// time replaces the slots it describes by name and leaves the rest.
 /// </remarks>
-partial class FixValidators
+partial class FixValidator44
 {
 	/// <summary>What this package compiles in, which is what a context takes unless it is given another.</summary>
-	public static readonly FixValidators Default = new();
+	public static readonly FixValidator44 Default = new();
 
 	/// <summary>Holds a FIX 4.4 Advertisement to the schema.</summary>
 	public Func<Fix44Context, FixMessage.Advertisement, bool> Advertisement { get; set; } = ValidateAdvertisement;

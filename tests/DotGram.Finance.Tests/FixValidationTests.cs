@@ -120,7 +120,7 @@ public sealed class FixValidationTests
 	{
 		var strict = new Fix44Context
 		{
-			Validators = new FixValidators
+			Validators = new FixValidator44
 			{
 				Instrument = (context, message, instrument) =>
 				{
@@ -154,7 +154,7 @@ public sealed class FixValidationTests
 
 		var context = new Fix44Context
 		{
-			Validators = new FixValidators
+			Validators = new FixValidator44
 			{
 				Heartbeat = (ctx, message) =>
 				{

@@ -38,7 +38,7 @@ public abstract record FixContext
 	// The version's pairs and types, and the table the reader indexes built from them.
 	readonly FixVersion _version;
 
-	private protected FixContext(FixVersion version, FixValidatorBase checks)
+	private protected FixContext(FixVersion version, FixValidator checks)
 	{
 		_version = version;
 		_pairs   = version.Pairs;
@@ -117,7 +117,7 @@ public abstract record FixContext
 	}
 
 	/// <summary>The check of each message type, of each block, and of each field: the version's.</summary>
-	internal FixValidatorBase Checks { get; init; }
+	internal FixValidator Checks { get; init; }
 
 	// A dictionary's checks go over this context's, and the fields it describes that the version does
 	// not are read, from then on, as the types it gives them. A clone of this context, whatever

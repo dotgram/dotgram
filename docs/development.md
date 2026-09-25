@@ -400,7 +400,7 @@ what it says about the pass.
 `src/DotGram.Finance/Fix/Fix44/generate.py` reads `tests/Corpus/FixRepository` — FIX 4.4's own
 machine-readable form — and writes four files beside itself: `FixMessage.Types.cs`, the class of
 each of the ninety-three message types with the switch that reads its fields; `FixComponents.cs`,
-an interface a component; `FixValidators.cs`, the check of every message type, component and
+an interface a component; `FixValidator44.cs`, the check of every message type, component and
 group entry; and `FixStandard.cs`, the type of the value of every field. One more goes one
 directory up, into what every version shares: `FixTag.cs`, the name of every tag.
 **The build does not run it.** Its output is checked in and read as ordinary source, so
@@ -416,7 +416,7 @@ putting its names in place: a field as its class in `FixField.cs` is named, a me
 except the four QuickFIX names otherwise, a component as the interface `I` and its name, and a group
 as the class `<Counter>Group` nested in whatever carries it, its entries the list `<Counter>Groups`.
 What it does not write is written by hand: the base class and the standard header
-(`FixMessage.cs`, `FixValidators.Header.cs`), the fields' own checks (`FixValidators.Fields.cs`)
+(`FixMessage.cs`, `FixValidator44.Header.cs`), the fields' own checks (`FixValidator44.Fields.cs`)
 and the helpers.
 
 After running it, build: a mistake in the script is a compile error in ninety-three places at once

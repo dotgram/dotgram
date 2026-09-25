@@ -53,7 +53,7 @@ src/
 	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Finance/      FIX, a package of its own: the wire read into typed fields and the
 	                      messages built over them, one door (FixParser), the checks
-	                      (FixValidators). README.md and SKILL.md ship on NuGet
+	                      (FixValidator44). README.md and SKILL.md ship on NuGet
 		Fix/              what every version of FIX shares, in DotGram.Finance.Fix: the
 		                  fields, FixTag, FixConvert, the context every version's derives from
 			Fix44/        FIX 4.4's own, in DotGram.Finance.Fix.Fix44: FixParser, the

@@ -3,7 +3,7 @@
 namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>The check of every field of FIX 4.4 against its type, and against the values the repository lists for it.</summary>
-partial class FixValidators
+partial class FixValidator44
 {
 	// The fields, every one, so that a dictionary has a slot for whatever it limits.
 
