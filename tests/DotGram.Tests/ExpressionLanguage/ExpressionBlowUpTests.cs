@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading;
 
 using DotGram.ExpressionLanguage;
 
@@ -120,14 +121,107 @@ public sealed class ExpressionBlowUpTests
 		return head + Repeated(opener, times) + tail;
 	}
 
+	/// <summary>
+	/// One reading, thrown away, so the process pays the cost of first sight once and no
+	/// measurement carries it.
+	/// </summary>
+	/// <remarks>
+	/// Without it that cost lands on whichever reading happens to run first, which is decided
+	/// by what the suite scheduled before: the parenthesis case was seen to read 164,744 bytes
+	/// at four openers against 7,728 at eight, an order the wrong way round and the last
+	/// non-deterministic thing left in this measurement. It is touched on the caller's thread,
+	/// before the measuring thread is started, so that the initializer runs outside what is
+	/// being counted.
+	/// </remarks>
+	static readonly bool Warmed = Warm();
+
+	/// <summary>
+	/// Present so the type is not <c>beforefieldinit</c>, which would let the runtime run
+	/// <see cref="Warmed"/>'s initializer whenever it liked and let a JIT drop a dead read of it
+	/// along with the initialization that read would have forced. Neither happens in practice;
+	/// both would put the cost of first sight back inside a count, silently (expr, 2026-09-25).
+	/// </summary>
+	static ExpressionBlowUpTests()
+	{
+	}
+
+	static bool Warm()
+	{
+		ExpressionParser.TryParse("(int x) => x");
+
+		return true;
+	}
+
 	/// <summary>What one reading allocates, which is a count and so needs no quiet machine.</summary>
+	/// <remarks>
+	/// <para>
+	/// <b>On a thread of its own, so that the reading begins from an empty pool.</b> The parser
+	/// keeps its rented stores in <c>[ThreadStatic]</c> fields, so a reading taken on the
+	/// suite's own thread measures whatever that thread's pool happened to be holding — which
+	/// is decided by whichever unrelated case ran there before. Two readings taken that way can
+	/// land in different regimes: one reuses a store and answers a kilobyte, the other grows one
+	/// and answers thirty, and their ratio is then a property of the schedule and not of the
+	/// parser. That is how this test came to read a CLIFF as a POWER, failing only at a thread
+	/// count equal to the machine's cores and passing at every smaller one (performance-9f,
+	/// 2026-09-25: the same input read 25.4x, 26.2x, 26.5x, 27.9x and 39.0x across runs, which
+	/// no power does).
+	/// </para>
+	/// <para>
+	/// A thread apiece makes the two readings symmetric and independent of how many threads the
+	/// suite runs. <b>It is not the same as warming them</b>, which was the first fix tried and
+	/// is worse: warming moves the store growth a parse genuinely needs out of BOTH readings,
+	/// and a defect whose cost is exactly that growth would then be invisible. Here each reading
+	/// still carries whatever it really has to allocate.
+	/// </para>
+	/// <para>
+	/// <b>The form understates a defect, and that is the price of it.</b> A fresh thread pays
+	/// about 8 KB for a pool of its own on BOTH sides, which is a constant added to numerator
+	/// and denominator alike and so pulls every ratio toward one.
+	/// </para>
+	/// <para>
+	/// <b>Measured against a real blow-up rather than argued.</b> The stand is the parser at
+	/// <c>6c228d42</c> — the commit before <c>3a8d5bcd</c> read a parenthesis and a tuple once
+	/// instead of as three alternatives each beginning <c>'(' &amp; Expression</c> — with THIS
+	/// file laid over it. <b>It has to be this file, because this theory did not exist before</b>
+	/// <b><c>3a8d5bcd</c>, which added it in the same commit as the fix</b>; an earlier tree has
+	/// nothing to run, and two clean full-suite runs were spent discovering that from the other
+	/// end. A comment that licenses a bound is the last place to carry a revision nobody can
+	/// reproduce from.
+	/// </para>
+	/// <para>
+	/// There the parenthesis fails at <b>85.0x</b> read on the suite's own thread, and at
+	/// <b>71.4x</b> and <b>74.3x</b> in this form at one thread and at thirty-two (expr, on
+	/// their own tree and by their own run: 75.0x, byte-identical at both counts). The five
+	/// neighbouring shapes pass. So the teeth hold against the x8 bound by an order of
+	/// magnitude — but a future bound must be set knowing that what this form sees is smaller
+	/// than what is there.
+	/// </para>
+	/// </remarks>
 	static long Allocated(string text)
 	{
-		var before = GC.GetAllocatedBytesForCurrentThread();
+		// Touched here, on the caller's thread, so the initializer never runs inside the count.
+		_ = Warmed;
 
-		ExpressionParser.TryParse(text);
+		var allocated = 0L;
 
-		return GC.GetAllocatedBytesForCurrentThread() - before;
+		// An explicit stack, because whoever extends this theory to larger counts will nest
+		// deeper, and a stack overflow on a measuring thread takes the process down with no
+		// message at all. Four and eight openers need none of it.
+		var thread = new Thread(
+			() =>
+			{
+				var before = GC.GetAllocatedBytesForCurrentThread();
+
+				ExpressionParser.TryParse(text);
+
+				allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+			},
+			16 * 1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		return allocated;
 	}
 
 	static string Repeated(string piece, int times)
