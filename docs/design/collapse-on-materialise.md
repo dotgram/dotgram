@@ -248,7 +248,43 @@ ways are spent.
 3. something neither of us has thought of, which is why this is going back rather than being
    chosen here.
 
-**So the choice is (b), and the zero is the reason rather than the obstacle.**
+### Settled: a stack of collapses, amortized O(1), and the premise checked
+
+The architect's construction removes the search. Keep the collapses on a **stack in the order they
+are made**, each holding `(start, end, the overwritten header)`. A collapse covers
+`[from, LogCount)` at the moment it is made, so its `end` is the log's current end. On a give-back
+to `to`, pop every entry whose `end > to`; if its `start < to` restore its header — the straddling
+case — and if its `start >= to` the header was truncated away and there is nothing to restore.
+After the pops every remaining `end <= to`, and every later collapse ends at a `LogCount >= to`, so
+**the ends on the stack are non-decreasing at all times**. Each entry is pushed once and popped
+once: amortized O(1) per collapse and per give-back, and a give-back that reaches no collapse costs
+one comparison against the top. Nested collapses fall out — an inner span is older and its end is
+no later than the outer's — and there is no per-way mark and no spentness question.
+
+**The premise it rests on is checkable, and it holds.** Three things had to be true:
+
+1. *Every change to `LogCount` is an append, a give-back truncation, or the reset when a `Ways` is
+   rented.* It is: `LogCount` is written at `spare.LogCount = 0`, at `Log[LogCount++] = …` in
+   `Begin`, `Put` and `Mark`, and in the emitted `ways.LogCount = lmN` — of which
+   `SqlStandardParser` has 1,301 and **all 1,301 are `lmN` marks**.
+2. *A collapse ends at the current `LogCount`.* True by construction: the span is
+   `[from, ways.LogCount)` at the point the guard has finished materialising.
+3. *Nothing rewrites the log in the middle.* The only writes to `Log[]` that are not appends are
+   `Log[Opened] = LogCount - Opened`, in the two `End` overloads — the currently open record's own
+   length header. **And no record is ever open across a collapse**, because the emitter writes
+   `ways.Begin(…)`, `ways.Put(…)`, `ways.End(rb)` adjacently, at the point a rule completes and
+   after its children. So `Opened` is always the newest record and never inside a completed span,
+   and a later `End` cannot clobber a collapsed header.
+
+A parse reached from inside another takes a `Ways` of its own from `_deeper`, so nothing
+interleaves on one tape; and locations change `Begin(arm)` to `Begin(arm, start, end)`, which is
+still an append.
+
+**So this is taken over both earlier options**, and it makes the test stronger than an invariant
+assertion: a straddle can be forced by construction, and a naive version with no restore must give
+a wrong tree on it.
+
+
 a corpus is evidence, not proof, and the failure it would be evidence about is a *silent wrong
 tree* — the worst kind to leave resting on an empirical zero, because an event that never happens
 in testing is one no test will catch on the day it starts happening. (a) would make correctness
