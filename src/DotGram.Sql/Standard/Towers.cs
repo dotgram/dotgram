@@ -84,6 +84,16 @@ static class Towers
 	/// </summary>
 	public const int Difference = 1 << 18;
 
+	// A ROLE ADDED HERE IS A VALUE EXPRESSION UNLESS IT IS ADDED TO THAT MASK AS WELL. `ValueExpression`
+	// and `RowValuePredicand` in the grammar both guard with `(RolesOf(e) & ~Difference) != 0` -- any role
+	// but this one -- so they accept by exclusion, and `Difference` is the only thing excluded. A new bit
+	// therefore says "this may stand where a value expression is wanted" by saying nothing, and it widens
+	// rather than narrows, so no test written for something else would fail on it.
+	//
+	// The rows that would are `A_bare_query_expression_is_not_a_value_expression` and
+	// `..._is_not_a_row_value_predicand` in SqlStandardParserTests: they try the illegal input, which is
+	// the only way a widening is caught. Add to them when a role is added.
+
 	public const int String = Character | Binary;
 
 	/// <summary>A <c>&lt;value expression primary&gt;</c>, which has every type.</summary>

@@ -388,6 +388,45 @@ public sealed class SqlStandardParserTests
 		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
 	}
 
+	/// <summary>
+	/// A query expression is not a value expression unless it is in brackets, and the two guards that
+	/// decide it accept by EXCLUSION.
+	/// </summary>
+	/// <remarks>
+	/// <c>ValueExpression</c> and <c>RowValuePredicand</c> both guard with
+	/// <c>(RolesOf(e) &amp; ~Towers.Difference) != 0</c> — any role but that one. So a role added to
+	/// <c>Towers</c> makes whatever carries it a value expression, everywhere, unless it is added to the
+	/// mask in the same change; and because that widens rather than narrows, no test written for
+	/// something else would fail. These rows are the ones that would: they try the illegal input.
+	/// <para>
+	/// The last row of each is the control, and without it the rows would pass just as well on a parser
+	/// that refused every query everywhere: a scalar subquery IS a value expression, and what is refused
+	/// here is the bare form.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT a FROM t", false)]
+	[InlineData("VALUES (1)", false)]
+	[InlineData("TABLE t", false)]
+	[InlineData("WITH x AS (SELECT a FROM t) SELECT a FROM x", false)]
+	[InlineData("(SELECT a FROM t)", true)]
+	public void A_bare_query_expression_is_not_a_value_expression(string input, bool reads)
+	{
+		Assert.Equal(reads, Both.TryParseValueExpression(input).IsSuccess);
+	}
+
+	/// <summary>And the same of the other place that accepts by exclusion.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t", false)]
+	[InlineData("VALUES (1)", false)]
+	[InlineData("TABLE t", false)]
+	[InlineData("WITH x AS (SELECT a FROM t) SELECT a FROM x", false)]
+	[InlineData("(SELECT a FROM t)", true)]
+	public void A_bare_query_expression_is_not_a_row_value_predicand(string input, bool reads)
+	{
+		Assert.Equal(reads, Both.TryParseRowValuePredicand(input).IsSuccess);
+	}
+
 	/// <summary>A search condition: `x IN (a + 1)` is refused, since an in value list holds row value expressions.</summary>
 	[Theory]
 	[InlineData("x IN (a + 1)", false)]

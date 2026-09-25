@@ -176,6 +176,15 @@ static class Both
 		: throw Refused(input, "value expression");
 	}
 
+	public static SqlStandardParser.Match<Expression> TryParseRowValuePredicand(string input)
+	{
+		var read = SqlStandardParser.TryParseRowValuePredicand(input);
+
+		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseRowValuePredicand(input, out var hand), hand);
+
+		return read;
+	}
+
 	public static SqlStandardParser.Match<Expression> TryParseSearchCondition(string input)
 	{
 		var read = SqlStandardParser.TryParseSearchCondition(input);
