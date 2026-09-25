@@ -1885,7 +1885,7 @@ static partial class Stand
 			{
 				var suffix = reading.Reading["before".Length..];
 				var after  = row.Readings.First(one => one.Reading == "after" + suffix);
-				var name   = suffix.Length == 0 ? "generated" : suffix.TrimStart('-');
+				var name   = row.Id.EndsWith(".bool", StringComparison.Ordinal) ? "match-vs-bool" : suffix.Length == 0 ? "generated" : suffix.TrimStart('-');
 				var aaCell = aa is null ? "" : $" {AaCell(aa, row.Id, suffix)} |";
 
 				text.AppendLine(CultureInfo.InvariantCulture,
