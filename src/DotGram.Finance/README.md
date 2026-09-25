@@ -502,16 +502,17 @@ What every version shares is in `Fix/`:
 - `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
 - `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the load
   of a dictionary into a version's checks.
-- `Fix/FixTag.cs`: the number of every tag as a constant named for it, written by `Fix/Fix44/generate.py`.
+- `Fix/FixTag.cs`: the number of every tag of every version as a constant named for it.
+- `Fix/generate.py`, `Fix/Templates/`: the script that writes every version's directory and
+  `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.
 
 FIX 4.4's own is in `Fix/Fix44/`:
 
 - `Fix/Fix44/Fix44Context.cs`: the version's context, its standard pairs, checks and loads.
-- `Fix/Fix44/FixMessage.cs`: the message base, the standard header and trailer.
+- `Fix/Fix44/FixMessage.cs`, `Fix/Fix44/FixMessage.Header.cs`: the message base, the standard header and trailer.
 - `Fix/Fix44/FixMessage.Types.cs`, `Fix/Fix44/FixComponents.cs`, `Fix/Fix44/FixValidator44.cs`,
   `Fix/Fix44/FixStandard.cs`: the 93 message classes, the 24 component interfaces, the check of
-  every message type, component and group entry, and the type of every tag — written by
-  `Fix/Fix44/generate.py` from the FIX 4.4 repository, not by hand.
+  every message type, component and group entry, and the type of every tag.
 - `Fix/Fix44/FixValidator44.Fields.cs`: the check of every field against its type and its code set.
 
 A group is named for its counter: the class `<Counter>Group`, nested in whatever carries it —

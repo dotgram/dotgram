@@ -2,8 +2,8 @@
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
 
-/// <summary>The number of every field of FIX 4.4, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
-/// <remarks>A tag is its number, and a tag FIX 4.4 does not define is only that: <c>25005</c>.</remarks>
+/// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
+/// <remarks>A tag is its number, and a tag no version defines is only that: <c>25005</c>.</remarks>
 public static class FixTag
 {
 	/// <summary>Account, a <see cref="FixField.Text"/>.</summary>
@@ -69,8 +69,8 @@ public static class FixTag
 	/// <summary>SecurityIDSource, a <see cref="FixField.Text"/>.</summary>
 	public const int SecurityIDSource = 22;
 
-	/// <summary>IOIid, a <see cref="FixField.Text"/>.</summary>
-	public const int IOIid = 23;
+	/// <summary>IOIID, a <see cref="FixField.Text"/>.</summary>
+	public const int IOIID = 23;
 
 	/// <summary>IOIQltyInd, a <see cref="FixField.Character"/>.</summary>
 	public const int IOIQltyInd = 25;
@@ -96,8 +96,8 @@ public static class FixTag
 	/// <summary>LastQty, a <see cref="FixField.Decimal"/>.</summary>
 	public const int LastQty = 32;
 
-	/// <summary>LinesOfText, a <see cref="FixField.Integer"/>.</summary>
-	public const int LinesOfText = 33;
+	/// <summary>NoLinesOfText, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoLinesOfText = 33;
 
 	/// <summary>MsgSeqNum, a <see cref="FixField.Integer"/>.</summary>
 	public const int MsgSeqNum = 34;

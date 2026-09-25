@@ -23116,7 +23116,7 @@ public abstract partial class FixMessage
 					case FixTag.YieldRedemptionPriceType: if (YieldRedemptionPriceType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); YieldRedemptionPriceType = (FixField.Integer)field; break;
 					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
 					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
 					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
 					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
@@ -29796,9 +29796,9 @@ public abstract partial class FixMessage
 						break;
 					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
 					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.LinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.LinesOfText, field.Position, field, -1));
+						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
 						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
 						break;
 					case FixTag.EncodedTextLen:
@@ -32768,7 +32768,7 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.IOITransType: if (IOITransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOITransType = (FixField.Character)field; break;
 					case FixTag.IOIRefID: if (IOIRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIRefID = (FixField.Text)field; break;
 					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
@@ -47026,7 +47026,7 @@ public abstract partial class FixMessage
 					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
 					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
 					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
 					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
 					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
@@ -49471,7 +49471,7 @@ public abstract partial class FixMessage
 					case FixTag.YieldRedemptionPriceType: if (YieldRedemptionPriceType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); YieldRedemptionPriceType = (FixField.Integer)field; break;
 					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
 					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
 					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
 					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
@@ -51816,7 +51816,7 @@ public abstract partial class FixMessage
 						else
 							NoOrdersGroups![^1].SolicitedFlag = (FixField.Boolean)field;
 						break;
-					case FixTag.IOIid:
+					case FixTag.IOIID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
 							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
 						else if (NoOrdersGroups![^1].IOIid is not null)
@@ -54185,7 +54185,7 @@ public abstract partial class FixMessage
 					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
 					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
 					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
 					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
 					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
@@ -55774,7 +55774,7 @@ public abstract partial class FixMessage
 					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
 					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
 					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
 					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
 					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
@@ -57687,9 +57687,9 @@ public abstract partial class FixMessage
 						else
 							NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups![^1].UnderlyingStipValue = (FixField.Text)field;
 						break;
-					case FixTag.LinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.LinesOfText, field.Position, field, -1));
+						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
 						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
 						break;
 					case FixTag.EncodedTextLen:
@@ -76853,7 +76853,7 @@ public abstract partial class FixMessage
 					case FixTag.QuoteRespType: if (QuoteRespType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteRespType = (FixField.Integer)field; break;
 					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
 					case FixTag.OrderCapacity: if (OrderCapacity is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderCapacity = (FixField.Character)field; break;
-					case FixTag.IOIid: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
+					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
 					case FixTag.QuoteType: if (QuoteType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteType = (FixField.Integer)field; break;
 					case FixTag.NoQuoteQualifiers: if (NoQuoteQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteQualifiers = (FixField.Integer)field; break;
 					case FixTag.QuoteQualifier:

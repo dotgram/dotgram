@@ -23,27 +23,30 @@ namespace DotGram.Finance.Tests;
 /// defines — and holds the answer to the published repository, read here and not from the table.
 /// </para>
 /// <para>
-/// The names are held the same way: <see cref="FixTag"/> is what a dictionary a consumer loads spells
-/// a tag with, so it is QuickFIX's name where its dictionary declares the tag and the repository's
-/// where it does not.
+/// The names are held the same way: <see cref="FixTag"/> is every tag of every version the package
+/// reads, named as the newest version that defines it names it.
 /// </para>
 /// </remarks>
 public sealed class FixFieldBuilderTests
 {
 	[Fact]
-	public void Every_tag_is_named_as_a_dictionary_names_it()
+	public void Every_tag_is_named_as_the_newest_version_names_it()
 	{
 		var wrong = new List<string>();
-		var named = Named();
+		var named = new Dictionary<int, string>();
 		var ours  = typeof(FixTag).GetFields().ToDictionary(one => (int)one.GetRawConstantValue()!, one => one.Name);
 
-		foreach (var (tag, (name, _)) in named)
+		foreach (var version in Versions)
+			foreach (var (tag, (name, _)) in Fields(version))
+				named[tag] = name;
+
+		foreach (var (tag, name) in named)
 			if (ours.GetValueOrDefault(tag) != name)
-				wrong.Add($"tag {tag}: FixTag names it {ours.GetValueOrDefault(tag) ?? "nothing"}, and the dictionary {name}.");
+				wrong.Add($"tag {tag}: FixTag names it {ours.GetValueOrDefault(tag) ?? "nothing"}, and the repository {name}.");
 
 		foreach (var (tag, name) in ours)
 			if (!named.ContainsKey(tag))
-				wrong.Add($"FixTag.{name} is {tag}, which the repository does not define.");
+				wrong.Add($"FixTag.{name} is {tag}, which no version defines.");
 
 		Assert.True(wrong.Count == 0, string.Join(Environment.NewLine, wrong));
 	}
@@ -52,7 +55,7 @@ public sealed class FixFieldBuilderTests
 	public void Every_tag_builds_the_class_of_its_type()
 	{
 		var wrong = new List<string>();
-		var named = Named();
+		var named = Fields("FIX.4.4");
 
 		for (var tag = 1; tag <= 1100; tag++)
 		{
@@ -115,27 +118,18 @@ public sealed class FixFieldBuilderTests
 		};
 	}
 
-	/// <summary>
-	/// What each tag is called and its type: QuickFIX's name where its dictionary declares the tag,
-	/// since that is the name a dictionary a consumer loads spells it with, and the repository's
-	/// where it does not.
-	/// </summary>
-	static Dictionary<int, (string Name, string Type)> Named()
+	/// <summary>The versions the package reads, oldest first, as the repository's directories name them.</summary>
+	static readonly string[] Versions = ["FIX.4.4"];
+
+	/// <summary>What each tag of a version is called and its type, as the repository gives them.</summary>
+	static Dictionary<int, (string Name, string Type)> Fields(string version)
 	{
-		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus");
+		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository");
 		var named  = new Dictionary<int, (string Name, string Type)>();
 
-		foreach (var field in XDocument.Load(Path.Combine(corpus, "FixRepository", "FIX.4.4", "Base", "Fields.xml")).Root!.Elements())
+		foreach (var field in XDocument.Load(Path.Combine(corpus, version, "Base", "Fields.xml")).Root!.Elements())
 			named[int.Parse(field.Element(field.Name.Namespace + "Tag")!.Value, CultureInfo.InvariantCulture)] =
 				(field.Element(field.Name.Namespace + "Name")!.Value, field.Element(field.Name.Namespace + "Type")!.Value);
-
-		foreach (var field in XDocument.Load(Path.Combine(corpus, "Fix", "FIX44.xml")).Root!.Element("fields")!.Elements("field"))
-		{
-			var tag = int.Parse(field.Attribute("number")!.Value, CultureInfo.InvariantCulture);
-
-			if (named.TryGetValue(tag, out var one))
-				named[tag] = (field.Attribute("name")!.Value, one.Type);
-		}
 
 		return named;
 	}

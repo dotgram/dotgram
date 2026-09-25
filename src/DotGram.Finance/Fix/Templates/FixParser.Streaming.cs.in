@@ -1,8 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix.Fix44;
-
-// Written by generate.py from the FIX 4.4 repository; not edited by hand. From Templates/FixParser.Streaming.cs.in.
+namespace DotGram.Finance.Fix.@@Ns@@;
 
 public static partial class FixParser
 {
@@ -11,7 +9,7 @@ public static partial class FixParser
 		if (maxMessageLength < 1) throw new ArgumentOutOfRangeException(nameof(maxMessageLength));
 	}
 
-	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, Fix44Context? context)
+	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, @@Context@@? context)
 	{
 		while (true)
 		{
@@ -41,7 +39,7 @@ public static partial class FixParser
 		public byte[]? Bytes { get; }
 	}
 
-	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, Fix44Context? context)
+	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, @@Context@@? context)
 	{
 		return frame.Bytes != null
 			? TryParseBytes(frame.Bytes, out message, out error, context)
@@ -63,7 +61,7 @@ public static partial class FixParser
 		{
 			_textInput = input;
 			_separator = separator;
-			_prefix    = "8=FIX.4.4" + separator + "9=";
+			_prefix    = "8=@@BeginString@@" + separator + "9=";
 			_maximum   = maximum;
 			_buffer    = new char[Math.Min(4096, maximum)];
 		}
@@ -72,7 +70,7 @@ public static partial class FixParser
 		{
 			_byteInput  = input;
 			_separator  = separator;
-			_prefix     = "8=FIX.4.4" + separator + "9=";
+			_prefix     = "8=@@BeginString@@" + separator + "9=";
 			_maximum    = maximum;
 			_byteBuffer = new byte[Math.Min(4096, maximum)];
 		}
@@ -127,7 +125,7 @@ public static partial class FixParser
 
 			for (var i = 0; i < _prefix.Length; i++)
 				if (At(i) != _prefix[i])
-					return Fail(i, FixTag.BeginString, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+					return Fail(i, FixTag.BeginString, null, "Expected BeginString @@BeginString@@ followed by BodyLength.", out error);
 
 			var length = 0;
 			var digits = 0;

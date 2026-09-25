@@ -3,9 +3,7 @@ using System.Collections;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace DotGram.Finance.Fix.Fix44;
-
-// Written by generate.py from the FIX 4.4 repository; not edited by hand. From Templates/FixParser.Messages.cs.in.
+namespace DotGram.Finance.Fix.@@Ns@@;
 
 /// <summary>
 /// The message half of the package's one door: the same input read as messages rather than as a
@@ -48,7 +46,7 @@ public static partial class FixParser
 	/// <c>FixParser</c> beside it already uses. A pair of methods where one passes a default is ten
 	/// pairs across this class, and the tenth has to be written twice by whoever adds a setting.
 	/// </remarks>
-	public static FixMessage ParseMessage(string input, Fix44Context? context = null)
+	public static FixMessage ParseMessage(string input, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -86,7 +84,7 @@ public static partial class FixParser
 	/// consumer choosing an encoding for a file whose framing arithmetic that choice then changes.
 	/// </para>
 	/// </remarks>
-	public static FixMessage ParseMessage(byte[] input, Fix44Context? context = null)
+	public static FixMessage ParseMessage(byte[] input, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -101,10 +99,10 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <exception cref="FormatException">The input is not one readable message.</exception>
 	/// <remarks>
-	/// <see cref="ParseMessage(byte[], Fix44Context)"/> says what the octet road is for. The octets
+	/// <see cref="ParseMessage(byte[], @@Context@@)"/> says what the octet road is for. The octets
 	/// are read where they lie, with no copy.
 	/// </remarks>
-	public static FixMessage ParseMessage(ReadOnlyMemory<byte> input, Fix44Context? context = null)
+	public static FixMessage ParseMessage(ReadOnlyMemory<byte> input, @@Context@@? context = null)
 	{
 		if (TryParseMessage(input, out var message, out var error, context))
 			return message!;
@@ -118,7 +116,7 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(string input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null)
+	public static bool TryParseMessage(string input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -129,7 +127,7 @@ public static partial class FixParser
 
 
 	/// <summary>Puts one message together from fields already read, in the order they were read.</summary>
-	internal static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null)
+	internal static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
 	{
 		message = null;
 
@@ -170,99 +168,7 @@ public static partial class FixParser
 		{
 			return (type.Length, type.Length > 0 ? type[0] : '\0', type.Length > 1 ? type[1] : '\0') switch
 			{
-				(1, '0', _  ) => new FixMessage.Heartbeat                         (fields),
-				(1, '1', _  ) => new FixMessage.TestRequest                       (fields),
-				(1, '2', _  ) => new FixMessage.ResendRequest                     (fields),
-				(1, '3', _  ) => new FixMessage.Reject                            (fields),
-				(1, '4', _  ) => new FixMessage.SequenceReset                     (fields),
-				(1, '5', _  ) => new FixMessage.Logout                            (fields),
-				(1, '6', _  ) => new FixMessage.IndicationOfInterest              (fields),
-				(1, '7', _  ) => new FixMessage.Advertisement                     (fields),
-				(1, '8', _  ) => new FixMessage.ExecutionReport                   (fields),
-				(1, '9', _  ) => new FixMessage.OrderCancelReject                 (fields),
-				(1, 'A', _  ) => new FixMessage.Logon                             (fields),
-				(1, 'B', _  ) => new FixMessage.News                              (fields),
-				(1, 'C', _  ) => new FixMessage.Email                             (fields),
-				(1, 'D', _  ) => new FixMessage.NewOrderSingle                    (fields),
-				(1, 'E', _  ) => new FixMessage.NewOrderList                      (fields),
-				(1, 'F', _  ) => new FixMessage.OrderCancelRequest                (fields),
-				(1, 'G', _  ) => new FixMessage.OrderCancelReplaceRequest         (fields),
-				(1, 'H', _  ) => new FixMessage.OrderStatusRequest                (fields),
-				(1, 'J', _  ) => new FixMessage.AllocationInstruction             (fields),
-				(1, 'K', _  ) => new FixMessage.ListCancelRequest                 (fields),
-				(1, 'L', _  ) => new FixMessage.ListExecute                       (fields),
-				(1, 'M', _  ) => new FixMessage.ListStatusRequest                 (fields),
-				(1, 'N', _  ) => new FixMessage.ListStatus                        (fields),
-				(1, 'P', _  ) => new FixMessage.AllocationInstructionAck          (fields),
-				(1, 'Q', _  ) => new FixMessage.DontKnowTrade                     (fields),
-				(1, 'R', _  ) => new FixMessage.QuoteRequest                      (fields),
-				(1, 'S', _  ) => new FixMessage.Quote                             (fields),
-				(1, 'T', _  ) => new FixMessage.SettlementInstructions            (fields),
-				(1, 'V', _  ) => new FixMessage.MarketDataRequest                 (fields),
-				(1, 'W', _  ) => new FixMessage.MarketDataSnapshotFullRefresh     (fields),
-				(1, 'X', _  ) => new FixMessage.MarketDataIncrementalRefresh      (fields),
-				(1, 'Y', _  ) => new FixMessage.MarketDataRequestReject           (fields),
-				(1, 'Z', _  ) => new FixMessage.QuoteCancel                       (fields),
-				(1, 'a', _  ) => new FixMessage.QuoteStatusRequest                (fields),
-				(1, 'b', _  ) => new FixMessage.MassQuoteAcknowledgement          (fields),
-				(1, 'c', _  ) => new FixMessage.SecurityDefinitionRequest         (fields),
-				(1, 'd', _  ) => new FixMessage.SecurityDefinition                (fields),
-				(1, 'e', _  ) => new FixMessage.SecurityStatusRequest             (fields),
-				(1, 'f', _  ) => new FixMessage.SecurityStatus                    (fields),
-				(1, 'g', _  ) => new FixMessage.TradingSessionStatusRequest       (fields),
-				(1, 'h', _  ) => new FixMessage.TradingSessionStatus              (fields),
-				(1, 'i', _  ) => new FixMessage.MassQuote                         (fields),
-				(1, 'j', _  ) => new FixMessage.BusinessMessageReject             (fields),
-				(1, 'k', _  ) => new FixMessage.BidRequest                        (fields),
-				(1, 'l', _  ) => new FixMessage.BidResponse                       (fields),
-				(1, 'm', _  ) => new FixMessage.ListStrikePrice                   (fields),
-				(1, 'n', _  ) => new FixMessage.XMLnonFIX                         (fields),
-				(1, 'o', _  ) => new FixMessage.RegistrationInstructions          (fields),
-				(1, 'p', _  ) => new FixMessage.RegistrationInstructionsResponse  (fields),
-				(1, 'q', _  ) => new FixMessage.OrderMassCancelRequest            (fields),
-				(1, 'r', _  ) => new FixMessage.OrderMassCancelReport             (fields),
-				(1, 's', _  ) => new FixMessage.NewOrderCross                     (fields),
-				(1, 't', _  ) => new FixMessage.CrossOrderCancelReplaceRequest    (fields),
-				(1, 'u', _  ) => new FixMessage.CrossOrderCancelRequest           (fields),
-				(1, 'v', _  ) => new FixMessage.SecurityTypeRequest               (fields),
-				(1, 'w', _  ) => new FixMessage.SecurityTypes                     (fields),
-				(1, 'x', _  ) => new FixMessage.SecurityListRequest               (fields),
-				(1, 'y', _  ) => new FixMessage.SecurityList                      (fields),
-				(1, 'z', _  ) => new FixMessage.DerivativeSecurityListRequest     (fields),
-				(2, 'A', 'A') => new FixMessage.DerivativeSecurityList            (fields),
-				(2, 'A', 'B') => new FixMessage.NewOrderMultileg                  (fields),
-				(2, 'A', 'C') => new FixMessage.MultilegOrderCancelReplaceRequest (fields),
-				(2, 'A', 'D') => new FixMessage.TradeCaptureReportRequest         (fields),
-				(2, 'A', 'E') => new FixMessage.TradeCaptureReport                (fields),
-				(2, 'A', 'F') => new FixMessage.OrderMassStatusRequest            (fields),
-				(2, 'A', 'G') => new FixMessage.QuoteRequestReject                (fields),
-				(2, 'A', 'H') => new FixMessage.RFQRequest                        (fields),
-				(2, 'A', 'I') => new FixMessage.QuoteStatusReport                 (fields),
-				(2, 'A', 'J') => new FixMessage.QuoteResponse                     (fields),
-				(2, 'A', 'K') => new FixMessage.Confirmation                      (fields),
-				(2, 'A', 'L') => new FixMessage.PositionMaintenanceRequest        (fields),
-				(2, 'A', 'M') => new FixMessage.PositionMaintenanceReport         (fields),
-				(2, 'A', 'N') => new FixMessage.RequestForPositions               (fields),
-				(2, 'A', 'O') => new FixMessage.RequestForPositionsAck            (fields),
-				(2, 'A', 'P') => new FixMessage.PositionReport                    (fields),
-				(2, 'A', 'Q') => new FixMessage.TradeCaptureReportRequestAck      (fields),
-				(2, 'A', 'R') => new FixMessage.TradeCaptureReportAck             (fields),
-				(2, 'A', 'S') => new FixMessage.AllocationReport                  (fields),
-				(2, 'A', 'T') => new FixMessage.AllocationReportAck               (fields),
-				(2, 'A', 'U') => new FixMessage.ConfirmationAck                   (fields),
-				(2, 'A', 'V') => new FixMessage.SettlementInstructionRequest      (fields),
-				(2, 'A', 'W') => new FixMessage.AssignmentReport                  (fields),
-				(2, 'A', 'X') => new FixMessage.CollateralRequest                 (fields),
-				(2, 'A', 'Y') => new FixMessage.CollateralAssignment              (fields),
-				(2, 'A', 'Z') => new FixMessage.CollateralResponse                (fields),
-				(2, 'B', 'A') => new FixMessage.CollateralReport                  (fields),
-				(2, 'B', 'B') => new FixMessage.CollateralInquiry                 (fields),
-				(2, 'B', 'C') => new FixMessage.NetworkStatusRequest              (fields),
-				(2, 'B', 'D') => new FixMessage.NetworkStatusResponse             (fields),
-				(2, 'B', 'E') => new FixMessage.UserRequest                       (fields),
-				(2, 'B', 'F') => new FixMessage.UserResponse                      (fields),
-				(2, 'B', 'G') => new FixMessage.CollateralInquiryAck              (fields),
-				(2, 'B', 'H') => new FixMessage.ConfirmationRequest               (fields),
+@@MessageSwitch@@
 				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
 			};
 		}
@@ -274,8 +180,8 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	/// <remarks><see cref="ParseMessage(byte[], Fix44Context)"/> says what the octet road is for.</remarks>
-	public static bool TryParseMessage(byte[]? input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null)
+	/// <remarks><see cref="ParseMessage(byte[], @@Context@@)"/> says what the octet road is for.</remarks>
+	public static bool TryParseMessage(byte[]? input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
 	{
 		if (input == null)
 		{
@@ -293,7 +199,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	/// <remarks>The octets are read where they lie, with no copy.</remarks>
-	public static bool TryParseMessage(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null)
+	public static bool TryParseMessage(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
 	{
 		return TryParseBytes(input, out message, out error, context);
 	}
@@ -305,10 +211,10 @@ public static partial class FixParser
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
 	/// <remarks>
 	/// The whole input is in hand, so every message is built before the call returns; a log too
-	/// large to hold that way is what <see cref="ReadMessages(TextReader, Fix44Context, int)"/>
+	/// large to hold that way is what <see cref="ReadMessages(TextReader, @@Context@@, int)"/>
 	/// is for.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(string input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(string input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input is null)
 			throw new ArgumentNullException(nameof(input));
@@ -329,12 +235,12 @@ public static partial class FixParser
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
 	/// <remarks>
-	/// <see cref="ParseMessage(byte[], Fix44Context)"/> says what the octet road is for. The whole
+	/// <see cref="ParseMessage(byte[], @@Context@@)"/> says what the octet road is for. The whole
 	/// input is in hand, so every message is built before the call returns; a log too large to hold
-	/// that way is what <see cref="ReadMessages(Stream, Fix44Context, int)"/> is for, and this is
+	/// that way is what <see cref="ReadMessages(Stream, @@Context@@, int)"/> is for, and this is
 	/// that call over the octets already read.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(byte[] input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(byte[] input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input is null)
 			throw new ArgumentNullException(nameof(input));
@@ -351,7 +257,7 @@ public static partial class FixParser
 	/// Octets held in an array are read where they lie; memory of any other kind is copied into one
 	/// first.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(ReadOnlyMemory<byte> input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(ReadOnlyMemory<byte> input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		var held = MemoryMarshal.TryGetArray(input, out var segment)
 			? segment
@@ -371,7 +277,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(TextReader input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage ReadMessage(TextReader input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
 			return message!;
@@ -384,7 +290,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(Stream input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage ReadMessage(Stream input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
 			return message!;
@@ -399,7 +305,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -426,7 +332,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -450,7 +356,7 @@ public static partial class FixParser
 	/// <param name="input">The reader, which is left open and owned by the caller.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(TextReader input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(TextReader input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -463,7 +369,7 @@ public static partial class FixParser
 	/// <param name="input">The stream, which is left open and owned by the caller.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(Stream input, Fix44Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(Stream input, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -481,10 +387,10 @@ public static partial class FixParser
 	/// <exception cref="FormatException">The fields are not one readable message of that source.</exception>
 	/// <remarks>
 	/// Its own verb because its own act: nothing is read and nothing is consumed — the reading
-	/// happened in <see cref="ParseFields(string, Fix44Context)"/>, and this puts a message
+	/// happened in <see cref="ParseFields(string, @@Context@@)"/>, and this puts a message
 	/// together from what came back.
 	/// </remarks>
-	public static FixMessage BuildMessage(string source, FixField[] fields, Fix44Context? context = null)
+	public static FixMessage BuildMessage(string source, FixField[] fields, @@Context@@? context = null)
 	{
 		if (TryBuildMessage(source, fields, out var message, out var error, context))
 			return message!;
@@ -492,7 +398,7 @@ public static partial class FixParser
 		throw new FormatException(error!.ToString());
 	}
 
-	static bool TryParseText(string? input, out FixMessage? message, out FixParseError? error, Fix44Context? context)
+	static bool TryParseText(string? input, out FixMessage? message, out FixParseError? error, @@Context@@? context)
 	{
 		message = null;
 		error   = null;
@@ -510,7 +416,7 @@ public static partial class FixParser
 		return true;
 	}
 
-	static bool TryParseBytes(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, Fix44Context? context)
+	static bool TryParseBytes(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, @@Context@@? context)
 	{
 		var fields = FixParser.ParseFields(input, context);
 
@@ -587,7 +493,7 @@ public static partial class FixParser
 	/// <see cref="BuildMessage"/>, answering with a diagnostic rather than throwing.
 	/// </summary>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	internal static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, Fix44Context? context = null)
+	internal static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
 	{
 		if (source == null) throw new ArgumentNullException(nameof(source));
 		if (fields == null) throw new ArgumentNullException(nameof(fields));

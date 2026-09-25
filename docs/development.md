@@ -1,4 +1,4 @@
-﻿# Working on this
+# Working on this
 
 How the project is built, checked and measured. Standing process rather than plans —
 [`next.md`](next.md) says what to do next, this says what to do every time.
@@ -395,30 +395,35 @@ what it says about the pass.
   `examples/` may reference a test framework — an example that needs a fixture to make
   sense is not an example.
 
-## The script that writes the FIX 4.4 model
+## The script that writes the FIX versions
 
-`src/DotGram.Finance/Fix/Fix44/generate.py` reads `tests/Corpus/FixRepository` — FIX 4.4's own
-machine-readable form — and writes four files beside itself: `FixMessage.Types.cs`, the class of
-each of the ninety-three message types with the switch that reads its fields; `FixComponents.cs`,
-an interface a component; `FixValidator44.cs`, the check of every message type, component and
-group entry; and `FixStandard.cs`, the type of the value of every field. One more goes one
-directory up, into what every version shares: `FixTag.cs`, the name of every tag.
+`src/DotGram.Finance/Fix/generate.py` reads `tests/Corpus/FixRepository` — the FIX repository's
+machine-readable form of each version — and writes everything that is a version's own into its
+directory, `Fix/Fix44` for FIX 4.4: `FixMessage.Types.cs`, the class of each message type with the
+switch that reads its fields; `FixMessage.Header.cs`, the standard header and trailer;
+`FixComponents.cs`, an interface a component; `FixValidator44.cs`, the check of every message type,
+component and group entry; `FixValidator44.Fields.cs`, the check of every field against its type
+and code set; and `FixStandard.cs`, the type of the value of every field. The rest of a version —
+its parser, message base, context and header check — is written from `Fix/Templates/`, with the
+version's names and the tables the repository gives (the message types, the length/data pairs, the
+header's fields) put in. One more file goes into what every version shares: `Fix/FixTag.cs`, every
+tag of every version, named as the newest version that has it names it.
 **The build does not run it.** Its output is checked in and read as ordinary source, so
 nobody needs Python to build, test or ship this repository; it is needed only by whoever changes the
-script or the repository under it.
+script, a template or the repository under it. A change to a version's code is made in a template or
+in the script, never in the version's directory.
 
 ```
-python src/DotGram.Finance/Fix/Fix44/generate.py
+python src/DotGram.Finance/Fix/generate.py
 ```
 
 Names are the data dictionaries', so that a dictionary loaded at run time is written into checks
-by putting its names in place: a field by the repository's name (two differ, and follow the
-dictionaries), a message by the repository's name except four the dictionaries name otherwise, a
-component as the interface `I` and its name, and a group as the class `<Counter>Group` nested in
-whatever carries it, its entries the list `<Counter>Groups`.
-What it does not write is written by hand: the base class and the standard header
-(`FixMessage.cs`, `FixValidator44.Header.cs`), the fields' own checks (`FixValidator44.Fields.cs`)
-and the helpers.
+by putting its names in place: a field by the repository's name (in FIX 4.4 two differ, and follow
+the dictionaries), a message by the repository's name except four the dictionaries name otherwise,
+a component as the interface `I` and its name, and a group as the class `<Counter>Group` nested in
+whatever carries it, its entries the list `<Counter>Groups`. `FixTag` is shared by every version and
+so takes the repository's names, not one version's: `FixTag.IOIID` is the constant of what FIX 4.4
+reads as `IOIid`. What it does not write is the shared code in `Fix/`.
 
 After running it, build: a mistake in the script is a compile error in ninety-three places at once
 rather than one. Then run `FixRepositoryAgreementTests`, which holds all ninety-three types against

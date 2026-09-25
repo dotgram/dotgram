@@ -2,6 +2,8 @@
 
 namespace DotGram.Finance.Fix.Fix44;
 
+// Written by generate.py from the FIX 4.4 repository; not edited by hand.
+
 /// <summary>The check of every field of FIX 4.4 against its type, and against the values the repository lists for it.</summary>
 partial class FixValidator44
 {
@@ -2882,9 +2884,9 @@ partial class FixValidator44
 	static bool ValidateExecInst(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
-			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or "C" or
-				"D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or "Q" or "R" or
-				"S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e"))
+			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
+				"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or
+				"Q" or "R" or "S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e"))
 			{
 				Invalid(message, field);
 
@@ -3012,10 +3014,10 @@ partial class FixValidator44
 		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "AA" or
 			"AB" or "AC" or "AD" or "AE" or "AF" or "AG" or "AH" or "AI" or "AJ" or "AK" or "AL" or "AM" or "AN" or
 			"AO" or "AP" or "AQ" or "AR" or "AS" or "AT" or "AU" or "AV" or "AW" or "AX" or "AY" or "AZ" or "B" or
-			"BA" or "BB" or "BC" or "BD" or "BE" or "BF" or "BG" or "BH" or "C" or "D" or "E" or "F" or "G" or "H" or
-			"J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or "T" or "V" or "W" or "X" or "Y" or "Z" or
-			"a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or "j" or "k" or "l" or "m" or "n" or "o" or
-			"p" or "q" or "r" or "s" or "t" or "u" or "v" or "w" or "x" or "y" or "z"))
+			"BA" or "BB" or "BC" or "BD" or "BE" or "BF" or "BG" or "BH" or "C" or "D" or "E" or "F" or "G" or
+			"H" or "J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or "T" or "V" or "W" or "X" or "Y" or
+			"Z" or "a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or "j" or "k" or "l" or "m" or "n" or
+			"o" or "p" or "q" or "r" or "s" or "t" or "u" or "v" or "w" or "x" or "y" or "z"))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -3406,8 +3408,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or
-			8 or 9))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -3517,8 +3518,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
-			7 or 8 or 9 or 99))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or
+			99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -4003,13 +4004,13 @@ partial class FixValidator44
 		if (field.Value is not ("ABS" or "AMENDED" or "AN" or "BA" or "BN" or "BOX" or "BRADY" or "BRIDGE" or
 			"BUYSELL" or "CB" or "CD" or "CL" or "CMBS" or "CMO" or "COFO" or "COFP" or "CORP" or "CP" or "CPP" or
 			"CS" or "DEFLTED" or "DINP" or "DN" or "DUAL" or "EUCD" or "EUCORP" or "EUCP" or "EUSOV" or "EUSUPRA" or
-			"FAC" or "FADN" or "FOR" or "FORWARD" or "FUT" or "GO" or "IET" or "LOFC" or "LQN" or "MATURED" or "MBS" or
-			"MF" or "MIO" or "MLEG" or "MPO" or "MPP" or "MPT" or "MT" or "MTN" or "NONE" or "ONITE" or "OPT" or
-			"PEF" or "PFAND" or "PN" or "PS" or "PZFJ" or "RAN" or "REPLACD" or "REPO" or "RETIRED" or "REV" or
-			"RVLV" or "RVLVTRM" or "SECLOAN" or "SECPLEDGE" or "SPCLA" or "SPCLO" or "SPCLT" or "STN" or "STRUCT" or
-			"SUPRA" or "SWING" or "TAN" or "TAXA" or "TBA" or "TBILL" or "TBOND" or "TCAL" or "TD" or "TECP" or
-			"TERM" or "TINT" or "TIPS" or "TNOTE" or "TPRN" or "TRAN" or "UST" or "USTB" or "VRDN" or "WAR" or
-			"WITHDRN" or "XCN" or "XLINKD" or "YANK" or "YCD"))
+			"FAC" or "FADN" or "FOR" or "FORWARD" or "FUT" or "GO" or "IET" or "LOFC" or "LQN" or "MATURED" or
+			"MBS" or "MF" or "MIO" or "MLEG" or "MPO" or "MPP" or "MPT" or "MT" or "MTN" or "NONE" or "ONITE" or
+			"OPT" or "PEF" or "PFAND" or "PN" or "PS" or "PZFJ" or "RAN" or "REPLACD" or "REPO" or "RETIRED" or
+			"REV" or "RVLV" or "RVLVTRM" or "SECLOAN" or "SECPLEDGE" or "SPCLA" or "SPCLO" or "SPCLT" or "STN" or
+			"STRUCT" or "SUPRA" or "SWING" or "TAN" or "TAXA" or "TBA" or "TBILL" or "TBOND" or "TCAL" or "TD" or
+			"TECP" or "TERM" or "TINT" or "TIPS" or "TNOTE" or "TPRN" or "TRAN" or "UST" or "USTB" or "VRDN" or
+			"WAR" or "WITHDRN" or "XCN" or "XLINKD" or "YANK" or "YCD"))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -4409,10 +4410,11 @@ partial class FixValidator44
 	{
 		if (field.Value is not ("AMT" or "AUTOREINV" or "BANKQUAL" or "BGNCON" or "COUPON" or "CURRENCY" or
 			"CUSTOMDATE" or "GEOG" or "HAIRCUT" or "INSURED" or "ISSUE" or "ISSUER" or "ISSUESIZE" or "LOOKBACK" or
-			"LOT" or "LOTVAR" or "MAT" or "MATURITY" or "MAXSUBS" or "MINDNOM" or "MININCR" or "MINQTY" or "PAYFREQ" or
-			"PIECES" or "PMAX" or "PPL" or "PPM" or "PPT" or "PRICE" or "PRICEFREQ" or "PROD" or "PROTECT" or
-			"PURPOSE" or "PXSOURCE" or "RATING" or "REDEMPTION" or "RESTRICTED" or "SECTOR" or "SECTYPE" or "STRUCT" or
-			"SUBSFREQ" or "SUBSLEFT" or "TEXT" or "TRDVAR" or "WAC" or "WAL" or "WALA" or "WAM" or "WHOLE" or "YIELD"))
+			"LOT" or "LOTVAR" or "MAT" or "MATURITY" or "MAXSUBS" or "MINDNOM" or "MININCR" or "MINQTY" or
+			"PAYFREQ" or "PIECES" or "PMAX" or "PPL" or "PPM" or "PPT" or "PRICE" or "PRICEFREQ" or "PROD" or
+			"PROTECT" or "PURPOSE" or "PXSOURCE" or "RATING" or "REDEMPTION" or "RESTRICTED" or "SECTOR" or
+			"SECTYPE" or "STRUCT" or "SUBSFREQ" or "SUBSLEFT" or "TEXT" or "TRDVAR" or "WAC" or "WAL" or "WALA" or
+			"WAM" or "WHOLE" or "YIELD"))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -4430,9 +4432,9 @@ partial class FixValidator44
 	{
 		if (field.Value is not ("AFTERTAX" or "ANNUAL" or "ATISSUE" or "AVGMATURITY" or "BOOK" or "CALL" or
 			"CHANGE" or "CLOSE" or "COMPOUND" or "CURRENT" or "GOVTEQUIV" or "GROSS" or "INFLATION" or
-			"INVERSEFLOATER" or "LASTCLOSE" or "LASTMONTH" or "LASTQUARTER" or "LASTYEAR" or "LONGAVGLIFE" or "MARK" or
-			"MATURITY" or "NEXTREFUND" or "OPENAVG" or "PREVCLOSE" or "PROCEEDS" or "PUT" or "SEMIANNUAL" or
-			"SHORTAVGLIFE" or "SIMPLE" or "TAXEQUIV" or "TENDER" or "TRUE" or "VALUE1/32" or "WORST"))
+			"INVERSEFLOATER" or "LASTCLOSE" or "LASTMONTH" or "LASTQUARTER" or "LASTYEAR" or "LONGAVGLIFE" or
+			"MARK" or "MATURITY" or "NEXTREFUND" or "OPENAVG" or "PREVCLOSE" or "PROCEEDS" or "PUT" or
+			"SEMIANNUAL" or "SHORTAVGLIFE" or "SIMPLE" or "TAXEQUIV" or "TENDER" or "TRUE" or "VALUE1/32" or "WORST"))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -4769,8 +4771,8 @@ partial class FixValidator44
 	static bool ValidateTradeCondition(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
-			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or
-				"N" or "P" or "Q" or "R"))
+			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
+				"M" or "N" or "P" or "Q" or "R"))
 			{
 				Invalid(message, field);
 
@@ -4952,8 +4954,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or
-			6 or 7 or 8 or 9))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or
+			8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -5183,8 +5185,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or
-			20 or 21 or 22 or 23 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
+		else if (field.Value is not (1 or 10 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or 21 or
+			22 or 23 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -5562,8 +5564,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 2 or
-			3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 2 or 3 or 4 or 5 or
+			6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6193,9 +6195,9 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
-			2 or 20 or 21 or 22 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 30 or 31 or 32 or 33 or
-			34 or 35 or 36 or 37 or 38 or 4 or 5 or 6 or 7 or 8 or 9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
+			21 or 22 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 30 or 31 or 32 or 33 or 34 or 35 or 36 or 37 or
+			38 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6261,8 +6263,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or
-			9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6514,8 +6515,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
-			7 or 8 or 9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6541,9 +6541,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or
-			19 or 2 or 20 or 21 or 22 or 23 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 4 or 5 or 6 or
-			7 or 8 or 9))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or
+			20 or 21 or 22 or 23 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6641,8 +6640,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 2 or
-			3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 2 or 3 or 4 or 5 or
+			6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6740,8 +6739,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or
-			7 or 8 or 9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -6767,8 +6765,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or
-			9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -7239,8 +7236,7 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or
-			8 or 9))
+		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -9112,8 +9108,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
-			2 or 20 or 21 or 22 or 23 or 24 or 25 or 26 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
+			21 or 22 or 23 or 24 or 25 or 26 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
 			Invalid(message, field);
 
 		return message.IsValid;
@@ -9691,8 +9687,8 @@ partial class FixValidator44
 	{
 		if (!field.IsValid)
 			Invalid(message, field);
-		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or
-			2 or 20 or 21 or 22 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
+		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
+			21 or 22 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
 			Invalid(message, field);
 
 		return message.IsValid;

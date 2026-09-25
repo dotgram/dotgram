@@ -1,8 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix.Fix44;
-
-// Written by generate.py from the FIX 4.4 repository; not edited by hand. From Templates/FixParser.cs.in.
+namespace DotGram.Finance.Fix.@@Ns@@;
 
 /// <summary>
 /// Reads an ordered, flat list of FIX fields using computed dispatch without message validation.
@@ -26,12 +24,12 @@ public static partial class FixParser
 	/// <summary>
 	/// Reads wire fields separated by SOH.
 	/// </summary>
-	public static FixField[] ParseFields(string input, Fix44Context? context = null)
+	public static FixField[] ParseFields(string input, @@Context@@? context = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		var settings = context ?? Fix44Context.Default;
+		var settings = context ?? @@Context@@.Default;
 		var reading  = new FixGrammar.FixReading(settings);
 
 		return settings.Framing == FixFraming.Log
@@ -49,11 +47,11 @@ public static partial class FixParser
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <see cref="FixContext.MaxRetained"/> characters.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	public static IEnumerable<FixField> ReadFields(TextReader input, Fix44Context? context = null)
+	public static IEnumerable<FixField> ReadFields(TextReader input, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		var settings = context ?? Fix44Context.Default;
+		var settings = context ?? @@Context@@.Default;
 		var reading  = new FixGrammar.FixReading(settings);
 
 		foreach (var field in settings.Framing == FixFraming.Log
@@ -72,11 +70,11 @@ public static partial class FixParser
 	/// </param>
 	/// <exception cref="IOException">A field needs more than <see cref="FixContext.MaxRetained"/> bytes.</exception>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	public static IEnumerable<FixField> ReadFields(Stream input, Fix44Context? context = null)
+	public static IEnumerable<FixField> ReadFields(Stream input, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		var settings = context ?? Fix44Context.Default;
+		var settings = context ?? @@Context@@.Default;
 		var reading  = new FixGrammar.FixReading(settings);
 
 		foreach (var field in settings.Framing == FixFraming.Log
@@ -92,7 +90,7 @@ public static partial class FixParser
 	/// The array is read where it lies, with no copy; being whole, it is not bounded by
 	/// <see cref="FixContext.MaxRetained"/>.
 	/// </remarks>
-	public static FixField[] ParseFields(byte[] input, Fix44Context? context = null)
+	public static FixField[] ParseFields(byte[] input, @@Context@@? context = null)
 	{
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
@@ -108,9 +106,9 @@ public static partial class FixParser
 	/// <see cref="FixContext.MaxRetained"/>. No field refers to them once the call returns: a binary
 	/// field's value is a copy of its own octets.
 	/// </remarks>
-	public static FixField[] ParseFields(ReadOnlyMemory<byte> input, Fix44Context? context = null)
+	public static FixField[] ParseFields(ReadOnlyMemory<byte> input, @@Context@@? context = null)
 	{
-		var settings = context ?? Fix44Context.Default;
+		var settings = context ?? @@Context@@.Default;
 		var reading  = new FixGrammar.FixReading(settings);
 
 		return settings.Framing == FixFraming.Log

@@ -1,14 +1,12 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix.Fix44;
-
-// Written by generate.py from the FIX 4.4 repository; not edited by hand. From Templates/FixMessage.cs.in.
+namespace DotGram.Finance.Fix.@@Ns@@;
 
 /// <summary>
-/// The ninety-three messages FIX 4.4 describes, each a case of <see cref="FixMessage"/>.
+/// The @@MessageCountWords@@ messages @@Title@@ describes, each a case of <see cref="FixMessage"/>.
 /// </summary>
 /// <remarks>
-/// Nested, because this is a closed set and not ninety-three free names: the set is fixed, every
+/// Nested, because this is a closed set and not @@MessageCountWords@@ free names: the set is fixed, every
 /// case is a <see cref="FixMessage"/>, and a switch over them is meant to be exhaustive. The
 /// package already writes the field hierarchy this way one layer down — <c>FixField.Invalid</c>,
 /// <c>FixField.Date</c> — and two spellings of one idea in one package is what this removes.
@@ -57,7 +55,7 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>Holds this message to the schema, adding what is wrong to <see cref="InvalidFindings"/>.</summary>
 	/// <param name="context">The schema to hold it to.</param>
 	/// <returns>Whether nothing is wrong with it.</returns>
-	public bool Validate(Fix44Context context)
+	public bool Validate(@@Context@@ context)
 	{
 		if (context == null) throw new ArgumentNullException(nameof(context));
 
@@ -74,7 +72,7 @@ public abstract partial class FixMessage : IFixFindings
 	}
 
 	/// <summary>Asks the context for the check of this message type and runs it.</summary>
-	private protected abstract void Check(Fix44Context context);
+	private protected abstract void Check(@@Context@@ context);
 
 	/// <summary>Adds one finding to this message.</summary>
 	/// <param name="finding">What is wrong.</param>
@@ -88,7 +86,7 @@ public abstract partial class FixMessage : IFixFindings
 		AddFinding(finding);
 	}
 
-	/// <summary>A message of a MsgType FIX 4.4 does not define and no message factory builds; its fields remain in wire order.</summary>
+	/// <summary>A message of a MsgType @@Title@@ does not define and no message factory builds; its fields remain in wire order.</summary>
 	/// <remarks>
 	/// Not valid from the moment it is read: its type is what is wrong with it, and that is said once,
 	/// as <see cref="FixRule.UnknownMessageType"/>. The standard header and trailer are the standard's
@@ -105,7 +103,7 @@ public abstract partial class FixMessage : IFixFindings
 		}
 
 		/// <summary>Nothing: the type is not one the schema describes, and that has been said.</summary>
-		private protected override void Check(Fix44Context context)
+		private protected override void Check(@@Context@@ context)
 		{
 		}
 	}

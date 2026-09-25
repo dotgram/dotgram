@@ -2300,7 +2300,7 @@ partial class FixValidator44
 				context.Validators.Email_NoLegs(context, message, message.NoLegsGroups[i], i);
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
-		if (message.LinesOfText is null) Missing(message, FixTag.LinesOfText);
+		if (message.LinesOfText is null) Missing(message, FixTag.NoLinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
 		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
 		if (message.LinesOfTextGroups is not null)
@@ -2494,7 +2494,7 @@ partial class FixValidator44
 
 	static bool ValidateIndicationOfInterest(Fix44Context context, FixMessage.IndicationOfInterest message)
 	{
-		if (message.IOIid is null) Missing(message, FixTag.IOIid);
+		if (message.IOIid is null) Missing(message, FixTag.IOIID);
 		else context.Validators.IOIid(context, message, message.IOIid);
 		if (message.IOITransType is null) Missing(message, FixTag.IOITransType);
 		else context.Validators.IOITransType(context, message, message.IOITransType);
@@ -3288,7 +3288,7 @@ partial class FixValidator44
 		if (message.NoUnderlyingsGroups is not null)
 			for (var i = 0; i < message.NoUnderlyingsGroups.Count; i++)
 				context.Validators.News_NoUnderlyings(context, message, message.NoUnderlyingsGroups[i], i);
-		if (message.LinesOfText is null) Missing(message, FixTag.LinesOfText);
+		if (message.LinesOfText is null) Missing(message, FixTag.NoLinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
 		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
 		if (message.LinesOfTextGroups is not null)

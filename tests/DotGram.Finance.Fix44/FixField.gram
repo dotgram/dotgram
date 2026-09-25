@@ -88,7 +88,7 @@ KnownField(text) : @FixField =
 
 	// 23: IOIid (String)
 	| { "23=" & value: text }
-	  => @(new FixField.Text(FixTag.IOIid, FixConvert.ToText(value)))
+	  => @(new FixField.Text(FixTag.IOIID, FixConvert.ToText(value)))
 
 	// 25: IOIQltyInd (char)
 	| { "25=" & value: text }
@@ -124,7 +124,7 @@ KnownField(text) : @FixField =
 
 	// 33: LinesOfText (NumInGroup)
 	| { "33=" & value: text }
-	  => @(new FixField.Integer(FixTag.LinesOfText, FixConvert.ToInteger(value)))
+	  => @(new FixField.Integer(FixTag.NoLinesOfText, FixConvert.ToInteger(value)))
 
 	// 34: MsgSeqNum (SeqNum)
 	| { "34=" & value: text }
