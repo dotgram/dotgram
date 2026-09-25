@@ -251,13 +251,21 @@ internal static class RefusalLadders
 	}
 
 	/// <summary>One call on a thread of its own, given up on after the watchdog: whether it finished, whether it accepted the input, and the milliseconds it took. An abandoned call runs on until the process ends.</summary>
+	/// <remarks>
+	/// The milliseconds are the call's, timed inside the thread: not the thread's creation, its 16 MB stack, or the wait for it. Until 2026-09-25 they were the wall time around all
+	/// of that, and on a loaded CI runner starting a thread alone took more than the budget: every ladder then ended at its second or third size with a point of tens of
+	/// milliseconds beside points of microseconds, an exponent of 35 to 50 on EVERY series, and a suite that called JSON Pointer explosive. The watchdog still waits on the wall.
+	/// </remarks>
 	static (bool Finished, bool Accepted, double Milliseconds) Probe(Func<bool> read)
 	{
 		var accepted = false;
 		var thrown   = (Exception?)null;
+		var call     = 0.0;
 		var watch    = Stopwatch.StartNew();
 		var thread   = new Thread(() =>
 		{
+			var inside = Stopwatch.StartNew();
+
 			try
 			{
 				accepted = read();
@@ -266,6 +274,8 @@ internal static class RefusalLadders
 			{
 				thrown = exception;
 			}
+
+			call = inside.Elapsed.TotalMilliseconds;
 		}, 16 * 1024 * 1024) { IsBackground = true };
 
 		thread.Start();
@@ -276,7 +286,7 @@ internal static class RefusalLadders
 		if (thrown is not null)
 			ExceptionDispatchInfo.Capture(thrown).Throw();
 
-		return (true, accepted, watch.Elapsed.TotalMilliseconds);
+		return (true, accepted, call);
 	}
 
 	/// <summary>A time in nanoseconds as nanoseconds, microseconds, milliseconds, seconds or, past a day, years.</summary>

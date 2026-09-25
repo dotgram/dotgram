@@ -125,9 +125,8 @@ public sealed class StackFrameBudgetTests
 	[MemberData(nameof(Grammars))]
 	public void A_grammar_costs_little_enough_a_level_to_be_probed_at_the_interval(string grammar)
 	{
-		var shallow = Committed(grammar, Shallow);
-		var deep    = Committed(grammar, Deep);
-		var level   = (deep - shallow) / (double)(Deep - Shallow) / 1024;
+		var (shallow, deep) = Committed(grammar);
+		var level           = (deep - shallow) / (double)(Deep - Shallow) / 1024;
 
 		Assert.True(
 			level > 0,
@@ -145,29 +144,43 @@ public sealed class StackFrameBudgetTests
 			"two probes; the interval in Machine.Reader.cs is what has to come down.");
 	}
 
-	/// <summary>What the stack of one parse of a nested input committed, in bytes.</summary>
+	/// <summary>What the stack of a thread had committed after the shallow parse, and after the deep one, in bytes.</summary>
 	/// <remarks>
-	/// On its own thread, so the high-water mark is that parse's and nothing else's, and read after
-	/// the parse returns: a stack commits as it grows and never gives the pages back.
+	/// <para>
+	/// Both parses on ONE thread of its own, the shallow first: a stack commits as it grows and never
+	/// gives the pages back, so the second reading is the first plus what the deeper parse needed, and
+	/// nothing else. Until 2026-09-25 each depth had a thread of its own, and on Linux, where the
+	/// mapping is found by its size, the second thread could read a mapping the first had left — a
+	/// level of -1.28 KiB on a CI runner.
+	/// </para>
+	/// <para>
+	/// And each measuring thread's stack is a size no other thread has had, for the same reason.
+	/// </para>
 	/// </remarks>
-	static long Committed(string grammar, int depth)
+	static (long Shallow, long Deep) Committed(string grammar)
 	{
-		var committed = 0L;
+		var shallow = 0L;
+		var deep    = 0L;
+		var size    = (MeasuringStackKiB + 4 * Interlocked.Increment(ref _measured)) * 1024;
 
 		var thread = new Thread(
 			() =>
 			{
-				Read(grammar, depth);
+				Read(grammar, Shallow);
+				shallow = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
 
-				committed = OperatingSystem.IsWindows() ? OnWindows() : OnLinux();
+				Read(grammar, Deep);
+				deep = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
 			},
-			MeasuringStackKiB * 1024);
+			size);
 
 		thread.Start();
 		thread.Join();
 
-		return committed;
+		return (shallow, deep);
 	}
+
+	static int _measured;
 
 	/// <summary>The nested input of each grammar, refused in every case so the reading goes all the way down.</summary>
 	static bool Read(string grammar, int depth)
@@ -211,9 +224,9 @@ public sealed class StackFrameBudgetTests
 	/// unsafe context that no project here enables. <see cref="MeasuringStackKiB"/> is an odd
 	/// enough size to be this thread's and nothing else's.
 	/// </remarks>
-	static long OnLinux()
+	static long OnLinux(int size)
 	{
-		var want  = (ulong)MeasuringStackKiB * 1024;
+		var want  = (ulong)size;
 		var found = false;
 
 		foreach (var line in File.ReadLines("/proc/self/smaps"))

@@ -197,7 +197,27 @@ public sealed class ExpressionBlowUpTests
 	/// than what is there.
 	/// </para>
 	/// </remarks>
+	/// <remarks>
+	/// <para>
+	/// <b>The fewest of three readings, each on a fresh thread.</b> Allocation is a count, so a real
+	/// blow-up pays on every reading and the fewest still shows it; a cost paid once by the process
+	/// lands on one reading only. On a CI runner, inside the full suite, the type-argument case read
+	/// 9,112 bytes at four openers and 316,448 at eight, with every reading before it warm; the suite
+	/// compiles assemblies into the process while it runs, and a name resolved after that pays for
+	/// the types it has not seen yet, once, in whichever reading comes first.
+	/// </para>
+	/// </remarks>
 	static long Allocated(string text)
+	{
+		var fewest = long.MaxValue;
+
+		for (var reading = 0; reading < 3; reading++)
+			fewest = Math.Min(fewest, AllocatedOnce(text));
+
+		return fewest;
+	}
+
+	static long AllocatedOnce(string text)
 	{
 		// Touched here, on the caller's thread, so the initializer never runs inside the count.
 		_ = Warmed;
