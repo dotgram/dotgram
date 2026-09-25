@@ -1,0 +1,143 @@
+# Times, 2026-09-25, in an announced window (T:\TEMP\dotgram-bdn\qf-against-2026-09-25-20260925-192512)
+
+# BenchmarkDotNet run qf-against-2026-09-25, 2026-09-25 19:25 - 19:38
+
+Assembly P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit 095f4231. Arguments: --filter *FixAgainstQuickFix* *FixVersionsAgainstQuickFix* --job short. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 2.2% of the machine (0.7 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.354; CrossDeviceService (pid 74872) 0.089; msedgewebview2 (pid 31076) 0.042.
+State of the sources, read at 19:25:15: project P:\dotgram.WorkTrees\finance\.work\qfcompare; repository HEAD 095f4231; 0 tracked files modified in the repository, 0 untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project BE58055D84C92605; 0 source files NEWER than the assembly (19:16:21).
+Source hash at the end: BE58055D84C92605 (the same as at the start).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 98 workers (its log), 98 were read.
+
+## FIX 4.4
+
+```
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+AMD Ryzen 9 9950X3D 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.401
+  [Host]   : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+  ShortRun : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+
+Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+
+```
+| Method                                                      | From       | Reading       | Mean         | Error        | StdDev       | Op/s        | Gen0    | Gen1    | Allocated  |
+|------------------------------------------------------------ |----------- |-------------- |-------------:|-------------:|-------------:|------------:|--------:|--------:|-----------:|
+| **&#39;ours: parse + read&#39;**                                        | **Compiled**   | **Order**         |     **947.7 ns** |     **566.6 ns** |     **31.06 ns** | **1,055,165.8** |  **0.0572** |       **-** |    **2.84 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Compiled   | Order         |   1,375.5 ns |     818.0 ns |     44.84 ns |   727,000.3 |  0.0916 |       - |    4.54 KB |
+| &#39;ours: parse from octets + read&#39;                            | Compiled   | Order         |   1,071.9 ns |     340.1 ns |     18.64 ns |   932,946.7 |  0.0572 |       - |    2.87 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Compiled   | Order         |   1,377.0 ns |     805.7 ns |     44.16 ns |   726,196.1 |  0.0973 |       - |    4.83 KB |
+| &#39;ours: parse + validate + read&#39;                             | Compiled   | Order         |   1,076.2 ns |   1,578.5 ns |     86.52 ns |   929,161.0 |  0.0572 |       - |    2.84 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Compiled   | Order         |   2,814.3 ns |   1,599.2 ns |     87.66 ns |   355,333.5 |  0.1335 |       - |    6.55 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Compiled   | Order         |     901.8 ns |     832.4 ns |     45.63 ns | 1,108,910.0 |  0.0572 |       - |    2.84 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Compiled   | Order         |   1,348.4 ns |     737.6 ns |     40.43 ns |   741,602.0 |  0.0916 |       - |    4.54 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Compiled**   | **Parties**       |   **1,341.9 ns** |     **329.3 ns** |     **18.05 ns** |   **745,200.7** |  **0.0744** |       **-** |    **3.71 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Compiled   | Parties       |   2,457.8 ns |     704.8 ns |     38.63 ns |   406,867.3 |  0.2174 |  0.0038 |   10.69 KB |
+| &#39;ours: parse from octets + read&#39;                            | Compiled   | Parties       |   1,648.4 ns |     895.1 ns |     49.06 ns |   606,636.5 |  0.0744 |       - |    3.73 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Compiled   | Parties       |   2,534.9 ns |     900.6 ns |     49.36 ns |   394,489.9 |  0.2251 |  0.0038 |   11.12 KB |
+| &#39;ours: parse + validate + read&#39;                             | Compiled   | Parties       |   1,612.4 ns |   1,222.3 ns |     67.00 ns |   620,181.4 |  0.0744 |       - |    3.71 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Compiled   | Parties       |   4,735.3 ns |   4,065.8 ns |    222.86 ns |   211,181.6 |  0.2899 |  0.0076 |   14.21 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Compiled   | Parties       |   1,369.8 ns |     446.1 ns |     24.45 ns |   730,045.1 |  0.0744 |       - |    3.71 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Compiled   | Parties       |   2,546.4 ns |   2,844.4 ns |    155.91 ns |   392,716.5 |  0.2174 |  0.0038 |   10.69 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Compiled**   | **PartiesMedium** |  **14,926.4 ns** |   **8,680.5 ns** |    **475.81 ns** |    **66,995.4** |  **0.6104** |  **0.0305** |   **30.04 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Compiled   | PartiesMedium |  30,046.1 ns |  17,789.5 ns |    975.10 ns |    33,282.2 |  3.9368 |  0.7629 |  193.91 KB |
+| &#39;ours: parse from octets + read&#39;                            | Compiled   | PartiesMedium |  18,748.6 ns |  13,711.2 ns |    751.56 ns |    53,337.4 |  0.6104 |  0.0305 |   30.06 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Compiled   | PartiesMedium |  31,032.1 ns |   8,074.8 ns |    442.61 ns |    32,224.7 |  4.0283 |  0.7935 |  198.88 KB |
+| &#39;ours: parse + validate + read&#39;                             | Compiled   | PartiesMedium |  16,728.7 ns |   8,767.3 ns |    480.57 ns |    59,777.5 |  0.6104 |  0.0305 |   30.04 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Compiled   | PartiesMedium |  52,084.3 ns |  42,369.7 ns |  2,322.42 ns |    19,199.6 |  4.9438 |  1.0986 |  244.42 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Compiled   | PartiesMedium |  15,318.6 ns |  11,449.2 ns |    627.57 ns |    65,280.2 |  0.6104 |  0.0305 |   30.04 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Compiled   | PartiesMedium |  30,161.7 ns |  19,188.2 ns |  1,051.77 ns |    33,154.6 |  3.9368 |  0.7629 |  193.91 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Compiled**   | **PartiesLarge**  | **146,857.1 ns** | **155,201.7 ns** |  **8,507.13 ns** |     **6,809.3** |  **5.3711** |  **1.4648** |  **269.11 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Compiled   | PartiesLarge  | 312,051.2 ns | 327,759.8 ns | 17,965.62 ns |     3,204.6 | 38.0859 | 17.0898 | 1888.45 KB |
+| &#39;ours: parse from octets + read&#39;                            | Compiled   | PartiesLarge  | 170,467.6 ns |  17,953.6 ns |    984.10 ns |     5,866.2 |  5.3711 |  1.4648 |  269.13 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Compiled   | PartiesLarge  | 303,177.5 ns | 193,424.4 ns | 10,602.25 ns |     3,298.4 | 39.0625 | 16.1133 | 1937.38 KB |
+| &#39;ours: parse + validate + read&#39;                             | Compiled   | PartiesLarge  | 164,452.7 ns |  37,199.1 ns |  2,039.01 ns |     6,080.8 |  5.3711 |  1.4648 |  269.11 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Compiled   | PartiesLarge  | 580,716.0 ns | 532,835.6 ns | 29,206.52 ns |     1,722.0 | 47.8516 | 17.5781 |  2374.9 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Compiled   | PartiesLarge  | 142,150.9 ns |  91,874.0 ns |  5,035.92 ns |     7,034.8 |  5.3711 |  1.4648 |  269.11 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Compiled   | PartiesLarge  | 301,495.2 ns | 159,135.8 ns |  8,722.77 ns |     3,316.8 | 38.0859 | 17.0898 | 1888.45 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Compiled**   | **Binary**        |     **564.1 ns** |     **329.2 ns** |     **18.05 ns** | **1,772,616.1** |  **0.0286** |       **-** |    **1.43 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Compiled   | Binary        |     703.2 ns |     283.6 ns |     15.55 ns | 1,421,992.3 |  0.0725 |       - |    3.55 KB |
+| &#39;ours: parse from octets + read&#39;                            | Compiled   | Binary        |     637.7 ns |     368.8 ns |     20.22 ns | 1,568,100.0 |  0.0296 |       - |    1.45 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Compiled   | Binary        |     787.2 ns |   1,132.0 ns |     62.05 ns | 1,270,360.6 |  0.0782 |       - |    3.88 KB |
+| &#39;ours: parse + validate + read&#39;                             | Compiled   | Binary        |     621.6 ns |     445.3 ns |     24.41 ns | 1,608,783.1 |  0.0286 |       - |    1.43 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Compiled   | Binary        |   1,794.2 ns |   1,271.9 ns |     69.72 ns |   557,360.7 |  0.1106 |       - |    5.45 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Compiled   | Binary        |     552.1 ns |     343.4 ns |     18.82 ns | 1,811,429.1 |  0.0286 |       - |    1.43 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Compiled   | Binary        |     722.7 ns |     203.9 ns |     11.18 ns | 1,383,745.3 |  0.0725 |       - |    3.55 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Dictionary** | **Order**         |     **903.7 ns** |     **376.3 ns** |     **20.63 ns** | **1,106,542.6** |  **0.0572** |       **-** |    **2.84 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Dictionary | Order         |   1,402.3 ns |   1,366.8 ns |     74.92 ns |   713,125.7 |  0.0916 |       - |    4.54 KB |
+| &#39;ours: parse from octets + read&#39;                            | Dictionary | Order         |   1,035.2 ns |     470.2 ns |     25.78 ns |   966,028.1 |  0.0572 |       - |    2.87 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Dictionary | Order         |   1,403.8 ns |   1,136.3 ns |     62.29 ns |   712,370.4 |  0.0973 |       - |    4.83 KB |
+| &#39;ours: parse + validate + read&#39;                             | Dictionary | Order         |   1,197.0 ns |   1,022.1 ns |     56.03 ns |   835,393.4 |  0.0572 |       - |    2.84 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Dictionary | Order         |   2,789.5 ns |     701.9 ns |     38.47 ns |   358,491.6 |  0.1335 |       - |    6.55 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Dictionary | Order         |     894.7 ns |     109.4 ns |      6.00 ns | 1,117,712.2 |  0.0572 |       - |    2.84 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Dictionary | Order         |   1,326.0 ns |     292.0 ns |     16.01 ns |   754,120.3 |  0.0916 |       - |    4.54 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Dictionary** | **Parties**       |   **1,398.7 ns** |     **353.6 ns** |     **19.38 ns** |   **714,929.7** |  **0.0744** |       **-** |    **3.71 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Dictionary | Parties       |   2,590.6 ns |   2,372.8 ns |    130.06 ns |   386,013.6 |  0.2174 |  0.0038 |   10.69 KB |
+| &#39;ours: parse from octets + read&#39;                            | Dictionary | Parties       |   1,671.7 ns |     258.9 ns |     14.19 ns |   598,206.2 |  0.0744 |       - |    3.73 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Dictionary | Parties       |   2,619.6 ns |   1,270.7 ns |     69.65 ns |   381,734.0 |  0.2251 |  0.0038 |   11.12 KB |
+| &#39;ours: parse + validate + read&#39;                             | Dictionary | Parties       |   1,764.3 ns |     721.2 ns |     39.53 ns |   566,811.1 |  0.0744 |       - |    3.71 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Dictionary | Parties       |   4,715.2 ns |   3,778.4 ns |    207.10 ns |   212,080.4 |  0.2899 |  0.0076 |   14.21 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Dictionary | Parties       |   1,399.4 ns |     583.7 ns |     31.99 ns |   714,596.5 |  0.0744 |       - |    3.71 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Dictionary | Parties       |   2,528.5 ns |   1,724.1 ns |     94.50 ns |   395,493.6 |  0.2174 |  0.0038 |   10.69 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Dictionary** | **PartiesMedium** |  **14,878.3 ns** |   **3,292.1 ns** |    **180.45 ns** |    **67,211.8** |  **0.6104** |  **0.0305** |   **30.04 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Dictionary | PartiesMedium |  30,166.2 ns |  23,166.8 ns |  1,269.85 ns |    33,149.7 |  3.9368 |  0.7629 |  193.91 KB |
+| &#39;ours: parse from octets + read&#39;                            | Dictionary | PartiesMedium |  18,607.4 ns |  18,751.4 ns |  1,027.83 ns |    53,742.2 |  0.6104 |  0.0305 |   30.06 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Dictionary | PartiesMedium |  31,590.2 ns |   7,485.9 ns |    410.33 ns |    31,655.4 |  4.0283 |  0.7935 |  198.88 KB |
+| &#39;ours: parse + validate + read&#39;                             | Dictionary | PartiesMedium |  16,878.3 ns |  13,636.0 ns |    747.44 ns |    59,247.5 |  0.6104 |  0.0305 |   30.04 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Dictionary | PartiesMedium |  50,985.0 ns |  23,988.7 ns |  1,314.90 ns |    19,613.6 |  4.9438 |  1.0986 |  244.42 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Dictionary | PartiesMedium |  14,863.8 ns |   4,794.9 ns |    262.82 ns |    67,277.6 |  0.6104 |  0.0305 |   30.04 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Dictionary | PartiesMedium |  29,083.2 ns |   8,681.0 ns |    475.83 ns |    34,384.1 |  3.9368 |  0.7629 |  193.91 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Dictionary** | **PartiesLarge**  | **138,391.4 ns** | **104,905.5 ns** |  **5,750.22 ns** |     **7,225.9** |  **5.3711** |  **1.4648** |  **269.11 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Dictionary | PartiesLarge  | 310,820.2 ns | 200,637.3 ns | 10,997.61 ns |     3,217.3 | 38.0859 | 17.0898 | 1888.45 KB |
+| &#39;ours: parse from octets + read&#39;                            | Dictionary | PartiesLarge  | 167,003.4 ns | 105,726.9 ns |  5,795.25 ns |     5,987.9 |  5.3711 |  1.4648 |  269.13 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Dictionary | PartiesLarge  | 293,045.2 ns |  56,180.9 ns |  3,079.46 ns |     3,412.4 | 39.0625 | 16.1133 | 1937.38 KB |
+| &#39;ours: parse + validate + read&#39;                             | Dictionary | PartiesLarge  | 157,471.8 ns |  58,555.0 ns |  3,209.60 ns |     6,350.3 |  5.3711 |  1.4648 |  269.11 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Dictionary | PartiesLarge  | 561,904.8 ns | 823,452.3 ns | 45,136.20 ns |     1,779.7 | 47.8516 | 17.5781 |  2374.9 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Dictionary | PartiesLarge  | 140,096.2 ns | 154,728.5 ns |  8,481.19 ns |     7,138.0 |  5.3711 |  1.4648 |  269.11 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Dictionary | PartiesLarge  | 309,051.3 ns | 110,013.1 ns |  6,030.19 ns |     3,235.7 | 38.0859 | 17.0898 | 1888.45 KB |
+| **&#39;ours: parse + read&#39;**                                        | **Dictionary** | **Binary**        |     **571.6 ns** |     **336.8 ns** |     **18.46 ns** | **1,749,401.0** |  **0.0286** |       **-** |    **1.43 KB** |
+| &#39;QuickFIX/n: parse + read&#39;                                  | Dictionary | Binary        |     714.6 ns |     756.3 ns |     41.46 ns | 1,399,480.8 |  0.0725 |       - |    3.55 KB |
+| &#39;ours: parse from octets + read&#39;                            | Dictionary | Binary        |     643.4 ns |     846.1 ns |     46.38 ns | 1,554,181.1 |  0.0296 |       - |    1.45 KB |
+| &#39;QuickFIX/n: parse from octets through their Parser + read&#39; | Dictionary | Binary        |     749.6 ns |     370.0 ns |     20.28 ns | 1,334,074.5 |  0.0782 |       - |    3.88 KB |
+| &#39;ours: parse + validate + read&#39;                             | Dictionary | Binary        |     643.1 ns |     291.4 ns |     15.97 ns | 1,554,889.2 |  0.0286 |       - |    1.43 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39;                       | Dictionary | Binary        |   1,775.2 ns |     568.3 ns |     31.15 ns |   563,329.4 |  0.1106 |       - |    5.45 KB |
+| &#39;A/A ours: parse + read&#39;                                    | Dictionary | Binary        |     650.7 ns |     597.6 ns |     32.76 ns | 1,536,846.6 |  0.0286 |       - |    1.43 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;                              | Dictionary | Binary        |     721.3 ns |     501.8 ns |     27.51 ns | 1,386,476.1 |  0.0725 |       - |    3.55 KB |
+
+## FIX 4.2 and FIX 5.0 SP2
+
+```
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+AMD Ryzen 9 9950X3D 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.401
+  [Host]   : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+  ShortRun : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+
+Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+
+```
+| Method                                | Reading  | Mean        | Error      | StdDev    | Op/s        | Gen0   | Gen1   | Allocated |
+|-------------------------------------- |--------- |------------:|-----------:|----------:|------------:|-------:|-------:|----------:|
+| **&#39;ours: parse + read&#39;**                  | **Order42**  |    **928.5 ns** |   **431.9 ns** |  **23.67 ns** | **1,076,981.5** | **0.0534** |      **-** |   **2.62 KB** |
+| &#39;QuickFIX/n: parse + read&#39;            | Order42  |  1,992.4 ns | 1,149.8 ns |  63.03 ns |   501,916.7 | 0.1621 | 0.0019 |      8 KB |
+| &#39;ours: parse + validate + read&#39;       | Order42  |  1,061.4 ns |   807.1 ns |  44.24 ns |   942,134.9 | 0.0534 |      - |   2.62 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39; | Order42  |  3,770.0 ns |   781.4 ns |  42.83 ns |   265,254.1 | 0.2213 | 0.0038 |  10.86 KB |
+| &#39;A/A ours: parse + read&#39;              | Order42  |    928.0 ns |   230.9 ns |  12.66 ns | 1,077,578.4 | 0.0525 |      - |   2.59 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;        | Order42  |  2,030.8 ns |   948.0 ns |  51.96 ns |   492,425.8 | 0.1621 | 0.0019 |      8 KB |
+| **&#39;ours: parse + read&#39;**                  | **Order50**  |  **1,353.9 ns** |   **412.1 ns** |  **22.59 ns** |   **738,610.1** | **0.0858** |      **-** |   **4.29 KB** |
+| &#39;QuickFIX/n: parse + read&#39;            | Order50  |  2,478.2 ns | 2,512.4 ns | 137.71 ns |   403,521.1 | 0.1793 | 0.0038 |   8.95 KB |
+| &#39;ours: parse + validate + read&#39;       | Order50  |  1,642.0 ns |   996.2 ns |  54.61 ns |   609,012.3 | 0.0858 |      - |   4.26 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39; | Order50  |  4,367.3 ns | 3,563.4 ns | 195.32 ns |   228,973.9 | 0.2441 |      - |  12.05 KB |
+| &#39;A/A ours: parse + read&#39;              | Order50  |  1,446.8 ns |   712.7 ns |  39.06 ns |   691,197.7 | 0.0858 |      - |   4.26 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;        | Order50  |  2,487.4 ns | 2,013.6 ns | 110.37 ns |   402,022.0 | 0.1793 | 0.0038 |   8.95 KB |
+| **&#39;ours: parse + read&#39;**                  | **Report50** |  **3,492.1 ns** |   **298.5 ns** |  **16.36 ns** |   **286,359.0** | **0.1564** | **0.0038** |   **7.82 KB** |
+| &#39;QuickFIX/n: parse + read&#39;            | Report50 |  6,298.6 ns | 4,316.6 ns | 236.61 ns |   158,765.6 | 0.5264 | 0.0229 |  25.96 KB |
+| &#39;ours: parse + validate + read&#39;       | Report50 |  4,071.4 ns | 1,225.2 ns |  67.16 ns |   245,615.5 | 0.1564 |      - |   7.79 KB |
+| &#39;QuickFIX/n: parse + validate + read&#39; | Report50 | 10,369.1 ns | 7,731.2 ns | 423.78 ns |    96,440.4 | 0.6714 | 0.0305 |  33.14 KB |
+| &#39;A/A ours: parse + read&#39;              | Report50 |  3,452.8 ns | 1,451.5 ns |  79.56 ns |   289,619.0 | 0.1564 |      - |   7.79 KB |
+| &#39;A/A QuickFIX/n: parse + read&#39;        | Report50 |  6,554.4 ns | 2,358.4 ns | 129.27 ns |   152,569.1 | 0.5264 | 0.0229 |  25.96 KB |

@@ -1,0 +1,61 @@
+# The dictionary, cold, 2026-09-25 (T:\TEMP\dotgram-bdn\qf-dictionary-2026-09-25-20260925-193937)
+
+# BenchmarkDotNet run qf-dictionary-2026-09-25, 2026-09-25 19:39 - 19:40
+
+Assembly P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\qfcompare.dll, commit 095f4231. Arguments: --filter *FixDictionaryFirstCall* *FixDictionaryFirstValidation*. Machine IGOR-DESKTOP, launcher and workers on mask 0xFFFF at high priority.
+JIT: DOTNET_TieredCompilation unset, DOTNET_TieredPGO unset, DOTNET_TC_QuickJitForLoops unset, DOTNET_ReadyToRun unset (unset is the runtime's default: tiered compilation on, dynamic PGO on).
+Quiet check before the start: 1.6% of the machine (0.51 of 32 logical processors) in use outside this script, three seconds; busiest: LEDKeeper2 (pid 14704) 0.281; claude (pid 27464) 0.031; msedgewebview2 (pid 31076) 0.016.
+State of the sources, read at 19:39:40: project P:\dotgram.WorkTrees\finance\.work\qfcompare; repository HEAD 095f4231; 0 tracked files modified in the repository, 0 untracked (not ignored) in the project (a benchmark project outside the repository is untracked by design: the source hash below is what watches it); source hash of the project BE58055D84C92605; 0 source files NEWER than the assembly (19:16:21).
+Source hash at the end: BE58055D84C92605 (the same as at the start).
+Exit code: 0. 
+Every worker that was read back from the operating system was on the mask. Coverage: BDN executed 40 workers (its log), 37 were read; the others ended between two reads, and the mask they had is the inherited one, not a reading.
+
+## (a) the load, and (b) the first validation of ten types, by BenchmarkDotNet
+
+```
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+AMD Ryzen 9 9950X3D 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.401
+  [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+  Job-MLTFGY : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+
+InvocationCount=1  IterationCount=1  LaunchCount=10  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=0  
+
+```
+| Method                                 | Mean     | Error     | StdDev    | Median   | Op/s  | Allocated |
+|--------------------------------------- |---------:|----------:|----------:|---------:|------:|----------:|
+| &#39;ours: Fix44Context.Load, cold&#39;        | 77.22 ms |  2.833 ms |  1.874 ms | 76.84 ms | 12.95 |  16.85 MB |
+| &#39;QuickFIX/n: new DataDictionary, cold&#39; | 26.38 ms | 32.953 ms | 21.796 ms | 19.47 ms | 37.90 |   4.85 MB |
+```
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+AMD Ryzen 9 9950X3D 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.401
+  [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+  Job-MLTFGY : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+
+InvocationCount=1  IterationCount=1  LaunchCount=10  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=0  
+
+```
+| Method                                          | Mean      | Error     | StdDev    | Op/s   | Allocated |
+|------------------------------------------------ |----------:|----------:|----------:|-------:|----------:|
+| &#39;ours: first validate of ten types, cold&#39;       | 356.64 ms | 35.374 ms | 23.398 ms |  2.804 |  19.31 KB |
+| &#39;QuickFIX/n: first validate of ten types, cold&#39; |  26.31 ms |  0.420 ms |  0.278 ms | 38.013 |  58.82 KB |
+
+## (b) again, one process per measurement, counted by that process (cores 16-31, no window)
+
+ours:   the load took 85.2 ms; the first validation of 1 type(s) took 107.6 ms and allocated 2,088,152 bytes (0 findings)
+ours:   the load took 83.1 ms; the first validation of 1 type(s) took 107.1 ms and allocated 2,088,208 bytes (0 findings)
+ours:   the load took 84.8 ms; the first validation of 3 type(s) took 117.8 ms and allocated 2,979,464 bytes (0 findings)
+ours:   the load took 85.9 ms; the first validation of 3 type(s) took 114.7 ms and allocated 2,969,296 bytes (0 findings)
+ours:   the load took 82.3 ms; the first validation of 10 type(s) took 398.2 ms and allocated 40,481,712 bytes (0 findings)
+ours:   the load took 84.7 ms; the first validation of 10 type(s) took 401.5 ms and allocated 40,484,568 bytes (0 findings)
+theirs: the load took 28.8 ms; the first validation of 1 type(s) took 13.2 ms and allocated 9,744 bytes (1 read)
+theirs: the load took 29.1 ms; the first validation of 10 type(s) took 29.8 ms and allocated 67,032 bytes (10 read)
+theirs: the load took 29.4 ms; the first validation of 10 type(s) took 28.9 ms and allocated 67,032 bytes (10 read)
+
+BenchmarkDotNet's Allocated column for (b) describes a later call, where every check is already
+compiled: it reported 19.31 KB against the 40.5-40.9 MB this probe counts. It is not quoted.

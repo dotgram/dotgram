@@ -1,0 +1,95 @@
+# The checks of quickfix-2026-09-25, run before anything was timed
+
+## qfcompare --names-check
+
+QuickFix                 assembly 1.14.1.0     informational 1.14.1+44c111acdb253335fd3c035589795468ff60c400 P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\QuickFix.dll
+QuickFix.FIX44           assembly 1.14.1.0     informational 1.14.1+44c111acdb253335fd3c035589795468ff60c400 P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\QuickFix.FIX44.dll
+DotGram.Finance          assembly 0.1.0.0      informational 0.1.0+095f42312c4aa53937e09358f20f67fdbcca58de P:\dotgram.WorkTrees\finance\.work\qfcompare\bin\Release\net10.0\DotGram.Finance.dll
+
+## qfcompare --against-check
+
+Compiled   Order          ours        267   theirs        267   octets        267 /        267   findings 0   their pair        267
+Compiled   Parties        ours        499   theirs        499   octets        499 /        499   findings 0   their pair        499
+Compiled   PartiesMedium  ours       7857   theirs       7857   octets       7857 /       7857   findings 0   their pair       7857
+Compiled   PartiesLarge   ours      77157   theirs      77157   octets      77157 /      77157   findings 0   their pair      77157
+Compiled   Binary         ours         65   theirs         65   octets         65 /         65   findings 0   their pair         65
+Dictionary Order          ours        267   theirs        267   octets        267 /        267   findings 0   their pair        267
+Dictionary Parties        ours        499   theirs        499   octets        499 /        499   findings 0   their pair        499
+Dictionary PartiesMedium  ours       7857   theirs       7857   octets       7857 /       7857   findings 0   their pair       7857
+Dictionary PartiesLarge   ours      77157   theirs      77157   octets      77157 /      77157   findings 0   their pair      77157
+Dictionary Binary         ours         65   theirs         65   octets         65 /         65   findings 0   their pair         65
+
+every shape, both schemas: the two sides read the same numbers, and their
+validating pair returns rather than throwing on a valid message.
+
+## qfcompare --flag-check
+
+a NewOrderSingle with no ClOrdID, which the schema requires:
+
+  ours                                     1 finding: RequiredFieldMissing
+  validate:False                           accepted
+  validate:True                            accepted
+  validate:true + DataDictionary.Validate   refused: RequiredTagMissing (Required tag missing)
+
+## qfcompare --matrix
+
+defect                                 ours                                           QuickFIX/n (their pair)
+-------------------------------------- ---------------------------------------------- -----------------------
+valid                                  accepted                                       accepted
+no ClOrdID (required)                  1 finding: RequiredFieldMissing                refused: RequiredTagMissing (Required tag missing)
+Side not in its code set               1 finding: InvalidValue                        refused: IncorrectTagValue (Value is incorrect (out of range) for this tag)
+OrderQty not a number                  1 finding: InvalidValue                        refused: IncorrectDataFormat (Incorrect data format for value)
+a tag the schema does not place here   1 finding: FieldNotInScope                     refused: TagNotDefinedForMessage (Tag not defined for this message type)
+CheckSum wrong                         1 finding: CheckSumMismatch                    refused: InvalidMessage (Invalid message: Expected CheckSum=166, Received CheckSum=966, Message.SeqNum=1)
+BodyLength wrong                       1 finding: BodyLengthMismatch                  refused: InvalidMessage (Invalid message: Expected BodyLength=114, Received BodyLength=115, Message.SeqNum=1)
+
+## qfcompare --versions-check
+
+case         wire        ours     theirs    ours+validate  theirs+validate
+---------- ------  ---------- ----------   -------------- ----------------
+Order42       180         867        867              867              867
+Order50       211         675        675              675              675
+Report50      363         386        386              386              386
+
+all three: the two sides read the same numbers, ours accepts every message against
+its own compiled schema, and their validating pair returns rather than throwing.
+
+## qfcompare --versions-matrix
+
+Order42:
+  valid                                  ours accepted                                           theirs accepted
+  no ClOrdID (required)                  ours 1 finding: RequiredFieldMissing 11                 theirs refused: RequiredTagMissing (Required tag missing)
+  Side not in its code set               ours 1 finding: InvalidValue 54                         theirs refused: IncorrectTagValue (Value is incorrect (out of range) for this tag)
+  a tag the schema does not place        ours 1 finding: FieldNotInScope 31                      theirs refused: TagNotDefinedForMessage (Tag not defined for this message type)
+
+Order50:
+  valid                                  ours accepted                                           theirs accepted
+  no ClOrdID (required)                  ours 1 finding: RequiredFieldMissing 11                 theirs refused: RequiredTagMissing (Required tag missing)
+  Side not in its code set               ours 1 finding: InvalidValue 54                         theirs refused: IncorrectTagValue (Value is incorrect (out of range) for this tag)
+  a tag the schema does not place        ours 1 finding: FieldNotInScope 32                      theirs refused: TagNotDefinedForMessage (Tag not defined for this message type)
+
+Report50:
+  valid                                  ours accepted                                           theirs accepted
+  no LastQty (required)                  ours 1 finding: RequiredFieldMissing 32                 theirs refused: RequiredTagMissing (Required tag missing)
+  a sub-party's type outside its set     ours 1 finding: InvalidValue 803                        theirs refused: IncorrectDataFormat (Incorrect data format for value)
+  a tag the schema does not place        ours 1 finding: FieldNotInScope 21                      theirs refused: TagNotDefinedForMessage (Tag not defined for this message type)
+
+
+## qfcompare --types-check
+
+type   ours (loaded dictionary)                                 QuickFIX/n (their pair)
+------ -------------------------------------------------------- -----------------------
+0      accepted                                                 accepted
+1      accepted                                                 accepted
+5      accepted                                                 accepted
+A      accepted                                                 accepted
+D      accepted                                                 accepted
+F      accepted                                                 accepted
+G      accepted                                                 accepted
+8      accepted                                                 accepted
+9      accepted                                                 accepted
+V      accepted                                                 accepted
+
+ten types, both schemas: what the row validates is valid on both sides, or this
+says which one refuses it and why.
+

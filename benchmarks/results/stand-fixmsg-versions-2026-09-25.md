@@ -55,11 +55,18 @@ a maturity date and time at an offset and two parties, and the 4.4 rows read two
 again. A version comparison would need one wire every version accepts, and the versions do not
 place the same fields in an order, which is why there is no such row.
 
-**Holding a message to the schema costs 9-11% of reading it, and 32 bytes.** 1,084 to 1,192 on the
-4.2 order, 1,717 to 1,934 on the 5.0 order, 4,364 to 4,862 on the report; 2,648 to 2,680, 4,424 to
-4,456, 7,976 to 8,008. The 32 bytes are the same three times, which is what a walk that allocates
-one list of findings and nothing else looks like. Each of those three differences is larger than its
-row's spread.
+**Holding a message to the schema costs 9-11% of reading it, and nothing measurable in bytes.**
+1,084 to 1,192 ns on the 4.2 order, 1,717 to 1,934 on the 5.0 order, 4,364 to 4,862 on the report,
+each larger than its row's spread.
+
+**The 32 bytes this file first read as validation's are the instrument's floor**, and the comparison
+with QuickFIX/n taken the same evening settles it (its results are in
+`DotGram.Finance.Benchmarks/results/quickfix-2026-09-25.md`): one 32-byte object of our parse path
+is heap-allocated in tier-0 code and elided in
+promoted code, so the same method under two names reads 2,648 and 2,680 in BenchmarkDotNet's own A/A
+rows, on all three version shapes, with the copy always lower. Where two of our byte figures differ
+by 32, that is the floor and not a cost; in that harness three of the five 4.4 shapes read the same
+bytes with validation as without.
 
 **Building over fields already read costs what parsing them costs.** `Order42.build-string` reads
 1,195.1 against `Order42.parse-string`'s 1,084.2 and `Order50.build-string` 1,934.3 against

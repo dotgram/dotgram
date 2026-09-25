@@ -1,0 +1,95 @@
+# Allocations, cores 16-31, outside both windows (GC.GetAllocatedBytesForCurrentThread, 100 messages, warmed 100,000)
+
+## qfcompare --alloc-check (FIX 4.4)
+
+shape          schema     road                                  bytes a message
+-------------- ---------- ---------------------------------- ------------------
+Order          Compiled   ours: parse                                     2,912
+Order          Compiled   QuickFIX/n: parse                               4,792
+Order          Compiled   ours: parse from octets                         2,936
+Order          Compiled   QuickFIX/n: parse, their Parser                 4,944
+Order          Compiled   ours: parse + validate                          2,912
+Order          Compiled   QuickFIX/n: parse + validate                    6,712
+Parties        Compiled   ours: parse                                     3,800
+Parties        Compiled   QuickFIX/n: parse                              10,944
+Parties        Compiled   ours: parse from octets                         3,824
+Parties        Compiled   QuickFIX/n: parse, their Parser                11,384
+Parties        Compiled   ours: parse + validate                          3,800
+Parties        Compiled   QuickFIX/n: parse + validate                   14,552
+PartiesMedium  Compiled   ours: parse                                    30,760
+PartiesMedium  Compiled   QuickFIX/n: parse                             198,560
+PartiesMedium  Compiled   ours: parse from octets                        30,784
+PartiesMedium  Compiled   QuickFIX/n: parse, their Parser               203,656
+PartiesMedium  Compiled   ours: parse + validate                         30,760
+PartiesMedium  Compiled   QuickFIX/n: parse + validate                  250,288
+PartiesLarge   Compiled   ours: parse                                   275,568
+PartiesLarge   Compiled   QuickFIX/n: parse                           1,933,768
+PartiesLarge   Compiled   ours: parse from octets                       275,592
+PartiesLarge   Compiled   QuickFIX/n: parse, their Parser             1,983,872
+PartiesLarge   Compiled   ours: parse + validate                        275,568
+PartiesLarge   Compiled   QuickFIX/n: parse + validate                2,431,896
+Binary         Compiled   ours: parse                                     1,464
+Binary         Compiled   QuickFIX/n: parse                               3,640
+Binary         Compiled   ours: parse from octets                         1,488
+Binary         Compiled   QuickFIX/n: parse, their Parser                 3,968
+Binary         Compiled   ours: parse + validate                          1,464
+Binary         Compiled   QuickFIX/n: parse + validate                    5,576
+Order          Dictionary ours: parse                                     2,912
+Order          Dictionary QuickFIX/n: parse                               4,648
+Order          Dictionary ours: parse from octets                         2,936
+Order          Dictionary QuickFIX/n: parse, their Parser                 4,944
+Order          Dictionary ours: parse + validate                          2,912
+Order          Dictionary QuickFIX/n: parse + validate                    6,712
+Parties        Dictionary ours: parse                                     3,800
+Parties        Dictionary QuickFIX/n: parse                              10,944
+Parties        Dictionary ours: parse from octets                         3,824
+Parties        Dictionary QuickFIX/n: parse, their Parser                11,384
+Parties        Dictionary ours: parse + validate                          3,800
+Parties        Dictionary QuickFIX/n: parse + validate                   14,552
+PartiesMedium  Dictionary ours: parse                                    30,760
+PartiesMedium  Dictionary QuickFIX/n: parse                             198,560
+PartiesMedium  Dictionary ours: parse from octets                        30,784
+PartiesMedium  Dictionary QuickFIX/n: parse, their Parser               203,656
+PartiesMedium  Dictionary ours: parse + validate                         30,760
+PartiesMedium  Dictionary QuickFIX/n: parse + validate                  250,288
+PartiesLarge   Dictionary ours: parse                                   275,568
+PartiesLarge   Dictionary QuickFIX/n: parse                           1,933,768
+PartiesLarge   Dictionary ours: parse from octets                       275,592
+PartiesLarge   Dictionary QuickFIX/n: parse, their Parser             1,983,872
+PartiesLarge   Dictionary ours: parse + validate                        275,568
+PartiesLarge   Dictionary QuickFIX/n: parse + validate                2,431,896
+Binary         Dictionary ours: parse                                     1,464
+Binary         Dictionary QuickFIX/n: parse                               3,640
+Binary         Dictionary ours: parse from octets                         1,488
+Binary         Dictionary QuickFIX/n: parse, their Parser                 3,968
+Binary         Dictionary ours: parse + validate                          1,464
+Binary         Dictionary QuickFIX/n: parse + validate                    5,576
+
+## qfcompare --versions-alloc (FIX 4.2 and 5.0 SP2)
+
+case       road                                      bytes a message
+---------- -------------------------------------- ------------------
+Order42    ours: parse                                         2,648
+Order42    QuickFIX/n: parse                                   8,336
+Order42    ours: parse + validate                              2,680
+Order42    QuickFIX/n: parse + validate                       11,120
+Order42    ours: parse, nothing read                           2,680
+Order42    ours: parse + validate, nothing read                2,680
+Order42    ours: TryParse, nothing read                        2,680
+Order42    ours: TryParse + validate, nothing read              2,680
+Order50    ours: parse                                         4,360
+Order50    QuickFIX/n: parse                                   9,168
+Order50    ours: parse + validate                              4,392
+Order50    QuickFIX/n: parse + validate                       12,344
+Order50    ours: parse, nothing read                           4,392
+Order50    ours: parse + validate, nothing read                4,392
+Order50    ours: TryParse, nothing read                        4,392
+Order50    ours: TryParse + validate, nothing read              4,392
+Report50   ours: parse                                         7,976
+Report50   QuickFIX/n: parse                                  26,584
+Report50   ours: parse + validate                              8,008
+Report50   QuickFIX/n: parse + validate                       33,936
+Report50   ours: parse, nothing read                           8,008
+Report50   ours: parse + validate, nothing read                8,008
+Report50   ours: TryParse, nothing read                        8,008
+Report50   ours: TryParse + validate, nothing read              8,008
