@@ -1,6 +1,6 @@
 generated SQL:2023, rule entries per input
 
-== conditions100: 1275 chars, read, 6,002 entries, 4.71 a char
+== conditions100 [TryParse(out T)]: 1275 chars, read, 6,002 entries, 4.71 a char
           300  Read_Identifier_ValueExpressionTree
           300  Read_Identifier_ValueExpressionTree_Part0
           300  Read_ActualIdentifier_ValueExpressionTree
@@ -10,7 +10,17 @@ generated SQL:2023, rule entries per input
           200  Read_CollateClause_ValueExpressionTree
           200  Read_IntervalQualifier_ValueExpressionTree
 
-== conditions1000: 14775 chars, read, 60,002 entries, 4.06 a char
+== conditions100 [Match<T>]: 1275 chars, read, 6,002 entries, 4.71 a char
+          300  Read_Identifier_ValueExpressionTree
+          300  Read_Identifier_ValueExpressionTree_Part0
+          300  Read_ActualIdentifier_ValueExpressionTree
+          200  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          200  Read_Operand_ValueExpressionTree
+          200  Read_Primary_ValueExpressionTree
+          200  Read_CollateClause_ValueExpressionTree
+          200  Read_IntervalQualifier_ValueExpressionTree
+
+== conditions1000 [TryParse(out T)]: 14775 chars, read, 60,002 entries, 4.06 a char
         3,000  Read_Identifier_ValueExpressionTree
         3,000  Read_Identifier_ValueExpressionTree_Part0
         3,000  Read_ActualIdentifier_ValueExpressionTree
@@ -20,7 +30,87 @@ generated SQL:2023, rule entries per input
         2,000  Read_CollateClause_ValueExpressionTree
         2,000  Read_IntervalQualifier_ValueExpressionTree
 
-== nested200: 205 chars, refused, 126,326 entries, 616.22 a char
+== conditions1000 [Match<T>]: 14775 chars, read, 60,002 entries, 4.06 a char
+        3,000  Read_Identifier_ValueExpressionTree
+        3,000  Read_Identifier_ValueExpressionTree_Part0
+        3,000  Read_ActualIdentifier_ValueExpressionTree
+        2,000  Read_CommonValueExpressionOrRow_ValueExpressionTree
+        2,000  Read_Operand_ValueExpressionTree
+        2,000  Read_Primary_ValueExpressionTree
+        2,000  Read_CollateClause_ValueExpressionTree
+        2,000  Read_IntervalQualifier_ValueExpressionTree
+
+== closed100 [TryParse(out T)]: 205 chars, read, 18,012 entries, 87.86 a char
+        5,050  Read_QueryExpressionBody_ValueExpressionTree
+        5,050  Read_QueryTerm_ValueExpressionTree
+        5,050  Read_QueryPrimary_ValueExpressionTree
+          102  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          102  Read_Operand_ValueExpressionTree
+          102  Read_Primary_ValueExpressionTree
+          102  Read_CollateClause_ValueExpressionTree
+          102  Read_IntervalQualifier_ValueExpressionTree
+
+== closed100 [Match<T>]: 205 chars, read, 18,012 entries, 87.86 a char
+        5,050  Read_QueryExpressionBody_ValueExpressionTree
+        5,050  Read_QueryTerm_ValueExpressionTree
+        5,050  Read_QueryPrimary_ValueExpressionTree
+          102  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          102  Read_Operand_ValueExpressionTree
+          102  Read_Primary_ValueExpressionTree
+          102  Read_CollateClause_ValueExpressionTree
+          102  Read_IntervalQualifier_ValueExpressionTree
+
+== closed200 [TryParse(out T)]: 405 chars, read, 65,962 entries, 162.87 a char
+       20,100  Read_QueryExpressionBody_ValueExpressionTree
+       20,100  Read_QueryTerm_ValueExpressionTree
+       20,100  Read_QueryPrimary_ValueExpressionTree
+          202  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          202  Read_Operand_ValueExpressionTree
+          202  Read_Primary_ValueExpressionTree
+          202  Read_CollateClause_ValueExpressionTree
+          202  Read_IntervalQualifier_ValueExpressionTree
+
+== closed200 [Match<T>]: 405 chars, read, 65,962 entries, 162.87 a char
+       20,100  Read_QueryExpressionBody_ValueExpressionTree
+       20,100  Read_QueryTerm_ValueExpressionTree
+       20,100  Read_QueryPrimary_ValueExpressionTree
+          202  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          202  Read_Operand_ValueExpressionTree
+          202  Read_Primary_ValueExpressionTree
+          202  Read_CollateClause_ValueExpressionTree
+          202  Read_IntervalQualifier_ValueExpressionTree
+
+== closed400 [TryParse(out T)]: 805 chars, read, 251,862 entries, 312.87 a char
+       80,200  Read_QueryExpressionBody_ValueExpressionTree
+       80,200  Read_QueryTerm_ValueExpressionTree
+       80,200  Read_QueryPrimary_ValueExpressionTree
+          402  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          402  Read_Operand_ValueExpressionTree
+          402  Read_Primary_ValueExpressionTree
+          402  Read_CollateClause_ValueExpressionTree
+          402  Read_IntervalQualifier_ValueExpressionTree
+
+== closed400 [Match<T>]: 805 chars, read, 251,862 entries, 312.87 a char
+       80,200  Read_QueryExpressionBody_ValueExpressionTree
+       80,200  Read_QueryTerm_ValueExpressionTree
+       80,200  Read_QueryPrimary_ValueExpressionTree
+          402  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          402  Read_Operand_ValueExpressionTree
+          402  Read_Primary_ValueExpressionTree
+          402  Read_CollateClause_ValueExpressionTree
+          402  Read_IntervalQualifier_ValueExpressionTree
+
+== nested200 [TryParse(out T)]: 205 chars, refused, 63,163 entries, 308.11 a char
+       20,100  Read_QueryExpressionBody_ValueExpressionTree
+       20,100  Read_QueryTerm_ValueExpressionTree
+       20,100  Read_QueryPrimary_ValueExpressionTree
+          202  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          202  Read_Operand_ValueExpressionTree
+          202  Read_Primary_ValueExpressionTree
+          202  Read_PrimaryReading_ValueExpressionTree
+          201  Read_Disjunction_ValueExpressionTree
+
+== nested200 [Match<T>]: 205 chars, refused, 126,326 entries, 616.22 a char
        40,200  Read_QueryExpressionBody_ValueExpressionTree
        40,200  Read_QueryTerm_ValueExpressionTree
        40,200  Read_QueryPrimary_ValueExpressionTree
@@ -30,7 +120,17 @@ generated SQL:2023, rule entries per input
           404  Read_PrimaryReading_ValueExpressionTree
           402  Read_Disjunction_ValueExpressionTree
 
-== nested400: 405 chars, refused, 492,526 entries, 1216.11 a char
+== nested400 [TryParse(out T)]: 405 chars, refused, 246,263 entries, 608.06 a char
+       80,200  Read_QueryExpressionBody_ValueExpressionTree
+       80,200  Read_QueryTerm_ValueExpressionTree
+       80,200  Read_QueryPrimary_ValueExpressionTree
+          402  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          402  Read_Operand_ValueExpressionTree
+          402  Read_Primary_ValueExpressionTree
+          402  Read_PrimaryReading_ValueExpressionTree
+          401  Read_Disjunction_ValueExpressionTree
+
+== nested400 [Match<T>]: 405 chars, refused, 492,526 entries, 1216.11 a char
       160,400  Read_QueryExpressionBody_ValueExpressionTree
       160,400  Read_QueryTerm_ValueExpressionTree
       160,400  Read_QueryPrimary_ValueExpressionTree

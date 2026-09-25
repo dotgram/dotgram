@@ -51,8 +51,27 @@ thing: 422 probed methods on the hand side, 2,159 on the generated one.
   input             chars     hand /char   generated /char   generated/hand
   conditions100     1,275     4.32         4.71              1.09x
   conditions1000   14,775     3.72         4.06              1.09x
-  nested200           205     410.04       616.22            1.50x
-  nested400           405     810.02       1216.11           1.50x
+  nested200           205     410.04       308.11            0.75x
+  nested400           405     810.02       608.06            0.75x
+
+Every row is TryParse(out T) on both sides. THE NESTED ROWS SAID 1.50x UNTIL 2026-09-25 AND THAT
+WAS A COMPARISON OF TWO DIFFERENT METHODS: my probe read the generated side through Match<T>,
+which reads a REFUSED input a second time to record what was expected, against the hand parser's
+TryParse(out T), which has no such form to compare with. Corrected here; sql-47 found it
+(e631bea3). Measured on the same instrument, the two forms are:
+
+  nested400, generated    TryParse(out T)   246,263 entries    QueryExpressionBody  80,200
+  nested400, generated    Match<T>          492,526 entries    QueryExpressionBody 160,400
+
+exactly twice, and on ACCEPTED input the two forms are identical to the digit -- the second
+reading happens only on a refusal. So the conditions rows above are unaffected whichever form
+they were taken through, and 1.09x stands; only the nested rows moved, from 1.50x to 0.75x, which
+reverses their sign: like for like the generated reader makes a QUARTER FEWER entries than the
+hand parser on deep nested input, which is what the accepted path had already said (0.76 to 0.79x).
+
+The form is part of a row's name from here on. It is not a detail of the harness: on a refused
+deep input Match<T> costs twice TryParse(out T), by design, and a caller choosing a form for input
+they do not control should know it.
 
 THE CALL GAP AND THE STACK GAP ARE THE SAME NUMBER on ordinary input: 1.09x of entries a
 character against 1.09x of stack a level, measured by two instruments that share nothing. So they
@@ -71,8 +90,15 @@ the total entries for twice the input. The generated side does the same shape at
 constant: 40,200 and 160,400, and 3.90x again.
 
 So the quadratic is a property of the grammar's shape, not of the generator: a hand-written
-recursive descent over the same rules re-scans the same way. What the generator adds is the
-constant, and on this input it is 1.5x rather than the 1.09x of ordinary input.
+recursive descent over the same rules re-scans the same way. AND THE CONSTANT IS NOT OURS EITHER:
+through the same method on both sides the counts are equal rule for rule -- QueryExpressionBody
+20,100 against 20,100 at n=200 -- and the generated total is a quarter LOWER. The "twice the
+constant" this file claimed until 2026-09-25 was the Match<T> form's second reading, not the
+generator's doing.
+
+The cause of the exponent itself is sql-47's: ScalarSubquery in PrimaryReading, a fourth reading
+of a bracket that the earlier left-factoring into Bracketed did not reach
+(benchmarks/results/nested-brackets-2026-09-25).
 
 WHAT THIS DOES TO THE QUESTION. Two of the premises the task was set on do not survive:
 
