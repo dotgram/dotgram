@@ -35,6 +35,12 @@ namespace DotGram.Tests;
 /// twenty per cent wider than Release, and a consumer debugs their application; the numbers the
 /// interval was derived from are the Debug ones for that reason.
 /// </para>
+/// <para>
+/// The levels quoted in the generator's own remark — 5.40 Debug, 4.50 Release — were taken
+/// before <c>bafdcf00</c> made the towers' value types classes. The current levels are 4.15 and
+/// 3.36, so that arithmetic reserves against a level the parser no longer has. This test measures
+/// the level afresh on every run, so it is never reading a stale one.
+/// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class StackFrameBudgetTests

@@ -444,6 +444,11 @@ sealed partial class Machine
 	/// </description></item>
 	/// <item><description>
 	/// <b>The worst level we have measured is 5.40 KiB</b>, SQL:2023 in a DEBUG build at tier-0.
+	/// <b>Taken before bafdcf00</b>, which made the towers' four value types classes and took a
+	/// quarter off the level: Release is 3.36 KiB now rather than 4.50, and Debug 4.15 rather
+	/// than 5.40. The arithmetic below is left on the older, wider figures, so it reserves
+	/// against a level the parser no longer has and the real margin is better than it says.
+	/// <b>Do not re-derive from 5.40 or 4.50</b>: if this is ever re-taken, take it afresh.
 	/// Release is 4.50 and tier-1 is 2.38; neither is the number to use, because a consumer
 	/// debugs their application and a first call runs at tier-0.
 	/// </description></item>
