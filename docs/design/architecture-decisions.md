@@ -9407,9 +9407,11 @@ base class and the classes of its value's type, nothing else; no factory; compat
   `Date`, `MonthYear`, `Multiple`, `Data` — plus `Invalid`. No finer FIX type is stored on a field.
   Sealed because the parser builds only these and, with no factory, nothing it reads can be a
   derived class (opened at 2858c557 and sealed again at eebd2ab2 for that reason).
-- **The tag is `FixTag`,** an enum of the 912 standard tags; `FixField.Tag`, `FixFinding.Tag`,
-  `FixParseError.Tag` and `LengthDataPairs` are typed by it. A tag outside the standard is its
-  number, `(FixTag)25005`. Matched as `FixField.Decimal { Tag: FixTag.OrderQty }`.
+- **The tag is its number, an `int`,** and `FixTag` holds the standard's tags as constants named
+  for them, as QuickFIX/n's `Tags` does. Matched as `FixField.Decimal { Tag: FixTag.OrderQty }`; a
+  tag outside the standard is `25005`, with no cast. (It was an enum from 582a63c5 until Igor,
+  2026-09-24: the number is what logs, the wire and a consumer's own tags are written in, and an
+  enum asked for a cast at every one of them. The constants keep every pattern and `case`.)
 - **One table a context,** a byte a tag: the value type and the tag's half of a length/data pair.
   The standard's is the default (`FixFieldBuilder.Standard.cs`, written by `generate.py`);
   `LengthDataPairs` sets the pair bits, `Load` sets the types of the tags a dictionary adds. A
