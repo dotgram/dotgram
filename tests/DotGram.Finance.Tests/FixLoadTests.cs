@@ -322,5 +322,30 @@ public sealed class FixLoadTests
 		Assert.Equal(types.OrderBy(one => one, StringComparer.Ordinal), seen.OrderBy(one => one, StringComparer.Ordinal));
 	}
 
+	/// <summary>
+	/// A fragment may name a field it does not describe by the name this version gives it, which is
+	/// not always <see cref="FixTag"/>'s: FixTag takes the newest version's names.
+	/// </summary>
+	[Fact]
+	public void A_fragment_names_an_undescribed_field_by_the_versions_name()
+	{
+		const string fragment =
+			"""
+			<fix>
+			  <messages>
+			    <message name="IndicationOfInterest" msgtype="6">
+			      <field name="IOIid" required="Y" />
+			    </message>
+			  </messages>
+			</fix>
+			""";
+
+		var context = Fix44Context.Default.Load(fragment);
+		var message = FixParser.ParseMessage(FixFixtures.Wire("6", "28=N|55=IBM|54=1|27=S|"));
+
+		Assert.False(message.Validate(context));
+		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 23);
+	}
+
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
 }

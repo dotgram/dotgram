@@ -93,6 +93,31 @@ public sealed class Fix42Tests
 		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
 	}
 
+	/// <summary>
+	/// A fragment may name a field it does not describe by the name this version gives it, which is
+	/// not always <see cref="FixTag"/>'s: FixTag takes the newest version's names.
+	/// </summary>
+	[Fact]
+	public void A_fragment_names_an_undescribed_field_by_the_versions_name()
+	{
+		const string fragment =
+			"""
+			<fix>
+			  <messages>
+			    <message name="NewOrderSingle" msgtype="D">
+			      <field name="IDSource" required="Y" />
+			    </message>
+			  </messages>
+			</fix>
+			""";
+
+		var context = Fix42Context.Default.Load(fragment);
+		var message = FixParser.ParseMessage(Wire("D", "11=ORD-1|21=1|55=IBM|54=1|60=20260920-12:00:00|40=1|"));
+
+		Assert.False(message.Validate(context));
+		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 22);
+	}
+
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
 
 	/// <summary>A FIX 4.2 message of the given type around a body written with '|' for SOH.</summary>

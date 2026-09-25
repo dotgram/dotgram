@@ -42,6 +42,16 @@ partial class FixValidator50
 		};
 	}
 
+	/// <summary>The tag of a field this version names otherwise than FixTag does.</summary>
+	private protected override int FieldTag(string name)
+	{
+		return name switch
+		{
+			"HaltReasonInt" => 327,
+			_               => 0,
+		};
+	}
+
 	/// <summary>Holds a FIX 5.0 SP2 AdjustedPositionReport to the schema.</summary>
 	public Func<Fix50Context, FixMessage.AdjustedPositionReport, bool> AdjustedPositionReport { get; set; } = ValidateAdjustedPositionReport;
 

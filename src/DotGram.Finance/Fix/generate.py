@@ -697,6 +697,17 @@ class Writer:
             out += [f"\t\t\t{(chr(34) + k + chr(34)).ljust(width)} => \"{table[k]}\"," for k in sorted(table)]
             out += [f"\t\t\t{'_'.ljust(width)} => name,", "\t\t};", "\t}", ""]
 
+        # The fields the version names otherwise than FixTag, which takes the newest version's names:
+        # a fragment of a dictionary may name one it does not describe.
+        tags = {name: t for t, name in self.m.field_name.items() if TAG_NAME[t] != name}
+
+        if tags:
+            width = max(len(k) for k in tags) + 2
+            out += ["\t/// <summary>The tag of a field this version names otherwise than FixTag does.</summary>",
+                    "\tprivate protected override int FieldTag(string name)", "\t{", "\t\treturn name switch", "\t\t{"]
+            out += [f"\t\t\t{(chr(34) + k + chr(34)).ljust(width)} => {tags[k]}," for k in sorted(tags)]
+            out += [f"\t\t\t{'_'.ljust(width)} => 0,", "\t\t};", "\t}", ""]
+
         return out
 
     # The fields' own checks: the value's type, and the code set the repository publishes for it.

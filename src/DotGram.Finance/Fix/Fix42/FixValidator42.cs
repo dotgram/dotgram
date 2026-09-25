@@ -22,6 +22,36 @@ partial class FixValidator42
 	/// <summary>What this package compiles in, which is what a context takes unless it is given another.</summary>
 	public static readonly FixValidator42 Default = new();
 
+	/// <summary>The tag of a field this version names otherwise than FixTag does.</summary>
+	private protected override int FieldTag(string name)
+	{
+		return name switch
+		{
+			"AllocShares"         => 80,
+			"AvgPrxPrecision"     => 74,
+			"DiscretionOffset"    => 389,
+			"FutSettDate"         => 64,
+			"FutSettDate2"        => 193,
+			"IDSource"            => 22,
+			"IOIShares"           => 27,
+			"IOIid"               => 23,
+			"LastShares"          => 32,
+			"LinesOfText"         => 33,
+			"OpenClose"           => 77,
+			"OpenCloseSettleFlag" => 286,
+			"PegDifference"       => 211,
+			"QuoteAckStatus"      => 297,
+			"SettlmntTyp"         => 63,
+			"Shares"              => 53,
+			"SpreadToBenchmark"   => 218,
+			"TotQuoteEntries"     => 304,
+			"TotalNumSecurities"  => 393,
+			"TradeType"           => 418,
+			"UnderlyingIDSource"  => 305,
+			_                     => 0,
+		};
+	}
+
 	/// <summary>Holds a FIX 4.2 Advertisement to the schema.</summary>
 	public Func<Fix42Context, FixMessage.Advertisement, bool> Advertisement { get; set; } = ValidateAdvertisement;
 

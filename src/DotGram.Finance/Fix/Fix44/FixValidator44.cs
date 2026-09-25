@@ -22,6 +22,17 @@ partial class FixValidator44
 	/// <summary>What this package compiles in, which is what a context takes unless it is given another.</summary>
 	public static readonly FixValidator44 Default = new();
 
+	/// <summary>The tag of a field this version names otherwise than FixTag does.</summary>
+	private protected override int FieldTag(string name)
+	{
+		return name switch
+		{
+			"IOIid"       => 23,
+			"LinesOfText" => 33,
+			_             => 0,
+		};
+	}
+
 	/// <summary>Holds a FIX 4.4 Advertisement to the schema.</summary>
 	public Func<Fix44Context, FixMessage.Advertisement, bool> Advertisement { get; set; } = ValidateAdvertisement;
 

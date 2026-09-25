@@ -128,6 +128,31 @@ public sealed class Fix50Tests
 		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
 	}
 
+	/// <summary>
+	/// A fragment may name a field it does not describe by the name this version gives it, which is
+	/// not always <see cref="FixTag"/>'s: FixTag takes the newest version's names, and a message the dictionaries call SecurityStatus is the class SecurityStatusMessage.
+	/// </summary>
+	[Fact]
+	public void A_fragment_names_an_undescribed_field_by_the_versions_name()
+	{
+		const string fragment =
+			"""
+			<fix>
+			  <messages>
+			    <message name="SecurityStatus" msgtype="f">
+			      <field name="HaltReasonInt" required="Y" />
+			    </message>
+			  </messages>
+			</fix>
+			""";
+
+		var context = Fix50Context.Default.Load(fragment);
+		var message = FixParser.ParseMessage(Wire("f", "55=IBM|"));
+
+		Assert.False(message.Validate(context));
+		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 327);
+	}
+
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
 
 	/// <summary>A FIXT 1.1 message of the given type around a body written with '|' for SOH.</summary>

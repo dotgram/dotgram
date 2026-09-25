@@ -283,10 +283,12 @@ abstract partial class FixValidator
 
 	// A field's tag as the text says it: its number, which is the same in every version, where its
 	// name is the file's and may not be the one FixTag gives it. A fragment may name a field it does
-	// not describe, and that is the standard's field of that name.
-	static string Tag(string name, FixDictionary dictionary)
+	// not describe, and that is the standard's field of that name: the version's name for it first,
+	// FIX 4.4's IOIid, and then FixTag's, which is the newest version's.
+	string Tag(string name, FixDictionary dictionary)
 	{
-		if (dictionary.Tags.TryGetValue(name, out var tag) || typeof(FixTag).GetField(name, BindingFlags.Public | BindingFlags.Static)?.GetRawConstantValue() is int standard && (tag = standard) > 0)
+		if (dictionary.Tags.TryGetValue(name, out var tag) || (tag = FieldTag(name)) > 0 ||
+			typeof(FixTag).GetField(name, BindingFlags.Public | BindingFlags.Static)?.GetRawConstantValue() is int standard && (tag = standard) > 0)
 			return tag.ToString(CultureInfo.InvariantCulture);
 
 		throw new FormatException($"The field '{name}' is used and not described.");
@@ -320,6 +322,12 @@ abstract partial class FixValidator
 	private protected virtual string MessageClass(string name)
 	{
 		return name;
+	}
+
+	/// <summary>The tag of a field the version names otherwise than <see cref="FixTag"/> does, or 0.</summary>
+	private protected virtual int FieldTag(string name)
+	{
+		return 0;
 	}
 
 	/// <summary>The slot of a field the file names so: its name, except where a message or a component has the name first.</summary>
