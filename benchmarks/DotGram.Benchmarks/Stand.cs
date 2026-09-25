@@ -115,7 +115,7 @@ static partial class Stand
 
 		if (only is not null)
 		{
-			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
+			workloads = Only(workloads, only);
 
 			if (workloads.Length == 0)
 				throw new ArgumentException($"No row has an id containing '{only}'.");
@@ -168,9 +168,13 @@ static partial class Stand
 	public static void PairedCheck(string beforeDir, string afterDir, string? only)
 	{
 		PairedFixContent(beforeDir, afterDir);
-		var workloads = PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir))
-			.Where(one => only is null || Matches(one.Id, only))
-			.ToArray();
+		var workloads = Only(
+			PairedWorkloads(new PairedSide("before", beforeDir), new PairedSide("after", afterDir)).ToArray(),
+			only);
+
+		// Even with no filter: a side that loaded nothing would otherwise be timed as a clean pass.
+		if (workloads.Length == 0)
+			throw new InvalidOperationException("no rows to measure at all, which is a fault of the stand rather than of the call.");
 
 		foreach (var workload in workloads)
 			Check(workload);
@@ -185,6 +189,41 @@ static partial class Stand
 	}
 
 	/// <summary>Whether a row's id contains any of the comma-separated pieces of an `--only`.</summary>
+	/// <summary>The rows an <c>--only</c> keeps, refusing where it keeps none.</summary>
+	/// <remarks>
+	/// <para>
+	/// A filter that matched nothing used to run the whole machinery over an empty set, print
+	/// <b>"0 rows, every reading agreeing"</b> — which reads as a pass — and then die inside the
+	/// JSON writer on a ratio of positive infinity taken over no rows at all. Both halves of that
+	/// say the same thing: an empty selection is never what the caller asked for, and the run that
+	/// reports it is not a run that succeeded.
+	/// </para>
+	/// <para>
+	/// The case that found it is worth the message it prints: <c>--only web/</c> matched nothing
+	/// because a paired side loads <c>DotGram.Web</c> only <c>if (File.Exists(...))</c>, and the
+	/// folders had no <c>DotGram.Web.dll</c>. <b>A missing assembly silently removes a whole family</b>
+	/// rather than failing, so "matched nothing" is far more often a side that was built short than
+	/// a filter that was typed wrong. The message names both, and lists the families that are there.
+	/// </para>
+	/// </remarks>
+	static Workload[] Only(Workload[] workloads, string? only)
+	{
+		if (only is null)
+			return workloads;
+
+		var kept = workloads.Where(one => Matches(one.Id, only)).ToArray();
+
+		if (kept.Length == 0)
+			throw new InvalidOperationException(
+				$"--only '{only}' matched none of the {workloads.Length} rows, so nothing would be " +
+				"measured and an empty run is not a run that passed. Either the filter names no row, or a " +
+				"side is missing the assembly a whole family needs: a paired side loads DotGram.Web and the " +
+				"examples only if those files are in its folder. The families present are " +
+				$"{string.Join(", ", workloads.Select(one => one.Family).Distinct().OrderBy(name => name, StringComparer.Ordinal))}.");
+
+		return kept;
+	}
+
 	static bool Matches(string id, string only)
 	{
 		return only.Split(',').Any(piece => id.Contains(piece, StringComparison.Ordinal));
@@ -720,6 +759,10 @@ static partial class Stand
 			_fixParseOptions = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseOptions") ?? finance.GetType("DotGram.Finance.Fix.FixParseOptions"));
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
+			// A side without this file loses every web row and says nothing: `--only web/` then matches no
+			// row at all, which `Only` now refuses rather than reporting as a clean empty run
+			// (performance-9f, 2026-09-25). Making a short side an error here rather than a silent
+			// omission is the real fix and is not done: a pair of Finance alone is a legitimate pair.
 			if (File.Exists(Path.Combine(directory, "DotGram.Web.dll")))
 			{
 				_uri  = Load("DotGram.Web", "DotGram.Web.UriReference");
@@ -1518,6 +1561,10 @@ static partial class Stand
 			// The quiet form beside the match (expr's dba87a9e): only where the after side has it.
 			.. PairedBool(before, after),
 			.. PairedCliffs(before, after),
+
+			// Nesting deep enough to pay for a cost quadratic in depth, at two depths so the exponent is
+			// readable inside one run (StandNesting.cs). Nothing else here nests past seven levels.
+			.. PairedNesting(before, after),
 			.. PairedRetention(before, after),
 
 			// The whole-stream forms, FixGrammar.ParseFields(Stream | TextReader): the yield form `.stream` is another driver.
@@ -1722,10 +1769,11 @@ static partial class Stand
 		var before = new PairedSide("before", beforeDir);
 		var after  = new PairedSide("after", afterDir);
 
-		var workloads = PairedWorkloads(before, after);
+		var workloads = Only(PairedWorkloads(before, after), only);
 
-		if (only is not null)
-			workloads = [.. workloads.Where(one => Matches(one.Id, only))];
+		// Even with no filter: a side that loaded nothing would otherwise be timed as a clean pass.
+		if (workloads.Length == 0)
+			throw new InvalidOperationException("no rows to measure at all, which is a fault of the stand rather than of the call.");
 
 		foreach (var workload in workloads)
 			Check(workload);

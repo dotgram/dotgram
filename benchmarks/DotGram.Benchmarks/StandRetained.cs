@@ -24,7 +24,7 @@ static partial class Stand
 		Console.WriteLine("| row | side | after one parse KB | after two KB | two / one | bytes a call | after eight small parses KB | after sixteen KB | after eight more, a collection after each KB | twenty of the same parse, lowest KB | highest KB |");
 		Console.WriteLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
 
-		foreach (var id in sides[0].Workloads.Where(one => only is null || Matches(one.Id, only)).Select(static one => one.Id))
+		foreach (var id in Only([.. sides[0].Workloads], only).Select(static one => one.Id))
 		{
 			foreach (var (directory, workloads, side) in sides)
 			{
