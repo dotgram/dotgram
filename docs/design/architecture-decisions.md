@@ -9439,10 +9439,98 @@ base class and the classes of its value's type, nothing else; no factory; compat
     and its context's name. A tag in that text is its number, since a version's dictionary may
     spell a field otherwise than `FixTag`. A finding is said to `IFixFindings`, which `FixMessage`
     implements, so the shared helpers name no version's message.
-  - `FixTag` today holds FIX 4.4's 912; the union of every version, named as 5.0 SP2 names them
-    (`IOIID`, `NoLinesOfText`), is the next step.
+  - `FixTag` is the union of every version the package reads, named as the newest version that
+    has a tag names it (`IOIID`, `NoLinesOfText`); a version's messages keep their own names
+    (`IOIid`). Done in `f3ce6056`; see D140.
 
 `582a63c5`; the split `cd989ade`, the tag as a number `9fbba0aa`, `FixValidator` and `FixValidator44` `778c75f2` and after.
 Consequence for EL: the tuple, the target-typed switch and the untyped lambda built
 that week for the factory lost their only consumer; Igor keeps them as C# parity (232 KB, +13.5%
 over 5bfa7b7b~1, measured in one worktree after 3a8d5bcd).
+
+## D140 — FIX: every version is written by one generator from the FIX repository (Igor)
+
+Igor, 2026-09-24: FIX 4.2 and FIX 5.0 SP2 beside 4.4, "the handwritten parts generated too".
+
+- **One script, a directory a version.** `src/DotGram.Finance/Fix/generate.py` reads
+  `tests/Corpus/FixRepository` (the 2010 edition) and writes the whole of `Fix/Fix42`, `Fix/Fix44`
+  and `Fix/Fix50`: the message classes and their switch, the header and trailer, the components,
+  the value types, the checks of messages, components, entries and fields. What used to be written
+  by hand, the parser, the message base, the context and the header check, is a template in
+  `Fix/Templates/` with the version's names and the repository's tables put in. Nothing in a
+  version's directory is edited by hand; a change is made in the script or a template.
+  `f3ce6056` (4.4 regenerated, equivalent), `d0aeaeaf` (4.2), `f787f18b` (5.0 SP2).
+- **Naming.** Namespaces `DotGram.Finance.Fix.Fix42`/`Fix50`, contexts `Fix42Context`/`Fix50Context`,
+  checks `FixValidator42`/`FixValidator50` (the base names the role, the derivation the version).
+  Fields and messages take the common data dictionaries' names where they differ from the
+  repository's, since `Load` binds by name: four messages in 4.2 (`IndicationofInterest` included),
+  two fields and four messages in 4.4, `HaltReasonInt` in 5.0.
+- **FixTag is the union**, named as the newest version names a tag; a version's own names reach
+  `Load` through a generated `FieldTag` table (`f0b35257`), so a fragment that names an undescribed
+  field as its version does still finds the tag.
+- **5.0 SP2 travels over FIXT 1.1**: its header, trailer and session messages are FIXT's, and
+  BeginString is `FIXT.1.1`. Where both repositories carry a message, field or component, FIXT's
+  wins unless it is empty (FIXT lists no member of `MsgTypeGrp`).
+- **A class C# will not let keep its name.** MsgType `f`, SecurityStatus, carries the field
+  SecurityStatus through Instrument; it is `FixMessage.SecurityStatusMessage` (Igor chose renaming
+  the class over renaming the field in some fifty carriers). `FixValidator` gains `MessageClass`
+  and `FieldSlotName`, overridden only where a version needs them (the field RateSource's slot is
+  `RateSourceField`), and `Load` reads a dictionary through them.
+- **Components without an interface.** 5.0 SP2 writes most groups as components (126
+  `ImplicitBlockRepeating`); the version reads them as groups in their carrier, and `Load` checks a
+  component the version has no interface for where it is carried.
+- **Zoned values (Igor's variant a).** `FixField.ZonedTime` holds `(TimeOnly Time, TimeSpan Offset)`
+  for TZTimeOnly; TZTimestamp is a `FixField.Timestamp` at the offset it was written with; both
+  read by public `FixConvert.ToZonedTime`/`ToZonedTimestamp`. As the repository describes them:
+  seconds optional, then `Z` or a sign and hours 01-12 with minutes optional; a value without an
+  offset is not valid. The 01-12 excludes the real zones +13 and +14; widening is Igor's.
+  MultipleStringValue's items are words, read by an internal `ToMultipleString` (public only if
+  agreed).
+- **Held to the repository** by one test class a version over `FixRepositoryAgreementTests`, which
+  found the three pairs SP2's repository leaves without `AssociatedDataTag` and MultipleStringValue.
+  The common dictionaries: FIX42.xml loads whole; FIXT11.xml + FIX50SP2.xml are a later edition and
+  are refused at their first departure (`Fix50Tests`); no errata for them unless Igor asks.
+- **Open, for Igor:** an attribution line for FIX Protocol Limited in generated files and the
+  README; whether to publish `ToMultipleString`; benchmark rows for 4.2 and 5.0.
+
+## D141 — The expression language resolves a name as C# does (architect)
+
+2026-09-25. EL counted a type found as written and a type a `using` brings in as two equal
+meanings and refused the text; C# takes the one the enclosing (global) namespace declares and
+consults the `using`s only when there is none. The divergence surfaced as an order-dependent
+flake: `GeneratorDriverTests` compiles classes into the global namespace (`Both`, `Grammar`,
+`Mixed`, `Nested`, `Pairs`, `Spans`, `Taken`), after which EL saw two `Spans`.
+
+Decided without Igor, because EL's contract is C#'s rules and this makes it keep that contract;
+accepting what C# accepts is not a widening past the specification. Two `using`s supplying a name
+and nothing global is still ambiguous and refused. Both cases are held against Roslyn compiling the
+same text. Following C# turns such a collision into shadowing, not into nothing: EL's own helper was
+renamed (`SpanCalls`). `4813268b`.
+
+## D142 — Nested brackets in SQL:2023: the quadratics are removed where they are, and counted
+
+2026-09-24/25. Igor's standing rule: a quadratic is removed, not fought. Found by counting after
+the hand-against-generated comparison (`benchmarks/results/hand-against-generated-2026-09-24`),
+which also settled that the hand parser, having no guard, overflows at a fifth of the depth ours
+still answers at, and that the generated reader's extra stack is extra calls, 1.09x of both.
+
+- **Grammar.** `PrimaryReading` read every bracket as a query first, down the whole nest, then as a
+  value: quadratic on accepted input, in the published BNF itself (the hand parser too). Reordered
+  so the bracket is read once, a guard handing `((SELECT ...))` back to the subquery (`99effd0f`, the
+  hand parser alike so the yardstick stays honest; tree unchanged; generation time 0.99x). Entries
+  per character flat.
+- **Reader.** Wall time stayed quadratic with every counter flat: the materialising walk's fast
+  path tested "is everything since the mark built" by scanning the whole nest at every level. An
+  O(1) all-built watermark replaces the scan; it may be raised only from its own test, and a full
+  walk never raises it. Its violation is reached (`a + b * c`) and read back only on refused
+  readings, which is why no test can fail on it; the comment beside the raise says so, and the day
+  a refused reading's values are read it stops being harmless. Landing is conditional on
+  `ExpressionBlowUpTests` measuring each size on a thread of its own and on expr's review.
+- **Still open:** the full walk after a fast-path miss (60% of the remaining quadratic work; every
+  miss on a nest is one tail record after the root); the refused-input square (a covering rule in
+  the grammar, or a refusal memo in the generator).
+- **The instruments learned:** name the API form in a row (`Match<T>` reads a refused input twice,
+  which produced a false "factor two" twice in one day; `syntax.md` says what a refusal costs each
+  form, `28650da6`, being corrected for §7.7's exception where no context can be put back); predict
+  in the unit the loop counts; a stand filter that matches nothing is to be an error, and deep rows
+  are being added to the stand so the next change here can be seen, both with the reader's fix.
