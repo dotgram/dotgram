@@ -9413,7 +9413,7 @@ base class and the classes of its value's type, nothing else; no factory; compat
   2026-09-24: the number is what logs, the wire and a consumer's own tags are written in, and an
   enum asked for a cast at every one of them. The constants keep every pattern and `case`.)
 - **One table a context,** a byte a tag: the value type and the tag's half of a length/data pair.
-  The standard's is the default (`FixFieldBuilder.Standard.cs`, written by `generate.py`);
+  The version's is the default (`Fix/Fix44/FixStandard.cs`, written by `generate.py`);
   `LengthDataPairs` sets the pair bits, `Load` sets the types of the tags a dictionary adds. A
   dictionary never retypes a standard tag — a message property's cast would fail. A pair's tag
   nothing types is read as its half: an `Integer` length, a `Data` data. A tag nothing defines is
@@ -9423,6 +9423,26 @@ base class and the classes of its value's type, nothing else; no factory; compat
 - **What went:** a consumer's own class for a field, and a check of a non-standard field's value
   in a slot; the second is written in `FixCustomMessage.OnValidate`.
 
-`582a63c5`. Consequence for EL: the tuple, the target-typed switch and the untyped lambda built
+- **What every version shares, and what is FIX 4.4's own** (Igor, same day). Tag numbers are
+  shared by every version — 6,066 across 4.0 to 5.0 SP2, none reassigned, 41 renamed, 119 read
+  into a different class in some version — so the field model, `FixTag`, `FixConvert`, the
+  findings, the field grammar, the dictionary reader and the context's table are one layer,
+  `DotGram.Finance.Fix` in `Fix/`; the parser, the messages and the checks are the version's,
+  `DotGram.Finance.Fix.Fix44` in `Fix/Fix44/`. The messages are not shared: each version keeps
+  its own property names.
+  - `FixContext` is an abstract record: framing, buffer and retention bounds, pairs and the table.
+    A version hands it its pairs and types (`FixVersion`) and its checks. `Fix44Context :
+    FixContext` adds `Default`, `WithLogFraming`, `FixMessageFactory` and the public `Load` and
+    `LoadFile`, which answer a `Fix44Context`. One object for the consumer, as before.
+  - The load is shared (`FixValidatorBase`, which `FixValidators` derives from): it writes a check
+    from the dictionary's names, and the version supplies only the namespaces the text opens with
+    and its context's name. A tag in that text is its number, since a version's dictionary may
+    spell a field otherwise than `FixTag`. A finding is said to `IFixFindings`, which `FixMessage`
+    implements, so the shared helpers name no version's message.
+  - `FixTag` today holds FIX 4.4's 912; the union of every version, named as 5.0 SP2 names them
+    (`IOIID`, `NoLinesOfText`), is the next step.
+
+`582a63c5`; the split `cd989ade`, the tag as a number `9fbba0aa`, `FixValidatorBase` `778c75f2`.
+Consequence for EL: the tuple, the target-typed switch and the untyped lambda built
 that week for the factory lost their only consumer; Igor keeps them as C# parity (232 KB, +13.5%
 over 5bfa7b7b~1, measured in one worktree after 3a8d5bcd).
