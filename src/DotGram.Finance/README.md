@@ -425,7 +425,7 @@ MiscFeeType and MassCancelRejectReason are declared `char` and publish values a 
 hold, so they are `Text`.
 
 A zoned value is read as the FIX repository describes it: the clock to the minute, seconds and a
-fraction optional, then `Z` or a sign and hours from 01 to 12 with minutes optional
+fraction optional, then `Z` or a sign and hours with minutes optional, up to fourteen hours either way
 (`13:09+05:30`). One without an offset does not say which instant it is, and is not valid.
 
 A code set is held against the schema by `Validate`, not while the field is read; the

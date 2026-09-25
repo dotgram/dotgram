@@ -10,7 +10,9 @@ namespace DotGram.Finance.Tests;
 /// <summary>
 /// FIX 5.0's zoned values, TZTimestamp and TZTimeOnly, read as the repository describes them: the
 /// clock to the minute with seconds optional, and an offset that is <c>Z</c> or a sign and hours from
-/// 01 to 12 with minutes optional. Every case through characters and through octets.
+/// with minutes optional, up to fourteen hours either way: the repository says 01 to 12, and the zones
+/// of the world run to +14, which ISO 8601 and DateTimeOffset both hold. Every case through characters
+/// and through octets.
 /// </summary>
 public sealed class FixZonedConvertTests
 {
@@ -37,6 +39,10 @@ public sealed class FixZonedConvertTests
 	[InlineData("02:39-05",     2, 39,  0, -5,   0)]
 	[InlineData("13:09+05:30", 13,  9,  0,  5,  30)]
 	[InlineData("13:09:47+12", 13,  9, 47, 12,   0)]
+	[InlineData("13:09+13",    13,  9,  0, 13,   0)]   // Tonga, and New Zealand in summer
+	[InlineData("13:09+14:00", 13,  9,  0, 14,   0)]   // Kiritimati
+	[InlineData("13:09-00",    13,  9,  0,  0,   0)]
+	[InlineData("13:09+00:00", 13,  9,  0,  0,   0)]
 	public void A_zoned_time_is_the_clock_as_written_and_its_offset(string text, int hour, int minute, int second, int hours, int minutes)
 	{
 		var expected = (new TimeOnly(hour, minute, second), new TimeSpan(hours, minutes, 0));
@@ -50,8 +56,9 @@ public sealed class FixZonedConvertTests
 
 	[Theory]
 	[InlineData("13:09")]          // no offset: which instant it is, it does not say
-	[InlineData("13:09+00")]       // the hours of an offset run from 01
-	[InlineData("13:09+13")]       // to 12
+	[InlineData("13:09+15")]       // an offset runs to fourteen hours
+	[InlineData("13:09+14:30")]    // and no further
+	[InlineData("13:09-14:01")]
 	[InlineData("13:09+5")]
 	[InlineData("13:09+05:60")]
 	[InlineData("13:09+0530")]

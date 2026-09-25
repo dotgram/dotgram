@@ -179,7 +179,7 @@ public static class FixConvert
 		return (valid, value);
 	}
 
-	/// <summary>Reads <c>YYYYMMDD-HH:MM</c>, with seconds and a fraction of any number of digits optional, followed by its offset from UTC: <c>Z</c>, or a sign and <c>hh</c> or <c>hh:mm</c>, the hours 01 to 12. The value keeps the offset; a value without one is not valid, since it does not say which instant it is.</summary>
+	/// <summary>Reads <c>YYYYMMDD-HH:MM</c>, with seconds and a fraction of any number of digits optional, followed by its offset from UTC: <c>Z</c>, or a sign and <c>hh</c> or <c>hh:mm</c>, up to fourteen hours either way. The value keeps the offset; a value without one is not valid, since it does not say which instant it is.</summary>
 	/// <param name="raw">The value as the wire had it.</param>
 	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
 	public static (bool Valid, DateTimeOffset Value) ToZonedTimestamp(this ReadOnlySpan<char> raw)
@@ -818,7 +818,7 @@ public static class FixConvert
 		var hours   = Part(rest.Slice(1, 2));
 		var minutes = 0;
 
-		if (hours < 1 || hours > 12)
+		if (hours < 0 || hours > 14)
 			return false;
 
 		if (rest.Length == 6)
@@ -828,7 +828,7 @@ public static class FixConvert
 
 			minutes = Part(rest.Slice(4, 2));
 
-			if (minutes < 0 || minutes > 59)
+			if (minutes < 0 || minutes > 59 || hours == 14 && minutes > 0)
 				return false;
 		}
 
@@ -1133,7 +1133,7 @@ public static class FixConvert
 		var hours   = Part(rest.Slice(1, 2));
 		var minutes = 0;
 
-		if (hours < 1 || hours > 12)
+		if (hours < 0 || hours > 14)
 			return false;
 
 		if (rest.Length == 6)
@@ -1143,7 +1143,7 @@ public static class FixConvert
 
 			minutes = Part(rest.Slice(4, 2));
 
-			if (minutes < 0 || minutes > 59)
+			if (minutes < 0 || minutes > 59 || hours == 14 && minutes > 0)
 				return false;
 		}
 
