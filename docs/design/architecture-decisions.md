@@ -9526,9 +9526,16 @@ still answers at, and that the generated reader's extra stack is extra calls, 1.
   readings, which is why no test can fail on it; the comment beside the raise says so, and the day
   a refused reading's values are read it stops being harmless. Landing is conditional on
   `ExpressionBlowUpTests` measuring each size on a thread of its own and on expr's review.
-- **Still open:** the full walk after a fast-path miss (60% of the remaining quadratic work; every
-  miss on a nest is one tail record after the root); the refused-input square (a covering rule in
-  the grammar, or a refusal memo in the generator).
+- **Direction (Igor, 2026-09-25): leave the tape for recursion where the grammar asks for it.** A
+  `when` that needs a value built inside a recursive cycle makes deferred construction re-walk the
+  nest at every level; the hand parser is linear because each call returns its value. So the
+  construction is to be chosen per rule cycle, not per grammar: such a cycle builds immediately and
+  the rest stays on the tape. The watermark lands as agreed; the rework of the full walk after a
+  miss (60% of the remaining work, one tail record after the root at every miss) is stopped, and
+  the refused-input square waits for the design. The design comes first, to the architect and then
+  to Igor: the analysis that finds the cycle and proves eager construction safe for it (D138's
+  question asked of one cycle), the boundary with the tape, which grammars it changes, and its cost
+  to generation.
 - **The instruments learned:** name the API form in a row (`Match<T>` reads a refused input twice,
   which produced a false "factor two" twice in one day; `syntax.md` says what a refusal costs each
   form, `28650da6`, being corrected for §7.7's exception where no context can be put back); predict
