@@ -475,7 +475,7 @@ What every version shares is in `Fix/`:
 - `Fix/FixField.cs`: field base, typed-value access, locations and the class of each value type.
 - `Fix/FixFieldBuilder.cs`: construction of a field from its tag's type.
 - `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
-- `Fix/FixChecks.cs`, `Fix/FixChecks.Load.cs`: what every check says a finding with, and the load
+- `Fix/FixValidatorBase.cs`, `Fix/FixValidatorBase.Load.cs`: what every check says a finding with, and the load
   of a dictionary into a version's checks.
 - `Fix/FixTag.cs`: the number of every tag as a constant named for it, written by `Fix/Fix44/generate.py`.
 

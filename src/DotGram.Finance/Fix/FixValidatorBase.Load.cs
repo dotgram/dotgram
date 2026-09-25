@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Text;
-using System.Threading.Tasks;
 
 using DotGram.ExpressionLanguage;
 
@@ -34,9 +32,9 @@ namespace DotGram.Finance.Fix;
 /// its number, <c>11</c>: the file's name for a field need not be the one FixTag gives it.
 /// </para>
 /// </remarks>
-abstract partial class FixChecks
+abstract partial class FixValidatorBase
 {
-	static readonly Assembly Here = typeof(FixChecks).Assembly;
+	static readonly Assembly Here = typeof(FixValidatorBase).Assembly;
 
 	/// <summary>What a text written for this version opens with: the namespaces its names are in.</summary>
 	private protected abstract string Using { get; }
@@ -45,9 +43,9 @@ abstract partial class FixChecks
 	private protected abstract string ContextName { get; }
 
 	/// <summary>The same slots in a new object, to be written to without touching this one.</summary>
-	internal FixChecks Clone()
+	internal FixValidatorBase Clone()
 	{
-		return (FixChecks)MemberwiseClone();
+		return (FixValidatorBase)MemberwiseClone();
 	}
 
 	/// <summary>A copy of these slots with every check the dictionary describes replaced by the file's.</summary>
@@ -60,7 +58,7 @@ abstract partial class FixChecks
 	/// its order, whichever job failed first in time. The parser's state is a value of each call and
 	/// its caches are concurrent, which is what makes that sound.
 	/// </remarks>
-	internal FixChecks Load(FixDictionary dictionary, Action<string, string>? emitted = null)
+	internal FixValidatorBase Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
 		var jobs = new List<Action<Writing>>();
 
@@ -139,7 +137,7 @@ abstract partial class FixChecks
 		public void Compile()
 		{
 			for (var at = 0; at < Written.Count; at++)
-				Written[at] = (Written[at].Slot, Written[at].Text, FixChecks.Compile(Written[at].Slot.PropertyType, Written[at].Text));
+				Written[at] = (Written[at].Slot, Written[at].Text, FixValidatorBase.Compile(Written[at].Slot.PropertyType, Written[at].Text));
 		}
 	}
 
@@ -213,7 +211,7 @@ abstract partial class FixChecks
 					var cast = "((I" + member.Name + ")" + subject + ")";
 
 					if (member.Required)
-						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixChecks.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
+						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixValidatorBase.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
 							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
 					else
 						body.Append("if (!FixValidators.Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
@@ -230,7 +228,7 @@ abstract partial class FixChecks
 
 					Field(body, subject, counter, member.Required, dictionary, opener);
 
-					body.Append("FixChecks.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
+					body.Append("FixValidatorBase.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
 						.Append("if (").Append(list).Append(" != null) for (var i = 0; i < ").Append(list).Append(".Count; i++) context.Validators.")
 						.Append(inner).Append(".Invoke(context, message, ").Append(list).Append("[i], i);\n");
 
@@ -256,10 +254,10 @@ abstract partial class FixChecks
 		if (name == opener)
 			body.Append(call);
 		else if (required && opener is not null)
-			body.Append("if (").Append(value).Append(" == null) FixChecks.Missing(message, ").Append(Tag(name, dictionary))
+			body.Append("if (").Append(value).Append(" == null) FixValidatorBase.Missing(message, ").Append(Tag(name, dictionary))
 				.Append(", entry.").Append(opener).Append(".Position, index);\nelse ").Append(call);
 		else if (required)
-			body.Append("if (").Append(value).Append(" == null) FixChecks.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
+			body.Append("if (").Append(value).Append(" == null) FixValidatorBase.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
 		else
 			body.Append("if (").Append(value).Append(" != null) ").Append(call);
 	}
@@ -307,19 +305,19 @@ abstract partial class FixChecks
 		if (value == typeof(bool))
 			return null;
 
-		body.Append("if (!field.IsValid) FixChecks.Invalid(message, field);\n");
+		body.Append("if (!field.IsValid) FixValidatorBase.Invalid(message, field);\n");
 
 		if (value == typeof(string[]))
 		{
 			body.Append("else foreach (var code in field.Value) if (");
 			Codes(body, "code", codes, value);
-			body.Append(") { FixChecks.Invalid(message, field); break; }\n");
+			body.Append(") { FixValidatorBase.Invalid(message, field); break; }\n");
 		}
 		else
 		{
 			body.Append("else if (");
 			Codes(body, "field.Value", codes, value);
-			body.Append(") FixChecks.Invalid(message, field);\n");
+			body.Append(") FixValidatorBase.Invalid(message, field);\n");
 		}
 
 		return Using + "(" + ContextName + " context, FixMessage message, FixField." + field.Name + " field) => {\n" + body + "return message.IsValid; }";

@@ -11,7 +11,7 @@ namespace DotGram.Finance.Fix.Fix44;
 /// is out of order (SessionRejectReason 14), which no check of one type can see, since each
 /// reads its fields one at a time.
 /// </remarks>
-partial class FixValidators : FixChecks
+partial class FixValidators : FixValidatorBase
 {
 	private protected override string Using => "using DotGram.Finance.Fix;\nusing DotGram.Finance.Fix.Fix44;\n";
 

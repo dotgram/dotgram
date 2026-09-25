@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System;
 
 namespace DotGram.Finance.Fix;
 
@@ -6,7 +6,7 @@ namespace DotGram.Finance.Fix;
 /// The checks of a version of FIX, held as one object of slots, and what every check says a finding
 /// with. A version derives its own, whose slots are its message types, blocks and fields.
 /// </summary>
-abstract partial class FixChecks
+abstract partial class FixValidatorBase
 {
 	/// <summary>A field the schema requires of this type, and the message does not have.</summary>
 	internal static void Missing(IFixFindings message, int tag)
