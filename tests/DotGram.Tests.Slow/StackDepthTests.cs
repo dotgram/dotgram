@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -49,11 +49,29 @@ namespace DotGram.Tests;
 public sealed class StackDepthTests
 {
 	/// <summary>
-	/// Small on purpose. A runner's own thread is one or four megabytes, which is where this
-	/// defect hid: the reserve is a constant, so a smaller stack only reaches the cliff sooner
-	/// and never changes whether there is one.
+	/// Small on purpose, and the smallest one is the part that does the work.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A runner's own thread is one or four megabytes, which is where this defect hid: the
+	/// reserve is a constant, so a smaller stack only reaches the cliff sooner and never changes
+	/// whether there is one.
+	/// </para>
+	/// <para>
+	/// <b>64 KiB is what would catch an interval creeping back, and the larger sizes on their
+	/// own would not.</b> On a stack that small the guard has to divert within a few levels,
+	/// whatever the grammar and whatever the tier, so the reading either hands itself to
+	/// <c>Deepen</c> and returns or it takes the process down. Measured by sql-47 on the fixed
+	/// guard: a thousand levels on 64 KiB touches 44 KiB and answers the same refusal the
+	/// recursive path gives; at 256 KiB it touches 164, which is the guard letting it recurse
+	/// until the margin and only then switching. With the old interval the same input on 256 KiB
+	/// died — so a test that only ran at 256 and above could pass while an interval that is 1.7x
+	/// too loose sat in the generator, and a test at 64 could not.
+	/// </para>
+	/// </remarks>
 	[Theory]
+	[InlineData(64)]
+	[InlineData(128)]
 	[InlineData(256)]
 	[InlineData(512)]
 	public void A_deeply_nested_input_is_refused_rather_than_taking_the_process_with_it(int stackKb)
