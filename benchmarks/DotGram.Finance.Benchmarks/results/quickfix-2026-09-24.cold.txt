@@ -1,0 +1,537 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 2 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1/" /p:OutDir="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0/" /p:OutputPath="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0/" /p:PublishDir="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\publish/" in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1
+// command took 1.05 sec and exited with 0
+// start dotnet  build -c Release --no-restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1/" /p:OutDir="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0/" /p:OutputPath="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0/" /p:PublishDir="P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\publish/" --output "P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0/" in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1
+// command took 22.98 sec and exited with 0
+// ***** Done, took 00:00:24 (24.07 sec)   *****
+// Found 2 benchmarks:
+//   FixDictionaryFirstCall.'ours: Fix44Context.Load, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+//   FixDictionaryFirstCall.'QuickFIX/n: new DataDictionary, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: FixDictionaryFirstCall.'ours: Fix44Context.Load, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+// *** Execute ***
+// Launch: 1 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 1860 2016 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 757685900.00 ns, 757.6859 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 757685900.00 ns, 757.6859 ms/op
+// GC:  5 2 0 263896016 1
+// Threading:  20 19670 1
+
+// AfterAll
+// Benchmark Process 47784 has exited with code 0.
+// Launch: 2 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2996 2980 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 715412800.00 ns, 715.4128 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 715412800.00 ns, 715.4128 ms/op
+// GC:  5 1 0 262480408 1
+// Threading:  22 16295 1
+
+// AfterAll
+// Benchmark Process 74468 has exited with code 0.
+// Launch: 3 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2964 2972 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 663946800.00 ns, 663.9468 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 663946800.00 ns, 663.9468 ms/op
+// GC:  5 2 0 266055656 1
+// Threading:  21 13725 1
+
+// AfterAll
+// Benchmark Process 27880 has exited with code 0.
+// Launch: 4 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 1488 3020 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 719253200.00 ns, 719.2532 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 719253200.00 ns, 719.2532 ms/op
+// GC:  5 2 0 265655896 1
+// Threading:  19 27195 1
+
+// AfterAll
+// Benchmark Process 54532 has exited with code 0.
+// Launch: 5 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2980 2956 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 701380500.00 ns, 701.3805 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 701380500.00 ns, 701.3805 ms/op
+// GC:  5 2 0 265069008 1
+// Threading:  19 24286 1
+
+// AfterAll
+// Benchmark Process 66624 has exited with code 0.
+// Launch: 6 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 1840 2948 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 694469300.00 ns, 694.4693 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 694469300.00 ns, 694.4693 ms/op
+// GC:  5 2 0 264246952 1
+// Threading:  19 24808 1
+
+// AfterAll
+// Benchmark Process 41520 has exited with code 0.
+// Launch: 7 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 1584 712 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 643449800.00 ns, 643.4498 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 643449800.00 ns, 643.4498 ms/op
+// GC:  5 2 0 262565464 1
+// Threading:  18 15454 1
+
+// AfterAll
+// Benchmark Process 25640 has exited with code 0.
+// Launch: 8 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2928 2980 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 649077800.00 ns, 649.0778 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 649077800.00 ns, 649.0778 ms/op
+// GC:  5 2 0 263118504 1
+// Threading:  21 14076 1
+
+// AfterAll
+// Benchmark Process 76864 has exited with code 0.
+// Launch: 9 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2884 2892 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 701666500.00 ns, 701.6665 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 701666500.00 ns, 701.6665 ms/op
+// GC:  5 2 0 263839888 1
+// Threading:  19 25021 1
+
+// AfterAll
+// Benchmark Process 73148 has exited with code 0.
+// Launch: 10 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2880 2988 --benchmarkName QfCompare.FixDictionaryFirstCall.Ours --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 0 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 658772600.00 ns, 658.7726 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 658772600.00 ns, 658.7726 ms/op
+// GC:  5 2 0 264751608 1
+// Threading:  22 17035 1
+
+// AfterAll
+// Benchmark Process 42104 has exited with code 0.
+
+Mean = 690.512 ms, StdErr = 11.480 ms (1.66%), N = 10, StdDev = 36.303 ms
+Min = 643.450 ms, Q1 = 660.066 ms, Median = 697.925 ms, Q3 = 711.976 ms, Max = 757.686 ms
+IQR = 51.910 ms, LowerFence = 582.201 ms, UpperFence = 789.841 ms
+ConfidenceInterval = [635.626 ms; 745.397 ms] (CI 99.9%), Margin = 54.885 ms (7.95% of Mean)
+Skewness = 0.25, Kurtosis = 1.77, MValue = 2
+
+// ** Remained 1 (50.0%) benchmark(s) to run. Estimated finish 2026-09-24 23:02 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: FixDictionaryFirstCall.'QuickFIX/n: new DataDictionary, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+// *** Execute ***
+// Launch: 1 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2896 3044 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 88320300.00 ns, 88.3203 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 88320300.00 ns, 88.3203 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 39396 has exited with code 0.
+// Launch: 2 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2852 2860 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20582300.00 ns, 20.5823 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20582300.00 ns, 20.5823 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 44612 has exited with code 0.
+// Launch: 3 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2884 2900 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20937500.00 ns, 20.9375 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20937500.00 ns, 20.9375 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 77076 has exited with code 0.
+// Launch: 4 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2852 2824 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20187200.00 ns, 20.1872 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20187200.00 ns, 20.1872 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 57392 has exited with code 0.
+// Launch: 5 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2804 2808 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 19963000.00 ns, 19.9630 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 19963000.00 ns, 19.9630 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 54988 has exited with code 0.
+// Launch: 6 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2852 2788 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20760100.00 ns, 20.7601 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20760100.00 ns, 20.7601 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 69760 has exited with code 0.
+// Launch: 7 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2760 2764 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20999600.00 ns, 20.9996 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20999600.00 ns, 20.9996 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 52296 has exited with code 0.
+// Launch: 8 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2876 1324 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20446600.00 ns, 20.4466 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20446600.00 ns, 20.4466 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 37388 has exited with code 0.
+// Launch: 9 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2804 2808 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 19598400.00 ns, 19.5984 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 19598400.00 ns, 19.5984 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 51148 has exited with code 0.
+// Launch: 10 / 10
+// Execute: dotnet qfcompare-Job-MLTFGY-1.dll --anonymousPipes 2788 2876 --benchmarkName QfCompare.FixDictionaryFirstCall.Theirs --job "InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0" --benchmarkId 1 in P:\dotgram.WorkTrees\fix-frozen\.work\qfcompare\bin\Release\net10.0\qfcompare-Job-MLTFGY-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX512 BITALG+VBMI2+VNNI+VPOPCNTDQ,AVX512 IFMA+VBMI,AVX512 F+BW+CD+DQ+VL,AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL,AvxVnni VectorSize=256
+// Job: Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 20542100.00 ns, 20.5421 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 20542100.00 ns, 20.5421 ms/op
+// GC:  0 0 0 5088232 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 43980 has exited with code 0.
+
+Mean = 27.234 ms, StdErr = 6.789 ms (24.93%), N = 10, StdDev = 21.468 ms
+Min = 19.598 ms, Q1 = 20.252 ms, Median = 20.562 ms, Q3 = 20.893 ms, Max = 88.320 ms
+IQR = 0.641 ms, LowerFence = 19.290 ms, UpperFence = 21.855 ms
+ConfidenceInterval = [-5.223 ms; 59.690 ms] (CI 99.9%), Margin = 32.457 ms (119.18% of Mean)
+Skewness = 2.28, Kurtosis = 6.56, MValue = 2
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2026-09-24 23:01 (0h 0m from now) **
+Successfully reverted power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts\results\QfCompare.FixDictionaryFirstCall-report.csv
+  BenchmarkDotNet.Artifacts\results\QfCompare.FixDictionaryFirstCall-report-github.md
+  BenchmarkDotNet.Artifacts\results\QfCompare.FixDictionaryFirstCall-report.html
+
+// * Detailed results *
+FixDictionaryFirstCall.'ours: Fix44Context.Load, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+Runtime = .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4; GC = Concurrent Workstation
+Mean = 690.512 ms, StdErr = 11.480 ms (1.66%), N = 10, StdDev = 36.303 ms
+Min = 643.450 ms, Q1 = 660.066 ms, Median = 697.925 ms, Q3 = 711.976 ms, Max = 757.686 ms
+IQR = 51.910 ms, LowerFence = 582.201 ms, UpperFence = 789.841 ms
+ConfidenceInterval = [635.626 ms; 745.397 ms] (CI 99.9%), Margin = 54.885 ms (7.95% of Mean)
+Skewness = 0.25, Kurtosis = 1.77, MValue = 2
+-------------------- Histogram --------------------
+[631.582 ms ; 675.815 ms) | @@@@
+[675.815 ms ; 728.978 ms) | @@@@@
+[728.978 ms ; 779.802 ms) | @
+---------------------------------------------------
+
+FixDictionaryFirstCall.'QuickFIX/n: new DataDictionary, cold': Job-MLTFGY(InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0)
+Runtime = .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4; GC = Concurrent Workstation
+Mean = 27.234 ms, StdErr = 6.789 ms (24.93%), N = 10, StdDev = 21.468 ms
+Min = 19.598 ms, Q1 = 20.252 ms, Median = 20.562 ms, Q3 = 20.893 ms, Max = 88.320 ms
+IQR = 0.641 ms, LowerFence = 19.290 ms, UpperFence = 21.855 ms
+ConfidenceInterval = [-5.223 ms; 59.690 ms] (CI 99.9%), Margin = 32.457 ms (119.18% of Mean)
+Skewness = 2.28, Kurtosis = 6.56, MValue = 2
+-------------------- Histogram --------------------
+[ 6.520 ms ;  33.378 ms) | @@@@@@@@@
+[33.378 ms ;  59.535 ms) | 
+[59.535 ms ;  75.242 ms) | 
+[75.242 ms ; 101.399 ms) | @
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.9445/25H2/2025Update/HudsonValley2)
+AMD Ryzen 9 9950X3D 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.401
+  [Host]     : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+  Job-MLTFGY : .NET 10.0.12 (10.0.12, 10.0.1226.42308), X64 RyuJIT x86-64-v4
+
+InvocationCount=1  IterationCount=1  LaunchCount=10  
+RunStrategy=ColdStart  UnrollFactor=1  WarmupCount=0  
+
+| Method                                 | Mean      | Error    | StdDev   | Median    | Op/s   | Gen0      | Gen1      | Allocated |
+|--------------------------------------- |----------:|---------:|---------:|----------:|-------:|----------:|----------:|----------:|
+| 'ours: Fix44Context.Load, cold'        | 690.51 ms | 54.89 ms | 36.30 ms | 697.92 ms |  1.448 | 5000.0000 | 2000.0000 | 252.49 MB |
+| 'QuickFIX/n: new DataDictionary, cold' |  27.23 ms | 32.46 ms | 21.47 ms |  20.56 ms | 36.719 |         - |         - |   4.85 MB |
+
+// * Warnings *
+MinIterationTime
+  FixDictionaryFirstCall.'QuickFIX/n: new DataDictionary, cold': InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0 -> The minimum observed iteration time is 19.598ms which is very small. It's recommended to increase it to at least 100ms using more operations.
+
+// * Hints *
+Outliers
+  FixDictionaryFirstCall.'QuickFIX/n: new DataDictionary, cold': InvocationCount=1, IterationCount=1, LaunchCount=10, RunStrategy=ColdStart, UnrollFactor=1, WarmupCount=0 -> 1 outlier  was  detected (88.32 ms)
+
+// * Legends *
+  Mean      : Arithmetic mean of all measurements
+  Error     : Half of 99.9% confidence interval
+  StdDev    : Standard deviation of all measurements
+  Median    : Value separating the higher half of all measurements (50th percentile)
+  Op/s      : Operation per second
+  Gen0      : GC Generation 0 collects per 1000 operations
+  Gen1      : GC Generation 1 collects per 1000 operations
+  Allocated : Allocated memory per single operation (managed only, inclusive, 1KB = 1024B)
+  1 ms      : 1 Millisecond (0.001 sec)
+
+// * Diagnostic Output - MemoryDiagnoser *
+
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:00:15 (15.94 sec), executed benchmarks: 2
+
+Global total time: 00:00:40 (40.3 sec), executed benchmarks: 2
+// * Artifacts cleanup *
+Artifacts cleanup is finished

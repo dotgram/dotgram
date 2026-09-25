@@ -1,0 +1,62 @@
+shape          schema     road                                  bytes a message
+-------------- ---------- ---------------------------------- ------------------
+Order          Compiled   ours: parse                                     2,912
+Order          Compiled   QuickFIX/n: parse                               4,792
+Order          Compiled   ours: parse from octets                         2,968
+Order          Compiled   QuickFIX/n: parse, their Parser                 5,088
+Order          Compiled   ours: parse + validate                          2,912
+Order          Compiled   QuickFIX/n: parse + validate                    6,856
+Parties        Compiled   ours: parse                                     3,800
+Parties        Compiled   QuickFIX/n: parse                              11,088
+Parties        Compiled   ours: parse from octets                         3,856
+Parties        Compiled   QuickFIX/n: parse, their Parser                11,528
+Parties        Compiled   ours: parse + validate                          3,800
+Parties        Compiled   QuickFIX/n: parse + validate                   14,696
+PartiesMedium  Compiled   ours: parse                                    30,760
+PartiesMedium  Compiled   QuickFIX/n: parse                             198,704
+PartiesMedium  Compiled   ours: parse from octets                        30,816
+PartiesMedium  Compiled   QuickFIX/n: parse, their Parser               203,800
+PartiesMedium  Compiled   ours: parse + validate                         30,760
+PartiesMedium  Compiled   QuickFIX/n: parse + validate                  250,432
+PartiesLarge   Compiled   ours: parse                                   275,568
+PartiesLarge   Compiled   QuickFIX/n: parse                           1,933,912
+PartiesLarge   Compiled   ours: parse from octets                       275,624
+PartiesLarge   Compiled   QuickFIX/n: parse, their Parser             1,984,016
+PartiesLarge   Compiled   ours: parse + validate                        275,568
+PartiesLarge   Compiled   QuickFIX/n: parse + validate                2,432,014
+Binary         Compiled   ours: parse                                     1,434
+Binary         Compiled   QuickFIX/n: parse                               3,640
+Binary         Compiled   ours: parse from octets                         1,488
+Binary         Compiled   QuickFIX/n: parse, their Parser                 3,968
+Binary         Compiled   ours: parse + validate                          1,432
+Binary         Compiled   QuickFIX/n: parse + validate                    5,576
+Order          Dictionary ours: parse                                     2,880
+Order          Dictionary QuickFIX/n: parse                               4,648
+Order          Dictionary ours: parse from octets                         2,936
+Order          Dictionary QuickFIX/n: parse, their Parser                 4,944
+Order          Dictionary ours: parse + validate                          2,880
+Order          Dictionary QuickFIX/n: parse + validate                    6,712
+Parties        Dictionary ours: parse                                     3,800
+Parties        Dictionary QuickFIX/n: parse                              10,944
+Parties        Dictionary ours: parse from octets                         3,824
+Parties        Dictionary QuickFIX/n: parse, their Parser                11,384
+Parties        Dictionary ours: parse + validate                          3,800
+Parties        Dictionary QuickFIX/n: parse + validate                   14,552
+PartiesMedium  Dictionary ours: parse                                    30,760
+PartiesMedium  Dictionary QuickFIX/n: parse                             198,560
+PartiesMedium  Dictionary ours: parse from octets                        30,784
+PartiesMedium  Dictionary QuickFIX/n: parse, their Parser               203,656
+PartiesMedium  Dictionary ours: parse + validate                         30,760
+PartiesMedium  Dictionary QuickFIX/n: parse + validate                  250,288
+PartiesLarge   Dictionary ours: parse                                   275,568
+PartiesLarge   Dictionary QuickFIX/n: parse                           1,933,768
+PartiesLarge   Dictionary ours: parse from octets                       275,592
+PartiesLarge   Dictionary QuickFIX/n: parse, their Parser             1,983,872
+PartiesLarge   Dictionary ours: parse + validate                        275,568
+PartiesLarge   Dictionary QuickFIX/n: parse + validate                2,431,896
+Binary         Dictionary ours: parse                                     1,466
+Binary         Dictionary QuickFIX/n: parse                               3,640
+Binary         Dictionary ours: parse from octets                         1,488
+Binary         Dictionary QuickFIX/n: parse, their Parser                 3,968
+Binary         Dictionary ours: parse + validate                          1,464
+Binary         Dictionary QuickFIX/n: parse + validate                    5,576
