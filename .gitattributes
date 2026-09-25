@@ -2,6 +2,10 @@
 # is Windows-only in practice, and normalizing would fight the editor.
 * text eol=crlf
 
+# A shell script runs on Linux, where bash reads a carriage return as part of the command and a
+# byte-order mark as part of the interpreter's path: LF, and no BOM (check-packages.sh, 2026-09-25).
+*.sh text eol=lf
+
 # Binary
 *.png binary
 *.jpg binary

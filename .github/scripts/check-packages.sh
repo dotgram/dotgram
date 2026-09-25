@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 #
 # What the packages must look like, checked on the packed files themselves.
 #
