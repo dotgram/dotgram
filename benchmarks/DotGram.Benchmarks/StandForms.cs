@@ -74,15 +74,34 @@ static partial class Stand
 		yield return PairedFormRow("el", "ladder.scan", "control", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), before.Scan("el", ladder), after.Scan("el", ladder));
 
 		// ── FixMessages: the streams, the readers, the lazy reading and a span ──
+		//
+		// THE THREE PARSE ROWS ANSWERED THE WRONG WAY ROUND, and that is what killed the paired
+		// stand: the stand reads a non-zero answer as an acceptance, and these controls answered 0
+		// for a valid message. The row was right when it was written -- `Parse(...) is null ? 0 : 1`,
+		// one when a message came back -- became vacuous when it was ported to `Validate() is null`
+		// (an array is never null, so it was always one), and became INVERTED on 2026-09-22 when
+		// `Validate()` gave way to `InvalidFindings`, where null means valid. The shape of the
+		// expression survived three rewrites and its meaning turned over inside it.
+		//
+		// EVERY CONTROL HERE IS ALSO THE FORM'S OWN SHAPE NOW, and it was not: all three parse forms
+		// shared one control, a plain string parse, while their sides went through the streaming door
+		// with a fresh source per call. A control is this process's own build of
+		// the SAME form -- that is what the README promises and what makes it a constant the row can
+		// be read against. A string parse holding a stream parse to account is a different code path
+		// at a different scale: it can stand still while the row moves, and move while the row
+		// stands still. The lazy rows had a second mismatch of the same kind: their control passed
+		// 4096 where the door's third parameter is the largest message it will read, not a buffer
+		// size, so the control was capped where the side was not.
 		var wire = FixMessageWire();
 
+		// Every reading of these rows answers ONE for a message read, and zero for none: the stand
+		// reads a non-zero answer as an acceptance. Not "how many findings" -- that counts the other
+		// way and is what broke them.
 		foreach (var form in new[] { "parse-stream", "parse-reader", "parse-span" })
-			yield return PairedFormRow("fixmsg", "Order." + form, "control", () => FixParser.ParseMessage(wire).InvalidFindings is null ? 0 : 1, before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
-
-		var many = string.Concat(Enumerable.Repeat(wire, 100));
+			yield return PairedFormRow("fixmsg", "Order." + form, "control", OwnFixMessagesForm(form, wire, 1), before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
 
 		foreach (var form in new[] { "read-stream", "read-reader" })
-			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", () => FixParser.ReadMessages(new StringReader(many), null, 4096).Count(m => m.InvalidFindings is null), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
+			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", OwnFixMessagesForm(form, wire, 100), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
 
 		// ── one span row for FIX ──
 		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
@@ -96,6 +115,41 @@ static partial class Stand
 
 			yield return PairedFormRow("feeds", "streaming.1000", "control", () => StreamingFeedReader.Read(new StringReader(feed)).Count(), before.StreamingFeed(feed), after.StreamingFeed(feed));
 		}
+	}
+
+	/// <summary>
+	/// This process's own reading of one <c>fixmsg</c> form: the same door, the same kind of input,
+	/// made fresh on every call the way the sides make theirs.
+	/// </summary>
+	/// <remarks>
+	/// The source is built inside the returned delegate and not outside it, because a stream read to
+	/// its end cannot be read again, and because that is what the sides do: a row whose control
+	/// reused one exhausted stream would measure a refusal.
+	/// </remarks>
+	static Func<int> OwnFixMessagesForm(string form, string wire, int messages)
+	{
+		var text   = string.Concat(Enumerable.Repeat(wire, messages));
+		var octets = System.Text.Encoding.Latin1.GetBytes(text);
+
+		// ONE ON A VALID MESSAGE, NOT ZERO. The stand reads a reading's answer as work done:
+		// Unasserted takes `Run() != 0` as "this reading accepted the input", so a row not named
+		// "refused" must answer non-zero. These three controls answered the other way round from
+		// 2026-09-22 (3e9a4293) until today, and the whole paired stand died on the first of them
+		// before timing anything -- see the remarks above the rows.
+		return form switch
+		{
+			"parse-stream" => () => FixParser.ReadMessage(new MemoryStream(octets, false)) is { InvalidFindings: null } ? 1 : 0,
+			"parse-reader" => () => FixParser.ReadMessage(new StringReader(text))          is { InvalidFindings: null } ? 1 : 0,
+
+			// The door takes no span, so a caller holding one copies it into a string first, and the
+			// copy is part of the form -- the same sentence the side's own comment carries.
+			"parse-span"   => () => FixParser.ParseMessage(wire.AsSpan().ToString())       is { InvalidFindings: null } ? 1 : 0,
+
+			"read-stream"  => () => FixParser.ReadMessages(new MemoryStream(octets, false)).Count(static one => one.InvalidFindings is null),
+			"read-reader"  => () => FixParser.ReadMessages(new StringReader(text)).Count(static one => one.InvalidFindings is null),
+
+			_ => throw new ArgumentException($"no reading of this process's own {form}", nameof(form)),
+		};
 	}
 
 	/// <summary>A row of a published form: the constant, and the two sides, each asked to give the same answer.</summary>
