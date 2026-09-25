@@ -9434,7 +9434,7 @@ base class and the classes of its value's type, nothing else; no factory; compat
     A version hands it its pairs and types (`FixVersion`) and its checks. `Fix44Context :
     FixContext` adds `Default`, `WithLogFraming`, `FixMessageFactory` and the public `Load` and
     `LoadFile`, which answer a `Fix44Context`. One object for the consumer, as before.
-  - The load is shared (`FixValidatorBase`, which `FixValidators` derives from): it writes a check
+  - The load is shared (`FixValidator`, which `FixValidator44` derives from): it writes a check
     from the dictionary's names, and the version supplies only the namespaces the text opens with
     and its context's name. A tag in that text is its number, since a version's dictionary may
     spell a field otherwise than `FixTag`. A finding is said to `IFixFindings`, which `FixMessage`
@@ -9442,7 +9442,7 @@ base class and the classes of its value's type, nothing else; no factory; compat
   - `FixTag` today holds FIX 4.4's 912; the union of every version, named as 5.0 SP2 names them
     (`IOIID`, `NoLinesOfText`), is the next step.
 
-`582a63c5`; the split `cd989ade`, the tag as a number `9fbba0aa`, `FixValidatorBase` `778c75f2`.
+`582a63c5`; the split `cd989ade`, the tag as a number `9fbba0aa`, `FixValidator` and `FixValidator44` `778c75f2` and after.
 Consequence for EL: the tuple, the target-typed switch and the untyped lambda built
 that week for the factory lost their only consumer; Igor keeps them as C# parity (232 KB, +13.5%
 over 5bfa7b7b~1, measured in one worktree after 3a8d5bcd).
