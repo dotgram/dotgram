@@ -197,6 +197,40 @@ Two ways out, and the measurement above decides between them:
 (b) is more general and (a) is cheaper; (a) may also simply be true of every case that matters,
 which a count would settle before either is built.
 
+## 5a. The two callers, and why only one of them collapses
+
+The materializer is called with two shapes of argument, and the difference is not a detail of SQL:
+there are exactly **two call sites in the emitter**, and they are different jobs.
+
+| emitter | call | in `SqlStandardParser` | what it is |
+| --- | --- | ---: | --- |
+| `TapeCarrier.Materialize(record, mark)` | `(gNAt, lm, lmR)` | ~148 | **a guard**, walking from its own rule's mark |
+| `TapeCarrier.BuildRoot(rule, type, extent)` | `(ways.Last, 0, 0)` | 80 | **a publication's answer**, walking the whole log |
+
+`Materialize` is emitted where a guard is handed its members (`Machine.Reader.cs:4220`, beside
+`{handed}At = FirstRecord(...)`), so it runs **during** the reading, once per guard per level, each
+walk starting at the mark of the rule the guard is in. **That is where the nest's quadratic lives**,
+and it is where a collapse pays.
+
+`BuildRoot` is emitted at the end of a publication (`Machine.Reader.cs:1016`), after the reading has
+accepted, and the line following it is `value = …`: it builds the tree the caller asked for. It
+walks from 0 because the whole log **is** the answer. There are 80 of them because SQL:2023
+publishes many rules in several forms, not because anything walks the log 80 times.
+
+**Collapsing at a `BuildRoot` site is meaningless rather than harmful.** The walk happens once, its
+result is read out on the next line, and then the parse is over and `Ways` goes back to the pool —
+so a collapsed record would never be read by anybody. It would be pure waste: a store, and a span
+nothing walks again.
+
+So: **collapse at `Materialize` and not at `BuildRoot`**, which in the emitter is a decision made in
+one place — `TapeCarrier.Materialize` emits the collapse, `TapeCarrier.BuildRoot` does not. It needs
+no test of `from` at run time, because the two are already different methods.
+
+It also sharpens §5's mechanism. The give-backs that follow a materialise are the ones that follow a
+GUARD's materialise, and `from` there is the guard's rule's mark — which is exactly the mark the
+reader puts the log back to when that alternative is abandoned. `to == from` is not a coincidence of
+the inputs; it is the same number reached by two routes.
+
 ## 6. What it does not do
 
 - **The refused-input square stays.** These counts are of accepted readings. A refusal re-reads,
