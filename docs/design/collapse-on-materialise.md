@@ -126,7 +126,65 @@ span's first record still claims a length reaching past the new `LogCount`, so t
 from it to beyond the end and **silently skips every record written since**. That is a wrong tree,
 not a slow one.
 
-Two ways out, and the choice needs measuring rather than taste:
+### Measured, 2026-09-25: the case does not arise, and that is the argument for guarding it
+
+Counted in `.work/matcount` by recording each span a guard materialises (`[from, ways.LogCount)`,
+both parameters of the materializer) and asking of **every** give-back — all 1,301 assignments to
+`ways.LogCount` in `SqlStandardParser`, every one an `lmN` mark — where it lands:
+
+| input | collapses | give-backs | **inside** | at/before the start | at/after the end |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `nested800` | 6,409 | 4,815 | **0** | 0 | 15,392,813 |
+| `wide800` | 11,202 | 16,800 | **0** | 0 | 94,024,800 |
+| the SQL corpus, 1,086 files | 1,293 | 2,608 | **0** | 61 | 27,922 |
+
+The corpus is the reading that counts — two shapes I invented cannot say what a real script does —
+and it is a favourable one for finding the event: read through the SQL:2023 query-expression door,
+1,085 of its 1,086 files are **refused**, and a refusal gives back more than an acceptance, not
+less. All three outcomes occur, so the instrument can distinguish them: 61 give-backs land at or
+before a span's start, 27,922 at or after its end, and **none inside**.
+
+### And the accepted path, and three shapes built to produce the event
+
+| input set | read | refused | collapses | give-backs | **inside** | at/before start | at/after end |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| the SQL corpus | 1 | 1,085 | 1,293 | 2,608 | **0** | 61 | 27,922 |
+| the test rows | 406 | 1,419 | 7,196 | 11,796 | **0** | 299 | 42,847 |
+
+The corpus alone samples the refusal path (it is ScriptDom's T-SQL through a SQL:2023 door); the
+1,825 `InlineData` rows of `SqlStandardParserTests` and `SqlStandardTreeTests` are the accepted
+path through the same door. Both are zero.
+
+**Three grammars were then written on purpose to produce it**, with the check emitted into every
+parser and made to report any give-back that follows a materialise at all:
+
+- *a guard after a repetition that can give a turn back, with a failing tail* — the repetition's
+  turn marks are taken after the walk's start and before the guard. **No give-back occurs while a
+  span is live**: the reader abandons the whole alternative rather than giving a turn back under
+  the guard.
+- *the same with the repetition inside the rule the guard names* — likewise none.
+- *a second alternative after a guard* — a give-back does occur, and it targets **`to = 0` against
+  the span `[0, 4)`**: exactly the span's start.
+
+That last is the mechanism, and it is worth stating because it explains all three zeros. **A
+give-back that follows a materialise abandons the alternative the guard was in, and the walk's
+start is that alternative's own mark, so `to == from`** — the whole span goes, which is the safe
+case. To land *inside*, a way would have to be opened after the walk's start, inside the guarded
+rule, and still be takeable after the guard has run; none of the three shapes produces one.
+
+**This is not a proof.** It is three input sets and three constructed shapes agreeing, with a
+mechanism that makes the agreement intelligible. A proof would have to say why no reader can open
+such a way, and I cannot say that yet.
+
+**So the choice is (b), and the zero is the reason rather than the obstacle.** A count of zero over
+a corpus is evidence, not proof, and the failure it would be evidence about is a *silent wrong
+tree* — the worst kind to leave resting on an empirical zero, because an event that never happens
+in testing is one no test will catch on the day it starts happening. (a) would make correctness
+depend on that zero holding for every grammar anyone writes. (b) is correct whatever happens, and
+what the measurement buys is the knowledge that its restore path will essentially never fire: the
+cost is a comparison per give-back, not work.
+
+Two ways out, and the measurement above decides between them:
 
 - **(a) Do not collapse over an open way.** A span with no way open inside it can never be
   re-entered. The fast path already tests `roots < 0 && root == ways.Records - 1`; whether "no way
