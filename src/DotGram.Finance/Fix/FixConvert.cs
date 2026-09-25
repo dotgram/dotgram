@@ -264,30 +264,21 @@ public static class FixConvert
 		return (valid, value);
 	}
 
-	// FIX 5.0's MultipleStringValue: values separated by single spaces, each a word of one character
-	// or more. Internal until it is agreed as part of the public conversions.
-	internal static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<char> raw)
+	/// <summary>Reads values separated by single spaces, each a word of one character or more, as FIX 5.0's <c>MultipleStringValue</c> is written; the value is the text split at the spaces, kept even where it is not valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<char> raw)
 	{
-		var value = ToText(raw).Split(' ');
-
-		foreach (var item in value)
-			if (item.Length == 0)
-				return (false, value);
-
-		return (true, value);
+		var valid = ToMultipleString(raw, out var value);
+		return (valid, value);
 	}
 
-	// FIX 5.0's MultipleStringValue: values separated by single spaces, each a word of one character
-	// or more. Internal until it is agreed as part of the public conversions.
-	internal static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<byte> raw)
+	/// <inheritdoc cref="ToMultipleString(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<byte> raw)
 	{
-		var value = ToText(raw).Split(' ');
-
-		foreach (var item in value)
-			if (item.Length == 0)
-				return (false, value);
-
-		return (true, value);
+		var valid = ToMultipleString(raw, out var value);
+		return (valid, value);
 	}
 
 	/// <inheritdoc cref="ToInteger(ReadOnlySpan{char})"/>
@@ -651,6 +642,21 @@ public static class FixConvert
 		return true;
 	}
 
+	/// <inheritdoc cref="ToMultipleString(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToMultipleString(this ReadOnlySpan<char> raw, out string[] value)
+	{
+		value = ToText(raw).Split(' ');
+
+		foreach (var item in value)
+			if (item.Length == 0)
+				return false;
+
+		return true;
+	}
+
 	// ── Dates and times ─────────────────────────────────────────────────────────
 	//
 	// A FIX date is YYYYMMDD, a time HH:MM:SS with an optional fraction of any number of digits,
@@ -961,6 +967,20 @@ public static class FixConvert
 
 		foreach (var item in value)
 			if (item.Length != 1)
+				return false;
+
+		return true;
+	}
+
+	/// <inheritdoc cref="ToMultipleString(ReadOnlySpan{char}, out string[])"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	public static bool ToMultipleString(this ReadOnlySpan<byte> raw, out string[] value)
+	{
+		value = ToText(raw).Split(' ');
+
+		foreach (var item in value)
+			if (item.Length == 0)
 				return false;
 
 		return true;
