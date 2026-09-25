@@ -1,0 +1,98 @@
+
+== refused n=200, TryParse(out): 205 chars, refused, 63,163 entries, 308.11 a char
+       20,100  Read_QueryExpressionBody_ValueExpressionTree
+       20,100  Read_QueryTerm_ValueExpressionTree
+       20,100  Read_QueryPrimary_ValueExpressionTree
+          202  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          202  Read_Operand_ValueExpressionTree
+          202  Read_Primary_ValueExpressionTree
+          202  Read_PrimaryReading_ValueExpressionTree
+          201  Read_Disjunction_ValueExpressionTree
+          201  Read_Conjunction_ValueExpressionTree
+          201  Read_BooleanFactor_ValueExpressionTree
+          201  Read_BooleanTest_ValueExpressionTree
+          201  Read_BooleanPrimary_ValueExpressionTree
+          200  Read_Subquery_ValueExpressionTree
+          200  Read_QueryExpression_ValueExpressionTree
+
+== refused n=400, TryParse(out): 405 chars, refused, 246,263 entries, 608.06 a char
+       80,200  Read_QueryExpressionBody_ValueExpressionTree
+       80,200  Read_QueryTerm_ValueExpressionTree
+       80,200  Read_QueryPrimary_ValueExpressionTree
+          402  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          402  Read_Operand_ValueExpressionTree
+          402  Read_Primary_ValueExpressionTree
+          402  Read_PrimaryReading_ValueExpressionTree
+          401  Read_Disjunction_ValueExpressionTree
+          401  Read_Conjunction_ValueExpressionTree
+          401  Read_BooleanFactor_ValueExpressionTree
+          401  Read_BooleanTest_ValueExpressionTree
+          401  Read_BooleanPrimary_ValueExpressionTree
+          400  Read_Subquery_ValueExpressionTree
+          400  Read_QueryExpression_ValueExpressionTree
+
+== closed n=200, TryParse(out): 405 chars, read, 65,962 entries, 162.87 a char
+       20,100  Read_QueryExpressionBody_ValueExpressionTree
+       20,100  Read_QueryTerm_ValueExpressionTree
+       20,100  Read_QueryPrimary_ValueExpressionTree
+          202  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          202  Read_Operand_ValueExpressionTree
+          202  Read_Primary_ValueExpressionTree
+          202  Read_CollateClause_ValueExpressionTree
+          202  Read_IntervalQualifier_ValueExpressionTree
+          202  Read_PrimaryReading_ValueExpressionTree
+          202  Read_PrimarySteps_ValueExpressionTree
+          202  Read_Postfix_ValueExpressionTree
+          202  Read_Postfix_ValueExpressionTree_Part0
+          202  Read_Postfix_ValueExpressionTree_Part4
+          202  Read_Postfix_ValueExpressionTree_Part5
+
+== closed n=400, TryParse(out): 805 chars, read, 251,862 entries, 312.87 a char
+       80,200  Read_QueryExpressionBody_ValueExpressionTree
+       80,200  Read_QueryTerm_ValueExpressionTree
+       80,200  Read_QueryPrimary_ValueExpressionTree
+          402  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          402  Read_Operand_ValueExpressionTree
+          402  Read_Primary_ValueExpressionTree
+          402  Read_CollateClause_ValueExpressionTree
+          402  Read_IntervalQualifier_ValueExpressionTree
+          402  Read_PrimaryReading_ValueExpressionTree
+          402  Read_PrimarySteps_ValueExpressionTree
+          402  Read_Postfix_ValueExpressionTree
+          402  Read_Postfix_ValueExpressionTree_Part0
+          402  Read_Postfix_ValueExpressionTree_Part4
+          402  Read_Postfix_ValueExpressionTree_Part5
+
+### the refused input through the Match<T> form, which records a message
+
+== refused n=200, Match<T>: 205 chars, refused, 126,326 entries, 616.22 a char
+       40,200  Read_QueryExpressionBody_ValueExpressionTree
+       40,200  Read_QueryTerm_ValueExpressionTree
+       40,200  Read_QueryPrimary_ValueExpressionTree
+          404  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          404  Read_Operand_ValueExpressionTree
+          404  Read_Primary_ValueExpressionTree
+          404  Read_PrimaryReading_ValueExpressionTree
+          402  Read_Disjunction_ValueExpressionTree
+          402  Read_Conjunction_ValueExpressionTree
+          402  Read_BooleanFactor_ValueExpressionTree
+          402  Read_BooleanTest_ValueExpressionTree
+          402  Read_BooleanPrimary_ValueExpressionTree
+          400  Read_Subquery_ValueExpressionTree
+          400  Read_QueryExpression_ValueExpressionTree
+
+== refused n=400, Match<T>: 405 chars, refused, 492,526 entries, 1216.11 a char
+      160,400  Read_QueryExpressionBody_ValueExpressionTree
+      160,400  Read_QueryTerm_ValueExpressionTree
+      160,400  Read_QueryPrimary_ValueExpressionTree
+          804  Read_CommonValueExpressionOrRow_ValueExpressionTree
+          804  Read_Operand_ValueExpressionTree
+          804  Read_Primary_ValueExpressionTree
+          804  Read_PrimaryReading_ValueExpressionTree
+          802  Read_Disjunction_ValueExpressionTree
+          802  Read_Conjunction_ValueExpressionTree
+          802  Read_BooleanFactor_ValueExpressionTree
+          802  Read_BooleanTest_ValueExpressionTree
+          802  Read_BooleanPrimary_ValueExpressionTree
+          800  Read_Subquery_ValueExpressionTree
+          800  Read_QueryExpression_ValueExpressionTree

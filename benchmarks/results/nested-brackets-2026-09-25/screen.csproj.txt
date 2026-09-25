@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+		<AssemblyName>nested</AssemblyName>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="P:\dotgram.WorkTrees\sql\src\DotGram.Sql\DotGram.Sql.csproj" />
+		<ProjectReference Include="P:\dotgram.WorkTrees\sql\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
+	</ItemGroup>
+</Project>
