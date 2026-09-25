@@ -9484,14 +9484,15 @@ Igor, 2026-09-24: FIX 4.2 and FIX 5.0 SP2 beside 4.4, "the handwritten parts gen
   read by public `FixConvert.ToZonedTime`/`ToZonedTimestamp`. As the repository describes them:
   seconds optional, then `Z` or a sign and hours 01-12 with minutes optional; a value without an
   offset is not valid. The 01-12 excludes the real zones +13 and +14; widening is Igor's.
-  MultipleStringValue's items are words, read by an internal `ToMultipleString` (public only if
-  agreed).
+  MultipleStringValue's items are words, read by `FixConvert.ToMultipleString`, public since
+  `5d6567b8` (Igor).
 - **Held to the repository** by one test class a version over `FixRepositoryAgreementTests`, which
   found the three pairs SP2's repository leaves without `AssociatedDataTag` and MultipleStringValue.
   The common dictionaries: FIX42.xml loads whole; FIXT11.xml + FIX50SP2.xml are a later edition and
   are refused at their first departure (`Fix50Tests`); no errata for them unless Igor asks.
-- **Open, for Igor:** an attribution line for FIX Protocol Limited in generated files and the
-  README; whether to publish `ToMultipleString`; benchmark rows for 4.2 and 5.0.
+- **Attribution (Igor):** every generated file and the package README say the tables are derived
+  from the FIX Protocol specification, Copyright FIX Protocol Limited; the package stays MIT
+  (`c9ff3d4f`). **Open:** benchmark rows for 4.2 and 5.0.
 
 ## D141 — The expression language resolves a name as C# does (architect)
 
@@ -9555,3 +9556,26 @@ still answers at, and that the generated reader's extra stack is extra calls, 1.
   form, `28650da6`, being corrected for §7.7's exception where no context can be put back); predict
   in the unit the loop counts; a stand filter that matches nothing is to be an error, and deep rows
   are being added to the stand so the next change here can be seen, both with the reader's fix.
+
+## D143 — FIX: a dictionary is a value; applying it is a step of its own, and its checks compile when asked (Igor)
+
+2026-09-25. Loading FIX44.xml with its errata cost 665-1000 ms and 206-278 MB, of which reading the
+XML was 5-14 ms: the rest compiled 571 checks through the expression language, most of which a
+reading never asks. Igor: make `FixDictionary` public, so that reading and applying are two steps and
+dictionaries can be merged and edited between them.
+
+- **`FixDictionary` is public**, in `DotGram.Finance.Fix` (it knows no version): `Header`, `Trailer`,
+  `Messages` by MsgType and `Components` by name in file order, `Fields` by tag; `Parse`, `Read`,
+  `LoadFile`; `Merge`, where a later dictionary's message type, component or field replaces the
+  earlier one's whole and the result shares nothing with either. Editable by design.
+- **`context.With(dictionary)` applies it**, taking what it says at that moment; later edits change
+  no context already made. `Load`/`LoadFile` stay as short forms; `Load` of several texts merges.
+- **Refusal stays eager and whole.** Everything a compilation would refuse is asked of the model by
+  reflection at `With`: a member the carrier lacks, a component or group it does not carry, a code
+  its field's type cannot hold, one name on two tags. The two reference files are refused at the
+  same places as before, now named by the model's type and member.
+- **Compilation is lazy.** Each slot holds a stand-in that compiles its text on the first call and
+  puts the check in its own place; two threads racing compile twice and keep one. A test compiles
+  every check of every corpus dictionary that applies, so that a gap in the eager asking shows as a
+  failing test rather than as an exception on some message's first reading.
+- Load after: 20-90 ms and 9-16 MB (outside a window). `e2d8204e`.
