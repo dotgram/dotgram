@@ -422,7 +422,8 @@ sealed partial class Machine
 	/// twice. It was 64, on the reasoning that "the runtime reserves far more than sixty-four
 	/// frames of a reader", which was never measured and is false: the whole slow suite died of
 	/// it on every run and was reported as a pass. It was then going to be 16, which is 86 KiB of
-	/// levels and crashes deterministically (D141, 2026-09-24).
+	/// levels against a 114.4 KiB budget of which the hand-off needs 27.8, and crashes
+	/// deterministically (D141, 2026-09-24).
 	/// </para>
 	/// <para>
 	/// <b>The condition has four terms, and the first three were each wrong once:</b>
@@ -432,11 +433,14 @@ sealed partial class Machine
 	/// </code>
 	/// <list type="bullet">
 	/// <item><description>
-	/// <b>The budget is 111 KiB</b>, measured by spending it: 111 KiB past the refusal returns
-	/// and 112 kills the process, the same on a 256 KiB stack and a 1 MiB one. It is not the 128
-	/// KiB <c>TryEnsureSufficientExecutionStack</c> asks for — that counts the operating system's
-	/// 12 KiB guard page — and not the 88 to 92 KiB of reserve below the pointer, which leaves
-	/// out committed pages that are still free.
+	/// <b>The budget is 114.4 KiB</b> for a reader, measured by spending it and bisecting on
+	/// survival. It is not the 128 KiB <c>TryEnsureSufficientExecutionStack</c> asks for, which
+	/// counts the operating system's 12 KiB guard page, and not the 88 to 92 KiB of reserve
+	/// below the pointer, which leaves out committed pages that are still free. <b>Nor is it a
+	/// constant of the runtime: it depends on how the stack is spent.</b> The same room taken in
+	/// one <c>stackalloc</c> instead of in recursion is 97.4 KiB, because Windows commits ahead
+	/// of a growing stack and moves the guard as it goes. A reader recurses, so 114.4 is the
+	/// figure that applies — and it may not be carried to anything that does not.
 	/// </description></item>
 	/// <item><description>
 	/// <b>The worst level we have measured is 5.40 KiB</b>, SQL:2023 in a DEBUG build at tier-0.
@@ -444,15 +448,19 @@ sealed partial class Machine
 	/// debugs their application and a first call runs at tier-0.
 	/// </description></item>
 	/// <item><description>
-	/// <b>The hand-off costs at most 67.8 KiB</b> and more than 24.6, bracketed by which
-	/// intervals live and die; a bare thread creation alone is about 21. <c>Deepen</c> must run
-	/// inside whatever the last probe left, so it is a term and not an afterthought.
+	/// <b>The hand-off costs 27.8 KiB on the first call in a process</b> and 5.1 KiB on every
+	/// call after, measured on the emitted <c>Deepen</c> by ballast at its entry, bisected on
+	/// survival, at three ballast widths so the burner's own overhead is solved for rather than
+	/// assumed. A bare <c>new Thread</c> with Start and Join is only 2.7 KiB, so nearly all of
+	/// the cold figure is compiling the hand-off path, on the leaving thread at its deepest
+	/// point. <b>The cold one is the one a budget carries</b>: a process's first deep input is
+	/// exactly when it is paid.
 	/// </description></item>
 	/// </list>
 	/// <para>
-	/// Four levels is 21.6 KiB, so 21.6 + 67.8 = 89.4 against 111 — a margin of <b>1.24x at the
-	/// worst edge of the hand-off</b>, and 3.2x if the hand-off is really the 21 KiB a bare thread
-	/// costs. Sixteen levels is 86.4, which leaves 24.6 for a hand-off that needs more, and dies.
+	/// Four levels is 21.6 KiB, so 21.6 + 27.8 = <b>49.4 against 114.4, a margin of 2.3x</b>.
+	/// Sixteen levels is 86.4 + 27.8 = 114.2, which is the budget to within a rounding — and 16
+	/// does die, deterministically, which is the arithmetic and the crash agreeing.
 	/// </para>
 	/// <para>
 	/// <b>This covers the grammars we have measured and not every grammar, and that is a cost

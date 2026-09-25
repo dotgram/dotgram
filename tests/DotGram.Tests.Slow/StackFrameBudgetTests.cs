@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -41,21 +41,46 @@ public sealed class StackFrameBudgetTests
 {
 	/// <summary>What one probe to the next may cost, in KiB, before the guard can be stepped over.</summary>
 	/// <remarks>
-	/// 111 KiB is the budget, measured by spending it: 111 KiB past the refusal returns and 112
-	/// kills the process, the same on a 256 KiB stack and a 1 MiB one (sql-47, 2026-09-24). It is
-	/// neither the 128 KiB <c>TryEnsureSufficientExecutionStack</c> asks for, which counts the
-	/// operating system's guard page, nor the 88-92 KiB of reserve below the pointer, which leaves
-	/// out committed pages that are still free.
+	/// <b>114.4 KiB is the room a RECURSING reader has past the refusal</b>, measured by spending
+	/// it and bisecting on survival (sql-47, 2026-09-24). It is not the 128 KiB
+	/// <c>TryEnsureSufficientExecutionStack</c> asks for, which counts the operating system's
+	/// guard page.
 	/// <para>
-	/// <see cref="HandOff"/> is what <c>Deepen</c> needs of that budget, and it is an upper bound
-	/// rather than a figure: between 24.6 and 67.8 KiB, bracketed by which intervals live and die.
-	/// A bare thread creation alone is about 21. The larger end is used here, so this test is
-	/// strict in the direction that matters.
+	/// <b>And it is not a constant of the runtime: it depends on how the stack is spent.</b> The
+	/// same room spent in one <c>stackalloc</c> rather than in recursion is 97.4 KiB, because
+	/// Windows commits ahead of a growing stack and moves the guard as it goes, so where the
+	/// fatal page lands depends on the touching pattern. A reader recurses, so 114.4 is the
+	/// figure that applies here — and it may not be carried to an instrument that does not.
 	/// </para>
 	/// </remarks>
-	const double Budget = 111;
+	const double Budget = 114.4;
 
-	const double HandOff = 67.8;
+	/// <summary>What <c>Deepen</c> needs of that budget, on the call that costs most.</summary>
+	/// <remarks>
+	/// Measured on the emitted <c>Deepen</c> by ballast injected at its entry and bisected on
+	/// survival, at three ballast widths so the burner's own overhead is solved for rather than
+	/// assumed: <b>27.8 KiB on the first call in a process</b> and 5.1 KiB on every call after.
+	/// A bare <c>new Thread(16 MB)</c> with Start and Join is only 2.7 KiB, so nearly all of the
+	/// cold figure is compiling the hand-off path, on the leaving thread at its deepest point.
+	/// <para>
+	/// <b>The cold one is what a budget has to carry</b>: a process's first deep input is exactly
+	/// when it is paid. An earlier version of this file used 67.8, which was the upper end of a
+	/// bracket taken by subtracting one instrument's ceiling from another instrument's arm — a
+	/// subtraction that does not hold across two burners, and the number was wrong by 2.4x.
+	/// </para>
+	/// </remarks>
+	const double HandOff = 27.8;
+
+	/// <summary>How much of the level this holds in hand for a machine that is not this one.</summary>
+	/// <remarks>
+	/// <b>Chosen, not measured.</b> Everything above is measured on this machine, this runtime and
+	/// this JIT, and bytes-a-level is the term most likely to differ elsewhere — it already moves
+	/// 20% between Debug and Release and two to three times between tiers. Doubling the measured
+	/// level before the arithmetic is what stands in for that, and it is a judgement rather than
+	/// a finding, which is why it is a constant with a name instead of a factor buried in the
+	/// assertion.
+	/// </remarks>
+	const double Reserve = 2;
 
 	/// <summary>The generator's own interval, written out because <c>Machine</c> is internal to it.</summary>
 	const int Interval = 4;
@@ -87,12 +112,13 @@ public sealed class StackFrameBudgetTests
 			$"{grammar}: the level measured as {level:F2} KiB, which means the measurement failed " +
 			"rather than that the frames are free.");
 
-		var between = level * Interval;
+		var between = level * Reserve * Interval;
 
 		Assert.True(
 			between + HandOff <= Budget,
 			$"{grammar}: {level:F2} KiB a level, so {between:F1} KiB between two probes at an " +
-			$"interval of {Interval}, and {between + HandOff:F1} KiB with the hand-off's {HandOff} " +
+			$"interval of {Interval} with a reserve of {Reserve}x, and {between + HandOff:F1} KiB " +
+			$"with the hand-off's {HandOff} " +
 			$"against a budget of {Budget}. A grammar this wide can step over the guard between " +
 			"two probes; the interval in Machine.Reader.cs is what has to come down.");
 	}
