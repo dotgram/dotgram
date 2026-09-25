@@ -9542,6 +9542,14 @@ still answers at, and that the generated reader's extra stack is extra calls, 1.
     demands it: one carrier, no new exceptions, D138's question does not arise. It is the recursion
     Igor asked for, done inside the tape. First a reading of what points into a span and what
     give-back must do, then a count witness, then the note to the architect and to Igor.
+  - **The order after the collapse (Igor, 2026-09-25).** Refusal re-reads: after a failed
+    alternative the next reads the same text again, and on `(((a` the question "is `QueryPrimary`
+    at this position a query" is asked once a level. Three remedies, in this order, each judged by
+    its result before the next: (1) memoisation by (rule, position) where the verdict is a function
+    of the two, the collapsed record serving as an entry; (2) a `Query` role on `Towers`, so a
+    bracket is read once as value or query and the context chooses (the covering rule through the
+    role mechanism the grammar already has); (3) automatic factoring of alternatives across rule
+    boundaries in the generator, a direction without work for now.
 - **The instruments learned:** name the API form in a row (`Match<T>` reads a refused input twice,
   which produced a false "factor two" twice in one day; `syntax.md` says what a refusal costs each
   form, `28650da6`, being corrected for §7.7's exception where no context can be put back); predict
