@@ -7,9 +7,35 @@
 
 # DotGram.Finance
 
-A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
-DotGram compiles the handwritten dispatch grammar at build time; applications need no DotGram runtime,
-grammar files, schema XML, reflection configuration or initialization step.
+Reads and checks FIX 4.4 tag-value messages wherever they are kept rather than traded: logs,
+archives, files, message buses. For `netstandard2.0` and `net10.0`; DotGram compiles the grammar at
+build time, so applications need no DotGram runtime, grammar files, schema XML, reflection
+configuration or initialization step.
+
+## What it is for
+
+- **Logs and archives.** Every FIX engine journals what it sent and received, often with `|` for
+  the separator and spaces around it. Incident review, audit, trade reconstruction, regulatory
+  reporting and execution analysis are read from those journals — gigabytes a day, read from a
+  stream in bounded memory, pipe-delimited or not.
+- **Checking messages against a counterparty's dictionary** before a certification or in a test
+  suite: load their QuickFIX dictionary, and `Validate` reports every finding of a message at once,
+  each with its rule, tag, position and group entry, rather than the first.
+- **Buses and stores.** FIX kept in Kafka, a database or a queue — drop copy, post-trade, clearing —
+  and read by a consumer that has no session to hold.
+- **Files and other transports.** End-of-day allocation and confirmation files, FIX carried over a
+  queue, an HTTP or a WebSocket gateway.
+- **Tools.** Simulators, load generators, test harnesses, anonymizers, converters to other formats.
+- **An engine of your own.** Where the session layer is written in house, this is the parser and
+  the checks under it.
+
+## What it is not
+
+It is not a FIX engine. There is no socket, no session: no logon, sequence numbers, heartbeats,
+resend requests, message store or schedule. For a live trading connection, that layer is a FIX
+engine's — QuickFIX/n or a commercial one — and each engine parses with its own reader, so this
+package does not sit underneath one. Where you hold the bytes, it reads them: `ReadMessages` takes
+the `Stream` your transport hands you.
 
 ## Flat field parsing
 
