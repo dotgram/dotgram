@@ -93,7 +93,11 @@ static class Towers
 	public const int Any = Value | Row;
 
 	/// <summary>A node, and what the towers say it can still be.</summary>
-	public readonly record struct Typed(Expression Node, int Roles);
+	public sealed record Typed(Expression Node, int Roles)
+	{
+		/// <summary>What <c>default(Typed)</c> was while this was a struct: no node, no roles.</summary>
+		public static readonly Typed None = new(null!, 0);
+	}
 
 	// ── What a guard asks ──────────────────────────────────────────────────────
 	//
@@ -123,7 +127,7 @@ static class Towers
 	/// <summary>What an operand can be, asked of its parts before they are made one.</summary>
 	public static int OperandRoles(UnaryOperator? sign, Typed? primary, After? postfix)
 	{
-		return Roles(new Piece(sign, primary.GetValueOrDefault(), postfix.GetValueOrDefault()));
+		return Roles(new Piece(sign, primary ?? Typed.None, postfix ?? After.None));
 	}
 
 	// ── A primary ──────────────────────────────────────────────────────────────
@@ -154,7 +158,11 @@ static class Towers
 	}
 
 	/// <summary>Steps read, and what they make of a primary.</summary>
-	public readonly record struct Stepping(int Roles, Step[]? Steps);
+	public sealed record Stepping(int Roles, Step[]? Steps)
+	{
+		/// <summary>What <c>default(Stepping)</c> was while this was a struct: no roles, no steps.</summary>
+		public static readonly Stepping None = new(0, null);
+	}
 
 	/// <summary>A primary and the steps after it, each taking what stands before it as its target.</summary>
 	public static Typed Stepped(Typed primary, Stepping steps)
@@ -209,11 +217,25 @@ static class Towers
 	/// What follows a primary, and the node it makes of it, the value left empty: an interval qualifier,
 	/// a time zone, a collate clause, `.SPECIFICTYPE`, or `.SPECIFICTYPE` and a collate clause.
 	/// </summary>
-	public readonly record struct After(int Kind, Expression? Node);
+	public sealed record After(int Kind, Expression? Node)
+	{
+		/// <summary>What <c>default(After)</c> was while this was a struct: nothing follows.</summary>
+		public static readonly After None = new(0, null);
+	}
 
 	/// <summary>A primary, with its sign and what follows it.</summary>
-	public readonly record struct Piece(UnaryOperator? Sign, Typed Primary, After Postfix)
+	public sealed record Piece(UnaryOperator? Sign, Typed Primary, After Postfix)
 	{
+		/// <summary>What <c>default(Piece)</c> was while this was a struct: an unsigned nothing.</summary>
+		/// <remarks>
+		/// Needed by <see cref="Common"/>, whose first operand is nullable because a guard may ask
+		/// before the capture is bound. As a struct that call read `GetValueOrDefault()` and got a
+		/// piece with no node and no roles; this is the same piece under a name. The alternative was
+		/// `first!`, which is not the same thing -- it asserts rather than answers, and a null would
+		/// reach `Roles` and throw where the struct returned no roles at all.
+		/// </remarks>
+		public static readonly Piece None = new(null, Typed.None, After.None);
+
 		public bool Signed => Sign is not null;
 	}
 
@@ -288,7 +310,7 @@ static class Towers
 	/// </summary>
 	public static int Common(Piece? first, Operated[]? rest)
 	{
-		var pieces    = new List<Piece> { first.GetValueOrDefault() };
+		var pieces    = new List<Piece> { first ?? Piece.None };
 		var operators = new List<int>();
 
 		foreach (var (op, operand) in rest ?? [])

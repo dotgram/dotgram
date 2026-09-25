@@ -645,7 +645,7 @@ Postfix : @Towers.After
 	| q: IntervalQualifier => @(new Towers.After(Towers.Qualified, new Expression.IntervalQualified(null!, q)))
 	| z: TimeZone => @(new Towers.After(Towers.Zoned, z))
 	| c: CollateClause => @(new Towers.After(Towers.Collated, new Expression.Collate(null!, c)))
-	| none => @(default)
+	| none => @(Towers.After.None)
 
 // <time zone>. The zone is an interval primary: a value expression primary with or without a
 // qualifier, or an interval's `ABS`. `AT LOCAL` names no zone.
@@ -661,7 +661,7 @@ Primary : @Towers.Typed
 	| p: PrimaryReading => @(p)
 
 FunctionSubscript : @Towers.Stepping = e: ArrayElementStep & s: PrimaryStep* => @(Towers.Subscripted(e, s))
-                                     | none => @(default)
+                                     | none => @(Towers.Stepping.None)
 
 // The towers, each an expression the towers say it can be.
 NumericValueExpression    : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Numeric) != 0) => @(e)
@@ -916,7 +916,7 @@ TrimAfterSpecification : @Nodes.TrimParts
 	| c: StringValueExpression & "FROM"i & source: StringValueExpression => @(new Nodes.TrimParts(c.Roles & source.Roles, null, c.Node, true, source.Node))
 
 TrimFrom : @Towers.Typed = "FROM"i & s: StringValueExpression => @(s)
-                         | none => @(default)
+                         | none => @(Towers.Typed.None)
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 
 // <character overlay function>, <binary overlay function>.
