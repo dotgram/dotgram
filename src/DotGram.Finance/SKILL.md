@@ -1,15 +1,21 @@
 ---
 name: dotgram-finance
-description: Read FIX 4.4 tag-value data with DotGram.Finance — flat typed fields from wire or log input, and, where a message must be known correct, validated messages with their repeating groups. Use when a project references the DotGram.Finance package, or when asked to parse FIX tag-value messages or FIX logs in .NET. Not for FIX session handling, sending or composing messages, FIXML, or another FIX version's schema; this package only reads, and only FIX 4.4.
+description: Read FIX 4.2 and FIX 4.4 tag-value data with DotGram.Finance — flat typed fields from wire or log input, and, where a message must be known correct, validated messages with their repeating groups. Use when a project references the DotGram.Finance package, or when asked to parse FIX tag-value messages or FIX logs in .NET. Not for FIX session handling, sending or composing messages, FIXML, or a FIX version other than 4.2 and 4.4; this package only reads.
 ---
 
 # DotGram.Finance
 
-Reads FIX 4.4 tag-value input: wire messages whose fields end with SOH, and the
+Reads FIX 4.2 and FIX 4.4 tag-value input: wire messages whose fields end with SOH, and the
 pipe-separated log renderings people keep of them. What every version of FIX shares — the
-fields, `FixTag`, `FixConvert`, the findings — is in `DotGram.Finance.Fix`; FIX 4.4's own —
-`FixParser`, the messages, `Fix44Context` — in `DotGram.Finance.Fix.Fix44`. There is no runtime
-to deploy, nothing to configure and nothing to initialize.
+fields, `FixTag`, `FixConvert`, the findings — is in `DotGram.Finance.Fix`; a version's own —
+`FixParser`, the messages, its context — in a namespace of its own with the same names in it:
+`DotGram.Finance.Fix.Fix44` with `Fix44Context`, `DotGram.Finance.Fix.Fix42` with `Fix42Context`.
+The examples here are FIX 4.4's. There is no runtime to deploy, nothing to configure and nothing
+to initialize.
+
+**Pick the namespace by the BeginString of the data.** Each version's `FixParser` reads the other's
+messages too, since the framing is the same, but builds its own classes and holds them to its own
+version: a 4.2 order read through `Fix44` is told its BeginString is wrong and meets 4.4's fields.
 
 The [README][readme] beside this file is the reference. This is the order to decide
 things in, and the mistakes that are easy to make.
@@ -94,8 +100,9 @@ foreach (var field in FixParser.ParseFields(wire))
   `FixField.Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`, `Date`,
   `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
   `decimal` or `long`, dates and times as `DateOnly`, `TimeOnly` and `DateTimeOffset` (a
-  MonthYear stays a `string`). `Tag` is the tag's number, and `FixTag` holds the 912 standard ones as constants
-  named for them: `FixField.Decimal { Tag: FixTag.OrderQty }`. A tag it does not name is just its number, `25005`.
+  MonthYear stays a `string`). `Tag` is the tag's number, and `FixTag` holds every version's tags as constants
+  named as the FIX repository names them: `FixField.Decimal { Tag: FixTag.OrderQty }`. A message's
+  property keeps its version's name where that differs: FIX 4.4's `IOIid` is `FixTag.IOIID`. A tag it does not name is just its number, `25005`.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.

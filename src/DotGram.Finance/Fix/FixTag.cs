@@ -1,6 +1,6 @@
 ﻿namespace DotGram.Finance.Fix;
 
-// Written by generate.py from the FIX 4.4 repository; not edited by hand.
+// Written by generate.py from the FIX 4.2, FIX 4.4 repository; not edited by hand.
 
 /// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
 /// <remarks>A tag is its number, and a tag no version defines is only that: <c>25005</c>.</remarks>
@@ -63,6 +63,9 @@ public static class FixTag
 	/// <summary>ExecRefID, a <see cref="FixField.Text"/>.</summary>
 	public const int ExecRefID = 19;
 
+	/// <summary>ExecTransType, a <see cref="FixField.Character"/>.</summary>
+	public const int ExecTransType = 20;
+
 	/// <summary>HandlInst, a <see cref="FixField.Character"/>.</summary>
 	public const int HandlInst = 21;
 
@@ -71,6 +74,9 @@ public static class FixTag
 
 	/// <summary>IOIID, a <see cref="FixField.Text"/>.</summary>
 	public const int IOIID = 23;
+
+	/// <summary>IOIOthSvc, a <see cref="FixField.Character"/>.</summary>
+	public const int IOIOthSvc = 24;
 
 	/// <summary>IOIQltyInd, a <see cref="FixField.Character"/>.</summary>
 	public const int IOIQltyInd = 25;
@@ -135,6 +141,12 @@ public static class FixTag
 	/// <summary>RefSeqNum, a <see cref="FixField.Integer"/>.</summary>
 	public const int RefSeqNum = 45;
 
+	/// <summary>RelatdSym, a <see cref="FixField.Text"/>.</summary>
+	public const int RelatdSym = 46;
+
+	/// <summary>Rule80A, a <see cref="FixField.Character"/>.</summary>
+	public const int Rule80A = 47;
+
 	/// <summary>SecurityID, a <see cref="FixField.Text"/>.</summary>
 	public const int SecurityID = 48;
 
@@ -143,6 +155,9 @@ public static class FixTag
 
 	/// <summary>SenderSubID, a <see cref="FixField.Text"/>.</summary>
 	public const int SenderSubID = 50;
+
+	/// <summary>SendingDate, a <see cref="FixField.Date"/>.</summary>
+	public const int SendingDate = 51;
 
 	/// <summary>SendingTime, a <see cref="FixField.Timestamp"/>.</summary>
 	public const int SendingTime = 52;
@@ -216,6 +231,9 @@ public static class FixTag
 	/// <summary>TradeDate, a <see cref="FixField.Date"/>.</summary>
 	public const int TradeDate = 75;
 
+	/// <summary>ExecBroker, a <see cref="FixField.Text"/>.</summary>
+	public const int ExecBroker = 76;
+
 	/// <summary>PositionEffect, a <see cref="FixField.Character"/>.</summary>
 	public const int PositionEffect = 77;
 
@@ -243,6 +261,9 @@ public static class FixTag
 	/// <summary>NoDlvyInst, a <see cref="FixField.Integer"/>.</summary>
 	public const int NoDlvyInst = 85;
 
+	/// <summary>DlvyInst, a <see cref="FixField.Text"/>.</summary>
+	public const int DlvyInst = 86;
+
 	/// <summary>AllocStatus, a <see cref="FixField.Integer"/>.</summary>
 	public const int AllocStatus = 87;
 
@@ -257,6 +278,9 @@ public static class FixTag
 
 	/// <summary>SecureData, a <see cref="FixField.Data"/>.</summary>
 	public const int SecureData = 91;
+
+	/// <summary>BrokerOfCredit, a <see cref="FixField.Text"/>.</summary>
+	public const int BrokerOfCredit = 92;
 
 	/// <summary>SignatureLength, a <see cref="FixField.Integer"/>.</summary>
 	public const int SignatureLength = 93;
@@ -291,6 +315,9 @@ public static class FixTag
 	/// <summary>IOIQualifier, a <see cref="FixField.Character"/>.</summary>
 	public const int IOIQualifier = 104;
 
+	/// <summary>WaveNo, a <see cref="FixField.Text"/>.</summary>
+	public const int WaveNo = 105;
+
 	/// <summary>Issuer, a <see cref="FixField.Text"/>.</summary>
 	public const int Issuer = 106;
 
@@ -299,6 +326,9 @@ public static class FixTag
 
 	/// <summary>HeartBtInt, a <see cref="FixField.Integer"/>.</summary>
 	public const int HeartBtInt = 108;
+
+	/// <summary>ClientID, a <see cref="FixField.Text"/>.</summary>
+	public const int ClientID = 109;
 
 	/// <summary>MinQty, a <see cref="FixField.Decimal"/>.</summary>
 	public const int MinQty = 110;
@@ -345,6 +375,9 @@ public static class FixTag
 	/// <summary>NoExecs, a <see cref="FixField.Integer"/>.</summary>
 	public const int NoExecs = 124;
 
+	/// <summary>CxlType, a <see cref="FixField.Character"/>.</summary>
+	public const int CxlType = 125;
+
 	/// <summary>ExpireTime, a <see cref="FixField.Timestamp"/>.</summary>
 	public const int ExpireTime = 126;
 
@@ -384,7 +417,7 @@ public static class FixTag
 	/// <summary>MiscFeeCurr, a <see cref="FixField.Text"/>.</summary>
 	public const int MiscFeeCurr = 138;
 
-	/// <summary>MiscFeeType, a <see cref="FixField.Text"/>.</summary>
+	/// <summary>MiscFeeType, a <see cref="FixField.Character"/> or <see cref="FixField.Text"/>.</summary>
 	public const int MiscFeeType = 139;
 
 	/// <summary>PrevClosePx, a <see cref="FixField.Decimal"/>.</summary>
@@ -465,6 +498,9 @@ public static class FixTag
 	/// <summary>SettlInstSource, a <see cref="FixField.Character"/>.</summary>
 	public const int SettlInstSource = 165;
 
+	/// <summary>SettlLocation, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlLocation = 166;
+
 	/// <summary>SecurityType, a <see cref="FixField.Text"/>.</summary>
 	public const int SecurityType = 167;
 
@@ -482,6 +518,51 @@ public static class FixTag
 
 	/// <summary>SettlDeliveryType, a <see cref="FixField.Integer"/>.</summary>
 	public const int SettlDeliveryType = 172;
+
+	/// <summary>SettlDepositoryCode, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlDepositoryCode = 173;
+
+	/// <summary>SettlBrkrCode, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlBrkrCode = 174;
+
+	/// <summary>SettlInstCode, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlInstCode = 175;
+
+	/// <summary>SecuritySettlAgentName, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentName = 176;
+
+	/// <summary>SecuritySettlAgentCode, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentCode = 177;
+
+	/// <summary>SecuritySettlAgentAcctNum, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentAcctNum = 178;
+
+	/// <summary>SecuritySettlAgentAcctName, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentAcctName = 179;
+
+	/// <summary>SecuritySettlAgentContactName, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentContactName = 180;
+
+	/// <summary>SecuritySettlAgentContactPhone, a <see cref="FixField.Text"/>.</summary>
+	public const int SecuritySettlAgentContactPhone = 181;
+
+	/// <summary>CashSettlAgentName, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentName = 182;
+
+	/// <summary>CashSettlAgentCode, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentCode = 183;
+
+	/// <summary>CashSettlAgentAcctNum, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentAcctNum = 184;
+
+	/// <summary>CashSettlAgentAcctName, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentAcctName = 185;
+
+	/// <summary>CashSettlAgentContactName, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentContactName = 186;
+
+	/// <summary>CashSettlAgentContactPhone, a <see cref="FixField.Text"/>.</summary>
+	public const int CashSettlAgentContactPhone = 187;
 
 	/// <summary>BidSpotRate, a <see cref="FixField.Decimal"/>.</summary>
 	public const int BidSpotRate = 188;
@@ -531,6 +612,12 @@ public static class FixTag
 	/// <summary>CoveredOrUncovered, a <see cref="FixField.Integer"/>.</summary>
 	public const int CoveredOrUncovered = 203;
 
+	/// <summary>CustomerOrFirm, a <see cref="FixField.Integer"/>.</summary>
+	public const int CustomerOrFirm = 204;
+
+	/// <summary>MaturityDay, a <see cref="FixField.Integer"/>.</summary>
+	public const int MaturityDay = 205;
+
 	/// <summary>OptAttribute, a <see cref="FixField.Character"/>.</summary>
 	public const int OptAttribute = 206;
 
@@ -569,6 +656,9 @@ public static class FixTag
 
 	/// <summary>Spread, a <see cref="FixField.Decimal"/>.</summary>
 	public const int Spread = 218;
+
+	/// <summary>Benchmark, a <see cref="FixField.Character"/>.</summary>
+	public const int Benchmark = 219;
 
 	/// <summary>BenchmarkCurveCurrency, a <see cref="FixField.Text"/>.</summary>
 	public const int BenchmarkCurveCurrency = 220;
@@ -765,7 +855,7 @@ public static class FixTag
 	/// <summary>DeleteReason, a <see cref="FixField.Character"/>.</summary>
 	public const int DeleteReason = 285;
 
-	/// <summary>OpenCloseSettlFlag, a <see cref="FixField.Multiple"/>.</summary>
+	/// <summary>OpenCloseSettlFlag, a <see cref="FixField.Character"/> or <see cref="FixField.Multiple"/>.</summary>
 	public const int OpenCloseSettlFlag = 286;
 
 	/// <summary>SellerDays, a <see cref="FixField.Integer"/>.</summary>
@@ -780,10 +870,10 @@ public static class FixTag
 	/// <summary>MDEntryPositionNo, a <see cref="FixField.Integer"/>.</summary>
 	public const int MDEntryPositionNo = 290;
 
-	/// <summary>FinancialStatus, a <see cref="FixField.Multiple"/>.</summary>
+	/// <summary>FinancialStatus, a <see cref="FixField.Character"/> or <see cref="FixField.Multiple"/>.</summary>
 	public const int FinancialStatus = 291;
 
-	/// <summary>CorporateAction, a <see cref="FixField.Multiple"/>.</summary>
+	/// <summary>CorporateAction, a <see cref="FixField.Character"/> or <see cref="FixField.Multiple"/>.</summary>
 	public const int CorporateAction = 292;
 
 	/// <summary>DefBidSize, a <see cref="FixField.Decimal"/>.</summary>
@@ -849,6 +939,9 @@ public static class FixTag
 	/// <summary>UnderlyingMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
 	public const int UnderlyingMaturityMonthYear = 313;
 
+	/// <summary>UnderlyingMaturityDay, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingMaturityDay = 314;
+
 	/// <summary>UnderlyingPutOrCall, a <see cref="FixField.Integer"/>.</summary>
 	public const int UnderlyingPutOrCall = 315;
 
@@ -860,6 +953,9 @@ public static class FixTag
 
 	/// <summary>UnderlyingCurrency, a <see cref="FixField.Text"/>.</summary>
 	public const int UnderlyingCurrency = 318;
+
+	/// <summary>RatioQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int RatioQty = 319;
 
 	/// <summary>SecurityReqID, a <see cref="FixField.Text"/>.</summary>
 	public const int SecurityReqID = 320;
@@ -1010,6 +1106,9 @@ public static class FixTag
 
 	/// <summary>LastMsgSeqNumProcessed, a <see cref="FixField.Integer"/>.</summary>
 	public const int LastMsgSeqNumProcessed = 369;
+
+	/// <summary>OnBehalfOfSendingTime, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int OnBehalfOfSendingTime = 370;
 
 	/// <summary>RefTagID, a <see cref="FixField.Integer"/>.</summary>
 	public const int RefTagID = 371;
@@ -1214,6 +1313,12 @@ public static class FixTag
 
 	/// <summary>ContraTradeTime, a <see cref="FixField.Timestamp"/>.</summary>
 	public const int ContraTradeTime = 438;
+
+	/// <summary>ClearingFirm, a <see cref="FixField.Text"/>.</summary>
+	public const int ClearingFirm = 439;
+
+	/// <summary>ClearingAccount, a <see cref="FixField.Text"/>.</summary>
+	public const int ClearingAccount = 440;
 
 	/// <summary>LiquidityNumSecurities, a <see cref="FixField.Integer"/>.</summary>
 	public const int LiquidityNumSecurities = 441;

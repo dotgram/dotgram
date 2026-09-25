@@ -119,7 +119,7 @@ public sealed class FixFieldBuilderTests
 	}
 
 	/// <summary>The versions the package reads, oldest first, as the repository's directories name them.</summary>
-	static readonly string[] Versions = ["FIX.4.4"];
+	static readonly string[] Versions = ["FIX.4.2", "FIX.4.4"];
 
 	/// <summary>What each tag of a version is called and its type, as the repository gives them.</summary>
 	static Dictionary<int, (string Name, string Type)> Fields(string version)

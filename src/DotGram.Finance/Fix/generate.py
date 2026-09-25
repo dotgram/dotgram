@@ -62,6 +62,13 @@ class Version:
 
 
 VERSIONS = [
+    Version("4.2", "FIX.4.2", "Fix42", "FIX 4.2", "FIX.4.2",
+        message_names={
+            "IOI":                      "IndicationofInterest",
+            "OrderSingle":              "NewOrderSingle",
+            "OrderList":                "NewOrderList",
+            "AllocationInstructionAck": "AllocationACK",
+        }),
     Version("4.4", "FIX.4.4", "Fix44", "FIX 4.4", "FIX.4.4",
         field_names={23: "IOIid", 33: "LinesOfText"},
         message_names={
@@ -806,6 +813,15 @@ class Writer:
         width = max(len(f.name) for f in required)
         return [f"\t\tif (message.{f.name.ljust(width)} is null) Missing(message, {f.const});" for f in required]
 
+    def header_groups(self):
+        """The count of every group of the header and trailer held to its entries, between blank lines."""
+        groups = [mm for mm in self.m.header + self.m.trailer if isinstance(mm, Group)]
+
+        if not groups:
+            return [""]
+
+        return [""] + [f"\t\tCounted(message, message.{g.counter.name}, message.{g.list});" for g in groups] + [""]
+
     def header_sets(self):
         header  = [f.const for f in self.flat(self.m.header)]
         trailer = [f.const for f in self.flat(self.m.trailer)]
@@ -880,7 +896,11 @@ class Writer:
 
         self.write("FixMessage.Types.cs", types)
         self.write("FixMessage.Header.cs", self.header_text())
-        self.write("FixComponents.cs", components[:-1] + [""] if components[-1] == "" else components)
+        # A version whose repository names no component outside the header, FIX 4.2, has none to write.
+        if m.interfaces:
+            self.write("FixComponents.cs", components[:-1] + [""] if components[-1] == "" else components)
+        elif os.path.exists(os.path.join(here, v.ns, "FixComponents.cs")):
+            os.remove(os.path.join(here, v.ns, "FixComponents.cs"))
         self.write("FixStandard.cs", standard)
         self.write(f"{v.validator}.cs", self.validators_text())
         self.write(f"{v.validator}.Fields.cs", self.fields_text())
@@ -891,7 +911,7 @@ class Writer:
         self.write("FixParser.Messages.cs", self.template("FixParser.Messages.cs.in", {"MessageSwitch": self.message_switch()}))
         self.write("FixParser.Streaming.cs", self.template("FixParser.Streaming.cs.in", {}))
         self.write(f"{v.context}.cs", self.template("Context.cs.in", {"Version": self.version_text()}))
-        self.write(f"{v.validator}.Header.cs", self.template("Validator.Header.cs.in", {"HeaderRequired": self.header_required(), "HeaderSets": self.header_sets()}))
+        self.write(f"{v.validator}.Header.cs", self.template("Validator.Header.cs.in", {"HeaderRequired": self.header_required(), "HeaderSets": self.header_sets(), "HeaderGroups": self.header_groups()}))
 
         return m
 

@@ -7,7 +7,7 @@
 
 # DotGram.Finance
 
-Reads and checks FIX 4.4 tag-value messages wherever they are kept rather than traded: logs,
+Reads and checks FIX 4.2 and FIX 4.4 tag-value messages wherever they are kept rather than traded: logs,
 archives, files, message buses. For `netstandard2.0` and `net10.0`; DotGram compiles the grammar at
 build time, so applications need no DotGram runtime, grammar files, schema XML, reflection
 configuration or initialization step.
@@ -119,6 +119,11 @@ shares.
 What every version shares — `FixField` and its classes, `FixTag`, `FixConvert`, `FixFinding`,
 `FixFraming` — is in the namespace `DotGram.Finance.Fix`. What is FIX 4.4's own — `FixParser`,
 `FixMessage` and its 93 types, the components, `Fix44Context` — is in `DotGram.Finance.Fix.Fix44`.
+
+Every version is a namespace of its own with the same names in it: FIX 4.2 is
+`DotGram.Finance.Fix.Fix42`, whose `FixParser` reads a 4.2 message into its 46 types and whose
+`Fix42Context` holds it to FIX 4.2. The examples on this page are FIX 4.4's; another version's
+calls are the same with its own namespace and context.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -317,7 +322,7 @@ wrong, and puts everything that is in `message.InvalidFindings` at once:
 | `CheckSumMismatch` | `CheckSum` is not the sum, modulo 256, of the octets before it |
 | `LengthFieldNotBeforeData` | a length field is not followed by the data it measures |
 
-`BeginString` other than `FIX.4.4` is an `InvalidValue`. The octets the length and the sum are
+A `BeginString` other than the version's own — `FIX.4.4` under `Fix44Context` — is an `InvalidValue`. The octets the length and the sum are
 held to are measured while the message is read, since it keeps its fields and not its source.
 
 Each `FixFinding` names its rule, its tag, the field, where in the source it begins and the entry
@@ -356,7 +361,9 @@ leap-second dates are outside it; ISO identifiers are checked for their lexical 
 
 A field is a class of the type of its value, and its `Tag` says which field it is: an `OrderQty` is
 a `FixField.Decimal` whose `Tag` is `FixTag.OrderQty`. `Tag` is the tag's number, and `FixTag` holds
-every tag FIX 4.4 defines as a constant named for it; a tag it does not is just its number, `25005`. A message's properties are typed the same way:
+every tag of every version this package reads as a constant named as the FIX repository names it; a
+tag none defines is just its number, `25005`. A message's property keeps its own version's name
+where that differs: FIX 4.4's `IOIid` is `FixTag.IOIID`. A message's properties are typed the same way:
 
 ```csharp
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
@@ -514,6 +521,9 @@ FIX 4.4's own is in `Fix/Fix44/`:
   `Fix/Fix44/FixStandard.cs`: the 93 message classes, the 24 component interfaces, the check of
   every message type, component and group entry, and the type of every tag.
 - `Fix/Fix44/FixValidator44.Fields.cs`: the check of every field against its type and its code set.
+
+FIX 4.2's is in `Fix/Fix42/`, the same files with 42 for 44 and no `FixComponents.cs`: FIX 4.2
+writes its groups inline and names no component.
 
 A group is named for its counter: the class `<Counter>Group`, nested in whatever carries it —
 a message, a component's interface or another group's entry — and its entries are the list

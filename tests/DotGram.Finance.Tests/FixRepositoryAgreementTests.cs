@@ -7,15 +7,14 @@ using System.Text;
 using System.Xml.Linq;
 
 using DotGram.Finance.Fix;
-using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
 namespace DotGram.Finance.Tests;
 
 /// <summary>
-/// What each of the ninety-three message types asks for, held against what the specification's own
-/// machine-readable form says it must have.
+/// What each message type of a version asks for, held against what the specification's own
+/// machine-readable form says it must have: a class of these for every version the package reads.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -32,17 +31,35 @@ namespace DotGram.Finance.Tests;
 /// tables.
 /// </para>
 /// </remarks>
-public sealed class FixRepositoryAgreementTests
+public abstract class FixRepositoryAgreementTests
 {
-	static readonly string Base = Path.Combine(
-		AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository", "FIX.4.4", "Base");
+	/// <summary>The version's directory in the repository, <c>FIX.4.4</c>, which is also its BeginString.</summary>
+	protected abstract string Version { get; }
 
-	/// <summary>Every message type, by the name and the MsgType the repository gives it.</summary>
-	public static TheoryData<string, string> Messages()
+	/// <summary>The version's context as the package compiles it in.</summary>
+	protected abstract FixContext Context { get; }
+
+	/// <summary>How many length/data pairs the version describes.</summary>
+	protected abstract int PairCount { get; }
+
+	/// <summary>The components the repository declares otherwise than it shapes them, each pinned by its own class.</summary>
+	protected virtual string[] Misdeclared => [];
+
+	/// <summary>The fields the version's classes name otherwise than the repository, as the data dictionaries do.</summary>
+	protected virtual Dictionary<int, string> Renamed => [];
+
+	/// <summary>What the version's own reading finds wrong with this wire.</summary>
+	protected abstract IReadOnlyList<FixFinding> Validate(byte[] wire);
+
+	/// <summary>Whether the version's compiled-in check of the field named so passes this field, carried by the wire.</summary>
+	protected abstract bool Check(byte[] wire, string name, FixField field);
+
+	/// <summary>Every message type of a version, by the name and the MsgType the repository gives it.</summary>
+	protected static TheoryData<string, string> MessagesOf(string version)
 	{
 		var data = new TheoryData<string, string>();
 
-		foreach (var message in Load("Messages.xml").Elements())
+		foreach (var message in Load(version, "Messages.xml").Elements())
 			data.Add(Text(message, "Name"), Text(message, "MsgType"));
 
 		return data;
@@ -55,19 +72,14 @@ public sealed class FixRepositoryAgreementTests
 	/// <remarks>
 	/// The two readings meet at the public call rather than over their tables: this one reads the
 	/// repository here, and the package read it when its checks were written. What this can prove
-	/// is that nothing was lost between the table and the code — which is what three hundred and
-	/// twenty-five checks across ninety-three types is most likely to lose. It cannot prove the
-	/// table is right; nothing here can.
+	/// is that nothing was lost between the table and the code — which is what hundreds of checks
+	/// across every type is most likely to lose. It cannot prove the table is right; nothing here can.
 	/// </remarks>
 	[Theory]
-	[MemberData(nameof(Messages))]
+	[MemberData("Messages")]
 	public void A_message_asks_for_the_fields_the_repository_requires(string name, string type)
 	{
-		var message = Empty(type);
-
-		message.Validate(Fix44Context.Default);
-
-		var asked = (message.InvalidFindings ?? [])
+		var asked = Validate(Empty(type))
 			.Where(one => one.Rule == FixRule.RequiredFieldMissing)
 			.Select(one => one.Tag)
 			.OrderBy(tag => tag)
@@ -84,17 +96,13 @@ public sealed class FixRepositoryAgreementTests
 	/// <remarks>
 	/// A block is written into its carrier field by field, so "the block is missing" is "the carrier
 	/// has no field of it" — asked once of the interface every carrier implements, and asked here of
-	/// all ninety-three types through the public call.
+	/// every type through the public call.
 	/// </remarks>
 	[Theory]
-	[MemberData(nameof(Messages))]
+	[MemberData("Messages")]
 	public void A_message_asks_for_the_components_the_repository_requires(string name, string type)
 	{
-		var message = Empty(type);
-
-		message.Validate(Fix44Context.Default);
-
-		var asked = (message.InvalidFindings ?? []).Count(one => one.Rule == FixRule.RequiredComponentMissing);
+		var asked = Validate(Empty(type)).Count(one => one.Rule == FixRule.RequiredComponentMissing);
 
 		Assert.Equal(RequiredComponents(type), asked);
 		Assert.NotNull(name);
@@ -106,7 +114,7 @@ public sealed class FixRepositoryAgreementTests
 	/// repository publishes.
 	/// </summary>
 	/// <remarks>
-	/// <strong>Two fields of FIX 4.4 declare a type their own code set does not fit.</strong>
+	/// <strong>A field can declare a type its own code set does not fit.</strong> In FIX 4.4,
 	/// MiscFeeType (139) is declared <c>char</c> and publishes the values 10, 11 and 12;
 	/// MassCancelRejectReason (532) is declared <c>char</c> and publishes 99. Held to the declared
 	/// type, a message carrying a value the same specification publishes would be refused. So the
@@ -118,7 +126,7 @@ public sealed class FixRepositoryAgreementTests
 	{
 		var wrong = new List<string>();
 
-		foreach (var field in Load("Fields.xml").Elements())
+		foreach (var field in Load(Version, "Fields.xml").Elements())
 		{
 			var tag      = int.Parse(Text(field, "Tag"), CultureInfo.InvariantCulture);
 			var declared = Text(field, "Type");
@@ -158,7 +166,7 @@ public sealed class FixRepositoryAgreementTests
 	{
 		var refused = new List<string>();
 
-		foreach (var field in Load("Fields.xml").Elements())
+		foreach (var field in Load(Version, "Fields.xml").Elements())
 		{
 			var tag = int.Parse(Text(field, "Tag"), CultureInfo.InvariantCulture);
 
@@ -171,35 +179,36 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>The values the repository publishes for a tag, or none where it publishes none.</summary>
-	static IReadOnlyList<string> Codes(int tag)
+	IReadOnlyList<string> Codes(int tag)
 	{
-		return Load("Enums.xml").Elements()
+		return Load(Version, "Enums.xml").Elements()
 			.Where(one => Text(one, "Tag") == tag.ToString(CultureInfo.InvariantCulture))
 			.Select(one => Text(one, "Value"))
 			.ToArray();
 	}
 
 	/// <summary>Whether a value read as this tag's field is valid and passes the field's compiled-in check.</summary>
-	static bool Accepted(int tag, string code)
+	/// <remarks>
+	/// The check is the slot of the field's name in the version's classes — the repository's, or the
+	/// dictionaries' where they differ — and not <see cref="FixTag"/>'s, which every version shares.
+	/// </remarks>
+	bool Accepted(int tag, string code)
 	{
-		var field = FixFieldBuilder.Value(tag, Fix44Context.Default.Type(tag), code.AsSpan());
+		var field = FixFieldBuilder.Value(tag, Context.Type(tag), code.AsSpan());
 
 		if (!field.IsValid)
 			return false;
 
-		var name  = typeof(FixTag).GetFields().First(one => (int)one.GetRawConstantValue()! == tag).Name;
-		var check = typeof(FixValidator44).GetProperty(name)!.GetValue(FixValidator44.Default)!;
-		var host  = FixParser.ParseMessage(FixFixtures.Wire("0", ""));
+		var name = Renamed.GetValueOrDefault(tag) ??
+			Text(Load(Version, "Fields.xml").Elements().Single(one => Text(one, "Tag") == tag.ToString(CultureInfo.InvariantCulture)), "Name");
 
-		((Delegate)check).DynamicInvoke(Fix44Context.Default, host, field);
-
-		return host.IsValid;
+		return Check(Wire("0"), name, field);
 	}
 
 	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
-	static Type? Held(int tag)
+	Type? Held(int tag)
 	{
-		var field = FixFieldBuilder.Value(tag, Fix44Context.Default.Type(tag), "0".AsSpan());
+		var field = FixFieldBuilder.Value(tag, Context.Type(tag), "0".AsSpan());
 
 		return field is FixField.Invalid ? null : field.GetType().BaseType!.GetGenericArguments()[0];
 	}
@@ -237,9 +246,9 @@ public sealed class FixRepositoryAgreementTests
 	/// Where a component's declared type disagrees with its shape, and the shape is what is read.
 	/// </summary>
 	/// <remarks>
-	/// The repository declares <c>Hop</c> an <c>ImplicitBlock</c>, and its rows are a counter with
-	/// three members one indent deeper — a repeating group, which is how this package reads it and
-	/// how a message on the wire is written. The disagreement is pinned here rather than absorbed:
+	/// The FIX 4.4 repository declares <c>Hop</c> an <c>ImplicitBlock</c>, and its rows are a counter
+	/// with three members one indent deeper — a repeating group, which is how this package reads it
+	/// and how a message on the wire is written. The disagreement is pinned here rather than absorbed:
 	/// everything that decides between a block and a group asks the shape, and if a later edition
 	/// of the repository disagrees somewhere else, this names the place instead of changing what is
 	/// read behind our backs.
@@ -247,11 +256,11 @@ public sealed class FixRepositoryAgreementTests
 	[Fact]
 	public void A_components_declared_type_agrees_with_its_shape()
 	{
-		string[] known = ["Hop"];
+		var known = Misdeclared;
 
 		var disagreeing = new List<string>();
 
-		foreach (var component in Load("Components.xml").Elements())
+		foreach (var component in Load(Version, "Components.xml").Elements())
 		{
 			var name     = Text(component, "Name");
 			var id       = int.Parse(Text(component, "ComponentID"), CultureInfo.InvariantCulture);
@@ -267,7 +276,7 @@ public sealed class FixRepositoryAgreementTests
 		// reason for it has gone.
 		Assert.All(known, name =>
 		{
-			var component = Load("Components.xml").Elements().Single(one => Text(one, "Name") == name);
+			var component = Load(Version, "Components.xml").Elements().Single(one => Text(one, "Name") == name);
 			var id        = int.Parse(Text(component, "ComponentID"), CultureInfo.InvariantCulture);
 
 			Assert.NotEqual(Text(component, "ComponentType").EndsWith("Repeating", StringComparison.Ordinal), IsGroup(id));
@@ -275,7 +284,7 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>
-	/// The sixteen length/data pairs are the sixteen the repository describes, and no others.
+	/// The length/data pairs are the ones the repository describes, and no others.
 	/// </summary>
 	/// <remarks>
 	/// Taken from the fields of type <c>data</c> and the length field named after each, because
@@ -285,10 +294,10 @@ public sealed class FixRepositoryAgreementTests
 	[Fact]
 	public void The_length_data_pairs_are_the_repositorys()
 	{
-		var byName = Load("Fields.xml").Elements().ToDictionary(one => Text(one, "Name"));
+		var byName = Load(Version, "Fields.xml").Elements().ToDictionary(one => Text(one, "Name"));
 		var pairs  = new SortedDictionary<int, int>();
 
-		foreach (var field in Load("Fields.xml").Elements())
+		foreach (var field in Load(Version, "Fields.xml").Elements())
 		{
 			if (Text(field, "Type") is not ("data" or "XMLData"))
 				continue;
@@ -302,31 +311,32 @@ public sealed class FixRepositoryAgreementTests
 			pairs[data] = int.Parse(Text(length, "Tag"), CultureInfo.InvariantCulture);
 		}
 
-		Assert.Equal(16, pairs.Count);
+		Assert.Equal(PairCount, pairs.Count);
 
 		foreach (var pair in pairs)
 		{
-			Assert.Equal(pair.Key, Fix44Context.Default.DataTag(pair.Value));
+			Assert.Equal(pair.Key, Context.DataTag(pair.Value));
 		}
 
 		// And nothing the package calls a pair is outside that set.
-		for (var tag = 1; tag < 1000; tag++)
-			if (Fix44Context.Default.DataTag(tag) != 0)
+		for (var tag = 1; tag < 2000; tag++)
+			if (Context.DataTag(tag) != 0)
 				Assert.Contains(tag, pairs.Values);
 	}
 
 	// ── the repository, read afresh ──────────────────────────────────────────────────────────
 
-	// Read once for the whole class: ninety-three types times two tests is a hundred and
-	// eighty-six readings of a seven-hundred-kilobyte file otherwise.
-	static readonly Dictionary<string, XElement> Files = new();
+	// Read once for every class: a hundred types times two tests is two hundred readings of a
+	// file of up to a few megabytes otherwise.
+	static readonly Dictionary<(string, string), XElement> Files = new();
 
-	static XElement Load(string name)
+	static XElement Load(string version, string name)
 	{
 		lock (Files)
 		{
-			if (!Files.TryGetValue(name, out var root))
-				Files[name] = root = XDocument.Load(Path.Combine(Base, name)).Root!;
+			if (!Files.TryGetValue((version, name), out var root))
+				Files[(version, name)] = root = XDocument.Load(Path.Combine(
+					AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository", version, "Base", name)).Root!;
 
 			return root;
 		}
@@ -338,23 +348,23 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>The rows of a message or component, in the order the repository gives them.</summary>
-	static IEnumerable<XElement> Rows(int componentId)
+	IEnumerable<XElement> Rows(int componentId)
 	{
-		return Load("MsgContents.xml").Elements()
+		return Load(Version, "MsgContents.xml").Elements()
 			.Where(one => Text(one, "ComponentID") == componentId.ToString(CultureInfo.InvariantCulture))
 			.OrderBy(one => double.Parse(Text(one, "Position"), CultureInfo.InvariantCulture));
 	}
 
-	static int ComponentId(string type)
+	int ComponentId(string type)
 	{
 		return int.Parse(
-			Text(Load("Messages.xml").Elements().Single(one => Text(one, "MsgType") == type), "ComponentID"),
+			Text(Load(Version, "Messages.xml").Elements().Single(one => Text(one, "MsgType") == type), "ComponentID"),
 			CultureInfo.InvariantCulture);
 	}
 
-	static (int Id, string Kind)? Component(string name)
+	(int Id, string Kind)? Component(string name)
 	{
-		var found = Load("Components.xml").Elements().FirstOrDefault(one => Text(one, "Name") == name);
+		var found = Load(Version, "Components.xml").Elements().FirstOrDefault(one => Text(one, "Name") == name);
 
 		return found is null
 			? null
@@ -371,7 +381,7 @@ public sealed class FixRepositoryAgreementTests
 	/// declared type is kept as a second opinion — see
 	/// <see cref="A_components_declared_type_agrees_with_its_shape"/>.
 	/// </remarks>
-	static bool IsGroup(int componentId)
+	bool IsGroup(int componentId)
 	{
 		var rows = Rows(componentId).ToArray();
 
@@ -385,7 +395,7 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>The tags a message of this type must carry in its body, the repository's answer.</summary>
-	static int[] Required(string type)
+	int[] Required(string type)
 	{
 		var tags = new List<int>();
 
@@ -421,7 +431,7 @@ public sealed class FixRepositoryAgreementTests
 	}
 
 	/// <summary>How many components of the body the repository requires.</summary>
-	static int RequiredComponents(string type)
+	int RequiredComponents(string type)
 	{
 		var count = 0;
 
@@ -454,11 +464,17 @@ public sealed class FixRepositoryAgreementTests
 
 	// ── a message of that type with nothing in its body ──────────────────────────────────────
 
-	static FixMessage Empty(string type)
+	byte[] Empty(string type)
+	{
+		return Wire(type);
+	}
+
+	/// <summary>A message of this version and type whose body is the header's required fields and nothing else.</summary>
+	byte[] Wire(string type)
 	{
 		var body = Encoding.Latin1.GetBytes(
 			("35=" + type + "|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|").Replace('|', '\u0001'));
-		var head = Encoding.Latin1.GetBytes("8=FIX.4.4\u00019=" + body.Length + "\u0001");
+		var head = Encoding.Latin1.GetBytes("8=" + Version + "\u00019=" + body.Length + "\u0001");
 		var sum  = head.Sum(octet => (int)octet) + body.Sum(octet => (int)octet);
 		var tail = Encoding.Latin1.GetBytes("10=" + (sum % 256).ToString("000") + "\u0001");
 
@@ -468,6 +484,6 @@ public sealed class FixRepositoryAgreementTests
 		body.CopyTo(wire, head.Length);
 		tail.CopyTo(wire, head.Length + body.Length);
 
-		return FixParser.ParseMessage(wire);
+		return wire;
 	}
 }

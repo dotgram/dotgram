@@ -7,6 +7,8 @@ using System.Text;
 using DotGram.Finance.Fix;
 using DotGram.Finance.Fix.Fix44;
 
+using Fix42 = DotGram.Finance.Fix.Fix42;
+
 // A Heartbeat, framed by hand: what a consumer of the package has to be able to do with it.
 var body     = "35=0\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00.250\u0001";
 var prefix   = "8=FIX.4.4\u00019=" + body.Length.ToString(CultureInfo.InvariantCulture) + "\u0001" + body;
@@ -76,9 +78,20 @@ var fields = FixParser.ParseFields(wire);
 if (fields.Length != 8 || fields[0] is not FixField.Text { Tag: FixTag.BeginString })
 	throw new Exception("Expected flat typed fields from FixParser.");
 
+// FIX 4.2, a namespace of its own with the same names: the same Heartbeat under its BeginString is
+// its own class and holds to its own schema, and the 4.4 one does not.
+var prefix42 = "8=FIX.4.29=" + body.Length.ToString(CultureInfo.InvariantCulture) + "" + body;
+var wire42   = prefix42 + "10=" + (prefix42.Sum(c => (int)c) % 256).ToString("000", CultureInfo.InvariantCulture) + "";
+
+if (Fix42.FixParser.ParseMessage(wire42) is not Fix42.FixMessage.Heartbeat heartbeat42 || !heartbeat42.Validate(Fix42.Fix42Context.Default))
+	throw new Exception("A well-formed FIX 4.2 Heartbeat must hold to the compiled-in FIX 4.2 schema.");
+
+if (FixParser.ParseMessage(wire42).Validate(Fix44Context.Default))
+	throw new Exception("A FIX 4.2 BeginString must not hold to the FIX 4.4 schema.");
+
 if (typeof(FixParser).Assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Parser") != null ||
 	typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
 	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name is "DotGram.Finance.Fix44" or "DotGram.Examples"))
 	throw new Exception("The Fix44 fixture must not be included in the package.");
 
-Console.WriteLine("DotGram.Finance package smoke: char, octets, byte stream, pipe, typed fields, the runtime's own date types, and the schema compiled in and loaded passed.");
+Console.WriteLine("DotGram.Finance package smoke: char, octets, byte stream, pipe, typed fields, the runtime's own date types, and the schema compiled in and loaded, and FIX 4.2 beside FIX 4.4 passed.");

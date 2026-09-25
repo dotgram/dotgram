@@ -1,6 +1,8 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix.@@Ns@@;
+namespace DotGram.Finance.Fix.Fix42;
+
+// Written by generate.py from the FIX 4.2 repository; not edited by hand. From Templates/Validator.Header.cs.in.
 
 /// <summary>
 /// The standard header and trailer: what every message owes before its own type is asked anything.
@@ -11,25 +13,32 @@ namespace DotGram.Finance.Fix.@@Ns@@;
 /// field is out of order (SessionRejectReason 14), which no check of one type can see, since each
 /// reads its fields one at a time.
 /// </remarks>
-partial class @@Validator@@ : FixValidator
+partial class FixValidator42 : FixValidator
 {
-	private protected override string Using => "using DotGram.Finance.Fix;\nusing DotGram.Finance.Fix.@@Ns@@;\n";
+	private protected override string Using => "using DotGram.Finance.Fix;\nusing DotGram.Finance.Fix.Fix42;\n";
 
-	private protected override string ContextName => nameof(@@Context@@);
+	private protected override string ContextName => nameof(Fix42Context);
 
 	/// <summary>Holds the standard header and trailer of any message to the schema.</summary>
-	public Func<@@Context@@, FixMessage, bool> StandardHeader { get; set; } = ValidateStandardHeader;
+	public Func<Fix42Context, FixMessage, bool> StandardHeader { get; set; } = ValidateStandardHeader;
 
-	static bool ValidateStandardHeader(@@Context@@ context, FixMessage message)
+	static bool ValidateStandardHeader(Fix42Context context, FixMessage message)
 	{
-@@HeaderRequired@@
+		if (message.BeginString  is null) Missing(message, FixTag.BeginString);
+		if (message.BodyLength   is null) Missing(message, FixTag.BodyLength);
+		if (message.MsgType      is null) Missing(message, FixTag.MsgType);
+		if (message.SenderCompID is null) Missing(message, FixTag.SenderCompID);
+		if (message.TargetCompID is null) Missing(message, FixTag.TargetCompID);
+		if (message.MsgSeqNum    is null) Missing(message, FixTag.MsgSeqNum);
+		if (message.SendingTime  is null) Missing(message, FixTag.SendingTime);
+		if (message.CheckSum     is null) Missing(message, FixTag.CheckSum);
 
 		// BeginString, BodyLength and MsgType are the first three fields, in that order.
 		First(message, 0, message.BeginString);
 		First(message, 1, message.BodyLength);
 		First(message, 2, message.MsgType);
 
-		if (message.BeginString is { IsValid: true } begin && begin.Value != "@@BeginString@@")
+		if (message.BeginString is { IsValid: true } begin && begin.Value != "FIX.4.2")
 			message.AddFinding(new FixFinding(FixRule.InvalidValue, FixTag.BeginString, begin.Position, begin, -1));
 
 		// What the reading measured of the octets, which the message does not keep.
@@ -77,7 +86,7 @@ partial class @@Validator@@ : FixValidator
 			else if (body)
 				message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 		}
-@@HeaderGroups@@
+
 		return message.IsValid;
 	}
 
@@ -88,5 +97,25 @@ partial class @@Validator@@ : FixValidator
 			message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 	}
 
-@@HeaderSets@@
+	static bool IsHeader(int tag)
+	{
+		return tag is FixTag.BeginString or FixTag.BodyLength or FixTag.MsgType or FixTag.SenderCompID or FixTag.TargetCompID or
+			FixTag.OnBehalfOfCompID or FixTag.DeliverToCompID or FixTag.SecureDataLen or FixTag.SecureData or FixTag.MsgSeqNum or
+			FixTag.SenderSubID or FixTag.SenderLocationID or FixTag.TargetSubID or FixTag.TargetLocationID or
+			FixTag.OnBehalfOfSubID or FixTag.OnBehalfOfLocationID or FixTag.DeliverToSubID or FixTag.DeliverToLocationID or
+			FixTag.PossDupFlag or FixTag.PossResend or FixTag.SendingTime or FixTag.OrigSendingTime or FixTag.XmlDataLen or
+			FixTag.XmlData or FixTag.MessageEncoding or FixTag.LastMsgSeqNumProcessed or FixTag.OnBehalfOfSendingTime;
+	}
+
+	static bool IsEncoded(int tag)
+	{
+		return tag is FixTag.EncodedIssuer or FixTag.EncodedSecurityDesc or FixTag.EncodedListExecInst or FixTag.EncodedText or
+			FixTag.EncodedSubject or FixTag.EncodedHeadline or FixTag.EncodedAllocText or FixTag.EncodedUnderlyingIssuer or
+			FixTag.EncodedUnderlyingSecurityDesc or FixTag.EncodedListStatusText;
+	}
+
+	static bool IsTrailer(int tag)
+	{
+		return tag is FixTag.SignatureLength or FixTag.Signature or FixTag.CheckSum;
+	}
 }

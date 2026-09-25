@@ -10,6 +10,13 @@ difference matters: this format declares a group at the place it is used, so one
 carries a different membership in different messages, and a reader that keys a group by
 its name merges two shapes into one.
 
+`FIX42.xml` is the same project's FIX 4.2 dictionary, from the same release: its source tree at the
+tag `v1.14.1`, `spec/fix/FIX42.xml`, from which `FIX44.xml` comes out byte for byte the same as the
+package's copy. Its fields are named as the FIX 4.2 repository names them; four messages are not
+(`IndicationofInterest`, `NewOrderSingle`, `NewOrderList`, `AllocationACK`), and those are the names
+`DotGram.Finance.Fix.Fix42` gives them. Unlike `FIX44.xml`, it loads whole over the standard
+(`Fix42Tests`).
+
 Licensed under the QuickFIX Software License 1.0, BSD-three-clause in shape; the notice,
 the conditions and the disclaimer are kept beside the file they cover, in `LICENSE`. The
 licence asks that the end-user documentation of a redistribution acknowledge it, so here
@@ -44,7 +51,7 @@ are given is worth keeping beside it, if its licence lets us.
 
 `quickfixn-fix44-errata.xml` is ours, not theirs: the thirteen message types their file places
 differently from the FIX 4.4 repository, each written whole the way the repository has it, in
-their format. Loaded after their file — `FixContext.Default.Load(FIX44.xml).Load(errata)` —
+their format. Loaded after their file — `Fix44Context.Default.Load([FIX44.xml, errata])` —
 it puts those types back to the standard, so that a schema read from their file holds a
 message to the protocol and not to their reading of it. Written by `quickfixn-fix44-errata.py` beside it from
 `../FixRepository`, never edited by hand; the twenty-seven places it answers are the

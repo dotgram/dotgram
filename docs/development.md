@@ -419,15 +419,16 @@ python src/DotGram.Finance/Fix/generate.py
 
 Names are the data dictionaries', so that a dictionary loaded at run time is written into checks
 by putting its names in place: a field by the repository's name (in FIX 4.4 two differ, and follow
-the dictionaries), a message by the repository's name except four the dictionaries name otherwise,
-a component as the interface `I` and its name, and a group as the class `<Counter>Group` nested in
-whatever carries it, its entries the list `<Counter>Groups`. `FixTag` is shared by every version and
+the dictionaries), a message by the repository's name except four in each version the dictionaries
+name otherwise, a component as the interface `I` and its name, and a group as the class
+`<Counter>Group` nested in whatever carries it, its entries the list `<Counter>Groups`. `FixTag` is shared by every version and
 so takes the repository's names, not one version's: `FixTag.IOIID` is the constant of what FIX 4.4
 reads as `IOIid`. What it does not write is the shared code in `Fix/`.
 
-After running it, build: a mistake in the script is a compile error in ninety-three places at once
-rather than one. Then run `FixRepositoryAgreementTests`, which holds all ninety-three types against
-the repository read afresh, and the load tests, which write the same checks from a dictionary at
+After running it, build: a mistake in the script is a compile error in every message type at once
+rather than one. Then run the repository agreement tests — `Fix44RepositoryAgreementTests` and one
+class a version beside it, over `FixRepositoryAgreementTests` — which hold every type against the
+repository read afresh, and the load tests, which write the same checks from a dictionary at
 run time.
 
 ## Large generated source files
