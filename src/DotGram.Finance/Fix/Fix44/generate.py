@@ -7,11 +7,11 @@
 #     FixStandard.cs        the type of the value of every field
 #
 # The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as the
-# repository names it, or as QuickFIX does where the two differ. A field is a class of the type of
-# its value, FixField.Decimal, and its tag says which field it is. Groups are named as QuickFIX names them: a group is the
+# repository names it, or as the common data dictionaries do where the two differ. A field is a class of the type of
+# its value, FixField.Decimal, and its tag says which field it is. Groups are named for their counter: a group is the
 # class <Counter>Group, nested in whatever carries it — a message, a component's interface, or the
 # entry of another group — and its entries are the list <Counter>Groups beside the counter. So the
-# names a QuickFIX dictionary uses are the names of the code, and a dictionary loaded at run time
+# names a data dictionary uses are the names of the code, and a dictionary loaded at run time
 # is written into checks by putting its names in place.
 #
 #     python src/DotGram.Finance/Fix44/generate.py
@@ -38,7 +38,7 @@ def rows(name):
 fields     = list(rows("Fields.xml"))
 field_type = {int(f["Tag"]): f["Type"] for f in fields}
 
-# The names of the fields: the repository's, and QuickFIX's for the two it names otherwise.
+# The names of the fields: the repository's, and the data dictionaries' for the two they name otherwise.
 field_name = {int(f["Tag"]): f["Name"] for f in fields}
 field_name.update({23: "IOIid", 33: "LinesOfText"})
 
@@ -73,7 +73,7 @@ for r in rows("MsgContents.xml"):
 for cid in contents:
     contents[cid].sort(key=lambda r: float(r["Position"]))
 
-# QuickFIX's names for the four types the repository names otherwise.
+# The data dictionaries' names for the four types the repository names otherwise.
 renamed = {
     "IOI":                                     "IndicationOfInterest",
     "MultilegOrderCancelReplace":              "MultilegOrderCancelReplaceRequest",

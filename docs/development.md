@@ -411,10 +411,11 @@ script or the repository under it.
 python src/DotGram.Finance/Fix/Fix44/generate.py
 ```
 
-Names are QuickFIX's, so that a QuickFIX dictionary loaded at run time is written into checks by
-putting its names in place: a field as its class in `FixField.cs` is named, a message by the repository's name
-except the four QuickFIX names otherwise, a component as the interface `I` and its name, and a group
-as the class `<Counter>Group` nested in whatever carries it, its entries the list `<Counter>Groups`.
+Names are the data dictionaries', so that a dictionary loaded at run time is written into checks
+by putting its names in place: a field by the repository's name (two differ, and follow the
+dictionaries), a message by the repository's name except four the dictionaries name otherwise, a
+component as the interface `I` and its name, and a group as the class `<Counter>Group` nested in
+whatever carries it, its entries the list `<Counter>Groups`.
 What it does not write is written by hand: the base class and the standard header
 (`FixMessage.cs`, `FixValidator44.Header.cs`), the fields' own checks (`FixValidator44.Fields.cs`)
 and the helpers.

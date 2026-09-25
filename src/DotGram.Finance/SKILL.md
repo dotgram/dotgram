@@ -143,7 +143,7 @@ switch (message)
 - A message's properties are named after its fields and are the typed fields themselves:
   `order.Symbol` is a `FixField.Text?`, `order.OrderQty` a `FixField.Decimal?`, null when the field is absent. `Value` on one is
   the CLR value — a `string`, a `decimal`, a `long` — and `IsValid` says whether the
-  characters fitted it. A repeating group is named as QuickFIX names it: the list
+  characters fitted it. A repeating group is named for its counter: the list
   `<Counter>Groups` beside its counter, of entries of the class `<Counter>Group` nested in
   what carries it — `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup` — and an entry
   reads the same way.

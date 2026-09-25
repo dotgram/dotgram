@@ -19,7 +19,7 @@ configuration or initialization step.
   reporting and execution analysis are read from those journals — gigabytes a day, read from a
   stream in bounded memory, pipe-delimited or not.
 - **Checking messages against a counterparty's dictionary** before a certification or in a test
-  suite: load their QuickFIX dictionary, and `Validate` reports every finding of a message at once,
+  suite: load their data dictionary, and `Validate` reports every finding of a message at once,
   each with its rule, tag, position and group entry, rather than the first.
 - **Buses and stores.** FIX kept in Kafka, a database or a queue — drop copy, post-trade, clearing —
   and read by a consumer that has no session to hold.
@@ -32,10 +32,9 @@ configuration or initialization step.
 ## What it is not
 
 It is not a FIX engine. There is no socket, no session: no logon, sequence numbers, heartbeats,
-resend requests, message store or schedule. For a live trading connection, that layer is a FIX
-engine's — QuickFIX/n or a commercial one — and each engine parses with its own reader, so this
-package does not sit underneath one. Where you hold the bytes, it reads them: `ReadMessages` takes
-the `Stream` your transport hands you.
+resend requests, message store or schedule; a live trading connection needs an engine, which reads
+with its own parser. Where you hold the bytes, this reads them: `ReadMessages` takes the `Stream`
+your transport hands you.
 
 ## Flat field parsing
 
@@ -277,8 +276,8 @@ without being complete.
 A message's properties are named after its fields and are the typed fields themselves, the
 standard header's and trailer's included: `order.OrderQty` is a `FixField.Decimal?`,
 `order.SenderCompID` a `FixField.Text?`. A component's fields are properties of whatever carries
-it, which implements the component's interface (`IInstrument`). A repeating group is named as
-QuickFIX names it: the list `<Counter>Groups` beside its counter, of entries of the class
+it, which implements the component's interface (`IInstrument`). A repeating group is named for
+its counter: the list `<Counter>Groups` beside its counter, of entries of the class
 `<Counter>Group` nested in what carries it — `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`.
 
 - An absent field is null, and so is an absent group.
@@ -338,7 +337,7 @@ drops the rest without a word. A finding is the same story: where a message carr
 
 **A counterparty's dictionary is loaded into a context.** `Fix44Context.Default.Load(text)`,
 `LoadFile(path)`, or `Load` of a `TextReader`, a `Stream` or several texts read as one, reads a
-QuickFIX dictionary and answers a new context: a message type, component, group entry or field
+FIX data dictionary and answers a new context: a message type, component, group entry or field
 the file describes is held to the file's whole check from then on, and the context it was loaded
 over is unchanged. A file that is not a dictionary this package can read, or that places a field
 where the model has no property for it, is refused whole, because a schema that is half one file
@@ -515,7 +514,7 @@ FIX 4.4's own is in `Fix/Fix44/`:
   `Fix/Fix44/generate.py` from the FIX 4.4 repository, not by hand.
 - `Fix/Fix44/FixValidator44.Fields.cs`: the check of every field against its type and its code set.
 
-A group is named as QuickFIX names it: the class `<Counter>Group`, nested in whatever carries it —
+A group is named for its counter: the class `<Counter>Group`, nested in whatever carries it —
 a message, a component's interface or another group's entry — and its entries are the list
 `<Counter>Groups` beside the counter: `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`.
 `FieldCases.json` holds field IDs and code-value regression cases;

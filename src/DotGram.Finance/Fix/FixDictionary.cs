@@ -10,7 +10,7 @@ namespace DotGram.Finance.Fix;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The format is QuickFIX's: <c>&lt;fix&gt;</c> over <c>&lt;header&gt;</c>, <c>&lt;trailer&gt;</c>,
+/// The format is the FIX data dictionary's: <c>&lt;fix&gt;</c> over <c>&lt;header&gt;</c>, <c>&lt;trailer&gt;</c>,
 /// <c>&lt;messages&gt;</c>, <c>&lt;components&gt;</c> and <c>&lt;fields&gt;</c>. Any of the five may
 /// be absent, because a file need not be a whole dictionary: a fragment that says what one venue
 /// adds is read the same way, and what it does not mention it has no opinion about.

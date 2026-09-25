@@ -77,7 +77,7 @@ public sealed record Fix44Context : FixContext
 	}
 
 	/// <summary>This context with a dictionary loaded over its schema.</summary>
-	/// <param name="dictionary">A QuickFIX dictionary, or a fragment of one: the text of the file.</param>
+	/// <param name="dictionary">A FIX data dictionary, or a fragment of one: the text of the file.</param>
 	/// <param name="emitTo">A directory to write each check into before it is compiled, one file a slot, named for the slot with the extension <c>.el</c>; null writes nothing.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>

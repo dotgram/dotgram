@@ -137,7 +137,7 @@ public abstract record FixContext
 		};
 	}
 
-	// The type of a field as a QuickFIX dictionary names it; a field the file gives no type is not
+	// The type of a field as a data dictionary names it; a field the file gives no type is not
 	// typed by it, and a name this does not know is text.
 	static FixValueType? TypeOf(string? type)
 	{

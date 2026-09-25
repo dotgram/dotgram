@@ -18,7 +18,7 @@ namespace DotGram.Finance.Fix;
 /// The text is the file's names put in place. A message is the class of its name, a field the
 /// property of its name, a component the interface <c>I</c> and its name, and a group the list
 /// <c>&lt;Counter&gt;Groups</c> of entries of the class <c>&lt;Counter&gt;Group</c> nested in
-/// whatever carries it — the names the package's model is written in, which are QuickFIX's. Nothing
+/// whatever carries it — the names the package's model is written in, which are the dictionary's. Nothing
 /// is looked up or asked first: a name the model does not have is a check the expression language
 /// cannot compile, and the refusal names it.
 /// </para>
