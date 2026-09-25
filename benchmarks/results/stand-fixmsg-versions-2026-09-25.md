@@ -92,5 +92,9 @@ same message type every call, so everything it asks for is compiled by the end o
 
 The number the row then reports, 1,309.4 ns against 1,177.2 for the compiled-in schema, is the
 per-message cost of a loaded dictionary's checks and not of loading it. **What the load itself now
-costs was not measured here**, and the figure filed for it on 2026-09-24 (698 ms) was taken before
-this change; that file now says so.
+costs was not measured here**; the architect measured it with the change, outside a window, over the
+same file: 20-90 ms and 9-16 MB, against 665-1000 ms and 206-278 MB before it (e2d8204e's message).
+The 698 ms filed on 2026-09-24 was taken before the change and sits inside that older range, which
+is two instruments agreeing about the same call; that file now carries both numbers. Unmeasured by
+either: a session that validates many message types off one loaded dictionary, where the first
+message of each type pays for its own checks.
