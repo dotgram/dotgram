@@ -184,6 +184,23 @@ public sealed class SnapshotTests
 			// of them the host's to ask for. The declarations beside it are the consumer's own
 			// types, so this is also the snapshot compiled under a real symbol resolver: what a
 			// grammar names is looked up in a compilation rather than taken on trust.
+			// The materializer's fast path, which no snapshot reached until this grammar existed:
+			// a guard at every level of a tower builds the record where it stands rather than
+			// walking the log. The carrier is named rather than left to `Auto`, which reads this
+			// language as one that need not replay and gives it the immediate carrier — and an
+			// immediate reader has no walk to skip. The path belongs to the tape, so the tape is
+			// what it is compiled for, as `Located` names its carrier for the same kind of reason.
+			case "Tower":
+			{
+				var tower = Options();
+
+				tower.Carrier = CarrierKind.Tape;
+
+				yield return (tower, null);
+
+				break;
+			}
+
 			case "Located":
 			{
 				var located = Options();

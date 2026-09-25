@@ -923,7 +923,10 @@ sealed partial class Machine
 			yield return $"ways.Records   = {name}R;";
 
 			if (machine._directBuilds)
+			{
 				yield return $"if (ways.Built > {name}R) ways.Built = {name}R;";
+				yield return $"if (ways.AllBuilt > {name}R) ways.AllBuilt = {name}R;";
+			}
 		}
 
 		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)

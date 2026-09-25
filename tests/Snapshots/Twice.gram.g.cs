@@ -350,6 +350,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
+					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -407,6 +408,7 @@ namespace DotGram.Snapshots
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
 						if (ways.Built > lm2R) ways.Built = lm2R;
+						if (ways.AllBuilt > lm2R) ways.AllBuilt = lm2R;
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -470,6 +472,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
+					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -560,6 +563,7 @@ namespace DotGram.Snapshots
 									ways.LogCount  = lm1;
 									ways.Records   = lm1R;
 									if (ways.Built > lm1R) ways.Built = lm1R;
+									if (ways.AllBuilt > lm1R) ways.AllBuilt = lm1R;
 									ways.RefsCount = rr1;
 								}
 
@@ -580,6 +584,7 @@ namespace DotGram.Snapshots
 									ways.LogCount  = lm2;
 									ways.Records   = lm2R;
 									if (ways.Built > lm2R) ways.Built = lm2R;
+									if (ways.AllBuilt > lm2R) ways.AllBuilt = lm2R;
 									ways.RefsCount = rr2;
 								}
 							}
@@ -731,6 +736,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
+					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -784,6 +790,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
+					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -835,6 +842,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
+					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1475,6 +1483,23 @@ namespace DotGram.Snapshots
 			internal int Built;
 
 			/// <summary>
+			/// How far up the log every record is already built, so that a guard asking again
+			/// need not read the flags at all.
+			/// </summary>
+			/// <remarks>
+			/// Stronger than <see cref="Built"/>, and not the same question. <c>Built</c> says the
+			/// flags below it are not stale — a record below it may still be false. This says every
+			/// record below it is true, which is what lets the scan be skipped rather than shortened.
+			/// <para>
+			/// It never runs ahead of <see cref="Built"/>, which is what keeps the clearing honest:
+			/// the flags are cleared from <c>Built</c> upwards, so a watermark above it would claim
+			/// records whose flags had just been wiped. It is raised only where <c>Built</c> is raised
+			/// with it and lowered wherever <c>Built</c> is lowered, so the two move together.
+			/// </para>
+			/// </remarks>
+			internal int AllBuilt;
+
+			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
 			/// </summary>
@@ -1567,6 +1592,7 @@ namespace DotGram.Snapshots
 				spare.RefsCount = 0;
 				spare.Last      = -1;
 				spare.Built     = 0;
+				spare.AllBuilt  = 0;
 
 				return spare;
 			}

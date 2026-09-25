@@ -878,8 +878,14 @@ sealed partial class Machine
 						file.Line("return;");
 					}
 
+					file.Line();
+					// Everything below the root already known built answers in constant time; otherwise the
+					// scan, but only over what is genuinely unknown. `AllBuilt` may be below `first`, so the
+					// range starts at whichever is higher and the answer is the one the full scan gives.
+					file.Line("var known = ways.AllBuilt >= root;");
+					file.Line("var from_ = first > ways.AllBuilt ? first : ways.AllBuilt;");
 					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 &&");
-					file.Then("global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, first, root - first), false) < 0)");
+					file.Then("(known || global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, from_, root - from_), false) < 0))");
 
 					using (file.Block(""))
 					{
@@ -893,6 +899,22 @@ sealed partial class Machine
 						file.Line($"var read  = at + {(placed ? 4 : 2)};");
 						file.Line();
 						file.Line("built[slot] = true;");
+						// Raised only where the proof covers everything below the root: the scan proves
+						// [from_, root) and nothing below `first`, so a walk that began above a dead slot
+						// must not claim it. `known` already covers the whole prefix by induction.
+						//
+						// THE CONDITION IS NOT BELT AND BRACES, AND NO TEST HERE FAILS WITHOUT IT. Both halves
+						// of that were measured (benchmarks/results/allbuilt-2026-09-25). A walk that begins
+						// above a dead slot is ordinary — `a + b * c` reaches it — and against an
+						// unconditional raise the false watermark is then READ BACK thirty times over the
+						// suites, on `a[?($ < 1)]`, `a[last to]`, `a[?(exists($))]` and their kin.
+						//
+						// Every one of those readings is REFUSED, and a refused reading's values are never
+						// asked for, which is the only reason the wrong version passes all 29,728 tests. So
+						// the day this stops being harmless is the day anything reads values out of a refused
+						// reading — a recovery that keeps a partial tree. Whoever adds that has to come here
+						// first, because the suites will not stop them.
+						file.Line("if (known || ways.AllBuilt >= first) ways.AllBuilt = root + 1;");
 						file.Line();
 						// Divided, the parts are asked in turn, each answering whether the kind was
 						// one of its own: the walk's own switch written twice was past the JIT's budget.

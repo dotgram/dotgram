@@ -1,0 +1,108 @@
+﻿// A guarded tower, which is the one shape that reaches the materializer's fast path — and
+// until this grammar existed, nothing in tests/Snapshots did.
+//
+// Where a guard names a value, the reader builds while the text is still being read, and the
+// walk that materializes at the end has to know what it already built. For the usual case — a
+// guard at every level of a tower, each asking for the record it has just captured — the walk
+// is skipped altogether and the record is built where it stands. That path is emitted only
+// where a guard builds, the walk is divided into arms of their own, nothing is marked and
+// nothing is recovered; SqlStandardParser and TransactSqlParser reach it and no snapshot did,
+// so the whole of it could be rewritten without appearing in any diff a person reads.
+//
+// Three things here are load-bearing and none of them is decoration:
+//
+//   The tower is EIGHTEEN levels deep because the arms have to be methods of their own before
+//   the fast path is emitted at all, and that asks for sixteen of them. A shorter tower reads
+//   the same language and emits the ordinary walk, which is the defect this file exists to
+//   stop: a snapshot that looks like it covers a path and does not.
+//
+//   The guard sits BETWEEN the inner value and the closing bracket, not after it, so that the
+//   record it asks for is the newest one written. That is the condition the fast path turns
+//   on.
+//
+//   A tail is read AFTER the bracket closes, so the bracket's record is not the last thing in
+//   the log when the level above asks. That is what puts records below a later guard's mark
+//   that the walk never proves built, and it is the case the watermark must not claim.
+//
+// The language is arithmetic and uninteresting on purpose: `((1)#2)#3` and nothing else. What
+// is worth reading is the file beside it.
+
+trivia = { ' '* }
+
+Tower : @int = level: L01 => @(level)
+
+L01 : @int
+	= '(' & inner: L02 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L02 : @int
+	= '(' & inner: L03 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L03 : @int
+	= '(' & inner: L04 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L04 : @int
+	= '(' & inner: L05 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L05 : @int
+	= '(' & inner: L06 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L06 : @int
+	= '(' & inner: L07 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L07 : @int
+	= '(' & inner: L08 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L08 : @int
+	= '(' & inner: L09 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L09 : @int
+	= '(' & inner: L10 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L10 : @int
+	= '(' & inner: L11 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L11 : @int
+	= '(' & inner: L12 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L12 : @int
+	= '(' & inner: L13 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L13 : @int
+	= '(' & inner: L14 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L14 : @int
+	= '(' & inner: L15 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L15 : @int
+	= '(' & inner: L16 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L16 : @int
+	= '(' & inner: L17 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L17 : @int
+	= '(' & inner: L18 & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                     => @(leaf)
+
+L18 : @int
+	= '(' & inner: Digits & when @(inner >= 0) & ')' & '#' & tail: Digits => @(inner + tail)
+	| leaf: Digits                                                        => @(leaf)
+
+Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
+
+parse Tower
