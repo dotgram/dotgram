@@ -7,7 +7,7 @@
 
 # DotGram.Finance
 
-Reads and checks FIX 4.2 and FIX 4.4 tag-value messages wherever they are kept rather than traded: logs,
+Reads and checks FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value messages wherever they are kept rather than traded: logs,
 archives, files, message buses. For `netstandard2.0` and `net10.0`; DotGram compiles the grammar at
 build time, so applications need no DotGram runtime, grammar files, schema XML, reflection
 configuration or initialization step.
@@ -122,8 +122,12 @@ What every version shares — `FixField` and its classes, `FixTag`, `FixConvert`
 
 Every version is a namespace of its own with the same names in it: FIX 4.2 is
 `DotGram.Finance.Fix.Fix42`, whose `FixParser` reads a 4.2 message into its 46 types and whose
-`Fix42Context` holds it to FIX 4.2. The examples on this page are FIX 4.4's; another version's
-calls are the same with its own namespace and context.
+`Fix42Context` holds it to FIX 4.2. FIX 5.0 SP2 is `DotGram.Finance.Fix.Fix50` with `Fix50Context`:
+its 116 types over the session layer FIXT 1.1, whose BeginString, `FIXT.1.1`, is the one its
+messages carry. One of its messages is a class of another name, because it carries a field of its
+own name and a C# class cannot: MsgType `f`, SecurityStatus, is `FixMessage.SecurityStatusMessage`.
+A dictionary that names the message SecurityStatus is read as naming that class. The examples on
+this page are FIX 4.4's; another version's calls are the same with its own namespace and context.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -387,15 +391,22 @@ foreach (var field in order.Fields)
 | char | `Character` | char |
 | Boolean | `Boolean` | bool |
 | String, Currency, Country, Exchange | `Text` | string |
-| MultipleValueString | `Multiple` | string[] |
-| UTCDateOnly, LocalMktDate | `Date` | DateOnly |
+| MultipleValueString, MultipleCharValue | `Multiple` | string[], each value one character |
+| MultipleStringValue | `Multiple` | string[], each value a word |
+| UTCDateOnly, UTCDate, LocalMktDate | `Date` | DateOnly |
 | UTCTimeOnly | `Time` | TimeOnly |
+| TZTimeOnly | `ZonedTime` | (TimeOnly Time, TimeSpan Offset), the clock as written and its offset |
 | UTCTimestamp | `Timestamp` | DateTimeOffset, at offset zero |
+| TZTimestamp | `Timestamp` | DateTimeOffset, at the offset it was written with |
 | MonthYear | `MonthYear` | string, checked for its shape (`YYYYMM`, `YYYYMMDD`, `YYYYMMw1`..`w5`) |
 | data | `Data` | ReadOnlyMemory<byte> |
 
 MiscFeeType and MassCancelRejectReason are declared `char` and publish values a character cannot
 hold, so they are `Text`.
+
+A zoned value is read as the FIX repository describes it: the clock to the minute, seconds and a
+fraction optional, then `Z` or a sign and hours from 01 to 12 with minutes optional
+(`13:09+05:30`). One without an offset does not say which instant it is, and is not valid.
 
 A code set is held against the schema by `Validate`, not while the field is read; the
 underlying primitive remains the value type. A leap second, `23:59:60`, which the protocol
@@ -523,7 +534,8 @@ FIX 4.4's own is in `Fix/Fix44/`:
 - `Fix/Fix44/FixValidator44.Fields.cs`: the check of every field against its type and its code set.
 
 FIX 4.2's is in `Fix/Fix42/`, the same files with 42 for 44 and no `FixComponents.cs`: FIX 4.2
-writes its groups inline and names no component.
+writes its groups inline and names no component. FIX 5.0 SP2's is in `Fix/Fix50/`, over FIXT 1.1's
+header, trailer and session messages.
 
 A group is named for its counter: the class `<Counter>Group`, nested in whatever carries it —
 a message, a component's interface or another group's entry — and its entries are the list

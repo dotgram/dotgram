@@ -329,10 +329,10 @@ public abstract class FixField : IFixLocation
 		: Typed<decimal>(tag, value);
 
 	/// <summary>
-	/// A field whose value is a UTC timestamp: FIX <c>UTCTimestamp</c>.
+	/// A field whose value is an instant: FIX <c>UTCTimestamp</c>, at offset zero, and <c>TZTimestamp</c>, at the offset it was written with.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToTimestamp(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">What <see cref="FixConvert.ToTimestamp(ReadOnlySpan{char})"/> or <see cref="FixConvert.ToZonedTimestamp(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
 	public sealed class Timestamp(int tag, (bool Valid, DateTimeOffset Value) value)
 		: Typed<DateTimeOffset>(tag, value);
 
@@ -343,6 +343,14 @@ public abstract class FixField : IFixLocation
 	/// <param name="value">What <see cref="FixConvert.ToTime(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
 	public sealed class Time(int tag, (bool Valid, TimeOnly Value) value)
 		: Typed<TimeOnly>(tag, value);
+
+	/// <summary>
+	/// A field whose value is a time of day and its offset from UTC: FIX <c>TZTimeOnly</c>.
+	/// </summary>
+	/// <param name="tag">The FIX tag.</param>
+	/// <param name="value">What <see cref="FixConvert.ToZonedTime(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	public sealed class ZonedTime(int tag, (bool Valid, (TimeOnly Time, TimeSpan Offset) Value) value)
+		: Typed<(TimeOnly Time, TimeSpan Offset)>(tag, value);
 
 	/// <summary>
 	/// A field whose value is a date: FIX <c>UTCDateOnly</c>, <c>LocalMktDate</c>.

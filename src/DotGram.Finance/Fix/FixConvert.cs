@@ -179,6 +179,40 @@ public static class FixConvert
 		return (valid, value);
 	}
 
+	/// <summary>Reads <c>YYYYMMDD-HH:MM</c>, with seconds and a fraction of any number of digits optional, followed by its offset from UTC: <c>Z</c>, or a sign and <c>hh</c> or <c>hh:mm</c>, the hours 01 to 12. The value keeps the offset; a value without one is not valid, since it does not say which instant it is.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, DateTimeOffset Value) ToZonedTimestamp(this ReadOnlySpan<char> raw)
+	{
+		var valid = ToZonedTimestamp(raw, out var value);
+		return (valid, value);
+	}
+
+	/// <inheritdoc cref="ToZonedTimestamp(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, DateTimeOffset Value) ToZonedTimestamp(this ReadOnlySpan<byte> raw)
+	{
+		var valid = ToZonedTimestamp(raw, out var value);
+		return (valid, value);
+	}
+
+	/// <summary>Reads <c>HH:MM</c>, with seconds and a fraction of any number of digits optional, followed by its offset from UTC as <see cref="ToZonedTimestamp(ReadOnlySpan{char})"/> reads it. The value is the time of day as written and the offset beside it; a value without an offset is not valid.</summary>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
+	public static (bool Valid, (TimeOnly Time, TimeSpan Offset) Value) ToZonedTime(this ReadOnlySpan<char> raw)
+	{
+		var valid = ToZonedTime(raw, out var value);
+		return (valid, value);
+	}
+
+	/// <inheritdoc cref="ToZonedTime(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	public static (bool Valid, (TimeOnly Time, TimeSpan Offset) Value) ToZonedTime(this ReadOnlySpan<byte> raw)
+	{
+		var valid = ToZonedTime(raw, out var value);
+		return (valid, value);
+	}
+
 	/// <summary>Reads <c>YYYYMMDD</c>, a day of the calendar; the year 0000 is not valid.</summary>
 	/// <param name="raw">The value as the wire had it.</param>
 	/// <returns>Whether it is valid, and the value; where it is not valid, the value is not to be used.</returns>
@@ -228,6 +262,32 @@ public static class FixConvert
 	{
 		var valid = ToMultiple(raw, out var value);
 		return (valid, value);
+	}
+
+	// FIX 5.0's MultipleStringValue: values separated by single spaces, each a word of one character
+	// or more. Internal until it is agreed as part of the public conversions.
+	internal static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<char> raw)
+	{
+		var value = ToText(raw).Split(' ');
+
+		foreach (var item in value)
+			if (item.Length == 0)
+				return (false, value);
+
+		return (true, value);
+	}
+
+	// FIX 5.0's MultipleStringValue: values separated by single spaces, each a word of one character
+	// or more. Internal until it is agreed as part of the public conversions.
+	internal static (bool Valid, string[] Value) ToMultipleString(this ReadOnlySpan<byte> raw)
+	{
+		var value = ToText(raw).Split(' ');
+
+		foreach (var item in value)
+			if (item.Length == 0)
+				return (false, value);
+
+		return (true, value);
 	}
 
 	/// <inheritdoc cref="ToInteger(ReadOnlySpan{char})"/>
@@ -599,7 +659,8 @@ public static class FixConvert
 	// second, 23:59:60, which the protocol admits and which is read as the second after it, so
 	// that the value is the instant and only the notation is lost; and the year 0000, which the
 	// protocol admits and no calendar type holds, and which is not a value. A fraction is kept
-	// to the tick, a hundred nanoseconds; FIX 4.4 writes at most milliseconds.
+	// to the tick, a hundred nanoseconds; the versions write at most milliseconds. A zoned value,
+	// FIX 5.0's TZTimestamp and TZTimeOnly, carries its offset from UTC and is held with it.
 
 	/// <inheritdoc cref="ToDate(ReadOnlySpan{char})"/>
 	/// <param name="raw">The value as the wire had it.</param>
@@ -647,6 +708,130 @@ public static class FixConvert
 			return false;
 
 		return Composed(year, month, day, ticks, leap, out value);
+	}
+
+	/// <inheritdoc cref="ToZonedTimestamp(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToZonedTimestamp(this ReadOnlySpan<char> raw, out DateTimeOffset value)
+	{
+		value = default;
+
+		if (raw.Length < 15 || raw[8] != '-'
+			|| !DateParts(raw.Slice(0, 8), out var year, out var month, out var day)
+			|| !ZonedParts(raw.Slice(9), out var ticks, out var offset))
+			return false;
+
+		var local = new DateTime(year, month, day).Ticks + ticks;
+		var utc   = local - offset.Ticks;
+
+		if (utc < DateTime.MinValue.Ticks || utc > DateTime.MaxValue.Ticks)
+			return false;
+
+		value = new DateTimeOffset(local, offset);
+
+		return true;
+	}
+
+	/// <inheritdoc cref="ToZonedTime(ReadOnlySpan{char})"/>
+	/// <param name="raw">The value as the wire had it.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToZonedTime(this ReadOnlySpan<char> raw, out (TimeOnly Time, TimeSpan Offset) value)
+	{
+		value = default;
+
+		if (!ZonedParts(raw, out var ticks, out var offset))
+			return false;
+
+		value = (new TimeOnly(ticks), offset);
+
+		return true;
+	}
+
+	// A zoned time of day: the clock, HH:MM with seconds and a fraction optional, and the offset that
+	// follows it, which is where the first Z, + or - stands. The seconds run to 59: a zoned value
+	// admits no leap second.
+	static bool ZonedParts(ReadOnlySpan<char> raw, out long ticks, out TimeSpan offset)
+	{
+		ticks  = 0;
+		offset = default;
+
+		var zone = raw.IndexOfAny('Z', '+', '-');
+
+		if (zone < 5 || raw[2] != ':')
+			return false;
+
+		var clock  = raw.Slice(0, zone);
+		var hour   = Part(clock.Slice(0, 2));
+		var minute = Part(clock.Slice(3, 2));
+		var second = 0;
+
+		if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+			return false;
+
+		if (clock.Length > 5)
+		{
+			if (clock.Length < 8 || clock[5] != ':')
+				return false;
+
+			second = Part(clock.Slice(6, 2));
+
+			if (second < 0 || second > 59)
+				return false;
+		}
+
+		if (clock.Length > 8)
+		{
+			if (clock.Length < 10 || clock[8] != '.')
+				return false;
+
+			var scale = TimeSpan.TicksPerSecond / 10;
+
+			foreach (var c in clock.Slice(9))
+			{
+				if (c < '0' || c > '9')
+					return false;
+
+				ticks += (c - '0') * scale;
+				scale /= 10;
+			}
+		}
+
+		ticks += hour * TimeSpan.TicksPerHour + minute * TimeSpan.TicksPerMinute + second * TimeSpan.TicksPerSecond;
+
+		var rest = raw.Slice(zone);
+
+		if (rest.Length == 1 && rest[0] == 'Z')
+			return true;
+
+		if (rest.Length != 3 && rest.Length != 6 || rest[0] == 'Z')
+			return false;
+
+		var hours   = Part(rest.Slice(1, 2));
+		var minutes = 0;
+
+		if (hours < 1 || hours > 12)
+			return false;
+
+		if (rest.Length == 6)
+		{
+			if (rest[3] != ':')
+				return false;
+
+			minutes = Part(rest.Slice(4, 2));
+
+			if (minutes < 0 || minutes > 59)
+				return false;
+		}
+
+		offset = new TimeSpan(hours, minutes, 0);
+
+		if (rest[0] == '-')
+			offset = -offset;
+
+		return true;
 	}
 
 	/// <inheritdoc cref="ToMonthYear(ReadOnlySpan{char})"/>
@@ -824,6 +1009,130 @@ public static class FixConvert
 			return false;
 
 		return Composed(year, month, day, ticks, leap, out value);
+	}
+
+	/// <inheritdoc cref="ToZonedTimestamp(ReadOnlySpan{byte})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToZonedTimestamp(this ReadOnlySpan<byte> raw, out DateTimeOffset value)
+	{
+		value = default;
+
+		if (raw.Length < 15 || raw[8] != '-'
+			|| !DateParts(raw.Slice(0, 8), out var year, out var month, out var day)
+			|| !ZonedParts(raw.Slice(9), out var ticks, out var offset))
+			return false;
+
+		var local = new DateTime(year, month, day).Ticks + ticks;
+		var utc   = local - offset.Ticks;
+
+		if (utc < DateTime.MinValue.Ticks || utc > DateTime.MaxValue.Ticks)
+			return false;
+
+		value = new DateTimeOffset(local, offset);
+
+		return true;
+	}
+
+	/// <inheritdoc cref="ToZonedTime(ReadOnlySpan{byte})"/>
+	/// <param name="raw">The value as the wire had it, one octet a character.</param>
+	/// <param name="value">The value, assigned whether or not it is valid.</param>
+	/// <returns>Whether it is valid.</returns>
+	public static bool ToZonedTime(this ReadOnlySpan<byte> raw, out (TimeOnly Time, TimeSpan Offset) value)
+	{
+		value = default;
+
+		if (!ZonedParts(raw, out var ticks, out var offset))
+			return false;
+
+		value = (new TimeOnly(ticks), offset);
+
+		return true;
+	}
+
+	// A zoned time of day: the clock, HH:MM with seconds and a fraction optional, and the offset that
+	// follows it, which is where the first Z, + or - stands. The seconds run to 59: a zoned value
+	// admits no leap second.
+	static bool ZonedParts(ReadOnlySpan<byte> raw, out long ticks, out TimeSpan offset)
+	{
+		ticks  = 0;
+		offset = default;
+
+		var zone = raw.IndexOfAny((byte)'Z', (byte)'+', (byte)'-');
+
+		if (zone < 5 || raw[2] != ':')
+			return false;
+
+		var clock  = raw.Slice(0, zone);
+		var hour   = Part(clock.Slice(0, 2));
+		var minute = Part(clock.Slice(3, 2));
+		var second = 0;
+
+		if (hour < 0 || hour > 23 || minute < 0 || minute > 59)
+			return false;
+
+		if (clock.Length > 5)
+		{
+			if (clock.Length < 8 || clock[5] != ':')
+				return false;
+
+			second = Part(clock.Slice(6, 2));
+
+			if (second < 0 || second > 59)
+				return false;
+		}
+
+		if (clock.Length > 8)
+		{
+			if (clock.Length < 10 || clock[8] != '.')
+				return false;
+
+			var scale = TimeSpan.TicksPerSecond / 10;
+
+			foreach (var c in clock.Slice(9))
+			{
+				if (c < '0' || c > '9')
+					return false;
+
+				ticks += (c - '0') * scale;
+				scale /= 10;
+			}
+		}
+
+		ticks += hour * TimeSpan.TicksPerHour + minute * TimeSpan.TicksPerMinute + second * TimeSpan.TicksPerSecond;
+
+		var rest = raw.Slice(zone);
+
+		if (rest.Length == 1 && rest[0] == 'Z')
+			return true;
+
+		if (rest.Length != 3 && rest.Length != 6 || rest[0] == 'Z')
+			return false;
+
+		var hours   = Part(rest.Slice(1, 2));
+		var minutes = 0;
+
+		if (hours < 1 || hours > 12)
+			return false;
+
+		if (rest.Length == 6)
+		{
+			if (rest[3] != ':')
+				return false;
+
+			minutes = Part(rest.Slice(4, 2));
+
+			if (minutes < 0 || minutes > 59)
+				return false;
+		}
+
+		offset = new TimeSpan(hours, minutes, 0);
+
+		if (rest[0] == '-')
+			offset = -offset;
+
+		return true;
 	}
 
 	/// <inheritdoc cref="ToMonthYear(ReadOnlySpan{char}, out string)"/>

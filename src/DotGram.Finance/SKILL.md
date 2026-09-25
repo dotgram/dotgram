@@ -1,15 +1,16 @@
 ---
 name: dotgram-finance
-description: Read FIX 4.2 and FIX 4.4 tag-value data with DotGram.Finance — flat typed fields from wire or log input, and, where a message must be known correct, validated messages with their repeating groups. Use when a project references the DotGram.Finance package, or when asked to parse FIX tag-value messages or FIX logs in .NET. Not for FIX session handling, sending or composing messages, FIXML, or a FIX version other than 4.2 and 4.4; this package only reads.
+description: Read FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value data with DotGram.Finance — flat typed fields from wire or log input, and, where a message must be known correct, validated messages with their repeating groups. Use when a project references the DotGram.Finance package, or when asked to parse FIX tag-value messages or FIX logs in .NET. Not for FIX session handling, sending or composing messages, FIXML, or a FIX version other than 4.2, 4.4 and 5.0 SP2; this package only reads.
 ---
 
 # DotGram.Finance
 
-Reads FIX 4.2 and FIX 4.4 tag-value input: wire messages whose fields end with SOH, and the
+Reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value input: wire messages whose fields end with SOH, and the
 pipe-separated log renderings people keep of them. What every version of FIX shares — the
 fields, `FixTag`, `FixConvert`, the findings — is in `DotGram.Finance.Fix`; a version's own —
 `FixParser`, the messages, its context — in a namespace of its own with the same names in it:
-`DotGram.Finance.Fix.Fix44` with `Fix44Context`, `DotGram.Finance.Fix.Fix42` with `Fix42Context`.
+`DotGram.Finance.Fix.Fix44` with `Fix44Context`, `DotGram.Finance.Fix.Fix42` with `Fix42Context`,
+`DotGram.Finance.Fix.Fix50` with `Fix50Context` for FIX 5.0 SP2 over FIXT 1.1 (BeginString `FIXT.1.1`).
 The examples here are FIX 4.4's. There is no runtime to deploy, nothing to configure and nothing
 to initialize.
 
@@ -97,10 +98,11 @@ foreach (var field in FixParser.ParseFields(wire))
 ```
 
 - A field is a class of the type of its value, and its `Tag` says which field it is:
-  `FixField.Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`, `Date`,
-  `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
+  `FixField.Text`, `Character`, `Boolean`, `Integer`, `Decimal`, `Timestamp`, `Time`, `ZonedTime`,
+  `Date`, `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
   `decimal` or `long`, dates and times as `DateOnly`, `TimeOnly` and `DateTimeOffset` (a
-  MonthYear stays a `string`). `Tag` is the tag's number, and `FixTag` holds every version's tags as constants
+  MonthYear stays a `string`; FIX 5.0's TZTimeOnly is `(TimeOnly Time, TimeSpan Offset)`, and its
+  TZTimestamp a `Timestamp` at the offset it was written with). `Tag` is the tag's number, and `FixTag` holds every version's tags as constants
   named as the FIX repository names them: `FixField.Decimal { Tag: FixTag.OrderQty }`. A message's
   property keeps its version's name where that differs: FIX 4.4's `IOIid` is `FixTag.IOIID`. A tag it does not name is just its number, `25005`.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —

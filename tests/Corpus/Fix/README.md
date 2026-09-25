@@ -17,6 +17,13 @@ package's copy. Its fields are named as the FIX 4.2 repository names them; four 
 `DotGram.Finance.Fix.Fix42` gives them. Unlike `FIX44.xml`, it loads whole over the standard
 (`Fix42Tests`).
 
+`FIXT11.xml` and `FIX50SP2.xml` are the same release's session layer and FIX 5.0 SP2, from the same
+tree. They describe a later edition than the repository this package is written from, with
+messages and members the repository does not have (`PartyDetailsListRequest`, a `Username` on
+`UserNotification`); read as one over the standard they are refused at the first such place, and
+`FIXT11.xml` alone loads (`Fix50Tests`). One field is named otherwise than the repository names it,
+`HaltReasonInt` for tag 327, and that is the name `DotGram.Finance.Fix.Fix50` gives it.
+
 Licensed under the QuickFIX Software License 1.0, BSD-three-clause in shape; the notice,
 the conditions and the disclaimer are kept beside the file they cover, in `LICENSE`. The
 licence asks that the end-user documentation of a redistribution acknowledge it, so here

@@ -1,6 +1,6 @@
 ﻿namespace DotGram.Finance.Fix;
 
-// Written by generate.py from the FIX 4.2, FIX 4.4 repository; not edited by hand.
+// Written by generate.py from the FIX 4.2, FIX 4.4, FIX 5.0 SP2 repository; not edited by hand.
 
 /// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>
 /// <remarks>A tag is its number, and a tag no version defines is only that: <c>25005</c>.</remarks>
@@ -192,7 +192,7 @@ public static class FixTag
 	/// <summary>ValidUntilTime, a <see cref="FixField.Timestamp"/>.</summary>
 	public const int ValidUntilTime = 62;
 
-	/// <summary>SettlType, a <see cref="FixField.Character"/>.</summary>
+	/// <summary>SettlType, a <see cref="FixField.Character"/> or <see cref="FixField.Text"/>.</summary>
 	public const int SettlType = 63;
 
 	/// <summary>SettlDate, a <see cref="FixField.Date"/>.</summary>
@@ -978,7 +978,7 @@ public static class FixTag
 	/// <summary>SecurityTradingStatus, a <see cref="FixField.Integer"/>.</summary>
 	public const int SecurityTradingStatus = 326;
 
-	/// <summary>HaltReason, a <see cref="FixField.Character"/>.</summary>
+	/// <summary>HaltReason, a <see cref="FixField.Character"/> or <see cref="FixField.Integer"/>.</summary>
 	public const int HaltReason = 327;
 
 	/// <summary>InViewOfCommon, a <see cref="FixField.Boolean"/>.</summary>
@@ -1584,7 +1584,7 @@ public static class FixTag
 	/// <summary>MassCancelResponse, a <see cref="FixField.Character"/>.</summary>
 	public const int MassCancelResponse = 531;
 
-	/// <summary>MassCancelRejectReason, a <see cref="FixField.Text"/>.</summary>
+	/// <summary>MassCancelRejectReason, a <see cref="FixField.Integer"/> or <see cref="FixField.Text"/>.</summary>
 	public const int MassCancelRejectReason = 532;
 
 	/// <summary>TotalAffectedOrders, a <see cref="FixField.Integer"/>.</summary>
@@ -2040,6 +2040,9 @@ public static class FixTag
 	/// <summary>LegOfferPx, a <see cref="FixField.Decimal"/>.</summary>
 	public const int LegOfferPx = 684;
 
+	/// <summary>LegOrderQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegOrderQty = 685;
+
 	/// <summary>LegPriceType, a <see cref="FixField.Integer"/>.</summary>
 	public const int LegPriceType = 686;
 
@@ -2408,6 +2411,9 @@ public static class FixTag
 
 	/// <summary>AllocIntermedReqType, a <see cref="FixField.Integer"/>.</summary>
 	public const int AllocIntermedReqType = 808;
+
+	/// <summary>NoUsernames, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoUsernames = 809;
 
 	/// <summary>UnderlyingPx, a <see cref="FixField.Decimal"/>.</summary>
 	public const int UnderlyingPx = 810;
@@ -2846,4 +2852,1618 @@ public static class FixTag
 
 	/// <summary>LegInterestAccrualDate, a <see cref="FixField.Date"/>.</summary>
 	public const int LegInterestAccrualDate = 956;
+
+	/// <summary>NoStrategyParameters, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoStrategyParameters = 957;
+
+	/// <summary>StrategyParameterName, a <see cref="FixField.Text"/>.</summary>
+	public const int StrategyParameterName = 958;
+
+	/// <summary>StrategyParameterType, a <see cref="FixField.Integer"/>.</summary>
+	public const int StrategyParameterType = 959;
+
+	/// <summary>StrategyParameterValue, a <see cref="FixField.Text"/>.</summary>
+	public const int StrategyParameterValue = 960;
+
+	/// <summary>HostCrossID, a <see cref="FixField.Text"/>.</summary>
+	public const int HostCrossID = 961;
+
+	/// <summary>SideTimeInForce, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int SideTimeInForce = 962;
+
+	/// <summary>MDReportID, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDReportID = 963;
+
+	/// <summary>SecurityReportID, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecurityReportID = 964;
+
+	/// <summary>SecurityStatus, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityStatus = 965;
+
+	/// <summary>SettleOnOpenFlag, a <see cref="FixField.Text"/>.</summary>
+	public const int SettleOnOpenFlag = 966;
+
+	/// <summary>StrikeMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StrikeMultiplier = 967;
+
+	/// <summary>StrikeValue, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StrikeValue = 968;
+
+	/// <summary>MinPriceIncrement, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MinPriceIncrement = 969;
+
+	/// <summary>PositionLimit, a <see cref="FixField.Integer"/>.</summary>
+	public const int PositionLimit = 970;
+
+	/// <summary>NTPositionLimit, a <see cref="FixField.Integer"/>.</summary>
+	public const int NTPositionLimit = 971;
+
+	/// <summary>UnderlyingAllocationPercent, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingAllocationPercent = 972;
+
+	/// <summary>UnderlyingCashAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingCashAmount = 973;
+
+	/// <summary>UnderlyingCashType, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingCashType = 974;
+
+	/// <summary>UnderlyingSettlementType, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingSettlementType = 975;
+
+	/// <summary>QuantityDate, a <see cref="FixField.Date"/>.</summary>
+	public const int QuantityDate = 976;
+
+	/// <summary>ContIntRptID, a <see cref="FixField.Text"/>.</summary>
+	public const int ContIntRptID = 977;
+
+	/// <summary>LateIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int LateIndicator = 978;
+
+	/// <summary>InputSource, a <see cref="FixField.Text"/>.</summary>
+	public const int InputSource = 979;
+
+	/// <summary>SecurityUpdateAction, a <see cref="FixField.Character"/>.</summary>
+	public const int SecurityUpdateAction = 980;
+
+	/// <summary>NoExpiration, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoExpiration = 981;
+
+	/// <summary>ExpirationQtyType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ExpirationQtyType = 982;
+
+	/// <summary>ExpQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int ExpQty = 983;
+
+	/// <summary>NoUnderlyingAmounts, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoUnderlyingAmounts = 984;
+
+	/// <summary>UnderlyingPayAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingPayAmount = 985;
+
+	/// <summary>UnderlyingCollectAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingCollectAmount = 986;
+
+	/// <summary>UnderlyingSettlementDate, a <see cref="FixField.Date"/>.</summary>
+	public const int UnderlyingSettlementDate = 987;
+
+	/// <summary>UnderlyingSettlementStatus, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingSettlementStatus = 988;
+
+	/// <summary>SecondaryIndividualAllocID, a <see cref="FixField.Text"/>.</summary>
+	public const int SecondaryIndividualAllocID = 989;
+
+	/// <summary>LegReportID, a <see cref="FixField.Text"/>.</summary>
+	public const int LegReportID = 990;
+
+	/// <summary>RndPx, a <see cref="FixField.Decimal"/>.</summary>
+	public const int RndPx = 991;
+
+	/// <summary>IndividualAllocType, a <see cref="FixField.Integer"/>.</summary>
+	public const int IndividualAllocType = 992;
+
+	/// <summary>AllocCustomerCapacity, a <see cref="FixField.Text"/>.</summary>
+	public const int AllocCustomerCapacity = 993;
+
+	/// <summary>TierCode, a <see cref="FixField.Text"/>.</summary>
+	public const int TierCode = 994;
+
+	/// <summary>UnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int UnitOfMeasure = 996;
+
+	/// <summary>TimeUnit, a <see cref="FixField.Text"/>.</summary>
+	public const int TimeUnit = 997;
+
+	/// <summary>UnderlyingUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingUnitOfMeasure = 998;
+
+	/// <summary>LegUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int LegUnitOfMeasure = 999;
+
+	/// <summary>UnderlyingTimeUnit, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingTimeUnit = 1000;
+
+	/// <summary>LegTimeUnit, a <see cref="FixField.Text"/>.</summary>
+	public const int LegTimeUnit = 1001;
+
+	/// <summary>AllocMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int AllocMethod = 1002;
+
+	/// <summary>TradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int TradeID = 1003;
+
+	/// <summary>SideTradeReportID, a <see cref="FixField.Text"/>.</summary>
+	public const int SideTradeReportID = 1005;
+
+	/// <summary>SideFillStationCd, a <see cref="FixField.Text"/>.</summary>
+	public const int SideFillStationCd = 1006;
+
+	/// <summary>SideReasonCd, a <see cref="FixField.Text"/>.</summary>
+	public const int SideReasonCd = 1007;
+
+	/// <summary>SideTrdSubTyp, a <see cref="FixField.Integer"/>.</summary>
+	public const int SideTrdSubTyp = 1008;
+
+	/// <summary>SideLastQty, a <see cref="FixField.Integer"/>.</summary>
+	public const int SideLastQty = 1009;
+
+	/// <summary>MessageEventSource, a <see cref="FixField.Text"/>.</summary>
+	public const int MessageEventSource = 1011;
+
+	/// <summary>SideTrdRegTimestamp, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int SideTrdRegTimestamp = 1012;
+
+	/// <summary>SideTrdRegTimestampType, a <see cref="FixField.Integer"/>.</summary>
+	public const int SideTrdRegTimestampType = 1013;
+
+	/// <summary>SideTrdRegTimestampSrc, a <see cref="FixField.Text"/>.</summary>
+	public const int SideTrdRegTimestampSrc = 1014;
+
+	/// <summary>AsOfIndicator, a <see cref="FixField.Character"/>.</summary>
+	public const int AsOfIndicator = 1015;
+
+	/// <summary>NoSideTrdRegTS, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoSideTrdRegTS = 1016;
+
+	/// <summary>LegOptionRatio, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegOptionRatio = 1017;
+
+	/// <summary>NoInstrumentParties, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoInstrumentParties = 1018;
+
+	/// <summary>InstrumentPartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int InstrumentPartyID = 1019;
+
+	/// <summary>TradeVolume, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TradeVolume = 1020;
+
+	/// <summary>MDBookType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDBookType = 1021;
+
+	/// <summary>MDFeedType, a <see cref="FixField.Text"/>.</summary>
+	public const int MDFeedType = 1022;
+
+	/// <summary>MDPriceLevel, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDPriceLevel = 1023;
+
+	/// <summary>MDOriginType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDOriginType = 1024;
+
+	/// <summary>FirstPx, a <see cref="FixField.Decimal"/>.</summary>
+	public const int FirstPx = 1025;
+
+	/// <summary>MDEntrySpotRate, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MDEntrySpotRate = 1026;
+
+	/// <summary>MDEntryForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MDEntryForwardPoints = 1027;
+
+	/// <summary>ManualOrderIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int ManualOrderIndicator = 1028;
+
+	/// <summary>CustDirectedOrder, a <see cref="FixField.Boolean"/>.</summary>
+	public const int CustDirectedOrder = 1029;
+
+	/// <summary>ReceivedDeptID, a <see cref="FixField.Text"/>.</summary>
+	public const int ReceivedDeptID = 1030;
+
+	/// <summary>CustOrderHandlingInst, a <see cref="FixField.Multiple"/>.</summary>
+	public const int CustOrderHandlingInst = 1031;
+
+	/// <summary>OrderHandlingInstSource, a <see cref="FixField.Integer"/>.</summary>
+	public const int OrderHandlingInstSource = 1032;
+
+	/// <summary>DeskType, a <see cref="FixField.Text"/>.</summary>
+	public const int DeskType = 1033;
+
+	/// <summary>DeskTypeSource, a <see cref="FixField.Integer"/>.</summary>
+	public const int DeskTypeSource = 1034;
+
+	/// <summary>DeskOrderHandlingInst, a <see cref="FixField.Multiple"/>.</summary>
+	public const int DeskOrderHandlingInst = 1035;
+
+	/// <summary>ExecAckStatus, a <see cref="FixField.Character"/>.</summary>
+	public const int ExecAckStatus = 1036;
+
+	/// <summary>UnderlyingDeliveryAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingDeliveryAmount = 1037;
+
+	/// <summary>UnderlyingCapValue, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingCapValue = 1038;
+
+	/// <summary>UnderlyingSettlMethod, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingSettlMethod = 1039;
+
+	/// <summary>SecondaryTradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int SecondaryTradeID = 1040;
+
+	/// <summary>FirmTradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int FirmTradeID = 1041;
+
+	/// <summary>SecondaryFirmTradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int SecondaryFirmTradeID = 1042;
+
+	/// <summary>CollApplType, a <see cref="FixField.Integer"/>.</summary>
+	public const int CollApplType = 1043;
+
+	/// <summary>UnderlyingAdjustedQuantity, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingAdjustedQuantity = 1044;
+
+	/// <summary>UnderlyingFXRate, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingFXRate = 1045;
+
+	/// <summary>UnderlyingFXRateCalc, a <see cref="FixField.Character"/>.</summary>
+	public const int UnderlyingFXRateCalc = 1046;
+
+	/// <summary>AllocPositionEffect, a <see cref="FixField.Character"/>.</summary>
+	public const int AllocPositionEffect = 1047;
+
+	/// <summary>DealingCapacity, a <see cref="FixField.Character"/>.</summary>
+	public const int DealingCapacity = 1048;
+
+	/// <summary>InstrmtAssignmentMethod, a <see cref="FixField.Character"/>.</summary>
+	public const int InstrmtAssignmentMethod = 1049;
+
+	/// <summary>InstrumentPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int InstrumentPartyIDSource = 1050;
+
+	/// <summary>InstrumentPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int InstrumentPartyRole = 1051;
+
+	/// <summary>NoInstrumentPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoInstrumentPartySubIDs = 1052;
+
+	/// <summary>InstrumentPartySubID, a <see cref="FixField.Text"/>.</summary>
+	public const int InstrumentPartySubID = 1053;
+
+	/// <summary>InstrumentPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	public const int InstrumentPartySubIDType = 1054;
+
+	/// <summary>PositionCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int PositionCurrency = 1055;
+
+	/// <summary>CalculatedCcyLastQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int CalculatedCcyLastQty = 1056;
+
+	/// <summary>AggressorIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int AggressorIndicator = 1057;
+
+	/// <summary>NoUndlyInstrumentParties, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoUndlyInstrumentParties = 1058;
+
+	/// <summary>UnderlyingInstrumentPartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingInstrumentPartyID = 1059;
+
+	/// <summary>UnderlyingInstrumentPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int UnderlyingInstrumentPartyIDSource = 1060;
+
+	/// <summary>UnderlyingInstrumentPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingInstrumentPartyRole = 1061;
+
+	/// <summary>NoUndlyInstrumentPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoUndlyInstrumentPartySubIDs = 1062;
+
+	/// <summary>UnderlyingInstrumentPartySubID, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingInstrumentPartySubID = 1063;
+
+	/// <summary>UnderlyingInstrumentPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingInstrumentPartySubIDType = 1064;
+
+	/// <summary>BidSwapPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int BidSwapPoints = 1065;
+
+	/// <summary>OfferSwapPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int OfferSwapPoints = 1066;
+
+	/// <summary>LegBidForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegBidForwardPoints = 1067;
+
+	/// <summary>LegOfferForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegOfferForwardPoints = 1068;
+
+	/// <summary>SwapPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SwapPoints = 1069;
+
+	/// <summary>MDQuoteType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDQuoteType = 1070;
+
+	/// <summary>LastSwapPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LastSwapPoints = 1071;
+
+	/// <summary>SideGrossTradeAmt, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SideGrossTradeAmt = 1072;
+
+	/// <summary>LegLastForwardPoints, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegLastForwardPoints = 1073;
+
+	/// <summary>LegCalculatedCcyLastQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegCalculatedCcyLastQty = 1074;
+
+	/// <summary>LegGrossTradeAmt, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegGrossTradeAmt = 1075;
+
+	/// <summary>MaturityTime, a <see cref="FixField.ZonedTime"/>.</summary>
+	public const int MaturityTime = 1079;
+
+	/// <summary>RefOrderID, a <see cref="FixField.Text"/>.</summary>
+	public const int RefOrderID = 1080;
+
+	/// <summary>RefOrderIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int RefOrderIDSource = 1081;
+
+	/// <summary>SecondaryDisplayQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SecondaryDisplayQty = 1082;
+
+	/// <summary>DisplayWhen, a <see cref="FixField.Character"/>.</summary>
+	public const int DisplayWhen = 1083;
+
+	/// <summary>DisplayMethod, a <see cref="FixField.Character"/>.</summary>
+	public const int DisplayMethod = 1084;
+
+	/// <summary>DisplayLowQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DisplayLowQty = 1085;
+
+	/// <summary>DisplayHighQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DisplayHighQty = 1086;
+
+	/// <summary>DisplayMinIncr, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DisplayMinIncr = 1087;
+
+	/// <summary>RefreshQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int RefreshQty = 1088;
+
+	/// <summary>MatchIncrement, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MatchIncrement = 1089;
+
+	/// <summary>MaxPriceLevels, a <see cref="FixField.Integer"/>.</summary>
+	public const int MaxPriceLevels = 1090;
+
+	/// <summary>PreTradeAnonymity, a <see cref="FixField.Boolean"/>.</summary>
+	public const int PreTradeAnonymity = 1091;
+
+	/// <summary>PriceProtectionScope, a <see cref="FixField.Character"/>.</summary>
+	public const int PriceProtectionScope = 1092;
+
+	/// <summary>LotType, a <see cref="FixField.Character"/>.</summary>
+	public const int LotType = 1093;
+
+	/// <summary>PegPriceType, a <see cref="FixField.Integer"/>.</summary>
+	public const int PegPriceType = 1094;
+
+	/// <summary>PeggedRefPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int PeggedRefPrice = 1095;
+
+	/// <summary>PegSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int PegSecurityIDSource = 1096;
+
+	/// <summary>PegSecurityID, a <see cref="FixField.Text"/>.</summary>
+	public const int PegSecurityID = 1097;
+
+	/// <summary>PegSymbol, a <see cref="FixField.Text"/>.</summary>
+	public const int PegSymbol = 1098;
+
+	/// <summary>PegSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int PegSecurityDesc = 1099;
+
+	/// <summary>TriggerType, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerType = 1100;
+
+	/// <summary>TriggerAction, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerAction = 1101;
+
+	/// <summary>TriggerPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TriggerPrice = 1102;
+
+	/// <summary>TriggerSymbol, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerSymbol = 1103;
+
+	/// <summary>TriggerSecurityID, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerSecurityID = 1104;
+
+	/// <summary>TriggerSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerSecurityIDSource = 1105;
+
+	/// <summary>TriggerSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerSecurityDesc = 1106;
+
+	/// <summary>TriggerPriceType, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerPriceType = 1107;
+
+	/// <summary>TriggerPriceTypeScope, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerPriceTypeScope = 1108;
+
+	/// <summary>TriggerPriceDirection, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerPriceDirection = 1109;
+
+	/// <summary>TriggerNewPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TriggerNewPrice = 1110;
+
+	/// <summary>TriggerOrderType, a <see cref="FixField.Character"/>.</summary>
+	public const int TriggerOrderType = 1111;
+
+	/// <summary>TriggerNewQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TriggerNewQty = 1112;
+
+	/// <summary>TriggerTradingSessionID, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerTradingSessionID = 1113;
+
+	/// <summary>TriggerTradingSessionSubID, a <see cref="FixField.Text"/>.</summary>
+	public const int TriggerTradingSessionSubID = 1114;
+
+	/// <summary>OrderCategory, a <see cref="FixField.Character"/>.</summary>
+	public const int OrderCategory = 1115;
+
+	/// <summary>NoRootPartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoRootPartyIDs = 1116;
+
+	/// <summary>RootPartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int RootPartyID = 1117;
+
+	/// <summary>RootPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int RootPartyIDSource = 1118;
+
+	/// <summary>RootPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int RootPartyRole = 1119;
+
+	/// <summary>NoRootPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoRootPartySubIDs = 1120;
+
+	/// <summary>RootPartySubID, a <see cref="FixField.Text"/>.</summary>
+	public const int RootPartySubID = 1121;
+
+	/// <summary>RootPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	public const int RootPartySubIDType = 1122;
+
+	/// <summary>TradeHandlingInstr, a <see cref="FixField.Character"/>.</summary>
+	public const int TradeHandlingInstr = 1123;
+
+	/// <summary>OrigTradeHandlingInstr, a <see cref="FixField.Character"/>.</summary>
+	public const int OrigTradeHandlingInstr = 1124;
+
+	/// <summary>OrigTradeDate, a <see cref="FixField.Date"/>.</summary>
+	public const int OrigTradeDate = 1125;
+
+	/// <summary>OrigTradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int OrigTradeID = 1126;
+
+	/// <summary>OrigSecondaryTradeID, a <see cref="FixField.Text"/>.</summary>
+	public const int OrigSecondaryTradeID = 1127;
+
+	/// <summary>ApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int ApplVerID = 1128;
+
+	/// <summary>CstmApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int CstmApplVerID = 1129;
+
+	/// <summary>RefApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int RefApplVerID = 1130;
+
+	/// <summary>RefCstmApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int RefCstmApplVerID = 1131;
+
+	/// <summary>TZTransactTime, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int TZTransactTime = 1132;
+
+	/// <summary>ExDestinationIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int ExDestinationIDSource = 1133;
+
+	/// <summary>ReportedPxDiff, a <see cref="FixField.Boolean"/>.</summary>
+	public const int ReportedPxDiff = 1134;
+
+	/// <summary>RptSys, a <see cref="FixField.Text"/>.</summary>
+	public const int RptSys = 1135;
+
+	/// <summary>AllocClearingFeeIndicator, a <see cref="FixField.Text"/>.</summary>
+	public const int AllocClearingFeeIndicator = 1136;
+
+	/// <summary>DefaultApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int DefaultApplVerID = 1137;
+
+	/// <summary>DisplayQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DisplayQty = 1138;
+
+	/// <summary>ExchangeSpecialInstructions, a <see cref="FixField.Text"/>.</summary>
+	public const int ExchangeSpecialInstructions = 1139;
+
+	/// <summary>MaxTradeVol, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MaxTradeVol = 1140;
+
+	/// <summary>NoMDFeedTypes, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoMDFeedTypes = 1141;
+
+	/// <summary>MatchAlgorithm, a <see cref="FixField.Text"/>.</summary>
+	public const int MatchAlgorithm = 1142;
+
+	/// <summary>MaxPriceVariation, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MaxPriceVariation = 1143;
+
+	/// <summary>ImpliedMarketIndicator, a <see cref="FixField.Integer"/>.</summary>
+	public const int ImpliedMarketIndicator = 1144;
+
+	/// <summary>EventTime, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int EventTime = 1145;
+
+	/// <summary>MinPriceIncrementAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MinPriceIncrementAmount = 1146;
+
+	/// <summary>UnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnitOfMeasureQty = 1147;
+
+	/// <summary>LowLimitPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LowLimitPrice = 1148;
+
+	/// <summary>HighLimitPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int HighLimitPrice = 1149;
+
+	/// <summary>TradingReferencePrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TradingReferencePrice = 1150;
+
+	/// <summary>SecurityGroup, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityGroup = 1151;
+
+	/// <summary>LegNumber, a <see cref="FixField.Integer"/>.</summary>
+	public const int LegNumber = 1152;
+
+	/// <summary>SettlementCycleNo, a <see cref="FixField.Integer"/>.</summary>
+	public const int SettlementCycleNo = 1153;
+
+	/// <summary>SideCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int SideCurrency = 1154;
+
+	/// <summary>SideSettlCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int SideSettlCurrency = 1155;
+
+	/// <summary>ApplExtID, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplExtID = 1156;
+
+	/// <summary>CcyAmt, a <see cref="FixField.Decimal"/>.</summary>
+	public const int CcyAmt = 1157;
+
+	/// <summary>NoSettlDetails, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoSettlDetails = 1158;
+
+	/// <summary>SettlObligMode, a <see cref="FixField.Integer"/>.</summary>
+	public const int SettlObligMode = 1159;
+
+	/// <summary>SettlObligMsgID, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlObligMsgID = 1160;
+
+	/// <summary>SettlObligID, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlObligID = 1161;
+
+	/// <summary>SettlObligTransType, a <see cref="FixField.Character"/>.</summary>
+	public const int SettlObligTransType = 1162;
+
+	/// <summary>SettlObligRefID, a <see cref="FixField.Text"/>.</summary>
+	public const int SettlObligRefID = 1163;
+
+	/// <summary>SettlObligSource, a <see cref="FixField.Character"/>.</summary>
+	public const int SettlObligSource = 1164;
+
+	/// <summary>NoSettlOblig, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoSettlOblig = 1165;
+
+	/// <summary>QuoteMsgID, a <see cref="FixField.Text"/>.</summary>
+	public const int QuoteMsgID = 1166;
+
+	/// <summary>QuoteEntryStatus, a <see cref="FixField.Integer"/>.</summary>
+	public const int QuoteEntryStatus = 1167;
+
+	/// <summary>TotNoCxldQuotes, a <see cref="FixField.Integer"/>.</summary>
+	public const int TotNoCxldQuotes = 1168;
+
+	/// <summary>TotNoAccQuotes, a <see cref="FixField.Integer"/>.</summary>
+	public const int TotNoAccQuotes = 1169;
+
+	/// <summary>TotNoRejQuotes, a <see cref="FixField.Integer"/>.</summary>
+	public const int TotNoRejQuotes = 1170;
+
+	/// <summary>PrivateQuote, a <see cref="FixField.Boolean"/>.</summary>
+	public const int PrivateQuote = 1171;
+
+	/// <summary>RespondentType, a <see cref="FixField.Integer"/>.</summary>
+	public const int RespondentType = 1172;
+
+	/// <summary>MDSubBookType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDSubBookType = 1173;
+
+	/// <summary>SecurityTradingEvent, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecurityTradingEvent = 1174;
+
+	/// <summary>NoStatsIndicators, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoStatsIndicators = 1175;
+
+	/// <summary>StatsType, a <see cref="FixField.Integer"/>.</summary>
+	public const int StatsType = 1176;
+
+	/// <summary>NoOfSecSizes, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoOfSecSizes = 1177;
+
+	/// <summary>MDSecSizeType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MDSecSizeType = 1178;
+
+	/// <summary>MDSecSize, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MDSecSize = 1179;
+
+	/// <summary>ApplID, a <see cref="FixField.Text"/>.</summary>
+	public const int ApplID = 1180;
+
+	/// <summary>ApplSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplSeqNum = 1181;
+
+	/// <summary>ApplBegSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplBegSeqNum = 1182;
+
+	/// <summary>ApplEndSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplEndSeqNum = 1183;
+
+	/// <summary>SecurityXMLLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecurityXMLLen = 1184;
+
+	/// <summary>SecurityXML, a <see cref="FixField.Data"/>.</summary>
+	public const int SecurityXML = 1185;
+
+	/// <summary>SecurityXMLSchema, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityXMLSchema = 1186;
+
+	/// <summary>RefreshIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int RefreshIndicator = 1187;
+
+	/// <summary>Volatility, a <see cref="FixField.Decimal"/>.</summary>
+	public const int Volatility = 1188;
+
+	/// <summary>TimeToExpiration, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TimeToExpiration = 1189;
+
+	/// <summary>RiskFreeRate, a <see cref="FixField.Decimal"/>.</summary>
+	public const int RiskFreeRate = 1190;
+
+	/// <summary>PriceUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int PriceUnitOfMeasure = 1191;
+
+	/// <summary>PriceUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int PriceUnitOfMeasureQty = 1192;
+
+	/// <summary>SettlMethod, a <see cref="FixField.Character"/>.</summary>
+	public const int SettlMethod = 1193;
+
+	/// <summary>ExerciseStyle, a <see cref="FixField.Integer"/>.</summary>
+	public const int ExerciseStyle = 1194;
+
+	/// <summary>OptPayoutAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int OptPayoutAmount = 1195;
+
+	/// <summary>PriceQuoteMethod, a <see cref="FixField.Text"/>.</summary>
+	public const int PriceQuoteMethod = 1196;
+
+	/// <summary>ValuationMethod, a <see cref="FixField.Text"/>.</summary>
+	public const int ValuationMethod = 1197;
+
+	/// <summary>ListMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int ListMethod = 1198;
+
+	/// <summary>CapPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int CapPrice = 1199;
+
+	/// <summary>FloorPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int FloorPrice = 1200;
+
+	/// <summary>NoStrikeRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoStrikeRules = 1201;
+
+	/// <summary>StartStrikePxRange, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StartStrikePxRange = 1202;
+
+	/// <summary>EndStrikePxRange, a <see cref="FixField.Decimal"/>.</summary>
+	public const int EndStrikePxRange = 1203;
+
+	/// <summary>StrikeIncrement, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StrikeIncrement = 1204;
+
+	/// <summary>NoTickRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoTickRules = 1205;
+
+	/// <summary>StartTickPriceRange, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StartTickPriceRange = 1206;
+
+	/// <summary>EndTickPriceRange, a <see cref="FixField.Decimal"/>.</summary>
+	public const int EndTickPriceRange = 1207;
+
+	/// <summary>TickIncrement, a <see cref="FixField.Decimal"/>.</summary>
+	public const int TickIncrement = 1208;
+
+	/// <summary>TickRuleType, a <see cref="FixField.Integer"/>.</summary>
+	public const int TickRuleType = 1209;
+
+	/// <summary>NestedInstrAttribType, a <see cref="FixField.Integer"/>.</summary>
+	public const int NestedInstrAttribType = 1210;
+
+	/// <summary>NestedInstrAttribValue, a <see cref="FixField.Text"/>.</summary>
+	public const int NestedInstrAttribValue = 1211;
+
+	/// <summary>LegMaturityTime, a <see cref="FixField.ZonedTime"/>.</summary>
+	public const int LegMaturityTime = 1212;
+
+	/// <summary>UnderlyingMaturityTime, a <see cref="FixField.ZonedTime"/>.</summary>
+	public const int UnderlyingMaturityTime = 1213;
+
+	/// <summary>DerivativeSymbol, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSymbol = 1214;
+
+	/// <summary>DerivativeSymbolSfx, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSymbolSfx = 1215;
+
+	/// <summary>DerivativeSecurityID, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityID = 1216;
+
+	/// <summary>DerivativeSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityIDSource = 1217;
+
+	/// <summary>NoDerivativeSecurityAltID, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoDerivativeSecurityAltID = 1218;
+
+	/// <summary>DerivativeSecurityAltID, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityAltID = 1219;
+
+	/// <summary>DerivativeSecurityAltIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityAltIDSource = 1220;
+
+	/// <summary>SecondaryLowLimitPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SecondaryLowLimitPrice = 1221;
+
+	/// <summary>MaturityRuleID, a <see cref="FixField.Text"/>.</summary>
+	public const int MaturityRuleID = 1222;
+
+	/// <summary>StrikeRuleID, a <see cref="FixField.Text"/>.</summary>
+	public const int StrikeRuleID = 1223;
+
+	/// <summary>LegUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegUnitOfMeasureQty = 1224;
+
+	/// <summary>DerivativeOptPayAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeOptPayAmount = 1225;
+
+	/// <summary>EndMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	public const int EndMaturityMonthYear = 1226;
+
+	/// <summary>ProductComplex, a <see cref="FixField.Text"/>.</summary>
+	public const int ProductComplex = 1227;
+
+	/// <summary>DerivativeProductComplex, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeProductComplex = 1228;
+
+	/// <summary>MaturityMonthYearIncrement, a <see cref="FixField.Integer"/>.</summary>
+	public const int MaturityMonthYearIncrement = 1229;
+
+	/// <summary>SecondaryHighLimitPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SecondaryHighLimitPrice = 1230;
+
+	/// <summary>MinLotSize, a <see cref="FixField.Decimal"/>.</summary>
+	public const int MinLotSize = 1231;
+
+	/// <summary>NoExecInstRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoExecInstRules = 1232;
+
+	/// <summary>NoLotTypeRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoLotTypeRules = 1234;
+
+	/// <summary>NoMatchRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoMatchRules = 1235;
+
+	/// <summary>NoMaturityRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoMaturityRules = 1236;
+
+	/// <summary>NoOrdTypeRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoOrdTypeRules = 1237;
+
+	/// <summary>NoTimeInForceRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoTimeInForceRules = 1239;
+
+	/// <summary>SecondaryTradingReferencePrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int SecondaryTradingReferencePrice = 1240;
+
+	/// <summary>StartMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	public const int StartMaturityMonthYear = 1241;
+
+	/// <summary>FlexProductEligibilityIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int FlexProductEligibilityIndicator = 1242;
+
+	/// <summary>DerivFlexProductEligibilityIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int DerivFlexProductEligibilityIndicator = 1243;
+
+	/// <summary>FlexibleIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int FlexibleIndicator = 1244;
+
+	/// <summary>TradingCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int TradingCurrency = 1245;
+
+	/// <summary>DerivativeProduct, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeProduct = 1246;
+
+	/// <summary>DerivativeSecurityGroup, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityGroup = 1247;
+
+	/// <summary>DerivativeCFICode, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeCFICode = 1248;
+
+	/// <summary>DerivativeSecurityType, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityType = 1249;
+
+	/// <summary>DerivativeSecuritySubType, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecuritySubType = 1250;
+
+	/// <summary>DerivativeMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	public const int DerivativeMaturityMonthYear = 1251;
+
+	/// <summary>DerivativeMaturityDate, a <see cref="FixField.Date"/>.</summary>
+	public const int DerivativeMaturityDate = 1252;
+
+	/// <summary>DerivativeMaturityTime, a <see cref="FixField.ZonedTime"/>.</summary>
+	public const int DerivativeMaturityTime = 1253;
+
+	/// <summary>DerivativeSettleOnOpenFlag, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSettleOnOpenFlag = 1254;
+
+	/// <summary>DerivativeInstrmtAssignmentMethod, a <see cref="FixField.Character"/>.</summary>
+	public const int DerivativeInstrmtAssignmentMethod = 1255;
+
+	/// <summary>DerivativeSecurityStatus, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityStatus = 1256;
+
+	/// <summary>DerivativeInstrRegistry, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeInstrRegistry = 1257;
+
+	/// <summary>DerivativeCountryOfIssue, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeCountryOfIssue = 1258;
+
+	/// <summary>DerivativeStateOrProvinceOfIssue, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeStateOrProvinceOfIssue = 1259;
+
+	/// <summary>DerivativeLocaleOfIssue, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeLocaleOfIssue = 1260;
+
+	/// <summary>DerivativeStrikePrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeStrikePrice = 1261;
+
+	/// <summary>DerivativeStrikeCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeStrikeCurrency = 1262;
+
+	/// <summary>DerivativeStrikeMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeStrikeMultiplier = 1263;
+
+	/// <summary>DerivativeStrikeValue, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeStrikeValue = 1264;
+
+	/// <summary>DerivativeOptAttribute, a <see cref="FixField.Character"/>.</summary>
+	public const int DerivativeOptAttribute = 1265;
+
+	/// <summary>DerivativeContractMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeContractMultiplier = 1266;
+
+	/// <summary>DerivativeMinPriceIncrement, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeMinPriceIncrement = 1267;
+
+	/// <summary>DerivativeMinPriceIncrementAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeMinPriceIncrementAmount = 1268;
+
+	/// <summary>DerivativeUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeUnitOfMeasure = 1269;
+
+	/// <summary>DerivativeUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeUnitOfMeasureQty = 1270;
+
+	/// <summary>DerivativeTimeUnit, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeTimeUnit = 1271;
+
+	/// <summary>DerivativeSecurityExchange, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityExchange = 1272;
+
+	/// <summary>DerivativePositionLimit, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativePositionLimit = 1273;
+
+	/// <summary>DerivativeNTPositionLimit, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeNTPositionLimit = 1274;
+
+	/// <summary>DerivativeIssuer, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeIssuer = 1275;
+
+	/// <summary>DerivativeIssueDate, a <see cref="FixField.Date"/>.</summary>
+	public const int DerivativeIssueDate = 1276;
+
+	/// <summary>DerivativeEncodedIssuerLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeEncodedIssuerLen = 1277;
+
+	/// <summary>DerivativeEncodedIssuer, a <see cref="FixField.Data"/>.</summary>
+	public const int DerivativeEncodedIssuer = 1278;
+
+	/// <summary>DerivativeSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityDesc = 1279;
+
+	/// <summary>DerivativeEncodedSecurityDescLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeEncodedSecurityDescLen = 1280;
+
+	/// <summary>DerivativeEncodedSecurityDesc, a <see cref="FixField.Data"/>.</summary>
+	public const int DerivativeEncodedSecurityDesc = 1281;
+
+	/// <summary>DerivativeSecurityXMLLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeSecurityXMLLen = 1282;
+
+	/// <summary>DerivativeSecurityXML, a <see cref="FixField.Data"/>.</summary>
+	public const int DerivativeSecurityXML = 1283;
+
+	/// <summary>DerivativeSecurityXMLSchema, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeSecurityXMLSchema = 1284;
+
+	/// <summary>DerivativeContractSettlMonth, a <see cref="FixField.MonthYear"/>.</summary>
+	public const int DerivativeContractSettlMonth = 1285;
+
+	/// <summary>NoDerivativeEvents, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoDerivativeEvents = 1286;
+
+	/// <summary>DerivativeEventType, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeEventType = 1287;
+
+	/// <summary>DerivativeEventDate, a <see cref="FixField.Date"/>.</summary>
+	public const int DerivativeEventDate = 1288;
+
+	/// <summary>DerivativeEventTime, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int DerivativeEventTime = 1289;
+
+	/// <summary>DerivativeEventPx, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeEventPx = 1290;
+
+	/// <summary>DerivativeEventText, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeEventText = 1291;
+
+	/// <summary>NoDerivativeInstrumentParties, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoDerivativeInstrumentParties = 1292;
+
+	/// <summary>DerivativeInstrumentPartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeInstrumentPartyID = 1293;
+
+	/// <summary>DerivativeInstrumentPartyIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeInstrumentPartyIDSource = 1294;
+
+	/// <summary>DerivativeInstrumentPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeInstrumentPartyRole = 1295;
+
+	/// <summary>NoDerivativeInstrumentPartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoDerivativeInstrumentPartySubIDs = 1296;
+
+	/// <summary>DerivativeInstrumentPartySubID, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeInstrumentPartySubID = 1297;
+
+	/// <summary>DerivativeInstrumentPartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeInstrumentPartySubIDType = 1298;
+
+	/// <summary>DerivativeExerciseStyle, a <see cref="FixField.Character"/>.</summary>
+	public const int DerivativeExerciseStyle = 1299;
+
+	/// <summary>MarketSegmentID, a <see cref="FixField.Text"/>.</summary>
+	public const int MarketSegmentID = 1300;
+
+	/// <summary>MarketID, a <see cref="FixField.Text"/>.</summary>
+	public const int MarketID = 1301;
+
+	/// <summary>MaturityMonthYearIncrementUnits, a <see cref="FixField.Integer"/>.</summary>
+	public const int MaturityMonthYearIncrementUnits = 1302;
+
+	/// <summary>MaturityMonthYearFormat, a <see cref="FixField.Integer"/>.</summary>
+	public const int MaturityMonthYearFormat = 1303;
+
+	/// <summary>StrikeExerciseStyle, a <see cref="FixField.Integer"/>.</summary>
+	public const int StrikeExerciseStyle = 1304;
+
+	/// <summary>SecondaryPriceLimitType, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecondaryPriceLimitType = 1305;
+
+	/// <summary>PriceLimitType, a <see cref="FixField.Integer"/>.</summary>
+	public const int PriceLimitType = 1306;
+
+	/// <summary>ExecInstValue, a <see cref="FixField.Character"/>.</summary>
+	public const int ExecInstValue = 1308;
+
+	/// <summary>NoTradingSessionRules, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoTradingSessionRules = 1309;
+
+	/// <summary>NoMarketSegments, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoMarketSegments = 1310;
+
+	/// <summary>NoDerivativeInstrAttrib, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoDerivativeInstrAttrib = 1311;
+
+	/// <summary>NoNestedInstrAttrib, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoNestedInstrAttrib = 1312;
+
+	/// <summary>DerivativeInstrAttribType, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeInstrAttribType = 1313;
+
+	/// <summary>DerivativeInstrAttribValue, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeInstrAttribValue = 1314;
+
+	/// <summary>DerivativePriceUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativePriceUnitOfMeasure = 1315;
+
+	/// <summary>DerivativePriceUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativePriceUnitOfMeasureQty = 1316;
+
+	/// <summary>DerivativeSettlMethod, a <see cref="FixField.Character"/>.</summary>
+	public const int DerivativeSettlMethod = 1317;
+
+	/// <summary>DerivativePriceQuoteMethod, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativePriceQuoteMethod = 1318;
+
+	/// <summary>DerivativeValuationMethod, a <see cref="FixField.Text"/>.</summary>
+	public const int DerivativeValuationMethod = 1319;
+
+	/// <summary>DerivativeListMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeListMethod = 1320;
+
+	/// <summary>DerivativeCapPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeCapPrice = 1321;
+
+	/// <summary>DerivativeFloorPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DerivativeFloorPrice = 1322;
+
+	/// <summary>DerivativePutOrCall, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativePutOrCall = 1323;
+
+	/// <summary>ListUpdateAction, a <see cref="FixField.Character"/>.</summary>
+	public const int ListUpdateAction = 1324;
+
+	/// <summary>ParentMktSegmID, a <see cref="FixField.Text"/>.</summary>
+	public const int ParentMktSegmID = 1325;
+
+	/// <summary>TradingSessionDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int TradingSessionDesc = 1326;
+
+	/// <summary>TradSesUpdateAction, a <see cref="FixField.Character"/>.</summary>
+	public const int TradSesUpdateAction = 1327;
+
+	/// <summary>RejectText, a <see cref="FixField.Text"/>.</summary>
+	public const int RejectText = 1328;
+
+	/// <summary>FeeMultiplier, a <see cref="FixField.Decimal"/>.</summary>
+	public const int FeeMultiplier = 1329;
+
+	/// <summary>UnderlyingLegSymbol, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSymbol = 1330;
+
+	/// <summary>UnderlyingLegSymbolSfx, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSymbolSfx = 1331;
+
+	/// <summary>UnderlyingLegSecurityID, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityID = 1332;
+
+	/// <summary>UnderlyingLegSecurityIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityIDSource = 1333;
+
+	/// <summary>NoUnderlyingLegSecurityAltID, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoUnderlyingLegSecurityAltID = 1334;
+
+	/// <summary>UnderlyingLegSecurityAltID, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityAltID = 1335;
+
+	/// <summary>UnderlyingLegSecurityAltIDSource, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityAltIDSource = 1336;
+
+	/// <summary>UnderlyingLegSecurityType, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityType = 1337;
+
+	/// <summary>UnderlyingLegSecuritySubType, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecuritySubType = 1338;
+
+	/// <summary>UnderlyingLegMaturityMonthYear, a <see cref="FixField.MonthYear"/>.</summary>
+	public const int UnderlyingLegMaturityMonthYear = 1339;
+
+	/// <summary>UnderlyingLegStrikePrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingLegStrikePrice = 1340;
+
+	/// <summary>UnderlyingLegSecurityExchange, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityExchange = 1341;
+
+	/// <summary>NoOfLegUnderlyings, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoOfLegUnderlyings = 1342;
+
+	/// <summary>UnderlyingLegPutOrCall, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingLegPutOrCall = 1343;
+
+	/// <summary>UnderlyingLegCFICode, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegCFICode = 1344;
+
+	/// <summary>UnderlyingLegMaturityDate, a <see cref="FixField.Date"/>.</summary>
+	public const int UnderlyingLegMaturityDate = 1345;
+
+	/// <summary>ApplReqID, a <see cref="FixField.Text"/>.</summary>
+	public const int ApplReqID = 1346;
+
+	/// <summary>ApplReqType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplReqType = 1347;
+
+	/// <summary>ApplResponseType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplResponseType = 1348;
+
+	/// <summary>ApplTotalMessageCount, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplTotalMessageCount = 1349;
+
+	/// <summary>ApplLastSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplLastSeqNum = 1350;
+
+	/// <summary>NoApplIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoApplIDs = 1351;
+
+	/// <summary>ApplResendFlag, a <see cref="FixField.Boolean"/>.</summary>
+	public const int ApplResendFlag = 1352;
+
+	/// <summary>ApplResponseID, a <see cref="FixField.Text"/>.</summary>
+	public const int ApplResponseID = 1353;
+
+	/// <summary>ApplResponseError, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplResponseError = 1354;
+
+	/// <summary>RefApplID, a <see cref="FixField.Text"/>.</summary>
+	public const int RefApplID = 1355;
+
+	/// <summary>ApplReportID, a <see cref="FixField.Text"/>.</summary>
+	public const int ApplReportID = 1356;
+
+	/// <summary>RefApplLastSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int RefApplLastSeqNum = 1357;
+
+	/// <summary>LegPutOrCall, a <see cref="FixField.Integer"/>.</summary>
+	public const int LegPutOrCall = 1358;
+
+	/// <summary>TotNoFills, a <see cref="FixField.Integer"/>.</summary>
+	public const int TotNoFills = 1361;
+
+	/// <summary>NoFills, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoFills = 1362;
+
+	/// <summary>FillExecID, a <see cref="FixField.Text"/>.</summary>
+	public const int FillExecID = 1363;
+
+	/// <summary>FillPx, a <see cref="FixField.Decimal"/>.</summary>
+	public const int FillPx = 1364;
+
+	/// <summary>FillQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int FillQty = 1365;
+
+	/// <summary>LegAllocID, a <see cref="FixField.Text"/>.</summary>
+	public const int LegAllocID = 1366;
+
+	/// <summary>LegAllocSettlCurrency, a <see cref="FixField.Text"/>.</summary>
+	public const int LegAllocSettlCurrency = 1367;
+
+	/// <summary>TradSesEvent, a <see cref="FixField.Integer"/>.</summary>
+	public const int TradSesEvent = 1368;
+
+	/// <summary>MassActionReportID, a <see cref="FixField.Text"/>.</summary>
+	public const int MassActionReportID = 1369;
+
+	/// <summary>NoNotAffectedOrders, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoNotAffectedOrders = 1370;
+
+	/// <summary>NotAffectedOrderID, a <see cref="FixField.Text"/>.</summary>
+	public const int NotAffectedOrderID = 1371;
+
+	/// <summary>NotAffOrigClOrdID, a <see cref="FixField.Text"/>.</summary>
+	public const int NotAffOrigClOrdID = 1372;
+
+	/// <summary>MassActionType, a <see cref="FixField.Integer"/>.</summary>
+	public const int MassActionType = 1373;
+
+	/// <summary>MassActionScope, a <see cref="FixField.Integer"/>.</summary>
+	public const int MassActionScope = 1374;
+
+	/// <summary>MassActionResponse, a <see cref="FixField.Integer"/>.</summary>
+	public const int MassActionResponse = 1375;
+
+	/// <summary>MassActionRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	public const int MassActionRejectReason = 1376;
+
+	/// <summary>MultilegModel, a <see cref="FixField.Integer"/>.</summary>
+	public const int MultilegModel = 1377;
+
+	/// <summary>MultilegPriceMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int MultilegPriceMethod = 1378;
+
+	/// <summary>LegVolatility, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegVolatility = 1379;
+
+	/// <summary>DividendYield, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DividendYield = 1380;
+
+	/// <summary>LegDividendYield, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegDividendYield = 1381;
+
+	/// <summary>CurrencyRatio, a <see cref="FixField.Decimal"/>.</summary>
+	public const int CurrencyRatio = 1382;
+
+	/// <summary>LegCurrencyRatio, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegCurrencyRatio = 1383;
+
+	/// <summary>LegExecInst, a <see cref="FixField.Multiple"/>.</summary>
+	public const int LegExecInst = 1384;
+
+	/// <summary>ContingencyType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ContingencyType = 1385;
+
+	/// <summary>ListRejectReason, a <see cref="FixField.Integer"/>.</summary>
+	public const int ListRejectReason = 1386;
+
+	/// <summary>NoTrdRepIndicators, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoTrdRepIndicators = 1387;
+
+	/// <summary>TrdRepPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int TrdRepPartyRole = 1388;
+
+	/// <summary>TrdRepIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int TrdRepIndicator = 1389;
+
+	/// <summary>TradePublishIndicator, a <see cref="FixField.Integer"/>.</summary>
+	public const int TradePublishIndicator = 1390;
+
+	/// <summary>UnderlyingLegOptAttribute, a <see cref="FixField.Character"/>.</summary>
+	public const int UnderlyingLegOptAttribute = 1391;
+
+	/// <summary>UnderlyingLegSecurityDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingLegSecurityDesc = 1392;
+
+	/// <summary>MarketReqID, a <see cref="FixField.Text"/>.</summary>
+	public const int MarketReqID = 1393;
+
+	/// <summary>MarketReportID, a <see cref="FixField.Text"/>.</summary>
+	public const int MarketReportID = 1394;
+
+	/// <summary>MarketUpdateAction, a <see cref="FixField.Character"/>.</summary>
+	public const int MarketUpdateAction = 1395;
+
+	/// <summary>MarketSegmentDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int MarketSegmentDesc = 1396;
+
+	/// <summary>EncodedMktSegmDescLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int EncodedMktSegmDescLen = 1397;
+
+	/// <summary>EncodedMktSegmDesc, a <see cref="FixField.Data"/>.</summary>
+	public const int EncodedMktSegmDesc = 1398;
+
+	/// <summary>ApplNewSeqNum, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplNewSeqNum = 1399;
+
+	/// <summary>EncryptedPasswordMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int EncryptedPasswordMethod = 1400;
+
+	/// <summary>EncryptedPasswordLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int EncryptedPasswordLen = 1401;
+
+	/// <summary>EncryptedPassword, a <see cref="FixField.Data"/>.</summary>
+	public const int EncryptedPassword = 1402;
+
+	/// <summary>EncryptedNewPasswordLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int EncryptedNewPasswordLen = 1403;
+
+	/// <summary>EncryptedNewPassword, a <see cref="FixField.Data"/>.</summary>
+	public const int EncryptedNewPassword = 1404;
+
+	/// <summary>UnderlyingLegMaturityTime, a <see cref="FixField.ZonedTime"/>.</summary>
+	public const int UnderlyingLegMaturityTime = 1405;
+
+	/// <summary>RefApplExtID, a <see cref="FixField.Integer"/>.</summary>
+	public const int RefApplExtID = 1406;
+
+	/// <summary>DefaultApplExtID, a <see cref="FixField.Integer"/>.</summary>
+	public const int DefaultApplExtID = 1407;
+
+	/// <summary>DefaultCstmApplVerID, a <see cref="FixField.Text"/>.</summary>
+	public const int DefaultCstmApplVerID = 1408;
+
+	/// <summary>SessionStatus, a <see cref="FixField.Integer"/>.</summary>
+	public const int SessionStatus = 1409;
+
+	/// <summary>DefaultVerIndicator, a <see cref="FixField.Boolean"/>.</summary>
+	public const int DefaultVerIndicator = 1410;
+
+	/// <summary>Nested4PartySubIDType, a <see cref="FixField.Integer"/>.</summary>
+	public const int Nested4PartySubIDType = 1411;
+
+	/// <summary>Nested4PartySubID, a <see cref="FixField.Text"/>.</summary>
+	public const int Nested4PartySubID = 1412;
+
+	/// <summary>NoNested4PartySubIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoNested4PartySubIDs = 1413;
+
+	/// <summary>NoNested4PartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoNested4PartyIDs = 1414;
+
+	/// <summary>Nested4PartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int Nested4PartyID = 1415;
+
+	/// <summary>Nested4PartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int Nested4PartyIDSource = 1416;
+
+	/// <summary>Nested4PartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int Nested4PartyRole = 1417;
+
+	/// <summary>LegLastQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegLastQty = 1418;
+
+	/// <summary>UnderlyingExerciseStyle, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingExerciseStyle = 1419;
+
+	/// <summary>LegExerciseStyle, a <see cref="FixField.Integer"/>.</summary>
+	public const int LegExerciseStyle = 1420;
+
+	/// <summary>LegPriceUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int LegPriceUnitOfMeasure = 1421;
+
+	/// <summary>LegPriceUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int LegPriceUnitOfMeasureQty = 1422;
+
+	/// <summary>UnderlyingUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingUnitOfMeasureQty = 1423;
+
+	/// <summary>UnderlyingPriceUnitOfMeasure, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingPriceUnitOfMeasure = 1424;
+
+	/// <summary>UnderlyingPriceUnitOfMeasureQty, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingPriceUnitOfMeasureQty = 1425;
+
+	/// <summary>ApplReportType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ApplReportType = 1426;
+
+	/// <summary>SideExecID, a <see cref="FixField.Text"/>.</summary>
+	public const int SideExecID = 1427;
+
+	/// <summary>OrderDelay, a <see cref="FixField.Integer"/>.</summary>
+	public const int OrderDelay = 1428;
+
+	/// <summary>OrderDelayUnit, a <see cref="FixField.Integer"/>.</summary>
+	public const int OrderDelayUnit = 1429;
+
+	/// <summary>VenueType, a <see cref="FixField.Character"/>.</summary>
+	public const int VenueType = 1430;
+
+	/// <summary>RefOrdIDReason, a <see cref="FixField.Integer"/>.</summary>
+	public const int RefOrdIDReason = 1431;
+
+	/// <summary>OrigCustOrderCapacity, a <see cref="FixField.Integer"/>.</summary>
+	public const int OrigCustOrderCapacity = 1432;
+
+	/// <summary>RefApplReqID, a <see cref="FixField.Text"/>.</summary>
+	public const int RefApplReqID = 1433;
+
+	/// <summary>ModelType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ModelType = 1434;
+
+	/// <summary>ContractMultiplierUnit, a <see cref="FixField.Integer"/>.</summary>
+	public const int ContractMultiplierUnit = 1435;
+
+	/// <summary>LegContractMultiplierUnit, a <see cref="FixField.Integer"/>.</summary>
+	public const int LegContractMultiplierUnit = 1436;
+
+	/// <summary>UnderlyingContractMultiplierUnit, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingContractMultiplierUnit = 1437;
+
+	/// <summary>DerivativeContractMultiplierUnit, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeContractMultiplierUnit = 1438;
+
+	/// <summary>FlowScheduleType, a <see cref="FixField.Integer"/>.</summary>
+	public const int FlowScheduleType = 1439;
+
+	/// <summary>LegFlowScheduleType, a <see cref="FixField.Integer"/>.</summary>
+	public const int LegFlowScheduleType = 1440;
+
+	/// <summary>UnderlyingFlowScheduleType, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingFlowScheduleType = 1441;
+
+	/// <summary>DerivativeFlowScheduleType, a <see cref="FixField.Integer"/>.</summary>
+	public const int DerivativeFlowScheduleType = 1442;
+
+	/// <summary>FillLiquidityInd, a <see cref="FixField.Integer"/>.</summary>
+	public const int FillLiquidityInd = 1443;
+
+	/// <summary>SideLiquidityInd, a <see cref="FixField.Integer"/>.</summary>
+	public const int SideLiquidityInd = 1444;
+
+	/// <summary>NoRateSources, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoRateSources = 1445;
+
+	/// <summary>RateSource, a <see cref="FixField.Integer"/>.</summary>
+	public const int RateSource = 1446;
+
+	/// <summary>RateSourceType, a <see cref="FixField.Integer"/>.</summary>
+	public const int RateSourceType = 1447;
+
+	/// <summary>ReferencePage, a <see cref="FixField.Text"/>.</summary>
+	public const int ReferencePage = 1448;
+
+	/// <summary>RestructuringType, a <see cref="FixField.Text"/>.</summary>
+	public const int RestructuringType = 1449;
+
+	/// <summary>Seniority, a <see cref="FixField.Text"/>.</summary>
+	public const int Seniority = 1450;
+
+	/// <summary>NotionalPercentageOutstanding, a <see cref="FixField.Decimal"/>.</summary>
+	public const int NotionalPercentageOutstanding = 1451;
+
+	/// <summary>OriginalNotionalPercentageOutstanding, a <see cref="FixField.Decimal"/>.</summary>
+	public const int OriginalNotionalPercentageOutstanding = 1452;
+
+	/// <summary>UnderlyingRestructuringType, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingRestructuringType = 1453;
+
+	/// <summary>UnderlyingSeniority, a <see cref="FixField.Text"/>.</summary>
+	public const int UnderlyingSeniority = 1454;
+
+	/// <summary>UnderlyingNotionalPercentageOutstanding, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingNotionalPercentageOutstanding = 1455;
+
+	/// <summary>UnderlyingOriginalNotionalPercentageOutstanding, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingOriginalNotionalPercentageOutstanding = 1456;
+
+	/// <summary>AttachmentPoint, a <see cref="FixField.Decimal"/>.</summary>
+	public const int AttachmentPoint = 1457;
+
+	/// <summary>DetachmentPoint, a <see cref="FixField.Decimal"/>.</summary>
+	public const int DetachmentPoint = 1458;
+
+	/// <summary>UnderlyingAttachmentPoint, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingAttachmentPoint = 1459;
+
+	/// <summary>UnderlyingDetachmentPoint, a <see cref="FixField.Decimal"/>.</summary>
+	public const int UnderlyingDetachmentPoint = 1460;
+
+	/// <summary>NoTargetPartyIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoTargetPartyIDs = 1461;
+
+	/// <summary>TargetPartyID, a <see cref="FixField.Text"/>.</summary>
+	public const int TargetPartyID = 1462;
+
+	/// <summary>TargetPartyIDSource, a <see cref="FixField.Character"/>.</summary>
+	public const int TargetPartyIDSource = 1463;
+
+	/// <summary>TargetPartyRole, a <see cref="FixField.Integer"/>.</summary>
+	public const int TargetPartyRole = 1464;
+
+	/// <summary>SecurityListID, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityListID = 1465;
+
+	/// <summary>SecurityListRefID, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityListRefID = 1466;
+
+	/// <summary>SecurityListDesc, a <see cref="FixField.Text"/>.</summary>
+	public const int SecurityListDesc = 1467;
+
+	/// <summary>EncodedSecurityListDescLen, a <see cref="FixField.Integer"/>.</summary>
+	public const int EncodedSecurityListDescLen = 1468;
+
+	/// <summary>EncodedSecurityListDesc, a <see cref="FixField.Data"/>.</summary>
+	public const int EncodedSecurityListDesc = 1469;
+
+	/// <summary>SecurityListType, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecurityListType = 1470;
+
+	/// <summary>SecurityListTypeSource, a <see cref="FixField.Integer"/>.</summary>
+	public const int SecurityListTypeSource = 1471;
+
+	/// <summary>NewsID, a <see cref="FixField.Text"/>.</summary>
+	public const int NewsID = 1472;
+
+	/// <summary>NewsCategory, a <see cref="FixField.Integer"/>.</summary>
+	public const int NewsCategory = 1473;
+
+	/// <summary>LanguageCode, a <see cref="FixField.Text"/>.</summary>
+	public const int LanguageCode = 1474;
+
+	/// <summary>NoNewsRefIDs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoNewsRefIDs = 1475;
+
+	/// <summary>NewsRefID, a <see cref="FixField.Text"/>.</summary>
+	public const int NewsRefID = 1476;
+
+	/// <summary>NewsRefType, a <see cref="FixField.Integer"/>.</summary>
+	public const int NewsRefType = 1477;
+
+	/// <summary>StrikePriceDeterminationMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int StrikePriceDeterminationMethod = 1478;
+
+	/// <summary>StrikePriceBoundaryMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int StrikePriceBoundaryMethod = 1479;
+
+	/// <summary>StrikePriceBoundaryPrecision, a <see cref="FixField.Decimal"/>.</summary>
+	public const int StrikePriceBoundaryPrecision = 1480;
+
+	/// <summary>UnderlyingPriceDeterminationMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int UnderlyingPriceDeterminationMethod = 1481;
+
+	/// <summary>OptPayoutType, a <see cref="FixField.Integer"/>.</summary>
+	public const int OptPayoutType = 1482;
+
+	/// <summary>NoComplexEvents, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoComplexEvents = 1483;
+
+	/// <summary>ComplexEventType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ComplexEventType = 1484;
+
+	/// <summary>ComplexOptPayoutAmount, a <see cref="FixField.Decimal"/>.</summary>
+	public const int ComplexOptPayoutAmount = 1485;
+
+	/// <summary>ComplexEventPrice, a <see cref="FixField.Decimal"/>.</summary>
+	public const int ComplexEventPrice = 1486;
+
+	/// <summary>ComplexEventPriceBoundaryMethod, a <see cref="FixField.Integer"/>.</summary>
+	public const int ComplexEventPriceBoundaryMethod = 1487;
+
+	/// <summary>ComplexEventPriceBoundaryPrecision, a <see cref="FixField.Decimal"/>.</summary>
+	public const int ComplexEventPriceBoundaryPrecision = 1488;
+
+	/// <summary>ComplexEventPriceTimeType, a <see cref="FixField.Integer"/>.</summary>
+	public const int ComplexEventPriceTimeType = 1489;
+
+	/// <summary>ComplexEventCondition, a <see cref="FixField.Integer"/>.</summary>
+	public const int ComplexEventCondition = 1490;
+
+	/// <summary>NoComplexEventDates, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoComplexEventDates = 1491;
+
+	/// <summary>ComplexEventStartDate, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int ComplexEventStartDate = 1492;
+
+	/// <summary>ComplexEventEndDate, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int ComplexEventEndDate = 1493;
+
+	/// <summary>NoComplexEventTimes, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoComplexEventTimes = 1494;
+
+	/// <summary>ComplexEventStartTime, a <see cref="FixField.Time"/>.</summary>
+	public const int ComplexEventStartTime = 1495;
+
+	/// <summary>ComplexEventEndTime, a <see cref="FixField.Time"/>.</summary>
+	public const int ComplexEventEndTime = 1496;
+
+	/// <summary>StreamAsgnReqID, a <see cref="FixField.Text"/>.</summary>
+	public const int StreamAsgnReqID = 1497;
+
+	/// <summary>StreamAsgnReqType, a <see cref="FixField.Integer"/>.</summary>
+	public const int StreamAsgnReqType = 1498;
+
+	/// <summary>NoAsgnReqs, a <see cref="FixField.Integer"/>.</summary>
+	public const int NoAsgnReqs = 1499;
+
+	/// <summary>MDStreamID, a <see cref="FixField.Text"/>.</summary>
+	public const int MDStreamID = 1500;
+
+	/// <summary>StreamAsgnRptID, a <see cref="FixField.Text"/>.</summary>
+	public const int StreamAsgnRptID = 1501;
+
+	/// <summary>StreamAsgnRejReason, a <see cref="FixField.Integer"/>.</summary>
+	public const int StreamAsgnRejReason = 1502;
+
+	/// <summary>StreamAsgnAckType, a <see cref="FixField.Integer"/>.</summary>
+	public const int StreamAsgnAckType = 1503;
+
+	/// <summary>RelSymTransactTime, a <see cref="FixField.Timestamp"/>.</summary>
+	public const int RelSymTransactTime = 1504;
+
+	/// <summary>StreamAsgnType, a <see cref="FixField.Integer"/>.</summary>
+	public const int StreamAsgnType = 1617;
 }

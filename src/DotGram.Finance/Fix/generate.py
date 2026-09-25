@@ -40,13 +40,16 @@ templates = os.path.join(here, "Templates")
 # ── the versions ───────────────────────────────────────────────────────────────────────────────
 
 class Version:
-    def __init__(self, key, directory, ns, title, begin, session=None, field_names=None, message_names=None):
+    def __init__(self, key, directory, ns, title, begin, session=None, field_names=None, message_names=None, class_names=None):
         self.key, self.directory, self.ns, self.title, self.begin = key, directory, ns, title, begin
         # The repository that describes the session layer, where a version travels over another.
         self.session = session
         # The data dictionaries' names, where they name a field or a message otherwise than the repository.
         self.field_names   = field_names or {}
         self.message_names = message_names or {}
+        # The classes named otherwise than the dictionaries name their messages, because C# would not
+        # let the class keep the name; a dictionary loaded at run time is translated by the same table.
+        self.class_names = class_names or {}
 
     @property
     def number(self):
@@ -77,22 +80,29 @@ VERSIONS = [
             "NetworkCounterpartySystemStatusRequest":  "NetworkStatusRequest",
             "NetworkCounterpartySystemStatusResponse": "NetworkStatusResponse",
         }),
+    Version("5.0", "FIX.5.0SP2", "Fix50", "FIX 5.0 SP2", "FIXT.1.1", session="FIXT.1.1",
+        field_names={327: "HaltReasonInt"},
+        class_names={"SecurityStatus": "SecurityStatusMessage"}),
 ]
 
-# The class a field's value is read into, by the type the repository gives the field.
+# How a field's value is read, by the type the repository gives the field: the reader, which is also
+# the class the value is held in except where CLASS names another.
 VALUE_CLASS = {
     "String": "Text", "Currency": "Text", "Exchange": "Text", "Country": "Text", "Language": "Text",
     "char": "Character",
     "Boolean": "Boolean",
     "int": "Integer", "Length": "Integer", "SeqNum": "Integer", "NumInGroup": "Integer", "DayOfMonth": "Integer",
     "float": "Decimal", "Qty": "Decimal", "Price": "Decimal", "PriceOffset": "Decimal", "Amt": "Decimal", "Percentage": "Decimal",
-    "UTCTimestamp": "Timestamp",
-    "UTCTimeOnly": "Time",
+    "UTCTimestamp": "Timestamp", "TZTimestamp": "ZonedTimestamp",
+    "UTCTimeOnly": "Time", "TZTimeOnly": "ZonedTime",
     "UTCDateOnly": "Date", "UTCDate": "Date", "LocalMktDate": "Date",
     "MonthYear": "MonthYear",
-    "MultipleValueString": "Multiple", "MultipleCharValue": "Multiple", "MultipleStringValue": "Multiple",
+    "MultipleValueString": "Multiple", "MultipleCharValue": "Multiple", "MultipleStringValue": "MultipleString",
     "data": "Data", "XMLData": "Data",
 }
+
+# A zoned timestamp is read by a reader of its own and held as any other instant is.
+CLASS = {"ZonedTimestamp": "Timestamp", "MultipleString": "Multiple"}
 
 
 def rows(directory, name):
@@ -137,7 +147,9 @@ class Model:
 
     def __init__(self, v):
         self.v = v
-        directories = ((v.session,) if v.session else ()) + (v.directory,)
+        # Where a version travels over a session layer, the application's repository repeats the
+        # session's messages, fields and components; the session layer's own are the ones read.
+        directories = (v.directory,) + ((v.session,) if v.session else ())
 
         fields = {}
         for d in directories:
@@ -163,32 +175,43 @@ class Model:
         # A field declared char whose code set publishes values a single character cannot hold is read as
         # text: it keeps every value the document prints, and which of them are allowed is the code set's
         # answer rather than the type's shape.
-        self.field_class = {}
+        self.value_type = {}
         for t, type_ in self.field_type.items():
             cls = VALUE_CLASS[type_]
             if cls == "Character" and any(len(code) != 1 for code in enums.get(t, ())):
                 cls = "Text"
-            self.field_class[t] = cls
+            self.value_type[t] = cls
 
-        # The length/data pairs: a Length field that names the data it measures.
+        self.field_class = {t: CLASS.get(cls, cls) for t, cls in self.value_type.items()}
+
+        # The length/data pairs: a Length field that names the data it measures, or, where the
+        # repository leaves that out (three fields of FIX 5.0 SP2), the Length field named for the data.
         self.pairs = {}
+        by_name = {f["Name"]: t for t, f in fields.items()}
         for t, f in fields.items():
             data = f.get("AssociatedDataTag")
             if data and f["Type"] == "Length" and self.field_type.get(int(data)) in ("data", "XMLData"):
                 self.pairs[t] = int(data)
+        for t, f in fields.items():
+            if f["Type"] in ("data", "XMLData") and t not in self.pairs.values():
+                length = by_name.get(f["Name"] + "Len", by_name.get(f["Name"] + "Length"))
+                if length is not None and fields[length]["Type"] == "Length":
+                    self.pairs[length] = t
 
         self.components = {}
         self.contents   = collections.defaultdict(list)
         for d in directories:
-            for c in rows(d, "Components.xml"):
-                self.components[c["Name"]] = c
             for r in rows(d, "MsgContents.xml"):
                 self.contents[(d, r["ComponentID"])].append(r)
 
+        # A later directory's component wins where it has rows: FIXT 1.1 declares MsgTypeGrp and lists
+        # none of its members, which the application's repository does.
         self.component_dir = {}
         for d in directories:
             for c in rows(d, "Components.xml"):
-                self.component_dir[c["Name"]] = d
+                if self.contents[(d, c["ComponentID"])] or c["Name"] not in self.component_dir:
+                    self.component_dir[c["Name"]] = d
+                    self.components[c["Name"]] = c
 
         for key in self.contents:
             self.contents[key].sort(key=lambda r: float(r["Position"]))
@@ -196,10 +219,8 @@ class Model:
         messages = {}
         for d in directories:
             for m in rows(d, "Messages.xml"):
-                # A session message is the session layer's, where there is one.
-                if v.session and d == v.directory and m["MsgType"] in messages:
-                    continue
-                messages[m["MsgType"]] = {"Name": v.message_names.get(m["Name"], m["Name"]), "MsgType": m["MsgType"], "Id": (d, m["ComponentID"])}
+                named = v.message_names.get(m["Name"], m["Name"])
+                messages[m["MsgType"]] = {"Name": v.class_names.get(named, named), "MsgType": m["MsgType"], "Id": (d, m["ComponentID"])}
 
         self.messages = sorted(messages.values(), key=lambda m: m["Name"])
 
@@ -213,6 +234,9 @@ class Model:
             interface.members = self.members_of(self.component_rows(name), "I" + name, name)
 
         self.message_members = {m["Name"]: self.members_of(self.contents[m["Id"]], "FixMessage." + m["Name"], m["Name"]) for m in self.messages}
+
+        taken = {m["Name"] for m in self.messages} | set(self.interfaces)
+        self.field_slot = {t: name + "Field" if name in taken else name for t, name in self.field_name.items()}
 
         header  = self.members_of(self.component_rows("StandardHeader"), "FixMessage", "StandardHeader", header=True)
         trailer = self.members_of(self.component_rows("StandardTrailer"), "FixMessage", "StandardTrailer", header=True)
@@ -300,6 +324,10 @@ class Field:
     @property
     def const(self):
         return self.model.tag(self.tag)
+
+    @property
+    def slot(self):
+        return self.model.field_slot[self.tag]
 
 
 class Block:
@@ -474,7 +502,10 @@ class Writer:
                 elif isinstance(m, Block):
                     walk(self.m.interfaces[m.name].members, skip)
                 else:
-                    place(m.counter)
+                    # An entry may open with a group of its own, whose counter is then the entry's opener
+                    # and taken where the entry begins.
+                    if m.counter.tag != skip:
+                        place(m.counter)
 
                     opener = m.entry.opener
                     target = f"{holder}{m.list}"
@@ -574,7 +605,7 @@ class Writer:
 
     @staticmethod
     def field_check(f, out, subject, entry_opener):
-        call = f"context.Validators.{f.name}(context, message, {subject}.{f.name});"
+        call = f"context.Validators.{f.slot}(context, message, {subject}.{f.name});"
 
         if entry_opener is not None and f.tag == entry_opener.tag:
             # The field an entry opens with is there, or there would be no entry.
@@ -646,7 +677,27 @@ class Writer:
             "",
         ]
 
-        return head + slots + checks + empties[:-1] + ["}", ""]
+        return head + self.translations() + slots + checks + empties[:-1] + ["}", ""]
+
+    def translations(self):
+        """The names a dictionary loaded at run time is translated by, where the version cannot keep its own."""
+        out = []
+        classes = self.v.class_names
+        fields  = {name: self.m.field_slot[t] for t, name in self.m.field_name.items() if self.m.field_slot[t] != name}
+
+        for method, table, why in [
+                ("MessageClass", classes, "a message whose class cannot have the name the dictionaries give it"),
+                ("FieldSlotName", fields, "a field whose name a message or a component has first")]:
+            if not table:
+                continue
+
+            width = max(len(k) for k in table) + 2
+            out += [f"\t/// <summary>The translation of {why}.</summary>",
+                    f"\tprivate protected override string {method}(string name)", "\t{", "\t\treturn name switch", "\t\t{"]
+            out += [f"\t\t\t{(chr(34) + k + chr(34)).ljust(width)} => \"{table[k]}\"," for k in sorted(table)]
+            out += [f"\t\t\t{'_'.ljust(width)} => name,", "\t\t};", "\t}", ""]
+
+        return out
 
     # The fields' own checks: the value's type, and the code set the repository publishes for it.
 
@@ -681,7 +732,7 @@ class Writer:
             name, cls = self.m.field_name[t], self.m.field_class[t]
             codes = self.m.enums.get(t) if cls != "Boolean" else None
             listed = "the values the specification lists" if codes else "its type"
-            rows_.append((f"\t/// <summary>Holds a {v.title} {name}, tag {t}, to {listed}.</summary>", f"Func<{ctx}, FixMessage, FixField.{cls}, bool>", name))
+            rows_.append((f"\t/// <summary>Holds a {v.title} {name}, tag {t}, to {listed}.</summary>", f"Func<{ctx}, FixMessage, FixField.{cls}, bool>", self.m.field_slot[t]))
 
         tw = max(len(r[1]) for r in rows_)
         nw = max(len(r[2]) for r in rows_)
@@ -706,7 +757,7 @@ class Writer:
         for t in tags:
             name, cls = self.m.field_name[t], self.m.field_class[t]
             codes = self.m.enums.get(t) if cls != "Boolean" else None
-            out.append(f"\tstatic bool Validate{name}({ctx} context, FixMessage message, FixField.{cls} field)")
+            out.append(f"\tstatic bool Validate{self.m.field_slot[t]}({ctx} context, FixMessage message, FixField.{cls} field)")
             out.append("\t{")
 
             if not codes:
@@ -891,7 +942,7 @@ class Writer:
                     f"\t/// <summary>The type of the value of a field {v.title} defines; <see cref=\"FixValueType.None\"/> for a tag it does not.</summary>",
                     "\tinternal static FixValueType Type(int tag)", "\t{", "\t\treturn tag switch", "\t\t{"]
         for t in sorted(m.field_name):
-            standard.append(f"\t\t\tFixTag.{TAG_NAME[t].ljust(width)} => FixValueType.{m.field_class[t]},")
+            standard.append(f"\t\t\tFixTag.{TAG_NAME[t].ljust(width)} => FixValueType.{m.value_type[t]},")
         standard += [f"\t\t\t{'_'.ljust(width + 7)} => FixValueType.None,", "\t\t};", "\t}", "}", ""]
 
         self.write("FixMessage.Types.cs", types)

@@ -33,8 +33,11 @@ namespace DotGram.Finance.Tests;
 /// </remarks>
 public abstract class FixRepositoryAgreementTests
 {
-	/// <summary>The version's directory in the repository, <c>FIX.4.4</c>, which is also its BeginString.</summary>
+	/// <summary>The version's directory in the repository, <c>FIX.4.4</c>.</summary>
 	protected abstract string Version { get; }
+
+	/// <summary>What the version's messages begin with: its directory's name, or the session layer's it travels over.</summary>
+	protected virtual string BeginString => Version;
 
 	/// <summary>The version's context as the package compiles it in.</summary>
 	protected abstract FixContext Context { get; }
@@ -226,7 +229,8 @@ public abstract class FixRepositoryAgreementTests
 			"MULTIPLEVALUESTRING" or "MULTIPLESTRINGVALUE" or "MULTIPLECHARVALUE"         => typeof(string[]),
 			"LOCALMKTDATE" or "UTCDATEONLY" or "UTCDATE"                                  => typeof(DateOnly),
 			"UTCTIMEONLY"                                                                 => typeof(TimeOnly),
-			"UTCTIMESTAMP"                                                                => typeof(DateTimeOffset),
+			"UTCTIMESTAMP" or "TZTIMESTAMP"                                               => typeof(DateTimeOffset),
+			"TZTIMEONLY"                                                                  => typeof((TimeOnly, TimeSpan)),
 			"DATA" or "XMLDATA"                                                           => typeof(ReadOnlyMemory<byte>),
 			_                                                                             => null,
 		};
@@ -474,7 +478,7 @@ public abstract class FixRepositoryAgreementTests
 	{
 		var body = Encoding.Latin1.GetBytes(
 			("35=" + type + "|49=SENDER|56=TARGET|34=1|52=20260920-12:00:00|").Replace('|', '\u0001'));
-		var head = Encoding.Latin1.GetBytes("8=" + Version + "\u00019=" + body.Length + "\u0001");
+		var head = Encoding.Latin1.GetBytes("8=" + BeginString + "\u00019=" + body.Length + "\u0001");
 		var sum  = head.Sum(octet => (int)octet) + body.Sum(octet => (int)octet);
 		var tail = Encoding.Latin1.GetBytes("10=" + (sum % 256).ToString("000") + "\u0001");
 

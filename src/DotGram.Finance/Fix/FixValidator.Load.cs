@@ -63,23 +63,30 @@ abstract partial class FixValidator
 		var jobs = new List<Action<Writing>>();
 
 		foreach (var (_, name, members) in dictionary.Messages)
-			jobs.Add(writing => writing.Write(name, Using + "(" + ContextName + " context, FixMessage." + name + " message) => {\n" +
-				Members(writing, "message", "FixMessage." + name, name, members, dictionary, null) + "return message.IsValid; }"));
+		{
+			var type = MessageClass(name);
 
+			jobs.Add(writing => writing.Write(type, Using + "(" + ContextName + " context, FixMessage." + type + " message) => {\n" +
+				Members(writing, "message", "FixMessage." + type, type, members, dictionary, null) + "return message.IsValid; }"));
+		}
+
+		// A component the version writes into its carriers, with no interface of its own, has no slot
+		// either: its members are checked where it is carried.
 		foreach (var (name, members) in dictionary.Components)
-			jobs.Add(writing => writing.Write(name, Using + "(" + ContextName + " context, FixMessage message, I" + name + " block) => {\n" +
+			if (Carried(name))
+				jobs.Add(writing => writing.Write(name, Using + "(" + ContextName + " context, FixMessage message, I" + name + " block) => {\n" +
 				Members(writing, "block", "I" + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
 		foreach (var field in dictionary.Fields.Values)
 		{
 			// A field the standard does not define has no slot, and nothing a check could hold.
-			if (field.Codes is not { } codes || FieldSlot(field.Name) is not { } type)
+			if (field.Codes is not { } codes || FieldSlot(FieldSlotName(field.Name)) is not { } type)
 				continue;
 
 			jobs.Add(writing =>
 			{
 				if (FieldText(type, codes) is { } text)
-					writing.Write(field.Name, text);
+					writing.Write(FieldSlotName(field.Name), text);
 			});
 		}
 
@@ -206,6 +213,18 @@ abstract partial class FixValidator
 					Field(body, subject, member.Name, member.Required, dictionary, opener);
 					break;
 
+				case FixDictionary.Member.Component when !Carried(member.Name):
+				{
+					// FIX 5.0 SP2 writes most of its groups as components, MsgTypeGrp and the rest, and
+					// the version reads each as the group it is, in the carrier: so is its check.
+					if (!dictionary.Components.TryGetValue(member.Name, out var inner))
+						throw new FormatException($"The component '{member.Name}' is used and not described.");
+
+					body.Append(Members(writing, subject, type, slot, inner, dictionary, opener));
+
+					break;
+				}
+
 				case FixDictionary.Member.Component:
 				{
 					var cast = "((I" + member.Name + ")" + subject + ")";
@@ -245,10 +264,10 @@ abstract partial class FixValidator
 		return body.ToString();
 	}
 
-	static void Field(StringBuilder body, string subject, string name, bool required, FixDictionary dictionary, string? opener)
+	void Field(StringBuilder body, string subject, string name, bool required, FixDictionary dictionary, string? opener)
 	{
 		var value = subject + "." + name;
-		var call  = "context.Validators." + name + ".Invoke(context, message, " + value + ");\n";
+		var call  = "context.Validators." + FieldSlotName(name) + ".Invoke(context, message, " + value + ");\n";
 
 		// The field an entry opens with is there, or there would be no entry.
 		if (name == opener)
@@ -285,6 +304,28 @@ abstract partial class FixValidator
 			throw new FormatException($"The component '{member.Name}' is used and not described.");
 
 		return First(members[0], dictionary);
+	}
+
+	/// <summary>Whether the version carries a component of this name as the thing it is, an interface of its own.</summary>
+	bool Carried(string component)
+	{
+		return GetType().Assembly.GetType(GetType().Namespace + ".I" + component) is not null;
+	}
+
+	/// <summary>The class of a message the file names so: its name, except where a version cannot keep it.</summary>
+	/// <remarks>
+	/// C# gives a member no name its class has, and FIX 5.0 SP2 names a message SecurityStatus that
+	/// carries the field SecurityStatus: the class is SecurityStatusMessage, and its slot with it.
+	/// </remarks>
+	private protected virtual string MessageClass(string name)
+	{
+		return name;
+	}
+
+	/// <summary>The slot of a field the file names so: its name, except where a message or a component has the name first.</summary>
+	private protected virtual string FieldSlotName(string name)
+	{
+		return name;
 	}
 
 	// The class of the field a field's slot is handed, where the name is a field's slot.

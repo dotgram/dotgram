@@ -8,6 +8,7 @@ using DotGram.Finance.Fix;
 using DotGram.Finance.Fix.Fix44;
 
 using Fix42 = DotGram.Finance.Fix.Fix42;
+using Fix50 = DotGram.Finance.Fix.Fix50;
 
 // A Heartbeat, framed by hand: what a consumer of the package has to be able to do with it.
 var body     = "35=0\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00.250\u0001";
@@ -89,9 +90,21 @@ if (Fix42.FixParser.ParseMessage(wire42) is not Fix42.FixMessage.Heartbeat heart
 if (FixParser.ParseMessage(wire42).Validate(Fix44Context.Default))
 	throw new Exception("A FIX 4.2 BeginString must not hold to the FIX 4.4 schema.");
 
+// FIX 5.0 SP2 over FIXT 1.1, and a zoned value it adds: a SecurityStatus, whose class is
+// SecurityStatusMessage, with the time of day of an instrument's maturity at an offset.
+var body50   = "35=f\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00.250\u000155=IBM\u00011079=13:09+05:30\u0001";
+var prefix50 = "8=FIXT.1.1\u00019=" + body50.Length.ToString(CultureInfo.InvariantCulture) + "\u0001" + body50;
+var wire50   = prefix50 + "10=" + (prefix50.Sum(c => (int)c) % 256).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
+
+if (Fix50.FixParser.ParseMessage(wire50) is not Fix50.FixMessage.SecurityStatusMessage status || !status.Validate(Fix50.Fix50Context.Default))
+	throw new Exception("A well-formed FIX 5.0 SP2 SecurityStatus must hold to the compiled-in FIX 5.0 SP2 schema.");
+
+if (status.MaturityTime?.Value != (new TimeOnly(13, 9), new TimeSpan(5, 30, 0)))
+	throw new Exception("Expected a TZTimeOnly as the clock and its offset.");
+
 if (typeof(FixParser).Assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Parser") != null ||
 	typeof(FixParser).Assembly.GetType("DotGram.Examples.Finance.Fix44") != null ||
 	typeof(FixParser).Assembly.GetReferencedAssemblies().Any(name => name.Name is "DotGram.Finance.Fix44" or "DotGram.Examples"))
 	throw new Exception("The Fix44 fixture must not be included in the package.");
 
-Console.WriteLine("DotGram.Finance package smoke: char, octets, byte stream, pipe, typed fields, the runtime's own date types, and the schema compiled in and loaded, and FIX 4.2 beside FIX 4.4 passed.");
+Console.WriteLine("DotGram.Finance package smoke: char, octets, byte stream, pipe, typed fields, the runtime's own date types, and the schema compiled in and loaded, and FIX 4.2 and FIX 5.0 SP2 beside FIX 4.4 passed.");
