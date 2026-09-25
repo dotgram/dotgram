@@ -207,7 +207,48 @@ rule, and still be takeable after the guard has run; none of the three shapes pr
 mechanism that makes the agreement intelligible. A proof would have to say why no reader can open
 such a way, and I cannot say that yet.
 
-**So the choice is (b), and the zero is the reason rather than the obstacle.** A count of zero over
+### Found while implementing: (b) is not cheap, and (a) was not what I said it was
+
+Two things came out of writing the code that the reasoning above had not reached.
+
+**(b) as described costs O(collapses x give-backs).** "Remember the overwritten header and restore
+it in `UnwindRecords`" needs, at each give-back, a search for a live span containing the target.
+At depth 800 there are 6,409 collapses and 4,815 give-backs in one parse, and the instrument that
+measured the zero did exactly this scan: **94 million comparisons on `wide800`**. That is fine for
+an instrument and not for a reader. A restore that is a defended no-op must also be a CHEAP
+defended no-op, and nothing above says how.
+
+**And (a) is sound after all, because I conflated two different things.** What rests on an
+empirical zero is (a) as an ASSUMPTION — "no way is open inside a span, so do not worry about it".
+What I dismissed with it was (a) as a RUNTIME CHECK — "collapse only when no takeable way is open
+inside this span", which is a precondition the reader tests and which is correct whatever the
+corpus does. The zero says such a check would almost never decline; it says nothing against making
+it.
+
+The obstacle to (a) is that **a way does not carry its log position**. `Ways.Open(at, last)` stores
+two integers, the alternative in force and the last one there; the log mark lives in a C# local
+(`lmN`) in the reader method. So "is a way open inside `[from, LogCount)`" cannot be asked of
+`Ways` as it stands. It would need a third integer per way — a small, contained change — and then
+the question is O(1) IF the newest takeable way is to hand.
+
+That last is where it stops being obvious. Marks increase with way order, so the newest way has the
+largest mark; but at the moment a guard runs, ways opened inside its own rule after the walk's
+start are exactly the ones with marks above `from`, and most of them are **spent** (a way whose two
+integers are equal, kept on the tape so a replay reads the same decisions in the same places). A
+check against the newest way regardless of spentness would decline almost every collapse; a check
+against the newest TAKEABLE way needs either a scan down the spent run or a watermark maintained as
+ways are spent.
+
+**So this is the open question, and it is a design question rather than a coding one:**
+
+1. one integer per way for its log mark, plus a maintained "newest takeable way" watermark, and
+   collapse under an O(1) precondition — sound, and it needs no restore at all; or
+2. keep (b) but make the search cheap, which needs the spans in a structure a give-back can query
+   in better than linear time, and they nest rather than sort; or
+3. something neither of us has thought of, which is why this is going back rather than being
+   chosen here.
+
+**So the choice is (b), and the zero is the reason rather than the obstacle.**
 a corpus is evidence, not proof, and the failure it would be evidence about is a *silent wrong
 tree* — the worst kind to leave resting on an empirical zero, because an event that never happens
 in testing is one no test will catch on the day it starts happening. (a) would make correctness
