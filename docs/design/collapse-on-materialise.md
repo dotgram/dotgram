@@ -94,35 +94,41 @@ for (var at = from; at < ways.LogCount; at += log[at])
 
 Numbering is then preserved exactly, every table above keeps its meaning, and the walk is short.
 
-**Corrected after reading further, 2026-09-25: the number is needed in BOTH directions, and the
-second is the awkward one.** There are two shapes of build loop, and only one of them is easy:
+**Corrected TWICE. The second correction is the measurement's, and it is smaller than the first.**
 
-```
-// not `selected`: walks the log and counts alongside. A collapse is `slot += count` here.
-for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
+Reading the emitter suggested a parallel `slots[]` array, the liveness pass re-indexed, and the
+`selected` build loop changed from iterating record numbers to iterating listed entries — the last
+of which would have removed the `IndexOf` skip over the compact `live` map that `e4ee376e`
+introduced (**that commit cites no measurement at all: a one-line message, no body**). The gate the
+architect set was to measure what that skip is worth before touching it. It is worth everything:
 
-// `selected`: iterates record NUMBERS and finds the position by index arithmetic.
-for (var slot = first; slot < ways.Records; slot++)
-    ...
-    var at = starts[slot - first];
-```
+| SQL:2023, per parse | records LISTED by the scan | records VISITED by the build |
+| --- | ---: | ---: |
+| `nested200` | 1,325,613 | **1,017** |
+| `nested400` | 5,251,113 (×3.96) | **2,017** (×1.98) |
+| `nested800` | 20,902,113 (×3.98) | **4,017** (×1.99) |
 
-The second needs `starts` indexed by *number minus first*, which is exactly what a collapse breaks.
-Filling the holes so the arithmetic still works would cost a store per skipped record and hand the
-triangle straight back. So the shape is: `starts` stays compact, a parallel `slots[]` carries each
-listed record's number, the liveness pass reads `slots[back]` instead of `first + back`, and **the
-`selected` build loop changes from iterating numbers to iterating listed entries**.
+**Visiting is already linear — about five records a level, across every walk in the parse.** The
+whole triangle is in the scan. So the `selected` loop's skip is not something a collapse subsumes;
+it is the reason the build half is not quadratic already, and changing it could only lose.
 
-That last is not free to propose, because the number-iterating form exists for a reason — it skips
-runs of already-built records through `IndexOf` over the compact `live` map rather than re-reading
-the tape for built subtrees. **But those runs are precisely what a collapse removes**: after it, a
-built subtree is not listed at all, so it is skipped at scan time rather than at build time. The
-collapse subsumes that optimisation rather than fighting it, which is the argument for changing the
-loop — and it is an argument to check by measurement, not to assert.
+That also makes the change much smaller than §3 first said, because the two passes can keep their
+number-indexed shape:
 
-**So the difficulty is contained but larger than one array**: one array, two passes re-indexed, and
-one loop's iteration order changed in the most performance-sensitive code the generator emits.
-Everything else on the list still follows from numbering being preserved.
+- **the scan writes `starts[slot - first] = at` instead of `starts[listed++] = at`**, and advances
+  `slot` by the collapsed record's count. The holes it leaves are never read, because a collapsed
+  record is not live and both later passes test `live` before using the position — so the holes
+  cost no stores, which is what made "fill them" the wrong answer.
+- **the liveness pass tests `live[slot]` before it uses `at`** rather than after, which is a
+  reordering of two lines.
+- **the `selected` build loop does not change at all.**
+- **the log-walking build loop takes `slot += count`** in place of `slot++`.
+
+No parallel array, no iteration order changed, and the one optimisation I was about to remove
+stays. **T-SQL confirms the other half of the gate**: on the same shapes its search condition
+materialises once, listing 208 records at depth 200 and 808 at 800 — listed equals visited, both
+linear, no guard fast path taken at all. There is nothing there for the collapse to help or to
+hurt, which is what a family that is not the target should look like.
 
 ## 4. What points into a span, one at a time
 
