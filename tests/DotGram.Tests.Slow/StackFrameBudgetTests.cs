@@ -68,6 +68,22 @@ public sealed class StackFrameBudgetTests
 	/// bracket taken by subtracting one instrument's ceiling from another instrument's arm — a
 	/// subtraction that does not hold across two burners, and the number was wrong by 2.4x.
 	/// </para>
+	/// <para>
+	/// <b>It is used here for every grammar, and that needed its own witness.</b> The emitter
+	/// writes one <c>Deepen</c> per grammar, carrying that grammar's own state, failure and
+	/// registers, so a figure taken on <c>SqlStandardParser</c> had no right to stand as a
+	/// constant for all readers. Bisected the same way on T-SQL — a reader of a wholly different
+	/// size and carried set — it comes out identical to within one ballast level, about 0.35 KiB
+	/// (248 levels against 249 at 256 B, 77 against 77 at 1 KiB).
+	/// </para>
+	/// <para>
+	/// And the mechanism says why, which is what makes it sound rather than lucky: what the cold
+	/// call compiles is the hand-off path, and that path is emitted from one template in every
+	/// grammar — the grammar-specific part of it is field copying, which is cheap to compile. So
+	/// the term is <b>stable rather than guaranteed</b>: a grammar carrying a very much larger
+	/// register set would compile a fatter <c>Deepen</c>, and what would catch that is this same
+	/// bisect run on such a reader.
+	/// </para>
 	/// </remarks>
 	const double HandOff = 27.8;
 
