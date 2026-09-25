@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -18,7 +19,7 @@ public sealed class FixValidationTests
 	{
 		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|"));
 
-		Assert.True(order.Validate(FixContext.Default));
+		Assert.True(order.Validate(Fix44Context.Default));
 		Assert.True(order.IsValid);
 		Assert.Null(order.InvalidFindings);
 	}
@@ -40,7 +41,7 @@ public sealed class FixValidationTests
 		{
 			var message = FixParser.ParseMessage((string)data[1]);
 
-			message.Validate(FixContext.Default);
+			message.Validate(Fix44Context.Default);
 
 			foreach (var one in message.InvalidFindings ?? [])
 				found.Add(((string)data[0], one.Rule, one.Tag));
@@ -62,7 +63,7 @@ public sealed class FixValidationTests
 		// repository lists them: Instrument, Side, OrderQtyData.
 		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|60=20260915-12:00:00|40=2|"));
 
-		Assert.False(order.Validate(FixContext.Default));
+		Assert.False(order.Validate(Fix44Context.Default));
 		Assert.Equal(
 			[(FixRule.RequiredComponentMissing, FixTag.Symbol), (FixRule.RequiredFieldMissing, FixTag.Side), (FixRule.RequiredComponentMissing, FixTag.OrderQty)],
 			order.InvalidFindings!.Select(one => (one.Rule, one.Tag)).ToArray());
@@ -73,7 +74,7 @@ public sealed class FixValidationTests
 	{
 		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=3|448=P1|447=D|452=1|"));
 
-		Assert.False(order.Validate(FixContext.Default));
+		Assert.False(order.Validate(Fix44Context.Default));
 
 		var finding = Assert.Single(order.InvalidFindings!);
 
@@ -90,7 +91,7 @@ public sealed class FixValidationTests
 		var list = (FixMessage.NewOrderList)FixParser.ParseMessage(FixFixtures.Wire("E",
 			"66=L1|394=1|68=2|73=2|11=O1|67=1|54=1|55=ABC|38=1|40=1|60=20260915-12:00:00|11=O2|55=ABC|38=1|40=1|60=20260915-12:00:00|"));
 
-		Assert.False(list.Validate(FixContext.Default));
+		Assert.False(list.Validate(Fix44Context.Default));
 		Assert.Equal(
 			[(FixRule.RequiredFieldMissing, FixTag.Side, 1), (FixRule.RequiredFieldMissing, FixTag.ListSeqNo, 1)],
 			list.InvalidFindings!.Select(one => (one.Rule, one.Tag, one.EntryIndex)).OrderBy(one => one.Tag).ToArray());
@@ -103,7 +104,7 @@ public sealed class FixValidationTests
 	{
 		var order = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=1|448=P1|802=2|523=S1|"));
 
-		Assert.False(order.Validate(FixContext.Default));
+		Assert.False(order.Validate(Fix44Context.Default));
 
 		var finding = Assert.Single(order.InvalidFindings!);
 
@@ -117,7 +118,7 @@ public sealed class FixValidationTests
 	[Fact]
 	public void One_block_slot_answers_for_every_carrier()
 	{
-		var strict = new FixContext
+		var strict = new Fix44Context
 		{
 			Validators = new FixValidators
 			{
@@ -134,8 +135,8 @@ public sealed class FixValidationTests
 		var order  = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
 		var quote  = FixParser.ParseMessage(FixFixtures.Wire("S", "117=Q|55=ABC|"));
 
-		Assert.True(order.Validate(FixContext.Default));
-		Assert.False(quote.Validate(FixContext.Default) == false);
+		Assert.True(order.Validate(Fix44Context.Default));
+		Assert.False(quote.Validate(Fix44Context.Default) == false);
 
 		var strictOrder = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
 		var strictQuote = FixParser.ParseMessage(FixFixtures.Wire("S", "117=Q|55=ABC|"));
@@ -151,7 +152,7 @@ public sealed class FixValidationTests
 	{
 		var counted = 0;
 
-		var context = new FixContext
+		var context = new Fix44Context
 		{
 			Validators = new FixValidators
 			{
@@ -181,7 +182,7 @@ public sealed class FixValidationTests
 		var wire  = FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=Z|");
 		var order = FixParser.ParseMessage(wire);
 
-		Assert.False(order.Validate(FixContext.Default));
+		Assert.False(order.Validate(Fix44Context.Default));
 
 		IFixLocation where = Assert.Single(order.InvalidFindings!).Field!;
 

@@ -4,7 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -34,7 +35,7 @@ public sealed class FixLoadTests
 	[Fact]
 	public void A_fragment_replaces_what_the_standard_asks_of_a_type()
 	{
-		var context = FixContext.Default.Load(LogonWantsReset);
+		var context = Fix44Context.Default.Load(LogonWantsReset);
 
 		// The fragment is the whole of what a Logon is now asked: 141, and no longer 98 or 108.
 		var bare = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
@@ -60,7 +61,7 @@ public sealed class FixLoadTests
 
 		var all = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
 
-		Assert.False(all.Validate(FixContext.Default.Load(logonWantsAll)));
+		Assert.False(all.Validate(Fix44Context.Default.Load(logonWantsAll)));
 		Assert.Equal(
 			[98, 108, 141],
 			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => (int)one.Tag).OrderBy(tag => tag).ToArray());
@@ -72,7 +73,7 @@ public sealed class FixLoadTests
 	[Fact]
 	public void The_context_loaded_over_is_unchanged()
 	{
-		var before  = FixContext.Default;
+		var before  = Fix44Context.Default;
 		var after   = before.Load(LogonWantsReset);
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
@@ -95,7 +96,7 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var context = FixContext.Default.Load(LogonWantsReset).Load(andMaxMessageSize);
+		var context = Fix44Context.Default.Load(LogonWantsReset).Load(andMaxMessageSize);
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		// Only the second fragment speaks for a Logon now; the first spoke for it until then.
@@ -119,13 +120,13 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var context = FixContext.Default.Load(ordType);
+		var context = Fix44Context.Default.Load(ordType);
 
 		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(context));
 		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=2|"))).Validate(context));
 
 		// And the standard is what it was.
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(FixContext.Default));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(Fix44Context.Default));
 	}
 
 	[Fact]
@@ -142,7 +143,7 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var context = FixContext.Default.Load(instrument);
+		var context = Fix44Context.Default.Load(instrument);
 		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 		var quote   = FixParser.ParseMessage(FixFixtures.Wire("S", "117=Q|55=ABC|"));
 
@@ -160,9 +161,9 @@ public sealed class FixLoadTests
 		using var reader = new StringReader(LogonWantsReset);
 		using var stream = new MemoryStream(Encoding.UTF8.GetBytes(LogonWantsReset));
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(FixContext.Default.Load(reader)));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(FixContext.Default.Load(stream)));
-		Assert.True(message.Validate(FixContext.Default));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(reader)));
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(stream)));
+		Assert.True(message.Validate(Fix44Context.Default));
 	}
 
 	[Fact]
@@ -184,7 +185,7 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var context = FixContext.Default.Load(partiesWantRole);
+		var context = Fix44Context.Default.Load(partiesWantRole);
 		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order + "453=2|448=P1|452=1|448=P2|"));
 
 		Assert.False(order.Validate(context));
@@ -203,18 +204,18 @@ public sealed class FixLoadTests
 
 		try
 		{
-			FixContext.Default.Load(LogonWantsReset, directory);
+			Fix44Context.Default.Load(LogonWantsReset, directory);
 
 			var written = Directory.GetFiles(directory, "*.el").Select(Path.GetFileName).ToArray();
 
 			Assert.Equal(["Logon.el"], written);
 			var text = File.ReadAllText(Path.Combine(directory, "Logon.el"));
 
-			Assert.Contains("(FixContext context, FixMessage.Logon message) =>", text, StringComparison.Ordinal);
+			Assert.Contains("(Fix44Context context, FixMessage.Logon message) =>", text, StringComparison.Ordinal);
 
 			// A tag is written as its number, which every version shares, and not as a name FixTag may
 			// spell otherwise than the file.
-			Assert.Contains("FixValidators.Missing(message, (FixTag)141)", text, StringComparison.Ordinal);
+			Assert.Contains("FixChecks.Missing(message, (FixTag)141)", text, StringComparison.Ordinal);
 			Assert.DoesNotContain("FixTag.", text, StringComparison.Ordinal);
 		}
 		finally
@@ -236,7 +237,7 @@ public sealed class FixLoadTests
 			</fix>
 			""";
 
-		var refused = Assert.Throws<FormatException>(() => FixContext.Default.Load(venueOnly));
+		var refused = Assert.Throws<FormatException>(() => Fix44Context.Default.Load(venueOnly));
 
 		Assert.Contains("VenueHeartbeat", refused.Message, StringComparison.Ordinal);
 	}
@@ -255,7 +256,7 @@ public sealed class FixLoadTests
 	{
 		for (var run = 0; run < 3; run++)
 		{
-			var refused = Assert.Throws<FormatException>(() => FixContext.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
+			var refused = Assert.Throws<FormatException>(() => Fix44Context.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"))));
 
 			Assert.StartsWith("The dictionary describes 'QuoteRequestReject_", refused.Message, StringComparison.Ordinal);
 			Assert.Contains("which this package has no slot for", refused.Message, StringComparison.Ordinal);
@@ -273,11 +274,11 @@ public sealed class FixLoadTests
 	{
 		var errata = File.ReadAllText(Path.Combine(Corpus, "quickfixn-fix44-errata.xml"));
 
-		FixContext.Default.Load(errata);
-		FixContext.Default.LoadFile(Path.Combine(Corpus, "quickfixn-fix44-errata.xml"));
+		Fix44Context.Default.Load(errata);
+		Fix44Context.Default.LoadFile(Path.Combine(Corpus, "quickfixn-fix44-errata.xml"));
 
 		var file   = File.ReadAllText(Path.Combine(Corpus, "FIX44.xml"));
-		var mended = FixContext.Default.Load([file, errata]);
+		var mended = Fix44Context.Default.Load([file, errata]);
 		var order  = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 
 		Assert.True(order.Validate(mended), string.Join("; ", order.InvalidFindings ?? []));
@@ -287,7 +288,7 @@ public sealed class FixLoadTests
 		// context a mended message is held against is the standard's messages over their fields.
 		var from        = file.IndexOf("<fields>", StringComparison.Ordinal);
 		var to          = file.IndexOf("</fields>", StringComparison.Ordinal) + "</fields>".Length;
-		var theirFields = FixContext.Default.Load("<fix>" + file.Substring(from, to - from) + "</fix>");
+		var theirFields = Fix44Context.Default.Load("<fix>" + file.Substring(from, to - from) + "</fix>");
 
 		var types = new[]
 		{

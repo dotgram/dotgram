@@ -1,6 +1,7 @@
 ﻿using System;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -49,7 +50,7 @@ public sealed class Fix44StreamingTests
 		Assert.False(FixParser.TryReadMessage(new StringReader(wire), out _, out _, maxMessageLength: wire.Length - 1));
 		Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(FixParser.ReadMessage(new StringReader(wire), maxMessageLength: wire.Length)));
 		var damaged = FixParser.ReadMessage(new StringReader(wire.Substring(0, wire.Length - 4) + "999\u0001"));
-		Assert.False(damaged.Validate(FixContext.Default));
+		Assert.False(damaged.Validate(Fix44Context.Default));
 		Assert.Contains(damaged.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 		Assert.Throws<FormatException>(() => FixParser.ReadMessages(new StringReader(wire + "8=")).ToArray());
 		foreach (var length in new[] { "", "-1", "x", "999999999999999999999" })
@@ -62,7 +63,7 @@ public sealed class Fix44StreamingTests
 		var body = "35=A|49=S|56=T|34=1|52=20260915-12:00:00|98=0|108=30|95=8|96=\0\u00ff\u000110=00|".Replace('|', '\u0001');
 		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
 		var wire = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", System.Globalization.CultureInfo.InvariantCulture) + "\u0001";
-		FixContext? options = null;
+		Fix44Context? options = null;
 		using var bytes = new ShortStream(ToBytes(wire + wire));
 		Assert.Equal(2, FixParser.ReadMessages(bytes, options).Count());
 		Assert.Equal(Extents(FixParser.ParseMessage(wire, options)), Extents(FixParser.ReadMessage(new StringReader(wire), options)));

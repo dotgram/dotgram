@@ -1,6 +1,7 @@
 ﻿using System;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 namespace DotGram.Handwritten.Fix;
 
@@ -10,7 +11,7 @@ namespace DotGram.Handwritten.Fix;
 /// </summary>
 public static class HandFixParser
 {
-	public static FixField[] Parse(string input, FixContext? options = null)
+	public static FixField[] Parse(string input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<char>(input.AsMemory()), false, options).ToArray();
@@ -22,32 +23,32 @@ public static class HandFixParser
 	/// <remarks>
 	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
 	/// </remarks>
-	public static FixField[] Parse(ReadOnlySpan<char> input, FixContext? options = null)
+	public static FixField[] Parse(ReadOnlySpan<char> input, Fix44Context? options = null)
 	{
 		return Parse(input.ToString(), options);
 	}
 
-	public static FixField[] Parse(byte[] input, FixContext? options = null)
+	public static FixField[] Parse(byte[] input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<byte>(input), false, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> Parse(TextReader input, FixContext? options = null)
+	public static IEnumerable<FixField> Parse(TextReader input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? FixContext.Default;
+		var settings = options ?? Fix44Context.Default;
 		return ReadText(input, false, options, settings.BufferSize, settings.MaxRetained);
 	}
 
-	public static IEnumerable<FixField> Parse(Stream input, FixContext? options = null)
+	public static IEnumerable<FixField> Parse(Stream input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? FixContext.Default;
+		var settings = options ?? Fix44Context.Default;
 		return ReadBytes(input, false, options, settings.BufferSize, settings.MaxRetained);
 	}
 
-	public static FixField[] ParseLog(string input, FixContext? options = null)
+	public static FixField[] ParseLog(string input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<char>(input.AsMemory()), true, options).ToArray();
@@ -59,47 +60,47 @@ public static class HandFixParser
 	/// <remarks>
 	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
 	/// </remarks>
-	public static FixField[] ParseLog(ReadOnlySpan<char> input, FixContext? options = null)
+	public static FixField[] ParseLog(ReadOnlySpan<char> input, Fix44Context? options = null)
 	{
 		return ParseLog(input.ToString(), options);
 	}
 
-	public static FixField[] ParseLog(byte[] input, FixContext? options = null)
+	public static FixField[] ParseLog(byte[] input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		return Read(new Input<byte>(input), true, options).ToArray();
 	}
 
-	public static IEnumerable<FixField> ParseLog(TextReader input, FixContext? options = null)
+	public static IEnumerable<FixField> ParseLog(TextReader input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? FixContext.Default;
+		var settings = options ?? Fix44Context.Default;
 		return ReadText(input, true, options, settings.BufferSize, settings.MaxRetained);
 	}
 
-	public static IEnumerable<FixField> ParseLog(Stream input, FixContext? options = null)
+	public static IEnumerable<FixField> ParseLog(Stream input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? FixContext.Default;
+		var settings = options ?? Fix44Context.Default;
 		return ReadBytes(input, true, options, settings.BufferSize, settings.MaxRetained);
 	}
 
-	static IEnumerable<FixField> ReadText(TextReader input, bool log, FixContext? options, int bufferSize, int maxRetained)
+	static IEnumerable<FixField> ReadText(TextReader input, bool log, Fix44Context? options, int bufferSize, int maxRetained)
 	{
 		foreach (var field in Read(new Input<char>(input, null, bufferSize, maxRetained), log, options))
 			yield return field;
 	}
 
-	static IEnumerable<FixField> ReadBytes(Stream input, bool log, FixContext? options, int bufferSize, int maxRetained)
+	static IEnumerable<FixField> ReadBytes(Stream input, bool log, Fix44Context? options, int bufferSize, int maxRetained)
 	{
 		foreach (var field in Read(new Input<byte>(null, input, bufferSize, maxRetained), log, options))
 			yield return field;
 	}
 
-	static IEnumerable<FixField> Read<T>(Input<T> input, bool log, FixContext? options)
+	static IEnumerable<FixField> Read<T>(Input<T> input, bool log, Fix44Context? options)
 		where T : unmanaged
 	{
-		options ??= FixContext.Default;
+		options ??= Fix44Context.Default;
 		var position = 0;
 		var pair     = new Pair();
 
@@ -129,7 +130,7 @@ public static class HandFixParser
 		public int Size;
 	}
 
-	static FixField? Field<T>(Input<T> input, bool log, FixContext options, ref Pair pair, ref int position, out string? error)
+	static FixField? Field<T>(Input<T> input, bool log, Fix44Context options, ref Pair pair, ref int position, out string? error)
 		where T : unmanaged
 	{
 		var start = position;

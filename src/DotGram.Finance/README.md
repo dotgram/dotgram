@@ -17,7 +17,8 @@ grammar files, schema XML, reflection configuration or initialization step.
 using System;
 using System.IO;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 // One message, with the separator written as a pipe so it can be read on a page.
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
@@ -28,7 +29,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 FixMessage message = FixParser.ParseMessage(wire);
 
 FixField[] fields = FixParser.ParseFields(wire);
-var logFields = FixParser.ParseFields("55=ABC | 38=100", FixContext.WithLogFraming);
+var logFields = FixParser.ParseFields("55=ABC | 38=100", Fix44Context.WithLogFraming);
 
 using var input = File.OpenRead("messages.fix");
 
@@ -66,7 +67,7 @@ byte input (`IsByteInput` distinguishes them). `Message` describes the failure.
 I/O errors and exceptions from user C# code still propagate during enumeration.
 
 ```csharp
-foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", FixContext.WithLogFraming))
+foreach (var field in FixParser.ParseFields("55=ABC|broken|38=2", Fix44Context.WithLogFraming))
 {
     if (field is FixField.Invalid invalid)
         Console.WriteLine($"{invalid.Position}: {invalid.Message}: {invalid.RawText}");
@@ -82,12 +83,17 @@ Use `.ToArray()` when a complete list is needed. String, byte-array and memory o
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.ParseFields` reads SOH-delimited wire input; given `FixContext.WithLogFraming` it reads logs
+`FixParser.ParseFields` reads SOH-delimited wire input; given `Fix44Context.WithLogFraming` it reads logs
 with bare `|`, spaced ` | `, or a mixture. Both names support strings, byte
 arrays, `ReadOnlyMemory<byte>`, `TextReader`, and byte `Stream`; stream overloads are lazy.
-`FixContext` declares which framing to read and any length/data pairs of your own; it is the
-one value a reading is done by and the one `Validate` holds a message to, and `FixContext.Default`
-reads the wire by the standard alone.
+`Fix44Context` declares which framing to read and any length/data pairs of your own; it is the
+one value a reading is done by and the one `Validate` holds a message to, and `Fix44Context.Default`
+reads the wire by the standard alone. It derives from `FixContext`, the part every version of FIX
+shares.
+
+What every version shares — `FixField` and its classes, `FixTag`, `FixConvert`, `FixFinding`,
+`FixFraming` — is in the namespace `DotGram.Finance.Fix`. What is FIX 4.4's own — `FixParser`,
+`FixMessage` and its 93 types, the components, `Fix44Context` — is in `DotGram.Finance.Fix.Fix44`.
 
 The log grammar uses `LogSeparator = ' '* & '|' & ' '*`. ASCII spaces immediately
 before or after a pipe belong to that separator. Spaces inside text values are
@@ -121,8 +127,8 @@ It is not included in the Finance package.
 ```csharp
 using System.Collections.Generic;
 
-var fields  = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
-var context = new FixContext
+var fields  = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.WithLogFraming);
+var context = new Fix44Context
 {
     LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // added to the standard's own sixteen pairs
 };
@@ -189,7 +195,7 @@ var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `ReadMessage`, `TryReadMessage` and `ReadMessages` accept either `TextReader` or `Stream`,
-with an optional `FixContext`. Byte streams use the generated native
+with an optional `Fix44Context`. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
@@ -219,7 +225,7 @@ parsing costs.
 ## Input and ownership
 
 The input is a **lossless octet string**: every character represents one octet,
-U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `FixContext.WithLogFraming`
+U+0000 through U+00FF. The default delimiter is SOH (`\u0001`); `Fix44Context.WithLogFraming`
 reads pipe-delimited logs. `BodyLength` and `CheckSum` are held to the octets present on the
 wire, including raw and encoded data, so a string that is not one character an octet is found
 wrong by them. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
@@ -304,7 +310,7 @@ problem per message; `InvalidFindings` holds all of them, and code that reads on
 drops the rest without a word. A finding is the same story: where a message carries nine parties,
 `EntryIndex` and `Position` are what say which one, and code that reads `Tag` alone throws that away.
 
-**A counterparty's dictionary is loaded into a context.** `FixContext.Default.Load(text)`,
+**A counterparty's dictionary is loaded into a context.** `Fix44Context.Default.Load(text)`,
 `LoadFile(path)`, or `Load` of a `TextReader`, a `Stream` or several texts read as one, reads a
 QuickFIX dictionary and answers a new context: a message type, component, group entry or field
 the file describes is held to the file's whole check from then on, and the context it was loaded
@@ -383,8 +389,8 @@ tag, so it is out of scope there; a message the consumer builds places it (below
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixParser.ParseMessage(logLine, FixContext.WithLogFraming);
-var context = FixContext.WithLogFraming;
+var message = FixParser.ParseMessage(logLine, Fix44Context.WithLogFraming);
+var context = Fix44Context.WithLogFraming;
 foreach (var item in FixParser.ReadMessages(logReader, context))
     Console.WriteLine(item.MessageType);
 ```
@@ -414,7 +420,7 @@ the MsgType and answers the message to build, or null:
 ```csharp
 using System.Collections.Generic;
 
-var context = new FixContext
+var context = new Fix44Context
 {
     FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
     LengthDataPairs   = new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 },
@@ -442,7 +448,7 @@ sealed class VenueQuote : FixCustomMessage
         return true;
     }
 
-    protected override void OnValidate(FixContext context)
+    protected override void OnValidate(Fix44Context context)
     {
         if (Status is null)
             AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
@@ -462,17 +468,26 @@ its finding `UnknownMessageType`.
 
 Field declarations, message classes, the checks, the Fix44 field grammar and test
 fixtures are maintained together. When changing definitions, update the affected
-factory cases, message classes, checks, Fix44 grammar and test cases together.
+message classes, checks, Fix44 grammar and test cases together.
 
-- `Fix44/FixField.cs`: field base, typed-value access, locations and the class of each value type.
-- `Fix44/FixFieldBuilder.cs`: construction of a field from its tag's type;
-  `Fix44/FixFieldBuilder.Standard.cs` and `Fix44/FixTag.cs`, the type and the name of every tag,
-  are written by `Fix44/generate.py`.
-- `Fix44/FixMessage.cs`: the message base, the standard header and trailer.
-- `Fix44/FixMessage.Types.cs`, `Fix44/FixComponents.cs`, `Fix44/FixValidators.cs`: the 93 message
-  classes, the 24 component interfaces and the check of every message type, component and group
-  entry — written by `Fix44/generate.py` from the FIX 4.4 repository, not by hand.
-- `Fix44/FixValidators.Fields.cs`: the check of every field against its type and its code set.
+What every version shares is in `Fix/`:
+
+- `Fix/FixField.cs`: field base, typed-value access, locations and the class of each value type.
+- `Fix/FixFieldBuilder.cs`: construction of a field from its tag's type.
+- `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
+- `Fix/FixChecks.cs`, `Fix/FixChecks.Load.cs`: what every check says a finding with, and the load
+  of a dictionary into a version's checks.
+- `Fix/FixTag.cs`: the name of every tag, written by `Fix/Fix44/generate.py`.
+
+FIX 4.4's own is in `Fix/Fix44/`:
+
+- `Fix/Fix44/Fix44Context.cs`: the version's context, its standard pairs, checks and loads.
+- `Fix/Fix44/FixMessage.cs`: the message base, the standard header and trailer.
+- `Fix/Fix44/FixMessage.Types.cs`, `Fix/Fix44/FixComponents.cs`, `Fix/Fix44/FixValidators.cs`,
+  `Fix/Fix44/FixStandard.cs`: the 93 message classes, the 24 component interfaces, the check of
+  every message type, component and group entry, and the type of every tag — written by
+  `Fix/Fix44/generate.py` from the FIX 4.4 repository, not by hand.
+- `Fix/Fix44/FixValidators.Fields.cs`: the check of every field against its type and its code set.
 
 A group is named as QuickFIX names it: the class `<Counter>Group`, nested in whatever carries it —
 a message, a component's interface or another group's entry — and its entries are the list

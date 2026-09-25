@@ -2,7 +2,8 @@
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten.Fix;
 
 using Xunit;
@@ -69,7 +70,7 @@ public sealed class FixRetentionTests
 		for (var i = 0; i < count; i++)
 			text.Append(i % 100 == 99 ? "bad" + (char)1 : Field(10));
 
-		var context = new FixGrammar.FixReading(FixContext.Default);
+		var context = new FixGrammar.FixReading(Fix44Context.Default);
 		var fields  = bytes
 			? FixGrammar.ParseFields(new MemoryStream(Encoding.Latin1.GetBytes(text.ToString())), context, 256, Limit * 16)
 			: FixGrammar.ParseFields(new StringReader(text.ToString()), context, 256, Limit * 16);

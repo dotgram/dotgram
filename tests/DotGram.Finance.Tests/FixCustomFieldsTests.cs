@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -27,9 +28,9 @@ public sealed class FixCustomFieldsTests
 		</fix>
 		""";
 
-	static FixContext Context(bool pairs = false)
+	static Fix44Context Context(bool pairs = false)
 	{
-		return new FixContext
+		return new Fix44Context
 		{
 			LengthDataPairs = pairs ? new Dictionary<FixTag, FixTag> { [(FixTag)25000] = (FixTag)25001 } : new Dictionary<FixTag, FixTag>(),
 			Framing         = FixFraming.Log,
@@ -66,7 +67,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_dictionary_does_not_retype_a_tag_the_standard_defines()
 	{
-		var context = FixContext.WithLogFraming.Load(
+		var context = Fix44Context.WithLogFraming.Load(
 			"""
 			<fix>
 			  <fields>
@@ -83,7 +84,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_tag_nothing_defines_is_Invalid_and_keeps_its_tag_and_value()
 	{
-		foreach (var context in new[] { Context(), FixContext.WithLogFraming })
+		foreach (var context in new[] { Context(), Fix44Context.WithLogFraming })
 		{
 			var invalid = Assert.IsType<FixField.Invalid>(Assert.Single(FixParser.ParseFields("28905=20261231|", context)));
 
@@ -142,16 +143,16 @@ public sealed class FixCustomFieldsTests
 			return true;
 		}
 
-		protected override void OnValidate(FixContext context)
+		protected override void OnValidate(Fix44Context context)
 		{
 			if (Status is null)
 				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, (FixTag)25005, 0, null, -1));
 		}
 	}
 
-	static FixContext Venues()
+	static Fix44Context Venues()
 	{
-		return new FixContext { FixMessageFactory = type => type == "U1" ? new VenueQuote() : null }.Load(Venue);
+		return new Fix44Context { FixMessageFactory = type => type == "U1" ? new VenueQuote() : null }.Load(Venue);
 	}
 
 	[Fact]

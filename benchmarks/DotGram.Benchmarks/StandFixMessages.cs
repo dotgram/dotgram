@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 namespace DotGram.Benchmarks;
 
@@ -71,7 +72,7 @@ static partial class Stand
 	// departs from FIX 4.4: what a consumer who holds a venue's dictionary validates with. Its checks are the
 	// expression language's, compiled at the load, so this reading is what that road costs against the
 	// compiled-in one beside it.
-	static readonly Lazy<FixContext> LoadedContext = new(static () => FixContext.Default.Load([
+	static readonly Lazy<Fix44Context> LoadedContext = new(static () => Fix44Context.Default.Load([
 		System.IO.File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "FIX44.xml")),
 		System.IO.File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "quickfixn-fix44-errata.xml"))]));
 
@@ -134,7 +135,7 @@ static partial class Stand
 		// reading; there is no field row, since QuickFIX/n's message is a sorted map that drops the order of the wire and folds a repeated tag.
 		// Two rows, so that each side is read doing the same work as the other. `.parse` is the reading of the wire
 		// alone, on both sides with the envelope checked; `.strict` is that and then the schema, ours through
-		// Validate(FixContext.Default) and theirs through DataDictionary.Validate. Until 2026-09-22 the generated
+		// Validate(Fix44Context.Default) and theirs through DataDictionary.Validate. Until 2026-09-22 the generated
 		// reading of `.strict` was the parse alone against their parse and check, and read as 2.5x when it was not one.
 		yield return new Workload(
 			"fixmsg",
@@ -151,7 +152,7 @@ static partial class Stand
 			"fixmsg",
 			"Order44.strict",
 			[
-				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(FixContext.Default) ? 1 : 0),
+				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(Fix44Context.Default) ? 1 : 0),
 				new Reading("generated-loaded", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(LoadedContext.Value) ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],

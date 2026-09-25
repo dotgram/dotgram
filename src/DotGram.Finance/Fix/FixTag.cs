@@ -1,4 +1,4 @@
-﻿namespace DotGram.Finance.Fix44;
+﻿namespace DotGram.Finance.Fix;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
 

@@ -23,8 +23,8 @@ CI runs it on every build, as part of the solution.
 
 Locally, run it before merging a change to any of these:
 
-- `src/DotGram.Finance/Fix44/FixGrammar.cs`, `FixParser.cs`, `FixField.cs`,
-  `FixFieldBuilder.cs` or `FixConvert.cs`;
+- `src/DotGram.Finance/Fix/FixGrammar.cs`, `FixField.cs`, `FixFieldBuilder.cs` or
+  `FixConvert.cs`, or `src/DotGram.Finance/Fix/Fix44/FixParser.cs`;
 - `examples/DotGram.Handwritten/Fix/HandFixParser.cs`;
 - the generator, when the change alters what `FixGrammar` compiles into;
 - the shared tests, `tests/DotGram.Finance.Tests/FixFieldReaderTests.cs`,

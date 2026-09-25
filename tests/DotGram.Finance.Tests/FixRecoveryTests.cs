@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -24,7 +25,7 @@ public sealed class FixRecoveryTests
 		var wire    = FixFixtures.Wire("0", "broken|55=END|");
 		var fields  = FixParser.ParseFields(wire);
 		var invalid = Assert.Single(fields.OfType<FixField.Invalid>());
-		FixContext? options = null;
+		Fix44Context? options = null;
 
 		Assert.False(FixParser.TryParseMessage(wire, out var message, out var error, options));
 		Assert.Null(message);

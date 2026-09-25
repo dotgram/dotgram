@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>The rule a finding comes from.</summary>
 /// <remarks>

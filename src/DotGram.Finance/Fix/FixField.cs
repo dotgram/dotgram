@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>
 /// One field as the wire had it: its tag, its extent, and its value read as the type the tag has.
@@ -141,7 +141,7 @@ public abstract class FixField : IFixLocation
 	/// synchronization separator and any padding it consumes excluded.
 	/// </para>
 	/// <para>
-	/// A tag neither FIX 4.4 nor a dictionary loaded into the context defines keeps its tag and its
+	/// A tag neither the version nor a dictionary loaded into the context defines keeps its tag and its
 	/// value: <see cref="RawBytes"/> is the value's octets, from character input as from byte input,
 	/// and the extent is the field's as any field's is.
 	/// </para>
@@ -167,7 +167,7 @@ public abstract class FixField : IFixLocation
 
 		static string Unknown(FixTag tag)
 		{
-			return $"Tag {(int)tag} is not a field FIX 4.4 or a loaded dictionary defines.";
+			return $"Tag {(int)tag} is not a field the version or a loaded dictionary defines.";
 		}
 
 		/// <summary>

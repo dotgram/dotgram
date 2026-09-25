@@ -2,7 +2,8 @@
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten.Fix;
 
 using Xunit;
@@ -60,7 +61,7 @@ public sealed class HandFixTests
 		var payload = new string(Enumerable.Range(0, length).Select(i => " |=\0ÿ"[i % 5]).ToArray());
 		Compare("55=A | 95=" + length + " | 96=" + payload + " | 55=Z", true);
 		Compare("55=A\u000195=" + length + "\u000196=" + payload + "\u000155=Z", false);
-		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 		Compare("5000=" + length + " | 5001=" + payload + " | 55=Z", true, options);
 		Compare("5000=2|5002=ab|5001=X|55=Z", true, options);
 	}
@@ -124,20 +125,20 @@ public sealed class HandFixTests
 		Assert.Equal("B", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, b.Current).Value);
 	}
 
-	static void Compare(string input, bool log, FixContext? options = null)
+	static void Compare(string input, bool log, Fix44Context? options = null)
 	{
-		var expected = log ? FixParser.ParseFields(input, (options ?? new FixContext()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(input, options);
+		var expected = log ? FixParser.ParseFields(input, (options ?? new Fix44Context()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(input, options);
 		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));
 		Equal(expected, log ? HandFixParser.ParseLog(input.AsSpan(), options) : HandFixParser.Parse(input.AsSpan(), options));
 		using var reader = new StringReader(input);
-		Equal(expected, log ? HandFixParser.ParseLog(reader, (options ?? new FixContext()) with { BufferSize = 1 }) : HandFixParser.Parse(reader, (options ?? new FixContext()) with { BufferSize = 1 }));
+		Equal(expected, log ? HandFixParser.ParseLog(reader, (options ?? new Fix44Context()) with { BufferSize = 1 }) : HandFixParser.Parse(reader, (options ?? new Fix44Context()) with { BufferSize = 1 }));
 		Assert.Equal(-1, reader.Peek());
 
 		var bytes = Encoding.Latin1.GetBytes(input);
-		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new FixContext()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(bytes, options);
+		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new Fix44Context()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(bytes, options);
 		Equal(expectedBytes, log ? HandFixParser.ParseLog(bytes, options) : HandFixParser.Parse(bytes, options));
 		using var stream = new ShortStream(bytes);
-		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, (options ?? new FixContext()) with { BufferSize = 3 }) : HandFixParser.Parse(stream, (options ?? new FixContext()) with { BufferSize = 3 }));
+		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, (options ?? new Fix44Context()) with { BufferSize = 3 }) : HandFixParser.Parse(stream, (options ?? new Fix44Context()) with { BufferSize = 3 }));
 		Assert.True(stream.CanRead);
 	}
 

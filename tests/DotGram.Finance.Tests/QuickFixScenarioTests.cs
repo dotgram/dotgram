@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -38,8 +39,8 @@ public sealed class QuickFixScenarioTests
 {
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix", "quickfixn");
 
-	static readonly Lazy<FixContext> Schema = new(() =>
-		FixContext.Default.Load([
+	static readonly Lazy<Fix44Context> Schema = new(() =>
+		Fix44Context.Default.Load([
 			File.ReadAllText(Path.Combine(Corpus, "..", "FIX44.xml")),
 			File.ReadAllText(Path.Combine(Corpus, "..", "quickfixn-fix44-errata.xml"))]));
 

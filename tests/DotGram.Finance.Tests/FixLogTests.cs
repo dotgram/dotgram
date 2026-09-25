@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -56,7 +57,7 @@ public sealed class FixLogTests
 	[Fact]
 	public void Custom_binary_pairs_also_accept_padded_separators()
 	{
-		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 		const string input = "5000=3 | 5001= |  | 55=END";
 
 		foreach (var fields in ReadLog(input, options))
@@ -91,7 +92,7 @@ public sealed class FixLogTests
 
 		Assert.Equal(2, fields.Length);
 		Assert.Equal(value, FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
-		Assert.Equal("ABC ", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, Assert.Single(FixParser.ParseFields("55=ABC ", FixContext.WithLogFraming))).Value);
+		Assert.Equal("ABC ", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, Assert.Single(FixParser.ParseFields("55=ABC ", Fix44Context.WithLogFraming))).Value);
 	}
 
 	[Theory]
@@ -148,17 +149,17 @@ public sealed class FixLogTests
 		}
 	}
 
-	static IEnumerable<FixField[]> ReadLog(string input, FixContext? options = null)
+	static IEnumerable<FixField[]> ReadLog(string input, Fix44Context? options = null)
 	{
-		yield return FixParser.ParseFields(input, (options ?? new FixContext()) with { Framing = FixFraming.Log });
-		yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(input)), (options ?? new FixContext()) with { Framing = FixFraming.Log });
-		yield return FixParser.ParseFields(Encoding.Latin1.GetBytes(input), (options ?? new FixContext()) with { Framing = FixFraming.Log });
+		yield return FixParser.ParseFields(input, (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
+		yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(input)), (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
+		yield return FixParser.ParseFields(Encoding.Latin1.GetBytes(input), (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
 
 		using var reader = new StringReader(input);
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 
-		yield return FixParser.ReadFields(reader, (options ?? new FixContext()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
-		yield return FixParser.ReadFields(stream, (options ?? new FixContext()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
+		yield return FixParser.ReadFields(reader, (options ?? new Fix44Context()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
+		yield return FixParser.ReadFields(stream, (options ?? new Fix44Context()) with { Framing = FixFraming.Log, BufferSize = 1 }).ToArray();
 		Assert.True(stream.CanRead);
 	}
 

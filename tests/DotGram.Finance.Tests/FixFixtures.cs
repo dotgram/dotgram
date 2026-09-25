@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -40,9 +41,9 @@ public static class FixFixtures
 	}
 
 	/// <summary>A context that reads a reader or a stream through a buffer of this size, bounding a field by that many.</summary>
-	public static FixContext Reading(bool log, int bufferSize, int? maxRetained = null)
+	public static Fix44Context Reading(bool log, int bufferSize, int? maxRetained = null)
 	{
-		return (log ? FixContext.WithLogFraming : FixContext.Default) with
+		return (log ? Fix44Context.WithLogFraming : Fix44Context.Default) with
 		{
 			BufferSize  = bufferSize,
 			MaxRetained = maxRetained ?? FixParser.DefaultMaxRetained,

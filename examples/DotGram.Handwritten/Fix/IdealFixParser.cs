@@ -1,6 +1,7 @@
 ﻿using System;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 namespace DotGram.Handwritten.Fix;
 
@@ -29,11 +30,11 @@ public static class IdealFixParser
 	static readonly FixField[] None = [];
 
 	/// <summary>Reads wire fields separated by SOH.</summary>
-	public static FixField[] Parse(string input, FixContext? options = null)
+	public static FixField[] Parse(string input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 
-		var known  = options ?? FixContext.Default;
+		var known  = options ?? Fix44Context.Default;
 		var text   = input.AsSpan();
 		var fields = new FixField[8];
 		var count  = 0;

@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>A message of a type FIX 4.4 does not define, built by a consumer who knows what it holds.</summary>
 /// <remarks>
 /// <para>
-/// The context's <see cref="FixContext.FixMessageFactory"/> is asked, for a MsgType the package has
+/// The context's <see cref="Fix44Context.FixMessageFactory"/> is asked, for a MsgType the package has
 /// no class for, which of these to build: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.
 /// The message it answers is then handed its fields one at a time, in the order they were read: the
 /// standard header and trailer are taken as every message takes them, and each other field goes to
@@ -15,7 +15,7 @@ namespace DotGram.Finance.Fix44;
 /// </para>
 /// <para>
 /// <see cref="FixMessage.Validate"/> holds the header to the standard, and then asks
-/// <see cref="OnValidate(FixContext)"/>, which finds nothing unless the message says what it requires.
+/// <see cref="OnValidate(Fix44Context)"/>, which finds nothing unless the message says what it requires.
 /// </para>
 /// </remarks>
 public abstract class FixCustomMessage : FixMessage
@@ -36,11 +36,11 @@ public abstract class FixCustomMessage : FixMessage
 
 	/// <summary>Holds the body to what this message requires, adding what is wrong with <see cref="FixMessage.AddFinding"/>.</summary>
 	/// <param name="context">The context the message is validated in.</param>
-	protected virtual void OnValidate(FixContext context)
+	protected virtual void OnValidate(Fix44Context context)
 	{
 	}
 
-	private protected sealed override void Check(FixContext context)
+	private protected sealed override void Check(Fix44Context context)
 	{
 		OnValidate(context);
 	}

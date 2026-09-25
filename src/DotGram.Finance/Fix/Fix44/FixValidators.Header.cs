@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>
 /// The standard header and trailer: what every message owes before its own type is asked anything.
@@ -11,12 +11,16 @@ namespace DotGram.Finance.Fix44;
 /// is out of order (SessionRejectReason 14), which no check of one type can see, since each
 /// reads its fields one at a time.
 /// </remarks>
-partial class FixValidators
+partial class FixValidators : FixChecks
 {
-	/// <summary>Holds the standard header and trailer of any message to the schema.</summary>
-	public Func<FixContext, FixMessage, bool> StandardHeader { get; set; } = ValidateStandardHeader;
+	private protected override string Using => "using DotGram.Finance.Fix;\nusing DotGram.Finance.Fix.Fix44;\n";
 
-	static bool ValidateStandardHeader(FixContext context, FixMessage message)
+	private protected override string ContextName => nameof(Fix44Context);
+
+	/// <summary>Holds the standard header and trailer of any message to the schema.</summary>
+	public Func<Fix44Context, FixMessage, bool> StandardHeader { get; set; } = ValidateStandardHeader;
+
+	static bool ValidateStandardHeader(Fix44Context context, FixMessage message)
 	{
 		if (message.BeginString  is null) Missing(message, FixTag.BeginString);
 		if (message.BodyLength   is null) Missing(message, FixTag.BodyLength);

@@ -1,9 +1,25 @@
 # Which carrier each grammar is read with, and why
 
-Every grammar of the solution, as the last build with `-p:DotGramReportGeneration=true` compiled
-it: the carrier `Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it
-and each rule held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`)
-from the reports that build left; run again rather than edited.
+Every grammar the last build with `-p:DotGramReportGeneration=full` compiled: the carrier
+`Auto` took (GRAM5012), and for a grammar kept on the tape, the gate that kept it and each rule
+held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the reports
+that build left; run again rather than edited.
+
+Read from 8 projects, and written when each one was last compiled with the
+report on. A project built below that level leaves no report and is absent here rather than
+empty, so a short table is a short build and not a grammar with nothing to say; a project whose
+time is older than the rest was not in the last build, and its rows are that build's answer.
+
+| Read from | Report written |
+| --- | --- |
+| DotGram.Benchmarks | 2026-09-24 21:11 |
+| DotGram.Examples | 2026-09-24 21:10 |
+| DotGram.ExpressionLanguage | 2026-09-24 21:10 |
+| DotGram.Finance | 2026-09-24 21:10 |
+| DotGram.Finance.Fix44 | 2026-09-24 21:10 |
+| DotGram.Sql | 2026-09-24 21:10 |
+| DotGram.Tests | 2026-09-24 21:11 |
+| DotGram.Web | 2026-09-24 21:10 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -39,7 +55,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 1 | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
 | DotGram.Benchmarks.MaterializationCost.WithCaptures | 1 | 1 | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.Nesting | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.Numbers | 1 | 1 | tape | read again | 2 | 0 | 0 | 2 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.Numbers | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Possession.Open | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 7/7 |
@@ -63,7 +79,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.IniParser | 1 | 1 | tape | read again | 7 | 0 | 0 | 11 | 0 | 0 | 14/14 |
 | DotGram.Examples.Formats.JsonParser | 1 | 1 | tape | read again | 9 | 0 | 0 | 11 | 0 | 0 | 30/30 |
 | DotGram.Examples.Formats.Links | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1/1 |
-| DotGram.Examples.Formats.MarkdownParser | 1 | 1 | tape | read again | 9 | 0 | 0 | 10 | 0 | 0 | 24/24 |
+| DotGram.Examples.Formats.MarkdownParser | 1 | 1 | tape | read again | 9 | 0 | 0 | 8 | 0 | 0 | 24/24 |
 | DotGram.Examples.Formats.MetricsLine | 1 | 1 | tape | read again | 5 | 0 | 0 | 3 | 0 | 0 | 11/11 |
 | DotGram.Examples.Formats.Netstrings | 1 | 1 | tape | read again | 2 | 0 | 0 | 1 | 0 | 0 | 3/3 |
 | DotGram.Examples.Formats.TypedCsv | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 12/12 |
@@ -80,15 +96,15 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | 2 | 2 | tape | replay | 137 | 131 | 16 | 0 | 0 | 0 | 18/844 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 18/844 |
-| DotGram.Finance.Fix.FixGrammar | 10 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
-| DotGram.Finance.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1910/1910 |
-| DotGram.Finance.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.ExpressionLanguage.ExpressionParser | 2 | 2 | tape | replay | 149 | 143 | 24 | 0 | 2 | 0 | 28/906 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 28/906 |
+| DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1830/1830 |
+| DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
+| DotGram.Finance.Fix.FixGrammar | 10 | 0 | immediate | none |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Standard.Sql92Parser | 1 | 1 | tape | replay | 48 | 44 | 4 | 0 | 0 | 0 | 12/242 |
 | DotGram.Sql.Standard.SqlStandardParser | 4 | 4 | tape | replay | 556 | 308 | 25 | 0 | 2 | 0 | 1284/2641 |
-| DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
-| DotGram.Sql.TransactSql.TransactSqlParser.Located | 2 | 2 | tape | replay | 658 | 321 | 83 | 0 | 1 | 0 | 2362/3146 |
+| DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 659 | 322 | 80 | 0 | 1 | 0 | 2362/3149 |
+| DotGram.Sql.TransactSql.TransactSqlParser.Located | 2 | 2 | tape | replay | 659 | 322 | 80 | 0 | 1 | 0 | 2362/3149 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -97,11 +113,11 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Tests.Generated.UrlGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Web.Rfc3339 | 1 | 0 | immediate | none |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc3986 | 1 | 1 | tape | read again | 6 | 0 | 0 | 12 | 0 | 0 | 19/19 |
-| DotGram.Web.Rfc5322 | 5 | 5 | tape | read again | 48 | 0 | 0 | 114 | 0 | 0 | 129/129 |
+| DotGram.Web.Rfc5322 | 5 | 5 | tape | read again | 48 | 0 | 0 | 107 | 0 | 0 | 129/129 |
 | DotGram.Web.Rfc5646 | 1 | 1 | tape | read again | 9 | 0 | 0 | 6 | 0 | 0 | 22/22 |
 | DotGram.Web.Rfc6265 | 6 | 5 | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 29/29 |
 | DotGram.Web.Rfc6266 | 1 | 1 | tape | read again | 3 | 0 | 0 | 2 | 0 | 0 | 5/5 |
-| DotGram.Web.Rfc6570 | 1 | 1 | tape | read again | 5 | 0 | 0 | 2 | 0 | 0 | 10/10 |
+| DotGram.Web.Rfc6570 | 1 | 0 | immediate | none |  |  |  |  |  |  | 10/10 |
 | DotGram.Web.Rfc6901 | 2 | 0 | immediate | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Web.Rfc7239 | 2 | 2 | tape | read again | 7 | 0 | 0 | 9 | 0 | 0 | 16/16 |
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none |  |  |  |  |  |  | 29/29 |
@@ -128,7 +144,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | ParseUrl | whole | tape | replay | 7 | 1 | 0 | 0 | 17/17 |
 | DotGram.Benchmarks.MaterializationCost.WithCaptures | ParseUrl | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
 | DotGram.Benchmarks.Nesting | ParseExpr | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
-| DotGram.Benchmarks.Numbers | ParseSum | whole | tape | read again | 2 | 0 | 2 | 0 | 3/3 |
+| DotGram.Benchmarks.Numbers | ParseSum | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Possession.Open | ParseDoc | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Benchmarks.TinyScalar | ParseDepth | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Urls | ParseUrl | whole | tape | read again | 2 | 0 | 3 | 0 | 1/1 |
@@ -153,7 +169,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.HttpParser | ParseHeaders | whole | tape | read again | 5 | 0 | 6 | 0 | 10/10 |
 | DotGram.Examples.Formats.IniParser | ParseIni | whole | tape | read again | 7 | 0 | 11 | 0 | 14/14 |
 | DotGram.Examples.Formats.JsonParser | ParseJson | whole | tape | read again | 9 | 0 | 11 | 0 | 30/30 |
-| DotGram.Examples.Formats.MarkdownParser | ParseDoc | whole | tape | read again | 9 | 0 | 10 | 0 | 24/24 |
+| DotGram.Examples.Formats.MarkdownParser | ParseDoc | whole | tape | read again | 9 | 0 | 8 | 0 | 24/24 |
 | DotGram.Examples.Formats.MetricsLine | ParseLine | whole | tape | read again | 5 | 0 | 3 | 0 | 11/11 |
 | DotGram.Examples.Formats.Netstrings | ParseStream | whole | tape | read again | 2 | 0 | 1 | 0 | 3/3 |
 | DotGram.Examples.Formats.XmlParser | ParseXml | whole | tape | replay | 7 | 6 | 0 | 0 | 21/21 |
@@ -169,27 +185,27 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.SqlDialect | ParseOld, ParseNew, ParseAny | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | ParseQuery | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 84 | 81 | 0 | 0 | 9/422 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseAsciiLambda, ParseHole_With2, ParseBody_With3 | whole | tape | replay | 84 | 81 | 0 | 0 | 9/422 |
-| DotGram.Finance.Fix.FixGrammar | ParseFields | whole | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ParseLogFields | whole | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ParseFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ParseFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ReadFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ReadFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ParseLogFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ParseLogFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ReadLogFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
-| DotGram.Finance.Fix.FixGrammar | ReadLogFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 8/8 |
+| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 90 | 87 | 0 | 1 | 14/453 |
+| DotGram.ExpressionLanguage.ExpressionParser | ParseAsciiLambda, ParseHole_With2, ParseBody_With3 | whole | tape | replay | 90 | 87 | 0 | 1 | 14/453 |
+| DotGram.Finance.Fix.FixGrammar | ParseFields | whole | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ParseLogFields | whole | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ParseFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ParseFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ReadFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ReadFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ParseLogFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ParseLogFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ReadLogFields | buffered | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
+| DotGram.Finance.Fix.FixGrammar | ReadLogFields | bytes | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
 | DotGram.Sql.Standard.Sql92Parser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 48 | 44 | 0 | 0 | 12/242 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseLiteral | whole | tape | replay | 13 | 12 | 0 | 0 | 4/35 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseTableName | whole | tape | replay | 4 | 3 | 0 | 0 | 2/12 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseValueExpression, ParseUnsignedLiteral, ParseColumnReference and 21 more | whole | tape | replay | 306 | 290 | 0 | 1 | 32/1363 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseDirectSQLStatement, ParseSQLSchemaStatement, ParseUpdateStatementPositioned and 11 more | whole | tape | replay | 539 | 308 | 0 | 1 | 1248/2605 |
-| DotGram.Sql.TransactSql.TransactSqlParser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 178 | 173 | 0 | 0 | 37/809 |
-| DotGram.Sql.TransactSql.TransactSqlParser | ParseStatement, ParseStatement100, ParseStatement110 and 24 more | whole | tape | replay | 654 | 321 | 0 | 1 | 2354/3138 |
-| DotGram.Sql.TransactSql.TransactSqlParser.Located | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 178 | 173 | 0 | 0 | 37/809 |
-| DotGram.Sql.TransactSql.TransactSqlParser.Located | ParseStatement, ParseStatement100, ParseStatement110 and 24 more | whole | tape | replay | 654 | 321 | 0 | 1 | 2354/3138 |
+| DotGram.Sql.TransactSql.TransactSqlParser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 179 | 174 | 0 | 0 | 37/812 |
+| DotGram.Sql.TransactSql.TransactSqlParser | ParseStatement, ParseStatement100, ParseStatement110 and 24 more | whole | tape | replay | 655 | 322 | 0 | 1 | 2354/3141 |
+| DotGram.Sql.TransactSql.TransactSqlParser.Located | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 179 | 174 | 0 | 0 | 37/812 |
+| DotGram.Sql.TransactSql.TransactSqlParser.Located | ParseStatement, ParseStatement100, ParseStatement110 and 24 more | whole | tape | replay | 655 | 322 | 0 | 1 | 2354/3141 |
 | DotGram.Tests.Calculators.DecimalCalculator | Evaluate | whole | immediate | none | 0 | 0 | 0 | 0 | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | Read | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | Evaluate | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
@@ -198,11 +214,11 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Tests.Extents | ParseExtent | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Web.Rfc3339 | ParseTimestamp, ParseFullDate, ParseFullTime | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
 | DotGram.Web.Rfc3986 | ParseReference, ParseUri | whole | tape | read again | 6 | 0 | 12 | 0 | 19/19 |
-| DotGram.Web.Rfc5322 | ParseAddressList, ParseMailboxList, ParseMailbox and 1 more | whole | tape | read again | 17 | 0 | 36 | 0 | 47/47 |
+| DotGram.Web.Rfc5322 | ParseAddressList, ParseMailboxList, ParseMailbox and 1 more | whole | tape | read again | 17 | 0 | 32 | 0 | 47/47 |
 | DotGram.Web.Rfc5322 | ParseStrictAddrSpec | whole | tape | read again | 4 | 0 | 15 | 0 | 9/9 |
-| DotGram.Web.Rfc5322 | ParseStrictMailbox | whole | tape | read again | 6 | 0 | 20 | 0 | 15/15 |
-| DotGram.Web.Rfc5322 | ParseStrictMailboxList | whole | tape | read again | 8 | 0 | 22 | 0 | 21/21 |
-| DotGram.Web.Rfc5322 | ParseStrictAddressList | whole | tape | read again | 13 | 0 | 27 | 0 | 37/37 |
+| DotGram.Web.Rfc5322 | ParseStrictMailbox | whole | tape | read again | 6 | 0 | 18 | 0 | 15/15 |
+| DotGram.Web.Rfc5322 | ParseStrictMailboxList | whole | tape | read again | 8 | 0 | 20 | 0 | 21/21 |
+| DotGram.Web.Rfc5322 | ParseStrictAddressList | whole | tape | read again | 13 | 0 | 25 | 0 | 37/37 |
 | DotGram.Web.Rfc5646 | ParseTag | whole | tape | read again | 9 | 0 | 6 | 0 | 22/22 |
 | DotGram.Web.Rfc6265 | ParseSetCookie | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
 | DotGram.Web.Rfc6265 | ReadDateTokens | whole | tape | read again | 2 | 0 | 1 | 0 | 3/3 |
@@ -211,7 +227,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Web.Rfc6265 | ReadMonth | whole | tape | read again | 1 | 0 | 1 | 0 | 12/12 |
 | DotGram.Web.Rfc6265 | ReadYear | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
 | DotGram.Web.Rfc6266 | ParseContentDisposition | whole | tape | read again | 3 | 0 | 2 | 0 | 5/5 |
-| DotGram.Web.Rfc6570 | ParseTemplate | whole | tape | read again | 5 | 0 | 2 | 0 | 10/10 |
+| DotGram.Web.Rfc6570 | ParseTemplate | whole | immediate | none | 0 | 0 | 0 | 0 | 10/10 |
 | DotGram.Web.Rfc6901 | ParsePointer | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Web.Rfc6901 | ParseFragment | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Web.Rfc7239 | ParseForwarded | whole | tape | read again | 6 | 0 | 4 | 0 | 12/12 |
@@ -234,16 +250,16 @@ or which nothing calls, so that no caller asks it again.
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | choice | alternatives begin alike | 13 | 22 | 37 | 0 | 8 | NoCaptures.Host: `(IPv4 \| RegName)` |
-| turns | a turn led by what may read nothing | 8 | 16 | 34 | 8 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
-| run | what follows begins alike | 16 | 27 | 27 | 0 | 0 | Numbers.Number: `['0'..'9']+` |
-| optional | what follows begins alike | 12 | 14 | 20 | 7 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
+| turns | a turn led by what may read nothing | 8 | 13 | 25 | 8 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| run | what follows begins alike | 14 | 24 | 24 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
+| optional | what follows begins alike | 12 | 13 | 17 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | every alternative led by what may read nothing | 4 | 8 | 17 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
 | choice | an alternative that may read nothing | 7 | 13 | 14 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
 | counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
-| turns | what follows begins alike | 7 | 8 | 9 | 6 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
+| turns | what follows begins alike | 5 | 7 | 10 | 5 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
 | turns | the seam leads every alternative of the turn | 5 | 5 | 7 | 7 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| optional | a turn led by what may read nothing | 2 | 5 | 7 | 2 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
+| optional | a turn led by what may read nothing | 2 | 4 | 6 | 1 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
 | choice | the seam leads every alternative | 2 | 2 | 4 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
@@ -306,10 +322,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Benchmarks.Numbers
 
-- machine ParseSum [whole]: carrier: tape; gate: read again; building: 2; replayed: 0; read again: 2; refused: 0; points: 3/3
-- again Number: opens a way
-- open Number: run; what follows begins alike; open; ['0'..'9']+
-- again Sum: through Number
+- machine ParseSum [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
 
 ## DotGram.Benchmarks.Possession.Open
 
@@ -478,13 +491,10 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Formats.MarkdownParser
 
-- machine ParseDoc [whole]: carrier: tape; gate: read again; building: 9; replayed: 0; read again: 10; refused: 0; points: 24/24
+- machine ParseDoc [whole]: carrier: tape; gate: read again; building: 9; replayed: 0; read again: 8; refused: 0; points: 24/24
 - again Blank: through eol
 - again Block: opens a way
 - open Block: choice; alternatives begin alike; open; (block: Heading => (block) | block: Bullets => (block) | block: Code =…
-- again Bullet: through eol
-- again Bullets: opens a way
-- open Bullets: turns, captured; what follows begins alike; open; items: Bullet+
 - again Code: opens a way
 - open Code: turns, captured; a turn led by what may read nothing; open; lines: CodeLine*
 - again CodeLine: through eol
@@ -627,28 +637,36 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
-- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/422
-- machine ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: carrier: tape; gate: replay; building: 84; replayed: 81; read again: 0; refused: 0; points: 9/422
+- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 90; replayed: 87; read again: 0; refused: 1; points: 14/453
+- machine ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: carrier: tape; gate: replay; building: 90; replayed: 87; read again: 0; refused: 1; points: 14/453
+- refused: 'Primary' gathers two members onto one stack (string); otherwise replay 87
+- refused: 'Primary_With1' gathers two members onto one stack (string); otherwise replay 87
+- replay Arm: Follows in Binary [turn], then '}'
+- replay Arm: Follows in Binary [turn], then '}'
+- replay Assignment: Follows in Primary [choice], then '}'
+- replay Assignment: Follows in Primary [choice], then '}'
 - replay Conditional: Follows in Conditional [turn], then ':'
 - replay Conditional: Follows in Conditional [turn], then ':'
 - replay Core: Follows in Primary [choice], then '.'
 - replay Core: Follows in Primary [choice], then '.'
+- replay Discard: Follows in Arm [choice], then "=>"
+- replay Discard: Follows in Arm [choice], then "=>"
 - replay Elements: Follows in Primary [turn], then '}'
 - replay Elements: Follows in Primary [turn], then '}'
-- replay Identifier: Follows in Postfix [turn], then Arguments
-- replay Identifier: Follows in Postfix [turn], then Arguments
+- replay Identifier: Lookahead in Constant [choice]
+- replay Identifier: Lookahead in Constant [choice]
 - replay Indices: Follows in Assignment [choice], then '='
 - replay Indices: Follows in Assignment [choice], then '='
-- replay Name: Follows in Assignment [choice], then Indices
-- replay Name: Follows in Postfix [choice], then args: Arguments_With1 => (ExpressionParser.Invoked(target, args)) or '…
+- replay Name: Follows in Constant [choice], then ?="=>" or ':' or Identifier
+- replay Name: Follows in Constant [choice], then ?="=>" or ':' or Identifier_With1
+- replay Parameter: Follows in Function [choice], then ')'
+- replay Parameter: Follows in Function [choice], then ')'
 - replay Target: Follows in Assignment [choice], then '=' & value: Assignment => (ExpressionParser.AddAssign(target, value, …
 - replay Target: Follows in Assignment [choice], then '=' & value: Assignment_With1 => (ExpressionParser.AddAssign(target, v…
 - replay Type: Follows in NamedType [turn], then '>'
 - replay Type: Follows in NamedType [turn], then '>'
 - replay Arguments: under Postfix
 - replay Arguments: under Postfix
-- replay Assignment: under Indices
-- replay Assignment: under Indices
 - replay Awaiting: under Untyped
 - replay Awaiting: under Untyped
 - replay Bin: under Primary
@@ -669,6 +687,8 @@ or which nothing calls, so that no caller asks it again.
 - replay Char: under Primary
 - replay Coalesce: under Conditional
 - replay Coalesce: under Conditional
+- replay Constant: under Pattern
+- replay Constant: under Pattern
 - replay Control: under Body
 - replay Control: under Body
 - replay Dec: under Primary
@@ -711,12 +731,16 @@ or which nothing calls, so that no caller asks it again.
 - replay Interpolated: under Primary
 - replay Jump: under Statement
 - replay Jump: under Statement
+- replay Label: under Case
+- replay Label: under Case
 - replay Local: under Statement
 - replay Local: under Statement
 - replay NamedType: under Core
 - replay NamedType: under Core
-- replay Parameter: under Inner
-- replay Parameter: under Inner
+- replay Or: under Pattern
+- replay Or: under Pattern
+- replay Pattern: under Arm
+- replay Pattern: under Arm
 - replay Postfix: under Unary
 - replay Postfix: under Unary
 - replay Primary: under Postfix
@@ -763,16 +787,16 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Finance.Fix.FixGrammar
 
-- machine ParseFields [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ParseLogFields [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ParseFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ParseFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ReadFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ReadFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ParseLogFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ParseLogFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ReadLogFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
-- machine ReadLogFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 8/8
+- machine ParseFields [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ParseLogFields [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ParseFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ParseFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ReadFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ReadFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ParseLogFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ParseLogFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ReadLogFields [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
+- machine ReadLogFields [bytes]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 6/6
 
 ## DotGram.Sql.Standard.Sql92Parser
 
@@ -1141,9 +1165,9 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
-- machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 178; replayed: 173; read again: 0; refused: 0; points: 37/809
-- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170, ParseScript, ParseScript100, ParseScript110, ParseScript120, ParseScript130, ParseScript140, ParseScript150, ParseScript160, ParseScript170 [whole]: carrier: tape; gate: replay; building: 654; replayed: 321; read again: 0; refused: 1; points: 2354/3138
-- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 321
+- machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 179; replayed: 174; read again: 0; refused: 0; points: 37/812
+- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170, ParseScript, ParseScript100, ParseScript110, ParseScript120, ParseScript130, ParseScript140, ParseScript150, ParseScript160, ParseScript170 [whole]: carrier: tape; gate: replay; building: 655; replayed: 322; read again: 0; refused: 1; points: 2354/3141
+- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 322
 - replay AlterColumnWord: Follows in AlterTableAction [choice], then when (Syntax.FlagsOnline(flag, options))
 - replay Arguments: Follows in Member [turn], then ')'
 - replay AssemblyOptions: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
@@ -1190,11 +1214,10 @@ or which nothing calls, so that no caller asks it again.
 - replay Nulls: Follows in CallTail [choice], then Over
 - replay OdbcLiteralKind: Follows in OdbcEscape [choice], then NationalCharacterStringLiteral
 - replay OdbcType: Follows in OdbcFunction [choice], then ')'
-- replay OffsetFetch: Follows in InlineReturn [choice], then ')'
 - replay OnOff: Follows in TypeStatement [choice], then ')'
 - replay OptionList: Follows in SwitchTail [choice], then ')'
 - replay OptionsWith: Follows in CreateTableStatement [choice], then "AS"i
-- replay OrderByClause: Follows in InlineReturn [choice], then ')'
+- replay OrderByClause: Follows in WithinGroup [choice], then ?reading(0x1FDFDFD)
 - replay OutputClause: Follows in TSqlInsert [choice], then InsertRows
 - replay OutputList: Follows in OutputClause [choice], then "INTO"i
 - replay PlacementTarget: Lookahead in SwitchTail [lookahead]
@@ -1216,9 +1239,7 @@ or which nothing calls, so that no caller asks it again.
 - replay SetValue: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
 - replay SpatialSetting: Follows in SpatialSet [choice], then ')'
 - replay TSqlAlias: Follows in TSqlSelectSublist [choice], then '='
-- replay TSqlGroupingColumn: Follows in GroupByExpression [choice], then ')'
 - replay TSqlJoinType: Follows in TSqlTableReference [turn], then "JOIN"i
-- replay TSqlQueryExpression: Follows in InlineReturn [choice], then ')'
 - replay TSqlSubquery: Follows in TSqlTablePrimary [choice], then CorrelationName
 - replay TSqlValueExpression: Follows in TSqlPrimaryCore [choice], then ')'
 - replay TableAs: Follows in CreateTableStatement [choice], then '('
@@ -1313,6 +1334,7 @@ or which nothing calls, so that no caller asks it again.
 - replay FunctionCall: under TSqlPrimaryCore
 - replay GraphMatch: under TSqlPredicate
 - replay GroupByExpression: under GroupingSet
+- replay GroupByItem: under TSqlGrouping
 - replay GroupList: under GroupingSet
 - replay GroupWith: under TSqlGroupByClause
 - replay HavingClause: under TSqlQuerySpecification
@@ -1363,6 +1385,7 @@ or which nothing calls, so that no caller asks it again.
 - replay NullSpec: under PredictColumn
 - replay OdbcEscape: under TSqlPrimaryCore
 - replay OdbcFunction: under OdbcEscape
+- replay OffsetFetch: under TSqlSubquery
 - replay OnPartitions: under OptionSetting
 - replay OpenQueryCall: under RowsetFunction
 - replay OptionNest: under OptionTail
@@ -1419,11 +1442,13 @@ or which nothing calls, so that no caller asks it again.
 - replay TSqlDelete: under ChangedStatement
 - replay TSqlEscapeClause: under NegatablePredicate
 - replay TSqlGroupByClause: under TSqlQuerySpecification
+- replay TSqlGroupingColumn: under GroupByExpression
 - replay TSqlGrouping: under TSqlGroupByClause
 - replay TSqlInsert: under ChangedStatement
 - replay TSqlMerge: under ChangedStatement
 - replay TSqlPredicate: under BooleanPrimary
 - replay TSqlPrimaryCore: under TSqlValuePrimary
+- replay TSqlQueryExpression: under TSqlSubquery
 - replay TSqlQuerySpecification: under QueryPrimary
 - replay TSqlRow: under TSqlTableValueConstructor
 - replay TSqlSelectList: under TSqlQuerySpecification
@@ -1468,9 +1493,9 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.TransactSql.TransactSqlParser.Located
 
-- machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 178; replayed: 173; read again: 0; refused: 0; points: 37/809
-- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170, ParseScript, ParseScript100, ParseScript110, ParseScript120, ParseScript130, ParseScript140, ParseScript150, ParseScript160, ParseScript170 [whole]: carrier: tape; gate: replay; building: 654; replayed: 321; read again: 0; refused: 1; points: 2354/3138
-- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 321
+- machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 179; replayed: 174; read again: 0; refused: 0; points: 37/812
+- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170, ParseScript, ParseScript100, ParseScript110, ParseScript120, ParseScript130, ParseScript140, ParseScript150, ParseScript160, ParseScript170 [whole]: carrier: tape; gate: replay; building: 655; replayed: 322; read again: 0; refused: 1; points: 2354/3141
+- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 322
 - replay AlterColumnWord: Follows in AlterTableAction [choice], then when (Syntax.FlagsOnline(flag, options))
 - replay Arguments: Follows in Member [turn], then ')'
 - replay AssemblyOptions: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
@@ -1517,11 +1542,10 @@ or which nothing calls, so that no caller asks it again.
 - replay Nulls: Follows in CallTail [choice], then Over
 - replay OdbcLiteralKind: Follows in OdbcEscape [choice], then NationalCharacterStringLiteral
 - replay OdbcType: Follows in OdbcFunction [choice], then ')'
-- replay OffsetFetch: Follows in InlineReturn [choice], then ')'
 - replay OnOff: Follows in TypeStatement [choice], then ')'
 - replay OptionList: Follows in SwitchTail [choice], then ')'
 - replay OptionsWith: Follows in CreateTableStatement [choice], then "AS"i
-- replay OrderByClause: Follows in InlineReturn [choice], then ')'
+- replay OrderByClause: Follows in WithinGroup [choice], then ?reading(0x1FDFDFD)
 - replay OutputClause: Follows in TSqlInsert [choice], then InsertRows
 - replay OutputList: Follows in OutputClause [choice], then "INTO"i
 - replay PlacementTarget: Lookahead in SwitchTail [lookahead]
@@ -1543,9 +1567,7 @@ or which nothing calls, so that no caller asks it again.
 - replay SetValue: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
 - replay SpatialSetting: Follows in SpatialSet [choice], then ')'
 - replay TSqlAlias: Follows in TSqlSelectSublist [choice], then '='
-- replay TSqlGroupingColumn: Follows in GroupByExpression [choice], then ')'
 - replay TSqlJoinType: Follows in TSqlTableReference [turn], then "JOIN"i
-- replay TSqlQueryExpression: Follows in InlineReturn [choice], then ')'
 - replay TSqlSubquery: Follows in TSqlTablePrimary [choice], then CorrelationName
 - replay TSqlValueExpression: Follows in TSqlPrimaryCore [choice], then ')'
 - replay TableAs: Follows in CreateTableStatement [choice], then '('
@@ -1640,6 +1662,7 @@ or which nothing calls, so that no caller asks it again.
 - replay FunctionCall: under TSqlPrimaryCore
 - replay GraphMatch: under TSqlPredicate
 - replay GroupByExpression: under GroupingSet
+- replay GroupByItem: under TSqlGrouping
 - replay GroupList: under GroupingSet
 - replay GroupWith: under TSqlGroupByClause
 - replay HavingClause: under TSqlQuerySpecification
@@ -1690,6 +1713,7 @@ or which nothing calls, so that no caller asks it again.
 - replay NullSpec: under PredictColumn
 - replay OdbcEscape: under TSqlPrimaryCore
 - replay OdbcFunction: under OdbcEscape
+- replay OffsetFetch: under TSqlSubquery
 - replay OnPartitions: under OptionSetting
 - replay OpenQueryCall: under RowsetFunction
 - replay OptionNest: under OptionTail
@@ -1746,11 +1770,13 @@ or which nothing calls, so that no caller asks it again.
 - replay TSqlDelete: under ChangedStatement
 - replay TSqlEscapeClause: under NegatablePredicate
 - replay TSqlGroupByClause: under TSqlQuerySpecification
+- replay TSqlGroupingColumn: under GroupByExpression
 - replay TSqlGrouping: under TSqlGroupByClause
 - replay TSqlInsert: under ChangedStatement
 - replay TSqlMerge: under ChangedStatement
 - replay TSqlPredicate: under BooleanPrimary
 - replay TSqlPrimaryCore: under TSqlValuePrimary
+- replay TSqlQueryExpression: under TSqlSubquery
 - replay TSqlQuerySpecification: under QueryPrimary
 - replay TSqlRow: under TSqlTableValueConstructor
 - replay TSqlSelectList: under TSqlQuerySpecification
@@ -1857,11 +1883,11 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Web.Rfc5322
 
-- machine ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: carrier: tape; gate: read again; building: 17; replayed: 0; read again: 36; refused: 0; points: 47/47
+- machine ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: carrier: tape; gate: read again; building: 17; replayed: 0; read again: 32; refused: 0; points: 47/47
 - machine ParseStrictAddrSpec [whole]: carrier: tape; gate: read again; building: 4; replayed: 0; read again: 15; refused: 0; points: 9/9
-- machine ParseStrictMailbox [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 20; refused: 0; points: 15/15
-- machine ParseStrictMailboxList [whole]: carrier: tape; gate: read again; building: 8; replayed: 0; read again: 22; refused: 0; points: 21/21
-- machine ParseStrictAddressList [whole]: carrier: tape; gate: read again; building: 13; replayed: 0; read again: 27; refused: 0; points: 37/37
+- machine ParseStrictMailbox [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 18; refused: 0; points: 15/15
+- machine ParseStrictMailboxList [whole]: carrier: tape; gate: read again; building: 8; replayed: 0; read again: 20; refused: 0; points: 21/21
+- machine ParseStrictAddressList [whole]: carrier: tape; gate: read again; building: 13; replayed: 0; read again: 25; refused: 0; points: 37/37
 - again AddrSpecRule: through Domain
 - again AddrSpecRule: through CurrentLocalPart
 - again AddrSpecRule: through CurrentLocalPart
@@ -1879,31 +1905,24 @@ or which nothing calls, so that no caller asks it again.
 - again AngleAddr: through Cfws
 - again AngleAddr: through Cfws
 - again Atom: through Cfws
-- again AtomText: opens a way
-- open AtomText: run; what follows begins alike; open; Atext+
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Ccontent: through Comment
 - again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ((Fws? & Comment)+ & Fws? | Fws)
-- open Cfws: turns; a turn led by what may read nothing; open; (Fws? & Comment)+
+- open Cfws: choice; alternatives begin alike; open; ({ (Fws? & Comment)+ } & Fws? | Fws)
 - open Cfws: optional; what follows begins alike; open; Fws?
 - again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With1)+ & CurrentFws? | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With1)+
+- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With1)+ } & CurrentFws? | CurrentFws)
 - again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With2)+ & CurrentFws? | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With2)+
+- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With2)+ } & CurrentFws? | CurrentFws)
 - open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With3)+ & CurrentFws? | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With3)+
+- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With3)+ } & CurrentFws? | CurrentFws)
 - open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ((CurrentFws? & Comment_With4)+ & CurrentFws? | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With4)+
+- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With4)+ } & CurrentFws? | CurrentFws)
 - open Cfws: optional; a turn led by what may read nothing; open; CurrentFws?
 - again Comment: opens a way
 - open Comment: turns; a turn led by what may read nothing; open; (Fws? & Ccontent)*
@@ -1933,7 +1952,6 @@ or which nothing calls, so that no caller asks it again.
 - open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With4 => (literal) | Cfws_With4? & text: DotAt…
 - again CurrentFws: opens a way
 - open CurrentFws: optional; a turn led by what may read nothing; open; (Wsp* & Crlf)?
-- open CurrentFws: run; what follows begins alike; open; Wsp+
 - again CurrentLocalPart: opens a way
 - open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With1? & text: DotAtomText & Cfws_With1? => (text) | Cfws_With1?…
 - again CurrentLocalPart: opens a way
@@ -1943,11 +1961,11 @@ or which nothing calls, so that no caller asks it again.
 - again CurrentLocalPart: opens a way
 - open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With4? & text: DotAtomText & Cfws_With4? => (text) | Cfws_With4?…
 - again CurrentPhrase: opens a way
-- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With2+
+- open CurrentPhrase: turns; what follows begins alike; open; WordText_With2+
 - again CurrentPhrase: opens a way
-- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With3+
+- open CurrentPhrase: turns; what follows begins alike; open; WordText_With3+
 - again CurrentPhrase: opens a way
-- open CurrentPhrase: turns; a turn led by what may read nothing; open; WordText_With4+
+- open CurrentPhrase: turns; what follows begins alike; open; WordText_With4+
 - again Domain: opens a way
 - open Domain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral => (literal) | first: Atom & rest: DotAtom* =>…
 - again DomainLiteral: through Cfws
@@ -1976,7 +1994,6 @@ or which nothing calls, so that no caller asks it again.
 - open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
 - again Dtext: opens a way
 - open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
-- again Fws: through ObsFws
 - again Group: through Cfws
 - again GroupList: opens a way
 - open GroupList: choice; an alternative that may read nothing; open; (list: MailboxList => (list) | ObsGroupList => (Array.Empty<EmailAddre…
@@ -1986,7 +2003,7 @@ or which nothing calls, so that no caller asks it again.
 - again LocalPart: through Word
 - again Mailbox: opens a way
 - open Mailbox: choice; every alternative led by what may read nothing; open; (name: Phrase? & address: AngleAddr => (new EmailAddress.Mailbox(Rfc53…
-- open Mailbox: optional, captured; a turn led by what may read nothing; open; name: Phrase?
+- open Mailbox: optional, captured; what follows begins alike; open; name: Phrase?
 - again MailboxList: through NullMembers
 - again MailboxList: through Mailbox
 - again MailboxList: through Mailbox
@@ -2013,8 +2030,6 @@ or which nothing calls, so that no caller asks it again.
 - again NullMembers: opens a way
 - open NullMembers: turns; a turn led by what may read nothing; open; (Cfws? & ',')*
 - again ObsDtext: through QuotedPair
-- again ObsFws: opens a way
-- open ObsFws: turns; a turn led by what may read nothing; open; (Crlf? & Wsp)+
 - again ObsGroupList: opens a way
 - open ObsGroupList: turns; a turn led by what may read nothing; open; (Cfws? & ',')+
 - again ObsPhrase: opens a way
@@ -2057,14 +2072,6 @@ or which nothing calls, so that no caller asks it again.
 - open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
 - again Word: opens a way
 - open Word: choice; every alternative led by what may read nothing; open; (Cfws? & text: AtomText & Cfws? => (text) | Cfws? & body: QuotedBody &…
-- again WordText: opens a way
-- open WordText: optional; what follows begins alike; open; Cfws?
-- again WordText: opens a way
-- open WordText: optional; what follows begins alike; open; Cfws_With2?
-- again WordText: opens a way
-- open WordText: optional; what follows begins alike; open; Cfws_With3?
-- again WordText: opens a way
-- open WordText: optional; what follows begins alike; open; Cfws_With4?
 
 ## DotGram.Web.Rfc5646
 
@@ -2115,10 +2122,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Web.Rfc6570
 
-- machine ParseTemplate [whole]: carrier: tape; gate: read again; building: 5; replayed: 0; read again: 2; refused: 0; points: 10/10
-- again Literals: opens a way
-- open Literals: turns; what follows begins alike; open; (LiteralChar | PctEncoded)+
-- again Template: through Literals
+- machine ParseTemplate [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 10/10
 
 ## DotGram.Web.Rfc6901
 

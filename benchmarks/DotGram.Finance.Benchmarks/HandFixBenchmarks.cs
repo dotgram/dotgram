@@ -5,7 +5,8 @@ using System.Text.Json;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten.Fix;
 
 namespace DotGram.Finance.Benchmarks;
@@ -71,12 +72,12 @@ public class HandFixBenchmarks
 	{
 		if (InputForm == "Text")
 			return hand
-				? _log ? HandFixParser.Parse  (_text, FixContext.WithLogFraming) : HandFixParser.Parse(_text)
-				: _log ? FixParser.ParseFields(_text, FixContext.WithLogFraming) : FixParser.ParseFields(_text);
+				? _log ? HandFixParser.Parse  (_text, Fix44Context.WithLogFraming) : HandFixParser.Parse(_text)
+				: _log ? FixParser.ParseFields(_text, Fix44Context.WithLogFraming) : FixParser.ParseFields(_text);
 		if (InputForm == "Bytes")
 			return hand
-				? _log ? HandFixParser.Parse  (_bytes, FixContext.WithLogFraming) : HandFixParser.Parse(_bytes)
-				: _log ? FixParser.ParseFields(_bytes, FixContext.WithLogFraming) : FixParser.ParseFields(_bytes);
+				? _log ? HandFixParser.Parse  (_bytes, Fix44Context.WithLogFraming) : HandFixParser.Parse(_bytes)
+				: _log ? FixParser.ParseFields(_bytes, Fix44Context.WithLogFraming) : FixParser.ParseFields(_bytes);
 
 		return Read();
 
@@ -86,11 +87,11 @@ public class HandFixBenchmarks
 			using var stream = new MemoryStream(_bytes, false);
 			var fields = InputForm == "Reader"
 				? hand
-					? _log ? HandFixParser.Parse (reader, FixContext.WithLogFraming) : HandFixParser.Parse(reader)
-					: _log ? FixParser.ReadFields(reader, FixContext.WithLogFraming) : FixParser.ReadFields(reader)
+					? _log ? HandFixParser.Parse (reader, Fix44Context.WithLogFraming) : HandFixParser.Parse(reader)
+					: _log ? FixParser.ReadFields(reader, Fix44Context.WithLogFraming) : FixParser.ReadFields(reader)
 				: hand
-					? _log ? HandFixParser.Parse (stream, FixContext.WithLogFraming) : HandFixParser.Parse(stream)
-					: _log ? FixParser.ReadFields(stream, FixContext.WithLogFraming) : FixParser.ReadFields(stream);
+					? _log ? HandFixParser.Parse (stream, Fix44Context.WithLogFraming) : HandFixParser.Parse(stream)
+					: _log ? FixParser.ReadFields(stream, Fix44Context.WithLogFraming) : FixParser.ReadFields(stream);
 			foreach (var field in fields)
 				yield return field;
 		}

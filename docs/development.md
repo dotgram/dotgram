@@ -397,17 +397,18 @@ what it says about the pass.
 
 ## The script that writes the FIX 4.4 model
 
-`src/DotGram.Finance/Fix44/generate.py` reads `tests/Corpus/FixRepository` — FIX 4.4's own
-machine-readable form — and writes three files beside itself: `FixMessage.Types.cs`, the class of
+`src/DotGram.Finance/Fix/Fix44/generate.py` reads `tests/Corpus/FixRepository` — FIX 4.4's own
+machine-readable form — and writes four files beside itself: `FixMessage.Types.cs`, the class of
 each of the ninety-three message types with the switch that reads its fields; `FixComponents.cs`,
-an interface a component; and `FixValidators.cs`, the check of every message type, component and
-group entry; and `FixTag.cs`, the number of every field as a constant.
+an interface a component; `FixValidators.cs`, the check of every message type, component and
+group entry; and `FixStandard.cs`, the type of the value of every field. One more goes one
+directory up, into what every version shares: `FixTag.cs`, the name of every tag.
 **The build does not run it.** Its output is checked in and read as ordinary source, so
 nobody needs Python to build, test or ship this repository; it is needed only by whoever changes the
 script or the repository under it.
 
 ```
-python src/DotGram.Finance/Fix44/generate.py
+python src/DotGram.Finance/Fix/Fix44/generate.py
 ```
 
 Names are QuickFIX's, so that a QuickFIX dictionary loaded at run time is written into checks by

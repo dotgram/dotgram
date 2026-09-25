@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>The type of a field's value, which is the class the field is built as.</summary>
 enum FixValueType : byte
@@ -20,7 +20,7 @@ enum FixValueType : byte
 	Data,
 }
 
-static partial class FixFieldBuilder
+static class FixFieldBuilder
 {
 	public static FixField Value(FixTag tag, FixValueType type, ReadOnlySpan<char> value)
 	{

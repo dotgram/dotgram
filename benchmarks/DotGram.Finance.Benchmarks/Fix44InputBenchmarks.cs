@@ -4,7 +4,8 @@ using System.Text;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 namespace DotGram.Finance.Benchmarks;
 

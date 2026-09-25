@@ -8,7 +8,8 @@ using System.Text;
 
 using DotGram.Examples.Feeds;
 using DotGram.ExpressionLanguage;
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten;
 using DotGram.Handwritten.Feeds;
 using DotGram.Handwritten.Fix;

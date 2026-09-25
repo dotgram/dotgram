@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten.Web;
 using DotGram.Web;
 

@@ -4,7 +4,8 @@ using System.IO;
 using System.Linq;
 
 using DotGram.Examples.Feeds;
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Handwritten.Fix;
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;

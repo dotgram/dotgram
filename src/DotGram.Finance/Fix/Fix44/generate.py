@@ -3,8 +3,8 @@
 #     FixMessage.Types.cs   a class a message type, its fields read in one switch
 #     FixComponents.cs      an interface a component, its repeating groups nested in it
 #     FixValidators.cs      the check of every message type, component and group entry
-#     FixTag.cs             the number of every field, as a member named for it
-#     FixFieldBuilder.Standard.cs   the type of the value of every field
+#     ../FixTag.cs          the number of every field, as a member named for it
+#     FixStandard.cs        the type of the value of every field
 #
 # The repository is tests/Corpus/FixRepository/FIX.4.4/Base, and a field is named as the
 # repository names it, or as QuickFIX does where the two differ. A field is a class of the type of
@@ -24,7 +24,7 @@ import collections
 import xml.etree.ElementTree as ET
 
 here = os.path.dirname(os.path.abspath(__file__))
-root = os.path.normpath(os.path.join(here, "..", "..", ".."))
+root = os.path.normpath(os.path.join(here, "..", "..", "..", ".."))
 base = os.path.join(root, "tests", "Corpus", "FixRepository", "FIX.4.4", "Base")
 
 
@@ -388,7 +388,7 @@ def message_class(m):
             "\t\t\t\t\t\tbreak;", "\t\t\t\t}", "\t\t\t}", "\t\t}", ""]
     out.extend(class_body(members, 2, "internal set"))
     out += ["\t\t/// <summary>Asks the context for the check of this type and runs it.</summary>",
-            "\t\tprivate protected override void Check(FixContext context)", "\t\t{",
+            "\t\tprivate protected override void Check(Fix44Context context)", "\t\t{",
             f"\t\t\tcontext.Validators.{m['Name']}(context, this);", "\t\t}", "\t}", ""]
 
     return out
@@ -463,15 +463,15 @@ def validators_text():
 
     for m in messages:
         slots += [f"\t/// <summary>Holds a FIX 4.4 {m['Name']} to the schema.</summary>",
-                  f"\tpublic Func<FixContext, FixMessage.{m['Name']}, bool> {m['Name']} {{ get; set; }} = Validate{m['Name']};", ""]
-        checks += [f"\tstatic bool Validate{m['Name']}(FixContext context, FixMessage.{m['Name']} message)", "\t{"]
+                  f"\tpublic Func<Fix44Context, FixMessage.{m['Name']}, bool> {m['Name']} {{ get; set; }} = Validate{m['Name']};", ""]
+        checks += [f"\tstatic bool Validate{m['Name']}(Fix44Context context, FixMessage.{m['Name']} message)", "\t{"]
         checks += check_body(message_members[m["Name"]], "message")
         checks += ["", "\t\treturn message.IsValid;", "\t}", ""]
 
     for i in interfaces.values():
         slots += [f"\t/// <summary>Holds a FIX 4.4 {i.name} to the schema, wherever it is carried.</summary>",
-                  f"\tpublic Func<FixContext, FixMessage, {i.type_name}, bool> {i.name} {{ get; set; }} = Validate{i.name};", ""]
-        checks += [f"\tstatic bool Validate{i.name}(FixContext context, FixMessage message, {i.type_name} block)", "\t{"]
+                  f"\tpublic Func<Fix44Context, FixMessage, {i.type_name}, bool> {i.name} {{ get; set; }} = Validate{i.name};", ""]
+        checks += [f"\tstatic bool Validate{i.name}(Fix44Context context, FixMessage message, {i.type_name} block)", "\t{"]
         checks += check_body(i.members, "block")
         checks += ["", "\t\treturn message.IsValid;", "\t}", ""]
 
@@ -485,8 +485,8 @@ def validators_text():
 
     for e in entries:
         slots += [f"\t/// <summary>Holds one entry of {e.type_name} to the schema.</summary>",
-                  f"\tpublic Func<FixContext, FixMessage, {e.type_name}, int, bool> {e.slot} {{ get; set; }} = Validate{e.slot};", ""]
-        checks += [f"\tstatic bool Validate{e.slot}(FixContext context, FixMessage message, {e.type_name} entry, int index)", "\t{"]
+                  f"\tpublic Func<Fix44Context, FixMessage, {e.type_name}, int, bool> {e.slot} {{ get; set; }} = Validate{e.slot};", ""]
+        checks += [f"\tstatic bool Validate{e.slot}(Fix44Context context, FixMessage message, {e.type_name} entry, int index)", "\t{"]
         checks += check_body(e.members, "entry", e.opener)
         checks += ["", "\t\treturn message.IsValid;", "\t}", ""]
 
@@ -494,7 +494,7 @@ def validators_text():
         "using System;",
         "using System.Collections.Generic;",
         "",
-        "namespace DotGram.Finance.Fix44;",
+        "namespace DotGram.Finance.Fix.Fix44;",
         "",
         "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
         "",
@@ -529,7 +529,7 @@ def write(name, lines):
 types = [
     "using System.Collections.Generic;",
     "",
-    "namespace DotGram.Finance.Fix44;",
+    "namespace DotGram.Finance.Fix.Fix44;",
     "",
     "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "",
@@ -548,7 +548,7 @@ component_lines = [
     "",
     "// ReSharper disable InconsistentNaming",
     "",
-    "namespace DotGram.Finance.Fix44;",
+    "namespace DotGram.Finance.Fix.Fix44;",
     "",
     "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "//",
@@ -565,7 +565,7 @@ for i in interfaces.values():
     component_lines.extend(interface_text(i))
 
 tag_lines = [
-    "namespace DotGram.Finance.Fix44;",
+    "namespace DotGram.Finance.Fix;",
     "",
     "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "",
@@ -583,14 +583,14 @@ tag_lines[-1:] = ["}", ""]
 width = max(len(name) for name in field_name.values())
 
 standard_lines = [
-    "namespace DotGram.Finance.Fix44;",
+    "namespace DotGram.Finance.Fix.Fix44;",
     "",
     "// Written by generate.py from the FIX 4.4 repository; not edited by hand.",
     "",
-    "partial class FixFieldBuilder",
+    "static class FixStandard",
     "{",
     "\t/// <summary>The type of the value of a field FIX 4.4 defines; <see cref=\"FixValueType.None\"/> for a tag it does not.</summary>",
-    "\tinternal static FixValueType Standard(FixTag tag)",
+    "\tinternal static FixValueType Type(FixTag tag)",
     "\t{",
     "\t\treturn tag switch",
     "\t\t{",
@@ -601,8 +601,8 @@ for tag, name in sorted(field_name.items()):
 
 standard_lines += [f"\t\t\t{'_'.ljust(width + 7)} => FixValueType.None,", "\t\t};", "\t}", "}", ""]
 
-write("FixTag.cs", tag_lines)
-write("FixFieldBuilder.Standard.cs", standard_lines)
+write(os.path.join("..", "FixTag.cs"), tag_lines)
+write("FixStandard.cs", standard_lines)
 write("FixMessage.Types.cs", types)
 write("FixComponents.cs", component_lines[:-1] + [""])
 write("FixValidators.cs", validators_text())

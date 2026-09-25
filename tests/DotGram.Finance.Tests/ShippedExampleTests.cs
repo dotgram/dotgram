@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using DotGram.Tests;
 
@@ -26,12 +27,12 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_length_data_example_of_both_pages_runs()
 	{
-		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag>
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag>
 		{
 			[(FixTag)5000] = (FixTag)5001,
 		} };
 
-		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
+		var custom = FixParser.ParseFields("5000=3 | 5001=a|b | ", (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
 
 		Assert.Equal([5000, 5001], custom.Select(field => (int)field.Tag));
 	}
@@ -41,9 +42,9 @@ public sealed class ShippedExampleTests
 	{
 		// What the comment beside those examples now claims, which is the half a reader is most
 		// likely to doubt: declaring your own does not cost you the standard's.
-		var options = new FixContext { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
+		var options = new Fix44Context { LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 } };
 
-		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new FixContext()) with { Framing = FixFraming.Log });
+		var standard = FixParser.ParseFields("95=3 | 96=a|b | ", (options ?? new Fix44Context()) with { Framing = FixFraming.Log });
 
 		Assert.Equal([95, 96], standard.Select(field => (int)field.Tag));
 	}
@@ -89,7 +90,7 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_opening_example_of_the_readme_runs()
 	{
-		var fields = FixParser.ParseFields("55=ABC|38=100|", FixContext.WithLogFraming);
+		var fields = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.WithLogFraming);
 
 		Assert.Equal([55, 38], fields.Select(field => (int)field.Tag));
 	}

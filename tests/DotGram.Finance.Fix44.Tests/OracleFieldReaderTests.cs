@@ -2,7 +2,7 @@
 
 using DotGram.Finance.Tests;
 
-namespace DotGram.Finance.Fix44.Tests;
+namespace DotGram.Finance.Fix.Fix44.Tests;
 
 /// <summary>
 /// The shared field-parser tests over the Fix44 oracle: it must behave as the product does,

@@ -1,11 +1,11 @@
-﻿namespace DotGram.Finance.Fix44;
+﻿namespace DotGram.Finance.Fix.Fix44;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
 
-partial class FixFieldBuilder
+static class FixStandard
 {
 	/// <summary>The type of the value of a field FIX 4.4 defines; <see cref="FixValueType.None"/> for a tag it does not.</summary>
-	internal static FixValueType Standard(FixTag tag)
+	internal static FixValueType Type(FixTag tag)
 	{
 		return tag switch
 		{

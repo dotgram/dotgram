@@ -6,7 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 using Xunit.Sdk;
@@ -76,7 +77,7 @@ public abstract class FixFieldReaderTests
 
 			var corrupted = FixParser.BuildMessage(corrupt, corruptFields);
 
-			Assert.False(corrupted.Validate(FixContext.Default));
+			Assert.False(corrupted.Validate(Fix44Context.Default));
 			Assert.Contains(corrupted.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 		});
 	}

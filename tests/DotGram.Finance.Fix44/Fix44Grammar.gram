@@ -1,7 +1,7 @@
-﻿@using DotGram.Finance.Fix44;
+﻿@using DotGram.Finance.Fix;
 using Known;
 
-context : @Fix44Context
+context : @Fix44Reading
 
 Separator    = ['\u0001']
 LogSeparator = ' '* & '|' & ' '*
@@ -57,8 +57,8 @@ KnownBinary : @FixField =
 CustomFiled : @FixField = any & when @(false) => @(null!)
 
 Unknown : @FixField =
-	tag: Digits & when @(Fix44Context.IsUnknownText(tag)) & '=' & value: ValueText
-	=> @(new FixField.Invalid((FixTag)Fix44Context.Tag(tag), value))
+	tag: Digits & when @(Fix44Reading.IsUnknownText(tag)) & '=' & value: ValueText
+	=> @(new FixField.Invalid((FixTag)Fix44Reading.Tag(tag), value))
 
 Field : @FixField =
 	{ ?=any } & when @(context.Next()) & (v: KnownBinary | v: KnownField(ValueText) | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))

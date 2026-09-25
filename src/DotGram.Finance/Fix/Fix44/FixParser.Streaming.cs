@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 public static partial class FixParser
 {
@@ -9,7 +9,7 @@ public static partial class FixParser
 		if (maxMessageLength < 1) throw new ArgumentOutOfRangeException(nameof(maxMessageLength));
 	}
 
-	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, FixContext? context)
+	static IEnumerable<FixMessage> ReadFrames(FrameReader reader, Fix44Context? context)
 	{
 		while (true)
 		{
@@ -39,7 +39,7 @@ public static partial class FixParser
 		public byte[]? Bytes { get; }
 	}
 
-	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, FixContext? context)
+	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, Fix44Context? context)
 	{
 		return frame.Bytes != null
 			? TryParseBytes(frame.Bytes, out message, out error, context)

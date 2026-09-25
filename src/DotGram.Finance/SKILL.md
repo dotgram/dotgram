@@ -6,9 +6,10 @@ description: Read FIX 4.4 tag-value data with DotGram.Finance — flat typed fie
 # DotGram.Finance
 
 Reads FIX 4.4 tag-value input: wire messages whose fields end with SOH, and the
-pipe-separated log renderings people keep of them. Everything is in the
-`DotGram.Finance.Fix44` namespace. There is no runtime to deploy, nothing to configure
-and nothing to initialize.
+pipe-separated log renderings people keep of them. What every version of FIX shares — the
+fields, `FixTag`, `FixConvert`, the findings — is in `DotGram.Finance.Fix`; FIX 4.4's own —
+`FixParser`, the messages, `Fix44Context` — in `DotGram.Finance.Fix.Fix44`. There is no runtime
+to deploy, nothing to configure and nothing to initialize.
 
 The [README][readme] beside this file is the reference. This is the order to decide
 things in, and the mistakes that are easy to make.
@@ -49,7 +50,7 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
   hand. It is not cheaper: the values are materialised one character to one octet either way.
   It is right.
-- **Wire or log.** The field calls read SOH-separated fields, and `FixContext.WithLogFraming`
+- **Wire or log.** The field calls read SOH-separated fields, and `Fix44Context.WithLogFraming`
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
   value goes to every other call. A message read whole may pad its pipes with spaces;
   streamed messages, cut by their BodyLength, want a bare `|`.
@@ -64,7 +65,8 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
 ```csharp
 using System;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
@@ -98,7 +100,7 @@ foreach (var field in FixParser.ParseFields(wire))
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
 - A tag the package does not know is read as the type a dictionary loaded into the context gives
-  it: `FixContext.Default.Load(venueXml)`. A MsgType it does not know is built by
+  it: `Fix44Context.Default.Load(venueXml)`. A MsgType it does not know is built by
   `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing defines is a
   `FixField.Invalid` of that tag with its octets, and a type the factory answers null for a
   `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a
@@ -155,7 +157,7 @@ switch (message)
 
 A length/data pair — `95=5` then `96=` and five octets — is read by its length, so the
 payload may contain separators. It comes back as two fields, the length and the data, each
-with its own position. Counterparty-defined pairs go in `FixContext`:
+with its own position. Counterparty-defined pairs go in `Fix44Context`:
 
 ```csharp
 using System.Collections.Generic;
@@ -163,7 +165,7 @@ using System.Collections.Generic;
 var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
             "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
 
-var context = new FixContext
+var context = new Fix44Context
 {
     LengthDataPairs = new Dictionary<FixTag, FixTag> { [(FixTag)5000] = (FixTag)5001 },   // length tag to data tag, added to the standard's sixteen
 };

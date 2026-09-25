@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>
 /// The ninety-three messages FIX 4.4 describes, each a case of <see cref="FixMessage"/>.
@@ -14,7 +14,7 @@ namespace DotGram.Finance.Fix44;
 /// thing IS where it is written, and puts the base type in front of every arm of every switch,
 /// which is what makes the hierarchy visibly closed where it is taken apart.
 /// </remarks>
-public abstract partial class FixMessage
+public abstract partial class FixMessage : IFixFindings
 {
 	internal FixMessage(string messageType, List<FixField> fields)
 	{
@@ -123,7 +123,7 @@ public abstract partial class FixMessage
 	/// <summary>Holds this message to the schema, adding what is wrong to <see cref="InvalidFindings"/>.</summary>
 	/// <param name="context">The schema to hold it to.</param>
 	/// <returns>Whether nothing is wrong with it.</returns>
-	public bool Validate(FixContext context)
+	public bool Validate(Fix44Context context)
 	{
 		if (context == null) throw new ArgumentNullException(nameof(context));
 
@@ -140,13 +140,18 @@ public abstract partial class FixMessage
 	}
 
 	/// <summary>Asks the context for the check of this message type and runs it.</summary>
-	private protected abstract void Check(FixContext context);
+	private protected abstract void Check(Fix44Context context);
 
 	/// <summary>Adds one finding to this message.</summary>
 	/// <param name="finding">What is wrong.</param>
 	protected internal void AddFinding(FixFinding finding)
 	{
 		(InvalidFindings ??= []).Add(finding);
+	}
+
+	void IFixFindings.AddFinding(FixFinding finding)
+	{
+		AddFinding(finding);
 	}
 
 	/// <summary>
@@ -334,7 +339,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Nothing: the type is not one the schema describes, and that has been said.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 		}
 	}

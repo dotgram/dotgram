@@ -3,7 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -194,7 +195,7 @@ public sealed class FixOctetRoadTests
 		// UTF-8: the claim is false, and what is found is the length rather than the decoding.
 		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.False(misread.Validate(FixContext.Default));
+		Assert.False(misread.Validate(Fix44Context.Default));
 		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
@@ -211,7 +212,7 @@ public sealed class FixOctetRoadTests
 
 		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.False(misread.Validate(FixContext.Default));
+		Assert.False(misread.Validate(Fix44Context.Default));
 		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
@@ -304,7 +305,7 @@ public sealed class FixOctetRoadTests
 
 		var message = FixParser.ParseMessage(wire);
 
-		Assert.False(message.Validate(FixContext.Default));
+		Assert.False(message.Validate(Fix44Context.Default));
 		Assert.Contains(message.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 

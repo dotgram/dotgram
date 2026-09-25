@@ -8,7 +8,8 @@ using System.Threading;
 
 using DotGram.Examples.Feeds;
 using DotGram.ExpressionLanguage;
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 using DotGram.Web;

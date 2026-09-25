@@ -1,7 +1,7 @@
 ﻿using System;
 
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 [Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
 sealed partial class Fix44Grammar : FixFieldGrammar;
@@ -9,7 +9,7 @@ sealed partial class Fix44Grammar : FixFieldGrammar;
 [Gram("FixField.gram", IncludedAs = "Known", Portable = false)]
 abstract partial class FixFieldGrammar;
 
-sealed class Fix44Context
+sealed class Fix44Reading
 {
 	public long DataLimit { get; private set; }
 

@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>The conversions a FIX value is read by, one a type of the standard's.</summary>
 /// <remarks>

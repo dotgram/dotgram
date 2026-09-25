@@ -5,7 +5,8 @@ using System.IO;
 using System.Text;
 using System.Xml.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -83,7 +84,7 @@ public sealed class FixFieldBuilderTests
 	/// <summary>The two doors, so that neither is checked alone.</summary>
 	static IEnumerable<(string Door, FixField Field)> Both(int tag)
 	{
-		var type = FixContext.Default.Type(tag);
+		var type = Fix44Context.Default.Type(tag);
 
 		yield return ("characters", FixFieldBuilder.Value((FixTag)tag, type, "1".AsSpan()));
 		yield return ("octets",     FixFieldBuilder.Value((FixTag)tag, type, Encoding.Latin1.GetBytes("1").AsSpan()));

@@ -6,7 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -160,12 +161,12 @@ public sealed class Fix44Tests
 
 		var checksum = FixParser.ParseMessage(wire[..^4] + "999\u0001");
 
-		Assert.False(checksum.Validate(FixContext.Default));
+		Assert.False(checksum.Validate(Fix44Context.Default));
 		Assert.Contains(checksum.InvalidFindings!, finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: FixTag.CheckSum });
 
 		var length = FixParser.ParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal));
 
-		Assert.False(length.Validate(FixContext.Default));
+		Assert.False(length.Validate(Fix44Context.Default));
 		Assert.Contains(length.InvalidFindings!, finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: FixTag.BodyLength });
 	}
 
@@ -175,13 +176,13 @@ public sealed class Fix44Tests
 		var wire  = FixFixtures.Wire("0", "");
 		var other = FixParser.ParseMessage(wire.Replace("FIX.4.4", "FIX.4.2", StringComparison.Ordinal));
 
-		Assert.False(other.Validate(FixContext.Default));
+		Assert.False(other.Validate(Fix44Context.Default));
 		Assert.Contains(other.InvalidFindings!, finding => finding is { Rule: FixRule.InvalidValue, Tag: FixTag.BeginString });
 
 		// MsgType moved behind SenderCompID: the octets are the same, so only the order is wrong.
 		var moved = FixParser.ParseMessage(wire.Replace("35=0\u000149=SENDER\u0001", "49=SENDER\u000135=0\u0001", StringComparison.Ordinal));
 
-		Assert.False(moved.Validate(FixContext.Default));
+		Assert.False(moved.Validate(Fix44Context.Default));
 		Assert.Contains(moved.InvalidFindings!, finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: FixTag.MsgType });
 		Assert.DoesNotContain(moved.InvalidFindings!, finding => finding.Rule is FixRule.CheckSumMismatch or FixRule.BodyLengthMismatch);
 	}
@@ -192,9 +193,9 @@ public sealed class Fix44Tests
 		var wire   = FixFixtures.Wire("0", "112=TEST|");
 		var padded = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire)).Replace("|", " | ", StringComparison.Ordinal).TrimEnd();
 
-		var message = FixParser.ParseMessage(padded, FixContext.WithLogFraming);
+		var message = FixParser.ParseMessage(padded, Fix44Context.WithLogFraming);
 
-		Assert.True(message.Validate(FixContext.WithLogFraming), string.Join("; ", message.InvalidFindings ?? []));
+		Assert.True(message.Validate(Fix44Context.WithLogFraming), string.Join("; ", message.InvalidFindings ?? []));
 	}
 
 	[Fact]
@@ -202,7 +203,7 @@ public sealed class Fix44Tests
 	{
 		var bare = FixParser.ParseMessage(FixFixtures.Wire("B", "148=NEWS|354=3|355=abc|358=2|359=xy|33=0|"));
 
-		Assert.False(bare.Validate(FixContext.Default));
+		Assert.False(bare.Validate(Fix44Context.Default));
 
 		var missing = Assert.Single(bare.InvalidFindings!, finding => finding.Rule == FixRule.MessageEncodingMissing);
 
@@ -212,7 +213,7 @@ public sealed class Fix44Tests
 
 		var declared = FixParser.ParseMessage(FixFixtures.Wire("B", "347=UTF-8|148=NEWS|354=3|355=abc|33=0|"));
 
-		declared.Validate(FixContext.Default);
+		declared.Validate(Fix44Context.Default);
 
 		Assert.DoesNotContain(declared.InvalidFindings ?? [], finding => finding.Rule == FixRule.MessageEncodingMissing);
 	}
@@ -222,7 +223,7 @@ public sealed class Fix44Tests
 	{
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=3|"));
 
-		Assert.False(message.Validate(FixContext.Default));
+		Assert.False(message.Validate(Fix44Context.Default));
 		Assert.Contains(message.InvalidFindings!, finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: FixTag.RawDataLength });
 	}
 
@@ -330,7 +331,7 @@ public sealed class Fix44Tests
 			for (var i = 1; i < fields.Count; i++)
 			{
 				var current   = fields[i];
-				var lengthTag = FixContext.Default.LengthDataPairs.FirstOrDefault(pair => pair.Value == current.Tag).Key;
+				var lengthTag = Fix44Context.Default.LengthDataPairs.FirstOrDefault(pair => pair.Value == current.Tag).Key;
 
 				if (lengthTag == 0 || !covered.Add(current.Tag)) continue;
 

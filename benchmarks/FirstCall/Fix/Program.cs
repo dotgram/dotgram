@@ -61,10 +61,10 @@ var handwritten = mode.StartsWith("hand", StringComparison.Ordinal) ? Assembly.L
 
 Phase("load", false);
 
-var options = ((finance.GetType("DotGram.Finance.Fix44.FixContext") ?? finance.GetType("DotGram.Finance.Fix.FixContext")) ?? (finance.GetType("DotGram.Finance.Fix44.FixFieldOptions") ?? finance.GetType("DotGram.Finance.Fix.FixFieldOptions")))!;
-var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : (finance.GetType("DotGram.Finance.Fix44.FixParser") ?? finance.GetType("DotGram.Finance.Fix.FixParser")))!;
+var options = ((finance.GetType("DotGram.Finance.Fix.Fix44.Fix44Context") ?? finance.GetType("DotGram.Finance.Fix.Fix44Context")) ?? (finance.GetType("DotGram.Finance.Fix.Fix44.FixFieldOptions") ?? finance.GetType("DotGram.Finance.Fix.FixFieldOptions")))!;
+var fieldParser = (mode.StartsWith("hand", StringComparison.Ordinal) ? handwritten!.GetType("DotGram.Handwritten.Fix.HandFixParser") : (finance.GetType("DotGram.Finance.Fix.Fix44.FixParser") ?? finance.GetType("DotGram.Finance.Fix.FixParser")))!;
 // The message layer was its own internal class until 2026-09-23; since then its calls are the door's own.
-var messages = (finance.GetType("DotGram.Finance.Fix44.FixMessages") ?? finance.GetType("DotGram.Finance.Fix.FixMessages") ?? finance.GetType("DotGram.Finance.Fix44.FixParser"))!;
+var messages = (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessages") ?? finance.GetType("DotGram.Finance.Fix.FixMessages") ?? finance.GetType("DotGram.Finance.Fix.Fix44.FixParser"))!;
 MethodInfo? MessageCall(string name, string door, Type[] types)
 {
 	return messages.GetMethod(name, types) ?? messages.GetMethod(door, types);
@@ -116,7 +116,7 @@ switch (mode)
 
 		if (mode.StartsWith("generated", StringComparison.Ordinal))
 		{
-			var grammar = (finance.GetType("DotGram.Finance.Fix44.FixGrammar") ?? finance.GetType("DotGram.Finance.Fix.FixGrammar"))!;
+			var grammar = (finance.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? finance.GetType("DotGram.Finance.Fix.FixGrammar"))!;
 
 			types.Add(grammar);
 			types.AddRange(grammar.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic).Where(static type => !type.ContainsGenericParameters));
@@ -144,7 +144,7 @@ switch (mode)
 
 	case "parse":
 	{
-		if ((finance.GetType("DotGram.Finance.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
+		if ((finance.GetType("DotGram.Finance.Fix.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
 		{
 			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
 			Phase("FixSchema cctor", true);
@@ -155,11 +155,11 @@ switch (mode)
 		// A build before D53 takes a FixParseMode and checks the schema inside the parse; a build
 		// after it takes none and the schema is a separate call. Both are asked for the work the
 		// other does, so what this harness times is the same on either side of the change.
-		var parseMode = (finance.GetType("DotGram.Finance.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
+		var parseMode = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
 		var alone     = parseMode == null ? messages.GetMethod("Parse", [typeof(string)]) : null;
 		var parse     = parseMode != null ? messages.GetMethod("Parse", [typeof(string), parseMode])! : alone ?? MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
 		var arguments = parseMode != null ? new object?[] { order, Enum.ToObject(parseMode, 0) } : alone != null ? [order] : [order, null];
-		var validate  = parseMode != null ? null : (finance.GetType("DotGram.Finance.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
+		var validate  = parseMode != null ? null : (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
 
 		var call = () =>
 		{
@@ -183,7 +183,7 @@ switch (mode)
 	case "validate-all":
 	case "validate-all-generated":
 	{
-		if ((finance.GetType("DotGram.Finance.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
+		if ((finance.GetType("DotGram.Finance.Fix.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
 		{
 			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
 			Phase("FixSchema cctor", true);
@@ -216,7 +216,7 @@ switch (mode)
 		Phase($"parse {built.Count} types", false);
 
 		var wanted = mode.EndsWith("-generated", StringComparison.Ordinal);
-		var walk   = (finance.GetType("DotGram.Finance.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
+		var walk   = (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
 		var rules  = built.ToDictionary(
 			static message => message,
 			message => wanted
@@ -249,7 +249,7 @@ switch (mode)
 	case "validate":
 	case "validate-generated":
 	{
-		if ((finance.GetType("DotGram.Finance.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
+		if ((finance.GetType("DotGram.Finance.Fix.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
 		{
 			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
 			Phase("FixSchema cctor", true);
@@ -268,7 +268,7 @@ switch (mode)
 		var rule      = generated
 			? message.GetType().GetMethod("ValidateDefault", BindingFlags.Public | BindingFlags.Static)
 				?? throw new MissingMethodException($"{message.GetType().Name} has no generated rule in this build.")
-			: (finance.GetType("DotGram.Finance.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
+			: (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
 
 		var call = generated
 			? new Func<object>(() => rule.Invoke(null, [message])!)
@@ -286,7 +286,7 @@ switch (mode)
 
 	default:
 	{
-		if ((finance.GetType("DotGram.Finance.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
+		if ((finance.GetType("DotGram.Finance.Fix.Fix44.FixSchema") ?? finance.GetType("DotGram.Finance.Fix.FixSchema")) is { } schema)
 		{
 			RuntimeHelpers.RunClassConstructor(schema.TypeHandle);
 			Phase("FixSchema cctor", true);

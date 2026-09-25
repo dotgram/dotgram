@@ -3,7 +3,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -19,7 +20,7 @@ public sealed class FixFieldGrammarTests
 		var log = FixFieldReaderTests.Log(wire, expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, FixContext.WithLogFraming), FixParser.ReadMessage(logBytes, FixContext.WithLogFraming) })
+		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, Fix44Context.WithLogFraming), FixParser.ReadMessage(logBytes, Fix44Context.WithLogFraming) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.Fields.Select(f => (f.Tag, f.GetType())), message.Fields.Select(f => (f.Tag, f.GetType())));
@@ -68,9 +69,9 @@ public sealed class FixFieldGrammarTests
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
-		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), FixContext.WithLogFraming);
+		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), Fix44Context.WithLogFraming);
 
-		Assert.False(damaged.Validate(FixContext.WithLogFraming));
+		Assert.False(damaged.Validate(Fix44Context.WithLogFraming));
 		Assert.Contains(damaged.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 

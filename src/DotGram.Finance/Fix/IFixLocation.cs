@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>
 /// Where something was read in the input: its coordinates, and the door the generated parser hands

@@ -1,5 +1,5 @@
 ﻿// Reading policy is supplied by the handwritten Fix44Grammar.gram.
-@using DotGram.Finance.Fix44;
+@using DotGram.Finance.Fix;
 
 KnownField(text) : @FixField =
 	// 1: Account (String)

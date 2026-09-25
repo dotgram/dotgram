@@ -2,7 +2,8 @@
 using System.Globalization;
 using System.Text;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -49,7 +50,7 @@ public sealed class DecimalTests
 	public void Unrepresentable_values_remain_typed_invalid_fields()
 	{
 		const string input = "44=79228162514264337593543950336|38=0.00000000000000000000000000001";
-		foreach (var field in FixParser.ParseFields(input, FixContext.WithLogFraming))
+		foreach (var field in FixParser.ParseFields(input, Fix44Context.WithLogFraming))
 		{
 			var number = Assert.IsAssignableFrom<FixField.Typed<decimal>>(field);
 			Assert.False(number.TryGetValue(out _));

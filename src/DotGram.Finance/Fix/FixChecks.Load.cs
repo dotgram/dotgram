@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 using DotGram.ExpressionLanguage;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 /// <summary>
 /// The slots a loaded dictionary fills: the same straight-line checks the package compiles in,
@@ -34,16 +34,20 @@ namespace DotGram.Finance.Fix44;
 /// its number, <c>(FixTag)11</c>: the file's name for a field need not be the one FixTag gives it.
 /// </para>
 /// </remarks>
-partial class FixValidators
+abstract partial class FixChecks
 {
-	static readonly Assembly Here = typeof(FixValidators).Assembly;
+	static readonly Assembly Here = typeof(FixChecks).Assembly;
 
-	const string Using = "using DotGram.Finance.Fix44;\n";
+	/// <summary>What a text written for this version opens with: the namespaces its names are in.</summary>
+	private protected abstract string Using { get; }
+
+	/// <summary>The name of this version's context, the first parameter of every check.</summary>
+	private protected abstract string ContextName { get; }
 
 	/// <summary>The same slots in a new object, to be written to without touching this one.</summary>
-	internal FixValidators Clone()
+	internal FixChecks Clone()
 	{
-		return (FixValidators)MemberwiseClone();
+		return (FixChecks)MemberwiseClone();
 	}
 
 	/// <summary>A copy of these slots with every check the dictionary describes replaced by the file's.</summary>
@@ -56,16 +60,16 @@ partial class FixValidators
 	/// its order, whichever job failed first in time. The parser's state is a value of each call and
 	/// its caches are concurrent, which is what makes that sound.
 	/// </remarks>
-	internal FixValidators Load(FixDictionary dictionary, Action<string, string>? emitted = null)
+	internal FixChecks Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
 		var jobs = new List<Action<Writing>>();
 
 		foreach (var (_, name, members) in dictionary.Messages)
-			jobs.Add(writing => writing.Write(name, Using + "(FixContext context, FixMessage." + name + " message) => {\n" +
+			jobs.Add(writing => writing.Write(name, Using + "(" + ContextName + " context, FixMessage." + name + " message) => {\n" +
 				Members(writing, "message", "FixMessage." + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
 		foreach (var (name, members) in dictionary.Components)
-			jobs.Add(writing => writing.Write(name, Using + "(FixContext context, FixMessage message, I" + name + " block) => {\n" +
+			jobs.Add(writing => writing.Write(name, Using + "(" + ContextName + " context, FixMessage message, I" + name + " block) => {\n" +
 				Members(writing, "block", "I" + name, name, members, dictionary, null) + "return message.IsValid; }"));
 
 		foreach (var field in dictionary.Fields.Values)
@@ -91,7 +95,7 @@ partial class FixValidators
 		{
 			try
 			{
-				var writing = new Writing(emitting, at);
+				var writing = new Writing(emitting, at, GetType());
 
 				jobs[at](writing);
 				writing.Compile();
@@ -118,7 +122,7 @@ partial class FixValidators
 	}
 
 	/// <summary>One job of a load: the texts it writes, and the delegates they compile to.</summary>
-	sealed class Writing(Emitting? emitting, int job)
+	sealed class Writing(Emitting? emitting, int job, Type checks)
 	{
 		public List<(PropertyInfo Slot, string Text, Delegate? Compiled)> Written { get; } = [];
 
@@ -126,7 +130,7 @@ partial class FixValidators
 		{
 			emitting?.Write(job, slot, text);
 
-			var property = typeof(FixValidators).GetProperty(slot, BindingFlags.Public | BindingFlags.Instance)
+			var property = checks.GetProperty(slot, BindingFlags.Public | BindingFlags.Instance)
 				?? throw new FormatException($"The dictionary describes '{slot}', which this package has no slot for." + Environment.NewLine + text);
 
 			Written.Add((property, text, null));
@@ -135,7 +139,7 @@ partial class FixValidators
 		public void Compile()
 		{
 			for (var at = 0; at < Written.Count; at++)
-				Written[at] = (Written[at].Slot, Written[at].Text, FixValidators.Compile(Written[at].Slot.PropertyType, Written[at].Text));
+				Written[at] = (Written[at].Slot, Written[at].Text, FixChecks.Compile(Written[at].Slot.PropertyType, Written[at].Text));
 		}
 	}
 
@@ -192,7 +196,7 @@ partial class FixValidators
 	// entries and each entry handed to the entry's slot, whose text is written beside this one.
 	// `subject` is what holds the members, `type` the C# type a group of it nests in, `slot` the
 	// slot name a group of it extends, and `opener` the field an entry opens with.
-	static string Members(Writing writing, string subject, string type, string slot, List<FixDictionary.Member> members, FixDictionary dictionary, string? opener)
+	string Members(Writing writing, string subject, string type, string slot, List<FixDictionary.Member> members, FixDictionary dictionary, string? opener)
 	{
 		var body = new StringBuilder();
 
@@ -209,7 +213,7 @@ partial class FixValidators
 					var cast = "((I" + member.Name + ")" + subject + ")";
 
 					if (member.Required)
-						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixValidators.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
+						body.Append("if (FixValidators.Empty").Append(cast).Append(") FixChecks.Absent(message, ").Append(Tag(First(member, dictionary), dictionary)).Append(");\n")
 							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
 					else
 						body.Append("if (!FixValidators.Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
@@ -226,13 +230,13 @@ partial class FixValidators
 
 					Field(body, subject, counter, member.Required, dictionary, opener);
 
-					body.Append("FixValidators.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
+					body.Append("FixChecks.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
 						.Append("if (").Append(list).Append(" != null) for (var i = 0; i < ").Append(list).Append(".Count; i++) context.Validators.")
 						.Append(inner).Append(".Invoke(context, message, ").Append(list).Append("[i], i);\n");
 
 					// What the file says of the entry is the entry's check, replaced like any other slot.
 					if (member.Members.Count > 0)
-						writing.Write(inner, Using + "(FixContext context, FixMessage message, " + entry + " entry, int index) => {\n" +
+						writing.Write(inner, Using + "(" + ContextName + " context, FixMessage message, " + entry + " entry, int index) => {\n" +
 							Members(writing, "entry", entry, inner, member.Members, dictionary, First(member.Members[0], dictionary)) + "return message.IsValid; }");
 
 					break;
@@ -252,10 +256,10 @@ partial class FixValidators
 		if (name == opener)
 			body.Append(call);
 		else if (required && opener is not null)
-			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary))
+			body.Append("if (").Append(value).Append(" == null) FixChecks.Missing(message, ").Append(Tag(name, dictionary))
 				.Append(", entry.").Append(opener).Append(".Position, index);\nelse ").Append(call);
 		else if (required)
-			body.Append("if (").Append(value).Append(" == null) FixValidators.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
+			body.Append("if (").Append(value).Append(" == null) FixChecks.Missing(message, ").Append(Tag(name, dictionary)).Append(");\nelse ").Append(call);
 		else
 			body.Append("if (").Append(value).Append(" != null) ").Append(call);
 	}
@@ -286,16 +290,16 @@ partial class FixValidators
 	}
 
 	// The class of the field a field's slot is handed, where the name is a field's slot.
-	static Type? FieldSlot(string name)
+	Type? FieldSlot(string name)
 	{
-		var slot = typeof(FixValidators).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)?.PropertyType;
+		var slot = GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance)?.PropertyType;
 
 		return slot is { IsGenericType: true } && slot.GetGenericTypeDefinition() == typeof(Func<,,,>) && slot.GetGenericArguments()[2] is var field && field.IsSubclassOf(typeof(FixField))
 			? field
 			: null;
 	}
 
-	static string? FieldText(Type field, string[] codes)
+	string? FieldText(Type field, string[] codes)
 	{
 		var value = field.BaseType!.GetGenericArguments()[0];
 		var body  = new StringBuilder();
@@ -303,22 +307,22 @@ partial class FixValidators
 		if (value == typeof(bool))
 			return null;
 
-		body.Append("if (!field.IsValid) FixValidators.Invalid(message, field);\n");
+		body.Append("if (!field.IsValid) FixChecks.Invalid(message, field);\n");
 
 		if (value == typeof(string[]))
 		{
 			body.Append("else foreach (var code in field.Value) if (");
 			Codes(body, "code", codes, value);
-			body.Append(") { FixValidators.Invalid(message, field); break; }\n");
+			body.Append(") { FixChecks.Invalid(message, field); break; }\n");
 		}
 		else
 		{
 			body.Append("else if (");
 			Codes(body, "field.Value", codes, value);
-			body.Append(") FixValidators.Invalid(message, field);\n");
+			body.Append(") FixChecks.Invalid(message, field);\n");
 		}
 
-		return Using + "(FixContext context, FixMessage message, FixField." + field.Name + " field) => {\n" + body + "return message.IsValid; }";
+		return Using + "(" + ContextName + " context, FixMessage message, FixField." + field.Name + " field) => {\n" + body + "return message.IsValid; }";
 	}
 
 	// The value is none of the codes: a switch over them, in the literal form its type reads,

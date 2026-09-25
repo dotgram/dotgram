@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 /// <summary>Reads an ordered, flat list of FIX 4.4 fields without message validation.</summary>
 public static class Fix44Parser
@@ -17,7 +17,7 @@ public static class Fix44Parser
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		var context = new Fix44Context();
+		var context = new Fix44Reading();
 
 		return Fix44Grammar.ParseFields(input, context);
 	}
@@ -40,7 +40,7 @@ public static class Fix44Parser
 
 		IEnumerable<FixField> Read()
 		{
-			var context = new Fix44Context();
+			var context = new Fix44Reading();
 
 			foreach (var field in Fix44Grammar.ReadFields(input, context, bufferSize, maxRetained))
 				yield return field;
@@ -60,7 +60,7 @@ public static class Fix44Parser
 
 		IEnumerable<FixField> Read()
 		{
-			var context = new Fix44Context();
+			var context = new Fix44Reading();
 
 			foreach (var field in Fix44Grammar.ReadFields(input, context, bufferSize, maxRetained))
 				yield return field;
@@ -85,7 +85,7 @@ public static class Fix44Parser
 		if (input == null)
 			throw new ArgumentNullException(nameof(input));
 
-		var context = new Fix44Context();
+		var context = new Fix44Reading();
 
 		return Fix44Grammar.ParseLogFields(input, context);
 	}
@@ -108,7 +108,7 @@ public static class Fix44Parser
 
 		IEnumerable<FixField> Read()
 		{
-			var context = new Fix44Context();
+			var context = new Fix44Reading();
 
 			foreach (var field in Fix44Grammar.ReadLogFields(input, context, bufferSize, maxRetained))
 				yield return field;
@@ -128,7 +128,7 @@ public static class Fix44Parser
 
 		IEnumerable<FixField> Read()
 		{
-			var context = new Fix44Context();
+			var context = new Fix44Reading();
 
 			foreach (var field in Fix44Grammar.ReadLogFields(input, context, bufferSize, maxRetained))
 				yield return field;
@@ -153,7 +153,7 @@ public static class Fix44Parser
 			error = new FixParseError(0, null, null, "Input is null.");
 			return false;
 		}
-		var context = new Fix44Context();
+		var context = new Fix44Reading();
 		return Result(Fix44Grammar.TryParseFields(input, context), out fields, out error);
 	}
 
@@ -166,7 +166,7 @@ public static class Fix44Parser
 	public static bool TryParse(TextReader input, out FixField[]? fields, out FixParseError? error, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new Fix44Context();
+		var context = new Fix44Reading();
 		return Result(Fix44Grammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
 	}
 
@@ -174,7 +174,7 @@ public static class Fix44Parser
 	public static bool TryParse(Stream input, out FixField[]? fields, out FixParseError? error, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new Fix44Context();
+		var context = new Fix44Reading();
 		return Result(Fix44Grammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
 	}
 

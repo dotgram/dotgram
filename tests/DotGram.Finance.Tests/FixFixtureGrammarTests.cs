@@ -5,7 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -61,7 +62,7 @@ public sealed class FixFixtureGrammarTests
 				continue;
 			}
 
-			if (FixFieldBuilder.Standard(Enum.Parse<FixTag>(name)).ToString() is var built && built != field.Name)
+			if (FixStandard.Type(Enum.Parse<FixTag>(name)).ToString() is var built && built != field.Name)
 				wrong.Add($"{name}: the fixture builds a {field.Name}, and the package a {built}.");
 
 			var takes = field.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)

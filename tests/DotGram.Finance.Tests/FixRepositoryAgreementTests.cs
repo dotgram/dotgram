@@ -6,7 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
-using DotGram.Finance.Fix44;
+using DotGram.Finance.Fix;
+using DotGram.Finance.Fix.Fix44;
 
 using Xunit;
 
@@ -64,7 +65,7 @@ public sealed class FixRepositoryAgreementTests
 	{
 		var message = Empty(type);
 
-		message.Validate(FixContext.Default);
+		message.Validate(Fix44Context.Default);
 
 		var asked = (message.InvalidFindings ?? [])
 			.Where(one => one.Rule == FixRule.RequiredFieldMissing)
@@ -91,7 +92,7 @@ public sealed class FixRepositoryAgreementTests
 	{
 		var message = Empty(type);
 
-		message.Validate(FixContext.Default);
+		message.Validate(Fix44Context.Default);
 
 		var asked = (message.InvalidFindings ?? []).Count(one => one.Rule == FixRule.RequiredComponentMissing);
 
@@ -181,7 +182,7 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>Whether a value read as this tag's field is valid and passes the field's compiled-in check.</summary>
 	static bool Accepted(int tag, string code)
 	{
-		var field = FixFieldBuilder.Value((FixTag)tag, FixContext.Default.Type(tag), code.AsSpan());
+		var field = FixFieldBuilder.Value((FixTag)tag, Fix44Context.Default.Type(tag), code.AsSpan());
 
 		if (!field.IsValid)
 			return false;
@@ -189,7 +190,7 @@ public sealed class FixRepositoryAgreementTests
 		var check = typeof(FixValidators).GetProperty(field.Tag.ToString())!.GetValue(FixValidators.Default)!;
 		var host  = FixParser.ParseMessage(FixFixtures.Wire("0", ""));
 
-		((Delegate)check).DynamicInvoke(FixContext.Default, host, field);
+		((Delegate)check).DynamicInvoke(Fix44Context.Default, host, field);
 
 		return host.IsValid;
 	}
@@ -197,7 +198,7 @@ public sealed class FixRepositoryAgreementTests
 	/// <summary>The CLR type a tag's field holds, or null where the package has no field class for it.</summary>
 	static Type? Held(int tag)
 	{
-		var field = FixFieldBuilder.Value((FixTag)tag, FixContext.Default.Type(tag), "0".AsSpan());
+		var field = FixFieldBuilder.Value((FixTag)tag, Fix44Context.Default.Type(tag), "0".AsSpan());
 
 		return field is FixField.Invalid ? null : field.GetType().BaseType!.GetGenericArguments()[0];
 	}
@@ -304,12 +305,12 @@ public sealed class FixRepositoryAgreementTests
 
 		foreach (var pair in pairs)
 		{
-			Assert.Equal(pair.Key, FixContext.Default.DataTag(pair.Value));
+			Assert.Equal(pair.Key, Fix44Context.Default.DataTag(pair.Value));
 		}
 
 		// And nothing the package calls a pair is outside that set.
 		for (var tag = 1; tag < 1000; tag++)
-			if (FixContext.Default.DataTag(tag) != 0)
+			if (Fix44Context.Default.DataTag(tag) != 0)
 				Assert.Contains(tag, pairs.Values);
 	}
 

@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix;
 
 [Gram("""
-	@using DotGram.Finance.Fix44;
+	@using DotGram.Finance.Fix;
 
 	parse Fields                                 as ParseFields    stream bytes
 	parse Fields                                 as ReadFields     stream bytes yield : @FixField

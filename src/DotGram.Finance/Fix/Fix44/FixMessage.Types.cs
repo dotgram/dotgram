@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
 
@@ -1365,7 +1365,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Advertisement(context, this);
 		}
@@ -3882,7 +3882,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.AllocationInstruction(context, this);
 		}
@@ -4111,7 +4111,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.AllocationInstructionAck(context, this);
 		}
@@ -6644,7 +6644,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.AllocationReport(context, this);
 		}
@@ -6877,7 +6877,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.AllocationReportAck(context, this);
 		}
@@ -8422,7 +8422,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.AssignmentReport(context, this);
 		}
@@ -8790,7 +8790,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.BidRequest(context, this);
 		}
@@ -9029,7 +9029,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.BidResponse(context, this);
 		}
@@ -9083,7 +9083,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.BusinessMessageReject(context, this);
 		}
@@ -10888,7 +10888,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralAssignment(context, this);
 		}
@@ -12637,7 +12637,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralInquiry(context, this);
 		}
@@ -14183,7 +14183,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralInquiryAck(context, this);
 		}
@@ -15969,7 +15969,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralReport(context, this);
 		}
@@ -17669,7 +17669,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralRequest(context, this);
 		}
@@ -19365,7 +19365,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CollateralResponse(context, this);
 		}
@@ -21438,7 +21438,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Confirmation(context, this);
 		}
@@ -21500,7 +21500,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ConfirmationAck(context, this);
 		}
@@ -21733,7 +21733,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ConfirmationRequest(context, this);
 		}
@@ -23961,7 +23961,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CrossOrderCancelReplaceRequest(context, this);
 		}
@@ -25540,7 +25540,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.CrossOrderCancelRequest(context, this);
 		}
@@ -26971,7 +26971,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.DerivativeSecurityList(context, this);
 		}
@@ -27255,7 +27255,7 @@ public abstract partial class FixMessage
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.DerivativeSecurityListRequest(context, this);
 		}
@@ -28612,7 +28612,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.DontKnowTrade(context, this);
 		}
@@ -30336,7 +30336,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Email(context, this);
 		}
@@ -32723,7 +32723,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ExecutionReport(context, this);
 		}
@@ -32753,7 +32753,7 @@ public abstract partial class FixMessage
 		public FixField.Text? TestReqID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Heartbeat(context, this);
 		}
@@ -34338,7 +34338,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.IndicationOfInterest(context, this);
 		}
@@ -34392,7 +34392,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ListCancelRequest(context, this);
 		}
@@ -34446,7 +34446,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ListExecute(context, this);
 		}
@@ -34655,7 +34655,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ListStatus(context, this);
 		}
@@ -34697,7 +34697,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ListStatusRequest(context, this);
 		}
@@ -35934,7 +35934,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ListStrikePrice(context, this);
 		}
@@ -36029,7 +36029,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Logon(context, this);
 		}
@@ -36067,7 +36067,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Logout(context, this);
 		}
@@ -38158,7 +38158,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MarketDataIncrementalRefresh(context, this);
 		}
@@ -39884,7 +39884,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MarketDataRequest(context, this);
 		}
@@ -39948,7 +39948,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MarketDataRequestReject(context, this);
 		}
@@ -41639,7 +41639,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MarketDataSnapshotFullRefresh(context, this);
 		}
@@ -43674,7 +43674,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MassQuote(context, this);
 		}
@@ -45721,7 +45721,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MassQuoteAcknowledgement(context, this);
 		}
@@ -47890,7 +47890,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.MultilegOrderCancelReplaceRequest(context, this);
 		}
@@ -47975,7 +47975,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NetworkStatusRequest(context, this);
 		}
@@ -48090,7 +48090,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NetworkStatusResponse(context, this);
 		}
@@ -50310,7 +50310,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NewOrderCross(context, this);
 		}
@@ -52883,7 +52883,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NewOrderList(context, this);
 		}
@@ -55040,7 +55040,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NewOrderMultileg(context, this);
 		}
@@ -56506,7 +56506,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.NewOrderSingle(context, this);
 		}
@@ -58222,7 +58222,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.News(context, this);
 		}
@@ -58332,7 +58332,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderCancelReject(context, this);
 		}
@@ -59779,7 +59779,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderCancelReplaceRequest(context, this);
 		}
@@ -60759,7 +60759,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderCancelRequest(context, this);
 		}
@@ -61321,7 +61321,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderMassCancelReport(context, this);
 		}
@@ -61823,7 +61823,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderMassCancelRequest(context, this);
 		}
@@ -62365,7 +62365,7 @@ public abstract partial class FixMessage
 		public FixField.Character? Side { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderMassStatusRequest(context, this);
 		}
@@ -63293,7 +63293,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.OrderStatusRequest(context, this);
 		}
@@ -64863,7 +64863,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.PositionMaintenanceReport(context, this);
 		}
@@ -66414,7 +66414,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.PositionMaintenanceRequest(context, this);
 		}
@@ -67985,7 +67985,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.PositionReport(context, this);
 		}
@@ -69906,7 +69906,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Quote(context, this);
 		}
@@ -71732,7 +71732,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteCancel(context, this);
 		}
@@ -74290,7 +74290,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteRequest(context, this);
 		}
@@ -76833,7 +76833,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteRequestReject(context, this);
 		}
@@ -78762,7 +78762,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteResponse(context, this);
 		}
@@ -80603,7 +80603,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteStatusReport(context, this);
 		}
@@ -82020,7 +82020,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.QuoteStatusRequest(context, this);
 		}
@@ -83722,7 +83722,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.RFQRequest(context, this);
 		}
@@ -84079,7 +84079,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.RegistrationInstructions(context, this);
 		}
@@ -84193,7 +84193,7 @@ public abstract partial class FixMessage
 		public FixField.Text? RegistRejReasonText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.RegistrationInstructionsResponse(context, this);
 		}
@@ -84247,7 +84247,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.Reject(context, this);
 		}
@@ -85693,7 +85693,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.RequestForPositions(context, this);
 		}
@@ -87102,7 +87102,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.RequestForPositionsAck(context, this);
 		}
@@ -87136,7 +87136,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? EndSeqNo { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.ResendRequest(context, this);
 		}
@@ -88508,7 +88508,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityDefinition(context, this);
 		}
@@ -89872,7 +89872,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityDefinitionRequest(context, this);
 		}
@@ -92075,7 +92075,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityList(context, this);
 		}
@@ -93471,7 +93471,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityListRequest(context, this);
 		}
@@ -94879,7 +94879,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityStatus(context, this);
 		}
@@ -96223,7 +96223,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityStatusRequest(context, this);
 		}
@@ -96285,7 +96285,7 @@ public abstract partial class FixMessage
 		public FixField.Text? SecuritySubType { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityTypeRequest(context, this);
 		}
@@ -96406,7 +96406,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SecurityTypes(context, this);
 		}
@@ -96440,7 +96440,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NewSeqNo { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SequenceReset(context, this);
 		}
@@ -96574,7 +96574,7 @@ public abstract partial class FixMessage
 		public FixField.Text? StandInstDbID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SettlementInstructionRequest(context, this);
 		}
@@ -97049,7 +97049,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.SettlementInstructions(context, this);
 		}
@@ -97079,7 +97079,7 @@ public abstract partial class FixMessage
 		public FixField.Text? TestReqID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TestRequest(context, this);
 		}
@@ -99906,7 +99906,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradeCaptureReport(context, this);
 		}
@@ -101118,7 +101118,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradeCaptureReportAck(context, this);
 		}
@@ -102675,7 +102675,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradeCaptureReportRequest(context, this);
 		}
@@ -104020,7 +104020,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradeCaptureReportRequestAck(context, this);
 		}
@@ -104114,7 +104114,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradingSessionStatus(context, this);
 		}
@@ -104164,7 +104164,7 @@ public abstract partial class FixMessage
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.TradingSessionStatusRequest(context, this);
 		}
@@ -104218,7 +104218,7 @@ public abstract partial class FixMessage
 		public FixField.Data? RawData { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.UserRequest(context, this);
 		}
@@ -104260,7 +104260,7 @@ public abstract partial class FixMessage
 		public FixField.Text? UserStatusText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.UserResponse(context, this);
 		}
@@ -104286,7 +104286,7 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(FixContext context)
+		private protected override void Check(Fix44Context context)
 		{
 			context.Validators.XMLnonFIX(context, this);
 		}

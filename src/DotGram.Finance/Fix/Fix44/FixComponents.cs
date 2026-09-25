@@ -2,7 +2,7 @@
 
 // ReSharper disable InconsistentNaming
 
-namespace DotGram.Finance.Fix44;
+namespace DotGram.Finance.Fix.Fix44;
 
 // Written by generate.py from the FIX 4.4 repository; not edited by hand.
 //
