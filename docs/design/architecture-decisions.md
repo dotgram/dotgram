@@ -9482,8 +9482,9 @@ Igor, 2026-09-24: FIX 4.2 and FIX 5.0 SP2 beside 4.4, "the handwritten parts gen
 - **Zoned values (Igor's variant a).** `FixField.ZonedTime` holds `(TimeOnly Time, TimeSpan Offset)`
   for TZTimeOnly; TZTimestamp is a `FixField.Timestamp` at the offset it was written with; both
   read by public `FixConvert.ToZonedTime`/`ToZonedTimestamp`. As the repository describes them:
-  seconds optional, then `Z` or a sign and hours 01-12 with minutes optional; a value without an
-  offset is not valid. The 01-12 excludes the real zones +13 and +14; widening is Igor's.
+  seconds optional, then `Z` or a sign and hours with minutes optional, up to 14:00 either way (the
+  repository says 01-12; Igor widened it to the zones of the world, 2026-09-25); a value without an
+  offset is not valid.
   MultipleStringValue's items are words, read by `FixConvert.ToMultipleString`, public since
   `5d6567b8` (Igor).
 - **Held to the repository** by one test class a version over `FixRepositoryAgreementTests`, which
@@ -9492,7 +9493,8 @@ Igor, 2026-09-24: FIX 4.2 and FIX 5.0 SP2 beside 4.4, "the handwritten parts gen
   are refused at their first departure (`Fix50Tests`); no errata for them unless Igor asks.
 - **Attribution (Igor):** every generated file and the package README say the tables are derived
   from the FIX Protocol specification, Copyright FIX Protocol Limited; the package stays MIT
-  (`c9ff3d4f`). **Open:** benchmark rows for 4.2 and 5.0.
+  (`c9ff3d4f`). Benchmark rows for 4.2 and 5.0: approved, finance-41. The reference 5.0 dictionaries apply with a
+  one-component errata and two message types removed in code (`ec81dff6`).
 
 ## D141 — The expression language resolves a name as C# does (architect)
 
