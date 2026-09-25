@@ -691,11 +691,13 @@ ValueExpressionPrimary : @Towers.Typed = e: CommonValueExpression & when @((Towe
 // there are. A primary in brackets is a parenthesized one only while no step follows it, and a row
 // takes no step.
 //
-// A <scalar subquery> is asked before a bracket's value expression: `((SELECT a FROM t))` is both,
-// and only the subquery is a non-parenthesized primary, which an in value list asks for.
+// A bracket is read before a <scalar subquery>, and a guard declines it where the subquery is the
+// reading: `((SELECT a FROM t))` is both, and only the subquery is a non-parenthesized primary,
+// which an in value list asks for. Asking the subquery first cost a reading of everything below every
+// bracket -- 200 rule entries a character at a depth of 800, against 12.5 at any depth now.
 PrimaryReading : @Towers.Typed
-	= q: ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(new Towers.Typed(new Expression.Subquery(q), Towers.Value | Towers.Truth | Towers.Bare), s))
-	| b: Bracketed & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0) => @(Towers.Stepped(b, s))
+	= b: Bracketed & s: PrimarySteps & when @((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0) && !Nodes.WrapsQuery(b)) => @(Towers.Stepped(b, s))
+	| q: ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(new Towers.Typed(new Expression.Subquery(q), Towers.Value | Towers.Truth | Towers.Bare), s))
 	| p: PrimaryBase & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(p) & Towers.Row) == 0) => @(Towers.Stepped(p, s))
 
 // Not a production: a bracket, read once. A <parenthesized value expression>, an <explicit row value

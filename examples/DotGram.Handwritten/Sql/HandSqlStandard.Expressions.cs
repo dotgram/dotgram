@@ -1414,19 +1414,29 @@ partial class HandSqlStandard
 	{
 		var save = cursor;
 
-		// A scalar subquery is asked before a bracket's value expression: `((SELECT a FROM t))` is
-		// both, and only the subquery is a non-parenthesized primary.
-		if (ScalarSubquery(ref cursor, out var query))
-		{
-			value = SqlTowers.Stepped(new Typed(new Expression.Subquery(query), SqlTowers.Value | SqlTowers.Truth | SqlTowers.Bare), PrimarySteps(ref cursor));
-
-			return true;
-		}
-
+		// The bracket is read before the scalar subquery, so that a nest of ordinary brackets costs one
+		// reading a level instead of a reading of everything below it. Where what comes back is nothing
+		// but a subquery in brackets, the subquery reading is the one: `((SELECT a FROM t))` is both, and
+		// only the subquery is a non-parenthesized primary, which an in value list asks for.
+		//
+		// Both parsers are ordered this way, and for the same reason: the generated one read 200 rule
+		// entries a character at a nesting depth of 800 with the subquery first, and 12.5 at any depth
+		// with the bracket first. A yardstick read the other way round would flatter it.
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
-			if (!Bracketed(ref cursor, out value))
-				return Refuse(out value);
+			var bracket = cursor;
+
+			if (!Bracketed(ref cursor, out value) || value.Node is Expression.Parenthesized { Value: Expression.Subquery })
+			{
+				cursor = bracket;
+
+				if (!ScalarSubquery(ref cursor, out var query))
+					return Refuse(out value);
+
+				value = SqlTowers.Stepped(new Typed(new Expression.Subquery(query), SqlTowers.Value | SqlTowers.Truth | SqlTowers.Bare), PrimarySteps(ref cursor));
+
+				return true;
+			}
 		}
 		else if (!PrimaryBase(ref cursor, out value))
 		{

@@ -103,6 +103,26 @@ static class Nodes
 		};
 	}
 
+	/// <summary>
+	/// Whether a bracket read as a value holds nothing but a subquery, which the subquery reading
+	/// takes instead.
+	/// </summary>
+	/// <remarks>
+	/// <c>((SELECT a FROM t))</c> is both a scalar subquery and a parenthesized value expression, and
+	/// only the subquery is a non-parenthesized primary, which an in value list asks for. The bracket
+	/// is read before the subquery so that a nest of ordinary brackets costs one reading a level
+	/// instead of a reading of everything below it -- 12.5 rule entries a character at any depth
+	/// against 200 at a depth of 800. This declines that reading exactly where the older order would
+	/// have taken the subquery, so the tree is the one it always was.
+	/// </remarks>
+	// Nullable for the reason <c>Towers.RolesOf</c> is: the generator writes a guard into more than
+	// one reader, and asks it where the capture may not be bound yet. Nothing wrapped is the answer
+	// there, so the bracket reading is not declined on account of a value that has not been read.
+	public static bool WrapsQuery(Towers.Typed? value)
+	{
+		return value?.Node is Expression.Parenthesized { Value: Expression.Subquery };
+	}
+
 	/// <summary>A bracket's value expression and what followed it: brackets, a row, or a generalized invocation.</summary>
 	public static Towers.Typed Bracketed(Towers.Typed value, Towers.Bracket tail)
 	{
