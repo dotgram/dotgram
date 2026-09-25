@@ -52,12 +52,14 @@ src/
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Finance/      FIX, a package of its own: the wire read into typed fields and the
-	                      messages built over them, one door (FixParser), the checks
-	                      (FixValidator44). README.md and SKILL.md ship on NuGet
+	                      messages built over them, one door (FixParser) and the checks per
+	                      version. README.md and SKILL.md ship on NuGet
 		Fix/              what every version of FIX shares, in DotGram.Finance.Fix: the
-		                  fields, FixTag, FixConvert, the context every version's derives from
-			Fix44/        FIX 4.4's own, in DotGram.Finance.Fix.Fix44: FixParser, the
-			              messages, the checks, Fix44Context, and generate.py
+		                  fields, FixTag, FixConvert, FixDictionary, the context every version's
+		                  derives from; generate.py and Templates/, which write every version
+			Fix42/, Fix44/, Fix50/  each version's own, in DotGram.Finance.Fix.Fix42 and so on:
+			              FixParser, the messages, the checks, its context. Generated from the
+			              FIX repository, not edited by hand
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
 	                      tree the SQL grammars meet in, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect

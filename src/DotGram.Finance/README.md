@@ -7,10 +7,10 @@
 
 # DotGram.Finance
 
-Reads and checks FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value messages wherever they are kept rather than traded: logs,
-archives, files, message buses. For `netstandard2.0` and `net10.0`; DotGram compiles the grammar at
-build time, so applications need no DotGram runtime, grammar files, schema XML, reflection
-configuration or initialization step.
+Reads and checks FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value messages wherever they are kept rather
+than traded: logs, archives, files, message buses. For `netstandard2.0` and `net10.0`; DotGram
+compiles the grammar at build time, so applications need no DotGram runtime, grammar files, schema
+XML, reflection configuration or initialization step.
 
 ## What it is for
 
@@ -19,7 +19,7 @@ configuration or initialization step.
   reporting and execution analysis are read from those journals — gigabytes a day, read from a
   stream in bounded memory, pipe-delimited or not.
 - **Checking messages against a counterparty's dictionary** before a certification or in a test
-  suite: load their data dictionary, and `Validate` reports every finding of a message at once,
+  suite: apply their data dictionary, and `Validate` reports every finding of a message at once,
   each with its rule, tag, position and group entry, rather than the first.
 - **Buses and stores.** FIX kept in Kafka, a database or a queue — drop copy, post-trade, clearing —
   and read by a consumer that has no session to hold.
@@ -68,8 +68,8 @@ CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it doe
 not reject the field, except that a binary length must be valid to find the next
 field boundary. Text values need no conversion validity check.
 
-String, `TextReader`, byte-array, `ReadOnlyMemory<byte>` and `Stream` inputs are supported.
-`Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
+`ParseFields` takes a string, a byte array or a `ReadOnlyMemory<byte>` and returns the fields at
+once; `ReadFields` takes a `TextReader` or a `Stream` and returns a lazy `IEnumerable<FixField>`.
 The grammar directly yields `FixField`. Ordinary fields are returned immediately;
 a binary length/data pair produces two, the length and then the data it measures.
 For example, `95=3|96=a|b|` produces a `FixField.Integer` of 3 whose tag is `RawDataLength` and a
@@ -108,17 +108,17 @@ Use `.ToArray()` when a complete list is needed. String, byte-array and memory o
 materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixParser.ParseFields` reads SOH-delimited wire input; given `Fix44Context.WithLogFraming` it reads logs
-with bare `|`, spaced ` | `, or a mixture. Both names support strings, byte
-arrays, `ReadOnlyMemory<byte>`, `TextReader`, and byte `Stream`; stream overloads are lazy.
+`FixParser.ParseFields` and `ReadFields` read SOH-delimited wire input; given
+`Fix44Context.WithLogFraming` they read logs with bare `|`, spaced ` | `, or a mixture.
 `Fix44Context` declares which framing to read and any length/data pairs of your own; it is the
 one value a reading is done by and the one `Validate` holds a message to, and `Fix44Context.Default`
 reads the wire by the standard alone. It derives from `FixContext`, the part every version of FIX
 shares.
 
 What every version shares — `FixField` and its classes, `FixTag`, `FixConvert`, `FixFinding`,
-`FixFraming` — is in the namespace `DotGram.Finance.Fix`. What is FIX 4.4's own — `FixParser`,
-`FixMessage` and its 93 types, the components, `Fix44Context` — is in `DotGram.Finance.Fix.Fix44`.
+`FixFraming`, `FixDictionary` — is in the namespace `DotGram.Finance.Fix`. What is a version's own —
+`FixParser`, `FixMessage` and its types, the components, its context — is in a namespace of its own:
+FIX 4.4's is `DotGram.Finance.Fix.Fix44`, with 93 message types and `Fix44Context`.
 
 Every version is a namespace of its own with the same names in it: FIX 4.2 is
 `DotGram.Finance.Fix.Fix42`, whose `FixParser` reads a 4.2 message into its 46 types and whose
@@ -164,13 +164,13 @@ using System.Collections.Generic;
 var fields  = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.WithLogFraming);
 var context = new Fix44Context
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the standard's own sixteen pairs
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the version's own pairs
 };
 var custom  = FixParser.ParseFields("5000=3 | 5001=a|b | ", context with { Framing = FixFraming.Log });
 ```
 
-A supplied length/data dictionary, length tag to data tag, **adds to** the standard's sixteen
-pairs and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
+A supplied length/data dictionary, length tag to data tag, **adds to** the version's own pairs
+(fourteen in FIX 4.2, sixteen in 4.4, twenty-four in 5.0 SP2) and is copied at construction; a length tag it repeats has the pair it gives. Omit it to use
 the standard pairs alone. The same object is what the message calls take, so one value describes
 both kinds of answer. The pair produces two fields, a `FixField.Integer` and a `FixField.Data` where
 nothing gives the tags another type; a tag neither the standard nor a loaded dictionary defines is a
@@ -181,8 +181,8 @@ validation remain in the explicitly called semantic API.
 ## Explicit message semantics
 
 The message calls run only when called explicitly.
-`Build(source, fields)` requires fields parsed from that exact source and performs
-recognition and group assembly without parsing it again. `Parse` combines both steps.
+`BuildMessage(source, fields)` requires fields parsed from that exact source and performs
+recognition and group assembly without parsing it again. `ParseMessage` combines both steps.
 Holding the result to a schema is `Validate`, a call of its own.
 
 ```csharp
@@ -229,7 +229,7 @@ var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `ReadMessage`, `TryReadMessage` and `ReadMessages` accept either `TextReader` or `Stream`,
-with an optional `Fix44Context`. Byte streams use the generated native
+with an optional context of the version. Byte streams use the generated native
 byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
 the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
@@ -277,7 +277,8 @@ Networking and FIX session state are outside this package.
 
 ## Model
 
-The 93 standard message types are the cases of `FixMessage`, nested in it and written
+A version's message types — 46 in FIX 4.2, 93 in 4.4, 116 in 5.0 SP2 — are the cases of its
+`FixMessage`, nested in it and written
 `FixMessage.NewOrderSingle`: a closed set, so a `switch` over it reads as one and the base
 type stands in front of every arm. A MsgType the schema does not describe is built by the
 context's `FixMessageFactory`, or is a `FixMessage.Invalid`, which is what lets the set be closed
@@ -308,7 +309,7 @@ of these can wait for a message to exist: they are how the reader finds where on
 is cut into messages by their `BodyLength`, so there a wrong one is a refusal too.
 
 **Everything else is a finding about a message that was built.** `message.Validate(context)` holds
-it to the context's schema, FIX 4.4 unless a dictionary was loaded, answers whether nothing is
+it to the context's schema, the version's own unless a dictionary was applied, answers whether nothing is
 wrong, and puts everything that is in `message.InvalidFindings` at once:
 
 | What it reports | |
@@ -410,7 +411,7 @@ foreach (var field in order.Fields)
 | float, Qty, Price, PriceOffset, Amt, Percentage | `Decimal` | decimal |
 | char | `Character` | char |
 | Boolean | `Boolean` | bool |
-| String, Currency, Country, Exchange | `Text` | string |
+| String, Currency, Country, Exchange, Language | `Text` | string |
 | MultipleValueString, MultipleCharValue | `Multiple` | string[], each value one character |
 | MultipleStringValue | `Multiple` | string[], each value a word |
 | UTCDateOnly, UTCDate, LocalMktDate | `Date` | DateOnly |
@@ -419,14 +420,14 @@ foreach (var field in order.Fields)
 | UTCTimestamp | `Timestamp` | DateTimeOffset, at offset zero |
 | TZTimestamp | `Timestamp` | DateTimeOffset, at the offset it was written with |
 | MonthYear | `MonthYear` | string, checked for its shape (`YYYYMM`, `YYYYMMDD`, `YYYYMMw1`..`w5`) |
-| data | `Data` | ReadOnlyMemory<byte> |
+| data, XMLData | `Data` | ReadOnlyMemory<byte> |
 
-MiscFeeType and MassCancelRejectReason are declared `char` and publish values a character cannot
-hold, so they are `Text`.
+A field declared `char` whose code set lists values a character cannot hold is `Text`: in FIX 4.4,
+MiscFeeType and MassCancelRejectReason.
 
-A zoned value is read as the FIX repository describes it: the clock to the minute, seconds and a
-fraction optional, then `Z` or a sign and hours with minutes optional, up to fourteen hours either way
-(`13:09+05:30`). One without an offset does not say which instant it is, and is not valid.
+A zoned value is the clock to the minute, seconds and a fraction optional, then `Z` or a sign and
+hours with minutes optional, up to fourteen hours either way (`13:09+05:30`), as the zones of the
+world run. One without an offset does not say which instant it is, and is not valid.
 
 A code set is held against the schema by `Validate`, not while the field is read; the
 underlying primitive remains the value type. A leap second, `23:59:60`, which the protocol
@@ -474,11 +475,11 @@ Positions refer to the log as it was given.
 
 ## Custom fields and messages
 
-A tag FIX 4.4 does not define is typed by a dictionary loaded into the context: each field it
-describes that the standard does not is read, from then on, as the type the file gives it, into the
-same classes the standard's fields are. A dictionary does not retype a tag the standard defines. A
-MsgType FIX 4.4 does not define goes through the message factory the context holds, which is handed
-the MsgType and answers the message to build, or null:
+A tag the version does not define is typed by a dictionary applied to the context: each field it
+describes that the standard does not is read, from then on, as the type the dictionary gives it,
+into the same classes the standard's fields are. A dictionary does not retype a tag the standard
+defines. A MsgType the version does not define goes through the message factory the context holds,
+which is handed the MsgType and answers the message to build, or null:
 
 ```csharp
 using System.Collections.Generic;
@@ -529,9 +530,10 @@ its finding `UnknownMessageType`.
 
 ## Definition maintenance
 
-Field declarations, message classes, the checks, the Fix44 field grammar and test
-fixtures are maintained together. When changing definitions, update the affected
-message classes, checks, Fix44 grammar and test cases together.
+A version's field types, message classes, components and checks are written by `Fix/generate.py`
+from the FIX repository and are not edited by hand: a change is made in the script or a template
+and the versions are written again. The FIX 4.4 field grammar the tests hold the package against,
+and the test fixtures, are maintained by hand beside them.
 
 What every version shares is in `Fix/`:
 
@@ -577,14 +579,6 @@ and measurement records are in `docs/design/finance-fix44.md` and
 the separator or EOF and records the actual separator length. Publications support
 eager and `yield` parsing.
 
-## Attribution
-
-The tables of each FIX version — its fields, their types and code sets, its messages and
-components — are derived from the FIX Protocol specification (FIX Unified Repository, 2010
-edition). The FIX Protocol specification is Copyright FIX Protocol Limited,
-<https://www.fixtrading.org>. This package's code is under the MIT licence, as the rest of DotGram is; the
-attribution says where the data came from and grants or restricts nothing.
-
 The `Fix44Grammar` fixture inherits `FixFieldGrammar`, whose
 `FixField.gram` contains one alternative per standard field. Tests compare
 its results with the production parser using the same shared field model.
@@ -604,3 +598,11 @@ The constructing group in `Fields` covers the complete tag, equals sign, value
 and optional final separator; it supplies the field's source extent. `Position`, `ValuePosition` and
 `Length` mean here what they mean everywhere else on this page, unknown and binary
 fields included.
+
+## Attribution
+
+The tables of each FIX version — its fields, their types and code sets, its messages and
+components — are derived from the FIX Protocol specification (FIX Unified Repository, 2010
+edition). The FIX Protocol specification is Copyright FIX Protocol Limited,
+<https://www.fixtrading.org>. This package's code is under the MIT licence, as the rest of DotGram is; the
+attribution says where the data came from and grants or restricts nothing.

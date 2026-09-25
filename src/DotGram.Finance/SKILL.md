@@ -5,9 +5,9 @@ description: Read FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value data with DotGram.F
 
 # DotGram.Finance
 
-Reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value input: wire messages whose fields end with SOH, and the
-pipe-separated log renderings people keep of them. What every version of FIX shares — the
-fields, `FixTag`, `FixConvert`, the findings — is in `DotGram.Finance.Fix`; a version's own —
+Reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value input: wire messages whose fields end with SOH,
+and the pipe-separated log renderings people keep of them. What every version of FIX shares — the
+fields, `FixTag`, `FixConvert`, the findings, `FixDictionary` — is in `DotGram.Finance.Fix`; a version's own —
 `FixParser`, the messages, its context — in a namespace of its own with the same names in it:
 `DotGram.Finance.Fix.Fix44` with `Fix44Context`, `DotGram.Finance.Fix.Fix42` with `Fix42Context`,
 `DotGram.Finance.Fix.Fix50` with `Fix50Context` for FIX 5.0 SP2 over FIXT 1.1 (BeginString `FIXT.1.1`).
@@ -102,19 +102,20 @@ foreach (var field in FixParser.ParseFields(wire))
   `Date`, `MonthYear`, `Multiple` and `Data`, each with a typed `Value` — text as `string`, numbers as
   `decimal` or `long`, dates and times as `DateOnly`, `TimeOnly` and `DateTimeOffset` (a
   MonthYear stays a `string`; FIX 5.0's TZTimeOnly is `(TimeOnly Time, TimeSpan Offset)`, and its
-  TZTimestamp a `Timestamp` at the offset it was written with). `Tag` is the tag's number, and `FixTag` holds every version's tags as constants
-  named as the FIX repository names them: `FixField.Decimal { Tag: FixTag.OrderQty }`. A message's
-  property keeps its version's name where that differs: FIX 4.4's `IOIid` is `FixTag.IOIID`. A tag it does not name is just its number, `25005`.
+  TZTimestamp a `Timestamp` at the offset it was written with). `Tag` is the tag's number, and
+  `FixTag` holds every version's tags as constants named as the FIX repository names them:
+  `FixField.Decimal { Tag: FixTag.OrderQty }`. A message's property keeps its version's name where
+  that differs: FIX 4.4's `IOIid` is `FixTag.IOIID`. A tag it does not name is just its number,
+  `25005`.
 - **`Value` throws when `IsValid` is false.** A field whose text does not convert —
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
-- A tag the package does not know is read as the type a dictionary loaded into the context gives
-  it: `Fix44Context.Default.Load(venueXml)`, or read, merge and edit first and then apply:
-  `Fix44Context.Default.With(FixDictionary.LoadFile(path).Merge(FixDictionary.Parse(venueXml)))`. A MsgType it does not know is built by
-  `FixMessageFactory` (a `FixCustomMessage` that places its own fields). A tag nothing defines is a
-  `FixField.Invalid` of that tag with its octets, and a type the factory answers null for a
-  `FixMessage.Invalid`. A standard message has no property for a tag outside FIX 4.4, so such a
-  field is out of scope in it.
+- A tag the package does not know is read as the type a dictionary applied to the context gives
+  it (see **Dictionaries**). A MsgType it does not know is built by `FixMessageFactory` (a
+  `FixCustomMessage` that places its own fields). A tag nothing defines is a `FixField.Invalid` of
+  that tag with its octets, and a type the factory answers null for a `FixMessage.Invalid`. A
+  standard message has no property for a tag outside its version, so such a field is out of scope
+  in it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
   resumes after the next separator.
 
@@ -145,7 +146,7 @@ switch (message)
 }
 ```
 
-- The 93 standard messages are the cases of `FixMessage`, nested in it: write
+- A version's messages (93 in FIX 4.4) are the cases of its `FixMessage`, nested in it: write
   `FixMessage.NewOrderSingle`, and a `switch` over them reads as the closed set it is. A
   MsgType the schema does not know is the consumer's `FixCustomMessage` or a
   `FixMessage.Invalid`, carrying the type it read and its fields — that case is why the set can
@@ -177,21 +178,43 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 
 var context = new Fix44Context
 {
-    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // length tag to data tag, added to the standard's sixteen
+    LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // length tag to data tag, added to the version's own
 };
 
 var fields  = FixParser.ParseFields(wire, context);
 var message = FixParser.ParseMessage(wire, context);   // the same value reads both layers and holds the message to its schema
 ```
 
-The dictionary **adds to** the standard's sixteen pairs: list only what the standard does
-not define. A pair's tags that nothing gives a type are read as a `FixField.Integer` and a
+The dictionary **adds to** the version's own pairs (sixteen in FIX 4.4): list only what the
+standard does not define. A pair's tags that nothing gives a type are read as a `FixField.Integer` and a
 `FixField.Data`. The same object goes to the message calls, which refuse a length not followed by
 its data. When reading a stream, the context's `MaxRetained` bounds one field, from its tag
 through the separator that ends it: 16 Mi characters from a `TextReader` or bytes from a
 `Stream` by default. A field that needs more throws `IOException`, so give the context a larger
 `MaxRetained` for large binary data: `context with { MaxRetained = 64 << 20 }`. `BufferSize`
 is the size of the buffer the input is read through.
+
+## Dictionaries
+
+A counterparty's data dictionary is read, merged and edited as a value, then applied:
+
+```csharp
+var dictionary = FixDictionary.LoadFile("FIX44.xml").Merge(FixDictionary.LoadFile("venue.xml"));
+
+dictionary.Messages["D"].Members.Add(FixDictionaryMember.Field("ExDestination", required: true));
+
+var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFile(path) are the short forms
+```
+
+- `With` takes the dictionary as it is at that moment. Editing it afterwards changes nothing in a
+  context already made; apply it again for a new one.
+- A dictionary the model cannot hold — a field placed where the message has no property, a code its
+  field's type cannot hold, one name on two tags — is refused by `With` with a `FormatException`,
+  whole. Reading it (`Parse`, `LoadFile`) refuses only what is not a dictionary.
+- `Merge` replaces a message type, component or field whole; it cannot remove one. To drop a
+  message type the model has no class for, remove it: `dictionary.Messages.Remove("CF")`.
+- Each check is compiled the first time a message of its type is validated, so the first
+  `Validate` of each type is slower than the rest. Applying costs what reading does.
 
 ## Streams
 
@@ -209,3 +232,6 @@ is the size of the buffer the input is read through.
 4. Streaming a space-padded log as messages. A stream is cut by BodyLength and wants a bare `|`.
 5. Writing a pair's data tag without its length right before it. The field calls return it
    as a `FixField.Invalid`: only a length says where the data ends.
+6. Reading another version's data through the wrong namespace. A 4.2 or FIXT.1.1 message read by
+   `Fix44.FixParser` is built as a 4.4 message and told its BeginString is wrong.
+7. Editing a `FixDictionary` after `With` and expecting the context to follow. Apply it again.
