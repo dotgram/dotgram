@@ -2,6 +2,12 @@
 using System.Collections.Generic;
 using System.Threading;
 
+using DotGram.Grammar;
+
+using DotGram.Generation;
+
+using System.Reflection;
+
 using DotGram.Sql.Standard;
 
 using Xunit;
@@ -74,6 +80,7 @@ public sealed class StackDepthTests
 	[InlineData(128)]
 	[InlineData(256)]
 	[InlineData(512)]
+	[InlineData(1024)]
 	public void A_deeply_nested_input_is_refused_rather_than_taking_the_process_with_it(int stackKb)
 	{
 		foreach (var depth in Depths())
@@ -112,12 +119,101 @@ public sealed class StackDepthTests
 	}
 
 	/// <summary>
+	/// And on both carriers, because the guard is the reader's and each carrier writes its own.
+	/// </summary>
+	/// <remarks>
+	/// The sweep above reads SQL:2023, which is carried on the tape; a grammar whose values are
+	/// built where they are read goes through a different emitted reader, with its own probe
+	/// sites and its own frames. A grammar small enough to compile here stands in for both: what
+	/// is being tested is that the guard fires and the reading is handed on, not how wide any
+	/// particular frame is — <c>StackFrameBudgetTests</c> holds the widths.
+	/// <para>
+	/// 64 KiB again, for the reason given above: on a stack that small the guard has to divert
+	/// within a few levels whatever the carrier, so either the reading returns or the process is
+	/// gone and there is nothing to argue about.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void Either_carrier_hands_a_deep_reading_on_rather_than_running_out(CarrierKind carrier)
+	{
+		var host = Compile(carrier);
+
+		foreach (var depth in new[] { 50, 200, 300, 800, 1_500 })
+		{
+			var text    = new string('(', depth) + "x";
+			var refused = default(bool?);
+			var thrown  = default(Exception);
+
+			var thread = new Thread(
+				() =>
+				{
+					try
+					{
+						refused = !EmittedCode.Match(host, "Carried.Probe", "TryParseStart", text).IsSuccess;
+					}
+					catch (Exception caught)
+					{
+						thrown = caught;
+					}
+				},
+				64 * 1024);
+
+			thread.Start();
+			thread.Join();
+
+			Assert.True(
+				thrown is null,
+				$"{carrier} at {depth} levels on 64 KiB threw {thrown?.GetType().Name}: {thrown?.Message}");
+
+			Assert.True(
+				refused is true,
+				$"{carrier} at {depth} levels on 64 KiB was " +
+				$"{(refused is null ? "never answered" : "ACCEPTED")}; an unclosed parenthesis is refused " +
+				"at every depth on every carrier.");
+		}
+	}
+
+	/// <summary>A grammar that recurses on its own opening bracket, carried as asked.</summary>
+	static Assembly Compile(CarrierKind carrier)
+	{
+		var result = GramCompiler.Compile(
+			Nested,
+			new GramCompilerOptions
+			{
+				ClassName     = "Probe",
+				Namespace     = "Carried",
+				Carrier       = carrier,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		return EmittedCode.Compile(Assert.Single(result.Sources).Text, "Probe", "Carried");
+	}
+
+	const string Nested =
+		"""
+		Start : @int = '(' & n: Start & ')' => @(n + 1)
+			 | 'x' => @(1)
+		parse Start
+		""";
+
+	/// <summary>
 	/// Around and far past where the old form died, and up the far side of it. 250 and 300 are
 	/// the two depths that were measured dying; 1,168 is the one that was measured surviving,
 	/// and it is here so that a future interval cannot be tuned to pass the small end alone.
 	/// </summary>
 	static IEnumerable<int> Depths()
 	{
+		// 200 and 300 are not part of the sweep's rhythm, they are the two that killed an
+		// interval of 16 -- 200 on a 512 KiB stack and 300 on a 1 MiB one -- while the depths
+		// either side of each lived. They are named so that a future sweep cannot step over
+		// them, since what decides is the phase and not the depth.
+		yield return 200;
+		yield return 300;
+
 		for (var depth = 50; depth <= 400; depth += 25)
 			yield return depth;
 

@@ -230,13 +230,15 @@ public sealed class ReaderTests
 	{
 		var written = Written(Lexical + Deep + Line + "parse Start", reader: true);
 
-		// Probed at the rule and not at the call, and at EVERY entry to it. It used to be
-		// once in sixty-four, which stepped over a 128 KiB reserve at 2.38 KiB a level and
-		// killed the process; nothing here may reintroduce an interval, because the bytes a
-		// level cost are not known where this is written.
+		// Probed at the rule and not at the call, once in Machine.Interval entries. Sixty-four
+		// stepped over the budget at 5.40 KiB a level and killed the process, and so did 16.
+		// The arithmetic behind the number is held by
+		// StackFrameBudgetTests, not by this assertion, which only says the mask is emitted.
+		// Three is Machine.Interval - 1, written out because Machine is internal to the
+		// generator; if the interval moves, this fails and says which number it expected.
 		Assert.Contains(
-			"if (!EnoughStack_DotGram())", written, StringComparison.Ordinal);
-		Assert.DoesNotContain("probes", written, StringComparison.Ordinal);
+			"if ((probes++ & 3) == 0 && !EnoughStack_DotGram())",
+			written, StringComparison.Ordinal);
 
 		// And what that asks is the framework's where the framework has it. The older pair
 		// is what .NET Framework and netstandard2.0 answer with, which is why the emitted

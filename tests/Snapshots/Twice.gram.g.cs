@@ -254,6 +254,8 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
+			/// <summary>Entries to a rule that can reach itself, for the stack probe.</summary>
+			internal int probes;
 			readonly Ways ways;
 			/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>
 			readonly global::System.ReadOnlyMemory<char> whole;
@@ -264,6 +266,7 @@ namespace DotGram.Snapshots
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.probes  = 0;
 				this.values = values;
 				this.whole   = parserWhole;
 			}
@@ -307,6 +310,7 @@ namespace DotGram.Snapshots
 				deep.ways   = this.ways;
 				deep.values = this.values;
 				deep.failure = this.failure;
+				deep.probes = this.probes;
 				deep.pos    = pos;
 				deep.which  = which;
 				deep.power  = power;
@@ -317,6 +321,7 @@ namespace DotGram.Snapshots
 				thread.Join();
 
 				this.failure = deep.failure;
+				this.probes = deep.probes;
 
 				if (deep.thrown != null)
 					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();
@@ -327,7 +332,7 @@ namespace DotGram.Snapshots
 			/// <summary><c>Sum</c>, and the way back into it.</summary>
 			public int Read_Sum(int pos)
 			{
-				if (!EnoughStack_DotGram())
+				if ((probes++ & 3) == 0 && !EnoughStack_DotGram())
 					return Deepen_DotGram(pos, 0, 0);
 
 				var s  = ways.Cursor;
@@ -865,6 +870,7 @@ namespace DotGram.Snapshots
 			internal Ways ways = default!;
 			internal DirectValues values = default!;
 			internal Failure failure = default!;
+			internal int probes;
 			internal int pos;
 			internal int which;
 			internal int power;
@@ -878,6 +884,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(this.whole.Span, this.ways, this.values, this.whole);
 
 					reader.failure = this.failure;
+					reader.probes = this.probes;
 
 					switch (this.which)
 					{
@@ -885,6 +892,7 @@ namespace DotGram.Snapshots
 					}
 
 					this.failure = reader.failure;
+					this.probes = reader.probes;
 				}
 				catch (global::System.Exception caught)
 				{
