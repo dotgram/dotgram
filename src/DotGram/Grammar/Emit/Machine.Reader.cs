@@ -607,8 +607,9 @@ sealed partial class Machine
 		file.Line("/// <remarks>");
 		file.Line("/// `TryEnsureSufficientExecutionStack` is .NET Core's and .NET Standard 2.1's. Where");
 		file.Line("/// it is not there — .NET Framework, netstandard2.0 — the older pair answers the same");
-		file.Line("/// question, at the cost of an exception on the one probe in sixty-four that finds");
-		file.Line("/// the margin gone.");
+		file.Line("/// question by throwing, which is caught here and answered as a no. That costs an");
+		file.Line("/// exception on the probe that finds the margin gone, and on no other: the reading is");
+		file.Line("/// handed to a stack of its own at that point and goes on probing there.");
 		file.Line("/// </remarks>");
 
 		using (file.Block($"static bool EnoughStack_DotGram{_tag}()"))

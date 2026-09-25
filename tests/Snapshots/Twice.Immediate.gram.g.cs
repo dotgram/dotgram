@@ -276,8 +276,9 @@ namespace DotGram.Snapshots
 				/// <remarks>
 				/// `TryEnsureSufficientExecutionStack` is .NET Core's and .NET Standard 2.1's. Where
 				/// it is not there — .NET Framework, netstandard2.0 — the older pair answers the same
-				/// question, at the cost of an exception on the one probe in sixty-four that finds
-				/// the margin gone.
+				/// question by throwing, which is caught here and answered as a no. That costs an
+				/// exception on the probe that finds the margin gone, and on no other: the reading is
+				/// handed to a stack of its own at that point and goes on probing there.
 				/// </remarks>
 				static bool EnoughStack_DotGram()
 				{
