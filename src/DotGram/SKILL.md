@@ -100,6 +100,11 @@ var refused = CssColor.TryParseColor("#xyz").IsSuccess;  // false
 
 A `Match<T>` carries `IsSuccess`, `Value`, `Error` and `Position`.
 
+Saying where a refusal happened and what was expected there costs a second reading: the parser
+reads once without recording, and reads a refused input again to describe it. The `out` form
+never makes that second pass. So on input whose shape you do not control, ask `TryParseR(input,
+out value)` when you only need to know, and ask for the match when you want the message.
+
 ## What a rule can say
 
 ```dotgram

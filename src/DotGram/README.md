@@ -282,6 +282,8 @@ keeps every one and reads them all.
 * grammar namespaces, and grammar libraries that cross a project reference;
 * a lexical split: the same notation read over tokens instead of characters;
 * `Parse`, `TryParse` — a match, or `bool` with the value in an `out` — and `Find`;
+  a match describes a refusal, which costs reading the refused input a second time; the
+  `out` form does not;
 * streaming from a `TextReader`, and recovery inside repetitions.
 
 ## No runtime parser library
