@@ -93,11 +93,36 @@ for (var at = from; at < ways.LogCount; at += log[at])
 ```
 
 Numbering is then preserved exactly, every table above keeps its meaning, and the walk is short.
-The cost is one parallel array, or a second pass — the build loop runs backwards, so it cannot
-recover the number by counting as it goes.
 
-**This is the whole of the difficulty, and it is a contained one.** Everything else on the list
-follows from numbering being preserved.
+**Corrected after reading further, 2026-09-25: the number is needed in BOTH directions, and the
+second is the awkward one.** There are two shapes of build loop, and only one of them is easy:
+
+```
+// not `selected`: walks the log and counts alongside. A collapse is `slot += count` here.
+for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
+
+// `selected`: iterates record NUMBERS and finds the position by index arithmetic.
+for (var slot = first; slot < ways.Records; slot++)
+    ...
+    var at = starts[slot - first];
+```
+
+The second needs `starts` indexed by *number minus first*, which is exactly what a collapse breaks.
+Filling the holes so the arithmetic still works would cost a store per skipped record and hand the
+triangle straight back. So the shape is: `starts` stays compact, a parallel `slots[]` carries each
+listed record's number, the liveness pass reads `slots[back]` instead of `first + back`, and **the
+`selected` build loop changes from iterating numbers to iterating listed entries**.
+
+That last is not free to propose, because the number-iterating form exists for a reason — it skips
+runs of already-built records through `IndexOf` over the compact `live` map rather than re-reading
+the tape for built subtrees. **But those runs are precisely what a collapse removes**: after it, a
+built subtree is not listed at all, so it is skipped at scan time rather than at build time. The
+collapse subsumes that optimisation rather than fighting it, which is the argument for changing the
+loop — and it is an argument to check by measurement, not to assert.
+
+**So the difficulty is contained but larger than one array**: one array, two passes re-indexed, and
+one loop's iteration order changed in the most performance-sensitive code the generator emits.
+Everything else on the list still follows from numbering being preserved.
 
 ## 4. What points into a span, one at a time
 
