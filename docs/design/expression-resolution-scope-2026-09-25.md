@@ -174,11 +174,22 @@ namespace still beats one a `using` brings in, within whatever the scope contain
 rule, it landed in `4813268b`, and a host that puts two same-named types in one scope gets the C#
 answer rather than an error.
 
-## Order of work, if it is approved
+## Order of work: built, 2026-09-26
+
+All five, in `8b1a41a2`. Written here as done so that nobody reads this page as a proposal that
+is still waiting:
 
 1. `ResolutionScope`, with `Around` interning by assembly.
 2. The three scans and the three global caches taking it; the eight caller-keyed caches re-keyed.
 3. The three entry-point overloads.
-4. The determinism test, and `LoadOrderTests` taught the new expectation in the branch it already
-   describes.
+4. The determinism test (`ScopeDeterminismTests`), and `LoadOrderTests` taught the new expectation
+   in the branch it already describes — it runs in a process of its own and now requires the
+   answer NOT to move with load order.
 5. README and SKILL: what a scope is, and that the default is the caller's closure.
+
+What it did NOT settle is what this page already said it would not, and what the plan leaves to
+Igor: `using static` and aliases (a `using` names a namespace and nothing else), and which
+namespaces, if any, are imported by default. The name rules around it landed beside it — CS0104
+for two `using`s giving one name, a name resolving as written beating one a `using` brings in
+(`4813268b`, checked against Roslyn), and a simple name that binds to a local never asked of the
+type tables at all (`723b7af8`).
