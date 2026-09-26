@@ -5,5 +5,32 @@
 	</PropertyGroup>
 	<Import Project="src/DotGram/build/DotGram.targets"
 	        Condition="'$(_DotGramAnalyzerReferences)' != ''" />
+	<!-- A page that ships in a package links to the repository as it was when the package was made:
+	     /blob/main/ and /tree/main/ become the version's tag, v$(Version), in the copy that is packed.
+	     The source keeps main, which is right for someone reading the repository; a reader of an
+	     installed package — or an agent writing a grammar against it — must not be sent to a main
+	     that has moved past what they have. The tag exists because publish.yml refuses a tag that
+	     is not the version. -->
+	<Target Name="_DotGramPinPackedPages" BeforeTargets="_GetPackageFiles">
+		<ItemGroup>
+			<_DotGramPage Include="@(None)" Condition="'%(None.Pack)' == 'true' And ('%(None.Filename)%(None.Extension)' == 'README.md' Or '%(None.Filename)%(None.Extension)' == 'SKILL.md')" />
+		</ItemGroup>
 
+		<PropertyGroup>
+			<_DotGramPinned>$(IntermediateOutputPath)pinned\</_DotGramPinned>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(_DotGramPinned)" Condition="'@(_DotGramPage)' != ''" />
+
+		<!-- Escaped, so that a semicolon in the page is text and not a list separator. -->
+		<WriteLinesToFile Condition="'@(_DotGramPage)' != ''"
+		                  File="$(_DotGramPinned)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
+		                  Lines="$([MSBuild]::Escape($([System.IO.File]::ReadAllText('%(_DotGramPage.FullPath)').Replace('/blob/main/', '/blob/v$(Version)/').Replace('/tree/main/', '/tree/v$(Version)/'))))"
+		                  Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+		<ItemGroup>
+			<None Remove="@(_DotGramPage)" />
+			<None Include="$(_DotGramPinned)%(_DotGramPage.Filename)%(_DotGramPage.Extension)" Pack="true" PackagePath="%(_DotGramPage.PackagePath)" />
+		</ItemGroup>
+	</Target>
 </Project>
