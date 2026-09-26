@@ -4226,9 +4226,17 @@ sealed partial class Machine
 					if (build.Length > 0)
 						code.Line($"if (!({machine.Carrier.Absent(member.Rule!, handed + "At")})) {string.Format(build, handed + "At")}");
 
+					// The second of these reads the record WITHOUT asking whether it is there, which is
+					// what Machine.GuardCaptureAdmitsAbsence buys and what makes it load-bearing: where
+					// that answer is wrong, this throws IndexOutOfRangeException rather than handing the
+					// guard a wrong value — and it throws under Release as much as Debug, which the
+					// engine rendering's Debug.Assert does not.
 					code.Line(member.IsOptional
 						? $"{type}? {handed} = {machine.Carrier.Absent(member.Rule!, handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
-						: $"var {handed} = {ValueAt(member.Rule!, handed + "At")};");
+						// Declared and converted rather than `var`: the expression may be a record local the
+						// rendering typed nullable (the flat path reads `int? r1`), and `var` would inherit
+						// that and then not fit the parameter. The same idiom the factory call uses.
+						: $"{type} {handed} = ({type}){ValueAt(member.Rule!, handed + "At")}!;");
 
 					continue;
 				}

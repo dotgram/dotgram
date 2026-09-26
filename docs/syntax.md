@@ -707,6 +707,15 @@ current rule's `SourceSpan`), and the rest of §8.2's table. They all begin with
 `parser`, which is what that prefix is for — a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
+**A capture that is optional ON THE PATH reaches a `when` nullable**, and one that every
+route to the guard writes reaches it as the value itself. The two are told apart by the
+alternative the guard is in, not by the rule: `('(' & a: X)? & when @(a …)` can be reached
+by the route that skipped the group, so `a` is `X?` there and the condition has to say what
+it means about absence — `a is { … }` or `a?.P == …` — as does the construction, which owes
+the rule a value of its declared type: `=> @(a ?? "")`. `a: X & when @(a …)` cannot be
+reached without `a`, so it is `X`, however many other alternatives the rule has and
+whatever they write.
+
 A `when` runs before its rule is finished, so the two that say what the rule matched say
 what it has matched **so far**: from where the rule began to where the parse stands. That
 is the same extent either way — `parserText` is the string of it and `parserSpan` is the

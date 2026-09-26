@@ -427,7 +427,7 @@ namespace DotGram.Snapshots
 				}
 				var g0At = r0;
 				if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
-				var g0 = values.V0[g0At].Value;
+				int g0 = (int)values.V0[g0At].Value!;
 				if (!Recognize_DotGram_Guard4(g0))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -623,10 +623,10 @@ namespace DotGram.Snapshots
 				r2 = ways.Last;
 				var g0At = r1;
 				if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lmark, lmarkR);
-				int? g0 = g0At < 0 ? default(int?) : values.V0[g0At].Value;
+				int g0 = (int)values.V0[g0At].Value!;
 				var g1At = r2;
 				if (!(g1At < 0)) Materialize_DotGram_Direct(ways, text, values, g1At, lmark, lmarkR);
-				int? g1 = g1At < 0 ? default(int?) : values.V0[g1At].Value;
+				int g1 = (int)values.V0[g1At].Value!;
 				if (!Recognize_DotGram_Guard5(g0, g1))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -1147,7 +1147,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-		static bool Recognize_DotGram_Guard1(int? high, int? low) =>
+		static bool Recognize_DotGram_Guard1(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
@@ -1157,7 +1157,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-		static bool Recognize_DotGram_Guard3(int? high, int? low) =>
+		static bool Recognize_DotGram_Guard3(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
@@ -1167,7 +1167,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-		static bool Recognize_DotGram_Guard5(int? high, int? low) =>
+		static bool Recognize_DotGram_Guard5(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default

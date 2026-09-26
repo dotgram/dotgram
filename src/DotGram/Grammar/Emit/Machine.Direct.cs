@@ -336,7 +336,7 @@ sealed partial class Machine
 			if (slots.Count == 0 || !guard.Text.Contains(ResultTypes.ParameterOf(member)))
 				continue;
 
-			var optional = member.IsOptional || slots.Count != member.Slots.Count;
+			var optional = GuardCaptureAdmitsAbsence(rule, guard, member);
 
 			visible.Add((member with { IsOptional = optional }, slots));
 		}

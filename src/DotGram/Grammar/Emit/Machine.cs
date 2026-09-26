@@ -1341,6 +1341,36 @@ sealed partial class Machine
 		return false;
 	}
 
+	/// <summary>
+	/// Whether a guard's parameter for this capture has to admit absence: whether any route that
+	/// reaches the guard can get there without having written it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <b>One function because it was two identical expressions</b>, one in the engine's guard and
+	/// one in the reader's, and repairing the engine's left the reader still handing its capture
+	/// nullable — in the rendering that ships. Neither caller keeps a rule of its own now, and
+	/// <c>GuardNullabilityTests</c> asserts every guard of BOTH renderings beside this, since the
+	/// version of that fixture which read only the first guard passed while half the defect stood.
+	/// </para>
+	/// <para>
+	/// What it replaced were two proxies for the question, either of which was enough on its own:
+	/// the member's <c>IsOptional</c>, false only where every alternative of the rule writes the
+	/// name, and a count of the slots visible at the guard against all of the member's. So a guard
+	/// reading a capture of its own alternative was nullable in any rule with a second alternative,
+	/// and an author who wrote <c>when @(a.Length > 0)</c> got CS8602 out of the generated code.
+	/// </para>
+	/// <para>
+	/// Answering false makes the reader's read of that capture unconditional, so this must not say
+	/// false where a route could skip the capture: <see cref="GrammarNormalizer.WritesBefore"/> is
+	/// conservative wherever more than one route can reach the site.
+	/// </para>
+	/// </remarks>
+	internal bool GuardCaptureAdmitsAbsence(RuleSymbol rule, Node guard, ResultMember member)
+	{
+		return !GrammarNormalizer.WritesBefore(_graph.Bodies[rule], guard, member.Name);
+	}
+
 	int MarkSite(string text)
 	{
 		// Two sites writing the same C# are still two sites. Merging them would be sound —
@@ -2701,7 +2731,7 @@ sealed partial class Machine
 						continue;
 					}
 
-					var optional = member.IsOptional || slots.Count != member.Slots.Count;
+					var optional = GuardCaptureAdmitsAbsence(rule, node, member);
 
 					var parameterType = member.Rule is null
 						? BorrowedCaptures ? CaptureSpanType : "string"

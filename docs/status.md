@@ -586,9 +586,11 @@ method of its own for the same reason a `=>` does, and takes the same `parserTex
 
 What it may look at is what was captured **before** it. A capture further along has not
 been written, so it is not a parameter, and naming it is an ordinary C# error about a
-name that is not there. A name captured in more than one alternative is passed as
-nullable at the guard, because only the slots behind the guard can have been written
-and the generator does not try to prove which.
+name that is not there. A name is passed as nullable at the guard exactly where a
+route can reach the guard without having written it — an option on the path, as in
+`('(' & a: X)? & when @(a …)`. Where every route to the guard writes it, the guard is
+handed the value itself, whatever the rule's other alternatives do or do not write: the
+question is asked of the alternative's prefix, not of the rule.
 
 A typed capture is different from text: its `=>` normally runs only after recognition,
 but a guard that names the value needs it now. That construction runs once at the guard

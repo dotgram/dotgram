@@ -746,6 +746,119 @@ public sealed partial class GrammarNormalizer
 		return imports;
 	}
 
+	/// <summary>
+	/// Whether every route that reaches <paramref name="site"/> writes <paramref name="name"/> before
+	/// it: definite assignment, asked of one place in the rule rather than of the rule.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Writes(Node, string)"/> asks whether the WHOLE body always writes a name, which is
+	/// the question a member's type needs and the wrong question for a guard. A guard sits in one
+	/// alternative, and what reaches it is that alternative's prefix: `a: X & when @(a...)` is handed a
+	/// value that cannot be absent however many sibling alternatives write nothing, and a sibling
+	/// alternative that writes the name adds nothing to what this one guarantees.
+	/// </para>
+	/// <para>
+	/// Both of the terms this replaced were proxies for it, and both were wrong in the same direction —
+	/// nullable where the value is certain. A rule whose other alternative writes nothing made the
+	/// member optional; a rule whose other alternative writes the same name gave it a second slot and
+	/// only one was visible at the guard. Either was enough on its own (measured), so a guard reading
+	/// its own alternative's capture was nullable in every rule that had a second alternative at all.
+	/// </para>
+	/// <para>
+	/// What stays nullable is what really can be absent: an option ON THE PATH, as in
+	/// `('(' &amp; a: X)? &amp; when @(a...)`, where the route that skipped the group reaches the guard
+	/// with nothing written. There the `?` is C#'s own answer and the author pattern-matches.
+	/// </para>
+	/// </remarks>
+	internal static bool WritesBefore(Node node, Node site, string name)
+	{
+		if (ReferenceEquals(node, site))
+			return false;
+
+		switch (node)
+		{
+			// The prefix: anything before the child that holds the site, and then within it.
+			//
+			// EVERY child that holds it, and all of them must write, because a node is matched by
+			// reference and the tree a normalizer rebuilt may hold one instance in two places. One
+			// occurrence whose prefix writes says nothing about another whose prefix does not, and
+			// getting this wrong the other way is not a warning: where this answers yes, the reader
+			// asserts the capture is there and reads it unconditionally.
+			case Node.Sequence(var nodes):
+			{
+				var held = false;
+				var all  = true;
+
+				for (var index = 0; index < nodes.Count; index++)
+				{
+					if (!Holds(nodes[index], site))
+						continue;
+
+					held = true;
+					var here = WritesBefore(nodes[index], site, name);
+
+					for (var earlier = 0; earlier < index && !here; earlier++)
+						here = Writes(nodes[earlier], name);
+
+					all &= here;
+				}
+
+				return held && all;
+			}
+
+			// Only the branches the site is in: the others are not routes to it. Again all of them.
+			case Node.Choice(var nodes):
+			{
+				var held = false;
+				var all  = true;
+
+				foreach (var one in nodes)
+					if (Holds(one, site))
+					{
+						held = true;
+						all &= WritesBefore(one, site, name);
+					}
+
+				return held && all;
+			}
+
+			// A run may be on its first turn, so an earlier turn's write is not guaranteed;
+			// what the same turn wrote before the site is.
+			case Node.Repeat(var body, _, _):
+				return WritesBefore(body, site, name);
+
+			// A capture wrapping the site writes when the whole of it succeeds, which is after.
+			case Node.Capture(_, var captured):
+				return WritesBefore(captured, site, name);
+
+			case Node.Atomic(var atomic):
+				return WritesBefore(atomic, site, name);
+
+			case Node.Marked(var marked, _):
+				return WritesBefore(marked, site, name);
+
+			case Node.Construct(var built, _):
+				return WritesBefore(built, site, name);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Whether that node is, or contains, the site.</summary>
+	static bool Holds(Node node, Node site)
+	{
+		if (ReferenceEquals(node, site))
+			return true;
+
+		foreach (var child in NodeWalk.Descendants(node))
+			if (ReferenceEquals(child, site))
+				return true;
+
+		return false;
+	}
+
 	internal static bool Writes(Node node, string name)
 	{
 		return node switch

@@ -416,7 +416,7 @@ namespace DotGram.Snapshots
 						p = q2;
 					}
 					var g0At = r0;
-					var g0 = g0At;
+					int g0 = (int)g0At!;
 					if (!Recognize_DotGram_Guard4(g0))
 					{
 						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -578,9 +578,9 @@ namespace DotGram.Snapshots
 					p = q2;
 					r2 = last0;
 					var g0At = r1;
-					int? g0 = ImmediateValues.IsDefault(g0At) ? default(int?) : g0At;
+					int g0 = (int)g0At!;
 					var g1At = r2;
-					int? g1 = ImmediateValues.IsDefault(g1At) ? default(int?) : g1At;
+					int g1 = (int)g1At!;
 					if (!Recognize_DotGram_Guard5(g0, g1))
 					{
 						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -901,7 +901,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard1(int? high, int? low) =>
+			static bool Recognize_DotGram_Guard1(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
@@ -911,7 +911,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard3(int? high, int? low) =>
+			static bool Recognize_DotGram_Guard3(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
@@ -921,7 +921,7 @@ namespace DotGram.Snapshots
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard5(int? high, int? low) =>
+			static bool Recognize_DotGram_Guard5(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default

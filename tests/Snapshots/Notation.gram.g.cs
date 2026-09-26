@@ -2907,7 +2907,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var g0At = r0;
 				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR, parserReading);
-				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
+				int g0 = (int)values.V1[g0At].Value!;
 				if (!Recognize_DotGram_Small_Guard4(g0))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -2942,7 +2942,7 @@ namespace DotGram.Snapshots
 				}
 				var g0At = r0;
 				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR, parserReading);
-				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
+				int g0 = (int)values.V1[g0At].Value!;
 				if (!Recognize_DotGram_Small_Guard5(g0))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
@@ -4171,32 +4171,32 @@ namespace DotGram.Snapshots
 		static string[]? Recognize_DotGram_List_Expected0_Built;
 		static string[] Recognize_DotGram_List_Expected0 => Recognize_DotGram_List_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_List_Expected0_Built, new string[] { "','" }, null) ?? Recognize_DotGram_List_Expected0_Built!;
 
-		static bool Recognize_DotGram_Small_Guard0(int? n) =>
+		static bool Recognize_DotGram_Small_Guard0(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard1(int? n) =>
+		static bool Recognize_DotGram_Small_Guard1(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard2(int? n) =>
+		static bool Recognize_DotGram_Small_Guard2(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard3(int? n) =>
+		static bool Recognize_DotGram_Small_Guard3(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard4(int? n) =>
+		static bool Recognize_DotGram_Small_Guard4(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard5(int? n) =>
+		static bool Recognize_DotGram_Small_Guard5(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
