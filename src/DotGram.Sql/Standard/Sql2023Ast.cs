@@ -636,7 +636,11 @@ public abstract partial record Expression : ISqlNode
 	}
 
 	// BNF predicate families collapsed into Expression children rather than a BooleanExpression hierarchy.
-	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right) : Expression;
+	// T-SQL: Comparison Operators (Transact-SQL). `Exclamation` is true only for `!=`, which is
+	// `NotEqual` written with `!`; `!<` and `!>` are operators of their own, `NotLess` and
+	// `NotGreater`. A spelling is kept as a flag beside the value here as `Trigraphs` is on
+	// `AssignmentTarget`, so one meaning stays one operator and the text still writes back.
+	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, bool Exclamation = false) : Expression;
 	public record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
 	public record In(Expression Value, bool Not, InSource SourceValue) : Expression;
 
@@ -868,8 +872,12 @@ public abstract record DataType : ISqlNode
 		Span = new SqlSpan(at, length);
 	}
 
-	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null) : DataType;
-	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null) : DataType;
+	// T-SQL: char and varchar, nchar and nvarchar (Transact-SQL). `Max` is the length written as
+	// `MAX`, and `Length` is null where it is set.
+	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, bool Max = false) : DataType;
+	// T-SQL: binary and varbinary (Transact-SQL). `Max` is the length written as `MAX`, and
+	// `Length` is null where it is set.
+	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, bool Max = false) : DataType;
 	public record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
 	public record Boolean : DataType;
 	public record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;

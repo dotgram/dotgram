@@ -274,7 +274,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CURRENT_USER", "Current(CurrentUser, null, null)")]
 	[InlineData("USER", "Current(User, null, null)")]
 	[InlineData("CAST(a AS INT)", "Cast(a, Numeric(Int, null, null), null)")]
-	[InlineData("CASE a WHEN 1, 2 THEN 'x' WHEN < 5 THEN 'y' ELSE NULL END", "Case(a, [CaseWhen([1, 2], 'x'), CaseWhen([Comparison(CaseOperand(), Less, 5)], 'y')], NULL)")]
+	[InlineData("CASE a WHEN 1, 2 THEN 'x' WHEN < 5 THEN 'y' ELSE NULL END", "Case(a, [CaseWhen([1, 2], 'x'), CaseWhen([Comparison(CaseOperand(), Less, 5, false)], 'y')], NULL)")]
 	[InlineData("CASE WHEN a THEN 1 END", "Case(null, [CaseWhen([a], 1)], null)")]
 	[InlineData("NULLIF(a, b)", "Invocation(NULLIF, [Argument(a, null, false), Argument(b, null, false)])")]
 	[InlineData("f(a => 1, b)", "Invocation(f, [Argument(1, a, true), Argument(b, null, false)])")]
@@ -289,7 +289,7 @@ public sealed class SqlStandardTreeTests
 	// ── §8 Predicates ───────────────────────────────────────────────────────────
 
 	[Theory]
-	[InlineData("a = 1 AND NOT b IS NULL OR c", "Binary(Binary(Comparison(a, Equal, 1), And, Unary(Not, IsNull(b, false))), Or, c)")]
+	[InlineData("a = 1 AND NOT b IS NULL OR c", "Binary(Binary(Comparison(a, Equal, 1, false), And, Unary(Not, IsNull(b, false))), Or, c)")]
 	[InlineData("a BETWEEN SYMMETRIC 1 AND 2", "Between(a, false, Symmetric, 1, 2)")]
 	[InlineData("a NOT IN (1, 2)", "In(a, true, Values([1, 2]))")]
 	[InlineData("a NOT LIKE 'x' ESCAPE '!'", "Like(a, true, Like, 'x', '!', null)")]
@@ -309,7 +309,7 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("COUNT(*)", "Invocation(COUNT, [Argument(Asterisk(), null, false)])")]
-	[InlineData("SUM(DISTINCT a) FILTER (WHERE a > 1)", "Invocation(SUM, [Argument(a, null, false)], Quantifier: Distinct, Filter: FilterClause(Comparison(a, Greater, 1)))")]
+	[InlineData("SUM(DISTINCT a) FILTER (WHERE a > 1)", "Invocation(SUM, [Argument(a, null, false)], Quantifier: Distinct, Filter: FilterClause(Comparison(a, Greater, 1, false)))")]
 	[InlineData("RANK() OVER (PARTITION BY a ORDER BY b DESC NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES)",
 		"Invocation(RANK, [], Over: Specification(WindowSpecification(null, [a], OrderByClause([SortItem(b, Desc, Last)]), WindowFrame(Rows, Between(WindowFrameBound(Preceding, 1), WindowFrameBound(CurrentRow, null)), Ties, null))))")]
 	[InlineData("LAG(a, 1, 0) IGNORE NULLS OVER w", "Invocation(LAG, [Argument(a, null, false), Argument(1, null, false), Argument(0, null, false)], Nulls: IgnoreNulls, Over: NameRef(w))")]
@@ -347,7 +347,7 @@ public sealed class SqlStandardTreeTests
 
 		Assert.True(measure.WithoutParentheses);
 		Assert.Equal("Sequence([Variable(A), Quantified(Variable(B), RowPatternQuantifier(ZeroOrMore, null, null, false))])", Show(frame.Pattern!.Pattern));
-		Assert.Equal("[RowPatternDefinition(A, Comparison(a, Greater, 1))]", Show(frame.Pattern.Definitions));
+		Assert.Equal("[RowPatternDefinition(A, Comparison(a, Greater, 1, false))]", Show(frame.Pattern.Definitions));
 	}
 
 	[Fact]
@@ -364,7 +364,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SELECT DISTINCT t.*, u.* AS (x, y) FROM t, u",
 		"Select(Quantifier: Distinct, Items: [QualifiedAll(t, null), QualifiedAll(u, [x, y])], From: FromClause([Named(t), Named(u)]))")]
 	[InlineData("SELECT * FROM t WHERE a = 1 GROUP BY ROLLUP (a, (b, c)), () HAVING COUNT(*) > 1",
-		"Select(Items: [All()], From: FromClause([Named(t)]), Where: Comparison(a, Equal, 1), GroupBy: GroupByClause(null, [Rollup([Ordinary([a], false), Ordinary([b, c], true)]), Empty()]), Having: Comparison(Invocation(COUNT, [Argument(Asterisk(), null, false)]), Greater, 1))")]
+		"Select(Items: [All()], From: FromClause([Named(t)]), Where: Comparison(a, Equal, 1, false), GroupBy: GroupByClause(null, [Rollup([Ordinary([a], false), Ordinary([b, c], true)]), Empty()]), Having: Comparison(Invocation(COUNT, [Argument(Asterisk(), null, false)]), Greater, 1, false))")]
 	[InlineData("SELECT a FROM t UNION ALL SELECT b FROM u INTERSECT SELECT c FROM v ORDER BY 1",
 		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Operator: Union, Quantifier: All, Operand: Select(Select(Items: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]), SetOperations: [SetOperation(Operator: Intersect, Operand: Select(Select(Items: [ExpressionItem(c, null, false)], From: FromClause([Named(v)]))))])))], OrderBy: OrderByClause([SortItem(1, null, null)]))")]
 	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u EXCEPT CORRESPONDING BY (a) TABLE v",
@@ -385,14 +385,14 @@ public sealed class SqlStandardTreeTests
 		"Join(Left: Join(Left: Named(t, Alias: Alias(x, [a], true)), Right: Named(u), Kind: Left, OuterKeyword: true, Specification: Using([a], null)), Right: Named(v, Sample: SampleClause(Bernoulli, 10, null)), Kind: Cross)")]
 	[InlineData("t PARTITION BY (a) NATURAL FULL JOIN u", "Join(Left: Named(t), Right: Named(u), Kind: Full, Natural: true, LeftPartition: [a])")]
 	[InlineData("t JOIN u JOIN v ON b ON a", "Join(Left: Named(t), Right: Join(Left: Named(u), Right: Named(v), Specification: On(b)), Specification: On(a))")]
-	[InlineData("(t JOIN u ON a = b)", "Parenthesized(Join(Left: Named(t), Right: Named(u), Specification: On(Comparison(a, Equal, b))))")]
+	[InlineData("(t JOIN u ON a = b)", "Parenthesized(Join(Left: Named(t), Right: Named(u), Specification: On(Comparison(a, Equal, b, false))))")]
 	[InlineData("LATERAL (SELECT 1 FROM t) AS s", "Subquery(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])), Lateral: true, Alias: Alias(s, null, true))")]
 	[InlineData("ONLY (t)", "Named(t, Only: true)")]
 	[InlineData("t FOR SYSTEM_TIME FROM a TO b s", "Named(t, SystemTime: FromTo(a, b), Alias: Alias(s, null, false))")]
 	[InlineData("UNNEST(a, b) WITH ORDINALITY AS u", "Unnest([a, b], true, Alias(u, null, true))")]
 	[InlineData("TABLE (f(a))", "TableFunction(Invocation(f, [Argument(a, null, false)]), null)")]
 	[InlineData("t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a > 1) AS m",
-		"RowPatternRecognition(Named(t), RowPatternClause([], null, [], null, null, null, Variable(A), [], [RowPatternDefinition(A, Comparison(a, Greater, 1))]), Alias(m, null, true))")]
+		"RowPatternRecognition(Named(t), RowPatternClause([], null, [], null, null, null, Variable(A), [], [RowPatternDefinition(A, Comparison(a, Greater, 1, false))]), Alias(m, null, true))")]
 	[InlineData("JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, a INTEGER PATH '$.a' DEFAULT 0 ON EMPTY, NESTED PATH '$.b' COLUMNS (b INTEGER FORMAT JSON)) ERROR ON ERROR) AS jt",
 		"JsonTable(JsonTableDefinition(JsonApiCommon(j, '$', null, [], null), [Ordinality(id), Regular(a, Numeric(Integer, null, null), '$.a', Default(0), null), Nested('$.b', null, [Formatted(b, Numeric(Integer, null, null), JsonRepresentation(null, null), null, null, null, null, null)], true)], null, Error, false), Alias(jt, null, true))")]
 	public void A_table_reference_is_built_as_written(string input, string tree)
@@ -423,7 +423,7 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
-		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
+		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0, false))")]
 	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree)
 	{
@@ -440,7 +440,7 @@ public sealed class SqlStandardTreeTests
 	}
 
 	[Theory]
-	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1))")]
+	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1, false))")]
 	public void A_searched_delete_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseDeleteStatementSearched(input)));
@@ -449,7 +449,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order()
 	{
-		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
+		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b, false), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0, false)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
 			Show(Both.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 	}
 
@@ -500,7 +500,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("DROP TRANSFORM ALL FOR t CASCADE", "DropTransform(Target: All(), TypeName: t, Behavior: Cascade)")]
 	[InlineData("DROP TRIGGER g", "DropTrigger(Names: [g])")]
 	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END",
-		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1), [SetSchema(Value: 's'), Commit()], true))")]
+		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1, false), [SetSchema(Value: 's'), Commit()], true))")]
 	[InlineData("CREATE PROCEDURE p (IN a INT, OUT b TABLE PASS THROUGH WITH SET SEMANTICS KEEP ON EMPTY) LANGUAGE SQL NOT DETERMINISTIC SQL SECURITY DEFINER CALL q(a)",
 		"CreateRoutine(Definition: RoutineDefinition(Procedure, p, [ParameterDefinition(In, a, Numeric(Int, null, null), false, null, false, false, false, null), ParameterDefinition(Out, b, GenericTable(PassThrough, Set, KeepOnEmpty), false, null, false, false, false, null)], null, [Language(SQL), Deterministic(false)], Sql(Call(Invocation: Invocation(q, [Argument(a, null, false)])), Definer), null, null, false, false))")]
 	[InlineData("CREATE FUNCTION f (x INT) RETURNS TABLE (a INT) READS SQL DATA RETURNS NULL ON NULL INPUT DYNAMIC RESULT SETS 2 STATIC DISPATCH EXTERNAL NAME 'lib' PARAMETER STYLE GENERAL TRANSFORM GROUP g FOR TYPE t EXTERNAL SECURITY IMPLEMENTATION DEFINED",
