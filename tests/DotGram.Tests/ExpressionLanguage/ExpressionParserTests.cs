@@ -1045,6 +1045,21 @@ public sealed class ExpressionParserTests
 			Both.Compile<Func<int>>("() => { int t = 1; { int t = 2; t } }")());
 	}
 
+	/// <summary>The outer name again once the block that shadowed it has closed.</summary>
+	/// <remarks>
+	/// The case the reading of declarations turns on. They are read from the last one backwards
+	/// and the first visible one is the answer, which is right because of two visible
+	/// declarations the later is the inner — so here, where the inner is no longer visible, the
+	/// walk has to pass it and go on to the outer rather than stop at it.
+	/// </remarks>
+	[Fact]
+	public void And_the_name_around_it_is_itself_again_once_the_inner_block_has_closed()
+	{
+		Assert.Equal(
+			3,
+			Both.Compile<Func<int>>("() => { int t = 1; int a = { int t = 2; t }; t + a }")());
+	}
+
 	[Fact]
 	public void And_a_name_the_block_beside_it_declared_is_not_in_scope()
 	{

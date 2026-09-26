@@ -3111,9 +3111,60 @@ public static partial class ExpressionParser
 		/// every name inside a block is built before the block itself is, and a scope recorded
 		/// there would arrive after the last thing that needed it.
 		/// </remarks>
+		/// <summary>The first and last place any block reaches, so a position outside them is quick.</summary>
+		int _opened = int.MaxValue;
+
+		int _closed;
+
+		/// <remarks>
+		/// <para>
+		/// A block RECORDED throws nothing away, and that is the whole of why a text of blocks
+		/// costs its length. It was not so: each of the three answers worked out from the blocks
+		/// was taken back here, so a text of n blocks worked each of them out n times — the order
+		/// sorted again, the innermost block of every position asked again, and every declaration
+		/// walked again. Under a warm process, where the linear part of the cost is small, that
+		/// was what was left of the square.
+		/// </para>
+		/// <para>
+		/// None of it has to be. A block only ADDS an extent, and of two blocks holding a
+		/// position the inner closes first, so a position that already has a block has the
+		/// innermost it will ever have (<see cref="Holding"/>); a declaration already in a block
+		/// stays in it; and the order is kept up to date here instead of being made again. What
+		/// DOES take them back is a reading given up, which removes extents — and that is
+		/// <see cref="Rollback"/>.
+		/// </para>
+		/// </remarks>
 		internal bool Scoped(SourceSpan span)
 		{
-			(_scopes ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+			var scope = new Scope(span.Start, span.Start + span.Length);
+
+			if (scope.From < _opened)
+				_opened = scope.From;
+
+			if (scope.To > _closed)
+				_closed = scope.To;
+
+			(_scopes ??= []).Add(scope);
+
+			// Where the order has been worked out already, this one is put in its place in it
+			// rather than the whole of it being sorted again.
+			if (_ordered is { } ordered)
+			{
+				var low  = 0;
+				var high = ordered.Count;
+
+				while (low < high)
+				{
+					var middle = low + ((high - low) >> 1);
+
+					if (ordered[middle].From <= scope.From)
+						low = middle + 1;
+					else
+						high = middle;
+				}
+
+				ordered.Insert(low, scope);
+			}
 
 			return true;
 		}
@@ -3232,8 +3283,127 @@ public static partial class ExpressionParser
 		{
 			(_declared ??= []).Add(new Declaration(at.Start, name, variable));
 
+			var index = _declared.Count - 1;
+
+			_lastAt ??= [];
+			_lastAt[(at.Start, name)] = index;
+
+			if (!(_named ??= new(StringComparer.Ordinal)).TryGetValue(name, out var places))
+				_named[name] = places = [];
+
+			Place(places, index, at.Start);
+			Place(_byPlace ??= [], index, at.Start);
+
 			return true;
 		}
+
+		/// <summary>A declaration written into an index of places, in the order the text has them.</summary>
+		/// <remarks>
+		/// <para>
+		/// Both indexes are read by where a name is written rather than by the order the
+		/// declarations were made in, and both are therefore kept in that order. Kept in it, and
+		/// not sorted into it: within one reading the places only grow, so this appends.
+		/// </para>
+		/// <para>
+		/// A place already here is the SAME declaration read a second time — a position in a
+		/// text is one declaration, whatever a reading given up and begun again does with it —
+		/// and the reading that stands is the last, so it is written over. That is also what keeps
+		/// this from growing a middle: a body read three times would otherwise put its second and
+		/// third readings in between, moving the tail each time.
+		/// </para>
+		/// </remarks>
+		void Place(List<int> places, int index, int at)
+		{
+			var low = From(places, at);
+
+			if (low < places.Count && Written(places[low]) == at)
+				places[low] = index;
+			else
+				places.Insert(low, index);
+		}
+
+		/// <summary>Where a place's declaration is written, or past the end for one that is gone.</summary>
+		/// <remarks>
+		/// A reading given up takes declarations off the end of the list while an index keeps its
+		/// places (<see cref="_named"/>). Such a place answers with the end of the text, so that it
+		/// stands last in the order and a search over it is not thrown off by it; what the place
+		/// means is read where the place is read.
+		/// </remarks>
+		int Written(int index)
+		{
+			return index < (_declared?.Count ?? 0) ? _declared![index].At : int.MaxValue;
+		}
+
+		/// <summary>The first place at or after a position, in an index kept in the text's order.</summary>
+		int From(List<int> places, int at)
+		{
+			var low  = 0;
+			var high = places.Count;
+
+			while (low < high)
+			{
+				var middle = low + ((high - low) >> 1);
+
+				if (Written(places[middle]) < at)
+					low = middle + 1;
+				else
+					high = middle;
+			}
+
+			return low;
+		}
+
+		/// <summary>The last declaration written at each place, by that place and the name.</summary>
+		/// <remarks>
+		/// A declaration is read more than once where the text is, and the reading that stands is
+		/// the last. Finding out whether a given one was written again meant reading every
+		/// declaration after it, which over a text of n of them is n² — one of the terms of what
+		/// made a text of blocks cost more than its length. Kept by the same rule as the index of
+		/// names: a place that is no longer there, or that holds something else now, sends the
+		/// question back to the walk.
+		/// </remarks>
+		Dictionary<(int At, string Name), int>? _lastAt;
+
+		/// <summary>Every declaration by where it is written, as places in the list of them.</summary>
+		/// <remarks>
+		/// What a block reads to find its own, and the reason it does not read them all. Kept in
+		/// the order of the text by <see cref="Place"/>, under the same rule about a reading given
+		/// up as <see cref="_named"/>.
+		/// </remarks>
+		List<int>? _byPlace;
+
+		/// <summary>Every declaration by the name it was written with, as places in the list above.</summary>
+		/// <remarks>
+		/// <para>
+		/// A use of a name asks which declarations could be it. Without this the answer was read
+		/// by walking every declaration in the text and comparing strings, which over a text of
+		/// n declarations with n uses is n² comparisons — 400 sibling blocks each declaring a name
+		/// of its own took 47 ms against 100's 1.8, and the scan was what was left of it after
+		/// the blocks were worked out once.
+		/// </para>
+		/// <para>
+		/// <b>The rule about a reading that was given up, which is the whole of what is subtle
+		/// here.</b> A rollback takes declarations off the end of the list, and the places kept
+		/// here are places IN that list, so some of them may no longer be there — or worse, may
+		/// have been taken by a declaration written since. Rebuilding this on every rollback was
+		/// measured and is not the answer: a reading is given up constantly, and every one of
+		/// them paid for the whole index. So a place is checked where it is READ, in two ways
+		/// that are needed together:
+		/// </para>
+		/// <list type="bullet">
+		/// <item>a place past the end of the list is gone, and since the places are in increasing
+		/// order they come off the tail;</item>
+		/// <item>a place still inside the list may hold a declaration written since the rollback,
+		/// and one of a different name — so the name is compared there, and a place whose
+		/// declaration no longer carries this name is passed over.</item>
+		/// </list>
+		/// <para>
+		/// Where a place was taken by a declaration of the SAME name, it is a real declaration of
+		/// it and answering with it is right; it is named twice in this list and that changes no
+		/// answer, since what is chosen among them is the innermost and latest.
+		/// </para>
+		/// </remarks>
+		Dictionary<string, List<int>>? _named;
 
 		/// <summary>The variable that name means where it is written.</summary>
 		/// <remarks>
@@ -3316,7 +3486,19 @@ public static partial class ExpressionParser
 			// The blocks are what the answers above were worked out from, so an answer cannot
 			// outlive a reading that took one back.
 			if (_scopes is not null && _scopes.Count > at.Scopes)
+			{
 				_holding = null;
+				_ordered = null;
+			}
+
+			// The places of declarations that are going come off the tail of the index of them: a
+			// reading given up takes the last of the text back, and those are the last places.
+			// What a rollback leaves behind is read where it is read, never rebuilt here.
+			if (_byPlace is not null)
+			{
+				while (_byPlace.Count > 0 && _byPlace[_byPlace.Count - 1] >= at.Declared)
+					_byPlace.RemoveAt(_byPlace.Count - 1);
+			}
 
 			Truncate(_scopes,     at.Scopes);
 			Truncate(_declared,   at.Declared);
@@ -3510,41 +3692,71 @@ public static partial class ExpressionParser
 			return $"nothing named '{name}' is declared here.";
 		}
 
+		/// <summary>The variable a name means where it is used, or none.</summary>
+		/// <remarks>
+		/// <para>
+		/// Read from the LAST declaration of the name backwards, and the first one visible where
+		/// the name is used is the answer. That it is the right one is an argument rather than a
+		/// convenience: of two declarations both visible at one place, the blocks holding them
+		/// both hold that place, so one is inside the other — and the inner block begins later,
+		/// so its declaration was written later. The later of the two is therefore the innermost,
+		/// and the first met going backwards. It is also the rule for one place read twice, where
+		/// the reading that stands is the last.
+		/// </para>
+		/// <para>
+		/// Reading them all forwards and keeping the innermost gave the same answer and cost the
+		/// declarations of that name, at every use of it: a text of 200 blocks each declaring one
+		/// `i` walked 200,608 declarations where 50 walked 12,658.
+		/// </para>
+		/// </remarks>
 		ParameterExpression? Find(string name, SourceSpan at)
 		{
-			var use   = at.Start;
-			var found = default(ParameterExpression);
-			var inner = int.MinValue;
-			var wrote = int.MinValue;
+			var use = at.Start;
 
-			foreach (var declaration in _declared ?? [])
+			if (_named is null || !_named.TryGetValue(name, out var places))
+				return null;
+
+			// What a reading that was given up left behind. The rule is written where the list
+			// is declared; both halves of it are here.
+
+			while (places.Count > 0 && places[places.Count - 1] >= (_declared?.Count ?? 0))
+				places.RemoveAt(places.Count - 1);
+
+			// From the use backwards, and not from the end of the text backwards. The places are in
+			// the order the text writes them, so everything declared after the use lies past this
+			// point and none of it has to be read: over 200 blocks each declaring the same name it
+			// was 199,400 places passed over of the 204,230 read, which is the text squared.
+			for (var index = From(places, use + 1) - 1; index >= 0; index--)
 			{
-				if (!string.Equals(declaration.Name, name, StringComparison.Ordinal) ||
-					declaration.At > use)
-					continue;
+				var declaration = _declared![places[index]];
 
-				var block = Holding(declaration.At);
+				if (declaration.At > use ||
+					!string.Equals(declaration.Name, name, StringComparison.Ordinal))
+					continue;
 
 				// Declared in a block this use is not inside: the other branch of the same
 				// choice, the block before this one. Not a shadow and not an error — simply
 				// not a name that is in scope here.
-				if (block is { } held && (held.From > use || held.To <= use))
+				if (Holding(declaration.At) is { } held && (held.From > use || held.To <= use))
 					continue;
 
-				var from = block?.From ?? int.MinValue + 1;
-
-				// The later of two declarations at one place, which is the same text read twice: a
-				// body whose lambda had no types is read before it has them and again after, and
-				// what the second reading declared is what the name means there.
-				if (from > inner || from == inner && declaration.At >= wrote)
-				{
-					found = declaration.Variable;
-					inner = from;
-					wrote = declaration.At;
-				}
+				return declaration.Variable;
 			}
 
-			return found;
+			return null;
+		}
+
+		/// <summary>The blocks in the order they begin, kept in that order as they are recorded.</summary>
+		List<Scope>? _ordered;
+
+		/// <summary>The same blocks, sorted by where each begins.</summary>
+		static List<Scope> Ordered(List<Scope> scopes)
+		{
+			var ordered = new List<Scope>(scopes);
+
+			ordered.Sort(static (one, other) => one.From.CompareTo(other.From));
+
+			return ordered;
 		}
 
 		/// <summary>Where a position's innermost block was worked out, once each.</summary>
@@ -3580,24 +3792,53 @@ public static partial class ExpressionParser
 			if (scopes is null || scopes.Count == 0)
 				return null;
 
+			// Outside every block there is, which no walk can change. The lambda's own parameters
+			// stand before the first block and are asked about at every use of them.
+			if (position < _opened || position >= _closed)
+				return null;
+
 			if (_holding is { } kept && kept.TryGetValue(position, out var known))
 				return known;
 
-			var found = default(Scope?);
+			// The blocks in the order they begin, so the innermost holding a position is found
+			// by where it begins rather than by reading all of them. Blocks nest or stand apart,
+			// never overlap, so the last one beginning at or before a position either holds it
+			// or none of the ones before it does either — except the ones around it, which begin
+			// earlier and are walked back to. Reading them all made the FIRST reading of each
+			// position cost the blocks, and a text of n blocks with n names cost n².
 
-			for (var at = 0; at < scopes.Count; at++)
+			var ordered = _ordered ??= Ordered(scopes);
+
+			var low  = 0;
+			var high = ordered.Count - 1;
+			var last = -1;
+
+			while (low <= high)
 			{
-				var scope = scopes[at];
+				var middle = low + ((high - low) >> 1);
 
-				if (scope.From <= position && position < scope.To &&
-					(found is not { } inner || scope.From > inner.From))
-					found = scope;
+				if (ordered[middle].From <= position)
+				{
+					last = middle;
+					low  = middle + 1;
+				}
+				else
+				{
+					high = middle - 1;
+				}
 			}
 
-			if (found is { } settled)
-				(_holding ??= [])[position] = settled;
+			for (var at = last; at >= 0; at--)
+			{
+				if (position < ordered[at].To)
+				{
+					(_holding ??= [])[position] = ordered[at];
 
-			return found;
+					return ordered[at];
+				}
+			}
+
+			return null;
 		}
 
 		/// <summary>The innermost of these extents holding a position, or none.</summary>
@@ -4025,10 +4266,39 @@ public static partial class ExpressionParser
 
 			var variables = new List<ParameterExpression>();
 			var declared  = _declared ?? [];
+			var from      = at.Start;
+			var to        = at.Start + at.Length;
 
-			for (var index = 0; index < declared.Count; index++)
-				if (Holding(declared[index].At) is { } held && held.From == at.Start && !Redeclared(declared, index))
-					variables.Add(declared[index].Variable);
+			// What this block declares: the declarations standing inside its extent, less the ones
+			// an inner block holds. Read by where they are, from the first place inside the extent
+			// up to the first place outside it, and the extents are what say which block holds one.
+			//
+			// Walking every declaration in the text instead, once per block, is what made a text of
+			// n blocks cost n² — over 200 sibling blocks it read 20,300 declarations where 50 read
+			// 1,275 — and no order of building spares it: on the tape nothing is built until the
+			// whole text has been read, so the first block built already sees them all.
+			if (_byPlace is { } places)
+			{
+				for (var slot = From(places, from); slot < places.Count; slot++)
+				{
+					var index = places[slot];
+
+					// Gone with a reading that was given up, and sorted to the end by `Written`.
+					if (index >= declared.Count)
+						break;
+
+					var where = declared[index].At;
+
+					if (where >= to)
+						break;
+
+					if (Holding(where) is { From: var holder } && holder == from &&
+						!Redeclared(declared, index))
+					{
+						variables.Add(declared[index].Variable);
+					}
+				}
+			}
 
 			var body = new List<Expression>(statements);
 
@@ -4052,9 +4322,18 @@ public static partial class ExpressionParser
 		/// before it has them and again after. That is one variable, not one per reading — the
 		/// one written last, which is the one <see cref="Find"/> hands every use of the name.
 		/// </remarks>
-		static bool Redeclared(List<Declaration> declared, int index)
+		bool Redeclared(List<Declaration> declared, int index)
 		{
 			var declaration = declared[index];
+
+			if (_lastAt is not null &&
+				_lastAt.TryGetValue((declaration.At, declaration.Name), out var last) &&
+				last < declared.Count &&
+				declared[last].At == declaration.At &&
+				string.Equals(declared[last].Name, declaration.Name, StringComparison.Ordinal))
+			{
+				return last != index;
+			}
 
 			for (var later = index + 1; later < declared.Count; later++)
 				if (declared[later].At == declaration.At &&

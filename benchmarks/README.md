@@ -361,6 +361,17 @@ what the last one left in every `obj/GeneratedFiles`, so it is a run behind main
 is written, never edited. A change that means to move a grammar off the tape is measured by the
 difference in this file before and after it; the stand then says what the move cost or saved.
 
+### A faster build leaves the JIT colder for what it measures next
+
+One process, several shapes, each read a few times and the fastest kept. A change that makes the
+EARLY shapes much faster stops them warming the code the LATER ones run, so the later shapes read
+slower than they did before it — and a reader who did not change them sees a regression that is
+not there. On 2026-09-26 a fix that read 400 nested blocks 8 to 11 times faster showed a
+consistent 2 to 3 times REGRESSION on every shape that came after it, reproducible across three
+alternating rounds; with `DOTNET_TieredCompilation=0` every one of those rows read exactly 1.00.
+Either turn tiering off for such a stand or give each shape a process of its own — and a
+regression only on what was NOT changed is the stand accusing itself.
+
 ### Tiered PGO
 
 The stand's agreement check runs every row's readings on every row's input before anything is

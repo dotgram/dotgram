@@ -63,6 +63,7 @@
 		     generator writes into each assembly are marked embedded, and neither sees the
 		     other's. -->
 		<InternalsVisibleTo Include="DotGram.Tests" />
+		<InternalsVisibleTo Include="DotGram.Tests.Slow" />
 		<InternalsVisibleTo Include="DotGram.Benchmarks" />
 		<InternalsVisibleTo Include="DotGram.Handwritten" />
 	</ItemGroup>
