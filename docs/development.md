@@ -536,7 +536,7 @@ What every version shares is in `Fix/`:
 - `Fix/FixContext.cs`: the context every version's derives from, and the table the reader indexes.
 - `Fix/FixDictionary.cs`: a data dictionary as a value, read, merged and edited.
 - `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the
-  application of a dictionary to a version's checks, each compiled when it is first asked.
+  application of a dictionary to a version's checks, compiled in the background after it.
 - `Fix/FixTag.cs`: the number of every tag of every version as a constant named for it.
 - `Fix/generate.py`, `Fix/Templates/`: the script that writes every version's directory and
   `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.

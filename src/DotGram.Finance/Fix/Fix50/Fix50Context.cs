@@ -112,8 +112,10 @@ public sealed record Fix50Context : FixContext
 	/// </para>
 	/// <para>
 	/// What the dictionary says is taken now: editing it afterwards changes nothing in the context
-	/// returned. Each check is compiled when it is first asked, so applying a whole dictionary costs
-	/// what reading it does, and the first message of each type held to it pays for its own check.
+	/// returned. The checks it describes are compiled from then on in the background, side by side,
+	/// so applying costs what reading does; a message held to the context before its check is ready
+	/// compiles that check itself, once. A caller who wants none of that on a message's path calls
+	/// <see cref="Prepare"/>.
 	/// </para>
 	/// </remarks>
 	public Fix50Context With(FixDictionary dictionary, string? emitTo = null)
@@ -121,6 +123,19 @@ public sealed record Fix50Context : FixContext
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
 		return (Fix50Context)Loaded(dictionary, emitTo);
+	}
+
+	/// <summary>Waits until every check an applied dictionary describes is compiled, compiling what is left side by side.</summary>
+	/// <exception cref="FormatException">A check does not compile, which an applied dictionary's checks are held not to do.</exception>
+	/// <remarks>
+	/// Optional. The checks are compiled in the background from the moment the dictionary is applied,
+	/// and a message that arrives first compiles its own check, once; <c>Prepare</c> is for a caller who
+	/// wants no message to pay for that, at the price of waiting here. A context with no dictionary
+	/// applied has nothing to compile.
+	/// </remarks>
+	public void Prepare()
+	{
+		Checks.CompileDeferred();
 	}
 
 	/// <summary>This context with a dictionary loaded over its schema: <c>With(FixDictionary.Parse(dictionary))</c>.</summary>

@@ -14,7 +14,7 @@ namespace DotGram.Finance.Tests;
 
 /// <summary>
 /// A dictionary as a value: read from a file, merged, edited in code, and applied to a context,
-/// which takes what it says at that moment and compiles each check when it is first asked.
+/// which takes what it says at that moment and compiles its checks in the background.
 /// </summary>
 public sealed class FixDictionaryTests
 {
@@ -108,29 +108,27 @@ public sealed class FixDictionaryTests
 	}
 
 	/// <summary>
-	/// Applying compiles nothing: every check it wrote stands in its slot until it is first asked, and
-	/// asked, it takes the slot's place.
+	/// Applying returns before the checks are compiled; a message held to the context at once is held
+	/// to the dictionary's check all the same, and after <c>Prepare</c> nothing is left to compile.
 	/// </summary>
 	[Fact]
-	public void A_check_is_compiled_when_it_is_first_asked()
+	public void A_message_held_before_the_checks_are_ready_is_held_to_them()
 	{
 		var context = Fix44Context.Default.With(FixDictionary.Parse(Venue));
 
-		Assert.Equal(3, context.Checks.CompileDeferred());
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
+
+		context.Prepare();
+
 		Assert.Equal(0, context.Checks.CompileDeferred());
-
-		var other = Fix44Context.Default.With(FixDictionary.Parse(Venue));
-
-		FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(other);
-
-		// The Logon's check was asked and compiled; the component's and the field's were not.
-		Assert.Equal(2, other.Checks.CompileDeferred());
+		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
 	}
 
 	/// <summary>
 	/// What a compilation would refuse is asked of the model when the dictionary is applied, so that
 	/// no check refuses to compile later, on some message's first reading. Held here over every
-	/// dictionary the corpus has that loads: applied, and then every check compiled at once.
+	/// dictionary the corpus has that loads: applied, and then every check compiled at once by
+	/// <c>Prepare</c>, which surfaces a failure the background would leave to the message.
 	/// </summary>
 	[Fact]
 	public void Every_check_of_a_dictionary_that_applies_compiles()
@@ -139,9 +137,21 @@ public sealed class FixDictionaryTests
 		var fix42 = Fix42.Fix42Context.Default.Load(Read("FIX42.xml"));
 		var fixt  = Fix50.Fix50Context.Default.Load(Read("FIXT11.xml"));
 
-		Assert.True(fix44.Checks.CompileDeferred() > 500);
-		Assert.True(fix42.Checks.CompileDeferred() > 100);
-		Assert.True(fixt.Checks.CompileDeferred() > 5);
+		fix44.Prepare();
+		fix42.Prepare();
+		fixt.Prepare();
+
+		Assert.Equal(0, fix44.Checks.CompileDeferred());
+		Assert.Equal(0, fix42.Checks.CompileDeferred());
+		Assert.Equal(0, fixt.Checks.CompileDeferred());
+	}
+
+	[Fact]
+	public void Prepare_on_a_context_with_no_dictionary_does_nothing()
+	{
+		Fix44Context.Default.Prepare();
+
+		Assert.Equal(0, Fix44Context.Default.Checks.CompileDeferred());
 	}
 
 	[Fact]

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.ExpressionLanguage;
 
@@ -105,23 +107,55 @@ abstract partial class FixValidator
 		foreach (var (slot, text) in writing.Written)
 			slot.SetValue(loaded, Deferred.Of(loaded, slot, text));
 
+		// The checks are compiled from now on, in the background and side by side, so that most of them
+		// are ready before a message asks: a message that comes first compiles its own. A failure here
+		// is left to that call, which meets the same one and reports it where a caller can see it.
+		if (writing.Written.Count > 0)
+			Task.Run(() =>
+			{
+				try
+				{
+					loaded.CompileDeferred();
+				}
+				catch
+				{
+					// The call that asks for the check reports it.
+				}
+			});
+
 		return loaded;
 	}
 
-	/// <summary>Compiles every check a load left to be compiled on its first call: what a test asks, to hold them all to the model at once.</summary>
-	/// <returns>How many were compiled.</returns>
+	/// <summary>Compiles, side by side, every check still waiting to be compiled, and puts each in its slot.</summary>
+	/// <returns>How many were waiting.</returns>
+	/// <exception cref="FormatException">A check does not compile; the first such, of the slots' order.</exception>
 	internal int CompileDeferred()
 	{
-		var compiled = 0;
+		var waiting = new List<(PropertyInfo Slot, IDeferred Deferred)>();
 
 		foreach (var slot in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
 			if (slot.PropertyType.IsSubclassOf(typeof(Delegate)) && slot.GetValue(this) is Delegate { Target: IDeferred deferred })
-			{
-				deferred.Compiled();
-				compiled++;
-			}
+				waiting.Add((slot, deferred));
 
-		return compiled;
+		var failures = new Exception?[waiting.Count];
+
+		Parallel.For(0, waiting.Count, at =>
+		{
+			try
+			{
+				waiting[at].Slot.SetValue(this, waiting[at].Deferred.Compiled());
+			}
+			catch (Exception exception)
+			{
+				failures[at] = exception is TargetInvocationException { InnerException: { } inner } ? inner : exception;
+			}
+		});
+
+		foreach (var failure in failures)
+			if (failure is not null)
+				ExceptionDispatchInfo.Capture(failure).Throw();
+
+		return waiting.Count;
 	}
 
 	/// <summary>The texts a load writes, each for the slot of its name.</summary>

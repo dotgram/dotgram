@@ -213,8 +213,9 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
   whole. Reading it (`Parse`, `LoadFile`) refuses only what is not a dictionary.
 - `Merge` replaces a message type, component or field whole; it cannot remove one. To drop a
   message type the model has no class for, remove it: `dictionary.Messages.Remove("CF")`.
-- Each check is compiled the first time a message of its type is validated, so the first
-  `Validate` of each type is slower than the rest. Applying costs what reading does.
+- Applying costs what reading does; the checks are then compiled in the background. A message
+  validated before its check is ready compiles it itself, once, so an early first `Validate` of a
+  type can be slower. Call `context.Prepare()` after applying to wait until every check is ready.
 
 ## Streams
 

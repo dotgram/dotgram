@@ -147,7 +147,9 @@ public sealed class Fix50Tests
 		Assert.True(notice.Validate(context), string.Join("; ", notice.InvalidFindings ?? []));
 
 		// And every other check they describe compiles: nothing is left to fail on a later message's first reading.
-		Assert.True(context.Checks.CompileDeferred() > 500);
+		context.Prepare();
+
+		Assert.Equal(0, context.Checks.CompileDeferred());
 	}
 
 	/// <summary>The session layer's dictionary alone loads, and the order is held to it as to the standard.</summary>

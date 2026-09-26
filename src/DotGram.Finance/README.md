@@ -284,9 +284,10 @@ dictionary. `With` answers a new context in which a message type, component, gro
 the dictionary describes is held to its whole check; it takes what the dictionary says at that
 moment, and editing the dictionary afterwards changes nothing in the context. A dictionary that
 places a field where the model has no property for it, lists a code its field's type cannot hold,
-or gives one name to two tags, is refused there, whole. Each check is compiled the first time it is
-asked, so applying a whole dictionary costs what reading it does. `Load(text)` and `LoadFile(path)`
-on the context are the short forms. The package ships nobody's dictionary: the file is yours, and
+or gives one name to two tags, is refused there, whole. Applying costs what reading does: the checks
+are then compiled in the background, side by side, and a message that arrives before its check is
+ready compiles it itself, once. `context.Prepare()` waits until all of them are ready, for a caller who
+wants no message to pay for that. `Load(text)` and `LoadFile(path)` on the context are the short forms. The package ships nobody's dictionary: the file is yours, and
 its licence obligations are yours with it.
 
 ## Custom fields and messages
