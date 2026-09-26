@@ -18,7 +18,10 @@ carrier, one stack guard, no new exception can escape, and **D138's question nev
 ## 1. The witness: what the walk costs now
 
 `.work/matcount`, an instrumented copy of `SqlStandardParser` counting the records each walk lists
-(`listed`), per parse:
+(`listed`), per parse. **The copy has been deleted**; it was the generated parser with a counter
+added at the scan (`Ways.CountListed += listed`), a refusal per parser so that one rendering could
+not be read for another, and its staleness guard on `typeof(Program).Assembly.Location` rather than
+`Environment.ProcessPath`, which under `dotnet x.dll` is the host and refuses every run.
 
 | input | walks | records listed | per doubling |
 | --- | ---: | ---: | ---: |
