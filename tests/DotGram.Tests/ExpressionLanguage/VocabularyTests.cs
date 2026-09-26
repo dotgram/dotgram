@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -70,6 +71,80 @@ public sealed class VocabularyTests
 
 		// And it really did grow past the bound, or the assertion above proves nothing.
 		Assert.True(was > 4096, $"only {was} answers were kept, which is under the bound this is about.");
+	}
+
+	/// <summary>
+	/// A chain whose head is a parameter is never asked whether it names a type.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// C#'s order: a simple name that binds to a local, a parameter or a variable of a `foreach`
+	/// or a `catch` IS that, and is never looked up as a type or a namespace. So `one.A.B` is a
+	/// member access from `one`, and asking the type tables for `one.A.B` — and for it under
+	/// every `using` in the text — is work C# does not do.
+	/// </para>
+	/// <para>
+	/// It was most of the work this did. FIX's checks are written over lambda parameters, and
+	/// each `context.Validators.X`, `message.Y` and `entry.Z` was asked of the tables and
+	/// answered no, three times over for three `using`s; the cache of names that are not there
+	/// filled and cleared three times a pass, and a pass took 850 ms where it now takes 173.
+	/// </para>
+	/// <para>
+	/// The count has to stay at nought, which is what reaches the defect: a bound would not have.
+	/// </para>
+	/// <para>
+	/// The text writes `int` and not `var` on purpose. `var` IS asked of the type tables, once
+	/// per `using`, because C# asks too — a type actually named `var` would win — and the answer
+	/// is kept, so it is four entries in the life of a process rather than a defect. Leaving it
+	/// in would have made this assertion about that instead of about what it is for.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_chain_on_a_parameter_asks_the_type_tables_nothing()
+	{
+		var absent = Cache("_typesAbsent");
+		var inside = Cache("_insideAbsent");
+
+		// Many distinct chains on a parameter, under four `using`s: with the defect each one was
+		// asked of the type tables five times over, so the count would rise by scores here.
+		var text = "using System; using System.Text; using System.Collections.Generic; using System.Linq; " +
+			"(System.Text.StringBuilder one) => { " +
+			"int a = one.Length; int b = one.Capacity; int c = one.MaxCapacity; " +
+			"bool d = one.Equals(one); int e = one.GetHashCode(); " +
+			"System.Type f = one.GetType(); string g = one.ToString(); " +
+			"int h = one.GetType().Name.Length; int i = one.GetType().Namespace.Length; " +
+			"return a + b + c + e + g.Length + h + i; }";
+
+		var wasAbsent  = absent.Count;
+		var wasInside  = inside.Count;
+		var wereAbsent = absent.Names();
+		var wereInside = inside.Names();
+
+		ExpressionParser.Parse(text, typeof(VocabularyTests).Assembly);
+
+		Assert.True(
+			absent.Count == wasAbsent,
+			$"the type tables were asked about {absent.Count - wasAbsent} name(s) they do not have: " +
+			Shown(absent.Names().Except(wereAbsent)));
+
+		// One for each type name the TEXT ITSELF writes — `System.Text.StringBuilder` and
+		// `System.Type` — which has to be looked for somewhere, and the calling assembly is
+		// asked first and does not declare it. Those are names an author wrote, not chains this
+		// invented, and there is one per type however often it is written. What must not appear
+		// here is a chain: `one.GetType().Name` and its kind.
+		Assert.True(
+			inside.Count - wasInside <= 2,
+			$"the calling assembly was asked about {inside.Count - wasInside} name(s) it does not have: " +
+			Shown(inside.Names().Except(wereInside)));
+	}
+
+	/// <summary>The first few of them, because a message naming eighty is a message nobody reads.</summary>
+	static string Shown(IEnumerable<string> names)
+	{
+		var all   = names.ToList();
+		var first = string.Join(", ", all.Take(6));
+
+		return all.Count <= 6 ? first : first + $", and {all.Count - 6} more";
 	}
 
 	/// <summary>One lambda per type, naming every member of it this can name, and how many that was.</summary>
@@ -146,22 +221,43 @@ public sealed class VocabularyTests
 	/// </remarks>
 	static ICounted Cache(string name)
 	{
-		var field = typeof(ExpressionParser).GetField(name, BindingFlags.NonPublic | BindingFlags.Static);
+		// Nested types too: `_typesAbsent` and its kind live in `Loaded`, inside the parser, and
+		// a search that reads only the parser's own fields finds nothing and says nothing —
+		// which is exactly how the first measurement of this defect missed where it was.
+		foreach (var holder in new[] { typeof(ExpressionParser) }.Concat(
+			typeof(ExpressionParser).GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)))
+		{
+			if (holder.GetField(name, BindingFlags.NonPublic | BindingFlags.Static) is { } field)
+				return new Counted(field.GetValue(null)!);
+		}
 
-		Assert.True(field is not null, $"there is no cache called {name} any more; this test names it by hand.");
+		Assert.Fail($"there is no cache called {name} any more; this test names it by hand.");
 
-		return new Counted(field!.GetValue(null)!);
+		return null!;
 	}
 
 	/// <summary>Whatever the cache is, asked only how many answers it holds.</summary>
 	sealed class Counted(object cache) : ICounted
 	{
 		public int Count => (int)cache.GetType().GetProperty("Count")!.GetValue(cache)!;
+
+		/// <summary>The names it was asked about, so a failure says WHICH rather than how many.</summary>
+		public List<string> Names()
+		{
+			var names = new List<string>();
+
+			foreach (var entry in (System.Collections.IEnumerable)cache)
+				names.Add(entry.GetType().GetProperty("Key")!.GetValue(entry)!.ToString()!);
+
+			return names;
+		}
 	}
 
 	/// <summary>The one question a measurement asks of a cache.</summary>
 	interface ICounted
 	{
 		int Count { get; }
+
+		List<string> Names();
 	}
 }

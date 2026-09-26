@@ -642,7 +642,8 @@ namespace DotGram.ExpressionLanguage;
 	NamedType? : @Type
 		= ?!Keyword & head: Word & ('.' & part: Identifier)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
+		  & when @(!context.Binds(head, parserSpan) &&
+		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
 		  => @(args is null
 		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
 		       : context.Here(parserSpan).Generic(
@@ -3393,6 +3394,27 @@ public static partial class ExpressionParser
 		internal bool Resolves(string name)
 		{
 			return Meanings(name, out _, out _) > 0;
+		}
+
+		/// <summary>Whether that name is a local, a parameter or something else the text declared.</summary>
+		/// <remarks>
+		/// <para>
+		/// C#'s order: a simple name that binds to a local, a parameter or a variable of a
+		/// `foreach` or a `catch` IS that, and is never looked up as a type or a namespace. So a
+		/// dotted chain whose head is declared is a member access from its first identifier, and
+		/// asking whether the whole chain names a type is work C# does not do.
+		/// </para>
+		/// <para>
+		/// It was also most of the work this did. A FIX dictionary's checks are written over
+		/// lambda parameters — `context.Validators.X`, `message.Y`, `entry.Z` — and each of them
+		/// was asked of the type tables as a qualified name, under every `using` in the text and
+		/// under none, and answered no every time. Over 571 checks that filled the cache of names
+		/// that are not there and cleared it three times a pass.
+		/// </para>
+		/// </remarks>
+		internal bool Binds(string name, SourceSpan at)
+		{
+			return Find(name, at) is not null;
 		}
 
 		/// <summary>The type that name means.</summary>
