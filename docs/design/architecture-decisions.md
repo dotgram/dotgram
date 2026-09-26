@@ -9630,3 +9630,18 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   grammar to file (`#line`) is computed inside it from the host's text. The shape agreed: the compile
   depends on the grammar text and options only; file coordinates are applied at the output step.
   A design note comes first. This one matters most to consumers, whose own class carries the grammar.
+
+## D146 — Three decisions of Igor's, 2026-09-26
+
+- **AggressiveOptimization is declined.** Proposed for 29% less stack a nesting level; measured
+  4-10% in Release only and none in Debug, where the stack budget is derived, against the expression
+  language's nested rows 14-33% slower on both carriers (loss of dynamic PGO). Not built.
+- **The expression language gains `using static` and aliases**, by C#'s rules, and imports by
+  default the namespaces a new SDK project imports implicitly: System, System.Collections.Generic,
+  System.IO, System.Linq, System.Net.Http, System.Threading, System.Threading.Tasks. They behave as
+  usings written before the text's own. Whether a host can turn them off is public surface and is
+  Igor's to decide.
+- **FIX: compiling only the checks that differ from the built-in ones is not done.** The first
+  Prepare of FIX 4.4 with its errata takes 0.43 s since 723b7af8, in the background; not worth the
+  second model it would need.
+
