@@ -161,8 +161,9 @@ public static class HandExpression
 		"double",  "else",      "false",    "finally",   "float",   "for",
 		"foreach", "if",        "in",       "int",       "is",      "long",
 		"nameof",  "new",       "null",     "object",    "return",  "sbyte",
-		"short",   "string",    "switch",   "throw",     "true",    "try",
-		"typeof",  "uint",      "ulong",    "unchecked", "ushort",  "using",
+		"short",   "static",    "string",   "switch",    "throw",   "true",
+		"try",     "typeof",    "uint",     "ulong",     "unchecked", "ushort",
+		"using",
 		"while",
 	];
 
@@ -210,6 +211,7 @@ public static class HandExpression
 	static readonly byte KwReturn    = Of("return");
 	static readonly byte KwSbyte     = Of("sbyte");
 	static readonly byte KwShort     = Of("short");
+	static readonly byte KwStatic    = Of("static");
 	static readonly byte KwString    = Of("string");
 	static readonly byte KwSwitch    = Of("switch");
 	static readonly byte KwThrow     = Of("throw");
@@ -283,7 +285,8 @@ public static class HandExpression
 					case 'n': if (Same(w, "nameof")) return KwNameof; break;
 					case 'o': if (Same(w, "object")) return KwObject; break;
 					case 'r': if (Same(w, "return")) return KwReturn; break;
-					case 's': if (Same(w, "string")) return KwString; if (Same(w, "switch")) return KwSwitch; break;
+					case 's': if (Same(w, "string")) return KwString; if (Same(w, "switch")) return KwSwitch;
+					          if (Same(w, "static")) return KwStatic; break;
 					case 't': if (Same(w, "typeof")) return KwTypeof; break;
 					case 'u': if (Same(w, "ushort")) return KwUshort; break;
 				}
@@ -1974,8 +1977,24 @@ public static class HandExpression
 
 		int Import(int i)
 		{
-			if (Kind(i + 1) != Identifier)
+			// `static` is a keyword here as it is in C# (the grammar reserves it too), so the one
+			// directive beginning with a keyword is read before the three that begin with a name.
+			if (Kind(i + 1) != Identifier && Kind(i + 1) != KwStatic)
 				return -1;
+
+			// `using static a type;` before the rest. `static` is no keyword here, so it arrives
+			// as a name; no C# namespace can be spelled with it, so preferring this reading
+			// costs nothing.
+			if (Kind(i + 1) == KwStatic)
+			{
+				var mark = _context.Mark();
+				var over = Type(i + 2, out var imported, build: true);
+
+				if (over > 0 && imported is not null && Kind(over) == Semicolon)
+					return _context.Statically(imported, Span(i, over + 1)) ? over + 1 : Refuse(over + 1);
+
+				_context.Rollback(mark);
+			}
 
 			// `using X = …;` before the rest, since the two are told apart by what follows the
 			// first name and nothing else. A type first, then a namespace: `Type` reads no
@@ -3878,6 +3897,22 @@ public static class HandExpression
 			if (Kind(i) == Identifier)
 			{
 				var name = Name(i, out _, build: false);
+
+				// A bare name that calls a method a `using static` brought into reach, where the
+				// name is NOT something the text declared — which is C#'s order, and the reason
+				// this stands after `Name` refuses rather than before it asks.
+				if (name < 0 && Kind(i + 1) == LeftParen && _context.Calls(Cut(i), Span(i, 1)))
+				{
+					var arguments = Arguments(i + 1, out var args);
+
+					if (arguments >= 0)
+					{
+						if (_build)
+							node = _context.Calling(Cut(i), args!);
+
+						at = arguments;
+					}
+				}
 
 				if (name >= 0)
 				{

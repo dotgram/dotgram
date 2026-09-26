@@ -199,7 +199,8 @@ public static partial class ExpressionParser
 	/// what keeps `Where` and `Select` out until they can be inferred.
 	/// </remarks>
 	static List<Candidate> Extensions(
-		string name, Expression[] extended, ResolutionScope scope, IReadOnlyList<string>? imports)
+		string name, Expression[] extended, ResolutionScope scope, IReadOnlyList<string>? imports,
+		IReadOnlyList<Type>? statics = null)
 	{
 		var found = new List<Candidate>();
 		var seen  = new HashSet<MethodInfo>();
@@ -209,6 +210,11 @@ public static partial class ExpressionParser
 			Consider(Loaded.Holders(scope, space));
 			Consider(Loaded.HoldersInside(scope, space));
 		}
+
+		// A `using static` brings in the extension methods of the type it names, as it does in C#.
+		// One type rather than a namespace of them, so it is the same walk over a list of one.
+		foreach (var one in statics ?? [])
+			Consider([one]);
 
 		return found;
 
@@ -241,6 +247,17 @@ public static partial class ExpressionParser
 				extending.Add(Overload.Of(method, parameters));
 
 		return [.. extending];
+	}
+
+	/// <summary>Whether that type offers a static method of that name the scope may call.</summary>
+	/// <remarks>
+	/// What a guard asks of a bare name followed by arguments, where nothing the text declared has
+	/// the name. It reads the same kept answer a call reads, so asking costs a lookup and the call
+	/// that follows costs nothing again.
+	/// </remarks>
+	internal static bool Offers(Type type, string name, ResolutionScope scope)
+	{
+		return Cached(_methods, _methodsAbsent, (type, name, false, scope), static key => Named(key), Nothing).Length > 0;
 	}
 
 	/// <summary>

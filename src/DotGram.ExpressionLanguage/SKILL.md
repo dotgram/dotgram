@@ -90,7 +90,13 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   that one writes its own `using`s or names types whole.
 - A `using` names a namespace, or gives a name to one type or one namespace:
   `using L = System.Collections.Generic.List<int>;` and `using C = System.Collections.Generic;`.
-  A closed generic may be named, an open one may not, as in C#. No `using static` yet.
+  A closed generic may be named, an open one may not, as in C#.
+- `using static System.Math;` brings that type's static methods into reach as bare names
+  (`Abs(-2)`) and its extension methods into the extension search. A name the text DECLARED wins
+  over one a `using static` gives — a local delegate called as `f(x)` is called even where a
+  static method of that name would fit, which is C#'s answer. Two `using static`s giving one
+  method is an ambiguous CALL rather than an ambiguous name, as in C# (CS0121).
+- `static` is a keyword here, as it is in C#, so nothing may be named it.
 - **An alias beats a name a `using` brings in**, silently, as in C#; it may not take a name the
   global namespace already has, and that is refused where the alias is WRITTEN rather than where
   the name is used. One name given two meanings is refused.

@@ -232,8 +232,9 @@ namespace DotGram.ExpressionLanguage;
 			|  "double"  | "else"     | "false"    | "finally"  | "float"   | "for"
 			|  "foreach" | "if"       | "in"       | "int"      | "is"      | "long"
 			|  "nameof"  | "new"      | "null"     | "object"   | "return"  | "sbyte"
-			|  "short"   | "string"   | "switch"   | "throw"    | "true"    | "try"
-			|  "typeof"  | "uint"     | "ulong"    | "unchecked"| "ushort"  | "using"
+			|  "short"   | "static"   | "string"   | "switch"   | "throw"   | "true"
+			|  "try"     | "typeof"   | "uint"     | "ulong"    | "unchecked"| "ushort"
+			|  "using"
 			|  "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
@@ -565,7 +566,17 @@ namespace DotGram.ExpressionLanguage;
 	// are two: a capture only some alternatives make is nullable in every guard of the rule
 	// (§4.2). The capture here is named `i` in all three ways so that the `=>` of each reads a
 	// capture every way makes, which is what `Branch` does above.
-	Import : @string = i: Aliases => @(i) | i: AliasesSpace => @(i) | i: Imports => @(i)
+	Import : @string
+		= i: Statically => @(i) | i: Aliases => @(i) | i: AliasesSpace => @(i) | i: Imports => @(i)
+
+	// `using static System.Math;` — the type's own static members become names the text may
+	// write bare, and its extension methods join the ones the imported namespaces give. Read
+	// before the others because `static` is no keyword here and a namespace could be spelled
+	// with the word; no C# namespace can be, so nothing is lost by preferring this reading.
+	Statically? : @string
+		= "using" & "static" & imported: Type & ';'
+		  & when @(context.Statically(imported, parserSpan))
+		  => @("static")
 
 	// `using L = System.Collections.Generic.List<int>;` — a name for one type, closed generics
 	// included. An open one (`List<>`) is refused, as C# refuses it (CS7003), and needs no rule
@@ -1209,9 +1220,37 @@ namespace DotGram.ExpressionLanguage;
 
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
+		// A bare name that calls: a method a `using static` brought into reach. AFTER the way
+		// above, which is what gives C's answer — a local delegate called as `f(x)` is called
+		// even where a `using static` offers an `f` that would fit — and the ordering is the
+		// whole of the rule, so nothing here asks about locals.
+		//
+		// A way of its own and not that one widened: `Name` answers with a variable, and a group
+		// of methods is no value. Nothing is invented to stand for one.
+		//
+		// The guard stands BEFORE the arguments are read, and that is not tidiness. Written after
+		// them, a name that calls nothing read `(-2)` before refusing, and the furthest refusal a
+		// text earned moved to the end of it: `() => Abs(-2)` was refused at the `(` and became
+		// starved at the close. A guard that can answer from the name alone is asked there.
+		//
+		// And a guard that reads NOTHING stands first, before the word: a text with no
+		// `using static` in it cannot reach this way at all, and the whole of it should cost such
+		// a text a field read. Without that it cost one more way tried at every identifier there
+		// is — 5% of a text of four hundred plain terms, which is every text that names no
+		// method.
+
 		| target: Name & "++" => @(Expression.PostIncrementAssign(target))
 		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
 		| p: Primary          => @(p)
+
+		// LAST of the ways, and that is a measurement rather than a preference: every identifier
+		// a text writes is tried against every way here, and standing before `Primary` this one
+		// cost 5% of a text of four hundred plain terms — 20 ns an identifier for a way that such
+		// a text can never take. After it, a name that reads as anything at all never reaches
+		// here, and what does reach here would otherwise have been refused.
+		| when @(context.Statics())
+		& ?!Keyword & called: Word & when @(context.Calls(called, parserSpan)) & args: Arguments
+		  => @(context.Calling(called, args))
 
 	// One step of a chain, said rather than built: which member, the arguments where it is a
 	// call, the indices where it is an index, and whether a `?` stands before it.
@@ -3084,7 +3123,7 @@ public static partial class ExpressionParser
 			if (Reach.ImportsDefault)
 				_imports.AddRange(ResolutionScope.DefaultImports);
 
-			Members = new MemberResolver(Reach, _imports);
+			Members = new MemberResolver(Reach, _imports, _statics);
 		}
 
 		/// <summary>Where this reading's names are looked for.</summary>
@@ -3555,7 +3594,7 @@ public static partial class ExpressionParser
 
 		/// <summary>How much a reading had written down, to go back to.</summary>
 		internal readonly record struct Checkpoint(
-			int Scopes, int Declared, int Unsettled, int Imports, int Aliases,
+			int Scopes, int Declared, int Unsettled, int Imports, int Aliases, int Statics,
 			int RefusedAt, string? Refusal, bool Deferred);
 
 		/// <summary>Where this reading stands now.</summary>
@@ -3571,7 +3610,7 @@ public static partial class ExpressionParser
 		{
 			return new Checkpoint(
 				_scopes?.Count ?? 0, _declared?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count,
-				_aliases.Count, _refusedAt, _refusal, _deferred);
+				_aliases.Count, _statics.Count, _refusedAt, _refusal, _deferred);
 		}
 
 		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
@@ -3599,6 +3638,7 @@ public static partial class ExpressionParser
 			Truncate(_unsettled,  at.Unsettled);
 			Truncate(_imports,    at.Imports);
 			Truncate(_aliases,    at.Aliases);
+			Truncate(_statics,    at.Statics);
 
 			_refusedAt = at.RefusedAt;
 			_refusal   = at.Refusal;
@@ -3643,6 +3683,63 @@ public static partial class ExpressionParser
 
 		/// <summary>A name a `using` gave to a type or a namespace, and what it names.</summary>
 		readonly record struct Alias(string Name, Type? Type, string? Space);
+
+		/// <summary>The types a `using static` named, in the order the text named them.</summary>
+		/// <remarks>
+		/// A list for the reason <see cref="_imports"/> is one: a reading given up takes back what
+		/// it wrote, and taking back a count is truncating a list.
+		/// </remarks>
+		readonly List<Type> _statics = [];
+
+		/// <summary>A `using static`, recorded while the text is read.</summary>
+		/// <returns>Whether it may stand. One type named twice is recorded once.</returns>
+		internal bool Statically(Type type, SourceSpan at)
+		{
+			if (type is null)
+				throw new ArgumentNullException(nameof(type));
+
+			if (!_statics.Contains(type))
+				_statics.Add(type);
+
+			return true;
+		}
+
+		/// <summary>Whether a bare name is a method a `using static` brought into reach (§8.1).</summary>
+		/// <remarks>
+		/// Asked where a name is followed by arguments and is NOT a local, a parameter or anything
+		/// else the text declared — that way is read first, and C# gives it the name: a local
+		/// delegate called as `f(x)` is called even where a `using static` offers an `f` that would
+		/// fit. So this guard runs only where the reading would otherwise have refused outright.
+		/// </remarks>
+		/// <summary>Whether a `using static` stands at all, asked before anything is read.</summary>
+		/// <remarks>
+		/// A guard that reads nothing may stand first in a way, and this one is here so that a text
+		/// without the directive pays a field read rather than a way tried at every name it writes.
+		/// </remarks>
+		internal bool Statics()
+		{
+			return _statics.Count > 0;
+		}
+
+		internal bool Calls(string name, SourceSpan at)
+		{
+			if (name is null)
+				throw new ArgumentNullException(nameof(name));
+
+			for (var one = 0; one < _statics.Count; one++)
+				if (Offers(_statics[one], name, Reach))
+					return true;
+
+			return false;
+		}
+
+		/// <summary>The call a bare name makes, chosen among every type a `using static` named.</summary>
+		internal Expression Calling(string name, Expression[] arguments)
+		{
+			var chosen = Members.Bare(name, arguments);
+
+			return Expression.Call((MethodInfo)chosen.Member, chosen.Arguments);
+		}
 
 		/// <summary>The aliases a text has written, in the order it wrote them.</summary>
 		/// <remarks>

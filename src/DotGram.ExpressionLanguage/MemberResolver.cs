@@ -34,13 +34,21 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal sealed class MemberResolver
 	{
-		public MemberResolver(ResolutionScope scope, IReadOnlyList<string>? imports)
+		public MemberResolver(ResolutionScope scope, IReadOnlyList<string>? imports, IReadOnlyList<Type>? statics = null)
 		{
 			Scope    = scope ?? throw new ArgumentNullException(nameof(scope));
 			_imports = imports;
+			_statics = statics;
 		}
 
 		readonly IReadOnlyList<string>? _imports;
+
+		/// <summary>The types a `using static` named, whose static members the text may name bare.</summary>
+		/// <remarks>
+		/// Held the way the imports are and for the same reason: the reading writes them down as it
+		/// reads, and this resolver is handed the very list rather than a copy of it.
+		/// </remarks>
+		readonly IReadOnlyList<Type>? _statics;
 
 		/// <summary>Where this reading's names are looked for.</summary>
 		public ResolutionScope Scope { get; }
@@ -75,12 +83,36 @@ public static partial class ExpressionParser
 
 			arguments.CopyTo(extended, 1);
 
-			if (Extensions(name, extended, Scope, _imports) is { Count: > 0 } found)
+			if (Extensions(name, extended, Scope, _imports, _statics) is { Count: > 0 } found)
 				return Chose(found, extended, $"nothing extends '{target.Type.Name}' with '{name}'");
 
 			// Neither, which is said in the words the language has always used for a method
 			// that is not there — the empty list is what says there was nothing to choose from.
 			return Chose([], arguments, missing);
+		}
+
+		/// <summary>A call on no receiver: the static method a `using static` brought into reach.</summary>
+		/// <remarks>
+		/// Every type a `using static` named offers its methods of that name and they are chosen
+		/// among together, which is what C# does: two `using static`s giving one method is not an
+		/// ambiguous REFERENCE but an ambiguous CALL (CS0121), because the methods join one group
+		/// and overload resolution decides. So the refusal is the one this language already has for
+		/// a call it cannot choose, and no rule of its own was written for it.
+		/// </remarks>
+		public Resolution Bare(string name, Expression[] arguments)
+		{
+			if (name is null)
+				throw new ArgumentNullException(nameof(name));
+
+			if (arguments is null)
+				throw new ArgumentNullException(nameof(arguments));
+
+			var found = new List<Candidate>();
+
+			foreach (var one in _statics ?? [])
+				found.AddRange(Methods(one, name, instance: false, arguments, Scope));
+
+			return Chose(found, arguments, $"nothing brought in by a `using static` has a method '{name}'");
 		}
 
 		/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
