@@ -9606,8 +9606,13 @@ machinery needs a field in emitted code, and a consumer must not carry one for o
 - Not a generator option: nothing in `[Gram]`, no MSBuild property, nothing documented as a feature.
   The field's XML doc says it is compiled only under that symbol, which the repository's tests
   define, and is not a supported setting.
-- The test projects that gate on counts define the symbol. DotGram.Compatibility also builds once
-  with it, so the counted variant cannot rot. A test asserts a build without it has no counter.
+- No project defines the symbol. An `#if` in emitted text answers to the compilation that owns the
+  grammar, so a test project defining it would count only parsers generated inside itself, never a
+  shipped one. A counting gate compiles its own parser from the same grammar in the test
+  (`GramCompiler.Compile` + `EmittedCode.Compile`, as `MarkJournalTests` does) with the symbol set:
+  a count is a function of grammar and generator, so it counts what the shipped parser does.
+  DotGram.Compatibility builds once with the symbol so the counted variant cannot rot; the shipped
+  packages never see it.
 - Hand-written code (the expression language's `State.Places`) carries its counter always, as a
   chosen cost written beside it: 8 bytes a reading (ae2045d8).
 
