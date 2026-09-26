@@ -39,15 +39,30 @@ namespace DotGram.Tests;
 /// prefix of them.
 /// </para>
 /// <para>
-/// <b>So the three block shapes are bounded at 1.3, and not lower, and the reason is the machine and
-/// not the code.</b> Over three readings of the same build the exponents held between 0.90 and 1.16
-/// while the ABSOLUTE per-block times moved by seventy per cent — one run read 7.92 µs a block where
-/// another read 4.63 — so an exponent is the only thing here worth asserting, and 1.16 of it was read
-/// on a shape that is linear by construction. This file's predecessor failed at 1.69 on CI
-/// (36230002599, Linux), and 1.3 is what the state's own gate and <c>ScriptScalingTests</c> carry for
-/// the same reason. One reading gave the `for` shape 0.60, which is not a result: its 50-block row
-/// read 522 µs where every other size fits about 6.1, and two further readings gave that shape 1.01
-/// and 0.91.
+/// <b>Every bound here is 2.0 all the same, and the reason is the runner.</b> I lowered the three
+/// block shapes to 1.3 on the strength of those readings and CI went red on the next push: "a name
+/// apiece" read 1.79 (2,372 µs against 28,205) and the `for` loop 1.33, on Linux, run 36250316609.
+/// The per-block cost there is about 47 µs against this machine's 4.6, so the runner is an order of
+/// magnitude slower and its spread is worse than the effect any tighter bound would catch. This
+/// file's predecessor had already failed at 1.69 on CI (36230002599) and its own text said a time on
+/// a shared runner cannot tell a defect from the runner below 2.0 — I replaced that paragraph with
+/// the 1.3 argument and then met exactly what it had warned about.
+/// <para>
+/// So the flatness above is a real property measured on a quiet machine, and it is NOT what this file
+/// asserts. What a time can assert is a blow-up, which is 2.0. The gate for flatness is a count, as
+/// <see cref="BlockScalingTests"/> counts the state's places, and it is now buildable: D144 settles
+/// that the counters are emitted inside <c>#if DOTGRAM_COUNTS</c> in the support text, that no
+/// project defines the symbol, and that a counting gate compiles its own parser from the same grammar
+/// with it set — which counts what the shipped parser would, being the same grammar and generator.
+/// Until that lands, nothing here gates the exponent and the paragraph above is the record of where
+/// it stood.
+/// </para>
+/// <para>
+/// For whoever takes that on, the quiet readings: three of them held the exponents between 0.90 and
+/// 1.16 while the ABSOLUTE per-block times moved by seventy per cent on the same build — one read
+/// 7.92 µs a block where another read 4.63 — which is why a count and not a clock. One reading gave
+/// the `for` shape 0.60, which is not a result either: its 50-block row read 522 µs where every other
+/// size fits about 6.1, and two further readings gave that shape 1.01 and 0.91.
 /// </para>
 /// <para>
 /// <b>`no block at all` stays at 2.0, because its job is to be believed.</b> It is linear by
@@ -70,9 +85,9 @@ namespace DotGram.Tests;
 public sealed class ReaderScalingTests
 {
 	[Theory]
-	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", 1.3)]
-	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", 1.3)]
-	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", 1.3)]
+	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", 2.0)]
+	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", 2.0)]
+	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", 2.0)]
 	[InlineData("no block at all", "System.Math.Abs(x + {0});", 2.0)]
 	public void Four_times_the_blocks_does_not_cost_sixteen(string what, string block, double bound)
 	{
