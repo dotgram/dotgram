@@ -249,3 +249,121 @@ public abstract partial record Expression
 	/// </remarks>
 	public sealed record OdbcEscape(Identifier Kind, Expression Value, bool Called) : Expression;
 }
+
+/// <summary>T-SQL: ALTER DATABASE (Transact-SQL). What an <c>ALTER DATABASE</c> does.</summary>
+/// <remarks>
+/// One action a statement, as the published syntax has it. <c>SET</c> is not here: it carries its own
+/// catalogue of options and is a family of its own.
+/// </remarks>
+public abstract record AlterDatabaseAction : ISqlNode
+{
+	/// <summary>Where in the text this action was written.</summary>
+	public SqlSpan Span { get; private set; }
+
+	/// <summary>Records where this action was written.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	/// <summary><c>COLLATE collation_name</c>.</summary>
+	public sealed record Collate(CollationName Collation) : AlterDatabaseAction;
+
+	/// <summary><c>MODIFY NAME = new_database_name</c>.</summary>
+	public sealed record ModifyName(Identifier Name) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE (Transact-SQL), the Azure syntax. <c>MODIFY (edition options) [WITH MANUAL_CUTOVER]</c>.</summary>
+	public sealed record Modify(IReadOnlyList<Option> Options, bool ManualCutover) : AlterDatabaseAction;
+
+	/// <summary><c>MODIFY BACKUP_STORAGE_REDUNDANCY =</c> one of three quoted words.</summary>
+	/// <remarks>
+	/// The value stays an expression rather than becoming an enum: the reference writes the three
+	/// quoted, and the round trip has to give the literal back as written, case included.
+	/// </remarks>
+	public sealed record ModifyBackupStorageRedundancy(Expression Value) : AlterDatabaseAction;
+
+	/// <summary><c>PERFORM_CUTOVER</c>, which takes nothing.</summary>
+	public sealed record PerformCutover : AlterDatabaseAction;
+
+	/// <summary><c>REBUILD LOG</c>, which takes nothing here.</summary>
+	/// <remarks>
+	/// The one action of this statement that <c>TransactSql/Specification/syntax.md</c> does not publish:
+	/// the words appear nowhere in the transcribed pages, and the grammar reads them anyway. So it has
+	/// the parts the current reading gives it, which is none, and none is invented for it.
+	/// </remarks>
+	public sealed record RebuildLog : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD FILE ... [TO FILEGROUP g]</c>.</summary>
+	public sealed record AddFile(IReadOnlyList<DatabaseFile> Files, Identifier? ToFileGroup) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD LOG FILE ...</c>.</summary>
+	public sealed record AddLogFile(IReadOnlyList<DatabaseFile> Files) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>MODIFY FILE (...)</c>.</summary>
+	public sealed record ModifyFile(DatabaseFile File) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>REMOVE FILE logical_file_name</c>.</summary>
+	public sealed record RemoveFile(Identifier Name) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD FILEGROUP g [CONTAINS ...]</c>.</summary>
+	public sealed record AddFileGroup(Identifier Name, FileGroupContents? Contains) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>MODIFY FILEGROUP g ...</c>.</summary>
+	public sealed record ModifyFileGroup(Identifier Name, FileGroupChange Change) : AlterDatabaseAction;
+
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>REMOVE FILEGROUP g</c>.</summary>
+	public sealed record RemoveFileGroup(Identifier Name) : AlterDatabaseAction;
+}
+
+/// <summary>T-SQL: ALTER DATABASE File and Filegroups. A file, as its <c>(NAME = ..., SIZE = ...)</c> says it.</summary>
+/// <remarks>
+/// The filespec is a list of named options and nothing else: <c>OFFLINE</c> is a name with no value,
+/// <c>MAXSIZE = UNLIMITED</c> a name as one, and <c>SIZE = 10 MB</c> an
+/// <see cref="Expression.Measured"/>. So no part of it is a tail of text (P2).
+/// </remarks>
+public sealed record DatabaseFile(IReadOnlyList<Option> Options) : ISqlNode { public SqlSpan Span { get; private set; }
+	/// <summary>Records where this file was written.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+
+/// <summary>T-SQL: ALTER DATABASE File and Filegroups. What a filegroup is declared to contain.</summary>
+public enum FileGroupContents { Filestream, MemoryOptimizedData }
+
+/// <summary>T-SQL: ALTER DATABASE File and Filegroups. What <c>MODIFY FILEGROUP</c> changes.</summary>
+public abstract record FileGroupChange : ISqlNode
+{
+	/// <summary>Where in the text this change was written.</summary>
+	public SqlSpan Span { get; private set; }
+
+	/// <summary>Records where this change was written.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	/// <summary>Whether the filegroup may be written to.</summary>
+	/// <remarks>
+	/// <see cref="Underscored"/> because the reference publishes four words for two meanings:
+	/// <c>READONLY</c> and <c>READ_ONLY</c>, <c>READWRITE</c> and <c>READ_WRITE</c>. The underscore is a
+	/// spelling, so it is kept as a flag, as <c>Exclamation</c> is for <c>!=</c>.
+	/// </remarks>
+	public sealed record Updatability(FileGroupUpdatability Kind, bool Underscored) : FileGroupChange;
+
+	/// <summary><c>DEFAULT</c>, which takes nothing.</summary>
+	public sealed record Default : FileGroupChange;
+
+	/// <summary><c>NAME = new_filegroup_name</c>.</summary>
+	public sealed record Rename(Identifier Name) : FileGroupChange;
+
+	/// <summary><c>AUTOGROW_SINGLE_FILE</c> or <c>AUTOGROW_ALL_FILES</c>.</summary>
+	public sealed record AutoGrow(FileGroupAutoGrow Kind) : FileGroupChange;
+}
+
+/// <summary>T-SQL: ALTER DATABASE File and Filegroups. Whether a filegroup may be written to.</summary>
+public enum FileGroupUpdatability { ReadOnly, ReadWrite }
+
+/// <summary>T-SQL: ALTER DATABASE File and Filegroups. Which files a filegroup grows.</summary>
+public enum FileGroupAutoGrow { SingleFile, AllFiles }
