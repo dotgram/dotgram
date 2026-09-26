@@ -63,6 +63,23 @@ public sealed class ResolutionScope
 	/// assembly, kept, so that asking twice is one walk and one cache key.
 	/// </para>
 	/// <para>
+	/// <b>What that side effect costs, measured 2026-09-26.</b> Over the benchmark assembly it is
+	/// 23 ms and 145 assemblies brought in — the process held 12 before the call and 157 after —
+	/// and the second call is 0.02 ms, being the same instance. On the stand's first-call rows that
+	/// is the whole of a first reading's rise: `el/floor` 21.0 ms to 40.7, `el/ladder` 24.8 to 43.7,
+	/// `el/block` 27.5 to 47.4, on both carriers, while the methods the runtime compiled went DOWN
+	/// (192 to 165 for `el/floor`) — so it is loading and not compiling.
+	/// </para>
+	/// <para>
+	/// It is paid ONCE for an assembly, in the process that reads texts for it, and a host that
+	/// reads more than one text never pays it again. A host that reads one short text in a short
+	/// process pays it for that one text, and there it is most of what the reading costs. Whether
+	/// the default should load the closure eagerly or only name it and load where a name is looked
+	/// for is open (docs/design/expression-resolution-scope-2026-09-25.md); the SET a scope answers
+	/// from is the closure either way, so deferring the loading would not make an answer depend on
+	/// what the process has loaded.
+	/// </para>
+	/// <para>
 	/// <b>That instance is kept for the life of the process, and so is what it holds.</b> A scope
 	/// names its assemblies, and the parser's caches hold the types and members it has resolved,
 	/// keyed by it — so an assembly a scope has been made around, or has ever answered from,

@@ -125,6 +125,24 @@ assemblies, so a parse gains that side effect once per caller; and a host that n
 an assembly it does not reference must now say so with a scope. The second is a behaviour change
 in a package before 0.2, which is the right side of a version boundary to make it.
 
+**What the first of those costs, measured 2026-09-26 and not before.** This section is headed
+"measured, not guessed" and that cost was the one thing in it stated without a number. It is
+23 ms and 145 assemblies over the benchmark assembly (12 in the process before the call, 157
+after); the second call is 0.02 ms, being the same instance. On the stand's first-call rows it is
+the whole of the rise between `5f4fbb9f` and the scope: `el/floor` 21.0 ms to 40.7, `el/ladder`
+24.8 to 43.7, `el/block` 27.5 to 47.4, on both carriers and on two runs an hour apart, while the
+methods the runtime compiled went DOWN (192 to 165 for `el/floor`) — loading, not compiling.
+
+It is paid once per assembly per process, so a host that reads many texts never pays it again.
+Where it is felt is a short process that reads one short text: there it roughly doubles the first
+reading.
+
+**This leaves a question that is Igor's.** A scope's answer is determined by the closure's NAMES,
+not by what has been loaded, so the loading could be deferred to where a name is looked for
+without making an answer depend on the process again. That would be a different default, not a
+different guarantee. Nothing here proposes it; the number is recorded so the choice is made with
+it rather than without it.
+
 ## Caching
 
 Every cache must be keyed by the scope, and today none of them is. There are **thirteen** pieces
