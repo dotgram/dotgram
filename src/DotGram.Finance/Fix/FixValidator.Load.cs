@@ -377,9 +377,11 @@ abstract partial class FixValidator
 
 					Field(body, subject, counter, member.Required, source, opener);
 
+					// The entries are walked by a call rather than a loop written out: the expression language
+					// reads a block of sibling loops at a cost that grows faster than their number (25, 50,
+					// 100 and 200 of them: 2.5, 9.3, 25 and 64 ms), and a message's check holds one per group.
 					body.Append("FixValidator.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
-						.Append("if (").Append(list).Append(" != null) for (var i = 0; i < ").Append(list).Append(".Count; i++) context.Validators.")
-						.Append(inner).Append(".Invoke(context, message, ").Append(list).Append("[i], i);\n");
+						.Append(GetType().Name).Append(".Each(context, message, ").Append(list).Append(", context.Validators.").Append(inner).Append(");\n");
 
 					// What the file says of the entry is the entry's check, replaced like any other slot.
 					if (member.Members.Count > 0)

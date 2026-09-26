@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -89,6 +90,17 @@ partial class FixValidator42 : FixValidator
 		}
 
 		return message.IsValid;
+	}
+
+	/// <summary>Holds each entry of a group to its check, in order; nothing where the group is absent.</summary>
+	/// <remarks>What a loaded dictionary's check calls for a group, rather than writing the loop in its text.</remarks>
+	internal static void Each<TEntry>(Fix42Context context, FixMessage message, List<TEntry>? entries, Func<Fix42Context, FixMessage, TEntry, int, bool> check)
+	{
+		if (entries is null)
+			return;
+
+		for (var i = 0; i < entries.Count; i++)
+			check(context, message, entries[i], i);
 	}
 
 	// A field of the header that has to stand at an index of its own, and does not.
