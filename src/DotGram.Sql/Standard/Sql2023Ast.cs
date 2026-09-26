@@ -274,7 +274,7 @@ public abstract partial record Statement : ISqlNode
 	public record Extension : Statement { public required string Dialect { get; init; } public required string Kind { get; init; } public IReadOnlyList<ISqlNode> Parts { get; init; } = []; }
 }
 
-/// <summary>BNF: <select list>, <select sublist>, <derived column>, <qualified asterisk>, <all fields reference>.</summary>
+/// <summary>BNF: <c>&lt;select list&gt;</c>, <c>&lt;select sublist&gt;</c>, <c>&lt;derived column&gt;</c>, <c>&lt;qualified asterisk&gt;</c>, <c>&lt;all fields reference&gt;</c>.</summary>
 public abstract partial record SelectItem : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -291,7 +291,7 @@ public abstract partial record SelectItem : ISqlNode
 public enum SetQuantifier { All, Distinct }
 public enum SetOperator { Union, Except, Intersect }
 
-/// <summary>BNF: UNION/EXCEPT/INTERSECT portions of <query expression body>/<query term>.</summary>
+/// <summary>BNF: UNION/EXCEPT/INTERSECT portions of <c>&lt;query expression body&gt;</c>/<c>&lt;query term&gt;</c>.</summary>
 public sealed record SetOperation : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -306,7 +306,7 @@ public sealed record SetOperation : ISqlNode
 	public required QueryOperand Operand { get; init; }
 }
 
-/// <summary>BNF: <simple table>, parenthesized <query primary>. Grammar precedence nodes are intentionally erased.</summary>
+/// <summary>BNF: <c>&lt;simple table&gt;</c>, parenthesized <c>&lt;query primary&gt;</c>. Grammar precedence nodes are intentionally erased.</summary>
 public abstract record QueryOperand : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -409,7 +409,7 @@ public sealed record SortItem(Expression Key, SortDirection? Direction = null, N
 public enum SortDirection { Asc, Desc }
 public enum NullOrdering { First, Last }
 
-/// <summary>BNF: <table reference>, <table factor>, <table primary>, <joined table>, derived/collection/function/JSON tables.</summary>
+/// <summary>BNF: <c>&lt;table reference&gt;</c>, <c>&lt;table factor&gt;</c>, <c>&lt;table primary&gt;</c>, <c>&lt;joined table&gt;</c>, derived/collection/function/JSON tables.</summary>
 public abstract partial record TableSource : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -489,7 +489,7 @@ public sealed record SampleClause(SampleMethod Method, Expression Percentage, Ex
 public enum SampleMethod { Bernoulli, System }
 public enum ResultOption { Final, New, Old }
 
-/// <summary>BNF: <value expression> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
+/// <summary>BNF: <c>&lt;value expression&gt;</c> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
 public abstract partial record Expression : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -847,7 +847,7 @@ public abstract record PeriodValue : ISqlNode { public SqlSpan Span { get; priva
 public abstract record PeriodRight : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Period(PeriodValue Value) : PeriodRight; public record Point(Expression Value) : PeriodRight; }
 public enum PeriodOperator { Overlaps, Equals, Contains, Precedes, Succeeds, ImmediatelyPrecedes, ImmediatelySucceeds }
 
-/// <summary>BNF: <data type> and all predefined/row/reference/collection/user-defined type rules.</summary>
+/// <summary>BNF: <c>&lt;data type&gt;</c> and all predefined/row/reference/collection/user-defined type rules.</summary>
 public abstract record DataType : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
