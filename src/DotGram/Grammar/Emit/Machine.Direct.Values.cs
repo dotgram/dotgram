@@ -838,6 +838,23 @@ sealed partial class Machine
 				}
 			}
 
+			// THE WALK STARTS ABOVE WHAT IS ALREADY BUILT. Everything below the watermark is built, so
+			// there is nothing down there for any of the three passes to do; starting at it is what a
+			// collapsed record would have bought, without rewriting the log. All three are expressed in
+			// `from` and `first`, so none of them changes, and `Room` below then clears `Live` from the
+			// raised `first` rather than the caller's, which is what keeps the built values.
+			//
+			// Only for a single root, and never past it: a root below `first` would fall through every
+			// test that asks `root >= first` and reach the walk with nothing to do. It is built, so that
+			// answers correctly, but it answers by doing the whole walk to build nothing.
+			file.Line("if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)");
+			using (file.Block(""))
+			{
+				file.Line("first = ways.AllBuilt;");
+				file.Line("from  = ways.AllBuiltAt;");
+			}
+			file.Line();
+
 			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
 			// clearing from the start of the log each time was a pass over every record before it.
 			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
@@ -914,7 +931,7 @@ sealed partial class Machine
 						// the day this stops being harmless is the day anything reads values out of a refused
 						// reading — a recovery that keeps a partial tree. Whoever adds that has to come here
 						// first, because the suites will not stop them.
-						file.Line("if (known || ways.AllBuilt >= first) ways.AllBuilt = root + 1;");
+						file.Line("if (known || ways.AllBuilt >= first) { ways.AllBuilt = root + 1; ways.AllBuiltAt = ways.LogCount; }");
 						file.Line();
 						// Divided, the parts are asked in turn, each answering whether the kind was
 						// one of its own: the walk's own switch written twice was past the JIT's budget.

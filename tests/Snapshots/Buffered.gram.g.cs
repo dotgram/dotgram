@@ -3965,6 +3965,15 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int AllBuilt;
 
+			/// <summary>Where <see cref="AllBuilt"/> is in the log: the position its record begins at.</summary>
+			/// <remarks>
+			/// The two are one fact in two units, and a walk needs both — the record number to index the
+			/// flags and the tables, the position to start stepping from. They move together and only
+			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
+			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// </remarks>
+			internal int AllBuiltAt;
+
 			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
@@ -4059,6 +4068,7 @@ namespace DotGram.Snapshots
 				spare.Last      = -1;
 				spare.Built     = 0;
 				spare.AllBuilt  = 0;
+				spare.AllBuiltAt = 0;
 
 				return spare;
 			}

@@ -925,7 +925,7 @@ sealed partial class Machine
 			if (machine._directBuilds)
 			{
 				yield return $"if (ways.Built > {name}R) ways.Built = {name}R;";
-				yield return $"if (ways.AllBuilt > {name}R) ways.AllBuilt = {name}R;";
+				yield return $"if (ways.AllBuilt > {name}R) {{ ways.AllBuilt = {name}R; ways.AllBuiltAt = {name}; }}";
 			}
 		}
 

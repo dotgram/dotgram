@@ -393,6 +393,29 @@ not), that shows up as the count not falling, and the skipped-count raise is the
 rather than a guess made in advance.
 
 
+### Landed, and what it did
+
+| SQL:2023, records LISTED per parse | before | after | |
+| --- | ---: | ---: | --- |
+| `nested200` | 1,325,613 | **2,065** | |
+| `nested400` | 5,251,113 | **4,065** | x1.97 |
+| `nested800` | 20,902,113 | **8,065** | x1.98 |
+| `wide800` | 273,601 | 244,605 | x2.00 both |
+
+**Linear, and 2,592 times smaller at depth 800.** Records VISITED by the build pass are unchanged
+at 1,017 / 2,017 / 4,017, which is the point: the `selected` loop and its `IndexOf` skip are
+untouched, and the change removes only what the scan was doing.
+
+**The soundness gate, before landing rather than after.** `AllBuiltAt` drifting from `AllBuilt`
+would be silent — the walk would start at the wrong place and build the wrong records — so the
+emitter was made to write a check that steps the log from the caller's `from` and asserts it
+reaches `AllBuiltAt` in exactly `AllBuilt - first` records. **Zero disagreements** over all five
+suites, the 1,086-file SQL corpus and the 1,835 test rows. To take it again: put the block back at
+the raise in `Machine.Direct.Values.cs`, build, and read the exit codes.
+
+Suites at `-maxThreads` 1 and 32: 29,763 tests, every exit code 0.
+
+
 ## 6. What it does not do
 
 - **The refused-input square stays.** These counts are of accepted readings. A refusal re-reads,

@@ -350,7 +350,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
-					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
+					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -408,7 +408,7 @@ namespace DotGram.Snapshots
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
 						if (ways.Built > lm2R) ways.Built = lm2R;
-						if (ways.AllBuilt > lm2R) ways.AllBuilt = lm2R;
+						if (ways.AllBuilt > lm2R) { ways.AllBuilt = lm2R; ways.AllBuiltAt = lm2; }
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -472,7 +472,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
-					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
+					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -563,7 +563,7 @@ namespace DotGram.Snapshots
 									ways.LogCount  = lm1;
 									ways.Records   = lm1R;
 									if (ways.Built > lm1R) ways.Built = lm1R;
-									if (ways.AllBuilt > lm1R) ways.AllBuilt = lm1R;
+									if (ways.AllBuilt > lm1R) { ways.AllBuilt = lm1R; ways.AllBuiltAt = lm1; }
 									ways.RefsCount = rr1;
 								}
 
@@ -584,7 +584,7 @@ namespace DotGram.Snapshots
 									ways.LogCount  = lm2;
 									ways.Records   = lm2R;
 									if (ways.Built > lm2R) ways.Built = lm2R;
-									if (ways.AllBuilt > lm2R) ways.AllBuilt = lm2R;
+									if (ways.AllBuilt > lm2R) { ways.AllBuilt = lm2R; ways.AllBuiltAt = lm2; }
 									ways.RefsCount = rr2;
 								}
 							}
@@ -736,7 +736,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
-					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
+					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -790,7 +790,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
-					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
+					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -842,7 +842,7 @@ namespace DotGram.Snapshots
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
 					if (ways.Built > lmR) ways.Built = lmR;
-					if (ways.AllBuilt > lmR) ways.AllBuilt = lmR;
+					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -982,6 +982,12 @@ namespace DotGram.Snapshots
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
 		static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
 		{
+			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
+			{
+				first = ways.AllBuilt;
+				from  = ways.AllBuiltAt;
+			}
+
 			values.Room(ways.Records, from: first);
 
 			var log   = ways.Log;
@@ -1499,6 +1505,15 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int AllBuilt;
 
+			/// <summary>Where <see cref="AllBuilt"/> is in the log: the position its record begins at.</summary>
+			/// <remarks>
+			/// The two are one fact in two units, and a walk needs both — the record number to index the
+			/// flags and the tables, the position to start stepping from. They move together and only
+			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
+			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// </remarks>
+			internal int AllBuiltAt;
+
 			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
@@ -1593,6 +1608,7 @@ namespace DotGram.Snapshots
 				spare.Last      = -1;
 				spare.Built     = 0;
 				spare.AllBuilt  = 0;
+				spare.AllBuiltAt = 0;
 
 				return spare;
 			}
