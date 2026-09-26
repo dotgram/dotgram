@@ -3313,6 +3313,11 @@ public static partial class ExpressionParser
 		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
 		internal void Rollback(Checkpoint at)
 		{
+			// The blocks are what the answers above were worked out from, so an answer cannot
+			// outlive a reading that took one back.
+			if (_scopes is not null && _scopes.Count > at.Scopes)
+				_holding = null;
+
 			Truncate(_scopes,     at.Scopes);
 			Truncate(_declared,   at.Declared);
 			Truncate(_unsettled,  at.Unsettled);
@@ -3542,10 +3547,57 @@ public static partial class ExpressionParser
 			return found;
 		}
 
+		/// <summary>Where a position's innermost block was worked out, once each.</summary>
+		/// <remarks>
+		/// An answer that FOUND a block is final, and that is a fact about the order blocks are
+		/// recorded in rather than a hope. A block is recorded when it CLOSES, and of two blocks
+		/// that both hold a position one is inside the other, so the inner closes first: the
+		/// first block recorded that holds a position is the innermost it will ever have. An
+		/// answer of none is not final — the block the position is in may not have closed yet —
+		/// so none is not kept.
+		/// </remarks>
+		Dictionary<int, Scope>? _holding;
+
 		/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
+		/// <remarks>
+		/// <para>
+		/// Asked for every declaration a name could mean, at every use of that name. Over sibling
+		/// blocks each declaring the same name that is the declarations times the blocks, at
+		/// every use, and it was the whole of a cost that read 400 such blocks in 135 ms where
+		/// 100 took 3 — so the answer is kept, and 400 now take 14.
+		/// </para>
+		/// <para>
+		/// No blocks at all is the common case and stays as cheap as it was, which is measured:
+		/// a text that declares nothing inside a block asks this thousands of times for nothing,
+		/// and going through a general walk with `among ?? []` to walk none of them cost two to
+		/// three times on every such text.
+		/// </para>
+		/// </remarks>
 		Scope? Holding(int position)
 		{
-			return Innermost(_scopes, position);
+			var scopes = _scopes;
+
+			if (scopes is null || scopes.Count == 0)
+				return null;
+
+			if (_holding is { } kept && kept.TryGetValue(position, out var known))
+				return known;
+
+			var found = default(Scope?);
+
+			for (var at = 0; at < scopes.Count; at++)
+			{
+				var scope = scopes[at];
+
+				if (scope.From <= position && position < scope.To &&
+					(found is not { } inner || scope.From > inner.From))
+					found = scope;
+			}
+
+			if (found is { } settled)
+				(_holding ??= [])[position] = settled;
+
+			return found;
 		}
 
 		/// <summary>The innermost of these extents holding a position, or none.</summary>
