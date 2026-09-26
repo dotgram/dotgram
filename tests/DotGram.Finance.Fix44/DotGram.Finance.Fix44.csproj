@@ -5,9 +5,14 @@
 		<RootNamespace>DotGram.Finance.Fix44</RootNamespace>
 		<IsPackable>false</IsPackable>
 
-		<!-- One literal alternative per standard tag is what this grammar is for, and its
-		     methods pass the size the JIT optimizes: GRAM5003 says so, and stays a warning. -->
-		<WarningsNotAsErrors>$(WarningsNotAsErrors);GRAM5003</WarningsNotAsErrors>
+		<!-- One literal alternative per standard tag is what this grammar is for, and its reading
+		     methods pass the size the JIT optimizes (GRAM5003, eight of them at line 66). That is
+		     known and chosen: this is the oracle the package is held against, not what ships, and
+		     splitting its one rule would make it a different grammar. So it is silenced here, and
+		     here only, rather than printed on every green build where a warning nobody acts on
+		     teaches everyone to ignore warnings. That GRAM5003 is reported where it should be is
+		     the generator's own tests' to hold (DotGram.Tests.Slow). -->
+		<NoWarn>$(NoWarn);GRAM5003</NoWarn>
 
 		<!-- Generated files land on disk so a reader can open what the grammar became. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
