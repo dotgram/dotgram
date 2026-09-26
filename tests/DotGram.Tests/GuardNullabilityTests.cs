@@ -89,6 +89,27 @@ public sealed class GuardNullabilityTests
 		"Start : @int = ('[' & n: Inner)? & when @(n.GetValueOrDefault() >= 0) & ']' => @(n.GetValueOrDefault())\n" +
 		"parse Start\n";
 
+	/// <summary>
+	/// The guard is in the alternative that does NOT write the capture, and a sibling alternative
+	/// does. It stays nullable, and two comments in the expression language's grammar rest on that.
+	/// </summary>
+	/// <remarks>
+	/// <c>Inferred</c> and <c>Foreach</c> are rules of their own rather than alternatives, each
+	/// justified by a sentence saying that a capture only some alternatives make is nullable in every
+	/// guard of the rule — <c>Inferred</c> spelling out that its `type` "would have to be checked for
+	/// null in a guard that cannot receive one". The question is asked over THIS alternative's prefix,
+	/// so a capture a sibling makes is not assigned on any route to this guard and the answer is
+	/// nullable: those comments stand and the rule split is still the answer. Asked here rather than
+	/// reasoned about, because were it ever asked over the RULE's prefix instead they would become
+	/// false and somebody would eventually merge the two rules.
+	/// </remarks>
+	const string SiblingsGuard =
+		"Start : @string\n" +
+		"	= '(' & inner: Word & ')' => @(inner)\n" +
+		"	| '[' & when @(!string.IsNullOrEmpty(inner)) & ']' => @(\"none\")\n" +
+		"Word : @string = t: ['a'..'z']+ => @(t)\n" +
+		"parse Start\n";
+
 	[Theory]
 	[InlineData("Sibling",   Sibling,   "string inner")]
 	[InlineData("Every",     Every,     "string inner")]
@@ -96,6 +117,7 @@ public sealed class GuardNullabilityTests
 	[InlineData("OnThePath", OnThePath, "string? inner")]
 	[InlineData("Valued",          Valued,          "int n")]
 	[InlineData("ValuedOnThePath", ValuedOnThePath, "int? n")]
+	[InlineData("SiblingsGuard",    SiblingsGuard,   "string? inner")]
 	public void A_guard_is_handed_its_capture_nullable_only_where_a_route_can_skip_it(
 		string name, string grammar, string expected)
 	{
