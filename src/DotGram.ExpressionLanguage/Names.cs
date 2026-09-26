@@ -53,7 +53,7 @@ public static partial class ExpressionParser
 	/// public ones: a type the calling code declares stands in front of one of the same full
 	/// name elsewhere, as a type in C#'s own compilation does.
 	/// </remarks>
-	static Type? Qualified(string? space, string dotted, Assembly caller)
+	static Type? Qualified(string? space, string dotted, ResolutionScope scope)
 	{
 		var end = dotted.Length;
 
@@ -62,7 +62,7 @@ public static partial class ExpressionParser
 			var head = dotted.Substring(0, end);
 			var full = space is null ? head : space + "." + head;
 
-			if ((Loaded.Inside(caller, full) ?? Loaded.Find(full)) is { } type)
+			if ((Loaded.Inside(scope, full) ?? Loaded.Find(scope, full)) is { } type)
 			{
 				for (var at = end; type is not null && at < dotted.Length;)
 				{
@@ -71,7 +71,7 @@ public static partial class ExpressionParser
 					if (next < 0)
 						next = dotted.Length;
 
-					type = Nested(type, dotted.Substring(at + 1, next - at - 1), caller);
+					type = Nested(type, dotted.Substring(at + 1, next - at - 1), scope);
 					at   = next;
 				}
 
@@ -91,10 +91,10 @@ public static partial class ExpressionParser
 	/// internal. Never private or protected alone: nothing here is written inside the type
 	/// that holds it, or one derived from it.
 	/// </remarks>
-	static Type? Nested(Type outer, string name, Assembly caller)
+	static Type? Nested(Type outer, string name, ResolutionScope scope)
 	{
 		return outer.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is { } nested &&
-		(nested.IsNestedPublic || outer.Assembly == caller && (nested.IsNestedAssembly || nested.IsNestedFamORAssem))
+		(nested.IsNestedPublic || scope.Declares(outer.Assembly) && (nested.IsNestedAssembly || nested.IsNestedFamORAssem))
 			? nested
 			: null;
 	}
@@ -116,44 +116,41 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static class Loaded
 	{
-		static readonly ConcurrentDictionary<string, Type?> _types = new(StringComparer.Ordinal);
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _types = new();
 
-		static HashSet<string>? _namespaces;
+		static readonly ConcurrentDictionary<ResolutionScope, HashSet<string>> _namespaces = new();
 
-		static Loaded()
-		{
-			AppDomain.CurrentDomain.AssemblyLoad += static (_, _) =>
-			{
-				_types.Clear();
-				_holders.Clear();
-				_namespaces = null;
-			};
-		}
+		// There is no static constructor here any more, and its absence is the point. It used to
+		// subscribe to `AssemblyLoad` and clear these caches on every load, because what they
+		// held depended on what the process had loaded and a new assembly could change every
+		// answer. A scope's assemblies are fixed when the scope is made, so nothing loading
+		// later can change what it answers — and a cache keyed by the scope therefore never has
+		// to be thrown away.
 
-		static readonly ConcurrentDictionary<string, Type[]> _holders = new(StringComparer.Ordinal);
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _holders = new();
 
-		static readonly ConcurrentDictionary<(Assembly, string), Type[]> _holdersInside = new();
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _holdersInside = new();
 
 		/// <summary>The public static classes standing in that namespace, in any loaded assembly.</summary>
 		/// <remarks>
 		/// What an extension method is written in, and the only thing worth walking a namespace
 		/// for: a class that is not static holds none, and C# looks for one nowhere else.
 		/// </remarks>
-		public static Type[] Holders(string @namespace)
+		public static Type[] Holders(ResolutionScope scope, string @namespace)
 		{
-			return Cached(_holders, @namespace, static space => Held(space));
+			return Cached(_holders, (scope, @namespace), static key => Held(key.Item2, key.Item1));
 		}
 
 		/// <summary>The same in the calling assembly, where an internal class is nameable too.</summary>
-		public static Type[] HoldersInside(Assembly caller, string @namespace)
+		public static Type[] HoldersInside(ResolutionScope scope, string @namespace)
 		{
 			return _holdersInside.GetOrAdd(
-				(caller, @namespace),
+				(scope, @namespace),
 				static key =>
 				{
 					var holders = new List<Type>();
 
-					foreach (var type in Declared(key.Item1))
+					foreach (var type in key.Item1.SeesInternals ? Declared(key.Item1.Caller) : [])
 						if (Nameable(type) && Holds(type, key.Item2))
 							holders.Add(type);
 
@@ -161,11 +158,11 @@ public static partial class ExpressionParser
 				});
 		}
 
-		static Type[] Held(string @namespace)
+		static Type[] Held(string @namespace, ResolutionScope scope)
 		{
 			var holders = new List<Type>();
 
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (var assembly in scope.Assemblies)
 			{
 				if (assembly.IsDynamic)
 					continue;
@@ -205,9 +202,9 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
-		public static Type? Find(string fullName)
+		public static Type? Find(ResolutionScope scope, string fullName)
 		{
-			return Cached(_types, fullName, static name => Search(name));
+			return Cached(_types, (scope, fullName), static key => Search(key.Item2, key.Item1));
 		}
 
 		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
@@ -215,14 +212,14 @@ public static partial class ExpressionParser
 		/// Inside it too, because C# takes `using System.Collections;` whether or not that
 		/// namespace declares a type of its own: it is there because something is in it.
 		/// </remarks>
-		public static bool Has(string @namespace)
+		public static bool Has(ResolutionScope scope, string @namespace)
 		{
-			return (_namespaces ?? Gather()).Contains(@namespace);
+			return _namespaces.GetOrAdd(scope, static one => Gather(one)).Contains(@namespace);
 		}
 
-		static readonly ConcurrentDictionary<(Assembly, string), Type?> _inside = new();
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _inside = new();
 
-		static readonly ConcurrentDictionary<Assembly, HashSet<string>> _insideNamespaces = new();
+		static readonly ConcurrentDictionary<ResolutionScope, HashSet<string>> _insideNamespaces = new();
 
 		/// <summary>
 		/// The type that full name means in the calling assembly — an internal one as well —
@@ -232,18 +229,22 @@ public static partial class ExpressionParser
 		/// Kept apart from the rest and never forgotten: what one assembly declares does not
 		/// change when another loads.
 		/// </remarks>
-		public static Type? Inside(Assembly caller, string fullName)
+		public static Type? Inside(ResolutionScope scope, string fullName)
 		{
 			return Cached(
 				_inside,
-				(caller, fullName),
-				static key => key.Item1.GetType(key.Item2, false, false) is { } type && Nameable(type) ? type : null);
+				(scope, fullName),
+				static key => key.Item1.SeesInternals && key.Item1.Caller.GetType(key.Item2, false, false) is { } type &&
+					Nameable(type)
+					? type
+					: null);
 		}
 
 		/// <summary>Whether the calling assembly declares a type in that namespace, or in one inside it.</summary>
-		public static bool HasInside(Assembly caller, string @namespace)
+		public static bool HasInside(ResolutionScope scope, string @namespace)
 		{
-			return _insideNamespaces.GetOrAdd(caller, static assembly => Spaces(assembly)).Contains(@namespace);
+			return scope.SeesInternals &&
+				_insideNamespaces.GetOrAdd(scope, static one => Spaces(one.Caller)).Contains(@namespace);
 		}
 
 		/// <summary>Every namespace an assembly's nameable types stand in, and each one around those.</summary>
@@ -289,20 +290,20 @@ public static partial class ExpressionParser
 			return true;
 		}
 
-		static Type? Search(string name)
+		static Type? Search(string name, ResolutionScope scope)
 		{
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (var assembly in scope.Assemblies)
 				if (!assembly.IsDynamic && assembly.GetType(name, false, false) is { IsVisible: true } type)
 					return type;
 
 			return null;
 		}
 
-		static HashSet<string> Gather()
+		static HashSet<string> Gather(ResolutionScope scope)
 		{
 			var namespaces = new HashSet<string>(StringComparer.Ordinal);
 
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			foreach (var assembly in scope.Assemblies)
 			{
 				if (assembly.IsDynamic)
 					continue;
@@ -331,7 +332,7 @@ public static partial class ExpressionParser
 				}
 			}
 
-			return _namespaces = namespaces;
+			return namespaces;
 		}
 	}
 }

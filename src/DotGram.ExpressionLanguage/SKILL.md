@@ -53,8 +53,9 @@ if (!match.IsSuccess)
 
 ## Say who is calling
 
-Every entry point has a form that takes an `Assembly`. The one that does not asks the stack
-which assembly called it — about 300 ns, often more than a short parse — and that assembly
+Every entry point has a form that takes a `ResolutionScope`, and one that takes an `Assembly`
+and means `ResolutionScope.Around(it)`. The one that takes neither asks the stack which assembly
+called it — about 300 ns, often more than a short parse — and that assembly
 decides what the text may name: public types, and its own internal types and members.
 
 ```csharp
@@ -85,8 +86,27 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   text declares no namespace of its own, so the global one encloses it, and the `using`s
   are read only where the name means nothing there. Two `using`s that both supply it, with
   nothing global, is ambiguous and refused — again as in C#.
-- Only **loaded** assemblies are searched. A type in an assembly the process has not loaded
-  yet is not there to be named; touch the assembly (`typeof(SomeType)`) before parsing.
+- **A scope says where names are looked for**, and the default is the calling assembly and what
+  it references — what a compilation of that assembly would see. Nothing is found merely because
+  the process has loaded it, so the same text answers the same whatever ran before it. Hand one in
+  to widen or narrow that:
+
+  ```csharp
+  var here   = typeof(ExpressionParser).Assembly;
+  var plugin = typeof(string).Assembly;
+
+  var scope = ResolutionScope.Around(here);          // the default, written out
+  var wider = ResolutionScope.Of(here, plugin);      // and that assembly too
+  var outer = scope.WithoutInternals();              // as another assembly sees it
+
+  var made = ExpressionParser.Compile<Func<int, int>>("(int x) => x * 2", wider);
+  ```
+
+  `Around` gives one scope per assembly and a scope is immutable, so keep yours rather than making
+  one per reading: it is what every cache inside the parser is keyed by.
+- **Internal types and members answer for the calling assembly only** — not for a referenced
+  assembly's, `InternalsVisibleTo` or not. That is a grant one assembly makes to a named other at
+  build time, and a reading cannot claim it.
 - Keyword types (`int`, `string`, …) name their static members as C# does:
   `int.Parse(s)`, `string.Concat(a, b)`.
 

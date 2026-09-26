@@ -59,7 +59,7 @@ public static partial class ExpressionParser
 	// among overloads was spending itself on: over `Math.Max`, thirteen of them, ~57 ns a
 	// candidate for the `params` attribute and ~20 ns for each parameter looked over.
 
-	static readonly ConcurrentDictionary<(Type, string, bool, Assembly), Overload[]> _methods = new();
+	static readonly ConcurrentDictionary<(Type, string, bool, ResolutionScope), Overload[]> _methods = new();
 
 	// An extension method is looked for in every static class an imported namespace holds, on
 	// every call that finds nothing of its own: `Enumerable` alone is two hundred methods, and
@@ -68,18 +68,18 @@ public static partial class ExpressionParser
 	// changes — what a load changes is which classes a namespace holds, and that is kept apart
 	// and forgotten on a load. Like every cache here it holds the types it is keyed by, as
 	// `_methods` does, and a collectible assembly's are kept alive by it no more and no less.
-	static readonly ConcurrentDictionary<(Type, string, Assembly), Overload[]> _extensions = new();
+	static readonly ConcurrentDictionary<(Type, string, ResolutionScope), Overload[]> _extensions = new();
 
-	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _constructors = new();
+	static readonly ConcurrentDictionary<(Type, ResolutionScope), Overload[]> _constructors = new();
 
-	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _indexers = new();
+	static readonly ConcurrentDictionary<(Type, ResolutionScope), Overload[]> _indexers = new();
 
 	// A member read is asked about as often as a call, and more: every `s.Length` asks it,
 	// and every compound assignment asks it once in a guard and again where it is built.
 
-	static readonly ConcurrentDictionary<(Type, string, Assembly), MemberInfo?> _instanceMembers = new();
+	static readonly ConcurrentDictionary<(Type, string, ResolutionScope), MemberInfo?> _instanceMembers = new();
 
-	static readonly ConcurrentDictionary<(Type, string, Assembly), MemberInfo?> _staticMembers = new();
+	static readonly ConcurrentDictionary<(Type, string, ResolutionScope), MemberInfo?> _staticMembers = new();
 
 	static readonly ConcurrentDictionary<(Type, Type), MethodInfo?> _operators = new();
 }

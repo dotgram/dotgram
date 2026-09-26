@@ -92,6 +92,11 @@ with no types written at all. Where it is not C# — a method is never
 called with its type arguments written, and a constant is folded only across a minus — is
 written down, with the reason for each, at the top of the file below.
 
+Where a name is looked for is the caller's to say. By default it is the calling assembly and
+what it references — what a compilation of that assembly would see — so the same text answers the
+same whatever else the process has loaded. `ResolutionScope.Of(caller, plugin)` widens that,
+`WithoutInternals()` reads as another assembly would, and what a name MEANS stays C#'s either way.
+
 The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
 AST specific to .Gram that must later be translated into an expression tree — which also
 means a factory that does not exist, or one handed the wrong type, is a C# error on the

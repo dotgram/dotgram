@@ -18,7 +18,7 @@ public static partial class ExpressionParser
 	/// that one does. No member is not an error here: it means this reading is not a member
 	/// access, and something else will read the text.
 	/// </remarks>
-	internal static bool Has(Expression target, string? name, Assembly caller)
+	internal static bool Has(Expression target, string? name, ResolutionScope scope)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -26,7 +26,7 @@ public static partial class ExpressionParser
 		return
 			name is null ||
 			target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal) ||
-			InstanceMember(target.Type, name, caller) is not null;
+			InstanceMember(target.Type, name, scope) is not null;
 	}
 
 	/// <summary>What <c>a.b</c> reads, which the type of <c>a</c> decides.</summary>
@@ -37,7 +37,7 @@ public static partial class ExpressionParser
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
 	/// <exception cref="FormatException">The type has no such property or field.</exception>
-	internal static Expression Member(Expression target, string name, Assembly caller)
+	internal static Expression Member(Expression target, string name, ResolutionScope scope)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -45,7 +45,7 @@ public static partial class ExpressionParser
 		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
 			return Expression.ArrayLength(target);
 
-		return InstanceMember(target.Type, name, caller) switch
+		return InstanceMember(target.Type, name, scope) switch
 		{
 			PropertyInfo property => Expression.Property(target, property),
 			FieldInfo    field    => Expression.Field(target, field),
@@ -71,27 +71,27 @@ public static partial class ExpressionParser
 	/// both of them read `s.length` as `s.Length`.
 	/// </para>
 	/// </remarks>
-	static MemberInfo? InstanceMember(Type type, string name, Assembly caller)
+	static MemberInfo? InstanceMember(Type type, string name, ResolutionScope scope)
 	{
 		return Cached(
-			_instanceMembers, (type, name, caller),
+			_instanceMembers, (type, name, scope),
 			static key => SearchedMember(key.Item1, key.Item2, key.Item3));
 	}
 
-	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and caller.</summary>
-	static MemberInfo? SearchedMember(Type type, string name, Assembly caller)
+	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and scope.</summary>
+	static MemberInfo? SearchedMember(Type type, string name, ResolutionScope scope)
 	{
 		const BindingFlags Declared =
 			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
 		// The type and what it derives from, and — for an interface — what it inherits.
 		for (var each = type; each is not null; each = each.BaseType)
-			if (DeclaredOn(each, name, Declared, caller) is { } found)
+			if (DeclaredOn(each, name, Declared, scope) is { } found)
 				return found;
 
 		if (type.IsInterface)
 			foreach (var inherited in type.GetInterfaces())
-				if (DeclaredOn(inherited, name, Declared, caller) is { } found)
+				if (DeclaredOn(inherited, name, Declared, scope) is { } found)
 					return found;
 
 		return null;
@@ -102,10 +102,10 @@ public static partial class ExpressionParser
 	/// from the calling assembly. An array rather than <c>GetProperty</c>, which throws where
 	/// it finds more than one.
 	/// </summary>
-	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags, Assembly caller)
+	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags, ResolutionScope scope)
 	{
 		foreach (var member in type.GetMember(name, MemberTypes.Property | MemberTypes.Field, flags))
-			if (Reachable(member, caller) &&
+			if (Reachable(member, scope) &&
 				(member is FieldInfo || member is PropertyInfo property && property.GetIndexParameters().Length == 0))
 				return member;
 
@@ -119,16 +119,16 @@ public static partial class ExpressionParser
 	/// the type or one derived from it. A property is reachable where either of its accessors
 	/// is, as C# declares a property's accessibility and lets an accessor narrow it.
 	/// </remarks>
-	static bool Reachable(MemberInfo? member, Assembly caller)
+	static bool Reachable(MemberInfo? member, ResolutionScope scope)
 	{
 		return member switch
 		{
 			FieldInfo field =>
-				field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && field.DeclaringType!.Assembly == caller,
+				field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && scope.Declares(field.DeclaringType!.Assembly),
 			MethodBase method =>
-				method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && method.DeclaringType!.Assembly == caller,
+				method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && scope.Declares(method.DeclaringType!.Assembly),
 			PropertyInfo property =>
-				Reachable(property.GetMethod, caller) || Reachable(property.SetMethod, caller),
+				Reachable(property.GetMethod, scope) || Reachable(property.SetMethod, scope),
 			_ => false,
 		};
 	}
@@ -140,7 +140,7 @@ public static partial class ExpressionParser
 	/// Which one `a[0]` means is decided by which side of the `=` it stands on, which the
 	/// grammar knows and the API cannot.
 	/// </remarks>
-	internal static Expression Place(Expression target, Expression[] at, Assembly caller)
+	internal static Expression Place(Expression target, Expression[] at, ResolutionScope scope)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -150,7 +150,7 @@ public static partial class ExpressionParser
 
 		return target.Type.IsArray
 			? Expression.ArrayAccess(target, Converted(at, typeof(int)))
-			: Indexed(target, at, caller);
+			: Indexed(target, at, scope);
 	}
 
 	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
@@ -160,7 +160,7 @@ public static partial class ExpressionParser
 	/// which through its default member, which is what an indexer is, and which of several
 	/// is meant is the same overload resolution a call makes.
 	/// </remarks>
-	internal static Expression Indexed(Expression target, Expression[] at, Assembly caller)
+	internal static Expression Indexed(Expression target, Expression[] at, ResolutionScope scope)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -171,7 +171,7 @@ public static partial class ExpressionParser
 		if (target.Type.IsArray)
 			return Expression.ArrayIndex(target, Converted(at, typeof(int)));
 
-		var chosen = Chose(Indexers(target.Type, at, caller), at, $"'{target.Type.Name}' has no indexer");
+		var chosen = Chose(Indexers(target.Type, at, scope), at, $"'{target.Type.Name}' has no indexer");
 
 		return Expression.Property(target, (PropertyInfo)chosen.Member, chosen.Arguments);
 	}
@@ -182,13 +182,13 @@ public static partial class ExpressionParser
 	/// among the members the calling assembly could reach — the instance form's rule, which
 	/// is <see cref="InstanceMember"/>.
 	/// </remarks>
-	internal static Expression StaticMember(Type type, string name, Assembly caller)
+	internal static Expression StaticMember(Type type, string name, ResolutionScope scope)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
 		return Cached(
-			_staticMembers, (type, name, caller), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
+			_staticMembers, (type, name, scope), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
 			switch
 			{
 				PropertyInfo property => Expression.Property(null, property),
@@ -197,15 +197,15 @@ public static partial class ExpressionParser
 			};
 	}
 
-	/// <summary>The search <see cref="StaticMember"/> makes, once for each type, name and caller.</summary>
-	static MemberInfo? SearchedStatic(Type type, string name, Assembly caller)
+	/// <summary>The search <see cref="StaticMember"/> makes, once for each type, name and scope.</summary>
+	static MemberInfo? SearchedStatic(Type type, string name, ResolutionScope scope)
 	{
 		const BindingFlags Statics =
 			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
 		for (var each = type; each is not null; each = each.BaseType)
 			foreach (var member in each.GetMember(name, MemberTypes.Property | MemberTypes.Field, Statics))
-				if (Reachable(member, caller))
+				if (Reachable(member, scope))
 					return member;
 
 		return null;

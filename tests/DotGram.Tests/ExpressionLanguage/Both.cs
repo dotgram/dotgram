@@ -32,7 +32,13 @@ static class Both
 	static readonly Assembly Caller = typeof(Both).Assembly;
 
 	/// <summary>The two answering the same about a text: the tree, or how and where it was refused.</summary>
+	/// <summary>The same for an assembly, which is the scope its own compilation would have.</summary>
 	public static void Agree(string text, Assembly caller, bool ascii = false, bool withText = true)
+	{
+		Agree(text, ResolutionScope.Around(caller), ascii, withText);
+	}
+
+	public static void Agree(string text, ResolutionScope caller, bool ascii = false, bool withText = true)
 	{
 		var generated = ExpressionCorpus.Answer(
 			text, ascii ? ExpressionParser.TryParseAsciiLambda : ExpressionParser.TryParseLambda, State(text, caller, withText));
@@ -98,19 +104,19 @@ static class Both
 
 	public static ExpressionParser.Match<LambdaExpression> TryParseLambda(string text, ExpressionParser.State state)
 	{
-		Agree(text, state.Caller, withText: state.Text is not null);
+		Agree(text, state.Reach, withText: state.Text is not null);
 
 		return ExpressionParser.TryParseLambda(text, state);
 	}
 
 	public static ExpressionParser.Match<LambdaExpression> TryParseAsciiLambda(string text, ExpressionParser.State state)
 	{
-		Agree(text, state.Caller, ascii: true, withText: state.Text is not null);
+		Agree(text, state.Reach, ascii: true, withText: state.Text is not null);
 
 		return ExpressionParser.TryParseAsciiLambda(text, state);
 	}
 
-	static ExpressionParser.State State(string text, Assembly caller, bool withText)
+	static ExpressionParser.State State(string text, ResolutionScope caller, bool withText)
 	{
 		return new ExpressionParser.State(caller) { Text = withText ? text : null };
 	}

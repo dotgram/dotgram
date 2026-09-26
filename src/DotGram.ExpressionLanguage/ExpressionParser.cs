@@ -29,7 +29,7 @@ namespace DotGram.ExpressionLanguage;
 // work it can do.
 //
 // **What one reading works out lives in `State`, which the grammar declares as its
-// `context` (§7.7) and the caller hands over.** It used to be seven `[ThreadStatic]` fields
+// `context` (§7.7) and the scope hands over.** It used to be seven `[ThreadStatic]` fields
 // and a `Begin` that cleared them — a discipline rather than a guarantee, and one that
 // failed: the generated `TryParseLambda` never called it, so one parse's blocks were still
 // standing when the next one asked. Nothing there can be forgotten now, because nothing
@@ -161,7 +161,7 @@ namespace DotGram.ExpressionLanguage;
 //   * where two readings compete over the same text — which is the only place a construction
 //     can run for a derivation that then does not stand — the question is asked by a `when`
 //     and not by letting a construction throw. `Target` is the one to read: it asks
-//     `Has(n, member, caller)`, which is exactly what its construction is about to do, and its
+//     `Has(n, member, scope)`, which is exactly what its construction is about to do, and its
 //     own comment says why. `NamedType` asks `Resolves` for the same reason. Most constructions
 //     here carry no guard, and need none: they run only for the derivation that stands;
 //   * it is checked and not asserted. `CarrierAgreementTests` puts every corpus shape, every
@@ -184,7 +184,7 @@ namespace DotGram.ExpressionLanguage;
 
 	using Lexical;
 
-	// What this reading works out, handed over by the caller and living exactly as long as
+	// What this reading works out, handed over by the scope and living exactly as long as
 	// the call. Everything the host used to keep in a thread-static field is a field of
 	// this, which is why nothing has to be cleared between one parse and the next.
 	context : @State
@@ -478,7 +478,7 @@ namespace DotGram.ExpressionLanguage;
 
 		// The same lambda with the types left out — `(tag, value) => …`, and `tag => …` with
 		// no brackets at all — as C# writes one for the delegate it is being converted to. Only
-		// a caller that named a delegate can read it, and that is what `Given` says: the types
+		// a scope that named a delegate can read it, and that is what `Given` says: the types
 		// are that delegate's, taken by position, and the guard declares them before the body
 		// is read, which is the one moment this grammar has in the order it is written.
 		//
@@ -1018,7 +1018,7 @@ namespace DotGram.ExpressionLanguage;
 		// a second. So a compound assignment writes to a name or a member of one, and only
 		// the plain `=` writes to an element.
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Here(parserSpan).Caller), value))
+		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Here(parserSpan).Reach), value))
 
 		// Each compound form names the assignment the API has for it and the operator it
 		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
@@ -1059,8 +1059,8 @@ namespace DotGram.ExpressionLanguage;
 	// only work because it runs after the parse. What the guard asks is what the
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Caller))
-		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Here(parserSpan).Caller))
+		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Reach))
+		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Here(parserSpan).Reach))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -1167,11 +1167,11 @@ namespace DotGram.ExpressionLanguage;
 		= target: Postfix & '.' & member: Identifier & args: Arguments
 		  => @(context.Here(parserSpan).Calling(target, member, args))
 
-		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Here(parserSpan).Caller))
+		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Here(parserSpan).Reach))
 
 		// An index is a list, so a two-dimensional array and an indexer of two arguments are
 		// both written without another rule.
-		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Here(parserSpan).Caller))
+		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Here(parserSpan).Reach))
 
 		// `?.`, which reads the rest of the chain rather than one step of it. In C# the guard
 		// protects everything written after it — `a?.b.c` is `a == null ? null : a.b.c` and
@@ -1243,7 +1243,7 @@ namespace DotGram.ExpressionLanguage;
 		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
-		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Caller))
+		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Reach))
 		// The parentheses may be left out when an initializer follows, which is C#'s rule:
 		// `new List<int> { 448 }` is `new List<int>() { 448 }`. Not on their own — `new T` with
 		// neither tail is no constructor call here, as it is none in C#, and this alternative
@@ -1257,7 +1257,7 @@ namespace DotGram.ExpressionLanguage;
 		// that text. `Type` is read twice on this path, which is the price of keeping the
 		// difference between "not this" and "not yet".
 		| "new" & type: Type & (fields: Bindings | '{' & items: Elements & '}')
-		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Caller))
+		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -1270,8 +1270,8 @@ namespace DotGram.ExpressionLanguage;
 		// '(', which nothing at the end of a member name can be.
 		| type: Core & '.' & member: Identifier & args: Arguments?
 		  => @(args is null
-		       ? ExpressionParser.StaticMember(type, member, context.Here(parserSpan).Caller)
-		       : ExpressionParser.Called(type, member, args, context.Here(parserSpan).Caller))
+		       ? ExpressionParser.StaticMember(type, member, context.Here(parserSpan).Reach)
+		       : ExpressionParser.Called(type, member, args, context.Here(parserSpan).Reach))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary
@@ -1377,7 +1377,7 @@ namespace DotGram.ExpressionLanguage;
 	Name : @Expression = ?!Keyword & name: Word & when @(context.Knows(name, parserSpan))
 	                   => @(context.Named(name, parserSpan))
 
-	// Internal, like everything below: what a caller has is `Parse`, `TryParse` and
+	// Internal, like everything below: what a scope has is `Parse`, `TryParse` and
 	// `Compile`, which make the reading's state themselves.
 	internal parse Lambda as ParseLambda
 
@@ -1412,7 +1412,7 @@ namespace DotGram.ExpressionLanguage;
 public static partial class ExpressionParser
 {
 	// Declared here so that it is internal: a reading for the tests and the yardstick, and
-	// no part of what a caller is given (docs/syntax.md §6.6).
+	// no part of what a scope is given (docs/syntax.md §6.6).
 	internal static partial class Immediate
 	{
 	}
@@ -1440,33 +1440,45 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// What a text may name is what C# written in the calling assembly could: public types,
 	/// and that assembly's internal ones and their internal members. Which assembly that is,
-	/// is asked of the call itself — which is why this is never inlined into its caller, and
+	/// is asked of the call itself — which is why this is never inlined into its scope, and
 	/// why it is asked here and not further in, where the frame asked about would be this
 	/// class's own.
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static LambdaExpression Parse(string text)
 	{
-		return Parse(text, Assembly.GetCallingAssembly());
+		return Parse(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <summary>The same, on behalf of an assembly the scope names.</summary>
 	/// <remarks>
 	/// <para>
 	/// The form above asks the call itself who is calling, and that question is a stack crawl:
-	/// ~296 ns, which is a quarter of the shortest parse there is. A caller reading many texts
+	/// ~296 ns, which is a quarter of the shortest parse there is. A scope reading many texts
 	/// asks it once instead — <c>typeof(Whatever).Assembly</c> costs about 7 ns, and a static
 	/// field holding it about 3 — and hands the answer to each reading.
 	/// </para>
 	/// <para>
 	/// What is handed over is not only a saving. The assembly is what decides which internal
 	/// types and members a text may name, so naming another one here reads the text with that
-	/// assembly's reach rather than the caller's.
+	/// assembly's reach rather than the scope's.
 	/// </para>
+	/// </remarks>
+	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
+	/// <remarks>
+	/// <c>ResolutionScope.Around(caller)</c>, written out: the assembly and what it references.
+	/// Before 0.2 this form looked in everything the process had loaded, which is neither what
+	/// C# does nor something a caller could reason about.
 	/// </remarks>
 	public static LambdaExpression Parse(string text, Assembly caller)
 	{
-		return Parse(text, caller, null);
+		return Parse(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
+	}
+
+	/// <summary>The same, for names looked for in that scope.</summary>
+	public static LambdaExpression Parse(string text, ResolutionScope scope)
+	{
+		return Parse(text, scope, null);
 	}
 
 	/// <summary>The same, read for a place that already says what the lambda is to give back.</summary>
@@ -1478,9 +1490,9 @@ public static partial class ExpressionParser
 	/// Without a target, such a switch is refused exactly as it was before there was any target
 	/// typing at all.
 	/// </remarks>
-	static LambdaExpression Parse(string text, Assembly caller, Type? target, Type? delegated = null)
+	static LambdaExpression Parse(string text, ResolutionScope scope, Type? target, Type? delegated = null)
 	{
-		var state = new State(caller) { Text = text, Target = target, Delegated = delegated };
+		var state = new State(scope) { Text = text, Target = target, Delegated = delegated };
 		var match = TryParseLambda(text, state);
 
 		if (match.IsSuccess)
@@ -1498,7 +1510,7 @@ public static partial class ExpressionParser
 	/// <para>
 	/// For everything <see cref="Parse(string)"/> would throw for, and not only for text that is not
 	/// this language: a name nothing declares, a member the type does not have, an operator
-	/// its operands do not support. A caller holding text somebody typed cannot tell those
+	/// its operands do not support. A scope holding text somebody typed cannot tell those
 	/// from a mistake in the syntax before asking, and should not need a second way of
 	/// being told.
 	/// </para>
@@ -1511,17 +1523,24 @@ public static partial class ExpressionParser
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static Match<LambdaExpression> TryParse(string text)
 	{
-		return TryParse(text, Assembly.GetCallingAssembly());
+		return TryParse(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <summary>The same, on behalf of an assembly the scope names.</summary>
 	/// <remarks>
 	/// What that assembly decides, and what asking the call for it costs, is written under
 	/// <see cref="Parse(string, Assembly)"/>.
 	/// </remarks>
+	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
 	public static Match<LambdaExpression> TryParse(string text, Assembly caller)
 	{
-		var state = new State(caller) { Text = text };
+		return TryParse(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
+	}
+
+	/// <summary>The same, for names looked for in that scope.</summary>
+	public static Match<LambdaExpression> TryParse(string text, ResolutionScope scope)
+	{
+		var state = new State(scope) { Text = text };
 		Match<LambdaExpression> match;
 
 		try
@@ -1553,9 +1572,9 @@ public static partial class ExpressionParser
 		thrown is ArgumentException and not ArgumentNullException;
 	}
 
-	/// <summary>The same, compiled to a delegate of the caller's own type.</summary>
+	/// <summary>The same, compiled to a delegate of the scope's own type.</summary>
 	/// <remarks>
-	/// Where the two halves meet a caller: what the text declares has to match what the
+	/// Where the two halves meet a scope: what the text declares has to match what the
 	/// delegate takes, and <c>Expression.Lambda</c> is what says so — in a message naming
 	/// both, which is better than anything this could invent. What the body is worth is
 	/// converted to what the delegate returns, as C# converts a lambda's body, so
@@ -1565,19 +1584,27 @@ public static partial class ExpressionParser
 	public static TDelegate Compile<TDelegate>(string text)
 		where TDelegate : Delegate
 	{
-		return Compile<TDelegate>(text, Assembly.GetCallingAssembly());
+		return Compile<TDelegate>(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <summary>The same, on behalf of an assembly the scope names.</summary>
 	/// <remarks>
 	/// What that assembly decides, and what asking the call for it costs, is written under
 	/// <see cref="Parse(string, Assembly)"/>.
 	/// </remarks>
+	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
 	public static TDelegate Compile<TDelegate>(string text, Assembly caller)
 		where TDelegate : Delegate
 	{
+		return Compile<TDelegate>(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
+	}
+
+	/// <summary>The same, for names looked for in that scope.</summary>
+	public static TDelegate Compile<TDelegate>(string text, ResolutionScope scope)
+		where TDelegate : Delegate
+	{
 		var returns = typeof(TDelegate).GetMethod("Invoke")!.ReturnType;
-		var lambda  = Parse(text, caller, returns == typeof(void) ? null : returns, typeof(TDelegate));
+		var lambda  = Parse(text, scope, returns == typeof(void) ? null : returns, typeof(TDelegate));
 		var body    = returns == typeof(void) ? lambda.Body : Converted(lambda.Body, returns);
 
 		return (TDelegate)Expression.Lambda(typeof(TDelegate), body, lambda.Parameters).Compile();
@@ -1951,7 +1978,7 @@ public static partial class ExpressionParser
 	/// an <c>IFormattable</c> — a conversion no other string has, so what was interpolated has to be
 	/// known after it is built: `$"abc"` is a constant exactly like `"abc"`, and only the first
 	/// converts. Kept beside the tree by the node rather than in it, so that nothing of this
-	/// language's own reaches a tree a caller is handed, and weakly, so that a tree let go of lets go
+	/// language's own reaches a tree a scope is handed, and weakly, so that a tree let go of lets go
 	/// of this too.
 	/// </para>
 	/// <para>
@@ -2076,9 +2103,9 @@ public static partial class ExpressionParser
 	/// <summary>One step built onto what it is written after.</summary>
 	static Expression Applied(Expression value, Step step, State context)
 	{
-		return step.Indices is { } at ? Indexed(value, at, context.Caller)
+		return step.Indices is { } at ? Indexed(value, at, context.Reach)
 		: step.Arguments is { } args ? context.Calling(value, step.Member!, args)
-		: Member(value, step.Member!, context.Caller);
+		: Member(value, step.Member!, context.Reach);
 	}
 
 	/// <summary>Whether that value is null, asked as its type allows.</summary>
@@ -2168,7 +2195,7 @@ public static partial class ExpressionParser
 	/// something above them. So the pairs travel as text and a value, and the member is
 	/// found here, where the type is in hand.
 	/// </remarks>
-	internal static MemberBinding[] Bound(Type type, Setting[] settings, Assembly caller)
+	internal static MemberBinding[] Bound(Type type, Setting[] settings, ResolutionScope scope)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
@@ -2181,15 +2208,15 @@ public static partial class ExpressionParser
 		for (var at = 0; at < settings.Length; at++)
 		{
 			var setting = settings[at];
-			var member  = InstanceMember(type, setting.Name, caller) ?? throw new FormatException(
+			var member  = InstanceMember(type, setting.Name, scope) ?? throw new FormatException(
 				$"'{type.Name}' has no property or field named '{setting.Name}'.");
 
 			// Which of the three the text wrote, answered here rather than where it was
 			// read: a nested initializer needs the *member's* type to go on, and that is
 			// known one step further in than the name was.
 			bound[at] =
-				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields, caller)) :
-				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items, caller)) :
+				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields, scope)) :
+				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items, scope)) :
 				Expression.Bind(member, Converted(setting.Value!, MemberType(member)));
 		}
 
@@ -2209,7 +2236,7 @@ public static partial class ExpressionParser
 	/// question about the type, and the type is a sibling of the braces rather than
 	/// something inside them.
 	/// </remarks>
-	internal static ElementInit[] Added(Type type, Element[] elements, Assembly caller)
+	internal static ElementInit[] Added(Type type, Element[] elements, ResolutionScope scope)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
@@ -2223,7 +2250,7 @@ public static partial class ExpressionParser
 		{
 			var arguments = elements[at].Arguments;
 			var chosen    = Resolved(
-				Methods(type, "Add", instance: true, arguments, caller), arguments, $"'{type.Name}' has no method 'Add'");
+				Methods(type, "Add", instance: true, arguments, scope), arguments, $"'{type.Name}' has no method 'Add'");
 
 			added[at] = Expression.ElementInit((MethodInfo)chosen.Member, Passed(chosen, arguments));
 		}
@@ -2239,12 +2266,12 @@ public static partial class ExpressionParser
 	/// — so the reading is one and the choosing is here. It is the shape a generator that
 	/// factored the common head of its alternatives would let the grammar keep.
 	/// </remarks>
-	internal static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items, Assembly caller)
+	internal static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items, ResolutionScope scope)
 	{
-		var made = Constructed(type, args, caller);
+		var made = Constructed(type, args, scope);
 
-		return fields is not null ? Expression.MemberInit(made, Bound(type, fields, caller))
-			: items is not null   ? Expression.ListInit(made, Added(type, items, caller))
+		return fields is not null ? Expression.MemberInit(made, Bound(type, fields, scope))
+			: items is not null   ? Expression.ListInit(made, Added(type, items, scope))
 			: made;
 	}
 
@@ -2971,7 +2998,7 @@ public static partial class ExpressionParser
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The grammar declares this as its `context` (§7.7) and the caller hands one over, so
+	/// The grammar declares this as its `context` (§7.7) and the scope hands one over, so
 	/// it lives exactly as long as a parse. It was seven <c>[ThreadStatic]</c> fields and a
 	/// <c>Begin</c> that cleared them, which is a discipline rather than a guarantee — and
 	/// the discipline failed: the generated <c>TryParseLambda</c> never called it, so one
@@ -2990,33 +3017,48 @@ public static partial class ExpressionParser
 	{
 		/// <summary>A reading on behalf of whoever calls this.</summary>
 		/// <remarks>
-		/// Asked of the call itself — which is why this is never inlined into its caller — so
+		/// Asked of the call itself — which is why this is never inlined into its scope — so
 		/// that a parser used through the generated <c>TryParseLambda</c> sees what one used
 		/// through <see cref="Parse(string)"/> sees: public types, and the calling assembly's internal
 		/// ones.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		public State()
-			: this(Assembly.GetCallingAssembly())
+			: this(ResolutionScope.Around(Assembly.GetCallingAssembly()))
 		{
 		}
 
-		/// <summary>A reading on behalf of an assembly the caller names.</summary>
+		/// <summary>A reading on behalf of an assembly the scope names.</summary>
 		/// <remarks>
 		/// The form above asks the call who is calling, and that is a stack crawl — ~296 ns,
-		/// a quarter of the shortest parse there is — paid once for every reading. A caller
+		/// a quarter of the shortest parse there is — paid once for every reading. A scope
 		/// reading many texts asks once and hands the answer to each. And it is a choice as
 		/// well as a saving: the assembly is what decides which internal types and members
 		/// the text may name.
 		/// </remarks>
+		/// <summary>A reading for the scope that assembly's own compilation would have.</summary>
+		/// <remarks>
+		/// <c>ResolutionScope.Around(caller)</c>, written out, so that a caller holding an
+		/// assembly need not know the scope exists — which most of them do not.
+		/// </remarks>
 		public State(Assembly caller)
+			: this(ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))))
 		{
-			Caller  = caller ?? throw new ArgumentNullException(nameof(caller));
-			Members = new MemberResolver(Caller, _imports);
 		}
 
-		/// <summary>The assembly the text is read for, whose internal types and members it may name.</summary>
-		internal Assembly Caller { get; }
+		/// <summary>A reading whose names are looked for in that scope.</summary>
+		public State(ResolutionScope scope)
+		{
+			Reach   = scope ?? throw new ArgumentNullException(nameof(scope));
+			Members = new MemberResolver(Reach, _imports);
+		}
+
+		/// <summary>Where this reading's names are looked for.</summary>
+		/// <remarks>
+		/// Not `Scope`: that name is taken here by the extent of a block, which is a different
+		/// question about a different thing, and one of them had to give.
+		/// </remarks>
+		internal ResolutionScope Reach { get; }
 
 		/// <summary>What a member is here: the two things it needs from the reading, and nothing else.</summary>
 		/// <remarks>
@@ -3327,7 +3369,7 @@ public static partial class ExpressionParser
 			if (@namespace is null)
 				throw new ArgumentNullException(nameof(@namespace));
 
-			if (!Loaded.Has(@namespace) && !Loaded.HasInside(Caller, @namespace))
+			if (!Loaded.Has(Reach, @namespace) && !Loaded.HasInside(Reach, @namespace))
 			{
 				Refuse(at.Start, $"The type or namespace name '{@namespace}' could not be found.");
 
@@ -3405,7 +3447,7 @@ public static partial class ExpressionParser
 			// `using` can make it ambiguous. `Qualified` reads a dotted name as C# reads one:
 			// the longest prefix that is a type, then what is nested in it, so the first
 			// segment is resolved in the enclosing namespace by construction.
-			if (Qualified(null, name, Caller) is { } written)
+			if (Qualified(null, name, Reach) is { } written)
 			{
 				first  = written;
 				second = null;
@@ -3419,7 +3461,7 @@ public static partial class ExpressionParser
 
 			for (var at = 0; at < _imports.Count; at++)
 			{
-				var found = Qualified(_imports[at], name, Caller);
+				var found = Qualified(_imports[at], name, Reach);
 
 				if (found is null || found == one || found == two)
 					continue;
@@ -3786,7 +3828,7 @@ public static partial class ExpressionParser
 			return _given ?? [];
 		}
 
-		/// <summary>What the outermost lambda is to give back, where the caller already knows.</summary>
+		/// <summary>What the outermost lambda is to give back, where the scope already knows.</summary>
 		/// <remarks>
 		/// Set by <c>Compile</c>, which is handed the delegate type, and left unset by
 		/// <c>Parse</c>, which is handed nothing to type a lambda by. It is the target of the

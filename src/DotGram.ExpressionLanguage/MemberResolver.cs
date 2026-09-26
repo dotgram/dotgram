@@ -21,7 +21,7 @@ public static partial class ExpressionParser
 	/// <summary>A member chosen, and the arguments as that member takes them.</summary>
 	/// <remarks>
 	/// Both halves, on purpose. Choosing an overload and converting the arguments to what it
-	/// takes are one act — the conversions are how the choice was made — and a caller handed
+	/// takes are one act — the conversions are how the choice was made — and a scope handed
 	/// only the member would have to work them out a second time, by a second rule.
 	/// </remarks>
 	internal readonly record struct Resolution(MemberInfo Member, Expression[] Arguments);
@@ -34,16 +34,16 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal sealed class MemberResolver
 	{
-		public MemberResolver(Assembly caller, IReadOnlyList<string>? imports)
+		public MemberResolver(ResolutionScope scope, IReadOnlyList<string>? imports)
 		{
-			Caller   = caller ?? throw new ArgumentNullException(nameof(caller));
+			Scope    = scope ?? throw new ArgumentNullException(nameof(scope));
 			_imports = imports;
 		}
 
 		readonly IReadOnlyList<string>? _imports;
 
-		/// <summary>The assembly the text is read for, whose internal members it may name.</summary>
-		public Assembly Caller { get; }
+		/// <summary>Where this reading's names are looked for.</summary>
+		public ResolutionScope Scope { get; }
 
 		/// <summary>A call on a value: its own method where it has one, an extension where it has none.</summary>
 		/// <remarks>
@@ -66,7 +66,7 @@ public static partial class ExpressionParser
 
 			var missing = $"'{target.Type.Name}' has no method '{name}'";
 
-			if (Methods(target.Type, name, instance: true, arguments, Caller) is { Count: > 0 } own)
+			if (Methods(target.Type, name, instance: true, arguments, Scope) is { Count: > 0 } own)
 				return Chose(own, arguments, missing);
 
 			var extended = new Expression[arguments.Length + 1];
@@ -75,7 +75,7 @@ public static partial class ExpressionParser
 
 			arguments.CopyTo(extended, 1);
 
-			if (Extensions(name, extended, Caller, _imports) is { Count: > 0 } found)
+			if (Extensions(name, extended, Scope, _imports) is { Count: > 0 } found)
 				return Chose(found, extended, $"nothing extends '{target.Type.Name}' with '{name}'");
 
 			// Neither, which is said in the words the language has always used for a method
@@ -89,26 +89,26 @@ public static partial class ExpressionParser
 			return type is null
 				? throw new ArgumentNullException(nameof(type))
 				: Chose(
-					Methods(type, name, instance: false, arguments, Caller), arguments,
+					Methods(type, name, instance: false, arguments, Scope), arguments,
 					$"'{type.Name}' has no method '{name}'");
 		}
 
 		/// <summary>The constructor C# would choose for these arguments.</summary>
 		/// <remarks>
 		/// A value type's constructor of no arguments is in no metadata and is nobody's to
-		/// choose: that one is <c>Expression.New</c>'s own form, and the caller reads it before
+		/// choose: that one is <c>Expression.New</c>'s own form, and the scope reads it before
 		/// asking here.
 		/// </remarks>
 		public Resolution Constructor(Type type, Expression[] arguments)
 		{
 			return type is null
 				? throw new ArgumentNullException(nameof(type))
-				: Chose(Constructing(type, arguments, Caller), arguments, $"'{type.Name}' has no constructor");
+				: Chose(Constructing(type, arguments, Scope), arguments, $"'{type.Name}' has no constructor");
 		}
 
 		/// <summary>The indexer C# would choose for these indices.</summary>
 		/// <remarks>
-		/// An array's element is no indexer — it is a node of the tree — and the caller reads
+		/// An array's element is no indexer — it is a node of the tree — and the scope reads
 		/// that before asking here, for the reason a value type's default constructor is read
 		/// before asking about constructors.
 		/// </remarks>
@@ -117,7 +117,7 @@ public static partial class ExpressionParser
 			return target is null
 				? throw new ArgumentNullException(nameof(target))
 				: Chose(
-					Indexers(target.Type, indices, Caller), indices,
+					Indexers(target.Type, indices, Scope), indices,
 					$"'{target.Type.Name}' has no indexer");
 		}
 

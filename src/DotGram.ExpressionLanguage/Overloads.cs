@@ -24,26 +24,26 @@ public static partial class ExpressionParser
 	// and then the one better than every other.
 
 	/// <summary>A call on a value: the method C# would choose for these arguments.</summary>
-	internal static Expression Called(Expression target, string name, Expression[] arguments, Assembly caller)
+	internal static Expression Called(Expression target, string name, Expression[] arguments, ResolutionScope scope)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
 
 		var chosen = Chose(
-			Methods(target.Type, name, instance: true, arguments, caller), arguments,
+			Methods(target.Type, name, instance: true, arguments, scope), arguments,
 			$"'{target.Type.Name}' has no method '{name}'");
 
 		return Expression.Call(target, (MethodInfo)chosen.Member, chosen.Arguments);
 	}
 
 	/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
-	internal static Expression Called(Type type, string name, Expression[] arguments, Assembly caller)
+	internal static Expression Called(Type type, string name, Expression[] arguments, ResolutionScope scope)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
 		var chosen = Chose(
-			Methods(type, name, instance: false, arguments, caller), arguments,
+			Methods(type, name, instance: false, arguments, scope), arguments,
 			$"'{type.Name}' has no method '{name}'");
 
 		return Expression.Call((MethodInfo)chosen.Member, chosen.Arguments);
@@ -84,22 +84,22 @@ public static partial class ExpressionParser
 	/// A value type's constructor of no arguments is not in its metadata at all, and
 	/// <c>Expression.New</c> has a form for it that takes the type alone.
 	/// </remarks>
-	static NewExpression Constructed(Type type, Expression[] arguments, Assembly caller)
+	static NewExpression Constructed(Type type, Expression[] arguments, ResolutionScope scope)
 	{
 		if (arguments.Length == 0 && type.IsValueType)
 			return Expression.New(type);
 
-		var chosen = Chose(Constructing(type, arguments, caller), arguments, $"'{type.Name}' has no constructor");
+		var chosen = Chose(Constructing(type, arguments, scope), arguments, $"'{type.Name}' has no constructor");
 
 		return Expression.New((ConstructorInfo)chosen.Member, chosen.Arguments);
 	}
 
 	/// <summary>The constructors these arguments fit.</summary>
-	static List<Candidate> Constructing(Type type, Expression[] arguments, Assembly caller)
+	static List<Candidate> Constructing(Type type, Expression[] arguments, ResolutionScope scope)
 	{
 		var found = new List<Candidate>();
 
-		foreach (var one in _constructors.GetOrAdd((type, caller), static key => Constructors(key)))
+		foreach (var one in _constructors.GetOrAdd((type, scope), static key => Constructors(key)))
 			if (Applicable(one, arguments) is { } candidate)
 				found.Add(candidate);
 
@@ -108,7 +108,7 @@ public static partial class ExpressionParser
 
 	/// <summary>The candidate C# would call, with the arguments as it takes them.</summary>
 	/// <remarks>
-	/// The pair every caller wants: <see cref="Resolved"/> says which member, and
+	/// The pair every scope wants: <see cref="Resolved"/> says which member, and
 	/// <see cref="Passed"/> says what it is handed, and working the second out apart from the
 	/// first is how two callers come to disagree about the same call.
 	/// </remarks>
@@ -179,11 +179,11 @@ public static partial class ExpressionParser
 	/// is <c>ICollection&lt;T&gt;</c>'s. A generic method is no candidate: nothing here can
 	/// name its type arguments, and nothing infers them.
 	/// </remarks>
-	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments, Assembly caller)
+	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments, ResolutionScope scope)
 	{
 		var found = new List<Candidate>();
 
-		foreach (var one in Cached(_methods, (type, name, instance, caller), static key => Named(key)))
+		foreach (var one in Cached(_methods, (type, name, instance, scope), static key => Named(key)))
 			if (Fitting(one, arguments) is { } candidate)
 				found.Add(candidate);
 
@@ -199,15 +199,15 @@ public static partial class ExpressionParser
 	/// what keeps `Where` and `Select` out until they can be inferred.
 	/// </remarks>
 	static List<Candidate> Extensions(
-		string name, Expression[] extended, Assembly caller, IReadOnlyList<string>? imports)
+		string name, Expression[] extended, ResolutionScope scope, IReadOnlyList<string>? imports)
 	{
 		var found = new List<Candidate>();
 		var seen  = new HashSet<MethodInfo>();
 
 		foreach (var space in imports ?? [])
 		{
-			Consider(Loaded.Holders(space));
-			Consider(Loaded.HoldersInside(caller, space));
+			Consider(Loaded.Holders(scope, space));
+			Consider(Loaded.HoldersInside(scope, space));
 		}
 
 		return found;
@@ -217,7 +217,7 @@ public static partial class ExpressionParser
 		void Consider(Type[] holders)
 		{
 			foreach (var holder in holders)
-				foreach (var one in Cached(_extensions, (holder, name, caller), static key => Extending(key)))
+				foreach (var one in Cached(_extensions, (holder, name, scope), static key => Extending(key)))
 					if (seen.Add((MethodInfo)one.Member) && Fitting(one, extended) is { } candidate)
 						found.Add(candidate);
 		}
@@ -227,14 +227,14 @@ public static partial class ExpressionParser
 	/// The extension methods by that name a static class holds that the calling assembly could
 	/// reach, with their parameters, before any argument is asked.
 	/// </summary>
-	static Overload[] Extending((Type Holder, string Name, Assembly Caller) key)
+	static Overload[] Extending((Type Holder, string Name, ResolutionScope Scope) key)
 	{
 		var extending = new List<Overload>();
 
 		foreach (var method in key.Holder.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
 			if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) &&
 				(!method.ContainsGenericParameters || method.IsGenericMethodDefinition) &&
-				Reachable(method, key.Caller) &&
+				Reachable(method, key.Scope) &&
 				method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false) &&
 				method.GetParameters() is { Length: > 0 } parameters)
 				extending.Add(Overload.Of(method, parameters));
@@ -246,7 +246,7 @@ public static partial class ExpressionParser
 	/// The methods a type has by that name that the calling assembly could reach, with their
 	/// parameters, before any argument is asked.
 	/// </summary>
-	static Overload[] Named((Type Type, string Name, bool Instance, Assembly Caller) key)
+	static Overload[] Named((Type Type, string Name, bool Instance, ResolutionScope Scope) key)
 	{
 		const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -275,19 +275,19 @@ public static partial class ExpressionParser
 			foreach (var method in methods)
 				if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) &&
 					(!method.ContainsGenericParameters || method.IsGenericMethodDefinition) &&
-					Reachable(method, key.Caller))
+					Reachable(method, key.Scope))
 					named.Add(Overload.Of(method, method.GetParameters()));
 		}
 	}
 
 	/// <summary>A type's constructors the calling assembly could reach, with their parameters.</summary>
-	static Overload[] Constructors((Type Type, Assembly Caller) key)
+	static Overload[] Constructors((Type Type, ResolutionScope Scope) key)
 	{
 		var constructors = new List<Overload>();
 
 		foreach (var one in key.Type.GetConstructors(
 			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-			if (Reachable(one, key.Caller))
+			if (Reachable(one, key.Scope))
 				constructors.Add(Overload.Of(one, one.GetParameters()));
 
 		return [.. constructors];
@@ -302,19 +302,19 @@ public static partial class ExpressionParser
 	/// usually, `Chars` for a string — and it is looked for by that name among every property
 	/// rather than through <c>GetDefaultMembers</c>, which answers with public ones only.
 	/// </remarks>
-	static List<Candidate> Indexers(Type type, Expression[] arguments, Assembly caller)
+	static List<Candidate> Indexers(Type type, Expression[] arguments, ResolutionScope scope)
 	{
 		var found = new List<Candidate>();
 
-		foreach (var one in _indexers.GetOrAdd((type, caller), static key => Indexing(key)))
+		foreach (var one in _indexers.GetOrAdd((type, scope), static key => Indexing(key)))
 			if (Applicable(one, arguments) is { } candidate)
 				found.Add(candidate);
 
 		return found;
 	}
 
-	/// <summary>A type's indexers the caller could reach, with their parameters, before any argument is asked.</summary>
-	static Overload[] Indexing((Type Type, Assembly Caller) key)
+	/// <summary>A type's indexers the scope could reach, with their parameters, before any argument is asked.</summary>
+	static Overload[] Indexing((Type Type, ResolutionScope Scope) key)
 	{
 		var indexers = new List<Overload>();
 
@@ -333,7 +333,7 @@ public static partial class ExpressionParser
 
 			foreach (var indexer in declaring.GetProperties(
 				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-				if (string.Equals(indexer.Name, name, StringComparison.Ordinal) && Reachable(indexer, key.Caller) &&
+				if (string.Equals(indexer.Name, name, StringComparison.Ordinal) && Reachable(indexer, key.Scope) &&
 					indexer.GetIndexParameters() is { Length: > 0 } parameters)
 					indexers.Add(Overload.Of(indexer, parameters));
 		}

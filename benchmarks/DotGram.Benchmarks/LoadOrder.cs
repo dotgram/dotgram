@@ -72,16 +72,18 @@ static class LoadOrder
 
 		Console.WriteLine($"2. parse before touching it: success={before.IsSuccess} error={before.Error}");
 
-		// Today this refuses, and this holds that rather than the behaviour we want, so the suite
-		// stays green while the decision is open: whether the library may load a caller's
-		// referenced assemblies on a miss is Igor's, not this program's. When it is taken, the
-		// test below becomes `if (!before.IsSuccess)` and this comment goes with it.
-		if (before.IsSuccess)
+		// It resolves, and that is the answer now. The decision this branch was waiting for was
+		// taken on 2026-09-26: a reading's names are looked for in the calling assembly and what
+		// it REFERENCES, as a compilation's are, rather than in whatever the process happens to
+		// have loaded — so an assembly the graph names is loaded when the scope is made, and a
+		// type in it is nameable before anything has touched it. What this mode now checks is
+		// that: step 2 succeeds, and step 3 agrees with it.
+		if (!before.IsSuccess)
 		{
 			Console.WriteLine(
-				"   CHANGED: a name from an untouched assembly now resolves. If the reader was " +
-				"given the retry-after-loading-references behaviour, this mode should now expect " +
-				"success at step 2, and this branch is the reminder to change it.");
+				"   WRONG: a name from a referenced assembly did not resolve. A scope is the " +
+				"caller and what it references, so this should not depend on anything having " +
+				"touched that assembly first.");
 
 			wrong++;
 		}
@@ -102,15 +104,16 @@ static class LoadOrder
 		if (!after.IsSuccess)
 		{
 			Console.WriteLine(
-				"   WRONG: the same text still does not parse once the assembly is loaded. Either " +
-				"the AssemblyLoad subscription in Names.Loaded stopped clearing the caches, or the " +
-				"name cannot be resolved for a reason that has nothing to do with load order.");
+				"   WRONG: the same text does not parse even once the assembly is loaded, so the " +
+				"name cannot be resolved for a reason that has nothing to do with load order. " +
+				"There is no AssemblyLoad subscription to blame any more: a scope's assemblies " +
+				"are fixed when it is made.");
 
 			wrong++;
 		}
 
 		Console.WriteLine(wrong == 0
-			? "OK: the answer depends on load order, exactly as recorded."
+			? "OK: the answer does not depend on load order, which is what a scope is for."
 			: $"{wrong} of the recorded answers differed.");
 
 		return wrong == 0 ? 0 : 1;

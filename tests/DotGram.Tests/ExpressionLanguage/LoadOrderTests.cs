@@ -11,11 +11,19 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The expression language finds a type by searching the assemblies the process has loaded, and a
-/// referenced assembly is loaded lazily. So what a text can name depends on what the program did
-/// before asking — and no test beside the others can see that, because this assembly has loaded
-/// everything it references before the first test runs. Running it here would be the worst kind of
-/// test: not merely failing to catch the defect, but convincing a reader that it would have.
+/// The expression language used to find a type by searching the assemblies the process had
+/// loaded, and a referenced assembly is loaded lazily — so what a text could name depended on
+/// what the program had done before asking. Since 2026-09-26 it searches a
+/// <c>ResolutionScope</c>: the calling assembly and what it references, walked and loaded when the
+/// scope is made. This check is what says so, and it is the same check either way: it asks whether
+/// the answer moves when an assembly is touched. It used to record that it did; it now requires
+/// that it does not.
+/// </para>
+/// <para>
+/// It still has to run in a process of its own, and for the reason it always did: no test beside
+/// the others can see this, because this assembly has loaded everything it references before the
+/// first test runs. Running it here would be the worst kind of test — not merely failing to catch
+/// the defect, but convincing a reader that it would have.
 /// </para>
 /// <para>
 /// So the check is a program: <c>DotGram.Benchmarks --load-order</c>, a mode of the console that

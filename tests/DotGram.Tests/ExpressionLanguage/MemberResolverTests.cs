@@ -31,7 +31,8 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// </remarks>
 public sealed class MemberResolverTests
 {
-	static readonly Assembly Here = typeof(MemberResolverTests).Assembly;
+	static readonly ResolutionScope Here =
+		ResolutionScope.Around(typeof(MemberResolverTests).Assembly);
 
 	static ExpressionParser.MemberResolver Asking(params string[] imports)
 	{

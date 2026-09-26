@@ -3343,7 +3343,7 @@ public static class HandExpression
 					}
 
 					node = _build
-						? Assigned(operation, member is null ? name! : ExpressionParser.Member(name!, member, _context.Caller), read!)
+						? Assigned(operation, member is null ? name! : ExpressionParser.Member(name!, member, _context.Reach), read!)
 						: null;
 
 					return value;
@@ -3388,7 +3388,7 @@ public static class HandExpression
 				return -1;
 
 			if (_build)
-				node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Caller), read!);
+				node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Reach), read!);
 
 			return value;
 		}
@@ -3438,7 +3438,7 @@ public static class HandExpression
 				at    += 2;
 			}
 
-			return ExpressionParser.Has(name!, member, _context.Caller) ? at : Refuse(at);
+			return ExpressionParser.Has(name!, member, _context.Reach) ? at : Refuse(at);
 		}
 
 		int Conditional(int i, out Expression? node)
@@ -3908,7 +3908,7 @@ public static class HandExpression
 					}
 
 					if (_build)
-						node = ExpressionParser.Member(node!, member, _context.Caller);
+						node = ExpressionParser.Member(node!, member, _context.Reach);
 
 					at += 2;
 
@@ -3923,7 +3923,7 @@ public static class HandExpression
 						break;
 
 					if (_build)
-						node = ExpressionParser.Indexed(node!, read!, _context.Caller);
+						node = ExpressionParser.Indexed(node!, read!, _context.Reach);
 
 					at = indices;
 
@@ -4033,8 +4033,8 @@ public static class HandExpression
 						Core(i, out var type, build: true);
 
 						node = called >= 0
-							? ExpressionParser.Called(type!, member, args!, _context.Caller)
-							: ExpressionParser.StaticMember(type!, member, _context.Caller);
+							? ExpressionParser.Called(type!, member, args!, _context.Reach)
+							: ExpressionParser.StaticMember(type!, member, _context.Reach);
 					}
 
 					return called >= 0 ? called : named + 2;
@@ -4269,7 +4269,7 @@ public static class HandExpression
 			}
 
 			if (_build)
-				node = ExpressionParser.Made(type, args!, fields, elements, _context.Caller);
+				node = ExpressionParser.Made(type, args!, fields, elements, _context.Reach);
 
 			return after;
 		}
