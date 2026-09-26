@@ -22,9 +22,10 @@ namespace DotGram.Tests;
 /// </para>
 /// <para>
 /// The bound is on the exponent and not on a time: forty times the statements may take up to
-/// about a hundred and twenty times as long (1.3) against the square's sixteen hundred (2.0).
-/// A bound of 1.1 failed once on a shared runner at 1.16, the shorter script's 59 µs being
-/// the size of the noise. Timed alone, the best of several runs.
+/// about three hundred and seventy times as long (1.6) against the square's sixteen hundred
+/// (2.0; the defect read 1.99). Shared runners read 1.16, 1.13 and 1.35 on a linear reading,
+/// the shorter script's 60 to 100 µs being the size of their noise, so nothing tighter holds
+/// there. Timed alone, the best of several runs.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -39,7 +40,7 @@ public sealed class ScriptScalingTests
 		var exponent = Math.Log(longer / shorter) / Math.Log(40.0);
 
 		Assert.True(
-			exponent <= 1.3,
+			exponent <= 1.6,
 			$"Forty times the statements took {longer / shorter:F1} times as long " +
 			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
 	}
