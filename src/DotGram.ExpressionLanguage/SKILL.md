@@ -78,9 +78,16 @@ in a helper that lives in another assembly: the helper's assembly is the one the
 
 ## Names
 
-- **Nothing is imported**, `System` included. A type is written whole
-  (`System.Math.Max(x, 1)`) or brought in by a `using` at the top of the text, before the
-  lambda. A text's `using`s are its own; the next text starts with none.
+- **Five namespaces are there already**, the set a new project gets: `System`,
+  `System.Collections.Generic`, `System.Linq`, `System.Text` and `System.Threading.Tasks`.
+  Anything else is written whole (`Warehouse.Orders.Order.Make()`) or brought in by a `using`
+  at the top of the text, before the lambda. A text's `using`s are its own; the next text
+  starts with the five again and nothing more.
+- They are PEERS of a written `using`, as a global using is in C#: a name a default and a
+  written one both give is ambiguous where it is used, and which of the two the text wrote
+  changes nothing. `ResolutionScope.DefaultImports` is the set, and
+  `ResolutionScope.WithoutDefaultImports()` a scope that leaves them out — a text read through
+  that one writes its own `using`s or names types whole.
 - A `using` names a namespace, or gives a name to one type or one namespace:
   `using L = System.Collections.Generic.List<int>;` and `using C = System.Collections.Generic;`.
   A closed generic may be named, an open one may not, as in C#. No `using static` yet.

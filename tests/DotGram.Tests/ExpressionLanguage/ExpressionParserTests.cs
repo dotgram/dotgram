@@ -1338,13 +1338,21 @@ public sealed class ExpressionParserTests
 	// ── using: what a name written as a type may mean ───────────────────────────
 
 	[Fact]
-	public void Nothing_is_imported_unasked()
+	public void The_namespaces_a_new_project_gets_are_imported_and_no_others()
 	{
-		// Not even `System`: a name means a type where a `using` in the text says where to
-		// look, or where it is written whole.
+		// Igor, 2026-09-26: the set the older template gives a new project, and nothing beyond
+		// it. `Math` is in `System` and needs no `using`; `Twofold` is in a namespace of this
+		// test assembly's and needs one, or to be written whole.
 		Assert.Equal(
-			[false, true, true],
-			new[] { "() => Math.PI", "using System; () => Math.PI", "() => System.Math.PI" }
+			[true, true, false, true, true],
+			new[]
+			{
+				"() => Math.PI",
+				"() => new System.Text.StringBuilder().Length",
+				"() => Twofold.Where()",
+				"using DotGram.Tests.ExpressionLanguage.Elsewhere; () => Twofold.Where()",
+				"() => DotGram.Tests.ExpressionLanguage.Elsewhere.Twofold.Where()",
+			}
 				.Select(text => Both.TryParse(text).IsSuccess));
 	}
 
@@ -1352,8 +1360,12 @@ public sealed class ExpressionParserTests
 	public void A_using_lasts_as_long_as_its_text()
 	{
 		// Read by one parse and gone for the next: nothing about it outlives the reading.
-		Assert.True(Both.TryParse("using System; () => Math.PI").IsSuccess);
-		Assert.False(Both.TryParse("() => Math.PI").IsSuccess);
+		// Not over `System`, which every text now gets (ResolutionScope.DefaultImports) and
+		// which would make the second reading succeed for a reason that is not this one.
+		Assert.True(Both.TryParse(
+			"using DotGram.Tests.ExpressionLanguage.Elsewhere; () => Twofold.Where()").IsSuccess);
+
+		Assert.False(Both.TryParse("() => Twofold.Where()").IsSuccess);
 	}
 
 	[Fact]

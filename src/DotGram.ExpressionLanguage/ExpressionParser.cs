@@ -3075,7 +3075,15 @@ public static partial class ExpressionParser
 		/// <summary>A reading whose names are looked for in that scope.</summary>
 		public State(ResolutionScope scope)
 		{
-			Reach   = scope ?? throw new ArgumentNullException(nameof(scope));
+			Reach = scope ?? throw new ArgumentNullException(nameof(scope));
+
+			// The namespaces every text gets, written down as though the text had written them
+			// first — and NOT looked for: one the scope does not hold is simply absent, and looking
+			// would walk the closure for a text that may name no type at all (42c6d5b0). A text
+			// writing one of them again writes the same namespace, which is recorded once.
+			if (Reach.ImportsDefault)
+				_imports.AddRange(ResolutionScope.DefaultImports);
+
 			Members = new MemberResolver(Reach, _imports);
 		}
 

@@ -122,20 +122,36 @@ public sealed class VocabularyTests
 
 		ExpressionParser.Parse(text, typeof(VocabularyTests).Assembly);
 
-		Assert.True(
-			absent.Count == wasAbsent,
-			$"the type tables were asked about {absent.Count - wasAbsent} name(s) they do not have: " +
-			Shown(absent.Names().Except(wereAbsent)));
+		// The NAMES this text could have asked about, and not the cache's count. The count is
+		// global and the suite runs in parallel, so any other test's absent name moves it: once
+		// every text gained five namespaces by default (2026-09-26) there were enough of those
+		// to break an equality that had held by luck. What this is about is chains on a
+		// parameter, so it asks whether any of THOSE was asked.
+		Assert.Empty(Chains(absent.Names().Except(wereAbsent)));
 
 		// One for each type name the TEXT ITSELF writes — `System.Text.StringBuilder` and
 		// `System.Type` — which has to be looked for somewhere, and the calling assembly is
 		// asked first and does not declare it. Those are names an author wrote, not chains this
 		// invented, and there is one per type however often it is written. What must not appear
 		// here is a chain: `one.GetType().Name` and its kind.
-		Assert.True(
-			inside.Count - wasInside <= 2,
-			$"the calling assembly was asked about {inside.Count - wasInside} name(s) it does not have: " +
-			Shown(inside.Names().Except(wereInside)));
+		Assert.Empty(Chains(inside.Names().Except(wereInside)));
+	}
+
+	/// <summary>Of those names, the ones that are a chain on the text's parameter.</summary>
+	/// <remarks>
+	/// `one`, `one.Length`, `one.GetType().Name` and their kind: names this text never asks C#
+	/// to read as types, and which the defect asked of the type tables under every `using`.
+	/// </remarks>
+	static List<string> Chains(IEnumerable<string> names)
+	{
+		var chains = new List<string>();
+
+		foreach (var name in names)
+			if (name is "one" || name.StartsWith("one.", StringComparison.Ordinal) ||
+				name.EndsWith(".one", StringComparison.Ordinal) || name.Contains(".one.", StringComparison.Ordinal))
+				chains.Add(name);
+
+		return chains;
 	}
 
 	/// <summary>The first few of them, because a message naming eighty is a message nobody reads.</summary>

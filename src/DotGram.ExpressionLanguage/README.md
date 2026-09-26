@@ -66,10 +66,14 @@ if (!match.IsSuccess)                    // there is no minus over a string
 ```
 
 A type named rather than spelled as a keyword is found the way C# finds one: written whole,
-or through a `using` at the top of the text. Nothing is imported unasked, `System`
-included, and a text's `using`s are its own — the next text starts with none. What it can
-name is what C# written in the calling assembly could: public types, and that assembly's
-own internal types and members.
+or through a `using` at the top of the text. Five namespaces are there already — the set a
+new project gets: `System`, `System.Collections.Generic`, `System.Linq`, `System.Text` and
+`System.Threading.Tasks` — and a text's own `using`s are its own, so the next text starts
+with those five again and nothing more. `ResolutionScope.DefaultImports` names them, and
+`ResolutionScope.WithoutDefaultImports()` is a scope that leaves them out. A `using` may also
+give a name to one type or one namespace (`using L = System.Collections.Generic.List<int>;`).
+What a text can name is what C# written in the calling assembly could: public types, and that
+assembly's own internal types and members.
 
 ```csharp
 using System.Collections.Generic;

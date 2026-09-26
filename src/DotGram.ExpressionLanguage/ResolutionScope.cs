@@ -41,10 +41,75 @@ namespace DotGram.ExpressionLanguage;
 public sealed class ResolutionScope
 {
 	ResolutionScope(Assembly caller, Lazy<Assembly[]> assemblies, bool internals)
+		: this(caller, assemblies, internals, true, null)
 	{
-		Caller        = caller;
-		SeesInternals = internals;
-		_assemblies   = assemblies;
+	}
+
+	ResolutionScope(
+		Assembly caller, Lazy<Assembly[]> assemblies, bool internals, bool defaults, ResolutionScope? root)
+	{
+		Caller         = caller;
+		SeesInternals  = internals;
+		ImportsDefault = defaults;
+		_assemblies    = assemblies;
+		_root          = root ?? this;
+	}
+
+	/// <summary>The namespaces every text may name without writing a `using` for them.</summary>
+	/// <remarks>
+	/// <para>
+	/// The set a new project gets from the template, decided by Igor on 2026-09-26. They stand
+	/// as if the text had written them before its own `using`s, and are PEERS of them, which is
+	/// what C# does with a global using: a name two of them both give is ambiguous where it is
+	/// used, whichever of the two the text wrote (CS0104, checked against Roslyn).
+	/// </para>
+	/// <para>
+	/// They are recorded without being looked for. A namespace here that the scope's assemblies
+	/// do not hold is simply absent, not a refusal — a text's own `using` of one that is not
+	/// there is still CS0246 — and that is also what keeps them from walking the closure: a text
+	/// naming no type must load nothing, and checking five namespaces would have loaded
+	/// everything.
+	/// </para>
+	/// </remarks>
+	public static IReadOnlyList<string> DefaultImports { get; } =
+	[
+		"System",
+		"System.Collections.Generic",
+		"System.Linq",
+		"System.Text",
+		"System.Threading.Tasks",
+	];
+
+	/// <summary>Whether <see cref="DefaultImports"/> stand in a text read through this scope.</summary>
+	public bool ImportsDefault { get; }
+
+	/// <summary>The scope this one was shaped from, which holds the shapes of it.</summary>
+	/// <remarks>
+	/// A scope is what every cache inside the parser is keyed by, so a shaping form that made a
+	/// new instance on every call would empty those caches on every call. The four shapes of one
+	/// scope — internals on or off, defaults on or off — are made once each and kept here, so
+	/// that <c>WithoutInternals().WithoutDefaultImports()</c> and the same two the other way
+	/// round are not merely equal but the SAME instance.
+	/// </remarks>
+	readonly ResolutionScope _root;
+
+	readonly ResolutionScope?[] _shapes = new ResolutionScope?[4];
+
+	/// <summary>This scope shaped that way, made once and kept.</summary>
+	ResolutionScope Shaped(bool internals, bool defaults)
+	{
+		if (internals == SeesInternals && defaults == ImportsDefault)
+			return this;
+
+		var root = _root;
+		var at   = (internals ? 1 : 0) + (defaults ? 2 : 0);
+
+		lock (root._shapes)
+		{
+			return root._shapes[at] ??= internals == root.SeesInternals && defaults == root.ImportsDefault
+				? root
+				: new ResolutionScope(root.Caller, root._assemblies, internals, defaults, root);
+		}
 	}
 
 	/// <summary>The closure, walked at the first question that needs it and once however many ask.</summary>
@@ -158,12 +223,23 @@ public sealed class ResolutionScope
 			: Deferred(Caller, () => Closure(Caller, Joined(Assemblies, more)), SeesInternals);
 	}
 
+	/// <summary>The same scope with the namespaces every text gets left out.</summary>
+	/// <remarks>
+	/// Where it looks is unchanged, so the closure is shared and never walked twice; what changes
+	/// is only whether <see cref="DefaultImports"/> stand. Composes with
+	/// <see cref="WithoutInternals"/> in either order, and gives the same instance either way.
+	/// </remarks>
+	public ResolutionScope WithoutDefaultImports()
+	{
+		return Shaped(SeesInternals, false);
+	}
+
 	/// <summary>The same scope with the caller's internals hidden, as another assembly would see it.</summary>
 	public ResolutionScope WithoutInternals()
 	{
 		// The same closure, so the same Lazy: two scopes that differ in what they may SEE of the
 		// caller do not differ in where they look, and sharing it walks the graph once for both.
-		return SeesInternals ? new ResolutionScope(Caller, _assemblies, false) : this;
+		return Shaped(false, ImportsDefault);
 	}
 
 	/// <summary>Whether that assembly's internal types and members answer in this scope.</summary>
