@@ -134,14 +134,42 @@ the whole of the rise between `5f4fbb9f` and the scope: `el/floor` 21.0 ms to 40
 methods the runtime compiled went DOWN (192 to 165 for `el/floor`) — loading, not compiling.
 
 It is paid once per assembly per process, so a host that reads many texts never pays it again.
-Where it is felt is a short process that reads one short text: there it roughly doubles the first
+Where it was felt is a short process that reads one short text: there it roughly doubled the first
 reading.
 
-**This leaves a question that is Igor's.** A scope's answer is determined by the closure's NAMES,
-not by what has been loaded, so the loading could be deferred to where a name is looked for
-without making an answer depend on the process again. That would be a different default, not a
-different guarantee. Nothing here proposes it; the number is recorded so the choice is made with
-it rather than without it.
+## Where it is paid now (2026-09-26)
+
+**Not at scope creation.** The walk happens at the first question that needs the assemblies — a
+name looked for as a type, a method looked for among the extensions of an imported namespace, or a
+host reading `Assemblies` — and a text that asks none of those never causes it. That was decided
+on a count rather than a guess: of four texts, three ask the type tables NOTHING, because a
+keyword type and a member access never reach them.
+
+  0 asked, 0 nowhere   `(int x) => x`
+  3 asked, 1 nowhere   `(int x) => System.Math.Abs(x) + 1`
+  0 asked, 0 nowhere   `using System; (string s) => s.Length > 0 ? s.Trim() : s`
+  0 asked, 0 nowhere   `(int x) => (x + 1) * 2`
+
+The one that asks also MISSES once, which is the thing that had to be measured: `System.Math.Abs`
+is probed as a type name before it is read as a member access, and a lookup that finds nothing has
+to show the name is nowhere, which is the whole closure. So deferring the loading of each assembly
+one at a time would defer it by one lookup and no further. Deferring the CLOSURE is different, and
+is what was built.
+
+**What moves is when, and nothing else.** The closure is derived from the names an assembly
+references; deriving it later does not change what it holds, since in the default load context a
+name binds to the first assembly loaded under it either way. Eager and late can differ only where
+the process itself changes what a name resolves to in between — another version loaded under the
+same name, or a reference absent at scope creation and present later.
+
+**The route not taken.** Reading each assembly's names off its file with `System.Reflection.Metadata`
+and loading only where a name is found: measured at 112 ms against the 23 ms of loading them all,
+over 140 files, 33,324 types and 529 namespaces. The runtime's loader is faster at this than
+reading metadata is — 311 loads in 20 ms is 65 µs each. Walking the reference graph off the files
+alone, naming no types, is 10 ms, but that is not the half CS0104 needs. Dropped, and the other
+reason to drop it: `Assembly.Location` is empty under single-file publish and for anything loaded
+from memory, and one reference already has no file in an ordinary publish, so the fallback would be
+the common path rather than an edge.
 
 ## Caching
 
