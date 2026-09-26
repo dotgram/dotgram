@@ -9587,3 +9587,41 @@ dictionaries can be merged and edited between them.
   side by side; a message that comes first compiles its own. `context.Prepare()` is the option for a
   caller who needs every check ready before the first message: it compiles what is left and throws
   the first check that fails. A per-MsgType Prepare was not built; the background makes it moot.
+- **What the compile cost was (2026-09-26).** Not the checks: the expression language asked every
+  `context.Validators.X` and `message.Y` as a type name under each `using`, which C# never does,
+  and overran its negative caches (bound 4096, cleared whole) once a pass. 723b7af8 stopped the
+  question; 51b73cc1 bounds only the answers that say nothing. First Load+Prepare 1.0 s -> 0.43 s,
+  a repeat load 1.0 s -> 0.1 s. Group checks call `FixValidatorNN.Each` rather than writing a loop
+  (54f78335).
+
+## D144 — Emitted code carries counters for our tests only under a symbol nobody ships (architect)
+
+2026-09-26. A scaling property of the generated reader is gated by a count, not a clock: time
+bounds on shared runners failed at 1.13-1.69 on linear readings, and a clock with a bound wide
+enough to hold is blind to what it guards (584a7c1f went unnoticed that way). A count of emitted
+machinery needs a field in emitted code, and a consumer must not carry one for our benefit.
+
+- The support text (`Ways`, Support) writes its counters inside `#if DOTGRAM_COUNTS`. Never per
+  rule. A consumer compiles none of it: no field, no increment.
+- Not a generator option: nothing in `[Gram]`, no MSBuild property, nothing documented as a feature.
+  The field's XML doc says it is compiled only under that symbol, which the repository's tests
+  define, and is not a supported setting.
+- The test projects that gate on counts define the symbol. DotGram.Compatibility also builds once
+  with it, so the counted variant cannot rot. A test asserts a build without it has no counter.
+- Hand-written code (the expression language's `State.Places`) carries its counter always, as a
+  chosen cost written beside it: 8 bytes a reading (ae2045d8).
+
+## D145 — A pipeline value is equatable across compilations; a Location is made where it is reported (architect)
+
+2026-09-26. Every keystroke in a host file re-ran the whole grammar compile: `Host`, `Included`,
+`Piece` and `Report.Fallback` carried a `Location`, which compares by tree, so even an identical
+text was a change. Dropping it broke `#pragma` suppression, which needs a location in a tree.
+
+- Pipeline values carry a place that compares by value (path, span, line span). The `Location`
+  is made at the reporting step from the tree of that path. Grammars from a `.gram` file now stay
+  Cached on a whitespace edit or an identical text of their host (f45dd9d4), with a driver test
+  that also asserts a real edit is not cached.
+- Still open, next: a `[Gram]` attribute grammar re-runs its compile, because the line map from
+  grammar to file (`#line`) is computed inside it from the host's text. The shape agreed: the compile
+  depends on the grammar text and options only; file coordinates are applied at the output step.
+  A design note comes first. This one matters most to consumers, whose own class carries the grammar.
