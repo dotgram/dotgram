@@ -9637,8 +9637,9 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   4-10% in Release only and none in Debug, where the stack budget is derived, against the expression
   language's nested rows 14-33% slower on both carriers (loss of dynamic PGO). Not built.
 - **The expression language gains `using static` and aliases**, by C#'s rules, and imports by
-  default the namespaces a new SDK project imports implicitly: System, System.Collections.Generic,
-  System.IO, System.Linq, System.Net.Http, System.Threading, System.Threading.Tasks. They behave as
+  default the five namespaces of Visual Studio's older project template (Igor chose these over the
+  SDK's seven implicit usings): System, System.Collections.Generic, System.Linq, System.Text,
+  System.Threading.Tasks. They behave as
   usings written before the text's own. Whether a host can turn them off is public surface and is
   Igor's to decide.
 - **FIX: compiling only the checks that differ from the built-in ones is not done.** The first
