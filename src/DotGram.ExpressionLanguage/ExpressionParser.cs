@@ -3413,6 +3413,15 @@ public static partial class ExpressionParser
 		/// a square would have to clear. A count needs no window, no tiering switch and no margin;
 		/// it is the same number on every machine.
 		/// </para>
+		/// <para>
+		/// <b>The cost, chosen and measured.</b> Eight bytes on every reading, which ship: a reading
+		/// is 240 bytes with this and 232 without (2026-09-26, allocated bytes over 100,000 of them),
+		/// and four increments on paths that already do a lookup or an array read. Bought so that the
+		/// scaling of a text of blocks is ASSERTED on any machine rather than timed on a quiet one,
+		/// after a time gate on the same property failed on CI at 1.69 for the runner's reasons. The
+		/// threshold beside it is free by measurement, the same 240 either way, since a fourth-word
+		/// field lands in padding the reading already had.
+		/// </para>
 		/// </remarks>
 		internal long Places;
 
