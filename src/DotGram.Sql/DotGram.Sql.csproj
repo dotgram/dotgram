@@ -10,7 +10,9 @@
 		<Description>SQL parsers written in .gram: ISO SQL:2023, with a tree of the standard's own constructs, and SQL-92 and Microsoft's T-SQL, which build one tree of records between them.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;sql;iso-sql;sql-2023;sql-92;tsql;t-sql;sql-server;dotgram</PackageTags>
-		<PackageReleaseNotes>The trees and their writers are unchanged, and so is every method that was here before: what moved is what the grammars read, and there is one more way to ask.
+		<PackageReleaseNotes>Every method that was here before is still here: what moved is what the grammars read, the tree of the standard, which grows toward T-SQL, and there is one more way to ask.
+
+The standard's tree (DotGram.Sql.Ast) gains values it will need to hold T-SQL as well: operators (Modulo, the bitwise and shift operators, BitwiseNot, NotLess and NotGreater for !&lt; and !&gt;), Bracketed identifiers, a Money literal, CROSS and OUTER APPLY and a join hint, the Snapshot isolation level, three flags on a parameter definition, a table type, and two spellings kept as flags so that the text writes back: Exclamation for != and Max for a length of MAX. A new optional property shows up in a record's printed form. Sql2023Writer prints every one of them, and a value it has no text for is now an ArgumentOutOfRangeException naming the enum and the value, where before it printed some other operator.
 
 Every publication now has a third method, bool TryParseX(string input, out T value), beside ParseX and the Match&lt;T&gt; form. It answers only whether the text reads, says nothing about what was expected where it does not, and a refusal costs it about half, since nothing is read a second time to record the message.
 
