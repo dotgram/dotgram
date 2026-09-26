@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Agents: the skill for this package is SKILL.md, beside this file in the package
   directory — which parser to take, the contract they share, and what is easy to get
   wrong. Read it before writing code against the package. In a restored package that is
@@ -6,7 +6,7 @@
 -->
 # DotGram.Sql
 
-SQL parsers written in `.gram`, and the one tree of records they meet in. Where an
+SQL parsers written in `.gram`, and the trees of records they build. Where an
 example shows one feature, a parser here is written against a whole specification.
 
 They are ordinary C# libraries. .Gram generates the parsers into this assembly at compile time,
@@ -14,9 +14,10 @@ so nothing here carries a parser runtime, and neither does anything that referen
 
 ## The dialects
 
-Each dialect is a directory, a namespace and a grammar of its own, and they meet only in the tree
+Each dialect is a directory, a namespace and a grammar of its own. SQL-92 and T-SQL meet in the tree
 in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them back, and
-[`SqlWalker`](SqlWalker.cs), which visits them.
+[`SqlWalker`](SqlWalker.cs), which visits them. `SqlStandardParser` builds the standard's own tree,
+and which parser answers with which is under the table.
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
