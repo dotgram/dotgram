@@ -183,7 +183,7 @@ public static partial class ExpressionParser
 	{
 		var found = new List<Candidate>();
 
-		foreach (var one in Cached(_methods, (type, name, instance, scope), static key => Named(key)))
+		foreach (var one in Cached(_methods, _methodsAbsent, (type, name, instance, scope), static key => Named(key), Nothing))
 			if (Fitting(one, arguments) is { } candidate)
 				found.Add(candidate);
 
@@ -217,7 +217,8 @@ public static partial class ExpressionParser
 		void Consider(Type[] holders)
 		{
 			foreach (var holder in holders)
-				foreach (var one in Cached(_extensions, (holder, name, scope), static key => Extending(key)))
+				foreach (var one in Cached(
+					_extensions, _extensionsAbsent, (holder, name, scope), static key => Extending(key), Nothing))
 					if (seen.Add((MethodInfo)one.Member) && Fitting(one, extended) is { } candidate)
 						found.Add(candidate);
 		}

@@ -118,6 +118,9 @@ public static partial class ExpressionParser
 	{
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _types = new();
 
+		/// <summary>The same, for the names of that shape that are not there.</summary>
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _typesAbsent = new();
+
 		static readonly ConcurrentDictionary<ResolutionScope, HashSet<string>> _namespaces = new();
 
 		// There is no static constructor here any more, and its absence is the point. It used to
@@ -129,6 +132,9 @@ public static partial class ExpressionParser
 
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _holders = new();
 
+		/// <summary>The same, for the names of that shape that are not there.</summary>
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _holdersAbsent = new();
+
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _holdersInside = new();
 
 		/// <summary>The public static classes standing in that namespace, in any loaded assembly.</summary>
@@ -138,7 +144,8 @@ public static partial class ExpressionParser
 		/// </remarks>
 		public static Type[] Holders(ResolutionScope scope, string @namespace)
 		{
-			return Cached(_holders, (scope, @namespace), static key => Held(key.Item2, key.Item1));
+			return Cached(
+				_holders, _holdersAbsent, (scope, @namespace), static key => Held(key.Item2, key.Item1), Nothing);
 		}
 
 		/// <summary>The same in the calling assembly, where an internal class is nameable too.</summary>
@@ -204,7 +211,8 @@ public static partial class ExpressionParser
 		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
 		public static Type? Find(ResolutionScope scope, string fullName)
 		{
-			return Cached(_types, (scope, fullName), static key => Search(key.Item2, key.Item1));
+			return Cached(
+				_types, _typesAbsent, (scope, fullName), static key => Search(key.Item2, key.Item1), Nothing);
 		}
 
 		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
@@ -218,6 +226,9 @@ public static partial class ExpressionParser
 		}
 
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _inside = new();
+
+		/// <summary>The same, for the names of that shape that are not there.</summary>
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _insideAbsent = new();
 
 		static readonly ConcurrentDictionary<ResolutionScope, HashSet<string>> _insideNamespaces = new();
 
@@ -233,11 +244,13 @@ public static partial class ExpressionParser
 		{
 			return Cached(
 				_inside,
+				_insideAbsent,
 				(scope, fullName),
 				static key => key.Item1.SeesInternals && key.Item1.Caller.GetType(key.Item2, false, false) is { } type &&
 					Nameable(type)
 					? type
-					: null);
+					: null,
+				Nothing);
 		}
 
 		/// <summary>Whether the calling assembly declares a type in that namespace, or in one inside it.</summary>

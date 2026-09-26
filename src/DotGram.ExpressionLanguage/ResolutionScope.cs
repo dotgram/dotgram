@@ -57,9 +57,20 @@ public sealed class ResolutionScope
 
 	/// <summary>The scope a compilation of that assembly would have: it and what it references.</summary>
 	/// <remarks>
+	/// <para>
 	/// The references are walked transitively and loaded, which is the one side effect this has:
 	/// an assembly named in the graph but not yet in the process is brought in. One instance per
 	/// assembly, kept, so that asking twice is one walk and one cache key.
+	/// </para>
+	/// <para>
+	/// <b>That instance is kept for the life of the process, and so is what it holds.</b> A scope
+	/// names its assemblies, and the parser's caches hold the types and members it has resolved,
+	/// keyed by it — so an assembly a scope has been made around, or has ever answered from,
+	/// stays reachable. For a collectible <c>AssemblyLoadContext</c> that means it will not
+	/// unload. A host that loads and unloads plugins should read their texts through a scope
+	/// built over assemblies that outlive them, or accept that what it has read keeps them.
+	/// Making the interning weak alone would not change this: the caches hold them either way.
+	/// </para>
 	/// </remarks>
 	public static ResolutionScope Around(Assembly caller)
 	{

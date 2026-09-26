@@ -74,8 +74,8 @@ public static partial class ExpressionParser
 	static MemberInfo? InstanceMember(Type type, string name, ResolutionScope scope)
 	{
 		return Cached(
-			_instanceMembers, (type, name, scope),
-			static key => SearchedMember(key.Item1, key.Item2, key.Item3));
+			_instanceMembers, _instanceMembersAbsent, (type, name, scope),
+			static key => SearchedMember(key.Item1, key.Item2, key.Item3), Nothing);
 	}
 
 	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and scope.</summary>
@@ -188,7 +188,8 @@ public static partial class ExpressionParser
 			throw new ArgumentNullException(nameof(type));
 
 		return Cached(
-			_staticMembers, (type, name, scope), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
+			_staticMembers, _staticMembersAbsent, (type, name, scope),
+			static key => SearchedStatic(key.Item1, key.Item2, key.Item3), Nothing)
 			switch
 			{
 				PropertyInfo property => Expression.Property(null, property),
