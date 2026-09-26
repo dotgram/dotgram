@@ -24,27 +24,29 @@ namespace DotGram.Tests;
 /// it is the blocks and not the length.
 /// </para>
 /// <para>
-/// So the bound on a shape with blocks is today's exponent and the margin a shared runner needs,
-/// not the linear 1.3 that <see cref="ScriptScalingTests"/> and the state's own gate carry. It is
-/// written per shape, and whoever makes the reader flat tightens it.
+/// So every bound here is 2.0, the square, and nothing tighter. A time on a shared runner cannot
+/// tell a defect from the runner at any bound below that: the state's own gate timed shapes whose
+/// count is flat and read 1.69 and 1.36 on CI (36230002599, Linux, 2026-09-26), and over two runs
+/// of the whole slow suite here the shape with NO blocks, which is linear, read 0.99 and then 1.26.
+/// A bound of 1.6 would have caught the runner about as often as a regression.
 /// </para>
 /// <para>
-/// Where the numbers come from, at these two sizes: 1.35 in a quiet process with tiering off, and
-/// 1.19 to 1.41 over several runs of the whole slow suite, which is where they will be read. So 1.6
-/// for a shape with blocks. A shape with NO block is linear now and held to 1.3 — and note what the
-/// runner does even to that one: over two suite runs it read 0.99 and then 1.26, which is the
-/// margin ScriptScalingTests was widened for and the reason none of these bounds is 1.1.
+/// What this leaves is a ratchet against a blow-up, which is all a time can be. The gate for the
+/// reader is a count of what it does per block, as <see cref="BlockScalingTests"/> counts the
+/// state's places, and it belongs with the machinery: it comes with the reader's own fix. Where
+/// these rows stand today, for whoever takes that on: 1.35 at these two sizes in a quiet process
+/// with tiering off, 1.19 to 1.41 over runs of the whole suite, and 1.45 over 25 to 800 blocks.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class ReaderScalingTests
 {
 	[Theory]
-	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", 1.6)]
-	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", 1.6)]
-	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", 1.6)]
-	[InlineData("no block at all", "System.Math.Abs(x + {0});", 1.3)]
-	public void Four_times_the_blocks_stays_within_what_it_costs_today(string what, string block, double bound)
+	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", 2.0)]
+	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", 2.0)]
+	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", 2.0)]
+	[InlineData("no block at all", "System.Math.Abs(x + {0});", 2.0)]
+	public void Four_times_the_blocks_does_not_cost_sixteen(string what, string block, double bound)
 	{
 		var shorter = Best(50, block);
 		var longer  = Best(200, block);

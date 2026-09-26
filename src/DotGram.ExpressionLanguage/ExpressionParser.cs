@@ -3364,6 +3364,27 @@ public static partial class ExpressionParser
 		/// </remarks>
 		Dictionary<(int At, string Name), int>? _lastAt;
 
+		/// <summary>How many places of these indexes a reading has looked at.</summary>
+		/// <remarks>
+		/// <para>
+		/// Here so that the property these indexes exist for can be ASSERTED, and not only timed:
+		/// a text of n blocks looks at a number of places proportional to n, and every defect
+		/// these indexes were built against made it proportional to n². The four places it is
+		/// counted are the four walks there are — a use looking back for its declaration, a block
+		/// reading the declarations inside it, a position looking out for the block that holds it,
+		/// and the order of the blocks when it has to be worked out, which counts as the blocks it
+		/// reads.
+		/// </para>
+		/// <para>
+		/// A count is the instrument a scaling gate wants. A time needs a quiet machine and says
+		/// nothing without one: the time gate this replaces read 1.69 on a shared runner (CI
+		/// 36230002599, Linux, 2026-09-26) for a shape whose count is flat, which is past the bound
+		/// a square would have to clear. A count needs no window, no tiering switch and no margin;
+		/// it is the same number on every machine.
+		/// </para>
+		/// </remarks>
+		internal long Places;
+
 		/// <summary>Every declaration by where it is written, as places in the list of them.</summary>
 		/// <remarks>
 		/// What a block reads to find its own, and the reason it does not read them all. Kept in
@@ -3728,6 +3749,8 @@ public static partial class ExpressionParser
 			// was 199,400 places passed over of the 204,230 read, which is the text squared.
 			for (var index = From(places, use + 1) - 1; index >= 0; index--)
 			{
+				Places++;
+
 				var declaration = _declared![places[index]];
 
 				if (declaration.At > use ||
@@ -3807,6 +3830,9 @@ public static partial class ExpressionParser
 			// earlier and are walked back to. Reading them all made the FIRST reading of each
 			// position cost the blocks, and a text of n blocks with n names cost n².
 
+			if (_ordered is null)
+				Places += scopes.Count;
+
 			var ordered = _ordered ??= Ordered(scopes);
 
 			var low  = 0;
@@ -3830,6 +3856,8 @@ public static partial class ExpressionParser
 
 			for (var at = last; at >= 0; at--)
 			{
+				Places++;
+
 				if (position < ordered[at].To)
 				{
 					(_holding ??= [])[position] = ordered[at];
@@ -4281,6 +4309,8 @@ public static partial class ExpressionParser
 			{
 				for (var slot = From(places, from); slot < places.Count; slot++)
 				{
+					Places++;
+
 					var index = places[slot];
 
 					// Gone with a reading that was given up, and sorted to the end by `Written`.
