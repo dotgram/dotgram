@@ -27,6 +27,41 @@ namespace DotGram.Generation;
 /// regeneration anyway.
 /// </para>
 /// </remarks>
+/// <summary>Where something is, in a form that compares the way arithmetic does.</summary>
+/// <remarks>
+/// A <see cref="Location"/> compares by tree and span, and a tree is a new object after every
+/// edit — so a pipeline value holding one is unequal to itself across two compilations of the
+/// same text, and nothing downstream of it can be reused. This says the same thing in a path, a
+/// span and a line span, all of which compare by value. The <c>Location</c> is built from it at
+/// delivery, where the tree is to hand and nothing is cached.
+/// <para>
+/// The lines are carried as well as the span because a <c>.gram</c> file has no
+/// <c>SyntaxTree</c> in the compilation to look up, and an external location needs them.
+/// </para>
+/// </remarks>
+readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines)
+{
+	public static Place? Of(Location? location)
+	{
+		if (location is null)
+			return null;
+
+		var span = location.GetLineSpan();
+
+		return new Place(location.SourceTree?.FilePath ?? span.Path, location.SourceSpan, span.Span);
+	}
+
+	/// <summary>The location this stands for, given the trees of the compilation delivering it.</summary>
+	public Location ToLocation(Func<string, SyntaxTree?> treeOf)
+	{
+		return Path is null
+			? Location.None
+			: treeOf(Path) is { } tree
+				? Location.Create(tree, Span)
+				: Location.Create(Path, Span, Lines);
+	}
+}
+
 readonly record struct Report(
 	string           Id,
 	string           Title,
@@ -36,14 +71,14 @@ readonly record struct Report(
 	int              Position,
 	int              Length,
 	LinePositionSpan Lines,
-	Location?        Fallback,
+	Place?           Fallback,
 	EquatableArray<string> Arguments,
 	string?          Written   = null,
 	int              WrittenAt = 0,
 	string?          Grammar   = null)
 {
 	/// <summary>A diagnostic the shell raises about the host, from a fixed descriptor.</summary>
-	public static Report Of(DiagnosticDescriptor descriptor, Location? at, params string[] arguments)
+	public static Report Of(DiagnosticDescriptor descriptor, Place? at, params string[] arguments)
 	{
 		return new(
 			descriptor.Id,
@@ -64,7 +99,7 @@ readonly record struct Report(
 	/// </param>
 	/// <param name="writtenAt">Where that spelling begins in the C# file.</param>
 	public static Report Of(
-		GramDiagnostic diagnostic, string? filePath, string grammarText, Location? fallback,
+		GramDiagnostic diagnostic, string? filePath, string grammarText, Place? fallback,
 		string? written = null, int writtenAt = 0)
 	{
 		var span = new TextSpan(diagnostic.Position, diagnostic.Length);
@@ -108,9 +143,10 @@ readonly record struct Report(
 	/// Never wrong, sometimes silent.
 	/// </para>
 	/// </remarks>
-	Location? Inline()
+	Location? Inline(Func<string, SyntaxTree?> treeOf)
 	{
-		if (Written is not { } spelling || Grammar is not { } grammar || Fallback?.SourceTree is not { } tree)
+		if (Written is not { } spelling || Grammar is not { } grammar ||
+			Fallback?.Path is not { } path || treeOf(path) is not { } tree)
 			return null;
 
 		var from = grammar.LastIndexOf('\n', Math.Min(Position, grammar.Length - 1)) + 1;
@@ -130,13 +166,13 @@ readonly record struct Report(
 		return Location.Create(tree, new TextSpan(start, Math.Max(Length, 1)));
 	}
 
-	public Diagnostic ToRoslyn()
+	public Diagnostic ToRoslyn(Func<string, SyntaxTree?> treeOf)
 	{
 		// A grammar in a file points into that file. One written into the attribute points
 		// as far into the attribute's own string as it can be placed — and at the whole
 		// attribute when it cannot, which is still the right place to look.
 		var location = FilePath is null
-			? Inline() ?? Fallback ?? Location.None
+			? Inline(treeOf) ?? Fallback?.ToLocation(treeOf) ?? Location.None
 			: Location.Create(FilePath, new TextSpan(Position, Length), Lines);
 
 		return Diagnostic.Create(

@@ -108,11 +108,35 @@ public sealed class GramGenerator : IIncrementalGenerator
 					? Asked(asked)
 					: Reporting.None);
 
+		var compiled = answered.Combine(reporting)
+			.Select(static (input, _) => CompileSafely(input.Left, input.Right))
+			.WithTrackingName(CompiledStage);
+
+		// The generated file depends on nothing outside the compiled value, so it is registered on
+		// that value alone and an edit elsewhere leaves it cached.
+		context.RegisterSourceOutput(compiled, static (production, parser) => parser.Deliver(production));
+
+		// The diagnostics need a tree to point into, and the trees are a projection of the
+		// compilation, which changes on every keystroke. So they are combined HERE and nowhere
+		// earlier: the compile keeps its cached value and only the reporting runs again. The map is
+		// built once per delivery and only where a diagnostic actually asks for a tree.
 		context.RegisterSourceOutput(
-			answered.Combine(reporting)
-				.Select(static (input, _) => CompileSafely(input.Left, input.Right))
-				.WithTrackingName(CompiledStage),
-			static (production, parser) => parser.Deliver(production));
+			compiled.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			static (production, input) =>
+			{
+				Dictionary<string, SyntaxTree>? found = null;
+
+				input.Left.Report(
+					production,
+					path =>
+					{
+						found ??= input.Right
+							.GroupBy(static tree => tree.FilePath, StringComparer.Ordinal)
+							.ToDictionary(static one => one.Key, static one => one.First(), StringComparer.Ordinal);
+
+						return found.TryGetValue(path, out var tree) ? tree : null;
+					});
+			});
 
 	}
 
@@ -202,7 +226,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		reports.AddRange(grammar.Reports.Items);
 		reports.Add(Report.Of(
 			Diagnostics.InternalFailure,
-			grammar.Host.Location,
+			grammar.Host.At,
 			stage,
 			exception.GetType().FullName ?? exception.GetType().Name,
 			exception.Message));
@@ -244,19 +268,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </remarks>
 	readonly record struct Parser(string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null)
 	{
-		public void Deliver(SourceProductionContext context)
+		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
+		public void Report(SourceProductionContext context, Func<string, SyntaxTree?> treeOf)
 		{
 			foreach (var report in Reports.Items)
 				try
 				{
-					context.ReportDiagnostic(report.ToRoslyn());
+					context.ReportDiagnostic(report.ToRoslyn(treeOf));
 				}
 				catch (Exception exception) when (Recoverable(exception))
 				{
 					context.ReportDiagnostic(InternalDiagnostic(
-						"delivering a grammar diagnostic", exception, report.Fallback));
+						"delivering a grammar diagnostic", exception, report.Fallback, treeOf));
 				}
 
+		}
+
+		/// <summary>
+		/// The generated file, which depends on nothing outside the compiled value and so is added
+		/// again only when that value changes.
+		/// </summary>
+		public void Deliver(SourceProductionContext context)
+		{
 			if (HintName is not null && Text is not null)
 				try
 				{
@@ -275,16 +308,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 				catch (Exception exception) when (Recoverable(exception))
 				{
 					context.ReportDiagnostic(InternalDiagnostic(
-						"adding generated C# to the compilation", exception, null));
+						"adding generated C# to the compilation", exception, null, static _ => null));
 				}
 		}
 	}
 
-	static Diagnostic InternalDiagnostic(string stage, Exception exception, Location? location)
+	static Diagnostic InternalDiagnostic(string stage, Exception exception, Place? location, Func<string, SyntaxTree?> treeOf)
 	{
 		return Diagnostic.Create(
 			Diagnostics.InternalFailure,
-			location ?? Location.None,
+			location?.ToLocation(treeOf) ?? Location.None,
 			stage,
 			exception.GetType().FullName ?? exception.GetType().Name,
 			exception.Message);
@@ -324,7 +357,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Path,
 		string?   Literal,
 		int       LiteralAt,
-		Location? Location);
+		Place?    At,
+		// The tree, for an INLINE grammar only: mapping a position into the host FILE needs
+		// its text, so a piece written into an attribute makes this value tree-dependent and
+		// uncacheable on purpose. A `.gram` piece leaves it null and caches. Piece 2 of the
+		// caching audit moves that mapping out of the compile and this goes away.
+		SyntaxTree? Tree = null);
 
 	/// <summary>
 	/// Stage one: find the grammar and work out what it needs to know about the host's C#.
@@ -336,7 +374,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		if (!host.IsPartial)
 		{
-			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.Location, host.ClassName));
+			reports.Add(Report.Of(Diagnostics.HostNotPartial, host.At, host.ClassName));
 
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
@@ -346,20 +384,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// the splice and come back as a parse error in a text nobody wrote.
 		if (host.IncludedAs is { } included && !IsIdentifier(included))
 			reports.Add(Report.Of(
-				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
+				Diagnostics.InvalidIncludedName, host.At, host.ClassName, included));
 
 		// Said about the host for the same reason: a scope named twice, or named with
 		// something that is not a class's name, is settled before a grammar is read.
 		if (host.Repeated)
 		{
-			reports.Add(Report.Of(Diagnostics.RepeatedGrammarScope, host.Location, host.ClassName));
+			reports.Add(Report.Of(Diagnostics.RepeatedGrammarScope, host.At, host.ClassName));
 
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
 		if (host.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
 		{
-			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, host.Location, host.ClassName, scope));
+			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, host.At, host.ClassName, scope));
 
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
@@ -371,7 +409,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			if (value > 0)
 				continue;
 
-			reports.Add(Report.Of(Diagnostics.BufferOptionNotPositive, host.Location, option, value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+			reports.Add(Report.Of(Diagnostics.BufferOptionNotPositive, host.At, option, value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
@@ -400,7 +438,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				inherited.Source,
 				SimpleNameOf(inherited.ClassName),
 				inherited.ClassName,
-				inherited.Location,
+				inherited.At,
 				files,
 				out var inheritedText,
 				out var inheritedPath))
@@ -427,7 +465,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			if (group.Count() > 1)
 				reports.Add(Report.Of(
 					Diagnostics.RepeatedIncludedName,
-					group.First().Location ?? host.Location,
+					group.First().At ?? host.At,
 					host.ClassName,
 					string.Join(" and ", group.Select(static one => SimpleNameOf(one.ClassName))),
 					group.Key));
@@ -437,7 +475,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var pieces = ImmutableArray.CreateBuilder<Piece>();
 
 		pieces.Add(new Piece(
-			0, own.Length, path, host.Literal, host.LiteralAt, host.Location));
+			0, own.Length, path, host.Literal, host.LiteralAt, host.At, host.Tree));
 
 		for (var at = 0; at < bases.Count; at++)
 			pieces.Add(new Piece(
@@ -449,7 +487,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				bases[at].Source,
 				bases[at].Literal,
 				bases[at].LiteralAt,
-				bases[at].Location));
+				bases[at].At));
 
 		// Parsed twice over a grammar's life: once here for the questions, once in the
 		// third stage for the answer. Both are cheap next to normalization and emission,
@@ -579,7 +617,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		if (pieces.Length == 0)
 			return MapOfPiece(new Piece(0, text.Length, grammar.Path, grammar.Host.Literal,
-				grammar.Host.LiteralAt, grammar.Host.Location), text);
+				grammar.Host.LiteralAt, grammar.Host.At, grammar.Host.Tree), text);
 
 		// One piece is the ordinary case and needs no splicing over it: a host inheriting
 		// nothing compiles the map it always did.
@@ -599,7 +637,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		return piece.Path is { } path
 			? new GrammarLineMap(own, path)
-			: piece.Literal is { } spelling && piece.Location?.SourceTree is { } tree
+			: piece.Literal is { } spelling && piece.Tree is { } tree
 				? new InlineLineMap(own, spelling, piece.LiteralAt, tree)
 				: null;
 	}
@@ -634,7 +672,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 					diagnostic.Severity),
 				piece.Path,
 				text.Substring(piece.Start, piece.Length),
-				piece.Location ?? host.Location,
+				piece.At ?? host.At,
 				piece.Literal,
 				piece.LiteralAt);
 		}
@@ -644,7 +682,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// not hold the position.
 		return Report.Of(
 			new GramDiagnostic(diagnostic.Id, diagnostic.Message, 0, 0, diagnostic.Severity),
-			null, text, host.Location);
+			null, text, host.At);
 	}
 
 	/// <summary>The innermost name of a dotted one.</summary>
@@ -685,7 +723,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		out string? path)
 	{
 		return TryResolveGrammar(
-			reports, host.Source, host.SimpleName, host.ClassName, host.Location, files,
+			reports, host.Source, host.SimpleName, host.ClassName, host.At, files,
 			out text, out path);
 	}
 
@@ -702,7 +740,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?                        source,
 		string                         simpleName,
 		string                         className,
-		Location?                      location,
+		Place?                         location,
 		ImmutableArray<GrammarFile>    files,
 		out string                     text,
 		out string?                    path)
@@ -808,7 +846,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Source,
 		string?   Literal,
 		int       LiteralAt,
-		Location? Location,
+		Place?    At,
 		string?   Portable = null);
 
 	/// <summary>
@@ -836,7 +874,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   LanguageId,
 		string    LanguageClassifications,
 		string    LanguageRecognitionContract,
-		Location? Location,
+		Place?    At,
 		string?   Literal    = null,
 		int       LiteralAt  = 0,
 		string?   IncludedAs = null,
@@ -855,7 +893,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Repeated   = false,
 		bool?     Shared     = null,
 		string?   LocationType = null,
-		bool      Portable   = false)
+		bool      Portable   = false,
+		// The host's own tree, and ONLY where the grammar is written into the attribute:
+		// `InlineLineMap` maps a position in such a grammar to a line of the C# FILE, which
+		// needs the file's text. A tree is a new object after every edit, so a host that
+		// carries one cannot be cached — deliberately, and only for the grammars that need
+		// it. A grammar in a `.gram` file leaves this null and caches. Taking the mapping
+		// out of the compile is the second half of this work and removes this field.
+		SyntaxTree? Tree = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1088,9 +1133,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				LanguageId: languageId,
 				LanguageClassifications: classifications,
 				LanguageRecognitionContract: recognitionContract,
-				Location:  attribute.ApplicationSyntaxReference is { } reference
+				At:        Place.Of(attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
-					: declaration.Identifier.GetLocation(),
+					: declaration.Identifier.GetLocation()),
+				Tree:      (named ? first!.Value.Literal : written == default ? null : written.Text) is null
+					? null
+					: candidate.SemanticModel.SyntaxTree,
 				// The spelling stays the first's where the grammar is: a diagnostic carries an
 				// offset into the grammar, and putting it where the author can see it means
 				// finding it in the text they actually wrote.
@@ -1237,9 +1285,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 					// Null where the base is in a referenced assembly, which is what makes
 					// a diagnostic in its grammar have nowhere to point (docs/next.md).
-					Location:  attribute.ApplicationSyntaxReference is { } reference
+					At:        Place.Of(attribute.ApplicationSyntaxReference is { } reference
 						? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
-						: null,
+						: null),
 
 					// What the class itself says its grammar is, which travels with the
 					// assembly when the file does not.
