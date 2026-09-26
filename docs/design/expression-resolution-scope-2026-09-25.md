@@ -16,21 +16,38 @@ compiles classes into the GLOBAL namespace and loads them, and from that moment 
 `Spans` meant something else. Four rows of one test failed, but only when that other test had run
 first, so it read as a property of the worktree.
 
-## One correction before the design
+## The promise this has to keep, and the tension in it
 
-The request says the release notes already promise "a resolver of its own that a host can hand
-in". **I cannot find that promise anywhere in this repository** — not in the two
-`AnalyzerReleases` files, not in the VSIX notes, not in the package README or SKILL, and the
-phrase itself appears nowhere. What does exist is `ISymbolResolver`, in
-`src/DotGram/Grammar/ISymbolResolver.cs`: the GENERATOR's seam for `@Name` in a grammar,
-implemented over Roslyn at build time. It has nothing to do with how a compiled expression finds
-a member at run time.
+The promise is real and I first reported that it was not. It is in
+`src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj`, in `PackageReleaseNotes`:
 
-If the promise is real and published somewhere outside this repository, the obligation is real
-and this design should be read as meeting it. If it came from reading `ISymbolResolver` as EL's,
-then there is no promise to keep, and the question is whether a scope is worth its price on its
-own merits. **It is** — for the determinism, not for the promise — but that changes who decides
-and how quickly.
+> a resolver of its own that a host can hand in, so what a name means is the host's to decide.
+
+I said it was nowhere in the repository. It is, and my search is why I missed it: I grepped
+`--include=*.md --include=*.txt --include=*.cs`, and release notes live in a `.csproj`. A
+negative result is only ever as good as the filter that produced it, and I stated it without
+one word of hedging.
+
+**Nothing false has shipped.** `Version` is 0.1.0 and `v0.1.0` is tagged, and the note opens
+"Since 0.1.0" {D} so it describes the NEXT release. The promise is not yet broken; it is not yet
+kept, and it will be published the moment 0.2 is.
+
+**But it does not describe what is designed below, and that has to be said before Igor reads on.**
+"What a name means is the host's to decide" is what an INTERFACE gives: the host answers which
+member a name is. A `ResolutionScope` deliberately does not give that. With it, what a name means
+stays C#'s and stays ours; what the host decides is WHERE it is looked for. That is a smaller
+promise and a better one, for the reasons under the next heading {D} but it is not the sentence.
+
+So one of two things has to happen before 0.2 ships, and the choice is Igor's:
+
+* **the scope lands and the sentence changes** to say what it is — "a resolution scope a host
+  hands in, so where a name is looked for is the host's to decide" — which is my recommendation;
+* **or the interface is built as written**, and the design below is the wrong answer to the
+  promise rather than a refinement of it.
+
+What must not happen is the scope landing under the old sentence. A consumer reading it would
+expect to decide what a name means, find they can only decide where it is sought, and be right to
+call that a broken promise.
 
 ## The shape: an object, not an interface
 
