@@ -778,7 +778,7 @@ public static partial class CSharpEmitter
 		// by where it sits in this list, so they must all be looking at the same list.
 		if (machines.Exists(static compiled => compiled.Direct))
 		{
-			file.Write(DirectSupport
+			file.Write(Region(DirectSupport, "marks", graph.State is not null)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace(
 					"/*REACH*/",

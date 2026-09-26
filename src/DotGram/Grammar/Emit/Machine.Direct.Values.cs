@@ -1052,9 +1052,24 @@ sealed partial class Machine
 						: "from > 0 && " + DirectMaterializer + "_AsksMarks(log, from, ways.LogCount)";
 
 					using (file.Block($"if ({asked})"))
-					using (file.Block("for (var at = 0; at < from; at += log[at])"))
-					using (file.Block("if (log[at + 1] < 0)"))
-						DirectMark(file);
+					{
+						// The marks the reader HAS open, not the log replayed to find them. They are a stack,
+						// so one opened later sits deeper, so their positions rise with the depth — and the
+						// ones standing over this walk are therefore a PREFIX of it, those opened before the
+						// walk begins. The rest were opened inside what this walk covers and are none of its
+						// business, exactly as the old pass stopping at `from` decided.
+						//
+						// This costs the NESTING DEPTH where the pass it replaces cost the whole log in front
+						// of the walk, which on n bracketing constructs was 1 + 2 + ... + n.
+						file.Line("var standing = ways.MarkOpen;");
+						file.Line();
+						using (file.Block("for (var open = 0; open < ways.MarkDepth && standing[open] < from; open++)"))
+						{
+							file.Line("var at = standing[open];");
+							file.Line();
+							DirectMarkOpen(file);
+						}
+					}
 
 					file.Line();
 
@@ -1383,6 +1398,30 @@ sealed partial class Machine
 
 		file.Line("else");
 		file.Then("marked--;");
+	}
+
+	/// <summary>What a standing mark hands the walk: only the opening half, since only opens stand.</summary>
+	void DirectMarkOpen(Writer file)
+	{
+		if (NamesMarks(_graph))
+		{
+			using (file.Block("if (marked == values.MarkState.Length)"))
+			{
+				file.Line("global::System.Array.Resize(ref values.MarkState, marked * 2);");
+				file.Line("global::System.Array.Resize(ref values.MarkAt, marked * 2);");
+			}
+
+			file.Line();
+			file.Line($"values.MarkAt[marked] = {At("log[at + 3]")};");
+		}
+		else
+		{
+			file.Line("if (marked == values.MarkState.Length)");
+			file.Then("global::System.Array.Resize(ref values.MarkState, marked * 2);");
+			file.Line();
+		}
+
+		file.Line($"values.MarkState[marked++] = {MarkValue("log[at + 2]")};");
 	}
 
 	/// <summary>

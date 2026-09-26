@@ -440,6 +440,146 @@ character at depth 800, against 12.50 flat on the accepted path. Nothing here co
 and a change that claimed to would be suspect.
 
 
+## 5c. The other pass from zero: the marks standing over the walk
+
+Section 5b took the SCAN's start off zero. The walk has a second pass that began at zero and
+stayed there. Before it builds anything it needs the marks standing over where it begins
+(`syntax.md` section 7.8), and it found them by replaying every open and close in the log in front
+of the walk. A guard materialises near the end of a long log, once per reading of it, so that pass
+read the whole front each time.
+
+**Counted on a lambda of n sibling blocks** — `(int x) => { { var i = k; Abs(i); } ... }`, the
+shape the expression language's `Reading` marks bracket, with the counters on the emitted `Ways`:
+
+| blocks | marks steps A BLOCK | records listed a block |
+| ---: | ---: | ---: |
+| 25 | 512 | 40.5 |
+| 50 | 1,037 | 40.3 |
+| 100 | 2,087 | 40.1 |
+| 200 | 4,187 | 40.1 |
+| 400 | 8,387 | 40.0 |
+
+**x4.03 a doubling against a flat forty** — 3,354,800 steps at 400 blocks for 16,013 records
+listed. A square, and one the records the walk actually builds never see. It is the same shape of
+mistake as the scan's, found by the same instrument, one pass later.
+
+### The reader keeps the stack instead, and the walk reads a prefix of it
+
+`Ways` now holds the marks that are open — `MarkOpen`, a position each, `MarkDepth` of them —
+written where the reader writes the mark and not worked out again afterwards. The walk wants those
+standing over its own start, which is **a prefix** of that stack: a mark opened later sits deeper
+and its position is higher, so the ones opened before the walk begins are exactly the entries
+below `from`. That is what the old pass, stopping at `from`, was deciding the long way round.
+
+| blocks | 25 | 50 | 100 | 200 | 400 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| marks steps a block | 2.0 | 2.0 | 2.0 | 2.0 | 2.0 |
+
+**Flat: 800 steps at 400 blocks where there were 3,354,800.** Records listed a block are unchanged
+at forty, and every parse still accepted — the point being that nothing about what is built moved.
+
+### Why a bare stack is not exact, and three fixtures that could not show it
+
+A stack that pushes on open and pops on close is wrong under a give-back. A mark brackets one node
+— open, the node, close — and a give-back puts the log back to a way's mark. Where the failure lands
+between the open and the close, the open is discarded with nothing having closed it: it is gone from
+the log and the stack stands one too deep for the rest of the parse.
+
+**I claimed `MarkPositionsTests` already read that, and it does not.** With the journal taken out and
+nothing else changed, all nine of its cases pass. Two conditions have to hold together, and that
+grammar has neither:
+
+- **The failure has to be INSIDE the marked node.** A mark's close is written as soon as the node is
+  read (`Machine.Reader.cs`, `Node.Marked`: open, the node, close), so an alternative given up at
+  something FOLLOWING the node — `'(' & inner with state @(9) & ';'` failing at the `;` — discards
+  the open and the close together, and a bare stack is right about that by arithmetic. That is
+  exactly the shape `MarkPositionsTests` has.
+- **And something has to read the standing marks while the reading is still going on**, which means
+  a guard: it builds a value in the middle of an alternative, and that is the only walk that begins
+  past a mark. A walk that begins at the log's start finds the marks by stepping over the records it
+  is reading anyway, and never asks this stack at all. `MarkPositionsTests` has no `when`, so every
+  walk in it begins at zero.
+
+`MarkGiveBackTests` holds one grammar per condition and one with both, which is expr's suggestion
+and a better arrangement than the single fixture I set out to write: two conditions that must hold
+together can each be satisfied on purpose, so `AfterTheClose` has the guard and puts the failure
+outside the mark, `NoGuard` puts the failure inside it and has nothing that builds mid-reading, and
+`Both` has both.
+
+**And with the journal out, none of the three fails.** That is the third fixture in a row to reach
+nothing, and it is where guessing stopped being worth anything. What settled it was asking the code:
+an instrumented `MarksBackTo` that throws when the set it discards is unbalanced fires at once —
+`net=-1`, `backTo=0` — in `Both` and in `NoGuard`, and not in `AfterTheClose`. So the first
+condition is exactly right and the second is wrong: the walk in those grammars does not consult the
+kept stack, because the give-back goes back to position zero and everything read afterwards is built
+by a walk that begins there. **A grammar is the wrong instrument for this**, which is why the
+witness is `MarkJournalTests` below and not a fourth grammar.
+
+**Worth keeping, because it is the same mistake three times.** Each fixture was written from an
+account of the defect rather than against it, and each time the only thing that said so was taking
+the fix out and watching the suite stay green. The three grammars stay in the file for that: a
+fixture for this which satisfies one condition passes on the defect, and its comment says so.
+
+So every change to the stack is journalled — position, whether it opened or closed, and for an
+open the slot value it overwrote — and a give-back undoes the entries it discards. **Why that is
+exact** is the watermark's own argument: the log changes in exactly two ways, appending and
+truncation to a mark, so entries are made in log order and undone in exactly reverse log order,
+each once, amortised O(1) apiece. The overwritten slot is needed for one case and no other: A
+opens at slot 0 and closes, B reuses slot 0, and a give-back lands between A's open and its close;
+undoing B has to put A's position back before undoing A's close raises the depth over it.
+
+### The differential, and what the removal says
+
+Before this landed, the maintained stack was emitted beside the replayed pass and the two asserted
+equal on every materialising walk. **Zero disagreements** over four suites: DotGram.Tests 9,607,
+DotGram.Sql.Tests 14,811, DotGram.Finance.Tests 4,482, DotGram.Tests.Slow 271.
+
+And the other direction, which is the one that matters: **a bare push-and-pop stack passes
+everything.** Five suites, 29,804 tests, every exit code 0. So nothing in the repository reads the
+case, and the journal is not justified by any test failing without it.
+
+**It is kept anyway, and the reason is a measurement rather than a preference.** An instrumented
+`MarksBackTo` that throws when the set it discards is unbalanced fires immediately — `net=-1`,
+`backTo=0` — in exactly the two grammars whose failure lands inside the marked node, and not in the
+one whose failure lands after the close. So a bare stack IS in a wrong state in a reachable
+configuration. What no suite does is CONSULT it there, because every walk that would have to begins
+at log position zero, where the marks are read off the log in front of it and the kept stack is not
+asked. That is a property of today's grammars and inputs, not of the reader: the moment a grammar
+materialises from a mid-log position after such a give-back, a bare stack answers wrong and answers
+silently. Architect's decision, and the right one — a structure known to be wrong in a reachable
+state is not kept on the grounds that nothing reads it yet.
+
+### Witnessed at the level it lives on, since three grammars could not reach it
+
+`MarkJournalTests` drives a real generated `Ways` by reflection — scripts of open, close and
+give-back — and holds **three implementations** against each other: the kept journal, the replayed
+pass it replaced, and a bare stack of six lines in the test. The first two must agree after every
+step of every script; a second test asserts the third **disagrees**, and names the script it must
+disagree on, so a change that stops the scripts reaching the case fails as that rather than reading
+as a stack that got better.
+
+Six scripts. The two that matter are a give-back discarding a close and leaving its open standing
+(`open open close back:10`), and the same with the slot reused in between
+(`open close open close back:5`) — the only case the journal's third field, the overwritten slot,
+exists for. The others are the state the grammars reach (`open back:0`), a three-deep nest given
+back into the middle, one long enough to be undone in several bites, and a balanced control any
+stack gets right. Positions are record boundaries so the log stays walkable and the replay is a
+fair reference, and a give-back does both halves of what the reader does — the journal unwound and
+the log truncated — because either alone is a state the reader is never in.
+
+### What the other families pay: nothing, and it is weighed rather than argued
+
+Of everything that ships, **only `DotGram.ExpressionLanguage` declares a `state`** — SQL both
+dialects, Web and Finance place no mark at all. So the give-back call is emitted only where
+`graph.State is not null`, and the journal itself — four fields, the entry written beside every
+mark, the unwind — is a region of the support text taken out for a grammar that cannot reach it
+(`Region`, the same idea as the existing `/*REACH*/` splice). Left in, it was **+4,333 bytes in
+every generated file**, constant, and not a line of it reachable.
+
+Weighed rather than reasoned about: with it conditioned out, **14 generated Web parsers and 5
+generated SQL parsers are byte for byte what they were** — only the per-build generation reports
+differ. The expression language keeps all 222 give-back sites a parser.
+
 ## 6. What it does not do
 
 - **The refused-input square stays.** These counts are of accepted readings. A refusal re-reads,

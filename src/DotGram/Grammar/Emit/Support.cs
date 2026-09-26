@@ -1959,6 +1959,50 @@ public static partial class CSharpEmitter
 	/// machine rendered the other way never names it. The tape is rented per parse and
 	/// kept per thread, the way the engine keeps its parser.
 	/// </remarks>
+	/// <summary>
+	/// One of the support's optional halves, kept or dropped whole: everything between a
+	/// <c>// &lt;tag&gt;</c> line and its <c>// &lt;/tag&gt;</c>, the two sentinels included.
+	/// </summary>
+	/// <remarks>
+	/// The support is one text and nearly all of it is wanted by every grammar, so what a grammar
+	/// does not want is written in place and taken out here rather than spliced in from constants
+	/// of its own: the text stays one readable piece. The marks journal is four kilobytes of a
+	/// generated file, not a line of it reachable by a grammar that declares no <c>state</c>.
+	/// </remarks>
+	static string Region(string text, string tag, bool keep)
+	{
+		var opened = "// <" + tag + ">";
+		var closed = "// </" + tag + ">";
+
+		while (true)
+		{
+			var from = text.IndexOf(opened, StringComparison.Ordinal);
+
+			if (from < 0)
+				return text;
+
+			var to = text.IndexOf(closed, from, StringComparison.Ordinal);
+
+			// The constant is ours, so an unclosed region is a mistake in it and not an input.
+			if (to < 0)
+				throw new InvalidOperationException($"the support's <{tag}> region is not closed.");
+
+			// Whole lines, so neither sentinel leaves its indentation or its newline behind.
+			var head = text.LastIndexOf('\n', from) + 1;
+			var body = text.IndexOf('\n', from) + 1;
+			var foot = text.LastIndexOf('\n', to) + 1;
+			var tail = text.IndexOf('\n', to);
+
+			// A region that ends the text leaves no newline after it, and `tail` at 0 would put the
+			// whole text back and never finish.
+			tail = tail < 0 ? text.Length : tail + 1;
+
+			text = keep
+				? text.Substring(0, head) + text.Substring(body, foot - body) + text.Substring(tail)
+				: text.Substring(0, head) + text.Substring(tail);
+		}
+	}
+
 	internal const string DirectSupport = """
 		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
 		/// <remarks>
@@ -2031,6 +2075,69 @@ public static partial class CSharpEmitter
 			/// </remarks>
 			internal int AllBuiltAt;
 
+			// <marks>
+			/// <summary>The marks open right now: each one's log position, innermost last.</summary>
+			/// <remarks>
+			/// <b>Kept as the reader goes, because it used to be recomputed from the log's start on every
+			/// materialise.</b> The walk needs the marks standing over where it begins; the pass that found
+			/// them replayed every push and pop from position zero, so a text of n bracketing constructs
+			/// cost 1 + 2 + ... + n. Counted on a lambda of n sibling blocks: 512 steps A BLOCK at 25
+			/// blocks and 8,387 at 400, four times a doubling — 3,354,800 steps in all for a text whose
+			/// walks list forty records a block at every size.
+			/// </remarks>
+			internal int[] MarkOpen = new int[8];
+
+			/// <summary>How many of them there are.</summary>
+			internal int MarkDepth;
+
+			/// <summary>
+			/// Every change to that stack, in log order, so a give-back can undo exactly the ones it
+			/// discards: the mark's log position, whether it opened or closed, and — for an open — the
+			/// slot value it overwrote.
+			/// </summary>
+			/// <remarks>
+			/// <b>A bare stack is not exact here, and the case is reachable.</b> A mark brackets one node —
+			/// open, the node, close — and a give-back puts the log back to a way's mark. Where the way was
+			/// opened OUTSIDE the marked node, an alternative given up after the open was written and before
+			/// the close discards the open alone: the mark is gone from the log and nothing ever closed it,
+			/// so a stack that pushed on open and popped on close stands one too deep for the rest of the
+			/// parse, pointing at a log slot the next alternative has since rewritten. The replayed pass was
+			/// right about this for free, since it read a log that no longer held the open.
+			/// <para>
+			/// <b>Reached, and consulted by nothing — both measured.</b> An alternative abandoned INSIDE a
+			/// marked node discards its open with nothing having closed it, since the close is written only
+			/// once the node is read: an instrumented unwind that throws on an unbalanced discard fires at
+			/// net=-1 in <c>MarkGiveBackTests</c>' <c>Both</c> and <c>NoGuard</c>, and not in its
+			/// <c>AfterTheClose</c>, whose failure lands outside the mark. But no walk any suite makes reads
+			/// the stack in that state — a bare stack passes all five suites — because every such walk begins
+			/// at log position zero, where the marks are read off the log in front of it. That is a property
+			/// of today's grammars, not of the reader: a grammar that materialises from a mid-log position
+			/// after such a give-back would get a silent wrong answer. So the journal stays, and
+			/// <c>MarkJournalTests</c> witnesses it directly rather than through a grammar — three
+			/// implementations, the kept stack against the replayed pass against a bare one.
+			/// </para>
+			/// <para>
+			/// Closes are journalled for the same reason and not because a truncation that discards one
+			/// while keeping its open is known to happen: what makes this exact is that every entry is
+			/// undone, not an argument about which entries a give-back can reach.
+			/// </para>
+			/// <para>
+			/// <b>Why the journal is exact</b>, which is the watermark's argument: the log changes in
+			/// exactly two ways, appending and truncation to a mark. So these entries are made in log
+			/// order and undone in exactly reverse log order, each once — amortised O(1) apiece.
+			/// </para>
+			/// <para>
+			/// The overwritten slot is needed for one case and no other: A opens at slot 0 and closes, B
+			/// reuses slot 0, and a give-back lands between A's open and its close. Undoing B has to put
+			/// A's position back before undoing A's close raises the depth over it.
+			/// </para>
+			/// </remarks>
+			internal int[] MarkLog = new int[24];
+
+			/// <summary>How much of that journal is written; three integers an entry.</summary>
+			internal int MarkLogCount;
+
+			// </marks>
 			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
@@ -2126,6 +2233,10 @@ public static partial class CSharpEmitter
 				spare.Built     = 0;
 				spare.AllBuilt  = 0;
 				spare.AllBuiltAt = 0;
+				// <marks>
+				spare.MarkDepth    = 0;
+				spare.MarkLogCount = 0;
+				// </marks>
 
 				return spare;
 			}
@@ -2356,6 +2467,29 @@ public static partial class CSharpEmitter
 
 				Records++;
 
+				// <marks>
+				if (MarkLogCount + 3 > MarkLog.Length)
+					global::System.Array.Resize(ref MarkLog, MarkLog.Length * 2);
+
+				MarkLog[MarkLogCount]     = LogCount;
+				MarkLog[MarkLogCount + 1] = kind;
+
+				if (kind == -1)
+				{
+					if (MarkDepth == MarkOpen.Length)
+						global::System.Array.Resize(ref MarkOpen, MarkOpen.Length * 2);
+
+					MarkLog[MarkLogCount + 2] = MarkOpen[MarkDepth];
+					MarkOpen[MarkDepth++]     = LogCount;
+				}
+				else
+				{
+					MarkDepth--;
+				}
+
+				MarkLogCount += 3;
+
+				// </marks>
 				Log[LogCount++] = 5;
 				Log[LogCount++] = kind;
 				Log[LogCount++] = site;
@@ -2363,6 +2497,30 @@ public static partial class CSharpEmitter
 				Log[LogCount++] = at;
 			}
 
+			// <marks>
+			/// <summary>The standing marks as they were when the log was this long.</summary>
+			/// <remarks>
+			/// Undone in reverse log order, each entry once, which is why this is O(1) amortised rather
+			/// than a walk. See <see cref="MarkLog"/> for why a bare stack would not be exact.
+			/// </remarks>
+			internal void MarksBackTo(int logCount)
+			{
+				while (MarkLogCount > 0 && MarkLog[MarkLogCount - 3] >= logCount)
+				{
+					MarkLogCount -= 3;
+
+					if (MarkLog[MarkLogCount + 1] == -1)
+					{
+						MarkOpen[--MarkDepth] = MarkLog[MarkLogCount + 2];
+					}
+					else
+					{
+						MarkDepth++;
+					}
+				}
+			}
+
+			// </marks>
 			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>
 			internal void Push(int slot, int a, int b)
 			{

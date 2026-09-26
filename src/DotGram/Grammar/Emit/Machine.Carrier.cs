@@ -919,6 +919,12 @@ sealed partial class Machine
 		/// </remarks>
 		public override IEnumerable<string> UnwindRecords(string name)
 		{
+			// Only where a mark can exist: a grammar that declares no `state` places none, and the
+			// journal it would unwind is never written. Asked of the declaration rather than of the
+			// sites, which are numbered as the reader is emitted and so are not all known yet here.
+			if (machine._graph.State is not null)
+				yield return $"ways.MarksBackTo({name});";
+
 			yield return $"ways.LogCount  = {name};";
 			yield return $"ways.Records   = {name}R;";
 

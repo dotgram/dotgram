@@ -33,9 +33,29 @@ namespace DotGram.Tests;
 /// <para>
 /// What this leaves is a ratchet against a blow-up, which is all a time can be. The gate for the
 /// reader is a count of what it does per block, as <see cref="BlockScalingTests"/> counts the
-/// state's places, and it belongs with the machinery: it comes with the reader's own fix. Where
-/// these rows stand today, for whoever takes that on: 1.35 at these two sizes in a quiet process
-/// with tiering off, 1.19 to 1.41 over runs of the whole suite, and 1.45 over 25 to 800 blocks.
+/// state's places. Where these rows stood when this was written: 1.35 at these two sizes in a quiet
+/// process with tiering off, 1.19 to 1.41 over runs of the whole suite, and 1.45 over 25 to 800
+/// blocks.
+/// </para>
+/// <para>
+/// <b>Half of what the rows above measured is gone, and the bound is still 2.0 on purpose.</b> The
+/// materialising walk found the marks standing over its start by replaying every open and close from
+/// the log's start, so a guard near the end of a long log paid for the whole front of it: 512 steps a
+/// block at 25 blocks and 8,387 at 400, x4.03 a doubling, against a flat forty records listed. The
+/// reader keeps the open marks now and the walk reads a prefix of them — flat at 2.0 steps a block at
+/// every size from 25 to 400. That was the superlinear bookkeeping this file's third paragraph
+/// expected to come with the reader's own fix, and the rows quoted above predate it.
+/// <b>The bound is not tightened with it</b>, because a bound is a time and nothing here has
+/// re-measured one: taking the exponent down would be quoting a count in a place that reads a clock.
+/// A quiet-machine reading of these four shapes is what would justify it.
+/// </para>
+/// <para>
+/// <b>And the count gate is still owed, with a decision in front of it.</b> The marks figures above
+/// were taken with counters emitted onto the generated <c>Ways</c> and then removed, because a
+/// consumer should not carry them. <c>BlockScalingTests</c> can read <c>State.Places</c> since the
+/// state is written by hand; the walk has no such field and nothing permanent it could be read from,
+/// so a count gate on the machinery needs a test-only instrumentation seam in emitted code — which is
+/// a question about what the generator writes, not a test somebody can simply add.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
