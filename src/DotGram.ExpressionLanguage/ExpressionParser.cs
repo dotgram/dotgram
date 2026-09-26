@@ -3283,18 +3283,51 @@ public static partial class ExpressionParser
 		{
 			(_declared ??= []).Add(new Declaration(at.Start, name, variable));
 
-			var index = _declared.Count - 1;
-
-			_lastAt ??= [];
-			_lastAt[(at.Start, name)] = index;
-
-			if (!(_named ??= new(StringComparer.Ordinal)).TryGetValue(name, out var places))
-				_named[name] = places = [];
-
-			Place(places, index, at.Start);
-			Place(_byPlace ??= [], index, at.Start);
+			if (_byPlace is not null)
+				Index(_declared.Count - 1, name, at.Start);
+			else if (_declared.Count > Indexed)
+				Index();
 
 			return true;
+		}
+
+		/// <summary>How many declarations a reading may hold before indexing them pays.</summary>
+		/// <remarks>
+		/// <para>
+		/// The indexes below answer where a name was declared and what a block declares without
+		/// reading every declaration in the text, which is what makes a text of blocks cost its
+		/// length. They also cost two collections and a list per name to build, and <c>(int x) => x</c>
+		/// declares ONE name: it paid 640 bytes a parse for them, on a parse of 944 (the stand’s
+		/// el/floor, 2026-09-26, against f45dd9d4). Every row of the language’s own yardstick paid the
+		/// same, the short ones 8 to 16% of their time with it.
+		/// </para>
+		/// <para>
+		/// So a reading walks what it has written until there is enough of it to be worth indexing,
+		/// and builds the indexes when it passes this. A walk over so few is what the indexes replaced
+		/// and is bounded by this number, so nothing here can grow with the text; what grows with the
+		/// text is indexed, and the count that says so (<see cref="Places"/>) counts both paths.
+		/// </para>
+		/// </remarks>
+		const int Indexed = 16;
+
+		/// <summary>Everything written down so far, put into the indexes in one pass.</summary>
+		void Index()
+		{
+			_named   = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+			_byPlace = [];
+
+			for (var index = 0; index < _declared!.Count; index++)
+				Index(index, _declared[index].Name, _declared[index].At);
+		}
+
+		/// <summary>One declaration put into both indexes.</summary>
+		void Index(int index, string name, int at)
+		{
+			if (!_named!.TryGetValue(name, out var places))
+				_named[name] = places = [];
+
+			Place(places, index, at);
+			Place(_byPlace!, index, at);
 		}
 
 		/// <summary>A declaration written into an index of places, in the order the text has them.</summary>
@@ -3352,17 +3385,6 @@ public static partial class ExpressionParser
 
 			return low;
 		}
-
-		/// <summary>The last declaration written at each place, by that place and the name.</summary>
-		/// <remarks>
-		/// A declaration is read more than once where the text is, and the reading that stands is
-		/// the last. Finding out whether a given one was written again meant reading every
-		/// declaration after it, which over a text of n of them is n² — one of the terms of what
-		/// made a text of blocks cost more than its length. Kept by the same rule as the index of
-		/// names: a place that is no longer there, or that holds something else now, sends the
-		/// question back to the walk.
-		/// </remarks>
-		Dictionary<(int At, string Name), int>? _lastAt;
 
 		/// <summary>How many places of these indexes a reading has looked at.</summary>
 		/// <remarks>
@@ -3734,7 +3756,10 @@ public static partial class ExpressionParser
 		{
 			var use = at.Start;
 
-			if (_named is null || !_named.TryGetValue(name, out var places))
+			if (_byPlace is null)
+				return Nearest(name, use);
+
+			if (!_named!.TryGetValue(name, out var places))
 				return null;
 
 			// What a reading that was given up left behind. The rule is written where the list
@@ -3767,6 +3792,43 @@ public static partial class ExpressionParser
 			}
 
 			return null;
+		}
+
+		/// <summary>The nearest declaration of a name before a use, by reading what is written down.</summary>
+		/// <remarks>
+		/// What <see cref="Find"/> does where a reading has written too little to index
+		/// (<see cref="Indexed"/>), and it answers the same: the declaration nearest BEFORE the use
+		/// whose block the use stands in, and the later of two written at one place. Reading them all
+		/// is bounded by that number and so cannot grow with the text.
+		/// </remarks>
+		ParameterExpression? Nearest(string name, int use)
+		{
+			var declared = _declared;
+
+			if (declared is null)
+				return null;
+
+			var found = default(ParameterExpression);
+			var wrote = int.MinValue;
+
+			for (var index = 0; index < declared.Count; index++)
+			{
+				Places++;
+
+				var declaration = declared[index];
+
+				if (declaration.At > use || declaration.At < wrote ||
+					!string.Equals(declaration.Name, name, StringComparison.Ordinal))
+					continue;
+
+				if (Holding(declaration.At) is { } held && (held.From > use || held.To <= use))
+					continue;
+
+				found = declaration.Variable;
+				wrote = declaration.At;
+			}
+
+			return found;
 		}
 
 		/// <summary>The blocks in the order they begin, kept in that order as they are recorded.</summary>
@@ -4305,7 +4367,24 @@ public static partial class ExpressionParser
 			// n blocks cost n² — over 200 sibling blocks it read 20,300 declarations where 50 read
 			// 1,275 — and no order of building spares it: on the tape nothing is built until the
 			// whole text has been read, so the first block built already sees them all.
-			if (_byPlace is { } places)
+			// Where a reading has written too little to index (<see cref="Indexed"/>), what a block
+			// declares is found by reading them all, which that number bounds.
+			if (_byPlace is null)
+			{
+				for (var index = 0; index < declared.Count; index++)
+				{
+					Places++;
+
+					var where = declared[index].At;
+
+					if (where < from || where >= to)
+						continue;
+
+					if (Holding(where) is { From: var holds } && holds == from && !Redeclared(declared, index))
+						variables.Add(declared[index].Variable);
+				}
+			}
+			else if (_byPlace is { } places)
 			{
 				for (var slot = From(places, from); slot < places.Count; slot++)
 				{
@@ -4356,13 +4435,14 @@ public static partial class ExpressionParser
 		{
 			var declaration = declared[index];
 
-			if (_lastAt is not null &&
-				_lastAt.TryGetValue((declaration.At, declaration.Name), out var last) &&
-				last < declared.Count &&
-				declared[last].At == declaration.At &&
-				string.Equals(declared[last].Name, declaration.Name, StringComparison.Ordinal))
+			// A place holds one declaration, and the index keeps the last reading of it, so the
+			// question is already answered there: this one stands if it is the one the place holds.
+			if (_byPlace is { } places)
 			{
-				return last != index;
+				var slot = From(places, declaration.At);
+
+				if (slot < places.Count && Written(places[slot]) == declaration.At)
+					return places[slot] != index;
 			}
 
 			for (var later = index + 1; later < declared.Count; later++)

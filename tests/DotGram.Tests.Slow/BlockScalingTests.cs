@@ -55,8 +55,8 @@ public sealed class BlockScalingTests
 	/// them was put back to see this fail on it:
 	/// </para>
 	/// <list type="bullet">
-	/// <item>a use looking back from the END of the declarations: 104.50 places a block at 200
-	/// against 404.50 at 800, on the shape where every block declares the same name;</item>
+	/// <item>a use looking back from the END of the declarations: 105.10 places a block at 200
+	/// against 404.65 at 800, on the shape where every block declares the same name;</item>
 	/// <item>a block reading every declaration in the text: 203.00 against 803.00, both shapes;</item>
 	/// <item>recording a block throwing away the order worked out from the blocks: 407.99 against
 	/// 1608.00, both shapes.</item>
