@@ -127,17 +127,23 @@ in a package before 0.2, which is the right side of a version boundary to make i
 
 ## Caching
 
-Every cache must be keyed by the scope, and today none of them is. There are twelve, in two
-files:
+Every cache must be keyed by the scope, and today none of them is. There are **thirteen** pieces
+of cached state in two files — twelve dictionaries and one plain field — and they fall in three
+groups:
 
-- **Eight already carry the calling assembly** in their key — `_methods`, `_extensions`,
-  `_constructors`, `_indexers`, `_instanceMembers`, `_staticMembers`, `_holdersInside`, `_inside`
-  and `_insideNamespaces`. The assembly in the key becomes the scope. Mechanical.
+- **Nine already carry the calling assembly** in their key: `_methods`, `_extensions`,
+  `_constructors`, `_indexers`, `_instanceMembers` and `_staticMembers` in `Caches.cs`, and
+  `_holdersInside`, `_inside` and `_insideNamespaces` in `Names.cs`. The assembly in the key
+  becomes the scope. Mechanical.
 - **Three are global, and are exactly the ones that depend on what is loaded**: `_types` (a full
   name to a type), `_holders` (a namespace to its static classes) and `_namespaces` (which
-  namespaces exist). These are the caches the defect lives in, and each must be keyed by scope.
+  namespaces exist at all — the field, not a dictionary). These are where the defect lives, and
+  each must be keyed by scope.
 - **One is global and may stay so**: `_operators`, keyed by `(Type, Type)`. Both types are
   already in hand; nothing is searched for.
+
+Nine and three and one is thirteen, which is the whole of it — an earlier draft of this section
+said twelve and eight, and listed nine names under the eight.
 
 `Loaded`'s static constructor subscribes to `AssemblyLoad` and clears the three global caches on
 every load. For an explicit scope that subscription can go, which is the point: a scope's answers
