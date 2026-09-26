@@ -24,7 +24,7 @@ public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierS
 public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited }
 
 /// <summary>BNF: top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families.</summary>
-public abstract record Statement : ISqlNode
+public abstract partial record Statement : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
@@ -275,7 +275,7 @@ public abstract record Statement : ISqlNode
 }
 
 /// <summary>BNF: <select list>, <select sublist>, <derived column>, <qualified asterisk>, <all fields reference>.</summary>
-public abstract record SelectItem : ISqlNode
+public abstract partial record SelectItem : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
@@ -410,7 +410,7 @@ public enum SortDirection { Asc, Desc }
 public enum NullOrdering { First, Last }
 
 /// <summary>BNF: <table reference>, <table factor>, <table primary>, <joined table>, derived/collection/function/JSON tables.</summary>
-public abstract record TableSource : ISqlNode
+public abstract partial record TableSource : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
@@ -490,7 +490,7 @@ public enum SampleMethod { Bernoulli, System }
 public enum ResultOption { Final, New, Old }
 
 /// <summary>BNF: <value expression> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
-public abstract record Expression : ISqlNode
+public abstract partial record Expression : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
@@ -1302,7 +1302,7 @@ public sealed record JsonElement(Expression Value, JsonInputClause? Format = nul
 public enum JsonNullHandling { NullOnNull, AbsentOnNull }
 
 // --- DML helper families ----------------------------------------------------
-public abstract record InsertSource : ISqlNode
+public abstract partial record InsertSource : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
