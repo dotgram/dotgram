@@ -1,4 +1,4 @@
-# The SQL parsers: one tree, independent grammars
+﻿# The SQL parsers: one tree, independent grammars
 
 A proposal and a list of work, not a description. What is decided is marked so; the rest
 is open until it is built, and `status.md` is what will say when it has been.
@@ -63,6 +63,19 @@ is open until it is built, and `status.md` is what will say when it has been.
     `Sql2023Ast.TransactSql.cs`, so the standard's file stays the standard's and its BNF map is untouched.
   - The writer comes first: a writer for the new tree, held by a round trip over what
     `SqlStandardParser` reads, so that `--roundtrip` works again the moment T-SQL switches.
+  - **The writer comes before the tree, and these three follow from it** (2026-09-26, after nine values
+    were added to the tree and the writer answered for all nine with valid SQL of another meaning):
+    - A value with no arm is **refused**, not answered. `Sql2023Writer.NoText(value)` names the enum and
+      the value. Before it, every switch ended in a catch-all returning a literal — 31 of them — so
+      `ComparisonOperator.NotLess` wrote `>=` and the six bitwise operators wrote `OR`.
+    - **A check that a value writes something is not a check that it writes the right thing.**
+      Distinctness within an enum is the cheap proxy: two values writing one text is a defect unless
+      the record carries the text, as `LiteralValue.Numeric` does and as `Identifier` does with its
+      delimiters. That exception is named in `Sql2023WriterCoverageTests` **and asserted** — change the
+      text, the output must change — so it cannot excuse a real defect by describing one.
+    - **The gate is the output, not the source.** A check that reads the writer for catch-alls passes
+      on `Word(op == UnaryOperator.Minus ? "-" : "+")`, which wrote `~` as `+`. Walk the values
+      through `Write` and compare what comes out.
   - `Sql92Parser`, which T-SQL includes for its expressions, builds the new tree too; removing it is
     a separate step later.
   - Where the two disagree, decided with Igor the same day: `[x]` is a third `IdentifierStyle`,

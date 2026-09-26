@@ -73,7 +73,6 @@ public sealed class Sql2023WriterCoverageTests
 	static readonly Dictionary<string, string> TextDecidesInstead = new(StringComparer.Ordinal)
 	{
 		["NumericLiteralKind"] = "LiteralValue.Numeric carries the literal's text and the kind is derivable from it",
-		["DateTimeLiteralKind"] = "LiteralValue.DateTime carries the text; the kind is the key word before it, which IS printed",
 		["IdentifierStyle"] = "the grammar captures a delimited name WITH its delimiters -- `DelimitedIdentifier = '\"' & ... & '\"'` -- so Identifier.Text holds them and the style is derivable from the first character, which is why PutIdentifier prints the text raw and is right to",
 	};
 
@@ -120,6 +119,37 @@ public sealed class Sql2023WriterCoverageTests
 	static string Repository([System.Runtime.CompilerServices.CallerFilePath] string here = "")
 	{
 		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));
+	}
+
+	/// <summary>That each named exception is true of the writer, and not merely asserted by this file.</summary>
+	/// <remarks>
+	/// An exception says the enum does not decide the text because the record carries it. That claim is
+	/// testable: change the text and the output must change. Without this the list could excuse a real
+	/// defect by describing one, which is how a skip with a reason becomes a skip.
+	/// </remarks>
+	[Fact]
+	public void Where_the_text_decides_it_decides()
+	{
+		var claims = new Dictionary<string, (ISqlNode One, ISqlNode Two)>(StringComparer.Ordinal)
+		{
+			["NumericLiteralKind"] = (
+				new Expression.Literal(new LiteralValue.Numeric("1", NumericLiteralKind.Decimal)),
+				new Expression.Literal(new LiteralValue.Numeric("0xFF", NumericLiteralKind.Decimal))),
+			["IdentifierStyle"] = (
+				new Identifier("a", IdentifierStyle.Delimited),
+				new Identifier("\"my column\"", IdentifierStyle.Delimited)),
+		};
+
+		// Every exception is asserted and nothing else is: a new one cannot be added without its claim.
+		Assert.Equal(
+			TextDecidesInstead.Keys.OrderBy(one => one, StringComparer.Ordinal),
+			claims.Keys.OrderBy(one => one, StringComparer.Ordinal));
+
+		foreach (var (name, pair) in claims)
+			Assert.NotEqual(Sql2023Writer.Write(pair.One), Sql2023Writer.Write(pair.Two));
+
+		// And the delimiters the style is derived from are in the text, which is why they are written.
+		Assert.Contains("\"", Sql2023Writer.Write(claims["IdentifierStyle"].Two), StringComparison.Ordinal);
 	}
 
 	[Theory]
