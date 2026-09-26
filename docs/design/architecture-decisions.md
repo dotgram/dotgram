@@ -9581,3 +9581,9 @@ dictionaries can be merged and edited between them.
   every check of every corpus dictionary that applies, so that a gap in the eager asking shows as a
   failing test rather than as an exception on some message's first reading.
 - Load after: 20-90 ms and 9-16 MB (outside a window). `e2d8204e`.
+- **Background, and Prepare (Igor, 2026-09-26).** Lazy compilation moved the cost onto the reading
+  thread, serially: about 105 ms once and up to 40 ms per message type inside a Validate (the
+  QuickFIX/n comparison, 2391af04). Applying now starts compiling every check in the background,
+  side by side; a message that comes first compiles its own. `context.Prepare()` is the option for a
+  caller who needs every check ready before the first message: it compiles what is left and throws
+  the first check that fails. A per-MsgType Prepare was not built; the background makes it moot.
