@@ -97,6 +97,22 @@ line of the grammar that asked for it rather than an exception at run time.
 The grammar and the C# it calls are one file,
 [`ExpressionParser.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs).
 
+## It is not a sandbox
+
+**Parse only text you would run as code.** A text can name any type the reading can reach and
+call any member on it — the file system, the process, reflection — and what it compiles to runs
+with the host's permissions, in the host's process, for as long as the delegate is called. There
+is no allow-list, no timeout and no quota, and none is planned: this compiles expressions, it
+does not contain them.
+
+That is the same position `System.Linq.Expressions` itself takes, and the same one
+`CSharpScript` takes. It matters here because the input LOOKS like data — a formula in a
+configuration file, a rule typed into a form — and a formula from somewhere you do not control
+is code from somewhere you do not control.
+
+If the text comes from a user, the answer is not to inspect it before parsing. It is to run it
+where it can do no harm: a process of its own, with the rights you are willing to lose.
+
 ## Taking it
 
 ```
