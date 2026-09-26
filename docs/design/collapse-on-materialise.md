@@ -416,6 +416,30 @@ the raise in `Machine.Direct.Values.cs`, build, and read the exit codes.
 Suites at `-maxThreads` 1 and 32: 29,763 tests, every exit code 0.
 
 
+### And what the clock says: the deep rows are linear
+
+`--stand-paired` against `bee3d5e0`, the rows added for exactly this:
+
+| row | before | after | |
+| --- | ---: | ---: | --- |
+| `sql/nested-100.match` | 569,136 ns | **46,569 ns** | **12.2x faster** |
+| `sql/nested-400.match` | 7,901,708 ns | **184,529 ns** | **42.8x faster** |
+| `sql/nested-refused-100.match` | 52,491 | 52,851 | flat |
+| `sql/nested-refused-400.match` | 882,327 | 875,839 | flat |
+| the four `el/nested*` rows, both carriers | — | — | 0.98x to 1.02x |
+| all twelve `tsql/` rows | — | — | identical to 0.01 |
+
+**The exponent, which is the thing the rows exist to show**: four times the depth cost the before
+side **x13.9** and costs the after side **x3.96**. Quadratic to linear, readable inside one run.
+`after/control` is 0.98-0.99 on both, so the after side is this process's own build to within
+noise.
+
+**The refused rows are flat, and that is right rather than disappointing.** This change is about
+the WALK; the refusal's square is in the READING — sql-47 measures it at 398.01 rule entries a
+character at depth 800, against 12.50 flat on the accepted path. Nothing here could have moved it,
+and a change that claimed to would be suspect.
+
+
 ## 6. What it does not do
 
 - **The refused-input square stays.** These counts are of accepted readings. A refusal re-reads,
