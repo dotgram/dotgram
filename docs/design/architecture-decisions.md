@@ -9640,8 +9640,9 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   default the five namespaces of Visual Studio's older project template (Igor chose these over the
   SDK's seven implicit usings): System, System.Collections.Generic, System.Linq, System.Text,
   System.Threading.Tasks. They behave as
-  usings written before the text's own. Whether a host can turn them off is public surface and is
-  Igor's to decide.
+  usings written before the text's own. A host turns them off with
+  `ResolutionScope.WithoutDefaultImports()` and reads them as `ResolutionScope.DefaultImports`
+  (Igor, same day).
 - **FIX: compiling only the checks that differ from the built-in ones is not done.** The first
   Prepare of FIX 4.4 with its errata takes 0.43 s since 723b7af8, in the background; not worth the
   second model it would need.
