@@ -3307,8 +3307,17 @@ public static partial class ExpressionParser
 		/// and is bounded by this number, so nothing here can grow with the text; what grows with the
 		/// text is indexed, and the count that says so (<see cref="Places"/>) counts both paths.
 		/// </para>
+		/// <para>
+		/// A field, and settable, for a reason that is not about speed: there are two paths through
+		/// every question about a name now, and every ordinary text lands on ONE of them — almost all
+		/// of them on the walk and a few long ones on the index — so either could be wrong and nothing
+		/// would say so. A reading built with this at nought indexes its first declaration and one
+		/// built with it at <see cref="int.MaxValue"/> never indexes at all, and the same texts are put
+		/// through both (IndexThresholdTests). On the reading and not a static, so that two readings at
+		/// once cannot change each other's answer.
+		/// </para>
 		/// </remarks>
-		const int Indexed = 16;
+		internal int Indexed = 16;
 
 		/// <summary>Everything written down so far, put into the indexes in one pass.</summary>
 		void Index()
