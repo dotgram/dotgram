@@ -339,6 +339,60 @@ GUARD's materialise, and `from` there is the guard's rule's mark — which is ex
 reader puts the log back to when that alternative is abandoned. `to == from` is not a coincidence of
 the inputs; it is the same number reached by two routes.
 
+## 5b. The watermark start, taken over the log collapse
+
+We do not have to collapse the log. We only have to stop the walk looking at what is already
+built, and `AllBuilt` already says where that is. Give it a companion log position and the
+materializer begins:
+
+```
+if (ways.AllBuilt > first) { first = ways.AllBuilt; from = ways.AllBuiltAt; }
+```
+
+Every pass then works unchanged, because all three are expressed in `from` and `first`: the scan
+runs from the raised `from`, `starts[slot - first]` stays valid against the raised `first`, the
+`selected` loop is untouched, and `Room` clears `Live` only from `first` upward
+(`Array.Clear(Live, from, count - from)`), so the built values below are preserved rather than
+cleared. A collapsed span and a raised watermark say the same thing to the walk; one says it in the
+log, the other in two integers. **Give-back needs nothing new**: `UnwindRecords` already lowers
+`AllBuilt`, and the log position is lowered beside it from the same local.
+
+### The stale `live[]` question, checked rather than argued
+
+A raised `first` means `Room` no longer clears `Live` over `[old first, new first)`, so entries
+there are whatever a previous walk left. **Every use of `live[]` the emitter writes**, exhaustively:
+
+| | where | index |
+| --- | --- | --- |
+| read | `if (!live[slot]) continue;` — liveness pass | `slot = first + back`, so `>= first` |
+| read | `if (!live[slot])` — the `selected` build loop | `slot` starts at `first` |
+| read | `!live[slot]` — the log-walking build loop | `slot` starts at `first` |
+| read | `IndexOf(new ReadOnlySpan<bool>(live, slot, ways.Records - slot), true)` | from `slot >= first` |
+| write | `live[slot] = false` beside `built[slot]` | `>= first` |
+| write | `live[root] = true` | the requested root |
+| write | `live[ways.Refs[at + 1]] = true` — the multi-root path | **can be below `first`** |
+| write | `live[log[read]] = true`, `live[log[read + 1 + item]] = true` — `Reaches` marking children | **can be below `first`** |
+
+**Every read is at an index at or above `first`; the two writes that can go below it are never read
+back.** So a stale entry below the raised `first` cannot be seen. The two writes that go below are
+marking records that the raise has just declared built, which need no building — and their values
+are read from the store by number, not through `live`.
+
+### What may NOT be done, and why
+
+The obvious companion — "the full walk builds `[first, Records)`, so let it raise the watermark
+too" — is **the wrong raise again**, and it is the same wrong raise the instrument caught before.
+A full walk sets `built[]` only for LIVE slots, so after one there can be dead, unbuilt slots below
+`Records`; that is precisely why `Built` is not all-built and why `AllBuilt` may be raised only
+from its own test. A walk may raise it only where it can prove the range wholly built — a count of
+slots the build pass skipped, and a raise under `skipped == 0`.
+
+So the first landing raises nothing new. If the triangle does not go because too many materialises
+take the full walk (measured: 6,409 of 10,419 calls take the fast path at depth 800, so 39% do
+not), that shows up as the count not falling, and the skipped-count raise is the next question
+rather than a guess made in advance.
+
+
 ## 6. What it does not do
 
 - **The refused-input square stays.** These counts are of accepted readings. A refusal re-reads,
