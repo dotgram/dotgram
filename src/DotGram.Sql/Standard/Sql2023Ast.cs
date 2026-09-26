@@ -21,7 +21,8 @@ public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierS
 		Span = new SqlSpan(at, length);
 	}
 }
-public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited }
+// T-SQL: Database Identifiers (Transact-SQL). `Bracketed` is T-SQL's `[x]`.
+public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed }
 
 /// <summary>BNF: top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families.</summary>
 public abstract partial record Statement : ISqlNode
@@ -446,6 +447,9 @@ public abstract partial record TableSource : ISqlNode
 		public IReadOnlyList<Expression>? LeftPartition { get; init; }
 		public IReadOnlyList<Expression>? RightPartition { get; init; }
 		public JoinSpecification? Specification { get; init; }
+
+		// T-SQL: Join hints (Transact-SQL). How the engine is told to perform the join.
+		public JoinHint? Hint { get; init; }
 	}
 
 	public record Unnest(IReadOnlyList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
@@ -462,7 +466,9 @@ public abstract partial record TableSource : ISqlNode
 	public record Extension(string Dialect, string Kind, IReadOnlyList<ISqlNode> Parts) : TableSource;
 }
 
-public enum JoinKind { Cross, Inner, Left, Right, Full }
+// T-SQL: FROM plus JOIN, APPLY, PIVOT, UNPIVOT (Transact-SQL). `CrossApply` and `OuterApply` join a
+// table source to one computed from each of its rows, which no standard join does.
+public enum JoinKind { Cross, Inner, Left, Right, Full, CrossApply, OuterApply }
 public abstract record JoinSpecification : ISqlNode
 {
 	public SqlSpan Span { get; private set; }
@@ -715,10 +721,15 @@ public abstract partial record Expression : ISqlNode
 
 public enum ParameterKind { Host, Sql, Dynamic, Embedded }
 public enum CurrentValue { Catalog, Date, DefaultTransformGroup, Path, Role, Schema, Time, Timestamp, User, SessionUser, SystemUser, Value, LocalTime, LocalTimestamp, CurrentUser, TransformGroupForType }
-public enum UnaryOperator { Plus, Minus, Not }
-public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or }
+// T-SQL: Bitwise Operators (Transact-SQL). `BitwiseNot` is `~`.
+public enum UnaryOperator { Plus, Minus, Not, BitwiseNot }
+// T-SQL: Arithmetic Operators, Bitwise Operators (Transact-SQL). From `Modulo` on: `%`, `&`, `|`, `^`,
+// `<<` and `>>`. `%` binds as `*` does.
+public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, ShiftLeft, ShiftRight }
 public enum MultisetOperator { Union, Except, Intersect }
-public enum ComparisonOperator { Equal, NotEqual, Less, Greater, LessOrEqual, GreaterOrEqual }
+// T-SQL: Comparison Operators (Transact-SQL). `NotLess` is `!<` and `NotGreater` is `!>`, which the
+// standard does not have. T-SQL's `!=` is `NotEqual` written differently, not an operator of its own.
+public enum ComparisonOperator { Equal, NotEqual, Less, Greater, LessOrEqual, GreaterOrEqual, NotLess, NotGreater }
 public enum BetweenSymmetry { Asymmetric, Symmetric }
 public enum Quantifier { All, Some, Any }
 public enum LikeKind { Like, Similar, Regex }
@@ -775,7 +786,8 @@ public abstract record LiteralValue : ISqlNode
 	public record Interval(string Text, IntervalQualifier Qualifier, UnaryOperator? Sign = null) : LiteralValue;
 	public record Null : LiteralValue;
 }
-public enum NumericLiteralKind { DecimalInteger, HexInteger, OctalInteger, BinaryInteger, Decimal, Approximate }
+// T-SQL: money and smallmoney (Transact-SQL). `Money` is a literal written with a currency sign.
+public enum NumericLiteralKind { DecimalInteger, HexInteger, OctalInteger, BinaryInteger, Decimal, Approximate, Money }
 public enum StringLiteralKind { Character, National, Unicode }
 public enum BooleanLiteral { True, False, Unknown }
 public enum DateTimeLiteralKind { Date, Time, Timestamp }
@@ -1477,7 +1489,7 @@ public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName
 		Span = new SqlSpan(at, length);
 	}
 }
-public abstract record TypeRepresentation : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Type(DataType Value) : TypeRepresentation; public record Members(IReadOnlyList<AttributeDefinition> Attributes) : TypeRepresentation; }
+public abstract record TypeRepresentation : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Type(DataType Value) : TypeRepresentation; public record Members(IReadOnlyList<AttributeDefinition> Attributes) : TypeRepresentation; /* T-SQL: CREATE TYPE (Transact-SQL). `CREATE TYPE t AS TABLE (...)`, which the standard has no representation for. */ public record Table(IReadOnlyList<TableElement> Elements) : TypeRepresentation; }
 public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
@@ -1523,7 +1535,9 @@ public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, IRe
 }
 public enum RoutineKind { Routine, Procedure, Function, Method }
 // BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
-public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false) : ISqlNode { public SqlSpan Span { get; private set; }
+// T-SQL: CREATE PROCEDURE, CREATE FUNCTION (Transact-SQL). `ReadOnly`, `Varying` and `Nullable` are T-SQL's;
+// its `OUTPUT` is `ParameterMode.Out` and needs nothing of its own.
+public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false, bool ReadOnly = false, bool Varying = false, bool? Nullable = null) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);
@@ -1781,7 +1795,8 @@ public abstract record DynamicArguments : ISqlNode { public SqlSpan Span { get; 
 
 // --- Transactions/connections ---------------------------------------------
 public abstract record TransactionMode : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Isolation(IsolationLevel Level) : TransactionMode; public record Access(TransactionAccess Mode) : TransactionMode; public record DiagnosticsSize(Expression Size) : TransactionMode; }
-public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable }
+// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Snapshot` is T-SQL's.
+public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable, Snapshot }
 public enum TransactionAccess { ReadOnly, ReadWrite }
 public abstract record ConstraintTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record All : ConstraintTarget; public record Names(IReadOnlyList<QualifiedName> Values) : ConstraintTarget; }
 public enum ChainMode { Chain, NoChain }
