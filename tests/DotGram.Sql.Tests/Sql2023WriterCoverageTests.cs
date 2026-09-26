@@ -116,6 +116,31 @@ public sealed class Sql2023WriterCoverageTests
 		Assert.Empty(shared);
 	}
 
+	/// <summary>A supplement, not the gate: that no switch in the writer ends in a catch-all.</summary>
+	/// <remarks>
+	/// <b>This is not the check that protects the writer.</b> It reads the source for <c>_ =&gt; "..."</c>,
+	/// and it passes on <c>Word(op == UnaryOperator.Minus ? "-" : "+")</c>, which wrote T-SQL's <c>~</c>
+	/// as <c>+</c> — the same defect with no catch-all in it. The gate is
+	/// <see cref="No_two_values_of_one_enum_write_the_same_text"/>, which walks values through the writer
+	/// and reads what comes out. This one only keeps a catch-all from being reintroduced, which the
+	/// output check cannot see until an enum gains a value.
+	/// </remarks>
+	[Fact]
+	public void No_switch_in_the_writer_ends_in_a_catch_all()
+	{
+		var source = File.ReadAllText(Path.Combine(Repository(), "src", "DotGram.Sql", "Standard", "Sql2023Writer.cs"));
+		var lines  = source.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+		var loose  = new List<string>();
+
+		// Padded to align with the arms above it, so the spelling is matched loosely: a detector that
+		// only knew `_ => "` counted 17 of these where there were 31.
+		for (var at = 0; at < lines.Length; at++)
+			if (System.Text.RegularExpressions.Regex.IsMatch(lines[at], "_ +=> +\"|_ => \""))
+				loose.Add("Sql2023Writer.cs(" + (at + 1) + "): " + lines[at].Trim());
+
+		Assert.Empty(loose);
+	}
+
 	static string Repository([System.Runtime.CompilerServices.CallerFilePath] string here = "")
 	{
 		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));

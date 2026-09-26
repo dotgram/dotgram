@@ -231,7 +231,7 @@ public static partial class Sql2023Writer
 
 		static string Truth(BooleanLiteral value)
 		{
-			return value switch { BooleanLiteral.True => "TRUE", BooleanLiteral.False => "FALSE", _ => "UNKNOWN" };
+			return value switch { BooleanLiteral.True => "TRUE", BooleanLiteral.False => "FALSE", BooleanLiteral.Unknown => "UNKNOWN", _ => throw NoText(value) };
 		}
 
 		// ── §10.1 Interval qualifier ───────────────────────────────────────────────
@@ -290,7 +290,8 @@ public static partial class Sql2023Writer
 				DateTimeField.Day => "DAY",
 				DateTimeField.Hour => "HOUR",
 				DateTimeField.Minute => "MINUTE",
-				_ => "SECOND",
+				DateTimeField.Second => "SECOND",
+				_ => throw NoText(field),
 			};
 		}
 
@@ -594,7 +595,7 @@ public static partial class Sql2023Writer
 				case Expression.MultisetOperation multiset:
 					PutExpression(multiset.Left);
 					Word("MULTISET");
-					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", _ => "INTERSECT" });
+					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", MultisetOperator.Intersect => "INTERSECT", _ => throw NoText(multiset.Operator) });
 					PutQuantifier(multiset.Quantifier);
 					PutExpression(multiset.Right);
 					break;
@@ -718,7 +719,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.CollectionQuery collection:
-					Word(collection.Kind switch { CollectionKind.Array => "ARRAY", CollectionKind.Multiset => "MULTISET", _ => "TABLE" });
+					Word(collection.Kind switch { CollectionKind.Array => "ARRAY", CollectionKind.Multiset => "MULTISET", CollectionKind.Table => "TABLE", _ => throw NoText(collection.Kind) });
 					PutSubquery(collection.Query);
 					break;
 
@@ -809,7 +810,7 @@ public static partial class Sql2023Writer
 					Call();
 
 					if (trim.Specification is { } specification)
-						Word(specification switch { TrimSpecification.Leading => "LEADING", TrimSpecification.Trailing => "TRAILING", _ => "BOTH" });
+						Word(specification switch { TrimSpecification.Leading => "LEADING", TrimSpecification.Trailing => "TRAILING", TrimSpecification.Both => "BOTH", _ => throw NoText(specification) });
 
 					if (trim.Character is { } character)
 						PutExpression(character);
@@ -851,7 +852,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Length length:
-					Word(length.Function switch { LengthFunction.CharLength => "CHAR_LENGTH", LengthFunction.CharacterLength => "CHARACTER_LENGTH", _ => "OCTET_LENGTH" });
+					Word(length.Function switch { LengthFunction.CharLength => "CHAR_LENGTH", LengthFunction.CharacterLength => "CHARACTER_LENGTH", LengthFunction.OctetLength => "OCTET_LENGTH", _ => throw NoText(length.Function) });
 					Call();
 					PutExpression(length.Value);
 					PutUnits(length.Using);
@@ -870,7 +871,8 @@ public static partial class Sql2023Writer
 						ExtractField.Minute         => "MINUTE",
 						ExtractField.Second         => "SECOND",
 						ExtractField.TimezoneHour   => "TIMEZONE_HOUR",
-						_                           => "TIMEZONE_MINUTE",
+						ExtractField.TimezoneMinute                           => "TIMEZONE_MINUTE",
+						_                           => throw NoText(extract.Field),
 					});
 					Word("FROM");
 					PutExpression(extract.Source);
@@ -988,7 +990,7 @@ public static partial class Sql2023Writer
 				case Expression.QuantifiedComparison quantified:
 					PutExpression(quantified.Left);
 					Word(Comparison(quantified.Operator));
-					Word(quantified.Quantifier switch { Quantifier.All => "ALL", Quantifier.Some => "SOME", _ => "ANY" });
+					Word(quantified.Quantifier switch { Quantifier.All => "ALL", Quantifier.Some => "SOME", Quantifier.Any => "ANY", _ => throw NoText(quantified.Quantifier) });
 					PutSubquery(quantified.Query);
 					break;
 
@@ -1014,7 +1016,7 @@ public static partial class Sql2023Writer
 						Word("UNIQUE");
 
 					if (match.Type is { } type)
-						Word(type switch { MatchType.Simple => "SIMPLE", MatchType.Partial => "PARTIAL", _ => "FULL" });
+						Word(type switch { MatchType.Simple => "SIMPLE", MatchType.Partial => "PARTIAL", MatchType.Full => "FULL", _ => throw NoText(type) });
 
 					PutSubquery(match.Query);
 					break;
@@ -1091,7 +1093,8 @@ public static partial class Sql2023Writer
 						PeriodOperator.Precedes            => "PRECEDES",
 						PeriodOperator.Succeeds            => "SUCCEEDS",
 						PeriodOperator.ImmediatelyPrecedes => "IMMEDIATELY PRECEDES",
-						_                                  => "IMMEDIATELY SUCCEEDS",
+						PeriodOperator.ImmediatelySucceeds                                  => "IMMEDIATELY SUCCEEDS",
+						_                                  => throw NoText(period.Operator),
 					});
 
 					if (period.Right is PeriodRight.Period right)
@@ -1116,7 +1119,7 @@ public static partial class Sql2023Writer
 					Word("JSON");
 
 					if (json.Type is { } predicateType)
-						Word(predicateType switch { JsonPredicateType.Value => "VALUE", JsonPredicateType.Array => "ARRAY", JsonPredicateType.Object => "OBJECT", _ => "SCALAR" });
+						Word(predicateType switch { JsonPredicateType.Value => "VALUE", JsonPredicateType.Array => "ARRAY", JsonPredicateType.Object => "OBJECT", JsonPredicateType.Scalar => "SCALAR", _ => throw NoText(predicateType) });
 
 					PutUniqueness(json.Uniqueness);
 					break;
@@ -1128,7 +1131,7 @@ public static partial class Sql2023Writer
 
 					if (exists.OnError is { } onError)
 					{
-						Word(onError switch { JsonExistsErrorBehavior.True => "TRUE", JsonExistsErrorBehavior.False => "FALSE", JsonExistsErrorBehavior.Unknown => "UNKNOWN", _ => "ERROR" });
+						Word(onError switch { JsonExistsErrorBehavior.True => "TRUE", JsonExistsErrorBehavior.False => "FALSE", JsonExistsErrorBehavior.Unknown => "UNKNOWN", JsonExistsErrorBehavior.Error => "ERROR", _ => throw NoText(onError) });
 						Word("ON ERROR");
 					}
 
@@ -1311,7 +1314,8 @@ public static partial class Sql2023Writer
 						RowMarkerKind.CurrentRow     => "CURRENT_ROW",
 						RowMarkerKind.FrameRow       => "FRAME_ROW",
 						RowMarkerKind.EndFrame       => "END_FRAME",
-						_                            => "END_PARTITION",
+						RowMarkerKind.EndPartition                            => "END_PARTITION",
+						_                            => throw NoText(marker.Kind),
 					});
 
 					if (marker.DeltaSign is { } deltaSign)
@@ -1442,7 +1446,8 @@ public static partial class Sql2023Writer
 						CurrentValue.Time      => "CURRENT_TIME",
 						CurrentValue.Timestamp => "CURRENT_TIMESTAMP",
 						CurrentValue.LocalTime => "LOCALTIME",
-						_                      => "LOCALTIMESTAMP",
+						CurrentValue.LocalTimestamp => "LOCALTIMESTAMP",
+						_                      => throw NoText(current.Kind),
 					});
 
 					if (current.Precision is { } precision)
@@ -1467,7 +1472,8 @@ public static partial class Sql2023Writer
 						CurrentValue.SessionUser           => "SESSION_USER",
 						CurrentValue.SystemUser            => "SYSTEM_USER",
 						CurrentValue.CurrentUser           => "CURRENT_USER",
-						_                                  => "VALUE",
+						CurrentValue.Value                 => "VALUE",
+						_                                  => throw NoText(current.Kind),
 					});
 					return;
 			}
@@ -1627,7 +1633,8 @@ public static partial class Sql2023Writer
 				RegexFunction.OccurrencesRegex => "OCCURRENCES_REGEX",
 				RegexFunction.PositionRegex    => "POSITION_REGEX",
 				RegexFunction.SubstringRegex   => "SUBSTRING_REGEX",
-				_                              => "TRANSLATE_REGEX",
+				RegexFunction.TranslateRegex                              => "TRANSLATE_REGEX",
+				_                              => throw NoText(regex.Function),
 			});
 			Call();
 
@@ -1721,7 +1728,7 @@ public static partial class Sql2023Writer
 			Word("JSON");
 
 			if (representation.Encoding is { } encoding)
-				Word(encoding switch { JsonEncoding.Utf8 => "ENCODING UTF8", JsonEncoding.Utf16 => "ENCODING UTF16", _ => "ENCODING UTF32" });
+				Word(encoding switch { JsonEncoding.Utf8 => "ENCODING UTF8", JsonEncoding.Utf16 => "ENCODING UTF16", JsonEncoding.Utf32 => "ENCODING UTF32", _ => throw NoText(encoding) });
 		}
 
 		void PutOutput(JsonOutput? output)
@@ -1779,7 +1786,8 @@ public static partial class Sql2023Writer
 					JsonKeyUniqueness.WithUniqueKeys    => "WITH UNIQUE KEYS",
 					JsonKeyUniqueness.WithUnique        => "WITH UNIQUE",
 					JsonKeyUniqueness.WithoutUniqueKeys => "WITHOUT UNIQUE KEYS",
-					_                                   => "WITHOUT UNIQUE",
+					JsonKeyUniqueness.WithoutUnique                                   => "WITHOUT UNIQUE",
+					_                                   => throw NoText(one),
 				});
 		}
 
@@ -1824,7 +1832,8 @@ public static partial class Sql2023Writer
 				JsonWrapperBehavior.WithUnconditional => "WITH UNCONDITIONAL",
 				JsonWrapperBehavior.WithArray => "WITH ARRAY",
 				JsonWrapperBehavior.WithConditionalArray => "WITH CONDITIONAL ARRAY",
-				_ => "WITH UNCONDITIONAL ARRAY",
+				JsonWrapperBehavior.WithUnconditionalArray => "WITH UNCONDITIONAL ARRAY",
+				_ => throw NoText(wrapper),
 			};
 		}
 
@@ -1835,7 +1844,8 @@ public static partial class Sql2023Writer
 				JsonQueryBehavior.Error => "ERROR",
 				JsonQueryBehavior.Null => "NULL",
 				JsonQueryBehavior.EmptyArray => "EMPTY ARRAY",
-				_ => "EMPTY OBJECT",
+				JsonQueryBehavior.EmptyObject => "EMPTY OBJECT",
+				_ => throw NoText(behavior),
 			};
 		}
 
@@ -1917,7 +1927,8 @@ public static partial class Sql2023Writer
 						JsonPathBinaryOperator.Subtract => "-",
 						JsonPathBinaryOperator.Multiply => "*",
 						JsonPathBinaryOperator.Divide   => "/",
-						_                               => "%",
+						JsonPathBinaryOperator.Modulo                               => "%",
+						_                               => throw NoText(binary.Operator),
 					});
 					PutPath(binary.Right);
 					break;
@@ -1959,7 +1970,8 @@ public static partial class Sql2023Writer
 						JsonPathComparisonOperator.Less         => "<",
 						JsonPathComparisonOperator.Greater      => ">",
 						JsonPathComparisonOperator.LessOrEqual  => "<=",
-						_                                       => ">=",
+						JsonPathComparisonOperator.GreaterOrEqual                                       => ">=",
+						_                                       => throw NoText(comparison.Operator),
 					});
 					PutPath(comparison.Right);
 					break;
@@ -2015,7 +2027,8 @@ public static partial class Sql2023Writer
 				JsonMethodKind.Time        => "time",
 				JsonMethodKind.TimeTz      => "time_tz",
 				JsonMethodKind.Timestamp   => "timestamp",
-				_                          => "timestamp_tz",
+				JsonMethodKind.TimestampTz => "timestamp_tz",
+				_                          => throw NoText(method.Kind),
 			});
 			Call();
 
