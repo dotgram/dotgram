@@ -21,9 +21,10 @@ namespace DotGram.Tests;
 /// The cutting is kept for the next reading of the same string now, so the script is cut once.
 /// </para>
 /// <para>
-/// The bound is on the exponent and not on a time: ten times the statements may take up to
-/// about thirteen times as long (1.1), which leaves room for noise and none for the square.
-/// Timed alone, the best of several runs.
+/// The bound is on the exponent and not on a time: forty times the statements may take up to
+/// about a hundred and twenty times as long (1.3) against the square's sixteen hundred (2.0).
+/// A bound of 1.1 failed once on a shared runner at 1.16, the shorter script's 59 µs being
+/// the size of the noise. Timed alone, the best of several runs.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -38,7 +39,7 @@ public sealed class ScriptScalingTests
 		var exponent = Math.Log(longer / shorter) / Math.Log(40.0);
 
 		Assert.True(
-			exponent <= 1.1,
+			exponent <= 1.3,
 			$"Forty times the statements took {longer / shorter:F1} times as long " +
 			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
 	}
