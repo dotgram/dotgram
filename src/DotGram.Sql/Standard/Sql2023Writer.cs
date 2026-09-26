@@ -203,7 +203,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case LiteralValue.DateTime datetime:
-					Word(datetime.Kind switch { DateTimeLiteralKind.Date => "DATE", DateTimeLiteralKind.Time => "TIME", _ => "TIMESTAMP" });
+					Word(datetime.Kind switch { DateTimeLiteralKind.Date => "DATE", DateTimeLiteralKind.Time => "TIME", DateTimeLiteralKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 					Word(datetime.Text);
 					break;
 
@@ -319,14 +319,17 @@ public static partial class Sql2023Writer
 						CharacterTypeKind.NcharVarying                 => "NCHAR VARYING",
 						CharacterTypeKind.NationalCharacterLargeObject => "NATIONAL CHARACTER LARGE OBJECT",
 						CharacterTypeKind.NcharLargeObject             => "NCHAR LARGE OBJECT",
-						_                                              => "NCLOB",
+						CharacterTypeKind.Nclob                        => "NCLOB",
+						_                                              => throw NoText(character.Kind),
 					});
 
-					if (character.Length is not null || character.LargeObject is not null)
+					if (character.Length is not null || character.LargeObject is not null || character.Max)
 					{
 						Call();
 
-						if (character.LargeObject is { } size)
+						if (character.Max)
+							Word("MAX");
+						else if (character.LargeObject is { } size)
 							PutSize(size);
 						else
 							Number(character.Length!.Value);
@@ -358,10 +361,17 @@ public static partial class Sql2023Writer
 						BinaryTypeKind.BinaryVarying     => "BINARY VARYING",
 						BinaryTypeKind.Varbinary         => "VARBINARY",
 						BinaryTypeKind.BinaryLargeObject => "BINARY LARGE OBJECT",
-						_                                => "BLOB",
+						BinaryTypeKind.Blob              => "BLOB",
+						_                                => throw NoText(binary.Kind),
 					});
 
-					if (binary.LargeObject is { } large)
+					if (binary.Max)
+					{
+						Call();
+						Word("MAX");
+						Close();
+					}
+					else if (binary.LargeObject is { } large)
 					{
 						Call();
 						PutSize(large);
@@ -389,7 +399,8 @@ public static partial class Sql2023Writer
 						NumericTypeKind.Float           => "FLOAT",
 						NumericTypeKind.Real            => "REAL",
 						NumericTypeKind.DoublePrecision => "DOUBLE PRECISION",
-						_                               => "DECFLOAT",
+						NumericTypeKind.DecFloat        => "DECFLOAT",
+						_                               => throw NoText(numeric.Kind),
 					});
 
 					if (numeric.Precision is { } precision)
@@ -413,7 +424,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.DateTime datetime:
-					Word(datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", _ => "TIMESTAMP" });
+					Word(datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", DateTimeTypeKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 
 					if (datetime.Precision is { } fraction)
 					{
@@ -544,8 +555,16 @@ public static partial class Sql2023Writer
 					break;
 
 				// A sign is written against its operand, so that `- -` never becomes a comment's `--`.
+				// The operator is switched on rather than compared with one value: `Word(op == Minus ? "-"
+				// : "+")` wrote T-SQL's `~` as `+`, which is the catch-all defect wearing a ternary.
 				case Expression.Unary unary:
-					Word(unary.Operator == UnaryOperator.Minus ? "-" : "+");
+					Word(unary.Operator switch
+					{
+						UnaryOperator.Minus      => "-",
+						UnaryOperator.Plus       => "+",
+						UnaryOperator.BitwiseNot => "~",
+						_                        => throw NoText(unary.Operator),
+					});
 					Hold();
 					PutExpression(unary.Operand);
 					break;
@@ -560,7 +579,14 @@ public static partial class Sql2023Writer
 						BinaryOperator.Divide      => "/",
 						BinaryOperator.Concatenate => "||",
 						BinaryOperator.And         => "AND",
-						_                          => "OR",
+						BinaryOperator.Or          => "OR",
+						BinaryOperator.Modulo      => "%",
+						BinaryOperator.BitwiseAnd  => "&",
+						BinaryOperator.BitwiseOr   => "|",
+						BinaryOperator.BitwiseXor  => "^",
+						BinaryOperator.ShiftLeft   => "<<",
+						BinaryOperator.ShiftRight  => ">>",
+						_                          => throw NoText(binary.Operator),
 					});
 					PutExpression(binary.Right);
 					break;
@@ -892,7 +918,7 @@ public static partial class Sql2023Writer
 
 				case Expression.Comparison comparison:
 					PutExpression(comparison.Left);
-					Word(Comparison(comparison.Operator));
+					Word(comparison.Exclamation ? "!=" : Comparison(comparison.Operator));
 					PutExpression(comparison.Right);
 					break;
 
@@ -928,7 +954,7 @@ public static partial class Sql2023Writer
 				case Expression.Like like:
 					PutExpression(like.Value);
 					PutNot(like.Not);
-					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", _ => "LIKE_REGEX" });
+					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", _ => throw NoText(like.Kind) });
 					PutExpression(like.Pattern);
 
 					if (like.Escape is { } escape)
@@ -1335,6 +1361,15 @@ public static partial class Sql2023Writer
 				Word(one == CharacterLengthUnits.Characters ? "USING CHARACTERS" : "USING OCTETS");
 		}
 
+		// A value with no arm is a fact the tree holds and the text would lose, so it is refused rather
+		// than answered. The switches used to end in a catch-all returning a literal, and a value added
+		// to an enum printed as the last arm: `ComparisonOperator.NotLess` wrote `>=`.
+		static Exception NoText<T>(T value) where T : struct, Enum
+		{
+			return new ArgumentOutOfRangeException(
+				nameof(value), value, "The writer has no text for " + typeof(T).Name + "." + value + ".");
+		}
+
 		static string Comparison(ComparisonOperator op)
 		{
 			return op switch
@@ -1344,7 +1379,10 @@ public static partial class Sql2023Writer
 				ComparisonOperator.Less => "<",
 				ComparisonOperator.Greater => ">",
 				ComparisonOperator.LessOrEqual => "<=",
-				_ => ">=",
+				ComparisonOperator.GreaterOrEqual => ">=",
+				ComparisonOperator.NotLess => "!<",
+				ComparisonOperator.NotGreater => "!>",
+				_ => throw NoText(op),
 			};
 		}
 
