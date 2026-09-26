@@ -81,7 +81,14 @@ in a helper that lives in another assembly: the helper's assembly is the one the
 - **Nothing is imported**, `System` included. A type is written whole
   (`System.Math.Max(x, 1)`) or brought in by a `using` at the top of the text, before the
   lambda. A text's `using`s are its own; the next text starts with none.
-- A `using` names a namespace: no alias, no `using static`.
+- A `using` names a namespace, or gives a name to one type or one namespace:
+  `using L = System.Collections.Generic.List<int>;` and `using C = System.Collections.Generic;`.
+  A closed generic may be named, an open one may not, as in C#. No `using static` yet.
+- **An alias beats a name a `using` brings in**, silently, as in C#; it may not take a name the
+  global namespace already has, and that is refused where the alias is WRITTEN rather than where
+  the name is used. One name given two meanings is refused.
+- A `using` written twice is the same `using`, and nothing is said about it. C# warns there
+  (CS0105); this language has no warnings channel, so it is silent — a deliberate difference.
 - **A name the global namespace declares wins over one a `using` brings in**, as in C#: a
   text declares no namespace of its own, so the global one encloses it, and the `using`s
   are read only where the name means nothing there. Two `using`s that both supply it, with

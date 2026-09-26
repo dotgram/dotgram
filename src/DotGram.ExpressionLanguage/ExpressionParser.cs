@@ -556,11 +556,36 @@ namespace DotGram.ExpressionLanguage;
 	// The call is what keeps this one a rule.
 	Body : @Expression = v: Value => @(ExpressionParser.Body(v))
 
-	// A `using` stands before the lambda, as it stands at the top of a C# file, and names a
-	// namespace whose types every name after it may mean. The guard records it while the
-	// text is read, which is the moment every later guard asks about a name — and refuses
-	// a namespace that is not there, as C# does.
-	Import : @string
+	// A `using` stands before the lambda, as it stands at the top of a C# file. It names a
+	// namespace whose types every name after it may mean, or gives a name of its own to one
+	// type or one namespace. The guard records it while the text is read, which is the moment
+	// every later guard asks about a name — and refuses what is not there, as C# does.
+	//
+	// Three rules rather than three alternatives of one, for the reason `Local` and `Inferred`
+	// are two: a capture only some alternatives make is nullable in every guard of the rule
+	// (§4.2). The capture here is named `i` in all three ways so that the `=>` of each reads a
+	// capture every way makes, which is what `Branch` does above.
+	Import : @string = i: Aliases => @(i) | i: AliasesSpace => @(i) | i: Imports => @(i)
+
+	// `using L = System.Collections.Generic.List<int>;` — a name for one type, closed generics
+	// included. An open one (`List<>`) is refused, as C# refuses it (CS7003), and needs no rule
+	// of its own to be: `Type` reads no such thing.
+	//
+	// Nothing is needed at the places a name is USED. An alias is answered by the same lookup
+	// every name goes through, so `NamedType` finds it by asking what it always asks.
+	Aliases? : @string
+		= "using" & name: Identifier & '=' & aliased: Type & ';'
+		  & when @(context.Aliases(name, aliased, parserSpan))
+		  => @(name)
+
+	// `using C = System.Collections.Generic;` — a name for a namespace, which is a name only
+	// something else is written after: `C.List<int>` is a type and `C` alone is not, as in C#.
+	AliasesSpace? : @string
+		= "using" & name: Identifier & '=' & head: Identifier & ('.' & part: Identifier)* & ';'
+		  & when @(context.Aliases(name, ExpressionParser.Dotted(head, part), parserSpan))
+		  => @(name)
+
+	Imports : @string
 		= "using" & head: Identifier & ('.' & part: Identifier)* & ';'
 		  & when @(context.Imports(ExpressionParser.Dotted(head, part), parserSpan))
 		  => @(ExpressionParser.Dotted(head, part))
@@ -3522,7 +3547,7 @@ public static partial class ExpressionParser
 
 		/// <summary>How much a reading had written down, to go back to.</summary>
 		internal readonly record struct Checkpoint(
-			int Scopes, int Declared, int Unsettled, int Imports,
+			int Scopes, int Declared, int Unsettled, int Imports, int Aliases,
 			int RefusedAt, string? Refusal, bool Deferred);
 
 		/// <summary>Where this reading stands now.</summary>
@@ -3538,7 +3563,7 @@ public static partial class ExpressionParser
 		{
 			return new Checkpoint(
 				_scopes?.Count ?? 0, _declared?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count,
-				_refusedAt, _refusal, _deferred);
+				_aliases.Count, _refusedAt, _refusal, _deferred);
 		}
 
 		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
@@ -3565,6 +3590,7 @@ public static partial class ExpressionParser
 			Truncate(_declared,   at.Declared);
 			Truncate(_unsettled,  at.Unsettled);
 			Truncate(_imports,    at.Imports);
+			Truncate(_aliases,    at.Aliases);
 
 			_refusedAt = at.RefusedAt;
 			_refusal   = at.Refusal;
@@ -3606,6 +3632,137 @@ public static partial class ExpressionParser
 		/// is.
 		/// </remarks>
 		readonly List<string> _imports = [];
+
+		/// <summary>A name a `using` gave to a type or a namespace, and what it names.</summary>
+		readonly record struct Alias(string Name, Type? Type, string? Space);
+
+		/// <summary>The aliases a text has written, in the order it wrote them.</summary>
+		/// <remarks>
+		/// A list and not a table, for the reason <see cref="_imports"/> is one: a reading that is
+		/// given up takes back what it wrote, and taking back a count is truncating a list. There
+		/// are never many, and a use reads them by walking.
+		/// </remarks>
+		readonly List<Alias> _aliases = [];
+
+		/// <summary>A `using` that names a TYPE, recorded while the text is read.</summary>
+		/// <returns>
+		/// Whether the name may be given. C# refuses an alias whose name is a type in the global
+		/// namespace (CS0576) and refuses it where the alias is WRITTEN rather than where the name
+		/// is used, which is what this does. It beats a name a `using` brings in, silently, and
+		/// that needs nothing here: an alias is read before the `using`s are.
+		/// </returns>
+		/// <remarks>
+		/// The check reads the scope's assemblies and so walks the closure. That is not a hole in
+		/// the lazy walk (42c6d5b0): a text that writes an alias names a type by writing it, and
+		/// would have walked at that name anyway.
+		/// </remarks>
+		internal bool Aliases(string name, Type type, SourceSpan at)
+		{
+			return type is null
+				? throw new ArgumentNullException(nameof(type))
+				: Names(name, type, null, at);
+		}
+
+		/// <summary>A `using` that names a NAMESPACE, recorded the same way.</summary>
+		/// <returns>Whether it may be given, and whether that namespace is there at all (CS0246).</returns>
+		internal bool Aliases(string name, string space, SourceSpan at)
+		{
+			return space is null ? throw new ArgumentNullException(nameof(space)) : Names(name, null, space, at);
+		}
+
+		/// <summary>Both forms: the name is checked, and the alias written down where it is new.</summary>
+		/// <remarks>
+		/// The NAME is answered for before what it names is. Both ways of writing an alias come
+		/// through here, and a reading that gives up one way and tries the other must refuse for
+		/// the same reason either way, or the two readers of this language disagree about which
+		/// refusal a text earns: `using S = System.Int32;` under a name already given said "there
+		/// is no such namespace" through one and "that name means something else" through the
+		/// other, which is the same text refused for two reasons.
+		/// </remarks>
+		bool Names(string name, Type? type, string? space, SourceSpan at)
+		{
+			if (name is null)
+				throw new ArgumentNullException(nameof(name));
+
+			// C#'s CS0576, in the terms this language has: a type in no namespace IS the global
+			// namespace's, and an alias may not be given a name it already has.
+			if (Qualified(null, name, Reach) is not null)
+			{
+				Refuse(
+					at.Start,
+					$"The global namespace contains a definition conflicting with the alias '{name}'.");
+
+				return false;
+			}
+
+			for (var one = 0; one < _aliases.Count; one++)
+			{
+				if (!string.Equals(_aliases[one].Name, name, StringComparison.Ordinal))
+					continue;
+
+				// The same directive read a second time is the same alias, which a reading given up
+				// and begun again writes. A different one under the name is C#'s CS1537.
+				if (_aliases[one].Type == type && string.Equals(_aliases[one].Space, space, StringComparison.Ordinal))
+					return true;
+
+				Refuse(at.Start, $"The alias '{name}' was given another meaning already.");
+
+				return false;
+			}
+
+			// What it names, once the name itself is answered for.
+			if (space is not null && !Loaded.Has(Reach, space) && !Loaded.HasInside(Reach, space))
+			{
+				Refuse(at.Start, $"The type or namespace name '{space}' could not be found.");
+
+				return false;
+			}
+
+			_aliases.Add(new Alias(name, type, space));
+
+			return true;
+		}
+
+		/// <summary>The type an alias gives a name, where one does.</summary>
+		/// <remarks>
+		/// The head of the name is what an alias may give: `L` where `L` names a type, `L.Inner`
+		/// where it does and `Inner` is nested in it, and `C.List` where `C` names a namespace. A
+		/// namespace alias alone is no type, as it is none in C#.
+		/// </remarks>
+		Type? Aliased(string dotted)
+		{
+			if (_aliases.Count == 0)
+				return null;
+
+			var cut  = dotted.IndexOf('.');
+			var head = cut < 0 ? dotted : dotted.Substring(0, cut);
+			var rest = cut < 0 ? null : dotted.Substring(cut + 1);
+
+			for (var one = 0; one < _aliases.Count; one++)
+			{
+				if (!string.Equals(_aliases[one].Name, head, StringComparison.Ordinal))
+					continue;
+
+				if (_aliases[one].Space is { } space)
+					return rest is null ? null : Qualified(space, rest, Reach);
+
+				var type = _aliases[one].Type;
+
+				for (var at = 0; type is not null && rest is not null;)
+				{
+					var next = rest.IndexOf('.', at);
+					var step = next < 0 ? rest.Substring(at) : rest.Substring(at, next - at);
+
+					type = ExpressionParser.Nested(type, step, Reach);
+					rest = next < 0 ? null : rest;
+					at   = next < 0 ? 0 : next + 1;
+				}
+
+				return type;
+			}
+
+			return null;
+		}
 
 		/// <summary>A `using`, recorded while the text is read (§8.1).</summary>
 		/// <returns>
@@ -3720,6 +3877,17 @@ public static partial class ExpressionParser
 			if (Qualified(null, name, Reach) is { } written)
 			{
 				first  = written;
+				second = null;
+
+				return 1;
+			}
+
+			// An alias next, and before the `using`s: C# lets an alias beat a name a `using` brings
+			// in, with no diagnostic at all, and lets it collide only with the global namespace —
+			// which is refused where the alias is written, so nothing is ambiguous here.
+			if (Aliased(name) is { } given)
+			{
+				first  = given;
 				second = null;
 
 				return 1;

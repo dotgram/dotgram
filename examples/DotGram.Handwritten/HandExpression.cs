@@ -1977,6 +1977,12 @@ public static class HandExpression
 			if (Kind(i + 1) != Identifier)
 				return -1;
 
+			// `using X = …;` before the rest, since the two are told apart by what follows the
+			// first name and nothing else. A type first, then a namespace: `Type` reads no
+			// namespace, so the second is what is left when the first does not read.
+			if (Kind(i + 2) == Assign)
+				return Alias(i, Cut(i + 1));
+
 			var name = Cut(i + 1);
 			var at   = i + 2;
 
@@ -1990,6 +1996,36 @@ public static class HandExpression
 				return -1;
 
 			return _context.Imports(name, Span(i, at + 1)) ? at + 1 : Refuse(at + 1);
+		}
+
+		/// <summary>`using X = a type;` or `using X = a namespace;`; where it ends.</summary>
+		int Alias(int i, string name)
+		{
+			var mark = _context.Mark();
+			var at   = Type(i + 3, out var type, build: true);
+
+			if (at > 0 && type is not null && Kind(at) == Semicolon)
+				return _context.Aliases(name, type, Span(i, at + 1)) ? at + 1 : Refuse(at + 1);
+
+			_context.Rollback(mark);
+
+			if (Kind(i + 3) != Identifier)
+				return -1;
+
+			var space = Cut(i + 3);
+
+			at = i + 4;
+
+			while (Kind(at) == Dot && Kind(at + 1) == Identifier)
+			{
+				space  = string.Concat(space, ".", Cut(at + 1));
+				at    += 2;
+			}
+
+			if (Kind(at) != Semicolon)
+				return -1;
+
+			return _context.Aliases(name, space, Span(i, at + 1)) ? at + 1 : Refuse(at + 1);
 		}
 
 		/// <summary>The parameters inside the brackets, each declared where it is read; where the list ends.</summary>
