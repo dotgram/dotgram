@@ -23,9 +23,8 @@ var square = ExpressionParser.Compile<Func<int, int>>("(int x) => x * x - 1");
 square(3); // 8
 ```
 
-> **It is not a sandbox.** An expression can name types, call their methods, construct objects
-> and reach the internal members of the assembly that compiles it, and the delegate it compiles
-> to runs with every permission of the host process. Do not compile text you do not trust.
+> **It is not a sandbox**: do not compile text you do not trust. See
+> [It is not a sandbox](#it-is-not-a-sandbox) below.
 
 It reads C#'s operators, at C#'s precedence, and its literals down to the digit separator
 and the verbatim string. Past expressions it has typed locals, blocks, `if`, `while`, `do`,
