@@ -79,9 +79,28 @@ static class Corpus
 		var counted = new Dictionary<string, int>(StringComparer.Ordinal);
 		var like    = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
+		var hits = new Dictionary<string, int>(StringComparer.Ordinal);
+		var hit  = new Dictionary<string, string>(StringComparer.Ordinal);
+
 		foreach (var one in statements)
 		{
-			var stopped = reader(one);
+			int stopped;
+
+			// A checked parser (DOTGRAM_CHECKS) throws where the walk follows a reference to a record
+			// the parse does not have. Collected rather than allowed to stop the sweep, because the
+			// question is HOW MANY statements reach it and which, not that one does.
+			try
+			{
+				stopped = reader(one);
+			}
+			catch (InvalidOperationException thrown) when (thrown.Message.Contains("names record", StringComparison.Ordinal))
+			{
+				hits[thrown.Message] = hits.TryGetValue(thrown.Message, out var seen) ? seen + 1 : 1;
+				hit.TryAdd(thrown.Message, One(one));
+
+				continue;
+			}
+
 
 			if (stopped < 0)
 			{
@@ -110,6 +129,16 @@ static class Corpus
 			$"{read} read ({(statements.Count == 0 ? 0 : 100.0 * read / statements.Count):F1}%)");
 		Console.WriteLine();
 
+		if (hits.Count > 0)
+		{
+			Console.WriteLine($"{name}: DANGLING REFERENCES on {hits.Values.Sum()} statement(s), {hits.Count} distinct:");
+
+			foreach (var (why, count) in hits.OrderByDescending(one => one.Value))
+				Console.WriteLine($"  {count,6}  {why}   e.g. {hit[why]}");
+		}
+		else
+			Console.WriteLine($"{name}: no dangling reference on any statement.");
+
 		foreach (var (why, count) in counted.OrderByDescending(one => one.Value).ThenBy(one => one.Key))
 		{
 			Console.WriteLine($"  {count,5}  stops at {why}");
@@ -123,6 +152,51 @@ static class Corpus
 	/// The query-shaped statements of one script: batches at <c>GO</c>, statements at
 	/// <c>;</c>, and what is left that begins the way a query does.
 	/// </summary>
+	/// <summary>Every statement of every batch, not only the query-shaped ones.</summary>
+	/// <remarks>
+	/// <c>Queries</c> keeps what begins with SELECT, VALUES, TABLE or a bracket, which is a quarter of
+	/// the corpus. The rest is DDL and DML — CHECK constraints, MERGE, UPDATE with a WHERE — and a
+	/// condition nested in one of those is where the walk's own defects live, so a sweep for them reads
+	/// all of it through the statement publication rather than the query one.
+	/// </remarks>
+	internal static IEnumerable<string> All(string script)
+	{
+		foreach (var batch in Batches(script))
+			foreach (var statement in batch.Split(';'))
+			{
+				var one = statement.Trim();
+
+				if (one.Length > 0)
+					yield return one;
+			}
+	}
+
+	/// <summary>Every statement of the corpus through the statement publication, checked.</summary>
+	internal static void RunAll(string? root, int shown)
+	{
+		root ??= Checked();
+
+		if (!Directory.Exists(root))
+		{
+			Console.WriteLine($"No corpus at {root}.");
+
+			return;
+		}
+
+		var statements = new List<string>();
+		var files      = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+
+		foreach (var file in files)
+			statements.AddRange(All(File.ReadAllText(file)));
+
+		Read("T-SQL, every statement", files.Length, statements, shown, static one =>
+		{
+			var match = TransactSqlParser.TryParseStatement(one);
+
+			return match.IsSuccess ? -1 : (int)match.Position;
+		});
+	}
+
 	static IEnumerable<string> Queries(string script)
 	{
 		foreach (var batch in Batches(script))

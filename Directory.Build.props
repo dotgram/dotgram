@@ -52,6 +52,17 @@
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+		<!-- Two things a generated parser can be asked to carry for our own measurement, neither of
+		     them defined by default, so a consumer compiles none of it: DOTGRAM_COUNTS, the walk's
+		     counters (D144), and DOTGRAM_CHECKS, which asserts the walk's invariants as it goes.
+
+		     Set here rather than per project so a sweep can turn one on for the whole repository, and
+		     by a PROPERTY rather than `-p:DefineConstants=…` on the command line, which REPLACES the
+		     symbols the SDK adds (NETSTANDARD2_0, NET472 and the rest) and would break the
+		     multi-targeted projects in a way that looks like the checks breaking them. -->
+		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
+		<DefineConstants Condition="'$(DotGramChecks)' == 'true'">$(DefineConstants);DOTGRAM_CHECKS</DefineConstants>
 	</PropertyGroup>
 
 	<!-- The icon every package carries. Items are evaluated after every property, so

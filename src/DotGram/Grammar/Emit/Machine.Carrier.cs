@@ -897,13 +897,18 @@ sealed partial class Machine
 
 		public override IReadOnlyList<string> RecordMarks(string name)
 		{
-			return [name, name + "R"];
+			return [name, name + "R", name + "L"];
 		}
 
 		public override IEnumerable<string> MarkRecords(string name)
 		{
 			yield return $"var {name}  = ways.LogCount;";
 			yield return $"var {name}R = ways.Records;";
+
+			// The last record CLOSED, which a give-back has to put back with the other two: a
+			// reference to a record is `ways.Last` at the moment it is pushed, so a `Last` left
+			// pointing into an abandoned reading is a reference to a record the parse no longer has.
+			yield return $"var {name}L = ways.Last;";
 		}
 
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
@@ -927,6 +932,7 @@ sealed partial class Machine
 
 			yield return $"ways.LogCount  = {name};";
 			yield return $"ways.Records   = {name}R;";
+			yield return $"ways.Last      = {name}L;";
 
 			if (machine._directBuilds)
 			{

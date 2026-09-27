@@ -1475,6 +1475,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1486,6 +1487,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1512,6 +1514,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1523,6 +1526,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1555,6 +1559,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1566,6 +1571,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1634,6 +1640,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1645,6 +1652,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1675,6 +1683,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1686,6 +1695,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1763,6 +1773,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1798,6 +1811,9 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("t names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -1947,6 +1963,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1958,6 +1975,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1994,6 +2012,7 @@ namespace DotGram.Snapshots
 					var s2  = ways.Cursor;
 					var lm2  = ways.LogCount;
 					var lm2R = ways.Records;
+					var lm2L = ways.Last;
 					var rr2 = ways.RefsCount;
 					var q1 = -1;
 
@@ -2006,6 +2025,7 @@ namespace DotGram.Snapshots
 
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
+						ways.Last      = lm2L;
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -2044,6 +2064,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2055,6 +2076,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2144,6 +2166,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2155,6 +2178,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2185,6 +2209,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2196,6 +2221,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2273,6 +2299,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2356,6 +2385,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2367,6 +2397,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2403,6 +2434,7 @@ namespace DotGram.Snapshots
 					var s2  = ways.Cursor;
 					var lm2  = ways.LogCount;
 					var lm2R = ways.Records;
+					var lm2L = ways.Last;
 					var rr2 = ways.RefsCount;
 					var q1 = -1;
 
@@ -2415,6 +2447,7 @@ namespace DotGram.Snapshots
 
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
+						ways.Last      = lm2L;
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -2453,6 +2486,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2464,6 +2498,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2546,6 +2581,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2557,6 +2593,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2587,6 +2624,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2598,6 +2636,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2675,6 +2714,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2762,6 +2804,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2773,6 +2816,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					if (ways.Built > lmR) ways.Built = lmR;
 					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
@@ -2793,6 +2837,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				if ((uint)p >= (uint)text.Length)
 				{
@@ -2827,14 +2872,16 @@ namespace DotGram.Snapshots
 								var s1  = ways.Cursor;
 								var lm1  = ways.LogCount;
 								var lm1R = ways.Records;
+								var lm1L = ways.Last;
 								var rr1 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part0(p, pos, lm, lmR, r0);
+								q1 = Read_Small_Small_Part0(p, pos, lm, lmR, lmL, r0);
 
 								if (q1 < 0)
 								{
 									ways.LogCount  = lm1;
 									ways.Records   = lm1R;
+									ways.Last      = lm1L;
 									if (ways.Built > lm1R) ways.Built = lm1R;
 									if (ways.AllBuilt > lm1R) { ways.AllBuilt = lm1R; ways.AllBuiltAt = lm1; }
 									ways.RefsCount = rr1;
@@ -2848,14 +2895,16 @@ namespace DotGram.Snapshots
 								var s2  = ways.Cursor;
 								var lm2  = ways.LogCount;
 								var lm2R = ways.Records;
+								var lm2L = ways.Last;
 								var rr2 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part1(p, pos, lm, lmR, r0);
+								q1 = Read_Small_Small_Part1(p, pos, lm, lmR, lmL, r0);
 
 								if (q1 < 0)
 								{
 									ways.LogCount  = lm2;
 									ways.Records   = lm2R;
+									ways.Last      = lm2L;
 									if (ways.Built > lm2R) ways.Built = lm2R;
 									if (ways.AllBuilt > lm2R) { ways.AllBuilt = lm2R; ways.AllBuiltAt = lm2; }
 									ways.RefsCount = rr2;
@@ -2869,14 +2918,16 @@ namespace DotGram.Snapshots
 								var s3  = ways.Cursor;
 								var lm3  = ways.LogCount;
 								var lm3R = ways.Records;
+								var lm3L = ways.Last;
 								var rr3 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part2(p, pos, lm, lmR, r0);
+								q1 = Read_Small_Small_Part2(p, pos, lm, lmR, lmL, r0);
 
 								if (q1 < 0)
 								{
 									ways.LogCount  = lm3;
 									ways.Records   = lm3R;
+									ways.Last      = lm3L;
 									if (ways.Built > lm3R) ways.Built = lm3R;
 									if (ways.AllBuilt > lm3R) { ways.AllBuilt = lm3R; ways.AllBuiltAt = lm3; }
 									ways.RefsCount = rr3;
@@ -2913,7 +2964,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part0(int pos, int start, int lmark, int lmarkR, int r0)
+			public int Read_Small_Small_Part0(int pos, int start, int lmark, int lmarkR, int lmarkL, int r0)
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
@@ -2932,7 +2983,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part1(int pos, int start, int lmark, int lmarkR, int r0)
+			public int Read_Small_Small_Part1(int pos, int start, int lmark, int lmarkR, int lmarkL, int r0)
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
@@ -2943,7 +2994,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part2(int pos, int start, int lmark, int lmarkR, int r0)
+			public int Read_Small_Small_Part2(int pos, int start, int lmark, int lmarkR, int lmarkL, int r0)
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
@@ -3008,6 +3059,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3019,6 +3071,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					if (ways.Built > lmR) ways.Built = lmR;
 					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
@@ -3089,6 +3142,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3100,6 +3154,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					if (ways.Built > lmR) ways.Built = lmR;
 					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
@@ -3117,6 +3172,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var q0 = Read_Small_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3134,6 +3190,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3145,6 +3202,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					if (ways.Built > lmR) ways.Built = lmR;
 					if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
 					ways.RefsCount = rb;
@@ -3162,6 +3220,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var q0 = Read_Small_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3250,6 +3309,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3288,18 +3350,27 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 2:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -3439,6 +3510,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3450,6 +3522,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -3497,6 +3570,7 @@ namespace DotGram.Snapshots
 					var s1  = ways.Cursor;
 					var lm1  = ways.LogCount;
 					var lm1R = ways.Records;
+					var lm1L = ways.Last;
 					var rr1 = ways.RefsCount;
 
 					q0 = Read_Call_Primary(p);
@@ -3505,6 +3579,7 @@ namespace DotGram.Snapshots
 					{
 						ways.LogCount  = lm1;
 						ways.Records   = lm1R;
+						ways.Last      = lm1L;
 						ways.RefsCount = rr1;
 					}
 
@@ -3516,6 +3591,7 @@ namespace DotGram.Snapshots
 					var s2  = ways.Cursor;
 					var lm2  = ways.LogCount;
 					var lm2R = ways.Records;
+					var lm2L = ways.Last;
 					var rr2 = ways.RefsCount;
 
 					q0 = Read_Number_Primary(p);
@@ -3524,6 +3600,7 @@ namespace DotGram.Snapshots
 					{
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
+						ways.Last      = lm2L;
 						ways.RefsCount = rr2;
 					}
 				}
@@ -3583,6 +3660,7 @@ namespace DotGram.Snapshots
 
 					var lm2  = ways.LogCount;
 					var lm2R = ways.Records;
+					var lm2L = ways.Last;
 					var rr2 = ways.RefsCount;
 					var q1 = -1;
 
@@ -3592,6 +3670,7 @@ namespace DotGram.Snapshots
 					{
 						ways.LogCount  = lm2;
 						ways.Records   = lm2R;
+						ways.Last      = lm2L;
 						ways.RefsCount = rr2;
 					}
 
@@ -3674,6 +3753,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3685,6 +3765,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -3715,6 +3796,7 @@ namespace DotGram.Snapshots
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -3726,6 +3808,7 @@ namespace DotGram.Snapshots
 
 					ways.LogCount  = lm;
 					ways.Records   = lmR;
+					ways.Last      = lmL;
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -3843,6 +3926,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3878,12 +3964,18 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("target names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException("a step of Call follows a reference to record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						live[log[read]] = true;
 						read++;
 						break;
@@ -4864,6 +4956,28 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int AllBuiltAt;
 
+
+			#if DOTGRAM_CHECKS
+
+			/// <summary>
+			/// How many records the parse has, for the walk to check a reference against as it follows it.
+			/// <b>Compiled only under <c>DOTGRAM_CHECKS</c>, which no project defines; not a supported
+			/// setting.</b>
+			/// </summary>
+			/// <remarks>
+			/// A reference must name a record this parse has. Checking it against the LENGTH of the liveness
+			/// array instead would be checking the symptom: that array only grows, so a thread whose earlier
+			/// parse was larger absorbs a bad reference and marks an unrelated record as reached, and a
+			/// thread whose array is still short throws. Thread-static for the same reason the stores are.
+			/// </remarks>
+			[global::System.ThreadStatic]
+			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
+			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
+			// initialiser runs for the first thread only, which for a zero default is what every other
+			// thread gets anyway.
+			internal static int CheckRecords = 0;
+
+			#endif
 
 			#if DOTGRAM_COUNTS
 

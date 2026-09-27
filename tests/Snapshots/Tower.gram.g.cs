@@ -471,6 +471,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -585,6 +586,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -667,6 +669,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -749,6 +752,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -831,6 +835,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -913,6 +918,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -995,6 +1001,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1077,6 +1084,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1159,6 +1167,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1241,6 +1250,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1323,6 +1333,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1405,6 +1416,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1487,6 +1499,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1569,6 +1582,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1651,6 +1665,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1733,6 +1748,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1815,6 +1831,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1897,6 +1914,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
+				var lmL = ways.Last;
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -2124,6 +2142,9 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
+			#if DOTGRAM_CHECKS
+			Ways.CheckRecords = ways.Records;
+			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2226,144 +2247,252 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 2:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 3:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 4:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 5:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 6:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 7:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 8:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 9:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 10:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 11:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 12:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 13:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 14:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 15:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 16:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 17:
 					{
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
+						#if DOTGRAM_CHECKS
+						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
+						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -3268,6 +3397,28 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int AllBuiltAt;
 
+
+			#if DOTGRAM_CHECKS
+
+			/// <summary>
+			/// How many records the parse has, for the walk to check a reference against as it follows it.
+			/// <b>Compiled only under <c>DOTGRAM_CHECKS</c>, which no project defines; not a supported
+			/// setting.</b>
+			/// </summary>
+			/// <remarks>
+			/// A reference must name a record this parse has. Checking it against the LENGTH of the liveness
+			/// array instead would be checking the symptom: that array only grows, so a thread whose earlier
+			/// parse was larger absorbs a bad reference and marks an unrelated record as reached, and a
+			/// thread whose array is still short throws. Thread-static for the same reason the stores are.
+			/// </remarks>
+			[global::System.ThreadStatic]
+			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
+			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
+			// initialiser runs for the first thread only, which for a zero default is what every other
+			// thread gets anyway.
+			internal static int CheckRecords = 0;
+
+			#endif
 
 			#if DOTGRAM_COUNTS
 

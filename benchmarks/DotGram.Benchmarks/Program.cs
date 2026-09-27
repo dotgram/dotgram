@@ -742,6 +742,15 @@ static class Program
 		// stopped. Every other test here was written beside the grammar it tests; this one
 		// was not. Without a path it reads the copy in `tests/Corpus/ScriptDom`, which is
 		// ScriptDom's own suite kept byte for byte. See Corpus.cs.
+		if (args.Length >= 1 && args[0] == "--corpus-all")
+		{
+			Corpus.RunAll(
+				args.Length >= 2 && !int.TryParse(args[1], out _) ? args[1] : null,
+				args.Length > 1 && int.TryParse(args[^1], out var many) ? many : 2);
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--corpus")
 		{
 			var named = args.Length >= 2 && !int.TryParse(args[1], out _);

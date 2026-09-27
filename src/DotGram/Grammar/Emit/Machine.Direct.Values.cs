@@ -858,6 +858,9 @@ sealed partial class Machine
 			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
 			// clearing from the start of the log each time was a pass over every record before it.
 			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
+			file.Line("#if DOTGRAM_CHECKS");
+			file.Line("Ways.CheckRecords = ways.Records;");
+			file.Line("#endif");
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
@@ -1560,6 +1563,9 @@ sealed partial class Machine
 			{
 				if (IsStep(rule, factory))
 				{
+					file.Line("#if DOTGRAM_CHECKS");
+					file.Line($"if (log[read] >= Ways.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException(\"a step of {rule.Name} follows a reference to record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+					file.Line("#endif");
 					file.Line("live[log[read]] = true;");
 					file.Line("read++;");
 				}
@@ -1591,7 +1597,12 @@ sealed partial class Machine
 
 			case MemberShape.Record:
 				if (!extent)
+				{
+					file.Line("#if DOTGRAM_CHECKS");
+					file.Line($"if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException(\"{member.Member.Name} names record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+					file.Line("#endif");
 					file.Line("if (log[read] >= 0) live[log[read]] = true;");
+				}
 
 				file.Line("read++;");
 				break;
@@ -1600,7 +1611,13 @@ sealed partial class Machine
 				if (!extent)
 				{
 					file.Line("for (var item = 0; item < log[read]; item++)");
-					file.Then("live[log[read + 1 + item]] = true;");
+					using (file.Block(""))
+					{
+						file.Line("#if DOTGRAM_CHECKS");
+						file.Line($"if (log[read + 1 + item] >= Ways.CheckRecords || log[read + 1 + item] < 0) throw new global::System.InvalidOperationException(\"{member.Member.Name}[\" + item + \"] names record \" + log[read + 1 + item] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+						file.Line("#endif");
+						file.Line("live[log[read + 1 + item]] = true;");
+					}
 				}
 
 				file.Line("read += 1 + log[read];");

@@ -2139,6 +2139,28 @@ public static partial class CSharpEmitter
 
 			// </marks>
 
+			#if DOTGRAM_CHECKS
+
+			/// <summary>
+			/// How many records the parse has, for the walk to check a reference against as it follows it.
+			/// <b>Compiled only under <c>DOTGRAM_CHECKS</c>, which no project defines; not a supported
+			/// setting.</b>
+			/// </summary>
+			/// <remarks>
+			/// A reference must name a record this parse has. Checking it against the LENGTH of the liveness
+			/// array instead would be checking the symptom: that array only grows, so a thread whose earlier
+			/// parse was larger absorbs a bad reference and marks an unrelated record as reached, and a
+			/// thread whose array is still short throws. Thread-static for the same reason the stores are.
+			/// </remarks>
+			[global::System.ThreadStatic]
+			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
+			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
+			// initialiser runs for the first thread only, which for a zero default is what every other
+			// thread gets anyway.
+			internal static int CheckRecords = 0;
+
+			#endif
+
 			#if DOTGRAM_COUNTS
 
 			/// <summary>
