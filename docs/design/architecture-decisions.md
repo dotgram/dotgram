@@ -9601,8 +9601,10 @@ bounds on shared runners failed at 1.13-1.69 on linear readings, and a clock wit
 enough to hold is blind to what it guards (584a7c1f went unnoticed that way). A count of emitted
 machinery needs a field in emitted code, and a consumer must not carry one for our benefit.
 
-- The support text (`Ways`, Support) writes its counters inside `#if DOTGRAM_COUNTS`. Never per
-  rule. A consumer compiles none of it: no field, no increment.
+- The support text (`Ways`, Support) and the emitted walk of each machine write their counters
+  inside `#if DOTGRAM_COUNTS`: a fixed handful per machine, never per rule. The walk is included
+  because the square that asked for this (the marks replayed from the log's start, b09d95aa) lived
+  there, and a `Ways`-only count was flat on it (performance-9f). A consumer compiles none of it.
 - Not a generator option: nothing in `[Gram]`, no MSBuild property, nothing documented as a feature.
   The field's XML doc says it is compiled only under that symbol, which the repository's tests
   define, and is not a supported setting.
@@ -9611,8 +9613,9 @@ machinery needs a field in emitted code, and a consumer must not carry one for o
   shipped one. A counting gate compiles its own parser from the same grammar in the test
   (`GramCompiler.Compile` + `EmittedCode.Compile`, as `MarkJournalTests` does) with the symbol set:
   a count is a function of grammar and generator, so it counts what the shipped parser does.
-  DotGram.Compatibility builds once with the symbol so the counted variant cannot rot; the shipped
-  packages never see it.
+  DotGram.Compatibility builds once with the symbol, in a CI row, through a `DotGramCounts` property
+  its csproj turns into the symbol (a global DefineConstants would clobber the framework's), so the
+  counted variant cannot rot; the shipped packages never see it.
 - Hand-written code (the expression language's `State.Places`) carries its counter always, as a
   chosen cost written beside it: 8 bytes a reading (ae2045d8).
 
