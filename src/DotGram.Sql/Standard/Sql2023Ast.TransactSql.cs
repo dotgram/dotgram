@@ -350,7 +350,7 @@ public abstract record FileGroupChange : ISqlNode
 	/// <c>READONLY</c> and <c>READ_ONLY</c>, <c>READWRITE</c> and <c>READ_WRITE</c>. The underscore is a
 	/// spelling, so it is kept as a flag, as <c>Exclamation</c> is for <c>!=</c>.
 	/// </remarks>
-	public sealed record Updatability(FileGroupUpdatability Kind, bool Underscored) : FileGroupChange;
+	public sealed record Updatability(FileGroupUpdatability Kind, [property: Spelling] bool Underscored) : FileGroupChange;
 
 	/// <summary><c>DEFAULT</c>, which takes nothing.</summary>
 	public sealed record Default : FileGroupChange;

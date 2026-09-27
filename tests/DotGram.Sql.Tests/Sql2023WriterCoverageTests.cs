@@ -177,6 +177,71 @@ public sealed class Sql2023WriterCoverageTests
 		Assert.Contains("\"", Sql2023Writer.Write(claims["IdentifierStyle"].Two), StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// That every spelling the tree keeps reaches the text, and that a flag joins this check by being a
+	/// flag rather than by anyone remembering to add a row.
+	/// </summary>
+	/// <remarks>
+	/// The pairs are found by reflection over the properties marked <c>[Spelling]</c>, and the test
+	/// refuses to pass while a marked property has no pair here — so adding a flag and forgetting it is a
+	/// failure, not a gap. What is asserted of each is total: either the writer does not take the node at
+	/// all yet, and both spellings raise its <c>NotSupportedException</c>, or it takes it and the two must
+	/// differ. The one case that fails is the one that matters — written, and the spelling lost.
+	/// </remarks>
+	[Fact]
+	public void Every_spelling_flag_reaches_the_text()
+	{
+		var pairs = new Dictionary<string, (ISqlNode Off, ISqlNode On)>(StringComparer.Ordinal)
+		{
+			["Comparison.Exclamation"] = (
+				new Expression.Comparison(A, ComparisonOperator.NotEqual, B),
+				new Expression.Comparison(A, ComparisonOperator.NotEqual, B, Exclamation: true)),
+			["Character.Max"] = (
+				new DataType.Character(CharacterTypeKind.Varchar),
+				new DataType.Character(CharacterTypeKind.Varchar, Max: true)),
+			["Binary.Max"] = (
+				new DataType.Binary(BinaryTypeKind.Varbinary),
+				new DataType.Binary(BinaryTypeKind.Varbinary, Max: true)),
+			["Updatability.Underscored"] = (
+				new FileGroupChange.Updatability(FileGroupUpdatability.ReadOnly, false),
+				new FileGroupChange.Updatability(FileGroupUpdatability.ReadOnly, true)),
+		};
+
+		var marked = typeof(Statement).Assembly.GetTypes()
+			.SelectMany(one => one.GetProperties())
+			.Where(one => one.GetCustomAttributesData()
+				.Any(attribute => attribute.AttributeType.Name == "SpellingAttribute"))
+			.Select(one => one.DeclaringType!.Name + "." + one.Name)
+			.Distinct(StringComparer.Ordinal)
+			.OrderBy(one => one, StringComparer.Ordinal)
+			.ToList();
+
+		Assert.Equal(marked, pairs.Keys.OrderBy(one => one, StringComparer.Ordinal));
+
+		foreach (var (name, pair) in pairs)
+		{
+			var off = Written(pair.Off);
+			var on  = Written(pair.On);
+
+			Assert.True(
+				(off is null && on is null) || off != on,
+				name + ": the writer takes the node and writes the same text either way, so the spelling is lost");
+		}
+	}
+
+	/// <summary>What the writer makes of a node, or null where it does not take the node at all.</summary>
+	static string? Written(ISqlNode node)
+	{
+		try
+		{
+			return Sql2023Writer.Write(node);
+		}
+		catch (NotSupportedException)
+		{
+			return null;
+		}
+	}
+
 	[Theory]
 	[InlineData("Max on a character type")]
 	[InlineData("Max on a binary type")]

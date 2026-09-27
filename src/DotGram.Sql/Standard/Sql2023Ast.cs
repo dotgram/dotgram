@@ -14,6 +14,27 @@ namespace DotGram.Sql.Ast;
 /// </remarks>
 public interface ISqlNode : ISqlSpan;
 
+/// <summary>
+/// Marks a property that records WHICH of two spellings was written, where the reference publishes two
+/// words for one meaning.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The tree keeps one node for one meaning and the spelling beside it, so that a round trip gives the
+/// text back as written: <c>!=</c> against <c>&lt;&gt;</c>, <c>MAX</c> against a number,
+/// <c>READ_ONLY</c> against <c>READONLY</c>, <c>PROC</c> against <c>PROCEDURE</c>. Without the flag the
+/// two spellings are one tree and the writer has to pick one, which loses the other.
+/// </para>
+/// <para>
+/// It is here so that the check can find them. <c>Sql2023WriterCoverageTests</c> asks of every property
+/// marked this way that turning it on changes what the writer prints, and refuses to pass while one of
+/// them has no such row — so a flag added later joins the check by being a flag rather than by anyone
+/// remembering it. Internal, so it is not part of what a consumer sees; the test reads it by name.
+/// </para>
+/// </remarks>
+[AttributeUsage(AttributeTargets.Property)]
+internal sealed class SpellingAttribute : Attribute;
+
 // Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
 public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
@@ -640,7 +661,7 @@ public abstract partial record Expression : ISqlNode
 	// `NotEqual` written with `!`; `!<` and `!>` are operators of their own, `NotLess` and
 	// `NotGreater`. A spelling is kept as a flag beside the value here as `Trigraphs` is on
 	// `AssignmentTarget`, so one meaning stays one operator and the text still writes back.
-	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, bool Exclamation = false) : Expression;
+	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, [property: Spelling] bool Exclamation = false) : Expression;
 	public record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
 	public record In(Expression Value, bool Not, InSource SourceValue) : Expression;
 
@@ -874,10 +895,10 @@ public abstract record DataType : ISqlNode
 
 	// T-SQL: char and varchar, nchar and nvarchar (Transact-SQL). `Max` is the length written as
 	// `MAX`, and `Length` is null where it is set.
-	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, bool Max = false) : DataType;
+	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
 	// T-SQL: binary and varbinary (Transact-SQL). `Max` is the length written as `MAX`, and
 	// `Length` is null where it is set.
-	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, bool Max = false) : DataType;
+	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
 	public record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
 	public record Boolean : DataType;
 	public record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;

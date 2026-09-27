@@ -73,6 +73,14 @@ is open until it is built, and `status.md` is what will say when it has been.
       the record carries the text, as `LiteralValue.Numeric` does and as `Identifier` does with its
       delimiters. That exception is named in `Sql2023WriterCoverageTests` **and asserted** — change the
       text, the output must change — so it cannot excuse a real defect by describing one.
+    - **Where the reference publishes two words for one meaning, the tree keeps which was written.** One
+      node for the meaning and a flag beside it, marked `[Spelling]`, because the round trip has to give
+      the text back as written. Three instances found in two days, which is why it is a rule and not a
+      case: `Exclamation` for `!=` against `<>`, `Max` for `MAX` against a number, and `PROC` against
+      `PROCEDURE` on `DropRoutine`. `Underscored` on `FileGroupChange.Updatability` is the fourth, for
+      `READ_ONLY` against `READONLY`. The attribute is what puts a flag into the check: the writer test
+      asks of every property marked with it that the two spellings do not write the same text, and fails
+      while a marked one has no case — so a flag joins by being a flag, not by being remembered.
     - **The gate is the output, not the source.** A check that reads the writer for catch-alls passes
       on `Word(op == UnaryOperator.Minus ? "-" : "+")`, which wrote `~` as `+`. Walk the values
       through `Write` and compare what comes out.
