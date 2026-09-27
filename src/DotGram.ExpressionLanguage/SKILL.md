@@ -91,6 +91,9 @@ in a helper that lives in another assembly: the helper's assembly is the one the
 - A `using` names a namespace, or gives a name to one type or one namespace:
   `using L = System.Collections.Generic.List<int>;` and `using C = System.Collections.Generic;`.
   A closed generic may be named, an open one may not, as in C#.
+- **An alias beats a name a `using` brings in**, silently, as in C#; it may not take a name the
+  global namespace already has, and that is refused where the alias is WRITTEN rather than where
+  the name is used. One name given two meanings is refused.
 - `using static System.Math;` brings that type's static methods into reach as bare names
   (`Abs(-2)`) and its extension methods into the extension search. A name the text DECLARED wins
   over one a `using static` gives — a local delegate called as `f(x)` is called even where a
@@ -103,9 +106,6 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   in scope is ambiguous where a VALUE is wanted and is the type where a type is wanted — which
   is C#'s answer, and two different diagnostics there (CS0104 and CS0229).
 - `static` is a keyword here, as it is in C#, so nothing may be named it.
-- **An alias beats a name a `using` brings in**, silently, as in C#; it may not take a name the
-  global namespace already has, and that is refused where the alias is WRITTEN rather than where
-  the name is used. One name given two meanings is refused.
 - A `using` written twice is the same `using`, and nothing is said about it. C# warns there
   (CS0105); this language has no warnings channel, so it is silent — a deliberate difference.
 - **A name the global namespace declares wins over one a `using` brings in**, as in C#: a

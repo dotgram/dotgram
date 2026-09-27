@@ -71,18 +71,25 @@ new project gets: `System`, `System.Collections.Generic`, `System.Linq`, `System
 `System.Threading.Tasks` — and a text's own `using`s are its own, so the next text starts
 with those five again and nothing more. `ResolutionScope.DefaultImports` names them, and
 `ResolutionScope.WithoutDefaultImports()` is a scope that leaves them out. A `using` may also
-give a name to one type or one namespace (`using L = System.Collections.Generic.List<int>;`).
-What a text can name is what C# written in the calling assembly could: public types, and that
-assembly's own internal types and members.
+give a name to one type or one namespace (`using L = System.Collections.Generic.List<int>;`),
+or bring a type's static members, nested types and extension methods into reach as bare names
+(`using static System.Math; () => Abs(-2)`). A name the text itself declares wins over one a
+`using static` gives, as in C#; and `static` is a keyword here, as it is in C#, so nothing may
+be named it. What a text can name is what C# written in the calling assembly could: public
+types, and that assembly's own internal types and members.
 
 ```csharp
 using System.Collections.Generic;
 
-var count = ExpressionParser.Compile<Func<IList<int>, int>>(
-    """
-    using System.Collections.Generic;
+// `System.Collections.Generic` is one of the five, so the text needs no `using` of its own.
+var count = ExpressionParser.Compile<Func<IList<int>, int>>("(IList<int> l) => l.Count");
 
-    (IList<int> l) => l.Count
+// One it does not get, it says itself.
+var named = ExpressionParser.Compile<Func<string>>(
+    """
+    using System.Globalization;
+
+    () => CultureInfo.InvariantCulture.Name
     """);
 ```
 
