@@ -2221,18 +2221,43 @@ static partial class Stand
 		return watch.Elapsed.TotalMilliseconds * 1e6 / iterations;
 	}
 
+	/// <summary>
+	/// Warmed the same way <see cref="WarmUntilStable"/> warms the timing reading, and for the
+	/// same reason: allocation itself differs between JIT tiers (boxing and closures tier 0
+	/// keeps and tier 1 removes), and a single warm-up call left this reading at whatever tier
+	/// the background compiler had reached when this row's turn came — which depends on how
+	/// many OTHER rows' methods were queued ahead of it in the same process, not on this row's
+	/// own call count. A run of many rows and a run of one row read the same call at two
+	/// different tiers this way: `el/untyped`, 2026-09-27, 16,232 B in a run of forty-odd rows
+	/// against 24,512 B measured alone (architect, chasing a "step" in that column across two
+	/// yardstick runs that turned out to be this, not a product change). Warmed to two
+	/// consecutive samples agreeing within 5%, capped the same as <see cref="WarmUntilStable"/>.
+	/// </summary>
 	static double Allocated(Func<int> run)
 	{
 		const int calls = 64;
 
-		_sink += run();
+		var watch    = Stopwatch.StartNew();
+		var previous = double.NaN;
+		var sample   = 0.0;
 
-		var before = GC.GetAllocatedBytesForCurrentThread();
+		do
+		{
+			var before = GC.GetAllocatedBytesForCurrentThread();
 
-		for (var i = 0; i < calls; i++)
-			_sink += run();
+			for (var i = 0; i < calls; i++)
+				_sink += run();
 
-		return (GC.GetAllocatedBytesForCurrentThread() - before) / (double)calls;
+			sample = (GC.GetAllocatedBytesForCurrentThread() - before) / (double)calls;
+
+			if (!double.IsNaN(previous) && (sample == previous || Math.Abs(sample - previous) / ((sample + previous) / 2) <= 0.05))
+				return sample;
+
+			previous = sample;
+		}
+		while (watch.Elapsed.TotalSeconds < WarmupCapSeconds);
+
+		return sample;
 	}
 
 	const int ControlIterations = 200_000;

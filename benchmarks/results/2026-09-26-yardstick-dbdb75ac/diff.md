@@ -25,7 +25,32 @@ Every row's HAND baseline rose 12-176%; most rows' GENERATED (tape/immediate) ti
 
 Checked, not guessed: `git diff --stat 46dec223 dbdb75ac -- examples/DotGram.Handwritten` shows `HandExpression.cs | 110 +++++++++++++++++++---` (97 insertions, 13 deletions) and nothing else in that directory changed (`HandSqlStandard.cs`, the FIX and Web hand parsers: untouched). `src/DotGram.ExpressionLanguage` grew a new 317-line `ResolutionScope.cs` and substantial changes to `Names.cs`, `MemberResolver.cs`, `Overloads.cs`, `Caches.cs`, matching the commit range's own D146 work (`using static`, default namespaces, name scopes — see `45a28953`, `864fedbe`, `7f64378c`, `8b1a41a2`, `a3289437`, `55ae0752`, `74bb9d95`). **`HandExpression.cs` was updated to support the same language growth, and that support costs something on every parse — even `el/floor` (`(int x) => x`, using none of it) pays 120% more.** This is a real, intentional cost of a real feature addition, not a regression to chase, but it means the EL before/after in this window compares two different language surfaces, not the same surface measured twice: the 46dec223 hand parser predates default-namespace/using-static support entirely.
 
-**What is trustworthy here and worth carrying forward is the three generated-side absolute regressions** (`el/try`, `el/overloads`, `el/untyped`), which moved on their own axis independent of the hand-side story and are not explained by anything above — `el/untyped`'s allocation also grew (`base-B` 16232 → 26112, before to after, +61%). Worth a look by whoever owns D146, not by the stand.
+**What is trustworthy here and worth carrying forward is the three generated-side absolute regressions** (`el/try`, `el/overloads`, `el/untyped`), which moved on their own axis independent of the hand-side story and are not explained by anything above. The ns columns above are unaffected by the correction below (`Allocated()` only ever touched the `B` columns); do not re-read the +35.2%/+57.2%/+33.8% figures because of it.
+
+**Correction, 2026-09-27 (architect, chasing the `el/untyped` byte swing quoted in the paragraph above until this edit): every B column in this diff.md and in both windows' `stand.md` is unreliable, and the sentence this replaced was wrong to call `el/untyped`'s +61% a product change.** `Stand.cs`'s `Allocated()` warmed a reading with exactly one call before measuring 64 more and taking the GC-diff — no convergence check, unlike the ns reading's `WarmUntilStable`. Allocation itself differs between JIT tiers (tier 0 keeps boxing and closures that tier 1 removes), and in a run of ~90 rows the background compiler's queue of methods waiting for tier-1 promotion is long enough that a fast row's `Allocated()` call can complete its 64 calls and take its reading before its own method is promoted — while the SAME row's *timing* reading, warmed by convergence over many more calls across many rounds, safely lands in tier 1. Two runs of the same commit can therefore read two different, both-real tiers of the same method, with no code change anywhere.
+
+Fixed: `Allocated()` now warms to two consecutive 64-call samples agreeing within 5%, the same convergence `WarmUntilStable` already used for timing (`Stand.cs`, 2026-09-27). Proved: `el/untyped` read twice, two separate processes, one commit (this worktree's HEAD, `--stand --only el/untyped` each time) — hand B 24,376 and tape/immediate B 24,568 in *both* runs, to the byte. Before the fix, the same row read 16,232/16,392 in the 46dec223 window and 26,112/24,600 in the dbdb75ac window: both wrong, on opposite sides of the true ~24.4-24.6K figure (independently corroborated by expr's own domain, per-parse bytes through public `TryParse`, five commits spanning this range, flat at 24,352-25,128 the whole time).
+
+**Which rows are affected: every `el/` row in both windows, not only `el/untyped`.** Pulling hand-B and tape-B for all twelve from the two `stand.md` files shows the same erratic, sign-inconsistent pattern the fix explains and untyped's isolated proof rules out as a product effect:
+
+| row | hand B before→after | hand Δ | tape B before→after | tape Δ |
+| --- | --- | ---: | --- | ---: |
+| el/floor | 1056→1256 | +18.9% | 1000→912 | -8.8% |
+| el/ladder | 1744→2872 | +64.7% | 1840→1528 | -17.0% |
+| el/nest7 | 1056→1832 | +73.5% | 1552→1464 | -5.7% |
+| el/block | 2296→2912 | +26.8% | 2288→2072 | -9.4% |
+| el/try | 4456→8568 | +92.3% | 4472→5864 | +31.1% |
+| el/loop | 4224→6328 | +49.8% | 4816→4632 | -3.8% |
+| el/overloads | 3992→7472 | +87.2% | 4192→5744 | +37.0% |
+| el/string | 1144→1248 | +9.1% | 952→1056 | +10.9% |
+| el/interpolation | 2336→2632 | +12.7% | 2336→2056 | -12.0% |
+| el/untyped | 16232→26112 | +60.9% | 16392→24600 | +50.1% |
+| el/refused-early | 1056→1256 | +18.9% | 936→752 | -19.7% |
+| el/refused-late | 2264→2464 | +8.8% | 936→752 | -19.7% |
+
+No consistent sign, let alone a consistent size — a real, uniform per-parse cost from D146 would not make `el/interpolation`'s tape allocation fall 12% while `el/try`'s rises 31% in the same window. **None of these twelve numbers, on either side, should be read as a product effect**, including the three "generated-side regressions" named at the top of this section as trustworthy on the **ns** axis — that word does not extend to their B columns, which this correction withdraws.
+
+**FIX, Web and SQL:2023's B columns, by contrast, are identical byte-for-byte between the two windows on every row checked** (`fix/One.text` 264/136, `web/url.plain` 152/296, `sql/nest8` 5976/6528, and others — spot-checked, not exhaustive). This is consistent with the mechanism rather than a second, unrelated finding: those rows' calls take far longer than EL's (hundreds to thousands of ns against EL's tens to low thousands), so the same 64-call sample gives the background tiering compiler enough wall-clock time to promote the method before `Allocated()` finishes — EL's rows are exactly the ones fast enough for tiering to still be catching up. The families outside EL are not separately flagged as needing re-measurement; EL is.
 
 ## The other unexplained swing, now explained (the architect)
 
