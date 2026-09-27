@@ -2326,6 +2326,14 @@ public static class HandExpression
 		{
 			type = null;
 
+			// C#'s order, which the grammar has had since 723b7af8 and this did not: a name that
+			// binds a local, a parameter or anything else the text declared IS that, and is never
+			// looked up as a type. Without it this reader asked the type tables about every `x` it
+			// met — six lookups for `(int x) => x` where the grammar asks none, and eighteen for a
+			// short chain of arithmetic. Each of those is one question per namespace in scope, so
+			// the five a text now gets by default multiplied it by six and the hand-written parser,
+			// which is the yardstick every generated reading is held to, more than doubled
+			// (2026-09-26: `(int x) => x` 648 ns to 1,342, the generated reading unmoved).
 			// Every word of the dotted name, so that the longest one can be asked about first
 			// and the tail given back where it names nothing: `Math.PI` is `Math` and a member
 			// of it, and only asking says so.
@@ -2333,6 +2341,13 @@ public static class HandExpression
 
 			while (Kind(last + 1) == Dot && Kind(last + 2) == Identifier)
 				last += 2;
+
+			// The head binds a name the text declared, so this is no type — and the refusal is
+			// recorded where the walk below would have recorded it, past the whole dotted name,
+			// or the two readers of this language answer different positions for a truncated text
+			// (`(bool a, bool b, b`).
+			if (Kind(i) == Identifier && _context.Binds(Cut(i), Span(i, i + 1)))
+				return Refuse(last + 1);
 
 			for (; last >= i; last -= 2)
 			{
