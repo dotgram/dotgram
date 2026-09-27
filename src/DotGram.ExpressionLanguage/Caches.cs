@@ -129,4 +129,18 @@ public static partial class ExpressionParser
 	static readonly ConcurrentDictionary<(Type, string, ResolutionScope), MemberInfo?> _staticMembersAbsent = new();
 
 	static readonly ConcurrentDictionary<(Type, Type), MethodInfo?> _operators = new();
+
+	// What a dotted name means inside a namespace, which is asked of every import at every name
+	// a text writes and answers the same every time. Working it out builds a string per prefix
+	// tried and another per namespace — `System` + "." + `Math.Max`, and again for the shorter
+	// prefixes — so the answer is kept and a repeated question builds nothing at all. Keyed by
+	// the PARTS, so asking costs no string either.
+	//
+	// A text of two type names under five namespaces asked this twenty times and built twenty-four
+	// strings (2026-09-27, the stand's el/try row).
+
+	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type?> _qualified = new();
+
+	/// <summary>The same, for the names of that shape that are not there.</summary>
+	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type?> _qualifiedAbsent = new();
 }

@@ -55,6 +55,17 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static Type? Qualified(string? space, string dotted, ResolutionScope scope)
 	{
+		// Kept, because every import is asked about every name a text writes and the answer cannot
+		// change under a scope. The key is the three parts and not the name they make, so a question
+		// that has been asked costs a lookup and builds nothing; the walk below is what builds.
+		return Cached(
+			_qualified, _qualifiedAbsent, (space, dotted, scope),
+			static key => Walked(key.Item1, key.Item2, key.Item3), Nothing);
+	}
+
+	/// <summary>The same question, worked out: the longest prefix that is a type, then what is nested.</summary>
+	static Type? Walked(string? space, string dotted, ResolutionScope scope)
+	{
 		var end = dotted.Length;
 
 		while (true)
