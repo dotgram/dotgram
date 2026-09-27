@@ -65,7 +65,10 @@ def pairs():
 
 
 def written(named):
-    rows = CR.join('\t\t"%s|%s",' % pair for pair in sorted(named))
+    # Joined with a bare newline, because the whole text is converted to CRLF once at the end: joining
+    # with CRLF here put a second carriage return on every one of these 299 lines, which the compiler
+    # did not mind and git showed as 298 changed lines the moment it normalized the file.
+    rows = '\n'.join('\t\t"%s|%s",' % pair for pair in sorted(named))
 
     return HEAD.replace('@ROWS@', rows).replace('@COUNT@', str(len(named))).replace('\n', CR)
 
