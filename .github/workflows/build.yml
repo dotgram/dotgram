@@ -83,6 +83,13 @@ jobs:
           name: nupkg
           path: artifacts/*.nupkg
 
+      # The counters of D144 sit behind a symbol no shipped project defines, so the build
+      # above never compiles them. This compiles them once, on all three of Compatibility's
+      # targets and at its C# 8 floor, so that the counted variant cannot rot unseen. Last,
+      # because it builds over bin/Release, which nothing after it reads.
+      - name: The counted variant compiles
+        run: dotnet build tests/DotGram.Compatibility/DotGram.Compatibility.csproj --configuration Release -p:DotGramCounts=true -warnaserror
+
   # The development machine is Windows and CI is not, which is the arrangement that
   # hides a path separator or a line ending until somebody else clones the repository.
   # This does not prove what the job above proves. It is the only one that builds the
