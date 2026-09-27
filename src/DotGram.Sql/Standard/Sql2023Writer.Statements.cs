@@ -125,7 +125,7 @@ public static partial class Sql2023Writer
 					PutQuery(view.Query);
 
 					if (view.CheckOption is { } check)
-						Word(check switch { CheckOption.Cascaded => "WITH CASCADED CHECK OPTION", CheckOption.Local => "WITH LOCAL CHECK OPTION", _ => "WITH CHECK OPTION" });
+						Word(check switch { CheckOption.Cascaded => "WITH CASCADED CHECK OPTION", CheckOption.Local => "WITH LOCAL CHECK OPTION", CheckOption.Unqualified => "WITH CHECK OPTION", _ => throw NoText(check) });
 
 					break;
 
@@ -553,7 +553,7 @@ public static partial class Sql2023Writer
 
 				case Statement.DropRoutine drop:
 					Word("DROP");
-					Each(drop.Routines, PutDesignator);
+					Each(drop.Routines, one => PutDesignator(one, drop.Proc));
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -634,7 +634,7 @@ public static partial class Sql2023Writer
 		void PutGeneration(ReferenceGeneration? generation)
 		{
 			if (generation is { } one)
-				Word(one switch { ReferenceGeneration.SystemGenerated => "SYSTEM GENERATED", ReferenceGeneration.UserGenerated => "USER GENERATED", _ => "DERIVED" });
+				Word(one switch { ReferenceGeneration.SystemGenerated => "SYSTEM GENERATED", ReferenceGeneration.UserGenerated => "USER GENERATED", ReferenceGeneration.Derived => "DERIVED", _ => throw NoText(one) });
 		}
 
 		// ── §11.3 Tables, columns and constraints ──────────────────────────────────
@@ -709,7 +709,8 @@ public static partial class Sql2023Writer
 							LikeOption.IncludingDefaults  => "INCLUDING DEFAULTS",
 							LikeOption.ExcludingDefaults  => "EXCLUDING DEFAULTS",
 							LikeOption.IncludingGenerated => "INCLUDING GENERATED",
-							_                             => "EXCLUDING GENERATED",
+							LikeOption.ExcludingGenerated                             => "EXCLUDING GENERATED",
+							_                             => throw NoText(option),
 						});
 
 					break;
@@ -907,7 +908,7 @@ public static partial class Sql2023Writer
 			}
 
 			if (references.Match is { } match)
-				Word(match switch { MatchType.Full => "MATCH FULL", MatchType.Partial => "MATCH PARTIAL", _ => "MATCH SIMPLE" });
+				Word(match switch { MatchType.Full => "MATCH FULL", MatchType.Partial => "MATCH PARTIAL", MatchType.Simple => "MATCH SIMPLE", _ => throw NoText(match) });
 
 			if (references.DeleteRuleFirst)
 			{
@@ -933,7 +934,8 @@ public static partial class Sql2023Writer
 				ReferentialAction.SetNull    => "SET NULL",
 				ReferentialAction.SetDefault => "SET DEFAULT",
 				ReferentialAction.Restrict   => "RESTRICT",
-				_                            => "NO ACTION",
+				ReferentialAction.NoAction                            => "NO ACTION",
+				_                            => throw NoText(one),
 			});
 		}
 
@@ -1185,7 +1187,9 @@ public static partial class Sql2023Writer
 						PrivilegeKind.Usage      => "USAGE",
 						PrivilegeKind.Trigger    => "TRIGGER",
 						PrivilegeKind.Under      => "UNDER",
-						_                        => "EXECUTE",
+						PrivilegeKind.Execute    => "EXECUTE",
+						// AllPrivileges is written by the branch above, where it is the whole list.
+						_                        => throw NoText(privilege.Kind),
 					});
 
 					if (privilege.Columns.Count > 0)
@@ -1197,7 +1201,7 @@ public static partial class Sql2023Writer
 					else if (privilege.Methods.Count > 0)
 					{
 						Open();
-						Each(privilege.Methods, PutDesignator);
+						Each(privilege.Methods, one => PutDesignator(one));
 						Close();
 					}
 				});
@@ -1224,7 +1228,9 @@ public static partial class Sql2023Writer
 						PrivilegeObjectKind.CharacterSet => "CHARACTER SET",
 						PrivilegeObjectKind.Translation  => "TRANSLATION",
 						PrivilegeObjectKind.Type         => "TYPE",
-						_                                => "SEQUENCE",
+						PrivilegeObjectKind.Sequence     => "SEQUENCE",
+						// Table and Routine are the cases above this default.
+						_                                => throw NoText(on.Kind),
 					});
 					break;
 			}
@@ -1252,8 +1258,8 @@ public static partial class Sql2023Writer
 		{
 			Word("CREATE TRIGGER");
 			PutName(trigger.Name);
-			Word(trigger.Time switch { TriggerTime.Before => "BEFORE", TriggerTime.After => "AFTER", _ => "INSTEAD OF" });
-			Word(trigger.Event.Kind switch { TriggerEventKind.Insert => "INSERT", TriggerEventKind.Delete => "DELETE", _ => "UPDATE" });
+			Word(trigger.Time switch { TriggerTime.Before => "BEFORE", TriggerTime.After => "AFTER", TriggerTime.InsteadOf => "INSTEAD OF", _ => throw NoText(trigger.Time) });
+			Word(trigger.Event.Kind switch { TriggerEventKind.Insert => "INSERT", TriggerEventKind.Delete => "DELETE", TriggerEventKind.Update => "UPDATE", _ => throw NoText(trigger.Event.Kind) });
 
 			if (trigger.Event.Columns.Count > 0)
 			{
@@ -1368,7 +1374,7 @@ public static partial class Sql2023Writer
 		void PutModifier(MethodModifier? modifier)
 		{
 			if (modifier is { } one)
-				Word(one switch { MethodModifier.Instance => "INSTANCE", MethodModifier.Static => "STATIC", _ => "CONSTRUCTOR" });
+				Word(one switch { MethodModifier.Instance => "INSTANCE", MethodModifier.Static => "STATIC", MethodModifier.Constructor => "CONSTRUCTOR", _ => throw NoText(one) });
 		}
 
 		void PutParameters(IReadOnlyList<ParameterDefinition> parameters)
@@ -1377,7 +1383,7 @@ public static partial class Sql2023Writer
 			Each(parameters, parameter =>
 			{
 				if (parameter.Mode is { } mode)
-					Word(mode switch { ParameterMode.In => "IN", ParameterMode.Out => "OUT", _ => "INOUT" });
+					Word(mode switch { ParameterMode.In => "IN", ParameterMode.Out => "OUT", ParameterMode.InOut => "INOUT", _ => throw NoText(mode) });
 
 				if (parameter.Name is { } name)
 					PutIdentifier(name);
@@ -1472,7 +1478,8 @@ public static partial class Sql2023Writer
 						SqlDataAccess.NoSql        => "NO SQL",
 						SqlDataAccess.ContainsSql  => "CONTAINS SQL",
 						SqlDataAccess.ReadsSqlData => "READS SQL DATA",
-						_                          => "MODIFIES SQL DATA",
+						SqlDataAccess.ModifiesSqlData                          => "MODIFIES SQL DATA",
+						_                          => throw NoText(access.Value),
 					});
 					break;
 
@@ -1539,7 +1546,8 @@ public static partial class Sql2023Writer
 						{
 							ExternalSecurity.Definer => "EXTERNAL SECURITY DEFINER",
 							ExternalSecurity.Invoker => "EXTERNAL SECURITY INVOKER",
-							_                        => "EXTERNAL SECURITY IMPLEMENTATION DEFINED",
+							ExternalSecurity.ImplementationDefined                        => "EXTERNAL SECURITY IMPLEMENTATION DEFINED",
+							_                        => throw NoText(externalSecurity),
 						});
 
 					break;
@@ -1570,7 +1578,9 @@ public static partial class Sql2023Writer
 			PutDesignator(designator);
 		}
 
-		void PutDesignator(RoutineDesignator designator)
+		// `proc` is T-SQL's `DROP PROC` against `DROP PROCEDURE`: the reference publishes two words for
+		// one statement, so which was written is the caller's to say and this prints it.
+		void PutDesignator(RoutineDesignator designator, bool proc = false)
 		{
 			if (designator.SpecificKeyword)
 				Word("SPECIFIC");
@@ -1578,7 +1588,14 @@ public static partial class Sql2023Writer
 			if (designator.Kind == RoutineKind.Method)
 				PutModifier(designator.MethodModifier);
 
-			Word(designator.Kind switch { RoutineKind.Routine => "ROUTINE", RoutineKind.Function => "FUNCTION", RoutineKind.Procedure => "PROCEDURE", _ => "METHOD" });
+			Word(designator.Kind switch
+			{
+				RoutineKind.Routine   => "ROUTINE",
+				RoutineKind.Function  => "FUNCTION",
+				RoutineKind.Procedure => proc ? "PROC" : "PROCEDURE",
+				RoutineKind.Method    => "METHOD",
+				_                     => throw NoText(designator.Kind),
+			});
 			PutName(designator.Name);
 
 			if (designator.ParameterTypes is { } types)
@@ -1655,7 +1672,8 @@ public static partial class Sql2023Writer
 							UserTypeCastKind.ToRef      => "SOURCE AS REF",
 							UserTypeCastKind.ToDistinct => "SOURCE AS DISTINCT",
 							UserTypeCastKind.ToType     => "REF AS SOURCE",
-							_                           => "DISTINCT AS SOURCE",
+							UserTypeCastKind.ToSource                           => "DISTINCT AS SOURCE",
+							_                           => throw NoText(cast.Kind),
 						});
 						Close();
 						Word("WITH");
@@ -1736,7 +1754,8 @@ public static partial class Sql2023Writer
 							FetchOrientationKind.First    => "FIRST",
 							FetchOrientationKind.Last     => "LAST",
 							FetchOrientationKind.Absolute => "ABSOLUTE",
-							_                             => "RELATIVE",
+							FetchOrientationKind.Relative                             => "RELATIVE",
+							_                             => throw NoText(orientation.Kind),
 						});
 
 						if (orientation.Offset is { } offset)
@@ -1763,7 +1782,7 @@ public static partial class Sql2023Writer
 					if (allocate.Properties is { } properties)
 					{
 						if (properties.Sensitivity is { } sensitivity)
-							Word(sensitivity switch { CursorSensitivity.Sensitive => "SENSITIVE", CursorSensitivity.Insensitive => "INSENSITIVE", _ => "ASENSITIVE" });
+							Word(sensitivity switch { CursorSensitivity.Sensitive => "SENSITIVE", CursorSensitivity.Insensitive => "INSENSITIVE", CursorSensitivity.Asensitive => "ASENSITIVE", _ => throw NoText(sensitivity) });
 
 						if (properties.Scrollability is { } scrollability)
 							Word(scrollability == CursorScrollability.Scroll ? "SCROLL" : "NO SCROLL");
@@ -2084,7 +2103,9 @@ public static partial class Sql2023Writer
 						IsolationLevel.ReadUncommitted => "ISOLATION LEVEL READ UNCOMMITTED",
 						IsolationLevel.ReadCommitted   => "ISOLATION LEVEL READ COMMITTED",
 						IsolationLevel.RepeatableRead  => "ISOLATION LEVEL REPEATABLE READ",
-						_                              => "ISOLATION LEVEL SERIALIZABLE",
+						IsolationLevel.Serializable    => "ISOLATION LEVEL SERIALIZABLE",
+						IsolationLevel.Snapshot        => "ISOLATION LEVEL SNAPSHOT",
+						_                              => throw NoText(isolation.Level),
 					});
 					break;
 
@@ -2177,7 +2198,7 @@ public static partial class Sql2023Writer
 						Word("VALUE");
 						PutExpression(item.SourceIndex);
 						Open();
-						Each(item.Options, option => Word(option switch { DescriptorCopyOption.Name => "NAME", DescriptorCopyOption.Type => "TYPE", _ => "DATA" }));
+						Each(item.Options, option => Word(option switch { DescriptorCopyOption.Name => "NAME", DescriptorCopyOption.Type => "TYPE", DescriptorCopyOption.Data => "DATA", _ => throw NoText(option) }));
 						Close();
 						Word("TO");
 						PutDescriptor(item.Target);

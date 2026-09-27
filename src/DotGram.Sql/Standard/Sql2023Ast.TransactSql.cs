@@ -367,3 +367,191 @@ public enum FileGroupUpdatability { ReadOnly, ReadWrite }
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. Which files a filegroup grows.</summary>
 public enum FileGroupAutoGrow { SingleFile, AllFiles }
+
+/// <summary>T-SQL's own statements, in the standard's family.</summary>
+public abstract partial record Statement
+{
+	/// <summary>
+	/// T-SQL: the DROP pages of the reference. Dropping something that is named and nothing more.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One record for the forty-six things whose published syntax is exactly
+	/// <c>DROP &lt;words&gt; [IF EXISTS] name [,…n]</c> (proposal 18). A kind that publishes no
+	/// <c>IF EXISTS</c> leaves the flag false, and one that publishes no list has a single name; a kind
+	/// with anything else on its page is not here but has a record of its own, because the round trip
+	/// has to give back what the page allows and no more.
+	/// </para>
+	/// <para>
+	/// <see cref="RemoveProviderKey"/> is the one clause shared by enough kinds to be a field rather
+	/// than a record: <c>SYMMETRIC KEY</c> and <c>ASYMMETRIC KEY</c>, both optional, the same words.
+	/// </para>
+	/// </remarks>
+	public sealed record DropObject(
+		DropObjectKind Kind,
+		IReadOnlyList<QualifiedName> Names,
+		bool IfExists = false,
+		bool RemoveProviderKey = false) : Statement;
+
+	/// <summary>T-SQL: DROP ASSEMBLY (Transact-SQL). <c>DROP ASSEMBLY [IF EXISTS] a [,…n] [WITH NO DEPENDENTS]</c>.</summary>
+	public sealed record DropAssembly(IReadOnlyList<QualifiedName> Names, bool IfExists, bool NoDependents) : Statement;
+
+	/// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). <c>DROP EVENT SESSION s ON { SERVER | DATABASE }</c>.</summary>
+	/// <remarks>The scope is required on the page, so it is a property and not an option.</remarks>
+	public sealed record DropEventSession(Identifier Name, EventScope On) : Statement;
+
+	/// <summary>T-SQL: DROP EVENT NOTIFICATION (Transact-SQL). <c>DROP EVENT NOTIFICATION n [,…n] ON …</c>.</summary>
+	public sealed record DropEventNotification(IReadOnlyList<Identifier> Names, NotificationScope On) : Statement;
+
+	/// <summary>T-SQL: DROP EXTERNAL LIBRARY (Transact-SQL). <c>DROP EXTERNAL LIBRARY l [AUTHORIZATION owner]</c>.</summary>
+	public sealed record DropExternalLibrary(Identifier Name, Identifier? Authorization) : Statement;
+
+	/// <summary>T-SQL: DROP FULLTEXT INDEX (Transact-SQL). <c>DROP FULLTEXT INDEX ON table_name</c>.</summary>
+	/// <remarks>It names no index: a table has one, and the target follows <c>ON</c>.</remarks>
+	public sealed record DropFulltextIndex(QualifiedName Table) : Statement;
+
+	/// <summary>T-SQL: DROP SENSITIVITY CLASSIFICATION (Transact-SQL). <c>DROP SENSITIVITY CLASSIFICATION FROM c [,…n]</c>.</summary>
+	public sealed record DropSensitivityClassification(IReadOnlyList<QualifiedName> Objects) : Statement;
+
+	/// <summary>T-SQL: DROP MASTER KEY (Transact-SQL). <c>DROP MASTER KEY</c>, which names nothing.</summary>
+	public sealed record DropMasterKey : Statement;
+
+	/// <summary>T-SQL: DROP DATABASE ENCRYPTION KEY (Transact-SQL). <c>DROP DATABASE ENCRYPTION KEY</c>, which names nothing.</summary>
+	public sealed record DropDatabaseEncryptionKey : Statement;
+}
+
+/// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). Where an event session lives.</summary>
+public enum EventScope { Server, Database }
+
+/// <summary>T-SQL: DROP TRIGGER (Transact-SQL). What a DDL trigger was created on.</summary>
+public enum TriggerScope { Database, AllServer }
+
+/// <summary>T-SQL: DROP EVENT NOTIFICATION (Transact-SQL). What an event notification was on.</summary>
+/// <remarks>
+/// A family rather than an enum with a name beside it, because the queue's name belongs to the one
+/// alternative that has a queue and to no other.
+/// </remarks>
+public abstract record NotificationScope : ISqlNode
+{
+	/// <summary>Where in the text this scope was written.</summary>
+	public SqlSpan Span { get; private set; }
+
+	/// <summary>Records where this scope was written.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	/// <summary><c>ON SERVER</c>.</summary>
+	public sealed record Server : NotificationScope;
+
+	/// <summary><c>ON DATABASE</c>.</summary>
+	public sealed record Database : NotificationScope;
+
+	/// <summary><c>ON QUEUE queue_name</c>.</summary>
+	public sealed record Queue(QualifiedName Name) : NotificationScope;
+}
+
+/// <summary>
+/// T-SQL: the DROP pages of the reference. What a <see cref="Statement.DropObject"/> drops.
+/// </summary>
+/// <remarks>
+/// The words the writer prints come from each page's SYNTAX line rather than its heading: the two agree
+/// for forty-five of the forty-six, and for the forty-sixth the heading reads "DROP WORKLOAD Classifier"
+/// where the syntax reads <c>DROP WORKLOAD CLASSIFIER</c>.
+/// </remarks>
+public enum DropObjectKind
+{
+	/// <summary><c>DROP AGGREGATE</c>.</summary>
+	Aggregate,
+	/// <summary><c>DROP APPLICATION ROLE</c>.</summary>
+	ApplicationRole,
+	/// <summary><c>DROP ASYMMETRIC KEY</c>, which takes <c>REMOVE PROVIDER KEY</c>.</summary>
+	AsymmetricKey,
+	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
+	AvailabilityGroup,
+	/// <summary><c>DROP BROKER PRIORITY</c>.</summary>
+	BrokerPriority,
+	/// <summary><c>DROP CERTIFICATE</c>.</summary>
+	Certificate,
+	/// <summary><c>DROP COLUMN ENCRYPTION KEY</c>.</summary>
+	ColumnEncryptionKey,
+	/// <summary><c>DROP COLUMN MASTER KEY</c>.</summary>
+	ColumnMasterKey,
+	/// <summary><c>DROP CONTRACT</c>.</summary>
+	Contract,
+	/// <summary><c>DROP CREDENTIAL</c>.</summary>
+	Credential,
+	/// <summary><c>DROP CRYPTOGRAPHIC PROVIDER</c>.</summary>
+	CryptographicProvider,
+	/// <summary><c>DROP DATABASE</c>.</summary>
+	Database,
+	/// <summary><c>DROP DATABASE AUDIT SPECIFICATION</c>.</summary>
+	DatabaseAuditSpecification,
+	/// <summary><c>DROP DATABASE SCOPED CREDENTIAL</c>.</summary>
+	DatabaseScopedCredential,
+	/// <summary><c>DROP DEFAULT</c>.</summary>
+	Default,
+	/// <summary><c>DROP ENDPOINT</c>.</summary>
+	Endpoint,
+	/// <summary><c>DROP EXTERNAL DATA SOURCE</c>.</summary>
+	ExternalDataSource,
+	/// <summary><c>DROP EXTERNAL FILE FORMAT</c>.</summary>
+	ExternalFileFormat,
+	/// <summary><c>DROP EXTERNAL LANGUAGE</c>.</summary>
+	ExternalLanguage,
+	/// <summary><c>DROP EXTERNAL MODEL</c>.</summary>
+	ExternalModel,
+	/// <summary><c>DROP EXTERNAL RESOURCE POOL</c>.</summary>
+	ExternalResourcePool,
+	/// <summary><c>DROP EXTERNAL TABLE</c>.</summary>
+	ExternalTable,
+	/// <summary><c>DROP FULLTEXT CATALOG</c>.</summary>
+	FulltextCatalog,
+	/// <summary><c>DROP FULLTEXT STOPLIST</c>.</summary>
+	FulltextStoplist,
+	/// <summary><c>DROP LOGIN</c>.</summary>
+	Login,
+	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
+	MessageType,
+	/// <summary><c>DROP PARTITION FUNCTION</c>.</summary>
+	PartitionFunction,
+	/// <summary><c>DROP PARTITION SCHEME</c>.</summary>
+	PartitionScheme,
+	/// <summary><c>DROP QUEUE</c>.</summary>
+	Queue,
+	/// <summary><c>DROP REMOTE SERVICE BINDING</c>.</summary>
+	RemoteServiceBinding,
+	/// <summary><c>DROP RESOURCE POOL</c>.</summary>
+	ResourcePool,
+	/// <summary><c>DROP ROUTE</c>.</summary>
+	Route,
+	/// <summary><c>DROP RULE</c>.</summary>
+	Rule,
+	/// <summary><c>DROP SEARCH PROPERTY LIST</c>.</summary>
+	SearchPropertyList,
+	/// <summary><c>DROP SECURITY POLICY</c>.</summary>
+	SecurityPolicy,
+	/// <summary><c>DROP SERVER AUDIT</c>.</summary>
+	ServerAudit,
+	/// <summary><c>DROP SERVER AUDIT SPECIFICATION</c>.</summary>
+	ServerAuditSpecification,
+	/// <summary><c>DROP SERVER ROLE</c>.</summary>
+	ServerRole,
+	/// <summary><c>DROP SERVICE</c>.</summary>
+	Service,
+	/// <summary><c>DROP STATISTICS</c>.</summary>
+	Statistics,
+	/// <summary><c>DROP SYMMETRIC KEY</c>, which takes <c>REMOVE PROVIDER KEY</c>.</summary>
+	SymmetricKey,
+	/// <summary><c>DROP SYNONYM</c>.</summary>
+	Synonym,
+	/// <summary><c>DROP USER</c>.</summary>
+	User,
+	/// <summary><c>DROP WORKLOAD CLASSIFIER</c>.</summary>
+	WorkloadClassifier,
+	/// <summary><c>DROP WORKLOAD GROUP</c>.</summary>
+	WorkloadGroup,
+	/// <summary><c>DROP XML SCHEMA COLLECTION</c>.</summary>
+	XmlSchemaCollection,
+}

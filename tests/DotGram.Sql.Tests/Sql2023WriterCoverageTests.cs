@@ -44,6 +44,9 @@ public sealed class Sql2023WriterCoverageTests
 	static readonly Expression A = new Expression.Reference(new QualifiedName([new Identifier("a")]));
 	static readonly Expression B = new Expression.Reference(new QualifiedName([new Identifier("b")]));
 
+	static readonly RoutineDesignator Routine =
+		new(RoutineKind.Procedure, new QualifiedName([new Identifier("p")]));
+
 	/// <summary>The enums this file covers, each with the smallest node that puts a value in the text.</summary>
 	static readonly Dictionary<Type, Func<object, ISqlNode>> Covered = new()
 	{
@@ -128,15 +131,27 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void No_switch_in_the_writer_ends_in_a_catch_all()
 	{
-		var source = File.ReadAllText(Path.Combine(Repository(), "src", "DotGram.Sql", "Standard", "Sql2023Writer.cs"));
-		var lines  = source.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-		var loose  = new List<string>();
+		// EVERY file of the writer, not the one named after it. `Sql2023Writer` is three partial files,
+		// and reading only the first said "no catch-alls left" while 25 stood in the other two.
+		var written = Directory.GetFiles(
+			Path.Combine(Repository(), "src", "DotGram.Sql", "Standard"), "Sql2023Writer*.cs");
+
+		Assert.True(written.Length >= 3, "the writer is in " + written.Length + " files; this check expects all of them");
+
+		var lines = written
+			.SelectMany(one => File.ReadAllText(one)
+				.Replace("\r\n", "\n", StringComparison.Ordinal)
+				.Split('\n')
+				.Select((text, at) => Path.GetFileName(one) + "(" + (at + 1) + "): " + text))
+			.ToList();
+
+		var loose = new List<string>();
 
 		// Padded to align with the arms above it, so the spelling is matched loosely: a detector that
 		// only knew `_ => "` counted 17 of these where there were 31.
-		for (var at = 0; at < lines.Length; at++)
-			if (System.Text.RegularExpressions.Regex.IsMatch(lines[at], "_ +=> +\"|_ => \""))
-				loose.Add("Sql2023Writer.cs(" + (at + 1) + "): " + lines[at].Trim());
+		foreach (var line in lines)
+			if (System.Text.RegularExpressions.Regex.IsMatch(line, "_ +=> +\"|_ => \""))
+				loose.Add(line.Trim());
 
 		Assert.Empty(loose);
 	}
@@ -205,6 +220,9 @@ public sealed class Sql2023WriterCoverageTests
 			["Updatability.Underscored"] = (
 				new FileGroupChange.Updatability(FileGroupUpdatability.ReadOnly, false),
 				new FileGroupChange.Updatability(FileGroupUpdatability.ReadOnly, true)),
+			["DropRoutine.Proc"] = (
+				new Statement.DropRoutine { Routines = [Routine] },
+				new Statement.DropRoutine { Routines = [Routine], Proc = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

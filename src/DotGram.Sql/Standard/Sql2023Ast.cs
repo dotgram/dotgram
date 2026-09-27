@@ -204,7 +204,9 @@ public abstract partial record Statement : ISqlNode
 		public IReadOnlyList<TransitionReference> Referencing { get; init; } = [];
 		public required TriggerAction Action { get; init; }
 	}
-	public record DropTrigger : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } }
+	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
+	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.
+	public record DropTrigger : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
 
 	// BNF: user-defined type/cast/ordering/transform statements
 	public record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
@@ -221,7 +223,10 @@ public abstract partial record Statement : ISqlNode
 	// BNF: schema routine, alter/drop routine
 	public record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
 	public record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public IReadOnlyList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
-	public record DropRoutine : Statement { public IReadOnlyList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	// T-SQL: DROP PROCEDURE (Transact-SQL). The page publishes `DROP { PROC | PROCEDURE }`, two words for
+	// one statement, so which was written is kept beside it or `DROP PROC p` writes back as
+	// `DROP PROCEDURE p`.
+	public record DropRoutine : Statement { public IReadOnlyList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } [Spelling] public bool Proc { get; init; } }
 
 	// BNF: sequence generator definition/alter/drop
 	public record CreateSequence : Statement { public required QualifiedName Name { get; init; } public IReadOnlyList<SequenceOption> Options { get; init; } = []; }

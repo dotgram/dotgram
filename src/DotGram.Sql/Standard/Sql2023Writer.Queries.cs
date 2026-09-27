@@ -34,7 +34,7 @@ public static partial class Sql2023Writer
 
 			foreach (var operation in query.SetOperations)
 			{
-				Word(operation.Operator switch { SetOperator.Union => "UNION", SetOperator.Except => "EXCEPT", _ => "INTERSECT" });
+				Word(operation.Operator switch { SetOperator.Union => "UNION", SetOperator.Except => "EXCEPT", SetOperator.Intersect => "INTERSECT", _ => throw NoText(operation.Operator) });
 				PutQuantifier(operation.Quantifier);
 
 				if (operation.Corresponding is { } corresponding)
@@ -356,7 +356,7 @@ public static partial class Sql2023Writer
 				if (frame.Pattern is { } measured)
 					PutMeasures(measured.Measures);
 
-				Word(frame.Unit switch { WindowFrameUnit.Rows => "ROWS", WindowFrameUnit.Range => "RANGE", _ => "GROUPS" });
+				Word(frame.Unit switch { WindowFrameUnit.Rows => "ROWS", WindowFrameUnit.Range => "RANGE", WindowFrameUnit.Groups => "GROUPS", _ => throw NoText(frame.Unit) });
 
 				if (frame.Extent is WindowFrameExtent.Between between)
 				{
@@ -374,7 +374,8 @@ public static partial class Sql2023Writer
 						WindowFrameExclusion.CurrentRow => "EXCLUDE CURRENT ROW",
 						WindowFrameExclusion.Group      => "EXCLUDE GROUP",
 						WindowFrameExclusion.Ties       => "EXCLUDE TIES",
-						_                               => "EXCLUDE NO OTHERS",
+						WindowFrameExclusion.NoOthers                               => "EXCLUDE NO OTHERS",
+						_                               => throw NoText(exclusion),
 					});
 
 				// A frame's pattern holds the measures before the units, and the common syntax after, where one was written.
@@ -453,7 +454,8 @@ public static partial class Sql2023Writer
 					RowsPerMatch.All              => "ALL ROWS PER MATCH",
 					RowsPerMatch.AllShowEmpty     => "ALL ROWS PER MATCH SHOW EMPTY MATCHES",
 					RowsPerMatch.AllOmitEmpty     => "ALL ROWS PER MATCH OMIT EMPTY MATCHES",
-					_                             => "ALL ROWS PER MATCH WITH UNMATCHED ROWS",
+					RowsPerMatch.AllWithUnmatched                             => "ALL ROWS PER MATCH WITH UNMATCHED ROWS",
+					_                             => throw NoText(rows),
 				});
 
 			PutCommon(clause);
@@ -689,7 +691,17 @@ public static partial class Sql2023Writer
 							Word("NATURAL");
 
 						if (join.Kind is { } kind)
-							Word(kind switch { JoinKind.Inner => "INNER", JoinKind.Left => "LEFT", JoinKind.Right => "RIGHT", _ => "FULL" });
+							// Cross is written by the branch above, and T-SQL's two APPLY kinds are not a
+							// word here at all: they replace the JOIN, so they are refused until the writer
+							// takes them rather than answered with one of these.
+							Word(kind switch
+							{
+								JoinKind.Inner => "INNER",
+								JoinKind.Left  => "LEFT",
+								JoinKind.Right => "RIGHT",
+								JoinKind.Full  => "FULL",
+								_              => throw NoText(kind),
+							});
 
 						if (join.OuterKeyword)
 							Word("OUTER");
@@ -756,7 +768,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case TableSource.DataChange change:
-					Word(change.Option switch { ResultOption.Final => "FINAL", ResultOption.New => "NEW", _ => "OLD" });
+					Word(change.Option switch { ResultOption.Final => "FINAL", ResultOption.New => "NEW", ResultOption.Old => "OLD", _ => throw NoText(change.Option) });
 					Word("TABLE");
 					Open();
 					PutStatement(change.Change);
