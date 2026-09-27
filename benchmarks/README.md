@@ -20,6 +20,8 @@ project is in the solution so that it has to keep compiling.
 
 ## The stand: every generated parser against its hand-written one
 
+**Build first, then run the built dll directly — never `dotnet run --project ...` for a timing.** `dotnet run` compiles the harness itself before `Main` gets a chance to run, and that compile is unannounced: nobody reading `dotgram-timing-window.txt` can tell it is about to become a timing (2026-09-26, a 66-second gap of `dotnet run`'s own MSBuild nodes before `--stand`'s announcement, on both a stale-sha run and its correct rerun). `Run-Bdn.ps1` and `Run-Announced.ps1` already build first and run the artifact directly for exactly this reason; `--stand` gets no such wrapper yet and has to be run by hand the same way: `dotnet build -c Release ...` on 16-31 first, then the resulting `.dll` directly.
+
 ```console
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --rebuild
