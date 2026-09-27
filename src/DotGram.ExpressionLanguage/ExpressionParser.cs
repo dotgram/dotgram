@@ -4041,6 +4041,25 @@ public static partial class ExpressionParser
 				return 1;
 			}
 
+			// And a name whose LEFTMOST part is already something here is not offered to the
+			// `using`s at all, which is C#'s order for a qualified name: the first identifier is
+			// resolved in the enclosing namespace, and where it is found there the `using`s are
+			// never consulted for that name. Roslyn, asked rather than assumed: `using A;` where
+			// `A` holds a type named `System` with a nested `Math.Max` of its own, and
+			// `System.Math.Max(1, 2)` written, is ACCEPTED and answers the global one.
+			//
+			// It is also most of what the imports cost a text that names one type whole. Before
+			// this, `(int x) => System.Math.Max(x, 1)` asked the type tables eight times, five of
+			// them under an import that could not hold the name, and walked nineteen prefixes
+			// where three questions and four walks are the whole of the question.
+			if (Rooted(name))
+			{
+				first  = null;
+				second = null;
+
+				return 0;
+			}
+
 			Type? one   = null;
 			Type? two   = null;
 			var   count = 0;
@@ -4148,6 +4167,24 @@ public static partial class ExpressionParser
 					$"'{name}' is an ambiguous reference between '{found.Name}.{name}' and '{written!.Name}'.");
 
 			return StaticMember(found, name, Reach);
+		}
+
+		/// <summary>Whether a dotted name's first part is a namespace or a type this scope has.</summary>
+		/// <remarks>
+		/// The question C# asks of a qualified name before any `using` is consulted. A simple name
+		/// is never rooted: the `using`s are the only place it can be found.
+		/// </remarks>
+		bool Rooted(string dotted)
+		{
+			var cut = dotted.IndexOf('.');
+
+			if (cut < 0)
+				return false;
+
+			var head = dotted.Substring(0, cut);
+
+			return Loaded.Has(Reach, head) || Loaded.HasInside(Reach, head) ||
+				Qualified(null, head, Reach) is not null;
 		}
 
 		static string NothingNamed(string name)

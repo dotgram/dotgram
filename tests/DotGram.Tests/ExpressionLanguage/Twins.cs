@@ -64,3 +64,25 @@ namespace DotGram.Tests.ExpressionLanguage
 		public static int Twin => 5;
 	}
 }
+
+namespace DotGram.Tests.ExpressionLanguage.Rooted
+{
+	/// <summary>A type named after the namespace every text gets, to see which one a name means.</summary>
+	/// <remarks>
+	/// For `RootedNameTests`: C# resolves the leftmost identifier of a qualified name in the
+	/// enclosing namespace first, so `using …Rooted; System.Math.Max(1, 2)` is the global
+	/// `System.Math` and answers 2, not this one — asked of Roslyn 2026-09-27, which accepts it
+	/// and does not call it ambiguous.
+	/// </remarks>
+	public static class System
+	{
+		/// <summary>The one a `using` would supplant the real `System.Math` with, if it could.</summary>
+		public static class Math
+		{
+			public static int Max(int x, int y)
+			{
+				return 7;
+			}
+		}
+	}
+}
