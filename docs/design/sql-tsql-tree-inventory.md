@@ -711,8 +711,10 @@ B. Of the 23 Statement B rows, 9 are DROP.
     `GroupByClause(Quantifier, GroupingElement)`** (`Clause.GroupBy`). Every grouped query and
     ROLLUP/CUBE/GROUPING SETS.
 
-Next in line: `Statement.DeclareCursor`/`Clause.CursorDefinition` (T-SQL cursor options),
-`Statement.Grant`/`Revoke` (permission and securable catalogue), `Statement.Transaction` (BEGIN/SAVE
-TRAN, names), `Clause.MergeWhen` (BY SOURCE), `Statement.ViewDefinition` (body as statement,
+Done since: the cursor options and the transaction statements, whose records are in the tree and whose
+decisions are in `sql-tsql-tree.md` (2026-09-27); the grammars still build the old nodes.
+
+Next in line: `Statement.Grant`/`Revoke` (permission and securable catalogue),
+`Clause.MergeWhen` (BY SOURCE), `Statement.ViewDefinition` (body as statement,
 options), `Statement.CreateTableAsSelect` (required `WithDataMode`), `Statement.TypeDefinition`, and
 the `SqlLiteralKind`-level question of `0x…`.

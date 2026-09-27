@@ -240,7 +240,11 @@ public abstract partial record Statement : ISqlNode
 	public record DropRole : Statement { public IReadOnlyList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: cursor/data control statements
-	public record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } }
+	// T-SQL: DECLARE CURSOR (Transact-SQL). The page publishes two forms: the ISO one writes the
+	// properties before the word CURSOR, the extended one after it, and `Extended` says which was
+	// written. With no property written at all the two forms print the same, so the flag only decides
+	// anything once one was.
+	public record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } [Spelling] public bool Extended { get; init; } }
 	public record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
 	// BNF: <fetch statement>, <dynamic fetch statement>: targets, or `INTO [SQL] DESCRIPTOR d`, and whether FROM was written.
 	public record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
@@ -260,12 +264,25 @@ public abstract partial record Statement : ISqlNode
 
 	// BNF: transaction statements
 	public record StartTransaction : Statement { public IReadOnlyList<TransactionMode> Modes { get; init; } = []; }
-	public record SetTransaction : Statement { public bool Local { get; init; } public IReadOnlyList<TransactionMode> Modes { get; init; } = []; }
+	// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Tran` is the word written where the page
+	// publishes `TRAN` for `TRANSACTION`.
+	public record SetTransaction : Statement { public bool Local { get; init; } public IReadOnlyList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
 	public record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
 	public record Savepoint : Statement { public required Identifier Name { get; init; } }
 	public record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
-	public record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } }
-	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } }
+	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `TransactionKeyword` is whether the word was
+	// written at all — `COMMIT` and `COMMIT TRANSACTION` are both on the page and are not the same text —
+	// and `Tran` is which word it was, so `Tran` implies the keyword and never stands without it.
+	// `Name` is the transaction a commit may name, and `DelayedDurability` its
+	// `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
+	public record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public bool TransactionKeyword { get; init; } [Spelling] public bool Tran { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
+	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `TransactionKeyword` and `Tran` are as
+	// Commit's. `Name` is what T-SQL writes after `ROLLBACK TRAN`, which its page says may be a
+	// transaction or a savepoint and which the syntax cannot tell apart; `ToSavepoint` is the standard's
+	// `TO SAVEPOINT s`, a different construct that knows what it names. At most one of the two is set —
+	// the writer refuses a node with both, and `Sql2023WriterCoverageTests` holds each grammar to the one
+	// it may use.
+	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } public bool TransactionKeyword { get; init; } [Spelling] public bool Tran { get; init; } public TransactionName? Name { get; init; } }
 
 	// BNF: connection/session statements
 	public record Connect : Statement { public required ConnectionTarget Target { get; init; } }
@@ -1769,7 +1786,20 @@ public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedNa
 		Span = new SqlSpan(at, length);
 	}
 }
+// T-SQL: DECLARE CURSOR, SET @local_variable (Transact-SQL). The extended form's words after CURSOR are
+// properties here rather than records of their own: `Scope` is `LOCAL | GLOBAL`, `Type` the cursor's kind
+// (`STATIC | KEYSET | DYNAMIC | FAST_FORWARD`, a different axis from the standard's sensitivity, which is
+// why STATIC is not Insensitive), `Concurrency` is `READ_ONLY | SCROLL_LOCKS | OPTIMISTIC`, and
+// `TypeWarning` is `TYPE_WARNING`. `ForwardOnly` is the word `FORWARD_ONLY` written where the standard
+// writes `NO SCROLL`: one meaning, two words, so Scrollability stays NoScroll and the flag says which
+// was written.
 public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { public SqlSpan Span { get; private set; }
+	public CursorScope? Scope { get; init; }
+	public CursorType? Type { get; init; }
+	public CursorConcurrency? Concurrency { get; init; }
+	public bool TypeWarning { get; init; }
+	[Spelling] public bool ForwardOnly { get; init; }
+
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);
@@ -1779,8 +1809,14 @@ public enum CursorSensitivity { Sensitive, Insensitive, Asensitive }
 public enum CursorScrollability { Scroll, NoScroll }
 public enum CursorHoldability { WithHold, WithoutHold }
 public enum CursorReturnability { WithReturn, WithoutReturn }
-public abstract record CursorSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Query(Statement.Select Select, UpdatabilityClause? Updatability) : CursorSource; public record Prepared(StatementReference Statement) : CursorSource; }
-public sealed record UpdatabilityClause(bool ReadOnly, IReadOnlyList<Identifier> UpdateColumns) : ISqlNode { public SqlSpan Span { get; private set; }
+// T-SQL: DECLARE CURSOR (Transact-SQL). `UpdatabilityBeforeOptions` says which of the query's `OPTION (…)`
+// and the cursor's `FOR UPDATE` was written first, which the engine reads either way round. It is a flag
+// about two children of this node — the Select whose OPTION it is, and the updatability beside it — and not
+// about a sibling's text, which is why it is allowed to live here.
+public abstract record CursorSource : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Query(Statement.Select Select, UpdatabilityClause? Updatability, [property: Spelling] bool UpdatabilityBeforeOptions = false) : CursorSource; public record Prepared(StatementReference Statement) : CursorSource; }
+// T-SQL: DECLARE CURSOR (Transact-SQL). `Underscored` is `READ_ONLY`, which the ISO form of that page
+// publishes where the standard and T-SQL's `SET @c = CURSOR` write `READ ONLY`.
+public sealed record UpdatabilityClause(bool ReadOnly, IReadOnlyList<Identifier> UpdateColumns, [property: Spelling] bool Underscored = false) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);

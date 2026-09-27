@@ -1845,7 +1845,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.SetTransaction set:
-					Word(set.Local ? "SET LOCAL TRANSACTION" : "SET TRANSACTION");
+					Word(set.Local ? "SET LOCAL" : "SET");
+					Word(set.Tran ? "TRAN" : "TRANSACTION");
 					Each(set.Modes, PutTransactionMode);
 					break;
 
@@ -1872,19 +1873,33 @@ public static partial class Sql2023Writer
 
 				case Statement.Commit commit:
 					Word("COMMIT");
+					PutTransactionKeyword(commit.TransactionKeyword, commit.Tran);
 
 					if (commit.Work)
 						Word("WORK");
 
+					PutTransactionName(commit.Name);
 					PutChain(commit.Chain);
+
+					if (commit.DelayedDurability is { } durable)
+						Word(durable ? "WITH (DELAYED_DURABILITY = ON)" : "WITH (DELAYED_DURABILITY = OFF)");
+
 					break;
 
 				case Statement.Rollback rollback:
+					// The two are different constructs and the tree may hold at most one: T-SQL's name,
+					// which its page says may be a transaction or a savepoint, and the standard's
+					// `TO SAVEPOINT s`, which knows. A node with both would have to lose one of them.
+					if (rollback.Name is not null && rollback.ToSavepoint is not null)
+						throw Both(rollback, nameof(rollback.Name), nameof(rollback.ToSavepoint));
+
 					Word("ROLLBACK");
+					PutTransactionKeyword(rollback.TransactionKeyword, rollback.Tran);
 
 					if (rollback.Work)
 						Word("WORK");
 
+					PutTransactionName(rollback.Name);
 					PutChain(rollback.Chain);
 
 					if (rollback.ToSavepoint is { } to)
@@ -2083,6 +2098,32 @@ public static partial class Sql2023Writer
 		{
 			if (chain is { } one)
 				Word(one == ChainMode.Chain ? "AND CHAIN" : "AND NO CHAIN");
+		}
+
+		/// <summary>
+		/// T-SQL's word after COMMIT or ROLLBACK, where one was written. `TRAN` says the keyword was
+		/// there as surely as the keyword flag does, so it is not asked for twice.
+		/// </summary>
+		void PutTransactionKeyword(bool keyword, bool tran)
+		{
+			if (tran)
+				Word("TRAN");
+			else if (keyword)
+				Word("TRANSACTION");
+		}
+
+		/// <summary>The transaction or savepoint a T-SQL statement names: a name, or a variable.</summary>
+		void PutTransactionName(TransactionName? name)
+		{
+			if (name is null)
+				return;
+
+			if (name.Name is { } named)
+				PutIdentifier(named);
+			else if (name.Variable is { } variable)
+				PutExpression(variable);
+			else
+				throw Empty(name, nameof(name.Name), nameof(name.Variable));
 		}
 
 		void PutConnection(ConnectionObject connection)

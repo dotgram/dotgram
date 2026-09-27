@@ -1374,6 +1374,23 @@ public static partial class Sql2023Writer
 				nameof(value), value, "The writer has no text for " + typeof(T).Name + "." + value + ".");
 		}
 
+		// The same refusal for a node rather than an enum value. Where two properties stand for two
+		// different constructs, a node with both set has no text: whatever is printed loses one of them.
+		static Exception Both(object node, string one, string other)
+		{
+			return new ArgumentException(
+				$"{node.GetType().Name} has both {one} and {other}; they are different constructs and at most one is written.",
+				nameof(node));
+		}
+
+		// And where a node stands for one of several things, a node that is none of them has no text either.
+		static Exception Empty(object node, params string[] any)
+		{
+			return new ArgumentException(
+				$"{node.GetType().Name} has none of {string.Join(", ", any)}, so there is nothing to write.",
+				nameof(node));
+		}
+
 		static string Comparison(ComparisonOperator op)
 		{
 			return op switch

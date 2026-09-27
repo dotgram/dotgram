@@ -520,7 +520,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT) ON COMMIT DELETE ROWS;",
 		"DeclareLocalTemporaryTable(Name: t, Elements: [Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))], OnCommit: Delete)")]
 	[InlineData("SELECT a FROM t FOR UPDATE OF a;",
-		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Updatability: UpdatabilityClause(false, [a]))")]
+		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Updatability: UpdatabilityClause(false, [a], false))")]
 	[InlineData("START TRANSACTION ISOLATION LEVEL READ COMMITTED, READ ONLY, DIAGNOSTICS SIZE 5;",
 		"StartTransaction(Modes: [Isolation(ReadCommitted), Access(ReadOnly), DiagnosticsSize(5)])")]
 	[InlineData("ROLLBACK WORK AND NO CHAIN TO SAVEPOINT s;", "Rollback(Work: true, Chain: NoChain, ToSavepoint: s)")]

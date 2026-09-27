@@ -47,6 +47,29 @@ public sealed class Sql2023WriterCoverageTests
 	static readonly RoutineDesignator Routine =
 		new(RoutineKind.Procedure, new QualifiedName([new Identifier("p")]));
 
+	static readonly TransactionName Saved = new(new Identifier("s"));
+
+	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
+	static CursorProperties Scrolling(bool forwardOnly)
+	{
+		return new CursorProperties(null, CursorScrollability.NoScroll, null, null) { ForwardOnly = forwardOnly };
+	}
+
+	/// <summary>A cursor declared over the smallest query there is, for a flag to be read out of.</summary>
+	static Statement.DeclareCursor Declared(
+		CursorProperties properties, bool updatabilityFirst = false, bool underscored = false)
+	{
+		return new Statement.DeclareCursor
+		{
+			Cursor      = new CursorReference(new QualifiedName([new Identifier("c")])),
+			Properties  = properties,
+			SourceValue = new CursorSource.Query(
+				new Statement.Select { Items = [new SelectItem.ExpressionItem(A)] },
+				new UpdatabilityClause(true, [], underscored),
+				updatabilityFirst),
+		};
+	}
+
 	/// <summary>The enums this file covers, each with the smallest node that puts a value in the text.</summary>
 	static readonly Dictionary<Type, Func<object, ISqlNode>> Covered = new()
 	{
@@ -223,6 +246,37 @@ public sealed class Sql2023WriterCoverageTests
 			["DropRoutine.Proc"] = (
 				new Statement.DropRoutine { Routines = [Routine] },
 				new Statement.DropRoutine { Routines = [Routine], Proc = true }),
+			["Commit.Tran"] = (
+				new Statement.Commit(),
+				new Statement.Commit { Tran = true }),
+			["Rollback.Tran"] = (
+				new Statement.Rollback(),
+				new Statement.Rollback { Tran = true }),
+			["SetTransaction.Tran"] = (
+				new Statement.SetTransaction(),
+				new Statement.SetTransaction { Tran = true }),
+			["BeginTransaction.Tran"] = (
+				new Statement.BeginTransaction(),
+				new Statement.BeginTransaction(Tran: true)),
+			["SaveTransaction.Tran"] = (
+				new Statement.SaveTransaction(Saved),
+				new Statement.SaveTransaction(Saved, Tran: true)),
+			// The three cursor flags are asserted on the statement that writes them and not on the node
+			// that holds them: a spelling only reaches the text through DECLARE CURSOR, so a pair of bare
+			// CursorProperties would be two nodes the writer does not take, which this test passes and
+			// which proves nothing about the flag.
+			["DeclareCursor.Extended"] = (
+				Declared(Scrolling(false)),
+				Declared(Scrolling(false)) with { Extended = true }),
+			["CursorProperties.ForwardOnly"] = (
+				Declared(Scrolling(false)),
+				Declared(Scrolling(true))),
+			["Query.UpdatabilityBeforeOptions"] = (
+				Declared(new CursorProperties(null, null, null, null), false),
+				Declared(new CursorProperties(null, null, null, null), true)),
+			["UpdatabilityClause.Underscored"] = (
+				Declared(new CursorProperties(null, null, null, null), false, false),
+				Declared(new CursorProperties(null, null, null, null), false, true)),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()
@@ -280,6 +334,41 @@ public sealed class Sql2023WriterCoverageTests
 		};
 
 		Assert.NotEqual(without, with);
+	}
+
+	/// <summary>
+	/// That a node holding two constructs where at most one may be written is refused, and that each of
+	/// the two on its own is written.
+	/// </summary>
+	/// <remarks>
+	/// <c>Rollback</c> has T-SQL's <c>Name</c> — a transaction or a savepoint, which its page does not
+	/// distinguish — and the standard's <c>ToSavepoint</c>, which prints <c>TO SAVEPOINT s</c>. Two
+	/// nullable properties of which at most one is set is a shape worth objecting to, and it earns its
+	/// place only because something checks it: whatever the writer printed for a node with both would
+	/// lose one of them, so it prints nothing. What the grammars may set is the grammars' own assertion,
+	/// and belongs with the commit that teaches them to build these nodes.
+	/// </remarks>
+	[Fact]
+	public void A_rollback_naming_a_transaction_and_a_savepoint_is_refused()
+	{
+		var named = new Statement.Rollback { TransactionKeyword = true, Name = Saved };
+		var saved = new Statement.Rollback { ToSavepoint = new Identifier("s") };
+
+		Assert.Contains("ROLLBACK TRANSACTION s", Sql2023Writer.Write(named), StringComparison.Ordinal);
+		Assert.Contains("TO SAVEPOINT s", Sql2023Writer.Write(saved), StringComparison.Ordinal);
+
+		var both = named with { ToSavepoint = new Identifier("s") };
+
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(both));
+	}
+
+	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>
+	[Fact]
+	public void A_transaction_name_that_names_nothing_is_refused()
+	{
+		var empty = new Statement.Commit { TransactionKeyword = true, Name = new TransactionName(null) };
+
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(empty));
 	}
 
 	// A value the writer refuses outright is not a silent one, so a throw is read as "it has text for

@@ -18,6 +18,18 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   each grammar as its dialect has it; T-SQL's `EXECUTE` of a module is a node of its own; `DROP … IF EXISTS`
   is a flag, with a list of names and a behavior that may be left out; `OFFSET` and `FETCH` keep the
   standard's shape; the walker follows lists (done); `ISqlSpan` stands apart from the old tree (done).
+- Cursors and transactions, decided 2026-09-27 (proposals 21-22; the records are in, the grammars are
+  not). `FORWARD_ONLY` is a `[Spelling]` flag beside `CursorScrollability.NoScroll` and not a third
+  member: one meaning with two words is what that flag is for, and a semantic enum keeps one member per
+  meaning. `IdentifierStyle.Bracketed` was a different case, a quoting style being its own meaning for a
+  name's text. `DeclareCursor.Extended` says which side of the word `CURSOR` the properties were written
+  on, and decides nothing where none was written. `CursorSource.Query.UpdatabilityBeforeOptions` orders
+  that node's own two children -- the `Select` whose `OPTION (...)` it is, and the updatability beside it
+  -- which is why a flag about text is allowed there where one about a sibling would not be. `Rollback`
+  holds T-SQL's `Name` beside the standard's `ToSavepoint`, at most one set, and the writer refuses a
+  node with both rather than losing one; two nullables of which one may be set are acceptable only
+  because something checks it. `COMMIT` and `COMMIT TRANSACTION` are different text, so the word's
+  presence is `TransactionKeyword` and `Tran` is which word it was: the spelling flag cannot carry both.
 
 ## Principles proposed
 

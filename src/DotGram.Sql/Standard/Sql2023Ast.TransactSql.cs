@@ -429,7 +429,117 @@ public abstract partial record Statement
 
 	/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL). <c>DROP [COUNTER] SIGNATURE FROM m BY …</c>.</summary>
 	public sealed record DropSignature(bool Counter, QualifiedName Module, IReadOnlyList<SignedBy> By) : Statement;
+
+	// ---- cursors and transactions ---------------------------------------------------------------
+	//
+	// The standard has DECLARE, OPEN, FETCH and CLOSE, and the T-SQL words that go with them are
+	// properties on CursorProperties and CursorSource.Query (Sql2023Ast.cs). What is here is what the
+	// standard has no statement for at all.
+
+	/// <summary>T-SQL: DEALLOCATE (Transact-SQL). <c>DEALLOCATE { [GLOBAL] name | @variable }</c>.</summary>
+	/// <remarks>
+	/// The standard has no DEALLOCATE: a cursor there lives as long as the scope that declared it. Which
+	/// of the two forms was written is <see cref="CursorReference"/>'s business, as it is for OPEN and
+	/// CLOSE.
+	/// </remarks>
+	public sealed record DeallocateCursor(CursorReference Cursor) : Statement;
+
+	/// <summary>
+	/// T-SQL: SET @local_variable (Transact-SQL). <c>SET @c = CURSOR … FOR select</c>, a cursor defined
+	/// where it stands and given to a variable.
+	/// </summary>
+	/// <remarks>
+	/// The page publishes the same word list after CURSOR as the extended DECLARE, so the properties and
+	/// the source are the same nodes; only the variable in front is this statement's own.
+	/// <c>SET @c = @other</c> and <c>SET @c = name</c> are an ordinary assignment and not this.
+	/// </remarks>
+	public sealed record SetCursorVariable(
+		Expression Variable, CursorProperties Properties, CursorSource SourceValue) : Statement;
+
+	/// <summary>
+	/// T-SQL: BEGIN TRANSACTION, BEGIN DISTRIBUTED TRANSACTION (Transact-SQL).
+	/// <c>BEGIN [DISTRIBUTED] { TRAN | TRANSACTION } [ name [WITH MARK ['d']] ]</c>.
+	/// </summary>
+	/// <remarks>
+	/// Not the standard's <see cref="StartTransaction"/>, which is the word START and a list of modes and
+	/// names nothing: these two have a name, a mark and no modes at all (proposal 21). The distributed
+	/// form takes no mark, which is the page's rule and not this record's.
+	/// </remarks>
+	public sealed record BeginTransaction(
+		bool Distributed = false,
+		[property: Spelling] bool Tran = false,
+		TransactionName? Name = null,
+		TransactionMark? Mark = null) : Statement;
+
+	/// <summary>
+	/// T-SQL: SAVE TRANSACTION (Transact-SQL). <c>SAVE { TRAN | TRANSACTION } { name | @variable }</c>.
+	/// </summary>
+	/// <remarks>
+	/// The standard's <see cref="Savepoint"/> is the word SAVEPOINT and takes an identifier; this is the
+	/// word SAVE and takes a name or a variable, so it is a statement of its own (proposal 21).
+	/// </remarks>
+	public sealed record SaveTransaction(
+		TransactionName Name, [property: Spelling] bool Tran = false) : Statement;
 }
+
+/// <summary>
+/// T-SQL: BEGIN TRANSACTION, COMMIT TRANSACTION, ROLLBACK TRANSACTION, SAVE TRANSACTION (Transact-SQL).
+/// A transaction or a savepoint named, which every one of those pages publishes as
+/// <c>{ name | @variable }</c>.
+/// </summary>
+/// <remarks>
+/// Exactly one of the two is set. It follows <see cref="CursorReference"/>, which holds the same either-or
+/// for a cursor's name, rather than making an identifier pretend to be an expression.
+/// </remarks>
+public sealed record TransactionName(Identifier? Name, Expression? Variable = null) : ISqlNode
+{
+	/// <inheritdoc/>
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+
+/// <summary>
+/// T-SQL: BEGIN TRANSACTION (Transact-SQL). <c>WITH MARK ['description']</c>, which marks the log.
+/// </summary>
+/// <remarks>The description may be left out, so the record stands for the two words alone.</remarks>
+public sealed record TransactionMark(Expression? Description = null) : ISqlNode
+{
+	/// <inheritdoc/>
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+}
+
+/// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). <c>LOCAL</c> or <c>GLOBAL</c> after the word CURSOR.</summary>
+/// <remarks>
+/// Not <see cref="CursorReference"/>'s Global and Local, which qualify a cursor's <em>name</em> where it is
+/// used — <c>OPEN GLOBAL c</c>. This says how the cursor was declared.
+/// </remarks>
+public enum CursorScope { Local, Global }
+
+/// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). The kind of cursor asked for.</summary>
+/// <remarks>
+/// A different axis from the standard's <see cref="CursorSensitivity"/>: <c>STATIC</c> is close to
+/// INSENSITIVE and the other three have no standard word at all, so the two never stand for one another.
+/// <c>FAST_FORWARD</c> is a kind the page publishes as one word, not a pair of the others.
+/// </remarks>
+public enum CursorType { Static, Keyset, Dynamic, FastForward }
+
+/// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). What may be done through the cursor while it is open.</summary>
+/// <remarks>
+/// <c>READ_ONLY</c> here is the concurrency of the extended form's word list, which is not the
+/// <c>FOR READ ONLY</c> of <see cref="UpdatabilityClause"/>: a page may write both.
+/// </remarks>
+public enum CursorConcurrency { ReadOnly, ScrollLocks, Optimistic }
 
 /// <summary>T-SQL: DROP INDEX (Transact-SQL). One index a <see cref="Statement.DropIndex"/> drops.</summary>
 public abstract record DroppedIndex : ISqlNode
