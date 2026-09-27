@@ -103,4 +103,9 @@ TransactSqlParser leaves a statement's label to that statement: HIDDEN, SORTED_D
 		<AdditionalFiles Include="TransactSql\TransactSql.gram" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- For the benchmark host that compiles SqlStandard.gram on another carrier; Nodes and Towers stay internal. -->
+		<InternalsVisibleTo Include="DotGram.Benchmarks" />
+	</ItemGroup>
+
 </Project>

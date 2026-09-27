@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
@@ -429,24 +429,24 @@ static partial class Stand
 			Expression("refused-early", "(int x) => x +"),
 			Expression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +"),
 
-			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseLiteral, HandSqlStandard.TryParseLiteral),
-			Sql<Ast.Expression, Ast.Expression>("column", "a.b.c", SqlStandardParser.TryParseColumnReference, HandSqlStandard.TryParseColumnReference),
-			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression),
-			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression),
-			Sql<Ast.Expression, Ast.Expression>("condition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("select1", "SELECT a FROM t", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("comment", SqlWithComments, SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement),
+			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseLiteral, HandSqlStandard.TryParseLiteral, ImmediateSqlStandard.TryParseLiteral),
+			Sql<Ast.Expression, Ast.Expression>("column", "a.b.c", SqlStandardParser.TryParseColumnReference, HandSqlStandard.TryParseColumnReference, ImmediateSqlStandard.TryParseColumnReference),
+			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression, ImmediateSqlStandard.TryParseValueExpression),
+			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression, ImmediateSqlStandard.TryParseValueExpression),
+			Sql<Ast.Expression, Ast.Expression>("condition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Statement.Select, Ast.Statement.Select>("select1", "SELECT a FROM t", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Statement.Select, Ast.Statement.Select>("comment", SqlWithComments, SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement, ImmediateSqlStandard.TryParseSQLSchemaStatement),
 
 			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
 			// TryParse exposes no position, so agreement here is accept/refuse only (expr-2d,
 			// 2026-09-18); a row where either side accepts is still a disagreement.
 			SqlRefused<Ast.Statement.Select, Ast.Statement.Select>(
-				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
+				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
 		];
 	}
 
@@ -629,17 +629,26 @@ static partial class Stand
 	/// One SQL:2023 production over one input, by hand and by the generated parser, which must
 	/// also accept it: a row that times two refusals says nothing about reading SQL.
 	/// </summary>
+	/// <param name="immediate">
+	/// The same production compiled onto the immediate carrier (<c>ImmediateSqlStandard</c>,
+	/// docs/next.md, the redesign question of 2026-09-27: does SQL:2023 close the gap the way
+	/// SQL-92 did). Null where no such method exists for this production; a row given one gets a
+	/// third reading and its tree is held to the tape's the same way the tape's is held to hand's.
+	/// </param>
 	static Workload Sql<TGenerated, THand>(
-		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand)
+		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand,
+		Func<string, ImmediateSqlStandard.Match<TGenerated>>? immediate = null)
 	{
-		return new Workload(
-			"sql",
-			name,
-			[
-				new Reading("hand",      () => hand(text, out _) ? 1 : 0),
-				new Reading("generated", () => generated(text).IsSuccess ? 1 : 0),
-			],
-			Disagreement);
+		var readings = new List<Reading>
+		{
+			new("hand",      () => hand(text, out _) ? 1 : 0),
+			new("generated", () => generated(text).IsSuccess ? 1 : 0),
+		};
+
+		if (immediate is not null)
+			readings.Add(new Reading("immediate", () => immediate(text).IsSuccess ? 1 : 0));
+
+		return new Workload("sql", name, [.. readings], Disagreement);
 
 		string? Disagreement()
 		{
@@ -654,7 +663,20 @@ static partial class Stand
 			var expected = Standard.Dump(match.Value);
 			var actual   = Standard.Dump(value);
 
-			return expected == actual ? null : $"  generated {expected}\n  by hand   {actual}";
+			if (expected != actual)
+				return $"  generated {expected}\n  by hand   {actual}";
+
+			if (immediate is null)
+				return null;
+
+			var eager = immediate(text);
+
+			if (!eager.IsSuccess)
+				return "  the immediate carrier refuses it";
+
+			var actualImmediate = Standard.Dump(eager.Value);
+
+			return actualImmediate == expected ? null : $"  generated {expected}\n  immediate {actualImmediate}";
 		}
 	}
 
@@ -666,24 +688,29 @@ static partial class Stand
 	/// way around.
 	/// </summary>
 	static Workload SqlRefused<TGenerated, THand>(
-		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand)
+		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand,
+		Func<string, ImmediateSqlStandard.Match<TGenerated>>? immediate = null)
 	{
-		return new Workload(
-			"sql",
-			name,
-			[
-				new Reading("hand",      () => hand(text, out _) ? 1 : 0),
-				new Reading("generated", () => generated(text).IsSuccess ? 1 : 0),
-			],
-			Disagreement);
+		var readings = new List<Reading>
+		{
+			new("hand",      () => hand(text, out _) ? 1 : 0),
+			new("generated", () => generated(text).IsSuccess ? 1 : 0),
+		};
+
+		if (immediate is not null)
+			readings.Add(new Reading("immediate", () => immediate(text).IsSuccess ? 1 : 0));
+
+		return new Workload("sql", name, [.. readings], Disagreement);
 
 		string? Disagreement()
 		{
 			var byGenerated = generated(text).IsSuccess;
 			var byHand      = hand(text, out _);
+			var byImmediate = immediate?.Invoke(text).IsSuccess ?? false;
 
-			return byGenerated || byHand
-				? $"  expected both to refuse; generated {(byGenerated ? "accepted" : "refused")}, hand {(byHand ? "accepted" : "refused")}"
+			return byGenerated || byHand || byImmediate
+				? $"  expected all to refuse; generated {(byGenerated ? "accepted" : "refused")}, hand {(byHand ? "accepted" : "refused")}" +
+					(immediate is null ? "" : $", immediate {(byImmediate ? "accepted" : "refused")}")
 				: null;
 		}
 	}
