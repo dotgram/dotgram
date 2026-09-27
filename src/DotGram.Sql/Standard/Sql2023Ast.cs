@@ -1744,7 +1744,11 @@ public abstract record GrantBody : ISqlNode
 		Span = new SqlSpan(at, length);
 	}
 
-	public record Privileges(IReadOnlyList<Privilege> Items, PrivilegeObject Object, IReadOnlyList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy) : GrantBody;
+	// T-SQL: GRANT (Transact-SQL). `Object` is nullable because T-SQL's `ON` is optional — a server
+	// permission is granted to a principal and names nothing — and `AsPrincipal` is its `AS p`, which is
+	// not `GrantedBy`: that is the standard's `GRANTED BY { CURRENT_USER | CURRENT_ROLE }`, an enum of
+	// two, where this is a principal's name.
+	public record Privileges(IReadOnlyList<Privilege> Items, PrivilegeObject? Object, IReadOnlyList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy, Identifier? AsPrincipal = null) : GrantBody;
 	public record Roles(IReadOnlyList<Identifier> Names, IReadOnlyList<Grantee> Grantees, bool AdminOption, Grantor? GrantedBy) : GrantBody;
 }
 public abstract record RevokeBody : ISqlNode
@@ -1755,7 +1759,11 @@ public abstract record RevokeBody : ISqlNode
 		Span = new SqlSpan(at, length);
 	}
 
-	public record Privileges(RevokeOption? Option, IReadOnlyList<Privilege> Items, PrivilegeObject Object, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
+	// T-SQL: REVOKE (Transact-SQL). `Object` and `AsPrincipal` are as GrantBody's. `Behavior` is nullable
+	// because T-SQL writes CASCADE or nothing where the standard always writes one of the two words, and
+	// `To` is the page's other spelling: it publishes `{ TO | FROM }` for the same clause, and FROM is
+	// the standard's, so the flag marks the deviation and not the norm.
+	public record Privileges(RevokeOption? Option, IReadOnlyList<Privilege> Items, PrivilegeObject? Object, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
 	public record Roles(bool AdminOptionFor, IReadOnlyList<Identifier> Names, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
 public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods) : ISqlNode { public SqlSpan Span { get; private set; }
@@ -1766,7 +1774,10 @@ public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Col
 }
 public enum PrivilegeKind { AllPrivileges, Select, Delete, Insert, Update, References, Usage, Trigger, Under, Execute }
 // BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
-public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false) : ISqlNode { public SqlSpan Span { get; private set; }
+// T-SQL: GRANT Object Permissions (Transact-SQL). `Columns` is the column list that page lets follow the
+// SECURABLE — `ON t (a, b)` — and not only a permission, which is `Privilege.Columns`. The engine reads
+// both and objects afterwards where both are written (1019), so the tree holds them apart.
+public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, IReadOnlyList<Identifier>? Columns = null) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);

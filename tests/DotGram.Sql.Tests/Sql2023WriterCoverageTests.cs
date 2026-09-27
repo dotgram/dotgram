@@ -49,6 +49,19 @@ public sealed class Sql2023WriterCoverageTests
 
 	static readonly TransactionName Saved = new(new Identifier("s"));
 
+	/// <summary>A revoked SELECT on one table, written with the page's FROM or its TO.</summary>
+	static RevokeBody Revoked(bool to)
+	{
+		return new RevokeBody.Privileges(
+			null,
+			[new Privilege(PrivilegeKind.Select, [], [])],
+			new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("t")])),
+			[new Grantee.Public()],
+			null,
+			null,
+			To: to);
+	}
+
 	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
 	static CursorProperties Scrolling(bool forwardOnly)
 	{
@@ -260,6 +273,9 @@ public sealed class Sql2023WriterCoverageTests
 			// that holds them: a spelling only reaches the text through DECLARE CURSOR, so a pair of bare
 			// CursorProperties would be two nodes the writer does not take, which this test passes and
 			// which proves nothing about the flag.
+			["Privileges.To"] = (
+				new Statement.Revoke { Body = Revoked(false) },
+				new Statement.Revoke { Body = Revoked(true) }),
 			["DeclareCursor.Extended"] = (
 				Declared(Scrolling(false)),
 				Declared(Scrolling(false)) with { Extended = true }),
@@ -374,6 +390,51 @@ public sealed class Sql2023WriterCoverageTests
 		var both = named with { ToSavepoint = new Identifier("s") };
 
 		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(both));
+	}
+
+	/// <summary>
+	/// That the three parts T-SQL's permission statements added reach the text: DENY, which the standard
+	/// has no word for, a securable left out, and the column list on the securable.
+	/// </summary>
+	/// <remarks>
+	/// No grammar builds these yet — T-SQL still reads its permissions into the old tree — so without a
+	/// test here the writer's DENY arm is code nothing reaches, which is the state the enum arms were in
+	/// when <c>NotLess</c> printed as <c>&gt;=</c>.
+	/// </remarks>
+	[Fact]
+	public void The_permission_statements_write_what_T_SQL_adds()
+	{
+		var select = new Privilege(PrivilegeKind.Select, [], []);
+		var table  = new QualifiedName([new Identifier("t")]);
+
+		Assert.Equal(
+			"DENY SELECT ON t TO PUBLIC CASCADE AS keeper",
+			Sql2023Writer.Write(new Statement.Deny(
+				[select],
+				[new Grantee.Public()],
+				new PrivilegeObject(PrivilegeObjectKind.Table, table),
+				Cascade: true,
+				AsPrincipal: new Identifier("keeper"))).TrimEnd(';', ' '));
+
+		// A server permission names no securable, so there is no ON at all.
+		Assert.Equal(
+			"GRANT SELECT TO PUBLIC",
+			Sql2023Writer.Write(new Statement.Grant
+			{
+				Body = new GrantBody.Privileges([select], null, [new Grantee.Public()], false, false, null),
+			}).TrimEnd(';', ' '));
+
+		// And the column list that follows the SECURABLE rather than the permission.
+		Assert.Contains(
+			"ON t (a, b)",
+			Sql2023Writer.Write(new Statement.Grant
+			{
+				Body = new GrantBody.Privileges(
+					[select],
+					new PrivilegeObject(PrivilegeObjectKind.Table, table, Columns: [new Identifier("a"), new Identifier("b")]),
+					[new Grantee.Public()], false, false, null),
+			}),
+			StringComparison.Ordinal);
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>

@@ -472,6 +472,30 @@ public abstract partial record Statement
 		TransactionMark? Mark = null) : Statement;
 
 	/// <summary>
+	/// T-SQL: DENY (Transact-SQL). <c>DENY permission … [ON [class ::] securable] TO principal …
+	/// [CASCADE] [AS principal]</c>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The third of the three permission statements, and the one the standard has no word for. It shares
+	/// GRANT's parts — the permissions, the securable, the principals — so those are the standard's
+	/// <see cref="Privilege"/>, <see cref="PrivilegeObject"/> and <see cref="Grantee"/> and not records of
+	/// its own (proposal 23).
+	/// </para>
+	/// <para>
+	/// It is a statement rather than a flag on <c>GrantBody.Privileges</c> because the page gives it a
+	/// different tail: there is no <c>WITH GRANT OPTION</c> to leave false, and there is a
+	/// <c>CASCADE</c> that GRANT does not have.
+	/// </para>
+	/// </remarks>
+	public sealed record Deny(
+		IReadOnlyList<Privilege> Items,
+		IReadOnlyList<Grantee> Grantees,
+		PrivilegeObject? Object = null,
+		bool Cascade = false,
+		Identifier? AsPrincipal = null) : Statement;
+
+	/// <summary>
 	/// T-SQL: SAVE TRANSACTION (Transact-SQL). <c>SAVE { TRAN | TRANSACTION } { name | @variable }</c>.
 	/// </summary>
 	/// <remarks>

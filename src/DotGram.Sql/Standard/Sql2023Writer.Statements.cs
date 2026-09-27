@@ -300,6 +300,19 @@ public static partial class Sql2023Writer
 						Word("WITH GRANT OPTION");
 
 					PutGrantedBy(privileges.GrantedBy);
+					PutAsPrincipal(privileges.AsPrincipal);
+					break;
+
+				case Statement.Deny deny:
+					Word("DENY");
+					PutPrivileges(deny.Items, deny.Object);
+					Word("TO");
+					Each(deny.Grantees, PutGrantee);
+
+					if (deny.Cascade)
+						Word("CASCADE");
+
+					PutAsPrincipal(deny.AsPrincipal);
 					break;
 
 				case Statement.Grant grant:
@@ -323,10 +336,12 @@ public static partial class Sql2023Writer
 						Word(revokeOption == RevokeOption.GrantOptionFor ? "GRANT OPTION FOR" : "HIERARCHY OPTION FOR");
 
 					PutPrivileges(revoked.Items, revoked.Object);
-					Word("FROM");
+					// The page publishes `{ TO | FROM }` for one clause, and FROM is the standard's word.
+					Word(revoked.To ? "TO" : "FROM");
 					Each(revoked.Grantees, PutGrantee);
 					PutGrantedBy(revoked.GrantedBy);
 					PutBehavior(revoked.Behavior);
+					PutAsPrincipal(revoked.AsPrincipal);
 					break;
 
 				case Statement.Revoke revoke:
@@ -1170,7 +1185,7 @@ public static partial class Sql2023Writer
 
 		// ── §12 Privileges ─────────────────────────────────────────────────────────
 
-		void PutPrivileges(IReadOnlyList<Privilege> privileges, PrivilegeObject on)
+		void PutPrivileges(IReadOnlyList<Privilege> privileges, PrivilegeObject? on)
 		{
 			if (privileges is [{ Kind: PrivilegeKind.AllPrivileges }])
 				Word("ALL PRIVILEGES");
@@ -1206,6 +1221,10 @@ public static partial class Sql2023Writer
 					}
 				});
 
+			// T-SQL's ON is optional: a server permission names no securable.
+			if (on is null)
+				return;
+
 			Word("ON");
 
 			switch (on.Kind)
@@ -1236,6 +1255,24 @@ public static partial class Sql2023Writer
 			}
 
 			PutName(on.Name);
+
+			// T-SQL's column list on the SECURABLE, `ON t (a, b)`, which is not a permission's.
+			if (on.Columns is { Count: > 0 } columns)
+			{
+				Open();
+				Each(columns, PutIdentifier);
+				Close();
+			}
+		}
+
+		/// <summary>T-SQL's <c>AS principal</c>, the principal whose authority the statement is under.</summary>
+		void PutAsPrincipal(Identifier? principal)
+		{
+			if (principal is null)
+				return;
+
+			Word("AS");
+			PutIdentifier(principal);
 		}
 
 		void PutGrantee(Grantee grantee)
