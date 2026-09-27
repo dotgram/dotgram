@@ -9645,7 +9645,11 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   System.Threading.Tasks. They behave as
   usings written before the text's own. A host turns them off with
   `ResolutionScope.WithoutDefaultImports()` and reads them as `ResolutionScope.DefaultImports`
-  (Igor, same day).
+  (Igor, same day). Built: aliases 7f64378c, defaults and switch c64efb52, `using static`
+  864fedbe and 45a28953, with C#'s answers taken from Roslyn (an alias beats a using silently and
+  collides only with a type in no namespace, CS0576 at the directive; static-using methods join the
+  overload set, CS0121; a member that is also a type is CS0229 as a value and the type as a type).
+  `static` became a reserved word in EL with it, as in C#: a parameter named `static` is refused.
 - **FIX: compiling only the checks that differ from the built-in ones is not done.** The first
   Prepare of FIX 4.4 with its errata takes 0.43 s since 723b7af8, in the background; not worth the
   second model it would need.
