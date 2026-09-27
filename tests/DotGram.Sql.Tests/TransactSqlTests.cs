@@ -13447,6 +13447,14 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT CREATE TO u")]
 	[InlineData("GRANT CREATE ANY FOO TO u")]
 	[InlineData("GRANT VIEW FOO TO u")]
+	// The securable's CLASS is a catalogue too, asked of the engine one word at a time. `FOO` and
+	// `FOO BAR` are `Incorrect syntax near 'FOO'`; `CREDENTIAL` is the one `class_desc` lists and the
+	// parser refuses, only `DATABASE SCOPED CREDENTIAL` being written; and `TABLE` names an object,
+	// which is `OBJECT::`, as `VIEW`, `PROCEDURE` and `SEQUENCE` do.
+	[InlineData("GRANT ALTER ON FOO::x TO u")]
+	[InlineData("GRANT ALTER ON FOO BAR::x TO u")]
+	[InlineData("GRANT CONTROL ON CREDENTIAL::x TO u")]
+	[InlineData("GRANT CONTROL ON TABLE::x TO u")]
 	public void The_permission_statements_refuse_what_the_engine_does(string input)
 	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
@@ -13470,6 +13478,11 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT VIEW ANY COLUMN ENCRYPTION KEY DEFINITION, CONNECT SQL, CONNECT TO u")]
 	[InlineData("GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u")]
 	[InlineData("GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u")]
+	// A class of three words, one that begins with another class (`SERVER ROLE` against `SERVER`),
+	// and one of the longest: read here because the engine reads them.
+	[InlineData("GRANT CONTROL ON DATABASE SCOPED CREDENTIAL::x TO u")]
+	[InlineData("GRANT ALTER ON SERVER ROLE::r TO u")]
+	[InlineData("GRANT CONTROL ON XML SCHEMA COLLECTION::c TO u")]
 	public void The_permission_statements_read_what_the_engine_does(string input)
 	{
 		var match = TransactSqlParser.TryParseStatement(input);

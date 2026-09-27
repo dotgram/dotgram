@@ -7059,10 +7059,50 @@ PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)
 // class has no columns, objects to afterwards (1019). They stay in the securable's words.
 PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
-// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
-// and `::`. Where there is no `::` the whole clause is given back, which is what makes it
-// safe to try in front of an ordinary name.
-SecurableClass = PermissionWord+ & "::"
+// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c`: one of the engine's own
+// classes, and `::`. This read any run of words until the engine was asked, which was loose in the
+// way the permission rule had been before its list: `GRANT ALTER ON FOO::x` and `GRANT ALTER ON
+// FOO BAR::x` are both `Incorrect syntax near 'FOO'`, 102, so an unknown class is syntax to it. A
+// strict rule beside an open one, both reading the same statement, is what gave it away.
+//
+// The twenty-eight are `class_desc` from `sys.fn_builtin_permissions`, each asked OF THE PARSER one
+// at a time rather than taken from the view: the view lists twenty-nine, and `CREDENTIAL::x` is
+// refused -- only `DATABASE SCOPED CREDENTIAL::` is written. `TABLE::`, `VIEW::`, `PROCEDURE::` and
+// `SEQUENCE::` are not classes either; all of those are `OBJECT::`.
+//
+// Longest first, so that no class is taken for one it begins with: `DATABASE SCOPED CREDENTIAL`
+// before `DATABASE`, `SERVER ROLE` before `SERVER`.
+SecurableClass = SecurableClassName & "::"
+
+SecurableClassName
+	= "DATABASE"i & "SCOPED"i & "CREDENTIAL"i
+	| "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "SEARCH"i & "PROPERTY"i & "LIST"i
+	| "XML"i & "SCHEMA"i & "COLLECTION"i
+	| "APPLICATION"i & "ROLE"i
+	| "ASYMMETRIC"i & "KEY"i
+	| "AVAILABILITY"i & "GROUP"i
+	| "EXTERNAL"i & "LANGUAGE"i
+	| "EXTERNAL"i & "MODEL"i
+	| "FULLTEXT"i & "CATALOG"i
+	| "FULLTEXT"i & "STOPLIST"i
+	| "MESSAGE"i & "TYPE"i
+	| "SERVER"i & "ROLE"i
+	| "SYMMETRIC"i & "KEY"i
+	| "ASSEMBLY"i
+	| "CERTIFICATE"i
+	| "CONTRACT"i
+	| "DATABASE"i
+	| "ENDPOINT"i
+	| "LOGIN"i
+	| "OBJECT"i
+	| "ROLE"i
+	| "ROUTE"i
+	| "SCHEMA"i
+	| "SERVER"i
+	| "SERVICE"i
+	| "TYPE"i
+	| "USER"i
 
 // `ALL` and `ALL PRIVILEGES` are permissions like the others: first in a list, later in one,
 // with columns after them. An alternative of their own read them alone and, being first,

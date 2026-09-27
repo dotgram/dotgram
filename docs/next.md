@@ -24949,3 +24949,41 @@ cannot tell you that the thing itself never happened. The refusal column is zero
 **"Nothing" was one of two outcomes from the first line.** It was held so before any number
 existed, not adopted once the numbers disappointed. A report in which the refusal appears only at
 the end reads as an excuse; one in which it was an outcome throughout reads as a decision.
+
+## The securable class is a catalogue, and the view is not the parser
+
+`SecurableClass = PermissionWord+ & "::"` read any run of words before a `::`. The engine refuses an
+unknown class as SYNTAX -- `GRANT ALTER ON FOO::x` and `GRANT ALTER ON FOO BAR::x` are both
+`Incorrect syntax near 'FOO'`, 102 -- so this read what it refuses, which is the defect the
+permission list was written to close, in the rule next door. The rule now holds the twenty-eight
+classes, longest first.
+
+**How it was noticed is the part worth keeping.** Nobody reported it and no test failed. Reading the
+permission rules for the tree's sake, the asymmetry was there in two adjacent lines: `PermissionName`
+is a closed list of 166 names *because the engine refuses the rest*, and its neighbour takes any word
+at all. One strict rule beside an open one, both reading the same statement, is a question about which
+of the two is wrong.
+
+**The view is not the parser, by exactly one row.** `sys.fn_builtin_permissions` gives 29 distinct
+`class_desc`, and `CREDENTIAL::x` is refused: only `DATABASE SCOPED CREDENTIAL::` is written. Had the
+rule been generated from the view, as the permission list was, the grammar would have gained one word
+the engine refuses -- so each of the 29 was asked OF THE PARSER, one statement at a time, with a
+permission that class allows. `TABLE::`, `VIEW::`, `PROCEDURE::` and `SEQUENCE::` are not classes
+either; all of those are `OBJECT::`.
+
+**And a permission is checked against its class, at parse time.** `SELECT ON OBJECT::x`,
+`SELECT ON SCHEMA::x`, `SELECT ON DATABASE::x`, `ALTER ON ENDPOINT::x` and `CONTROL ON ENDPOINT::x`
+are read; `SELECT ON ENDPOINT::x` is `Incorrect syntax near 'SELECT'`. The view has 301 rows for the
+166 names over 29 classes -- ENDPOINT takes 5 of them -- so the engine knows the pairs and this grammar
+accepts any permission with any class. That is a second task, to be brought priced rather than
+planned: a rule per class is 28 rules, a `when` guard over a static table of the 301 pairs is one
+lookup, and both want generation time measured before and after (D11 B made T-SQL 4 -> 86 s) and the
+corpus counted, since a stricter grammar can only lose rows there.
+
+**Two things were checked before the change rather than after.** The corpus writes 26 classes and
+every one is inside the 28, so no file could lose a statement -- and none did. And the four refusals
+and three readings that went into `TransactSqlTests` were each asked of the engine first, because a
+test named for what the engine does is a claim about the engine.
+
+**Why this is ours to refuse at all.** The engine answers 102, syntax. A bind-time message would be
+the server's business and we would be right to read the statement and let it object.
