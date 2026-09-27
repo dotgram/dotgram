@@ -75,8 +75,9 @@ there and at 42 ns for the rest of the same process, and the same row put first 
 (the picture is the same with `DOTNET_TieredCompilation=0`) and not the collector (no generation 0 collection in the run), and the cheaper
 the reading, the more it suffers. A probe of a second or less on a fresh process therefore overstates its first rows, by about five times on a
 reading of tens of nanoseconds, and is not to be read as the cost of the parser; the stand warms every reading until it is stable before it
-times it, and `--only` on one cheap row is the case where a short run is still not a full run's number. Read another session's short probe with
-that in mind.
+times it, and `--only` on one cheap row is the case where a short run is still not a full run's number (below, under `--only a,b`: it can
+overstate the control enough to trip the harness's own comparability guard and refuse the run outright, not only the row). Read another
+session's short probe with that in mind.
 
 ### What an order for a pair is asked, and what the report says when the answer is no
 
@@ -118,7 +119,14 @@ sizes of `DotGram.CodeSize` are the same on every run and have no range.
 calls, the streamed run and the generator's reports, so that some rows can be looked at in a
 minute. Its absolute numbers are not a full run's: the hand FIX parser reads `fix/Order.text`
 at 940 ns in a first short run and at 670 in every other, so a short run is compared with
-another short run and never with a full one. `--stand-check` times nothing and holds every
+another short run and never with a full one — see "A short probe in a cold process overstates
+its first rows" above, of which this is the general case. **One row alone is the extreme of
+it, and can take the control down with it**: `el/untyped` alone read its own control at a
+consistent 142-150 ns against the usual ~31.5 (2026-09-27, expr/stand), tripping the harness's
+own 20%-comparability guard and refusing to quote anything, on a machine that was otherwise
+quiet — not disturbance, just too short a process to warm even the control. Widening to the
+row's whole family (`--only el/` rather than `--only el/untyped`) fixed it; the row of interest
+is then read out of the wider result. `--stand-check` times nothing and holds every
 row's readings to one another. `--stand-paired --first` takes the first call of each reading of
 each row in a fresh process each, median of five, before and after.
 
