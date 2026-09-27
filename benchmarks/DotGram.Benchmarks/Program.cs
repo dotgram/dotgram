@@ -527,6 +527,15 @@ static class Program
 			return;
 		}
 
+		// `--sql2023-stack` is not a benchmark either: it prints what SQL:2023's SearchCondition
+		// costs a level of nesting to refuse, tape carrier beside immediate. See Sql2023Stack.cs.
+		if (args.Length == 1 && args[0] == "--sql2023-stack")
+		{
+			Sql2023Stack.Run();
+
+			return;
+		}
+
 		// `--hot [seconds] [input]` is not a benchmark either: it runs the URL grammar in
 		// a loop long enough for a profiler to attach to and get a line-by-line breakdown
 		// from. Named alone, one input is what a profile about that input has to run. See
