@@ -137,7 +137,8 @@ public static partial class ExpressionParser
 	// the PARTS, so asking costs no string either.
 	//
 	// A text of two type names under five namespaces asked this twenty times and built twenty-four
-	// strings (2026-09-27, the stand's el/try row).
+	// strings, counted by an instrumented copy of this file and not read off the stand; the row
+	// name only says which text was read (el/try, 2026-09-27).
 
 	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type?> _qualified = new();
 

@@ -3125,8 +3125,11 @@ public static partial class ExpressionParser
 
 			// The namespaces every text gets, NAMED and not copied: the set is one static array and
 			// a reading points at it, so a reading holds five namespaces for no bytes. Copying them
-			// into the list below cost 64 bytes of every reading there is, which the yardstick
-			// found (2026-09-27).
+			// into the list below cost 64 bytes of every reading there is, and that figure is
+			// arithmetic and not a measurement: `AddRange` of the five sets an empty list’s capacity
+			// to five, and a `string[5]` is sixteen bytes of header, eight of length and five
+			// references of eight — exactly 64. A reading agreed with it to the byte, but the
+			// arithmetic is the ground, since nothing about an instrument can move it.
 			//
 			// They are not looked for either: one the scope does not hold is simply absent, and
 			// looking would walk the closure for a text that may name no type at all (42c6d5b0).
@@ -3378,9 +3381,11 @@ public static partial class ExpressionParser
 		/// The indexes below answer where a name was declared and what a block declares without
 		/// reading every declaration in the text, which is what makes a text of blocks cost its
 		/// length. They also cost two collections and a list per name to build, and <c>(int x) => x</c>
-		/// declares ONE name: it paid 640 bytes a parse for them, on a parse of 944 (the stand’s
-		/// el/floor, 2026-09-26, against f45dd9d4). Every row of the language’s own yardstick paid the
-		/// same, the short ones 8 to 16% of their time with it.
+		/// declares ONE name: indexing it costs 360 bytes on a parse of 864. That pair is a control
+		/// and not a row: the same text read at <see cref="Indexed"/> nought against int.MaxValue in
+		/// one process, each figure read again until two rounds agreed to the byte and the pair taken
+		/// in both orders (2026-09-27). Every row of the language’s own yardstick paid it, the short
+		/// ones 8 to 16% of their time with it.
 		/// </para>
 		/// <para>
 		/// So a reading walks what it has written until there is enough of it to be worth indexing,
