@@ -4220,7 +4220,20 @@ public static class HandExpression
 				return i + 1;
 			}
 
-			return Name(i, out node);
+			var plain = Name(i, out node);
+
+			// A bare name that is a static member a `using static` brought into reach, where nothing
+			// the text declared has the name — C#'s order, and the reason this stands after `Name`
+			// rather than before it.
+			if (plain < 0 && Kind(i) == Identifier && _context.Statics() && _context.Reads(Cut(i), Span(i, 1)))
+			{
+				if (_build)
+					node = _context.Read(Cut(i));
+
+				return i + 1;
+			}
+
+			return plain;
 		}
 
 		/// <summary>A mark over the reading that begins at token <paramref name="i"/>, placed where that token begins.</summary>

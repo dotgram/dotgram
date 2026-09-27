@@ -1433,6 +1433,13 @@ namespace DotGram.ExpressionLanguage;
 
 		| n: Name    => @(n)
 
+		// A bare name that is a static member a `using static` brought into reach. LAST, after the
+		// name a text declared, which is C#'s order; and behind a guard that reads nothing, so a
+		// text without the directive never reaches the word.
+		| when @(context.Statics())
+		& ?!Keyword & read: Word & when @(context.Reads(read, parserSpan))
+		  => @(context.Read(read))
+
 	// The guard is what makes this rule readable speculatively, which it has to be: an
 	// assignment reads its target as a name before it knows which operator follows, and
 	// `Math.Max(x, 1)` reads `Math` as one before `NamedType` gets a look. A `=>` that
@@ -3140,7 +3147,7 @@ public static partial class ExpressionParser
 		/// directly, without a text to parse — which is the whole reason it is a thing of its
 		/// own and not a set of methods taking the same two arguments over and over.
 		/// </remarks>
-		internal MemberResolver Members { get; }
+		internal MemberResolver Members { get; private set; }
 
 		/// <summary>The text being read, where the one reading it said so.</summary>
 		/// <remarks>
@@ -3610,7 +3617,7 @@ public static partial class ExpressionParser
 		{
 			return new Checkpoint(
 				_scopes?.Count ?? 0, _declared?.Count ?? 0, _unsettled?.Count ?? 0, _imports.Count,
-				_aliases.Count, _statics.Count, _refusedAt, _refusal, _deferred);
+				_aliases?.Count ?? 0, _statics?.Count ?? 0, _refusedAt, _refusal, _deferred);
 		}
 
 		/// <summary>Everything written since <paramref name="at"/> taken back.</summary>
@@ -3686,10 +3693,18 @@ public static partial class ExpressionParser
 
 		/// <summary>The types a `using static` named, in the order the text named them.</summary>
 		/// <remarks>
+		/// <para>
 		/// A list for the reason <see cref="_imports"/> is one: a reading given up takes back what
 		/// it wrote, and taking back a count is truncating a list.
+		/// </para>
+		/// <para>
+		/// Made when the first directive is read and not before. Most texts write none, and a list
+		/// per reading was 48 bytes of every one of them — the same shape as the 640 bytes four
+		/// collections cost `(int x) => x` before 7430d16e, and felt in the same place: a host
+		/// reading many small texts.
+		/// </para>
 		/// </remarks>
-		readonly List<Type> _statics = [];
+		List<Type>? _statics;
 
 		/// <summary>A `using static`, recorded while the text is read.</summary>
 		/// <returns>Whether it may stand. One type named twice is recorded once.</returns>
@@ -3697,6 +3712,16 @@ public static partial class ExpressionParser
 		{
 			if (type is null)
 				throw new ArgumentNullException(nameof(type));
+
+			if (_statics is null)
+			{
+				_statics = [];
+
+				// The resolver was handed the list that was not there yet, so it is made again now
+				// that there is one. Once per text at most, and only for a text that writes the
+				// directive; every reading after this one reads the list itself.
+				Members = new MemberResolver(Reach, _imports, _statics);
+			}
 
 			if (!_statics.Contains(type))
 				_statics.Add(type);
@@ -3718,7 +3743,7 @@ public static partial class ExpressionParser
 		/// </remarks>
 		internal bool Statics()
 		{
-			return _statics.Count > 0;
+			return _statics is { Count: > 0 };
 		}
 
 		internal bool Calls(string name, SourceSpan at)
@@ -3726,8 +3751,8 @@ public static partial class ExpressionParser
 			if (name is null)
 				throw new ArgumentNullException(nameof(name));
 
-			for (var one = 0; one < _statics.Count; one++)
-				if (Offers(_statics[one], name, Reach))
+			for (var one = 0; one < (_statics?.Count ?? 0); one++)
+				if (Offers(_statics![one], name, Reach))
 					return true;
 
 			return false;
@@ -3745,9 +3770,10 @@ public static partial class ExpressionParser
 		/// <remarks>
 		/// A list and not a table, for the reason <see cref="_imports"/> is one: a reading that is
 		/// given up takes back what it wrote, and taking back a count is truncating a list. There
-		/// are never many, and a use reads them by walking.
+		/// are never many, and a use reads them by walking. Made at the first alias and not before,
+		/// as <see cref="_statics"/> is: a text that writes none should not pay for a list.
 		/// </remarks>
-		readonly List<Alias> _aliases = [];
+		List<Alias>? _aliases;
 
 		/// <summary>A `using` that names a TYPE, recorded while the text is read.</summary>
 		/// <returns>
@@ -3800,9 +3826,9 @@ public static partial class ExpressionParser
 				return false;
 			}
 
-			for (var one = 0; one < _aliases.Count; one++)
+			for (var one = 0; one < (_aliases?.Count ?? 0); one++)
 			{
-				if (!string.Equals(_aliases[one].Name, name, StringComparison.Ordinal))
+				if (!string.Equals(_aliases![one].Name, name, StringComparison.Ordinal))
 					continue;
 
 				// The same directive read a second time is the same alias, which a reading given up
@@ -3823,7 +3849,7 @@ public static partial class ExpressionParser
 				return false;
 			}
 
-			_aliases.Add(new Alias(name, type, space));
+			(_aliases ??= []).Add(new Alias(name, type, space));
 
 			return true;
 		}
@@ -3836,7 +3862,7 @@ public static partial class ExpressionParser
 		/// </remarks>
 		Type? Aliased(string dotted)
 		{
-			if (_aliases.Count == 0)
+			if (_aliases is null || _aliases.Count == 0)
 				return null;
 
 			var cut  = dotted.IndexOf('.');
@@ -4003,11 +4029,19 @@ public static partial class ExpressionParser
 			var   count = 0;
 
 			for (var at = 0; at < _imports.Count; at++)
-			{
-				var found = Qualified(_imports[at], name, Reach);
+				Take(Qualified(_imports[at], name, Reach));
 
+			// And what a `using static` named: its nested types are peers of the namespaces above,
+			// which is C#'s answer — a nested type from one and a type from the other, both giving
+			// one name, is CS0104 exactly as two namespaces are (asked of Roslyn 2026-09-26). So they
+			// are counted in the same pass and the ambiguity falls out of the count.
+			for (var at = 0; at < (_statics?.Count ?? 0); at++)
+				Take(Within(_statics![at], name));
+
+			void Take(Type? found)
+			{
 				if (found is null || found == one || found == two)
-					continue;
+					return;
 
 				if (count++ == 0)
 					one = found;
@@ -4019,6 +4053,78 @@ public static partial class ExpressionParser
 			second = two;
 
 			return count;
+		}
+
+		/// <summary>The type a dotted name means inside another type, where it means one.</summary>
+		Type? Within(Type outer, string dotted)
+		{
+			var type = default(Type?);
+			var at   = 0;
+
+			while (at <= dotted.Length)
+			{
+				var next = dotted.IndexOf('.', at);
+				var step = next < 0 ? dotted.Substring(at) : dotted.Substring(at, next - at);
+
+				type = ExpressionParser.Nested(type ?? outer, step, Reach);
+
+				if (type is null || next < 0)
+					return type;
+
+				at = next + 1;
+			}
+
+			return type;
+		}
+
+		/// <summary>Whether a bare name is a static member a `using static` brought into reach.</summary>
+		/// <remarks>
+		/// Asked where nothing the text declared has the name, which is C#'s order: a local of the
+		/// name wins, and this way stands after the one that reads a declared name.
+		/// </remarks>
+		internal bool Reads(string name, SourceSpan at)
+		{
+			if (name is null)
+				throw new ArgumentNullException(nameof(name));
+
+			for (var one = 0; one < (_statics?.Count ?? 0); one++)
+				if (HasStatic(_statics![one], name, Reach))
+					return true;
+
+			return false;
+		}
+
+		/// <summary>The static member a bare name reads, or why the name means two things.</summary>
+		/// <remarks>
+		/// C# refuses a bare name that is both a member a `using static` gives and a TYPE in scope,
+		/// where a value is wanted (CS0229), and refuses one that two `using static`s both give the
+		/// same way. It is not the ambiguity a reference has (CS0104): the two questions are asked
+		/// of different things, and only a value can meet this one. Both were asked of Roslyn.
+		/// </remarks>
+		internal Expression Read(string name)
+		{
+			var found = default(Type?);
+
+			for (var one = 0; one < (_statics?.Count ?? 0); one++)
+			{
+				if (!HasStatic(_statics![one], name, Reach))
+					continue;
+
+				if (found is not null)
+					throw new InvalidOperationException(
+						$"'{name}' is an ambiguous reference between '{found.Name}.{name}' and '{_statics[one].Name}.{name}'.");
+
+				found = _statics[one];
+			}
+
+			if (found is null)
+				throw new FormatException(NothingNamed(name));
+
+			if (Meanings(name, out var written, out _) > 0)
+				throw new InvalidOperationException(
+					$"'{name}' is an ambiguous reference between '{found.Name}.{name}' and '{written!.Name}'.");
+
+			return StaticMember(found, name, Reach);
 		}
 
 		static string NothingNamed(string name)

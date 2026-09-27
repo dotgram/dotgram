@@ -86,4 +86,50 @@ public sealed class StaticImportTests
 	{
 		Assert.Equal(2, Both.Compile<Counting>("using static System.Math; using static System.Math; () => Abs(-2)")());
 	}
+
+	[Fact]
+	public void A_bare_name_reads_a_static_member_it_brought_in()
+	{
+		Assert.Equal(3, Both.Compile<Counting>("using static System.Math; () => (int)PI")());
+	}
+
+	[Fact]
+	public void A_local_of_the_name_wins_over_a_member_it_brought_in()
+	{
+		Assert.Equal(7, Both.Compile<Counting>("using static System.Math; () => { int PI = 7; PI }")());
+	}
+
+	[Fact]
+	public void A_nested_type_it_brought_in_is_named()
+	{
+		Assert.Equal(
+			(int)Environment.SpecialFolder.System,
+			Both.Compile<Counting>("using static System.Environment; () => (int)SpecialFolder.System")());
+	}
+
+	[Fact]
+	public void A_nested_type_and_a_using_giving_one_name_is_ambiguous()
+	{
+		// C#'s CS0104: a nested type a `using static` gives is a peer of a type a namespace
+		// `using` gives, asked of Roslyn.
+		var thrown = Assert.Throws<InvalidOperationException>(
+			() => Both.Parse(
+				"using static DotGram.Tests.ExpressionLanguage.Nesting; " +
+				"using DotGram.Tests.ExpressionLanguage.Left; () => Twin.Value"));
+
+		Assert.Contains("ambiguous", thrown.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_member_and_a_type_of_one_name_read_as_a_value_is_ambiguous()
+	{
+		// C#'s CS0229, which is not CS0104: the two questions are asked of different things, and
+		// only a value can meet this one.
+		var thrown = Assert.Throws<InvalidOperationException>(
+			() => Both.Parse(
+				"using static DotGram.Tests.ExpressionLanguage.Holds; " +
+				"using DotGram.Tests.ExpressionLanguage.Right; () => Twin"));
+
+		Assert.Contains("ambiguous", thrown.Message, StringComparison.Ordinal);
+	}
 }

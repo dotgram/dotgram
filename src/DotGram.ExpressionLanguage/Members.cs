@@ -182,6 +182,19 @@ public static partial class ExpressionParser
 	/// among the members the calling assembly could reach — the instance form's rule, which
 	/// is <see cref="InstanceMember"/>.
 	/// </remarks>
+	/// <summary>Whether that type has a static member of that name the scope may read.</summary>
+	/// <remarks>
+	/// What a guard asks of a bare name where nothing the text declared has it. The answer is the
+	/// one <see cref="StaticMember"/> reads, so asking costs a lookup and building costs nothing
+	/// again.
+	/// </remarks>
+	internal static bool HasStatic(Type type, string name, ResolutionScope scope)
+	{
+		return Cached(
+			_staticMembers, _staticMembersAbsent, (type, name, scope),
+			static key => SearchedStatic(key.Item1, key.Item2, key.Item3), Nothing) is not null;
+	}
+
 	internal static Expression StaticMember(Type type, string name, ResolutionScope scope)
 	{
 		if (type is null)

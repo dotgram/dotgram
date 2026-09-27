@@ -35,3 +35,32 @@ namespace DotGram.Tests.ExpressionLanguage.Against
 		public static int Value => 3;
 	}
 }
+
+namespace DotGram.Tests.ExpressionLanguage
+{
+	/// <summary>A type whose NESTED type shares a name with `Left.Twin`.</summary>
+	/// <remarks>
+	/// For the ambiguity a `using static` can make: C# counts a nested type it brings in as a peer
+	/// of a type a namespace `using` brings in, so both giving `Twin` is CS0104 (asked of Roslyn
+	/// 2026-09-26).
+	/// </remarks>
+	public static class Nesting
+	{
+		/// <summary>The nested one.</summary>
+		public static class Twin
+		{
+			public static int Value => 4;
+		}
+	}
+
+	/// <summary>A type whose static MEMBER shares a name with `Right.Twin`, which is a type.</summary>
+	/// <remarks>
+	/// For the other ambiguity, and it is another diagnostic: a bare name that is both a member a
+	/// `using static` gives and a type in scope is CS0229 where a VALUE is wanted, and is the type
+	/// where a type is wanted. Not CS0104 — the two questions are asked of different things.
+	/// </remarks>
+	public static class Holds
+	{
+		public static int Twin => 5;
+	}
+}

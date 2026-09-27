@@ -96,6 +96,12 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   over one a `using static` gives — a local delegate called as `f(x)` is called even where a
   static method of that name would fit, which is C#'s answer. Two `using static`s giving one
   method is an ambiguous CALL rather than an ambiguous name, as in C# (CS0121).
+- It brings in the type's static members as bare names too (`(int)PI`), and its nested types
+  (`using static System.Environment; SpecialFolder.System`). A name the text declared wins over a
+  member it gives. A nested type it gives is a PEER of a type a `using` gives, so both giving one
+  name is ambiguous where the name is used; and a name that is both a member it gives and a type
+  in scope is ambiguous where a VALUE is wanted and is the type where a type is wanted — which
+  is C#'s answer, and two different diagnostics there (CS0104 and CS0229).
 - `static` is a keyword here, as it is in C#, so nothing may be named it.
 - **An alias beats a name a `using` brings in**, silently, as in C#; it may not take a name the
   global namespace already has, and that is refused where the alias is WRITTEN rather than where
