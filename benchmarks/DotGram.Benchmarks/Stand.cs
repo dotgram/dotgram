@@ -72,7 +72,7 @@ static partial class Stand
 
 	sealed record Held(string Reading, double Kilobytes, long Fields);
 
-	sealed record Generated(string Host, int Rules, long Bytes, double Milliseconds, string Mode, DateTime Written);
+	sealed record Generated(string Host, int Rules, long Bytes, double Milliseconds, DateTime Written);
 
 	sealed record Result(
 		string      Commit,
@@ -2527,8 +2527,13 @@ static partial class Stand
 			: null;
 	}
 
+	// `34d00d33` (2026-09-20) split the summary a plain build writes from the detail a
+	// `-p:DotGramReportGeneration=full` one does, and dropped the trailing `, mode=...` from the
+	// summary line: this regex kept asking for it and matched nothing from that commit on, so
+	// `--stand --rebuild` has been reporting "None found" ever since. Mode is the detail file's,
+	// not this one's — a plain `-t:Rebuild` (what Rebuild() below runs) never asks for it.
 	static readonly Regex Summary = new(
-		@"DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation, mode=(?<mode>\w+)",
+		@"DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation",
 		RegexOptions.CultureInvariant);
 
 	/// <summary>
@@ -2568,7 +2573,6 @@ static partial class Stand
 					int.Parse(match.Groups["rules"].Value, CultureInfo.InvariantCulture),
 					long.Parse(match.Groups["bytes"].Value, CultureInfo.InvariantCulture),
 					double.Parse(match.Groups["ms"].Value, CultureInfo.InvariantCulture),
-					match.Groups["mode"].Value,
 					written);
 			}
 		}
@@ -2880,12 +2884,12 @@ static partial class Stand
 			text.AppendLine("None found: the last build compiled no grammar. Rebuild the projects (`-t:Rebuild`, or `--stand --rebuild`) to have them.");
 		else
 		{
-			text.AppendLine("| host | rules | MB of C# | ms | mode | written |");
-			text.AppendLine("| --- | ---: | ---: | ---: | --- | --- |");
+			text.AppendLine("| host | rules | MB of C# | ms | written |");
+			text.AppendLine("| --- | ---: | ---: | ---: | --- |");
 
 			foreach (var one in result.Generation)
 				text.AppendLine(CultureInfo.InvariantCulture,
-					$"| {one.Host} | {one.Rules} | {one.Bytes / 1024.0 / 1024.0:F2} | {one.Milliseconds:F0} | {one.Mode} | {one.Written:yyyy-MM-dd HH:mm} |");
+					$"| {one.Host} | {one.Rules} | {one.Bytes / 1024.0 / 1024.0:F2} | {one.Milliseconds:F0} | {one.Written:yyyy-MM-dd HH:mm} |");
 		}
 
 		if (result.MissingGeneration.Length > 0)
