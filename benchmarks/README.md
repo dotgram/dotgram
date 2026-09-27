@@ -989,25 +989,36 @@ dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --roundtrip 180
 ```
 
 ```text
-  6830 statements read by both, printed back and put to ScriptDom again
+  7716 statements read by both, printed back and put to ScriptDom again
 
-    1591  the same statement             23.3%
-    2792  read, printed, and different    40.9%
-    2447  printed into something ScriptDom will not read  35.8%
+    7716  the same statement            100.0%
+       0  read, printed, and different     0.0%
+       0  printed into something ScriptDom will not read     0.0%
 
   kind                                            count    same    share
-  SelectStatement                                  1792     707    39.5%
-  CreateTableStatement                              584      37     6.3%
-  AlterDatabaseSetStatement                         254      74    29.1%
-  …
-  and 48 kinds that come back whole
+
+  and 304 kinds that come back whole
 ```
+
+The table is empty because every kind comes back whole, which is what the run above says and
+not what it said when this section was written: the same run reported 6,830 read and 23.3% the
+same, and the rows it printed were the work list that closed it. The 723 statements ScriptDom
+reads and this grammar refuses are not in the 7,716 and are `--kinds`' business, not this one's.
+
+**The cutting, the reading and the comparing are `CorpusRoundTrip.cs`**, which
+`tests/DotGram.Tests.Slow` compiles as well (`CorpusRoundTripTests`): this switch prints what it
+counts, and the suite holds the same counts, per file, to `CorpusBaseline.txt`. So a fall in what
+the corpus reads or writes back fails a test rather than waiting for somebody to run this by
+hand. One implementation, and what that costs is said where it matters — the gate catches a
+*change* in these numbers, not a fault in the cutting or the comparing, which both roads share;
+one small assertion in the suite round-trips three statements without going through it.
 
 **The number is completeness, not correctness alone.** Everything the tree reads and drops —
 `TOP`, `OVER`, the hints, `OUTPUT`, a named query's `WITH`, the option lists of the DDL —
 cannot be printed back, so it lands here as a difference. That is what makes the table
-useful: it is the first measurement of how much the tree throws away, ordered by how often
-the corpus needs it, and it is the work list for making the tree lossless.
+useful: each row measures how much the tree throws away for one kind of statement, ordered by
+how often the corpus needs it, and the table is the work list for making the tree lossless
+again.
 
 The third row is the sharpest one. A statement that prints into something ScriptDom will not
 read is a tree that has lost something *structural* rather than decorative — an `ALTER TABLE`

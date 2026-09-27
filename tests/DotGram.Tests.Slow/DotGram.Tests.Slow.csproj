@@ -15,6 +15,13 @@
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+
+		<!-- The corpus gate's other parser, and its printer: CorpusRoundTripTests cuts somebody else's
+		     SQL into statements with ScriptDom and holds our reading of each against theirs through
+		     ScriptDom's own printer. Here and in the benchmarks and nowhere else, so the suite that runs
+		     on every change does not acquire a third-party SQL parser; the version is central, so it is
+		     the benchmarks' 180.102.0 and the two roads print with the same printer. -->
+		<PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -48,6 +55,14 @@
 	<ItemGroup>
 		<Compile Include="..\..\benchmarks\DotGram.Benchmarks\RefusalLadders.cs" Link="Shared\RefusalLadders.cs" />
 		<None Include="RefusalBaseline.txt" CopyToOutputDirectory="PreserveNewest" />
+
+		<!-- The same arrangement for the corpus round trip: the benchmarks' roundtrip switch prints what
+		     this counts, CorpusRoundTripTests holds it to a baseline, and there is one implementation.
+		     CorpusBaseline.txt is not copied to the output, unlike RefusalBaseline.txt above: that test
+		     reads the copy, this one reads and REWRITES the source file, and a recording run that wrote
+		     the source while reading the copy would hold a run against the wrong file. It needs the
+		     source tree anyway, since tests/Corpus/ScriptDom is not copied either. -->
+		<Compile Include="..\..\benchmarks\DotGram.Benchmarks\CorpusRoundTrip.cs" Link="Shared\CorpusRoundTrip.cs" />
 	</ItemGroup>
 
 </Project>

@@ -24,12 +24,16 @@ runs one test. `DotGram.Tests` runs everything in about two minutes.
 What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
 whole refusal record — `DotGram.Tests` compiles one reading in five of it — the streaming
 memory bounds, `GRAM5003`'s parts at every size and a split of nine hundred rules
-(`OversizeTests`), and the scaling tests, which hold a parser to time proportional to its
+(`OversizeTests`), the scaling tests, which hold a parser to time proportional to its
 input (`ExpressionScalingTests`: ten times the terms within fifteen times the time;
-`SqlConditionScalingTests`, `StockCountScalingTests`). `dotnet test DotGram.slnx` and CI run it;
+`SqlConditionScalingTests`, `StockCountScalingTests`), and the round trip over somebody else's
+SQL — the 1,086 files of `tests/Corpus/ScriptDom` read by T-SQL, written back and put to
+ScriptDom again, held per file to `CorpusBaseline.txt` (`CorpusRoundTripTests`, three seconds).
+`dotnet test DotGram.slnx` and CI run it;
 `dotnet test` over `DotGram.Tests` does not, and nothing is filtered to leave it out. Run it
 before any change to how failures are recorded, before merging anything that touches
-retention, and before one that touches how a walk reads what it has built.
+retention, before one that touches how a walk reads what it has built, and before one that
+changes what T-SQL reads or what `SqlWriter` prints.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 

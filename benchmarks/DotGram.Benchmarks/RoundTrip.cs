@@ -4,9 +4,7 @@ using System.IO;
 using System.Linq;
 
 using DotGram.Sql;
-using DotGram.Sql.TransactSql;
 
-using Microsoft.SqlServer.TransactSql.ScriptDom;
 
 namespace DotGram.Benchmarks;
 
@@ -62,134 +60,26 @@ static class RoundTrip
 			return;
 		}
 
-		var files      = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
-		var versions   = Corpus.Versions(root, files);
-		var readers    = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
-		var generators = new Dictionary<string, SqlScriptGenerator>(StringComparer.Ordinal);
-		var counts     = new Dictionary<string, Tally>(StringComparer.Ordinal);
-		var shown      = new List<string>();
+		// The cutting, the reading and the comparing are CorpusRoundTrip.cs, which DotGram.Tests.Slow
+		// compiles as well: this prints what it counts, CorpusRoundTripTests holds the same counts to a
+		// baseline, and there is one implementation of the measurement rather than two to keep in step.
+		var shown  = new List<string>();
+		var result = CorpusRoundTrip.Run(root, version, trouble => Show(shown, wanted, most, trouble));
 
-		var read = 0;
-		var same = 0;
-		var lost = 0;
-		var bad  = 0;
+		var read = result.ByFile.Values.Sum(static one => one.Read);
+		var same = result.ByFile.Values.Sum(static one => one.Same);
+		var bad  = result.ByFile.Values.Sum(static one => one.Threw);
 
-		foreach (var file in files)
-		{
-			var text = File.ReadAllText(file);
-
-			// The parser and the printer are the file's own version, and both have to be:
-			// one prints what the other read, and a version that cannot read the statement
-			// cannot print it either.
-			var named  = versions.GetValueOrDefault(file);
-			var parser = Kinds.Reader(readers, version, named);
-
-			if (!generators.TryGetValue(Named(version, named), out var generator))
-				generators[Named(version, named)] = generator = Generator(Named(version, named));
-
-			using var whole = new StringReader(text);
-
-			if (parser.Parse(whole, out var errors) is not TSqlScript script || errors.Count > 0)
-				continue;
-
-			foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
-			{
-				var original = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
-				var kind     = statement.GetType().Name;
-
-				Statement? made;
-
-				try
-				{
-					var match = TransactSqlParser.TryParseStatement(original);
-
-					made = match.IsSuccess ? match.Value as Statement : null;
-				}
-				catch (Exception)
-				{
-					made = null;
-				}
-
-				// Only what both read: what this grammar refuses is `--kinds`' business, and
-				// counting it here would say the same thing twice.
-				if (made is null)
-					continue;
-
-				read++;
-
-				var tally = Counted(counts, kind);
-
-				tally.All++;
-
-				string printed;
-
-				try
-				{
-					printed = SqlWriter.Write(made);
-				}
-				catch (Exception failure)
-				{
-					bad++;
-					tally.Broken++;
-					Show(shown, wanted, most, kind, original, "the writer threw: " + failure.GetType().Name);
-
-					continue;
-				}
-
-				generator.GenerateScript(statement, out var a);
-
-				using var again = new StringReader(printed);
-
-				if (parser.Parse(again, out var refused) is not TSqlScript back || refused.Count > 0 ||
-					back.Batches.SelectMany(static batch => batch.Statements).ToArray()
-						is not [var only])
-				{
-					bad++;
-					tally.Broken++;
-					Show(shown, wanted, most, kind, original, "printed as: " + printed);
-
-					continue;
-				}
-
-				generator.GenerateScript(only, out var b);
-
-				if (Normalized(a) == Normalized(b))
-				{
-					same++;
-					tally.Same++;
-				}
-				else
-				{
-					lost++;
-
-					var (left, right) = Parted(a, b);
-
-					Show(shown, wanted, most, kind, original, "A: " + left + "\n     B: " + right);
-				}
-			}
-		}
-
-		Report(read, same, lost, bad, counts, shown);
+		Report(read, same, read - same - bad, bad, result.ByKind, shown);
 	}
 
-	sealed class Tally
-	{
-		public int All;
-		public int Same;
-		public int Broken;
-	}
-
-	static Tally Counted(Dictionary<string, Tally> counts, string kind)
-	{
-		if (!counts.TryGetValue(kind, out var tally))
-			counts[kind] = tally = new Tally();
-
-		return tally;
-	}
+	// The tally, the generators, the version capping and the whitespace normaliser moved into
+	// CorpusRoundTrip.cs when the measurement did: they were what the loop stood on, and leaving copies
+	// here would be the two implementations the move was made to avoid.
 
 	static void Report(
 		int read, int same, int lost, int bad,
-		Dictionary<string, Tally> counts, List<string> shown)
+		Dictionary<string, CorpusRoundTrip.Tally> counts, List<string> shown)
 	{
 		Console.WriteLine();
 		Console.WriteLine($"  {read} statements read by both, printed back and put to ScriptDom again");
@@ -233,8 +123,10 @@ static class RoundTrip
 	/// kind, which is what a wave of work on that kind needs.
 	/// </summary>
 	static void Show(
-		List<string> shown, string? wanted, int most, string kind, string original, string how)
+		List<string> shown, string? wanted, int most, CorpusRoundTrip.Trouble trouble)
 	{
+		var kind = trouble.Kind;
+
 		if (wanted is not null && !string.Equals(kind, wanted, StringComparison.OrdinalIgnoreCase))
 			return;
 
@@ -243,7 +135,18 @@ static class RoundTrip
 		if (already >= most)
 			return;
 
-		shown.Add($"  {kind} — {One(original)}\n     {how}");
+		// Where both sides printed, the finding is the place they part; where only one did, the reason
+		// is all there is to say.
+		var how = trouble.Why;
+
+		if (how is null && trouble.Theirs is { } theirs && trouble.Ours is { } ours)
+		{
+			var (left, right) = Parted(theirs, ours);
+
+			how = "A: " + left + "\n     B: " + right;
+		}
+
+		shown.Add($"  {kind} — {One(trouble.Original)}\n     {how}");
 	}
 
 	static string One(string text)
@@ -294,45 +197,5 @@ static class RoundTrip
 	{
 		return string.Join(' ', text.Split(' ', '\t', '\n', '\r')
 			.Where(static one => one.Length > 0));
-	}
-
-	/// <summary>The version to read and print one file with: its own, capped at the one asked for.</summary>
-	static string Named(string ceiling, string? version)
-	{
-		return version is not null && int.Parse(version) < int.Parse(ceiling) ? version : ceiling;
-	}
-
-	static SqlScriptGenerator Generator(string version)
-	{
-		var options = new SqlScriptGeneratorOptions
-		{
-			KeywordCasing              = KeywordCasing.Uppercase,
-			IncludeSemicolons          = true,
-			AlignClauseBodies          = false,
-			NewLineBeforeFromClause    = false,
-			NewLineBeforeWhereClause   = false,
-			NewLineBeforeGroupByClause = false,
-			NewLineBeforeHavingClause  = false,
-			NewLineBeforeOrderByClause = false,
-			NewLineBeforeJoinClause    = false,
-			NewLineBeforeOnClause      = false,
-			NewLineBeforeOffsetClause  = false,
-			NewLineBeforeOutputClause  = false,
-		};
-
-		return version switch
-		{
-			"80"  => new Sql80ScriptGenerator (options),
-			"90"  => new Sql90ScriptGenerator (options),
-			"100" => new Sql100ScriptGenerator(options),
-			"110" => new Sql110ScriptGenerator(options),
-			"120" => new Sql120ScriptGenerator(options),
-			"130" => new Sql130ScriptGenerator(options),
-			"140" => new Sql140ScriptGenerator(options),
-			"150" => new Sql150ScriptGenerator(options),
-			"160" => new Sql160ScriptGenerator(options),
-			"170" => new Sql170ScriptGenerator(options),
-			_     => new Sql180ScriptGenerator(options),
-		};
 	}
 }
