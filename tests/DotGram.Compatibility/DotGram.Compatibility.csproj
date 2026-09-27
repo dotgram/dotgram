@@ -47,6 +47,15 @@
 		     same reason — the check is worth nothing if it is switched off where it complains. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+		<!-- The counters of D144 are emitted behind `#if DOTGRAM_COUNTS`, and no project defines
+		     the symbol: a consumer compiles none of it. This builds the counted variant once, so
+		     that it cannot rot unseen — the C# 8 floor and netstandard2.0 are where it would.
+
+		     Set by a property rather than by `-p:DefineConstants=…` on the command line, which
+		     REPLACES the symbols the SDK adds (NETSTANDARD2_0, NET472 and the rest) and would
+		     break two of these three targets in a way that looks like the counters breaking them. -->
+		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">

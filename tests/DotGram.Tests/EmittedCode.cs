@@ -69,8 +69,13 @@ static class EmittedCode
 		string className = "Grammar",
 		string? @namespace = null,
 		string? declarationMembers = null,
-		IEnumerable<string>? sourceParts = null)
+		IEnumerable<string>? sourceParts = null,
+		IEnumerable<string>? symbols = null)
 	{
+		// Preprocessor symbols, for the one thing generated code writes behind a `#if`: the
+		// counters of D144, which no project defines and a counting gate compiles for itself.
+		var parse = symbols is null ? Floor : Floor.WithPreprocessorSymbols(symbols);
+
 		var declaration = @namespace is null
 			? $"public partial class {className} {{ {declarationMembers} }}"
 			: $"namespace {@namespace} {{ public partial class {className} {{ {declarationMembers} }} }}";
@@ -82,12 +87,12 @@ static class EmittedCode
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Emitted",
 			[
-				CSharpSyntaxTree.ParseText(declaration, Floor),
-				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, Floor),
+				CSharpSyntaxTree.ParseText(declaration, parse),
+				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, parse),
 				// What the generator asks Roslyn for beside them, and a harness has to bring.
-				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, Floor),
-				CSharpSyntaxTree.ParseText(source, Floor),
-				.. (sourceParts ?? []).Select(part => CSharpSyntaxTree.ParseText(part, Floor)),
+				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, parse),
+				CSharpSyntaxTree.ParseText(source, parse),
+				.. (sourceParts ?? []).Select(part => CSharpSyntaxTree.ParseText(part, parse)),
 			],
 			References,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
