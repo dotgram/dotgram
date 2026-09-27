@@ -34,11 +34,14 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal sealed class MemberResolver
 	{
-		public MemberResolver(ResolutionScope scope, IReadOnlyList<string>? imports, IReadOnlyList<Type>? statics = null)
+		public MemberResolver(
+			ResolutionScope scope, IReadOnlyList<string>? imports, IReadOnlyList<Type>? statics = null,
+			IReadOnlyList<string>? defaults = null)
 		{
-			Scope    = scope ?? throw new ArgumentNullException(nameof(scope));
-			_imports = imports;
-			_statics = statics;
+			Scope     = scope ?? throw new ArgumentNullException(nameof(scope));
+			_imports  = imports;
+			_statics  = statics;
+			_defaults = defaults;
 		}
 
 		readonly IReadOnlyList<string>? _imports;
@@ -49,6 +52,9 @@ public static partial class ExpressionParser
 		/// reads, and this resolver is handed the very list rather than a copy of it.
 		/// </remarks>
 		readonly IReadOnlyList<Type>? _statics;
+
+		/// <summary>The namespaces every text gets, which give extension methods as the text's own do.</summary>
+		readonly IReadOnlyList<string>? _defaults;
 
 		/// <summary>Where this reading's names are looked for.</summary>
 		public ResolutionScope Scope { get; }
@@ -83,7 +89,7 @@ public static partial class ExpressionParser
 
 			arguments.CopyTo(extended, 1);
 
-			if (Extensions(name, extended, Scope, _imports, _statics) is { Count: > 0 } found)
+			if (Extensions(name, extended, Scope, _imports, _statics, _defaults) is { Count: > 0 } found)
 				return Chose(found, extended, $"nothing extends '{target.Type.Name}' with '{name}'");
 
 			// Neither, which is said in the words the language has always used for a method

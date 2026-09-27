@@ -200,12 +200,20 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static List<Candidate> Extensions(
 		string name, Expression[] extended, ResolutionScope scope, IReadOnlyList<string>? imports,
-		IReadOnlyList<Type>? statics = null)
+		IReadOnlyList<Type>? statics = null, IReadOnlyList<string>? defaults = null)
 	{
 		var found = new List<Candidate>();
 		var seen  = new HashSet<MethodInfo>();
 
 		foreach (var space in imports ?? [])
+		{
+			Consider(Loaded.Holders(scope, space));
+			Consider(Loaded.HoldersInside(scope, space));
+		}
+
+		// The namespaces every text gets give extension methods exactly as the text's own do, which
+		// is what a global using does in C#.
+		foreach (var space in defaults ?? [])
 		{
 			Consider(Loaded.Holders(scope, space));
 			Consider(Loaded.HoldersInside(scope, space));

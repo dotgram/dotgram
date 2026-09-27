@@ -3123,14 +3123,16 @@ public static partial class ExpressionParser
 		{
 			Reach = scope ?? throw new ArgumentNullException(nameof(scope));
 
-			// The namespaces every text gets, written down as though the text had written them
-			// first — and NOT looked for: one the scope does not hold is simply absent, and looking
-			// would walk the closure for a text that may name no type at all (42c6d5b0). A text
-			// writing one of them again writes the same namespace, which is recorded once.
-			if (Reach.ImportsDefault)
-				_imports.AddRange(ResolutionScope.DefaultImports);
+			// The namespaces every text gets, NAMED and not copied: the set is one static array and
+			// a reading points at it, so a reading holds five namespaces for no bytes. Copying them
+			// into the list below cost 64 bytes of every reading there is, which the yardstick
+			// found (2026-09-27).
+			//
+			// They are not looked for either: one the scope does not hold is simply absent, and
+			// looking would walk the closure for a text that may name no type at all (42c6d5b0).
+			_defaults = Reach.ImportsDefault ? ResolutionScope.DefaultImports : null;
 
-			Members = new MemberResolver(Reach, _imports, _statics);
+			Members = new MemberResolver(Reach, _imports, _statics, _defaults);
 		}
 
 		/// <summary>Where this reading's names are looked for.</summary>
@@ -3688,6 +3690,16 @@ public static partial class ExpressionParser
 		/// </remarks>
 		readonly List<string> _imports = [];
 
+		/// <summary>The namespaces every text gets, where this reading gets them.</summary>
+		/// <remarks>
+		/// The scope's own array, pointed at and never copied, and null where the scope leaves them
+		/// out (<c>WithoutDefaultImports</c>). A text's own `using`s stay in the list above: the two
+		/// are walked one after the other and are PEERS, so which list a namespace is in changes no
+		/// answer — what a name means is decided by counting both, which is C#'s rule for a global
+		/// using against a written one.
+		/// </remarks>
+		readonly IReadOnlyList<string>? _defaults;
+
 		/// <summary>A name a `using` gave to a type or a namespace, and what it names.</summary>
 		readonly record struct Alias(string Name, Type? Type, string? Space);
 
@@ -3720,7 +3732,7 @@ public static partial class ExpressionParser
 				// The resolver was handed the list that was not there yet, so it is made again now
 				// that there is one. Once per text at most, and only for a text that writes the
 				// directive; every reading after this one reads the list itself.
-				Members = new MemberResolver(Reach, _imports, _statics);
+				Members = new MemberResolver(Reach, _imports, _statics, _defaults);
 			}
 
 			if (!_statics.Contains(type))
@@ -3913,8 +3925,13 @@ public static partial class ExpressionParser
 				return false;
 			}
 
-			if (!_imports.Contains(@namespace, StringComparer.Ordinal))
+			// One the text already wrote, or one it gets anyway: recorded once either way, and a
+			// namespace among the defaults needs no place in this list at all.
+			if (!_imports.Contains(@namespace, StringComparer.Ordinal) &&
+				(_defaults is null || !_defaults.Contains(@namespace, StringComparer.Ordinal)))
+			{
 				_imports.Add(@namespace);
+			}
 
 			return true;
 		}
@@ -4030,6 +4047,12 @@ public static partial class ExpressionParser
 
 			for (var at = 0; at < _imports.Count; at++)
 				Take(Qualified(_imports[at], name, Reach));
+
+			// And the ones every text gets, after the ones it wrote. They are peers, so the order
+			// here decides nothing: `Take` counts what it has not counted, and two namespaces both
+			// giving a name make it ambiguous whichever was walked first.
+			for (var at = 0; at < (_defaults?.Count ?? 0); at++)
+				Take(Qualified(_defaults![at], name, Reach));
 
 			// And what a `using static` named: its nested types are peers of the namespaces above,
 			// which is C#'s answer — a nested type from one and a type from the other, both giving
