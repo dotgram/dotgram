@@ -28,8 +28,15 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   -- which is why a flag about text is allowed there where one about a sibling would not be. `Rollback`
   holds T-SQL's `Name` beside the standard's `ToSavepoint`, at most one set, and the writer refuses a
   node with both rather than losing one; two nullables of which one may be set are acceptable only
-  because something checks it. `COMMIT` and `COMMIT TRANSACTION` are different text, so the word's
-  presence is `TransactionKeyword` and `Tran` is which word it was: the spelling flag cannot carry both.
+  because something checks it. `COMMIT` and `COMMIT TRANSACTION` are different text, so the word after
+  COMMIT or ROLLBACK is one nullable enum, `TransactionKeyword? { Tran, Transaction }`: null is no word
+  and every value is a text, where a flag for the word beside a flag for its spelling would have had a
+  state no text says. It is nullable and carries no `None` member because an absent enum in this tree is
+  a null everywhere else, and because a zero-valued member cannot mean "absent" here: `JoinKind.Cross`,
+  `SetOperator.Union`, `TriggerActionTime.Before`, `DropBehavior.Cascade` and `PadCharacteristic.NoPad`
+  are all zero and all written, which ten rows of `SqlStandardTreeTests` said out loud when a printer
+  rule tried to hide a zero enum. Where the word is mandatory, as in BEGIN and SAVE, a
+  `[Spelling] bool Tran` is enough.
 
 ## Principles proposed
 

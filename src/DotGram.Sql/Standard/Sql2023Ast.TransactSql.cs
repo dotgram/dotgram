@@ -519,6 +519,27 @@ public sealed record TransactionMark(Expression? Description = null) : ISqlNode
 	}
 }
 
+/// <summary>
+/// T-SQL: COMMIT TRANSACTION, ROLLBACK TRANSACTION (Transact-SQL). The word after COMMIT or ROLLBACK,
+/// where the page makes it optional.
+/// </summary>
+/// <remarks>
+/// One enum rather than a flag for the word and another for its spelling, because that pair has a state
+/// no text stands for — <c>TRAN</c> written with no keyword — and a tree that can hold what no text says
+/// will eventually be asked to write it. Every value here is a text, so the writer is a switch and its
+/// default throws. Where the page makes the word mandatory, as <c>BEGIN</c> and <c>SAVE</c> do, a
+/// <c>[Spelling] bool Tran</c> is enough and is what those records carry.
+/// </remarks>
+/// <remarks>
+/// The absence of the word is a null and not a <c>None</c> member: every optional enum in this tree
+/// is nullable, so a <c>None</c> beside it would be a second way to say that nothing was written, for
+/// a reader and a writer to keep in step. Hiding a zero-valued enum instead is what does not work:
+/// <c>JoinKind.Cross</c>, <c>SetOperator.Union</c> and <c>DropBehavior.Cascade</c> are zero and are
+/// all written words. So every value here is a text, which is what makes the writer a switch whose
+/// default throws.
+/// </remarks>
+public enum TransactionKeyword { Tran, Transaction }
+
 /// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). <c>LOCAL</c> or <c>GLOBAL</c> after the word CURSOR.</summary>
 /// <remarks>
 /// Not <see cref="CursorReference"/>'s Global and Local, which qualify a cursor's <em>name</em> where it is

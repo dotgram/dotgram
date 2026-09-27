@@ -270,19 +270,19 @@ public abstract partial record Statement : ISqlNode
 	public record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
 	public record Savepoint : Statement { public required Identifier Name { get; init; } }
 	public record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
-	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `TransactionKeyword` is whether the word was
-	// written at all — `COMMIT` and `COMMIT TRANSACTION` are both on the page and are not the same text —
-	// and `Tran` is which word it was, so `Tran` implies the keyword and never stands without it.
-	// `Name` is the transaction a commit may name, and `DelayedDurability` its
-	// `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
-	public record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public bool TransactionKeyword { get; init; } [Spelling] public bool Tran { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
-	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `TransactionKeyword` and `Tran` are as
-	// Commit's. `Name` is what T-SQL writes after `ROLLBACK TRAN`, which its page says may be a
-	// transaction or a savepoint and which the syntax cannot tell apart; `ToSavepoint` is the standard's
-	// `TO SAVEPOINT s`, a different construct that knows what it names. At most one of the two is set —
-	// the writer refuses a node with both, and `Sql2023WriterCoverageTests` holds each grammar to the one
-	// it may use.
-	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } public bool TransactionKeyword { get; init; } [Spelling] public bool Tran { get; init; } public TransactionName? Name { get; init; } }
+	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `Keyword` is the word after COMMIT, which the
+	// page makes optional — `COMMIT` and `COMMIT TRANSACTION` are both text and are not the same text — so
+	// null is no word and each value is one. A flag for the word beside a flag for its spelling would have
+	// had a state no text says: TRAN written and no keyword. `Name` is the transaction a commit may name,
+	// and
+	// `DelayedDurability` its `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
+	public record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
+	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `Keyword` is as Commit's. `Name` is what
+	// T-SQL writes after `ROLLBACK TRAN`, which its page says may be a transaction or a savepoint and
+	// which the syntax cannot tell apart; `ToSavepoint` is the standard's `TO SAVEPOINT s`, a different
+	// construct that knows what it names. At most one of the two is set — the writer refuses a node with
+	// both, and `Sql2023WriterCoverageTests` holds each grammar to the one it may use.
+	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
 
 	// BNF: connection/session statements
 	public record Connect : Statement { public required ConnectionTarget Target { get; init; } }

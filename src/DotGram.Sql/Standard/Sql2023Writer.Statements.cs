@@ -1873,7 +1873,7 @@ public static partial class Sql2023Writer
 
 				case Statement.Commit commit:
 					Word("COMMIT");
-					PutTransactionKeyword(commit.TransactionKeyword, commit.Tran);
+					PutTransactionKeyword(commit.Keyword);
 
 					if (commit.Work)
 						Word("WORK");
@@ -1894,7 +1894,7 @@ public static partial class Sql2023Writer
 						throw Both(rollback, nameof(rollback.Name), nameof(rollback.ToSavepoint));
 
 					Word("ROLLBACK");
-					PutTransactionKeyword(rollback.TransactionKeyword, rollback.Tran);
+					PutTransactionKeyword(rollback.Keyword);
 
 					if (rollback.Work)
 						Word("WORK");
@@ -2100,16 +2100,25 @@ public static partial class Sql2023Writer
 				Word(one == ChainMode.Chain ? "AND CHAIN" : "AND NO CHAIN");
 		}
 
-		/// <summary>
-		/// T-SQL's word after COMMIT or ROLLBACK, where one was written. `TRAN` says the keyword was
-		/// there as surely as the keyword flag does, so it is not asked for twice.
-		/// </summary>
-		void PutTransactionKeyword(bool keyword, bool tran)
+		/// <summary>T-SQL's word after COMMIT or ROLLBACK, where the page lets one be written.</summary>
+		void PutTransactionKeyword(TransactionKeyword? keyword)
 		{
-			if (tran)
-				Word("TRAN");
-			else if (keyword)
-				Word("TRANSACTION");
+			switch (keyword)
+			{
+				case null:
+					break;
+
+				case TransactionKeyword.Tran:
+					Word("TRAN");
+					break;
+
+				case TransactionKeyword.Transaction:
+					Word("TRANSACTION");
+					break;
+
+				default:
+					throw NoText(keyword.Value);
+			}
 		}
 
 		/// <summary>The transaction or savepoint a T-SQL statement names: a name, or a variable.</summary>

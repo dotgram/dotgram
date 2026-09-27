@@ -693,6 +693,11 @@ public sealed class SqlStandardTreeTests
 
 			var value = property.GetValue(node);
 
+			// Null, false and an empty list are the absence of a thing. A zero-valued ENUM MEMBER is not:
+			// `JoinKind.Cross`, `SetOperator.Union`, `TriggerActionTime.Before`, `DropBehavior.Cascade` and
+			// `PadCharacteristic.NoPad` are all zero and all written, so hiding a zero enum here took ten
+			// rows' words away. Which is why an absent enum in this tree is a NULLABLE one, and why nothing
+			// carries a `None` member for the same job.
 			if (value is null or false || value is int and 0 || value is System.Collections.ICollection { Count: 0 })
 				continue;
 

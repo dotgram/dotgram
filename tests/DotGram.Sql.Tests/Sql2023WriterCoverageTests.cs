@@ -84,6 +84,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(CharacterTypeKind)]  = v => new DataType.Character((CharacterTypeKind)v),
 		[typeof(BinaryTypeKind)]     = v => new DataType.Binary((BinaryTypeKind)v),
 		[typeof(IdentifierStyle)]    = v => new Identifier("x", (IdentifierStyle)v),
+		[typeof(TransactionKeyword)] = v => new Statement.Commit { Keyword = (TransactionKeyword)v },
 	};
 
 	/// <summary>
@@ -246,12 +247,6 @@ public sealed class Sql2023WriterCoverageTests
 			["DropRoutine.Proc"] = (
 				new Statement.DropRoutine { Routines = [Routine] },
 				new Statement.DropRoutine { Routines = [Routine], Proc = true }),
-			["Commit.Tran"] = (
-				new Statement.Commit(),
-				new Statement.Commit { Tran = true }),
-			["Rollback.Tran"] = (
-				new Statement.Rollback(),
-				new Statement.Rollback { Tran = true }),
 			["SetTransaction.Tran"] = (
 				new Statement.SetTransaction(),
 				new Statement.SetTransaction { Tran = true }),
@@ -283,12 +278,31 @@ public sealed class Sql2023WriterCoverageTests
 			.SelectMany(one => one.GetProperties())
 			.Where(one => one.GetCustomAttributesData()
 				.Any(attribute => attribute.AttributeType.Name == "SpellingAttribute"))
+			.ToList();
+
+		// A marked property is either a flag, which has two spellings and is asserted as a pair here,
+		// or an enum, whose every value is a spelling -- so it belongs to the distinctness check over
+		// Covered instead, and demanding a pair of it would ask the wrong question. What both roads
+		// share is that a marked property nobody asserted fails: the enum has to be COVERED, not merely
+		// mentioned.
+		var flags = marked.Where(one => one.PropertyType == typeof(bool))
 			.Select(one => one.DeclaringType!.Name + "." + one.Name)
 			.Distinct(StringComparer.Ordinal)
 			.OrderBy(one => one, StringComparer.Ordinal)
 			.ToList();
 
-		Assert.Equal(marked, pairs.Keys.OrderBy(one => one, StringComparer.Ordinal));
+		Assert.Equal(flags, pairs.Keys.OrderBy(one => one, StringComparer.Ordinal));
+
+		foreach (var one in marked.Where(one => one.PropertyType != typeof(bool)))
+		{
+			// An optional enum in this tree is nullable, so what is covered is the enum inside it.
+			var named = Nullable.GetUnderlyingType(one.PropertyType) ?? one.PropertyType;
+
+			Assert.True(
+				named.IsEnum && Covered.ContainsKey(named),
+				one.DeclaringType!.Name + "." + one.Name + " is marked [Spelling] and is a "
+					+ named.Name + ", so add it to Covered, where every value of it is asked for its own text.");
+		}
 
 		foreach (var (name, pair) in pairs)
 		{
@@ -351,7 +365,7 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void A_rollback_naming_a_transaction_and_a_savepoint_is_refused()
 	{
-		var named = new Statement.Rollback { TransactionKeyword = true, Name = Saved };
+		var named = new Statement.Rollback { Keyword = TransactionKeyword.Transaction, Name = Saved };
 		var saved = new Statement.Rollback { ToSavepoint = new Identifier("s") };
 
 		Assert.Contains("ROLLBACK TRANSACTION s", Sql2023Writer.Write(named), StringComparison.Ordinal);
@@ -366,7 +380,7 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void A_transaction_name_that_names_nothing_is_refused()
 	{
-		var empty = new Statement.Commit { TransactionKeyword = true, Name = new TransactionName(null) };
+		var empty = new Statement.Commit { Keyword = TransactionKeyword.Transaction, Name = new TransactionName(null) };
 
 		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(empty));
 	}
