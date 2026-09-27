@@ -7041,14 +7041,30 @@ DatabaseTermination : @string
 // `BACKUP LOG`. An identifier cannot be any of them, so the words are named, the same way
 // the option names are and for the same reason: they are a catalogue rather than a
 // language, and a permission added to SQL Server does not change this grammar.
+// A permission is checked against the securable's class, because the engine checks it WHILE
+// PARSING: `GRANT SELECT ON ENDPOINT::x` is `Incorrect syntax near 'SELECT'`, 102, SELECT being
+// none of ENDPOINT's five. The 299 pairs are `PermissionCatalogue`, written by permissions.py from
+// the server and held to the PARSER one statement at a time -- CREDENTIAL's two are left out, the
+// view listing it as a class the parser refuses. Without an ON clause there is nothing to check:
+// mixed scopes are Msg 4620 at level 16, after the parse, and the server's to answer.
+//
+// WHERE THE GUARD STANDS IS A CHOSEN COST. The engine names the permission; this stops at the token
+// after the securable, because the statement writes the permissions first and the guard cannot fire
+// before the class is read. Naming the permission would want a lookahead from each permission to
+// the class, one scan of the list's tail per permission, which is not built. The alternative that
+// WAS measured, a rule per class reached by trying it, is GRAM5005: 87 statement alternatives make
+// PermissionStatement unreadable by methods and drop the dialect onto the shared engine.
 PermissionStatement : @Statement
-	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
+	= "GRANT"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
+	  & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
 		=> @(new Statement.Grant(what, who, on, option is not null, who2))
-	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
+	| "DENY"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
+	  & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Deny(what, who, on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
+	  & when @(PermissionCatalogue.Allows(what, on))
 	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Revoke(what, who, on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 

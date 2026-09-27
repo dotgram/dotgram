@@ -13455,6 +13455,15 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT ALTER ON FOO BAR::x TO u")]
 	[InlineData("GRANT CONTROL ON CREDENTIAL::x TO u")]
 	[InlineData("GRANT CONTROL ON TABLE::x TO u")]
+	// And a permission that is none of the named class's, which the engine makes SYNTAX where an ON
+	// clause names a class: `Incorrect syntax near 'SELECT'` for the first, and near
+	// `'EXECUTE ANY EXTERNAL SCRIPT'` for the last, that being a DATABASE permission of an object.
+	// Without an ON clause the same mixture is Msg 4620 at level 16, after the parse, so
+	// `GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u` above stays in the reading theory.
+	[InlineData("GRANT SELECT ON ENDPOINT::x TO u")]
+	[InlineData("GRANT EXECUTE ON ENDPOINT::x TO u")]
+	[InlineData("GRANT VIEW SERVER STATE ON t TO u")]
+	[InlineData("GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u")]
 	public void The_permission_statements_refuse_what_the_engine_does(string input)
 	{
 		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
@@ -13465,7 +13474,6 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT SELECT ON t (c1, c2) TO u")]
 	[InlineData("GRANT SELECT (c1) ON t (c2) TO u")]
 	[InlineData("GRANT INSERT ON ..t1 (c1) TO PUBLIC")]
-	[InlineData("DENY ALL PRIVILEGES ON ENDPOINT::a.b..d (c1, c2) TO PUBLIC")]
 	[InlineData("REVOKE GRANT OPTION FOR CONTROL ON t1 (c1) TO PUBLIC AS [p1]")]
 	[InlineData("GRANT SELECT ON t TO u, NULL")]
 	[InlineData("DENY SELECT ON t TO NULL CASCADE")]
@@ -13476,18 +13484,44 @@ public sealed class TransactSqlTests
 	[InlineData("GRANT SELECT, ALL PRIVILEGES TO u")]
 	[InlineData("GRANT ALTER ANY DATABASE EVENT SESSION ADD EVENT, ALTER ANY DATABASE, ALTER TO u")]
 	[InlineData("GRANT VIEW ANY COLUMN ENCRYPTION KEY DEFINITION, CONNECT SQL, CONNECT TO u")]
-	[InlineData("GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u")]
 	[InlineData("GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u")]
 	// A class of three words, one that begins with another class (`SERVER ROLE` against `SERVER`),
 	// and one of the longest: read here because the engine reads them.
 	[InlineData("GRANT CONTROL ON DATABASE SCOPED CREDENTIAL::x TO u")]
 	[InlineData("GRANT ALTER ON SERVER ROLE::r TO u")]
 	[InlineData("GRANT CONTROL ON XML SCHEMA COLLECTION::c TO u")]
+	// ALL and ALL PRIVILEGES are every class's and EXEC is EXECUTE's other spelling: the catalogue
+	// has a row for none of the three, so they are written into it by hand and are asserted here.
+	[InlineData("GRANT ALL PRIVILEGES ON ENDPOINT::x TO u")]
+	[InlineData("GRANT ALL ON ENDPOINT::x TO u")]
+	[InlineData("GRANT EXEC ON t TO u")]
+	[InlineData("GRANT CONTROL ON ENDPOINT::x TO u")]
 	public void The_permission_statements_read_what_the_engine_does(string input)
 	{
 		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// A permission statement this grammar reads and the engine refuses, kept as a list of one so that
+	/// it is a fact and not a gap.
+	/// </summary>
+	/// <remarks>
+	/// <c>ENDPOINT::a.b..d</c> is Msg 117 under <c>SET PARSEONLY ON</c> — "the object name contains more
+	/// than the maximum number of prefixes. The maximum is 2" — so it is the engine's PARSER refusing it,
+	/// and ours to refuse too. It is not the permission catalogue's business: a securable's name takes at
+	/// most two prefixes, which is a rule about names and is its own small task. Until then this asserts
+	/// that we read it, so the day the count is enforced this test fails and says to move the row into
+	/// <see cref="The_permission_statements_refuse_what_the_engine_does"/>.
+	/// </remarks>
+	[Theory]
+	[InlineData("DENY ALL PRIVILEGES ON ENDPOINT::a.b..d (c1, c2) TO PUBLIC")]
+	public void A_permission_statement_this_grammar_reads_and_the_engine_refuses(string input)
+	{
+		Assert.True(
+			TransactSqlParser.TryParseStatement(input).IsSuccess,
+			input + ": if this now refuses, the divergence is closed — move the row to the refusal theory and say what closed it.");
 	}
 
 	/// <summary>A table's constraints switched, and a graph table's columns carried by an index.</summary>

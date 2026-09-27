@@ -24987,3 +24987,45 @@ test named for what the engine does is a claim about the engine.
 
 **Why this is ours to refuse at all.** The engine answers 102, syntax. A bind-time message would be
 the server's business and we would be right to read the statement and let it object.
+
+## A permission is checked against its class, and the rule per class does not build
+
+`GRANT SELECT ON ENDPOINT::x` is `Incorrect syntax near 'SELECT'`: the engine checks the permission
+against the securable's class WHILE PARSING, and this grammar accepted any of its 166 permissions with
+any class. The 299 reachable pairs are now a table the guard reads (`PermissionCatalogue`,
+`permissions.py`). Where there is no ON clause there is nothing to check: mixed scopes are Msg 4620 at
+level 16, raised after the parse, and the server's to answer -- which is why
+`GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u` is still read here.
+
+**The shape that was measured and refused.** A rule per class is not reachable by dispatch, because the
+statement writes the permissions BEFORE the class: it becomes 28 alternatives per verb, 87 in all, each
+reading a whole permission list before the ON clause that would confirm it. Generated from the pairs and
+built, that is **GRAM5005** -- `PermissionStatement_Dialect` cannot be read by methods because of what it
+builds, so the dialect's syntactic half would run on the shared engine -- after **7m08s** of generation
+against 56 s at HEAD. The generator refuses the shape rather than letting the whole dialect quietly fall
+off the method path. **Anyone who thinks of a rule per class in this grammar can stop at that sentence.**
+
+The guard costs nothing measurable: 56 s to generate either way, 14,830 tests, and the corpus unchanged
+at 7,716 of 7,716 -- so nothing the corpus writes is refused by it, which the pairs extracted from the
+corpus had predicted before the change.
+
+**What the guard cannot do is name the permission.** The engine names it; this stops at the token after
+the securable, because a guard cannot fire before the class is read. That is written beside the guard as
+a chosen cost, with the shape that would close it -- a lookahead from each permission to the class -- and
+the note that it is not built. A refusal in the right place with the wrong word named is a smaller defect
+than reading what the engine refuses, which is what this replaced.
+
+**Two rows of the suite were claims about the engine that the engine denies.** The theory is named
+`The_permission_statements_read_what_the_engine_does`, so each row is such a claim, and asking all
+sixteen found two: `GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u`, which is 102 (a DATABASE
+permission of an object) and is now a refusal row; and `DENY ALL PRIVILEGES ON ENDPOINT::a.b..d (c1, c2)`,
+which `SET PARSEONLY ON` refuses with Msg 117 -- a securable's name takes at most two prefixes. The
+second is not the catalogue's business and is its own small task, so it is written down as a divergence
+we hold ourselves to: a test that asserts we read it and fails the day the prefix count is enforced.
+
+**Classifying by message number is what made the count two rather than eight.** Read as "any message is
+a refusal", eight of the sixteen rows looked false. Msg 4620 and 4611 and "Invalid column list after
+object name" are level 16 and come after a successful parse; 102, 156 and 117 are the parse refusing.
+The same conflation had already cost one wrong reading an hour earlier, when a probe of every class used
+`SELECT` as the permission and every class but OBJECT answered "near 'SELECT'" -- a message about the
+permission read as a message about the class.

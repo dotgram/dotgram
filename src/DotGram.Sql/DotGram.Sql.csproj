@@ -20,7 +20,9 @@ SqlStandardParser reads the standard through a lexical split, which bounds two t
 
 The package ships its XML documentation now, though not for every type yet: the tree that is being replaced carries none, and each node of the one replacing it says what it is and which page of the specification it comes from. What each node is named after is also in docs/ast.md, and how to use the parsers is in the README and the SKILL beside it.
 
-TransactSqlParser leaves a statement's label to that statement: HIDDEN, SORTED_DATA and a login's password words no longer take the label on the line after them. A native module's atomic block is now followed by the end of the batch, said as such, rather than by a refusal naming no statement.</PackageReleaseNotes>
+TransactSqlParser leaves a statement's label to that statement: HIDDEN, SORTED_DATA and a login's password words no longer take the label on the line after them. A native module's atomic block is now followed by the end of the batch, said as such, rather than by a refusal naming no statement.
+
+It also refuses two things in GRANT, DENY and REVOKE that it used to read, both because SQL Server refuses them as syntax. A securable's class is one of the twenty-eight the engine takes, so `ON FOO::x` no longer reads, and neither do `ON TABLE::x`, `ON VIEW::x` or `ON PROCEDURE::x`, all of which are `ON OBJECT::x`. And a permission has to be one that class allows: `GRANT SELECT ON ENDPOINT::x` is refused, as the server refuses it, while `GRANT SELECT ON t` is read. Where no ON clause names a class nothing is checked, because the server does not check it while parsing either. The refusal is reported at the token after the securable rather than at the permission the server names.</PackageReleaseNotes>
 
 		<!-- What a caller reads in the editor. The other packages here fail a build on a public
 		     member without a comment; this one cannot yet, because the tree that is leaving has four
