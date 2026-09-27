@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -35,6 +36,13 @@ namespace DotGram.Tests;
 /// <para>
 /// <b>Run alone.</b> What is live is the whole process's heap, not this test's: a neighbour
 /// running beside it would be measured with it, and would pass or fail it at random.
+/// </para>
+/// <para>
+/// That holds of the two tests here which read bytes, and is why they read them at a PEAK and
+/// compare two sizes rather than two moments. It no longer holds of
+/// <see cref="A_finished_parse_keeps_what_it_grew_until_the_work_stops_wanting_it"/>, which asks
+/// the parser's own slots and a weak reference instead, and so cannot be moved by a neighbour at
+/// all: it read the heap twice and failed twice on a shared runner before it was changed.
 /// </para>
 /// </remarks>
 [Collection(typeof(Alone))]
@@ -192,34 +200,93 @@ public sealed class StreamingRetentionTests
 	[InlineData("stream whole")]
 	public void A_finished_parse_keeps_what_it_grew_until_the_work_stops_wanting_it(string form)
 	{
-		var host = Compile(buffered: true);
+		var host  = Compile(buffered: true);
+		var slots = LargeSlots(host);
 
-		// The small run settles the JIT and fills the pool's buckets up to the kept length,
-		// which is what the pool may legitimately go on keeping.
+		Assert.True(slots.Count > 0, "this parser has no oversized-store slot, so there is nothing here to assert.");
+
+		// The small run settles the JIT and fills the pool's buckets up to the kept length.
 		Run(host, form, Small);
-
-		var before = GC.GetTotalMemory(forceFullCollection: true);
 
 		Run(host, form, Large);
 
-		var kept = GC.GetTotalMemory(forceFullCollection: true);
+		// KEPT. The store the large parse grew is still in its slot, which is what makes a loop of
+		// parses this size reuse it deterministically rather than when a collection happens not to
+		// have intervened.
+		var held = slots.Where(slot => slot.GetValue(null) is not null).ToList();
 
-		Assert.True(kept > before,
-			$"{form}: {before} bytes live before a parse of {Large} records and {kept} after it. " +
-			"The store it grew is supposed to be HELD, so that a loop of parses this size reuses " +
-			"it; nothing being left is the cliff 02e44143 removed, not the bound it put there.");
+		Assert.True(
+			held.Count > 0,
+			$"{form}: after a parse of {Large} records, every oversized-store slot is empty " +
+			$"({string.Join(", ", slots.Select(Named))}). The store it grew is supposed to be HELD; " +
+			"nothing being left is the cliff 02e44143 removed, not the bound it put there.");
+
+		// A weak reference to each, taken before they are let go, so the second half can ask whether
+		// the collector could actually have them and not merely whether a field was cleared.
+		var watched = held.Select(slot => (Name: Named(slot), Reference: new WeakReference(slot.GetValue(null)))).ToList();
 
 		// Parses that do not want the room it grew. Each is a rental, and the slot counts rentals.
 		for (var idle = 0; idle < LetGoAfter; idle++)
 			Run(host, form, Small);
 
-		var freed = GC.GetTotalMemory(forceFullCollection: true);
+		// LET GO, in both senses. The slot is empty...
+		var kept = slots.Where(slot => slot.GetValue(null) is not null).Select(Named).ToList();
 
-		Assert.True(freed <= before + Kept,
-			$"{form}: {freed} bytes live after {LetGoAfter} parses of {Small} records that did not " +
-			$"want the room, against {before} before the large one. A store nobody has wanted for " +
-			"that many parses is handed to the collector, so what is left may be only what the " +
-			"pool keeps below the kept length.");
+		Assert.True(
+			kept.Count == 0,
+			$"{form}: after {LetGoAfter} parses of {Small} records that did not want the room, " +
+			$"{string.Join(", ", kept)} still holds a store. A store nobody has wanted for that many " +
+			"parses is handed to the collector.");
+
+		GC.Collect();
+		GC.WaitForPendingFinalizers();
+		GC.Collect();
+
+		// ...and what it held is reclaimable, which an empty field alone does not say: an outsized
+		// store is handed to a WeakReference rather than dropped, and a reference kept anywhere else
+		// would leave it alive with the slot empty.
+		var alive = watched.Where(one => one.Reference.IsAlive).Select(one => one.Name).ToList();
+
+		Assert.True(
+			alive.Count == 0,
+			$"{form}: {string.Join(", ", alive)} is still alive after {LetGoAfter} idle parses and a " +
+			"full collection, so something other than the slot is holding it.");
+	}
+
+	static string Named(FieldInfo slot)
+	{
+		return slot.DeclaringType!.Name + "." + slot.Name;
+	}
+
+	/// <summary>Every slot a parser keeps an OVERSIZED store in, by reflection over what it emitted.</summary>
+	/// <remarks>
+	/// <para>
+	/// <b>This used to be read as process-wide live bytes, and that is why it is not any more.</b> It
+	/// asserted <c>GC.GetTotalMemory</c> after the large parse against before it, and failed twice on
+	/// the Windows runner — once reading 89,425,656 bytes before and 73,619,984 after, which is LESS
+	/// after growing a store. A forced collection is not a promise about the process's heap: what it
+	/// reclaims of a neighbour's garbage, and what the allocator hands back to the OS, both land in
+	/// that number and neither is this parser's doing. The property is one object being held and then
+	/// released, so it is asked of the object.
+	/// </para>
+	/// <para>
+	/// The slots are <c>_large</c> on each store type the grammar emitted and <c>_largeParser</c> on
+	/// the engine's parser. They are thread-static, so they must be read on the thread that parsed,
+	/// which is this one. Found by name rather than listed, so a parser that grows a new kind of
+	/// store is covered by this test on the day it does — and if the names change, the count check
+	/// above fails rather than the test passing on nothing.
+	/// </para>
+	/// </remarks>
+	static List<FieldInfo> LargeSlots(Type host)
+	{
+		var slots = new List<FieldInfo>();
+
+		foreach (var type in host.Assembly.GetTypes())
+			foreach (var field in type.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+				if (field.Name is "_large" or "_largeParser")
+					slots.Add(field);
+
+		return slots;
 	}
 
 	/// <summary>Parses in a row that do not want the room before an oversized store is let go of.</summary>
