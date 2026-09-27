@@ -90,6 +90,37 @@ jobs:
       - name: The counted variant compiles
         run: dotnet build tests/DotGram.Compatibility/DotGram.Compatibility.csproj --configuration Release -p:DotGramCounts=true -warnaserror
 
+  # The walk's own invariant, compiled in and run over every suite. A reference to a record must
+  # name a record the parse HAS, and a reader that followed one it did not have was invisible for
+  # the eleven days from v0.1.0: the array it indexes is thread-static and only grows, so a thread
+  # that had read something larger absorbed the bad reference and marked an unrelated record as
+  # reached, while a cold thread threw. Every suite warms its thread before reaching it, so a green
+  # suite said nothing (bd09c013).
+  #
+  # A job of its own rather than steps in `build`: the runners are free and the jobs go at once, so
+  # this costs the wait nothing, and it covers the families where a future grammar could grow a site
+  # of this shape — the expression language and Web have none today and are checked anyway.
+  checked:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore DotGram.slnx
+
+      - name: Build with the invariant compiled in
+        run: dotnet build DotGram.slnx --no-restore --configuration Linux -p:DotGramChecks=true -warnaserror
+
+      # Every suite, snapshots included. The check lines are in the generated TEXT whether or not the
+      # symbol is defined — the symbol decides only whether they compile — so the baseline matches
+      # either way, and all eleven snapshots pass here. An exclusion was written first, on the
+      # strength of seven failures seen against a baseline from BEFORE the check lines were
+      # committed; the reason had expired by the time it was written down.
+      - name: Test with the invariant compiled in
+        run: dotnet test DotGram.slnx --no-build --configuration Linux
+
   # The development machine is Windows and CI is not, which is the arrangement that
   # hides a path separator or a line ending until somebody else clones the repository.
   # This does not prove what the job above proves. It is the only one that builds the

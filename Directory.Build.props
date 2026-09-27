@@ -63,6 +63,13 @@
 		     multi-targeted projects in a way that looks like the checks breaking them. -->
 		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
 		<DefineConstants Condition="'$(DotGramChecks)' == 'true'">$(DefineConstants);DOTGRAM_CHECKS</DefineConstants>
+
+		<!-- A field either of them adds needs an INITIALISER, not merely a declaration. A grammar whose
+		     walk never reaches one — no marks, nothing that materialises — leaves it unassigned, and
+		     CS0649 is an ERROR wherever a consumer treats warnings as errors: DotGram.Compatibility does,
+		     on purpose, and the counted and checked variants would not build on any of its three targets
+		     without one. This cost three separate builds to learn. With [ThreadStatic] the initialiser
+		     runs for the first thread only, which for a zero default is what every other thread gets. -->
 	</PropertyGroup>
 
 	<!-- The icon every package carries. Items are evaluated after every property, so
