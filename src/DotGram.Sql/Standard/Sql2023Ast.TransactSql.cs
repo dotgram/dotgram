@@ -418,6 +418,62 @@ public abstract partial record Statement
 
 	/// <summary>T-SQL: DROP DATABASE ENCRYPTION KEY (Transact-SQL). <c>DROP DATABASE ENCRYPTION KEY</c>, which names nothing.</summary>
 	public sealed record DropDatabaseEncryptionKey : Statement;
+
+	/// <summary>T-SQL: DROP INDEX (Transact-SQL), and DROP INDEX (Selective XML Indexes).</summary>
+	/// <remarks>
+	/// The page publishes a list of one form OR a list of the other, and this holds a list of either.
+	/// That lets the tree hold a mixture the grammar will not read, which is the ordinary price of a
+	/// family in a list; the alternative is two statements for one statement.
+	/// </remarks>
+	public sealed record DropIndex(IReadOnlyList<DroppedIndex> Indexes, bool IfExists) : Statement;
+
+	/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL). <c>DROP [COUNTER] SIGNATURE FROM m BY …</c>.</summary>
+	public sealed record DropSignature(bool Counter, QualifiedName Module, IReadOnlyList<SignedBy> By) : Statement;
+}
+
+/// <summary>T-SQL: DROP INDEX (Transact-SQL). One index a <see cref="Statement.DropIndex"/> drops.</summary>
+public abstract record DroppedIndex : ISqlNode
+{
+	/// <summary>Where in the text this index was named.</summary>
+	public SqlSpan Span { get; private set; }
+
+	/// <summary>Records where this index was named.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	/// <summary>
+	/// <c>index_name ON object [ WITH ( … ) ]</c>: the relational, XML and spatial form.
+	/// </summary>
+	/// <remarks>
+	/// The options are <c>MAXDOP</c>, <c>ONLINE</c>, <c>MOVE TO</c> and <c>FILESTREAM_ON</c>, which are
+	/// names and values, so <see cref="Option"/> holds them: <c>MOVE TO scheme (column)</c> is a name
+	/// with an invocation for its value and <c>"default"</c> is a name with a literal.
+	/// </remarks>
+	public sealed record Named(Identifier Name, QualifiedName On, IReadOnlyList<Option> Options) : DroppedIndex;
+
+	/// <summary><c>[ owner. ] table_or_view.index_name</c>: the backward compatible form, which writes no <c>ON</c>.</summary>
+	public sealed record Qualified(QualifiedName Name) : DroppedIndex;
+}
+
+/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL). What a signature was made by.</summary>
+public abstract record SignedBy : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	public SqlSpan Span { get; private set; }
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		Span = new SqlSpan(at, length);
+	}
+
+	/// <summary><c>CERTIFICATE cert_name</c>.</summary>
+	public sealed record Certificate(QualifiedName Name) : SignedBy;
+
+	/// <summary><c>ASYMMETRIC KEY key_name</c>.</summary>
+	public sealed record AsymmetricKey(QualifiedName Name) : SignedBy;
 }
 
 /// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). Where an event session lives.</summary>
