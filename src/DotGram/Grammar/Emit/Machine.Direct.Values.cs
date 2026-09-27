@@ -962,6 +962,13 @@ sealed partial class Machine
 				file.Line();
 				file.Line("for (var at = from; at < ways.LogCount; at += log[at])");
 				file.Then("starts[listed++] = at;");
+				// Two counters a materializer, never one a rule: what a count gate reads, and nothing a
+				// consumer compiles (D144). Here rather than on `Ways` because the reader's own numbers
+				// were flat while this walk was quadratic.
+				file.Line("#if DOTGRAM_COUNTS");
+				file.Line("Ways.CountListed += listed;");
+				file.Line("Ways.CountWalks++;");
+				file.Line("#endif");
 				file.Line();
 				// One root, or every record gathered for the slots asked since `roots`: a guard handed a
 				// list builds all of it in one walk (TapeCarrier.Gathered), not one walk an element.
@@ -1066,6 +1073,9 @@ sealed partial class Machine
 						using (file.Block("for (var open = 0; open < ways.MarkDepth && standing[open] < from; open++)"))
 						{
 							file.Line("var at = standing[open];");
+							file.Line("#if DOTGRAM_COUNTS");
+							file.Line("Ways.CountMarkSteps++;");
+							file.Line("#endif");
 							file.Line();
 							DirectMarkOpen(file);
 						}

@@ -3571,6 +3571,10 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 				starts[listed++] = at;
+			#if DOTGRAM_COUNTS
+			Ways.CountListed += listed;
+			Ways.CountWalks++;
+			#endif
 
 			if (roots < 0)
 				live[root] = true;
@@ -6356,6 +6360,26 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int AllBuiltAt;
 
+
+			#if DOTGRAM_COUNTS
+
+			/// <summary>
+			/// What the materialising walk did, for a test that gates it by counting rather than by a
+			/// clock (<c>ReaderCountTests</c>, which says why). <b>Compiled only under
+			/// <c>DOTGRAM_COUNTS</c>, which no project defines; it is not a supported setting.</b>
+			/// </summary>
+			// Initialised, not merely declared: a grammar whose walk never reaches one of these — no
+			// marks, or nothing that materialises at all — leaves it unassigned, and CS0649 is an ERROR
+			// where a consumer treats warnings as errors (DotGram.Compatibility does, on purpose).
+			internal static long CountWalks = 0;
+
+			/// <summary>Records the scan listed, summed over every walk.</summary>
+			internal static long CountListed = 0;
+
+			/// <summary>Standing marks the walk read, summed over every walk.</summary>
+			internal static long CountMarkSteps = 0;
+
+			#endif
 			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
 			/// three integers each — the slot, and either a record and -1, or a start and end.
