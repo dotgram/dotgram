@@ -27,6 +27,10 @@ Checked, not guessed: `git diff --stat 46dec223 dbdb75ac -- examples/DotGram.Han
 
 **What is trustworthy here and worth carrying forward is the three generated-side absolute regressions** (`el/try`, `el/overloads`, `el/untyped`), which moved on their own axis independent of the hand-side story and are not explained by anything above — `el/untyped`'s allocation also grew (`base-B` 16232 → 26112, before to after, +61%). Worth a look by whoever owns D146, not by the stand.
 
+## The other unexplained swing, now explained (the architect)
+
+`fixmsg/Order44.strict generated-loaded` fell from 792.20 ms to 225.52 ms (`summary.md` §2). This is ours, not QuickFIX/n's: that row loads the package's own FIX 4.4 dictionary and compiles its checks through the expression language. `723b7af8` ("a name bound to a parameter is never asked as a type") and `51b73cc1` ("only negative answers bounded") cut that compile about fourfold in this range. Three fresh-process samples each side, so the number itself is loose, but the direction and the cause are not guessed.
+
 SQL:2023's hand parser (`HandSqlStandard.cs`) is confirmed unchanged in this range; its ~5% uniform speedup (see below) is not attributable to a source change and is closer to the size of the controls' own drift between windows (31.4-32.1 before, 31.5-31.8 after) than to a real effect — read it as noise, not a finding.
 
 ## SQL:2023, generated over hand, absolute sides (the improvement here IS on the generated side)
