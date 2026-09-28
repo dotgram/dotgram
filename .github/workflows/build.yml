@@ -121,9 +121,9 @@ jobs:
       - name: Test with the invariant compiled in
         run: dotnet test DotGram.slnx --no-build --configuration Linux
 
-  # The development machine is Windows and CI is not, which is the arrangement that
-  # hides a path separator or a line ending until somebody else clones the repository.
-  # This does not prove what the job above proves. It is the only one that builds the
+  # The development machine is Linux (it was Windows until 2026-09), and a repository
+  # built on one system hides a path separator or a line ending until somebody clones it
+  # on the other. This does not prove what the job above proves. It is the only one that builds the
   # Visual Studio extension, which ships; it is the only one that can fail on a name
   # Windows keeps or a character it forbids; and the one above is the only one that can
   # fail on the character Windows forbids and Linux does not. Both directions have
