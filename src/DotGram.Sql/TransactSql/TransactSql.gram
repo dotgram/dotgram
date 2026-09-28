@@ -4960,7 +4960,9 @@ KeyDecryptor
 	| "SYMMETRIC"i & "KEY"i & Identifier
 	| PasswordEncryptor
 
-Authorization     = "AUTHORIZATION"i & QualifiedName
+// The owner is one part, as PrincipalName's comment measures for every other principal in
+// this grammar: `CREATE CONTRACT c AUTHORIZATION a.b (...)` is Msg 102 near '.'.
+Authorization     = "AUTHORIZATION"i & Identifier
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
 
 // ── The keys' catalogue ─────────────────────────────────────────────────────
@@ -5208,19 +5210,19 @@ FullTextStatement : @Statement
 
 	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
 	  & tail: (("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
-			   & CatalogWith? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
+			   & CatalogWith? & AsDefault? & ("AUTHORIZATION"i & Identifier)?)
 		=> @(Statement.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & tail: FullTextCatalogAction
 		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier
-	  & tail: (StopListFrom? & ("AUTHORIZATION"i & QualifiedName)?)
+	  & tail: (StopListFrom? & ("AUTHORIZATION"i & Identifier)?)
 		=> @(Statement.Defined("FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & tail: StopListAction
 		=> @(Statement.Defined("ALTER FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier
-	  & tail: (("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & QualifiedName)?)
+	  & tail: (("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & Identifier)?)
 		=> @(Statement.Defined("SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & tail: PropertyListAction
 		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
@@ -5522,7 +5524,7 @@ AuditStatement : @Statement
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language. The two come in
 	// either order, and an owner is given only when the endpoint is created.
-	| verb: CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & owner: QualifiedName)?
+	| verb: CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & owner: Identifier)?
 	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor? & late: EndpointAs?
 	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null)
 			  && Syntax.Created(verb, spoken))
@@ -5910,11 +5912,11 @@ ExternalStatement : @Statement
 		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
 	| said: "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
-	  & tail: (("AUTHORIZATION"i & QualifiedName)?
+	  & tail: (("AUTHORIZATION"i & Identifier)?
 			   & "FROM"i & LibraryFileMade & (',' & LibraryFileMade)* & LibraryWith)
 		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
-	  & tail: (("AUTHORIZATION"i & QualifiedName)?
+	  & tail: (("AUTHORIZATION"i & Identifier)?
 			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & LibraryWith)
 		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 
@@ -6162,7 +6164,7 @@ PrincipalStatement : @Statement
 	| "ALTER"i & "USER"i & name: Identifier & tail: AlterUserBody
 		=> @(Statement.Defined("ALTER USER", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & scope: RoleWord & name: Identifier & tail: ("AUTHORIZATION"i & QualifiedName)?
+	| "CREATE"i & scope: RoleWord & name: Identifier & tail: ("AUTHORIZATION"i & Identifier)?
 		=> @(Statement.Defined(
 				 Syntax.Squared(scope) == "ROLE" ? "CREATE ROLE" : "CREATE SERVER ROLE",
 				 name, Syntax.Tail(tail)))
@@ -6180,9 +6182,9 @@ PrincipalStatement : @Statement
 	// what follows it is not a clause but whole statements, which is the one statement in
 	// T-SQL that holds others without a `BEGIN`.
 	| "CREATE"i & "SCHEMA"i & name: Identifier
-	  & tail: ("AUTHORIZATION"i & QualifiedName & SchemaElement*)
+	  & tail: ("AUTHORIZATION"i & Identifier & SchemaElement*)
 		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
-	| "CREATE"i & "SCHEMA"i & tail: ("AUTHORIZATION"i & QualifiedName & SchemaElement*)
+	| "CREATE"i & "SCHEMA"i & tail: ("AUTHORIZATION"i & Identifier & SchemaElement*)
 		=> @(Statement.Defined("CREATE SCHEMA", "", Syntax.Tail(tail)))
 	| "CREATE"i & "SCHEMA"i & name: Identifier & tail: (SchemaElement*)
 		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
@@ -6196,11 +6198,13 @@ PrincipalStatement : @Statement
 
 RoleWord : @string = t: ("SERVER"i & "ROLE"i | "ROLE"i) => @(Syntax.Squared(t))
 
-RoleAction = "ADD"i & "MEMBER"i & QualifiedName
-		   | "DROP"i & "MEMBER"i & QualifiedName
-		   | "WITH"i & "NAME"i & '=' & QualifiedName
+// A member, a new name and a new owner are each one part, as PrincipalName's comment measures:
+// `ADD MEMBER a.b`, `WITH NAME = a.b` and `ALTER AUTHORIZATION ... TO a.b` are all Msg 102.
+RoleAction = "ADD"i & "MEMBER"i & Identifier
+		   | "DROP"i & "MEMBER"i & Identifier
+		   | "WITH"i & "NAME"i & '=' & Identifier
 
-AuthorizationTo = "SCHEMA"i & "OWNER"i | QualifiedName
+AuthorizationTo = "SCHEMA"i & "OWNER"i | Identifier
 
 // What a schema declares in the same breath as itself. The published list is exactly these
 // five, and each is the whole statement it is elsewhere.
@@ -6244,8 +6248,8 @@ KeyCredential = "WITH"i & "CREDENTIAL"i & '=' & Identifier
 AlterLoginBody = "ENABLE"i
 			   | "DISABLE"i
 			   | "WITH"i & AlterLoginOption & (',' & AlterLoginOption)*
-			   | "ADD"i & "CREDENTIAL"i & QualifiedName
-			   | "DROP"i & "CREDENTIAL"i & QualifiedName
+			   | "ADD"i & "CREDENTIAL"i & Identifier
+			   | "DROP"i & "CREDENTIAL"i & Identifier
 
 AlterLoginOption = AlterPassword
 				 | LoginPlace
@@ -7323,7 +7327,12 @@ ActionWords = PermissionWord+
 
 PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
-PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)
+// A principal — here, `AS principal`, `ADD`/`DROP MEMBER` and every `AUTHORIZATION` owner in
+// this grammar — is one part, never `a.b`: `GRANT SELECT ON dbo.t TO a.b` and `TO dbo.guest`
+// are both Msg 102 near '.' (SQL Server 2025 RTM-CU9, measured 2026-09-28), where a bracketed
+// or quoted one part, `TO [guest]`, reads. `QualifiedName` here would accept the dotted form
+// ScriptDom's `.g` reads, which the engine does not.
+PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: Identifier => @(t)
 
 // Whom a permission is given to, denied or taken from: a principal, or `NULL`, which the
 // engine reads anywhere in the list and refuses after `AS`.

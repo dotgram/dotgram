@@ -15454,6 +15454,51 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A principal is one part, never <c>a.b</c>: <c>GRANT SELECT ON t TO a.b</c> and
+	/// <c>GRANT SELECT ON t TO dbo.guest</c> are both <c>Msg 102</c>, "Incorrect syntax near '.'",
+	/// under <c>SET PARSEONLY ON</c> (SQL Server 2025 RTM-CU9, measured 2026-09-28), where
+	/// <c>TO [guest]</c> reads. The same holds for every other name this grammar once read as a
+	/// <c>QualifiedName</c> for the same reason — a role member, a renamed role, an
+	/// <c>ALTER AUTHORIZATION ... TO</c> target, a login's credential, and the owner after
+	/// <c>AUTHORIZATION</c> in every statement that takes one.
+	/// </summary>
+	[Theory]
+	[InlineData("GRANT SELECT ON t TO a.b")]
+	[InlineData("GRANT SELECT ON t TO dbo.guest")]
+	[InlineData("GRANT SELECT ON t TO u AS a.b")]
+	[InlineData("DENY SELECT ON t TO a.b")]
+	[InlineData("REVOKE SELECT ON t FROM a.b")]
+	[InlineData("REVOKE GRANT OPTION FOR SELECT ON t FROM u CASCADE AS a.b")]
+	[InlineData("ALTER ROLE r ADD MEMBER a.b")]
+	[InlineData("ALTER ROLE r DROP MEMBER a.b")]
+	[InlineData("ALTER SERVER ROLE r WITH NAME = a.b")]
+	[InlineData("CREATE ROLE r AUTHORIZATION a.b")]
+	[InlineData("CREATE SERVER ROLE r AUTHORIZATION a.b")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION a.b")]
+	[InlineData("CREATE SCHEMA AUTHORIZATION a.b")]
+	[InlineData("ALTER AUTHORIZATION ON dbo.t TO a.b")]
+	[InlineData("ALTER LOGIN l ADD CREDENTIAL a.b")]
+	[InlineData("ALTER LOGIN l DROP CREDENTIAL a.b")]
+	[InlineData("CREATE ENDPOINT e AUTHORIZATION a.b STATE = STARTED AS TCP (LISTENER_PORT = 1) FOR TSQL ()")]
+	[InlineData("CREATE MESSAGE TYPE m AUTHORIZATION a.b VALIDATION = WELL_FORMED_XML")]
+	[InlineData("CREATE CONTRACT c AUTHORIZATION a.b ([//a] SENT BY ANY)")]
+	[InlineData("CREATE SERVICE s AUTHORIZATION a.b ON QUEUE dbo.q")]
+	[InlineData("CREATE ROUTE r AUTHORIZATION a.b WITH SERVICE_NAME = 's'")]
+	[InlineData("CREATE REMOTE SERVICE BINDING b AUTHORIZATION a.b TO SERVICE N's'")]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION a.b FROM FILE = 'k.snk'")]
+	[InlineData("CREATE SYMMETRIC KEY k AUTHORIZATION a.b FROM PROVIDER p WITH PROVIDER_KEY_NAME = 'n', CREATION_DISPOSITION = CREATE_NEW")]
+	[InlineData("CREATE CERTIFICATE c AUTHORIZATION a.b ENCRYPTION BY PASSWORD = 'p' WITH SUBJECT = 'x'")]
+	[InlineData("CREATE EXTERNAL LIBRARY l AUTHORIZATION a.b FROM (CONTENT = 'p') WITH (LANGUAGE = 'R')")]
+	[InlineData("ALTER EXTERNAL LIBRARY l AUTHORIZATION a.b SET (CONTENT = 'p')")]
+	[InlineData("CREATE FULLTEXT CATALOG c AUTHORIZATION a.b")]
+	[InlineData("CREATE FULLTEXT STOPLIST s AUTHORIZATION a.b")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION a.b")]
+	public void A_principal_refuses_the_second_part_the_engine_refuses(string input)
+	{
+		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
+
 	/// <summary>What lives outside the database, and what the server spends on it.</summary>
 	/// <remarks>
 	/// Fourteen published blocks and almost all of them are a name and an option list,

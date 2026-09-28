@@ -25063,3 +25063,30 @@ writes `TYPE::t`, which would have been one member with two texts. It was first 
 `Grantee.Identifier` holds one identifier. Whether the engine reads a principal of two parts is a
 question for SQL Server, not for this machine; until it is asked, a grammar that builds these nodes has
 nowhere to put one.
+
+## A principal is one part, and a dozen `AUTHORIZATION` owners were reading two
+
+`SET PARSEONLY ON; GRANT SELECT ON dbo.t TO a.b;` is `Incorrect syntax near '.'` (SQL Server 2025
+RTM-CU9), and so is `TO dbo.guest` -- the grantee in `GRANT`/`DENY`/`REVOKE`, the name after `AS`,
+a role member, a role's or a schema's owner and every other `AUTHORIZATION` clause in this grammar
+were built on `QualifiedName`, which reads the dotted form ScriptDom's `.g` accepts and the engine
+does not. A bracketed or quoted one part, `TO [guest]`, still reads; `PUBLIC` stays its own case.
+
+**Where it was checked.** `PrincipalName` (the shared rule under `Grantee` and `PermissionAs`),
+`RoleAction` (`ADD`/`DROP MEMBER`, `WITH NAME =`), `AuthorizationTo` (`ALTER AUTHORIZATION ... TO`),
+`AlterLoginBody`'s `ADD`/`DROP CREDENTIAL`, and every inline `"AUTHORIZATION"i & QualifiedName` --
+`CREATE`/`ALTER ROLE`, `CREATE`/`ALTER SERVER ROLE`, `CREATE SCHEMA` (both forms), `CREATE`/`ALTER
+ENDPOINT`, `CREATE`/`ALTER EXTERNAL LIBRARY`, `CREATE FULLTEXT CATALOG`/`STOPLIST`, `CREATE SEARCH
+PROPERTY LIST`, and the shared `Authorization` rule behind `CREATE MESSAGE TYPE`, `CONTRACT`,
+`SERVICE`, `ROUTE`, `REMOTE SERVICE BINDING`, `ASYMMETRIC KEY`, `SYMMETRIC KEY` and `CERTIFICATE`.
+Every one was asked of the container's `sqlcmd` with its own dotted probe before being narrowed, and
+every one answered 102 near the second part. `CREATE ASSEMBLY`, `CREATE`/`ALTER EXTERNAL LANGUAGE`
+and `DROP EXTERNAL LIBRARY`/`LANGUAGE ... AUTHORIZATION` were already `Identifier` and needed
+nothing; `ALTER SCHEMA ... TRANSFER` and a securable's own name (`OBJECT::dbo.t`, `ON dbo.t`) stayed
+`QualifiedName`, because those name an object, not a principal, and the engine reads them dotted.
+
+**What did not move.** The corpus has no dotted principal anywhere -- every `GRANT`/`DENY`/`REVOKE`,
+`ADD MEMBER`, `AUTHORIZATION` and `ADD`/`DROP CREDENTIAL` in `tests/Corpus` already names one part --
+so `--roundtrip` and `CorpusRoundTripTests` (7,716 statements) pass unchanged. `TransactSqlTests` gained
+one theory, `A_principal_refuses_the_second_part_the_engine_refuses`, with a row per site above, each
+row a claim about the engine and not about the grammar.
