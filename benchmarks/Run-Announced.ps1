@@ -45,6 +45,10 @@ $ErrorActionPreference = 'Stop'
 
 Assert-Linux
 
+$Command   = @(Split-FileList $Command)
+$Arguments = @(Split-FileList $Arguments)
+$Artifacts = @(Split-FileList $Artifacts)
+
 if ([bool]$Script -eq ($Command.Count -gt 0)) { Stop-Run 2 'Give -Script (a PowerShell script) or -Command (an executable and its arguments), one of the two.' }
 
 if ($Script) {

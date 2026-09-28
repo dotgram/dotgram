@@ -59,6 +59,14 @@ function Stop-Run([int]$code, [string]$message) {
 	exit $code
 }
 
+# `pwsh -File script.ps1 -List 'a','b'` from bash hands the list over as ONE string, "a,b" (2026-09-19, a keep-list read that way deleted a queue's trees). A list parameter that arrives as a single
+# element with commas in it is split; an argument that needs a comma of its own is passed from PowerShell, not through -File.
+function Split-FileList([string[]]$list) {
+	if ($list.Count -eq 1 -and $list[0].Contains(',')) { return $list[0].Split(',') }
+
+	$list
+}
+
 function Assert-Linux {
 	if (-not $IsLinux) { Stop-Run 2 'The stand times on Linux (D147): pinning is taskset and the window is flock. On another system a timing is not pinned and is not quotable.' }
 }

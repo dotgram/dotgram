@@ -51,6 +51,11 @@ $ErrorActionPreference = 'Stop'
 Assert-Linux
 
 $Assembly = (Resolve-Path $Assembly).Path
+$BdnArgs  = @(Split-FileList $BdnArgs)
+
+# BDN rebuilds the benchmark project and every grammar it references at the start of a run (below), on the stand's sixteen processors; its default limit of two minutes was not enough
+# for that on 2026-09-28 (the build stopped at 120 s and every case read NA). A caller's own --buildTimeout stands.
+if ($BdnArgs -notcontains '--buildTimeout') { $BdnArgs += @('--buildTimeout', '900') }
 $stamp    = Get-Date -Format 'yyyyMMdd-HHmmss'
 $cpus     = Get-StandCpus
 $cpuSet   = ConvertTo-CpuSet $cpus
