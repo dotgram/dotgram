@@ -1211,24 +1211,28 @@ public static partial class Sql2023Writer
 
 			Word("ON");
 
-			// T-SQL's class, `SCHEMA::s`, is the word before the name and stands where the standard's kind,
-			// its TABLE or its routine would: a node with both has no text that keeps them.
-			if (on.Class is { } securable)
+			switch (on)
 			{
-				if (on.Kind != PrivilegeObjectKind.Table)
-					throw Both(on, nameof(on.Class), nameof(on.Kind));
+				// T-SQL's class, `SCHEMA::s`, the word before the name.
+				case PrivilegeObject.Classed classed:
+					Word(PermissionWords.Text(classed.Class) ?? throw NoText(classed.Class));
+					Tight("::");
+					Hold();
+					PutName(classed.Name);
+					PutSecurableColumns(classed.Columns);
+					break;
 
-				if (on.TableKeyword)
-					throw Both(on, nameof(on.Class), nameof(on.TableKeyword));
+				case PrivilegeObject.Named named:
+					PutObjectName(named);
+					break;
 
-				if (on.Routine is not null)
-					throw Both(on, nameof(on.Class), nameof(on.Routine));
-
-				Word(PermissionWords.Text(securable) ?? throw NoText(securable));
-				Tight("::");
-				Hold();
+				default:
+					throw Unwritten(on);
 			}
+		}
 
+		void PutObjectName(PrivilegeObject.Named on)
+		{
 			switch (on.Kind)
 			{
 				case PrivilegeObjectKind.Routine:
@@ -1257,9 +1261,15 @@ public static partial class Sql2023Writer
 			}
 
 			PutName(on.Name);
+			PutSecurableColumns(on.Columns);
+		}
 
-			// T-SQL's column list on the SECURABLE, `ON t (a, b)`, which is not a permission's.
-			if (on.Columns is { Count: > 0 } columns)
+		/// <summary>
+		/// T-SQL's column list on the SECURABLE, <c>ON t (a, b)</c>, which is not a permission's.
+		/// </summary>
+		void PutSecurableColumns(IReadOnlyList<Identifier>? columns)
+		{
+			if (columns is { Count: > 0 })
 			{
 				Open();
 				Each(columns, PutIdentifier);

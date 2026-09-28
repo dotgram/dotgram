@@ -3547,7 +3547,7 @@ partial class HandSqlStandard
 		{
 			if (Names(ref cursor, 3, out var name))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.Domain, name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.Domain, name);
 
 				return true;
 			}
@@ -3561,7 +3561,7 @@ partial class HandSqlStandard
 
 			if (Names(ref cursor, 3, out var name))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.Collation, name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.Collation, name);
 
 				return true;
 			}
@@ -3573,7 +3573,7 @@ partial class HandSqlStandard
 		{
 			if (cursor.Take(SqlWord.Set) && CharacterSetSpecification(ref cursor, out var set))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.CharacterSet, set!.Name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.CharacterSet, set!.Name);
 
 				return true;
 			}
@@ -3585,7 +3585,7 @@ partial class HandSqlStandard
 		{
 			if (Names(ref cursor, 3, out var name))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.Translation, name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.Translation, name);
 
 				return true;
 			}
@@ -3599,7 +3599,7 @@ partial class HandSqlStandard
 
 			if (Names(ref cursor, 3, out var name))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.Type, name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.Type, name);
 
 				return true;
 			}
@@ -3613,7 +3613,7 @@ partial class HandSqlStandard
 
 			if (Names(ref cursor, 3, out var name))
 			{
-				target = new PrivilegeObject(PrivilegeObjectKind.Sequence, name);
+				target = new PrivilegeObject.Named(PrivilegeObjectKind.Sequence, name);
 
 				return true;
 			}
@@ -3625,7 +3625,7 @@ partial class HandSqlStandard
 
 		if (SpecificRoutineDesignator(ref cursor, out var designator))
 		{
-			target = new PrivilegeObject(PrivilegeObjectKind.Routine, designator.Name, designator);
+			target = new PrivilegeObject.Named(PrivilegeObjectKind.Routine, designator.Name, designator);
 
 			return true;
 		}
@@ -3636,7 +3636,7 @@ partial class HandSqlStandard
 
 		if (TableName(ref cursor, out var table))
 		{
-			target = new PrivilegeObject(PrivilegeObjectKind.Table, table, null, keyword);
+			target = new PrivilegeObject.Named(PrivilegeObjectKind.Table, table, null, keyword);
 
 			return true;
 		}

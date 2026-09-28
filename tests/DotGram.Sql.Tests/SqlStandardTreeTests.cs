@@ -479,9 +479,9 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE COLLATION c FOR utf8 FROM d NO PAD",
 		"CreateCollation(Name: CollationName(c), CharacterSet: CharacterSetName(utf8), Source: CollationName(d), Padding: NoPad)")]
 	[InlineData("GRANT SELECT (a), UPDATE ON TABLE t TO PUBLIC, r WITH GRANT OPTION GRANTED BY CURRENT_ROLE",
-		"Grant(Body: Privileges([Privilege(Select, [a], [], false), Privilege(Update, [], [], false)], PrivilegeObject(Table, t, null, true, null, null), [Public(), Identifier(AuthorizationIdentifier(r))], false, true, CurrentRole, null))")]
+		"Grant(Body: Privileges([Privilege(Select, [a], [], false), Privilege(Update, [], [], false)], Named(Table, t, null, true, null), [Public(), Identifier(AuthorizationIdentifier(r))], false, true, CurrentRole, null))")]
 	[InlineData("GRANT EXECUTE ON SPECIFIC FUNCTION s.f TO u",
-		"Grant(Body: Privileges([Privilege(Execute, [], [], false)], PrivilegeObject(Routine, s.f, RoutineDesignator(Function, s.f, null, null, true, null), false, null, null), [Identifier(AuthorizationIdentifier(u))], false, false, null, null))")]
+		"Grant(Body: Privileges([Privilege(Execute, [], [], false)], Named(Routine, s.f, RoutineDesignator(Function, s.f, null, null, true, null), false, null), [Identifier(AuthorizationIdentifier(u))], false, false, null, null))")]
 	[InlineData("REVOKE ADMIN OPTION FOR r1, r2 FROM u CASCADE",
 		"Revoke(Body: Roles(true, [r1, r2], [Identifier(AuthorizationIdentifier(u))], null, Cascade))")]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r",

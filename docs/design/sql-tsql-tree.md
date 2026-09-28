@@ -40,10 +40,11 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
 - Permissions, decided 2026-09-28 (proposal 23; Igor, D148). A permission's name is NOT a name of words,
   as the proposal first said: it is a member of the standard's `PrivilegeKind`, extended with every
   permission of T-SQL's catalogue that the standard does not name and generated from that catalogue by
-  `TransactSql/permissions.py`, which also writes `SecurableClass`, the class of `ON SCHEMA::s`
-  (`PrivilegeObject.Class`, null where none is written). `ALL` and `EXEC` are
-  `[Spelling] Privilege.Abbreviated`, `NULL` among the principals is `Grantee.Null`, and DENY is its own
-  statement sharing these parts (b66d31d4). `PermissionCatalogueTests` holds the enums, the catalogue
+  `TransactSql/permissions.py`, which also writes `SecurableClass`, the class of `ON SCHEMA::s`.
+  What a privilege is on is a family of two, `PrivilegeObject.Named` (the standard's, and `ON t`) and
+  `PrivilegeObject.Classed` (`ON SCHEMA::s`), so a class beside a standard kind cannot be built (Igor).
+  `ALL` and `EXEC` are `[Spelling] Privilege.Abbreviated`, `NULL` among the principals is `Grantee.Null`,
+  and DENY is its own statement sharing these parts (b66d31d4). `PermissionCatalogueTests` holds the enums, the catalogue
   and the grammar's lists to one another; D148 says when the enum would give way to strings.
 
 ## Principles proposed

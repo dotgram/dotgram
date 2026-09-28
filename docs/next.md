@@ -25055,8 +25055,9 @@ thousand members, the switch to strings is a replacement, not a redesign; D148 l
 `ALL PRIVILEGES` and `EXECUTE` -- one meaning, two words -- so they are `[Spelling]
 Privilege.Abbreviated`, which the writer refuses on any other permission rather than printing `SELECT`
 and losing the flag. And a class is not a `PrivilegeObjectKind`: the standard writes `TYPE t` where T-SQL
-writes `TYPE::t`, which would have been one member with two texts. `PrivilegeObject.Class` is null where
-no class is written, and the writer refuses a class beside a standard kind.
+writes `TYPE::t`, which would have been one member with two texts. It was first a nullable
+`PrivilegeObject.Class` that the writer refused beside a standard kind; Igor made it a variant instead,
+`PrivilegeObject.Named` and `PrivilegeObject.Classed`, so that such a node cannot be built at all.
 
 **What stays open, for want of a server.** `PrincipalName` reads a qualified name, `TO a.b`, and
 `Grantee.Identifier` holds one identifier. Whether the engine reads a principal of two parts is a

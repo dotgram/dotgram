@@ -9726,10 +9726,17 @@ values stops making sense, where plain strings would be simpler.
   `EXECUTE` and four more) the member is the standard's. A member is its words run together —
   `VIEW DEFINITION` is `ViewDefinition` — so no name is chosen by hand and the words can be had back
   from it. The numbers follow the words' order and move when a permission is added; nothing keeps them.
-- **The same for the securable's class.** `SecurableClass`, 28 members from the catalogue's classes,
-  is `PrivilegeObject.Class`: null where none is written (`ON t`), and beside it the standard's `Kind`
-  is `Table` and says nothing, which the writer enforces. Not new `PrivilegeObjectKind` members: the
-  standard's `TYPE t` and T-SQL's `TYPE::t` would be one member with two texts.
+- **The same for the securable's class.** `SecurableClass`, 28 members from the catalogue's classes.
+  Not new `PrivilegeObjectKind` members: the standard's `TYPE t` and T-SQL's `TYPE::t` would be one
+  member with two texts.
+- **What a privilege is on is a variant (Igor, 2026-09-28).** `PrivilegeObject` is a family of two:
+  `Named`, the standard's `<object name>` (its kind word, `TABLE`, a routine) and T-SQL's `ON t` with no
+  class, and `Classed`, T-SQL's `ON class::name`. Both keep the column list T-SQL lets follow the
+  securable. The first shape was one record with a nullable `Class` beside the standard's `Kind`, which
+  let a class stand beside `DOMAIN`, `TABLE` or a routine -- a node with no text -- and relied on the
+  writer to refuse it; as two members that node cannot be built, and the writer has nothing to refuse.
+  The numbering of `PrivilegeKind` stays alphabetical, with no machinery to keep numbers stable (Igor,
+  same day): a consumer rebuilds against a new package, and the enum's remarks say the numbers move.
 - **What is not a member.** `ALL` and `EXEC` are T-SQL's shorter words for `ALL PRIVILEGES` and
   `EXECUTE`: one meaning, two words, so `[Spelling] Privilege.Abbreviated`, refused on any other kind.
   `NULL` among the principals is `Grantee.Null`.

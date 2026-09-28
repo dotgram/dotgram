@@ -2304,14 +2304,14 @@ PrivilegeAction : @Privilege
 // <object name>. A kind of object is named before a table's name, which could be the kind's word:
 // `TYPE`, `SEQUENCE` and `ROUTINE` are not reserved.
 ObjectName : @PrivilegeObject
-	= "DOMAIN"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Domain, n))
-	| "COLLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Collation, n))
-	| "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(new PrivilegeObject(PrivilegeObjectKind.CharacterSet, c.Name))
-	| "TRANSLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Translation, n))
-	| "TYPE"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Type, n))
-	| "SEQUENCE"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Sequence, n))
-	| r: SpecificRoutineDesignator => @(new PrivilegeObject(PrivilegeObjectKind.Routine, r.Name, r))
-	| k: "TABLE"i? & n: TableName => @(new PrivilegeObject(PrivilegeObjectKind.Table, n, null, k is not null))
+	= "DOMAIN"i & n: SchemaQualifiedName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Domain, n))
+	| "COLLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Collation, n))
+	| "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(new PrivilegeObject.Named(PrivilegeObjectKind.CharacterSet, c.Name))
+	| "TRANSLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Translation, n))
+	| "TYPE"i & n: SchemaQualifiedName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Type, n))
+	| "SEQUENCE"i & n: SchemaQualifiedName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Sequence, n))
+	| r: SpecificRoutineDesignator => @(new PrivilegeObject.Named(PrivilegeObjectKind.Routine, r.Name, r))
+	| k: "TABLE"i? & n: TableName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Table, n, null, k is not null))
 
 Grantees  : @IReadOnlyList<Grantee> = first: GranteeItem & (',' & rest: GranteeItem)* => @(Nodes.List(first, rest))
 Grantor   : @Grantor = "CURRENT_USER"i => @(Grantor.CurrentUser)

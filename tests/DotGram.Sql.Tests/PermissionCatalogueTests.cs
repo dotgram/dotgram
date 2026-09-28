@@ -128,7 +128,7 @@ public sealed class PermissionCatalogueTests
 	/// </summary>
 	static string Words(SecurableClass kind)
 	{
-		var on      = new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("s")]), Class: kind);
+		var on      = new PrivilegeObject.Classed(kind, new QualifiedName([new Identifier("s")]));
 		var granted = Sql2023Writer.Write(new Statement.Grant
 		{
 			Body = new GrantBody.Privileges(

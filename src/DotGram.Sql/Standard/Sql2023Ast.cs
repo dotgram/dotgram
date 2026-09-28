@@ -1777,18 +1777,28 @@ public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Col
 		Span = new SqlSpan(at, length);
 	}
 }
-// BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
-// T-SQL: GRANT Object Permissions (Transact-SQL). `Columns` is the column list that page lets follow the
-// SECURABLE — `ON t (a, b)` — and not only a permission, which is `Privilege.Columns`. The engine reads
-// both and objects afterwards where both are written (1019), so the tree holds them apart. `Class` is the
-// securable's class, `SCHEMA` in `ON SCHEMA::s`, and null where none is written: `ON t`, which T-SQL reads
-// as OBJECT. Where it is set, `Kind` is Table and says nothing, `TableKeyword` is false and `Routine`
-// null -- the class is the word before the name -- and the writer refuses a node that says otherwise.
-public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, IReadOnlyList<Identifier>? Columns = null, SecurableClass? Class = null) : ISqlNode { public SqlSpan Span { get; private set; }
+// What a privilege is ON: the standard's <object name>, or T-SQL's securable written with its class. Two
+// members rather than one record with a nullable class, so that a class beside the standard's kind word,
+// its TABLE or its routine -- a node with no text -- cannot be built (Igor, D148).
+public abstract record PrivilegeObject : ISqlNode
+{
+	public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);
 	}
+
+	// BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
+	// T-SQL: GRANT Object Permissions (Transact-SQL). `ON t`, with no class written, which T-SQL reads as
+	// OBJECT. `Columns` is the column list that page lets follow the SECURABLE — `ON t (a, b)` — and not
+	// only a permission, which is `Privilege.Columns`. The engine reads both and objects afterwards where
+	// both are written (1019), so the tree holds them apart.
+	public record Named(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, IReadOnlyList<Identifier>? Columns = null) : PrivilegeObject;
+
+	// T-SQL: GRANT (Transact-SQL). `ON class::securable`, `SCHEMA::s`; `OBJECT::t` is the class written out.
+	// The grammar reads a column list after any class, `ON SCHEMA::s (c1)`, which the engine objects to
+	// afterwards (1019), so `Columns` is here too.
+	public record Classed(SecurableClass Class, QualifiedName Name, IReadOnlyList<Identifier>? Columns = null) : PrivilegeObject;
 }
 public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
 // T-SQL: GRANT (Transact-SQL). `Null` is the `NULL` the engine reads anywhere among the principals of GRANT,

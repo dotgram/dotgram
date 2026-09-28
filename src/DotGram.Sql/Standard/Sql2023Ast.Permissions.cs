@@ -738,8 +738,8 @@ public enum PrivilegeKind
 /// </summary>
 /// <remarks>
 /// The classes the parser takes, a closed list as the permissions are: SQL Server refuses any other
-/// word before <c>::</c> as syntax. <c>ON t</c>, with no class written, is
-/// <see cref="PrivilegeObject.Class"/> left null.
+/// word before <c>::</c> as syntax. A securable written with its class is
+/// <see cref="PrivilegeObject.Classed"/>; <c>ON t</c>, with none, is <see cref="PrivilegeObject.Named"/>.
 /// </remarks>
 public enum SecurableClass
 {

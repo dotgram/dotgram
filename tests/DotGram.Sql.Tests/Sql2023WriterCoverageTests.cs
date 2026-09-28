@@ -55,7 +55,7 @@ public sealed class Sql2023WriterCoverageTests
 		return new RevokeBody.Privileges(
 			null,
 			[new Privilege(PrivilegeKind.Select, [], [])],
-			new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("t")])),
+			new PrivilegeObject.Named(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("t")])),
 			[new Grantee.Public()],
 			null,
 			null,
@@ -78,7 +78,11 @@ public sealed class Sql2023WriterCoverageTests
 	/// </summary>
 	static PrivilegeObject Securable(SecurableClass? of)
 	{
-		return new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("s")]), Class: of);
+		var name = new QualifiedName([new Identifier("s")]);
+
+		return of is { } written
+			? new PrivilegeObject.Classed(written, name)
+			: new PrivilegeObject.Named(PrivilegeObjectKind.Table, name);
 	}
 
 	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
@@ -438,7 +442,7 @@ public sealed class Sql2023WriterCoverageTests
 			Sql2023Writer.Write(new Statement.Deny(
 				[select],
 				[new Grantee.Public()],
-				new PrivilegeObject(PrivilegeObjectKind.Table, table),
+				new PrivilegeObject.Named(PrivilegeObjectKind.Table, table),
 				Cascade: true,
 				AsPrincipal: new Identifier("keeper"))).TrimEnd(';', ' '));
 
@@ -457,7 +461,7 @@ public sealed class Sql2023WriterCoverageTests
 			{
 				Body = new GrantBody.Privileges(
 					[select],
-					new PrivilegeObject(PrivilegeObjectKind.Table, table, Columns: [new Identifier("a"), new Identifier("b")]),
+					new PrivilegeObject.Named(PrivilegeObjectKind.Table, table, Columns: [new Identifier("a"), new Identifier("b")]),
 					[new Grantee.Public()], false, false, null),
 			}),
 			StringComparison.Ordinal);
@@ -490,14 +494,13 @@ public sealed class Sql2023WriterCoverageTests
 	}
 
 	/// <summary>
-	/// That the two T-SQL parts of a permission statement that say something only of certain values are
-	/// refused where they say nothing: a shorter spelling of a permission that has none, and a class beside
-	/// the standard's kind.
+	/// That T-SQL's shorter spelling is refused on a permission that has none, and that a securable is
+	/// written with its class or without one.
 	/// </summary>
 	/// <remarks>
 	/// <c>Abbreviated</c> is <c>ALL</c> and <c>EXEC</c>; on <c>SELECT</c> there is no text for it, and
-	/// printing <c>SELECT</c> would lose the flag. A class is the word before the name, where the
-	/// standard's <c>DOMAIN</c> or <c>TABLE</c> would stand, so a securable with both has no text either.
+	/// printing <c>SELECT</c> would lose the flag. A class beside the standard's kind word has no text
+	/// either, and needs no refusal: <c>PrivilegeObject.Classed</c> has no kind to set.
 	/// </remarks>
 	[Fact]
 	public void A_permission_part_with_no_text_is_refused()
@@ -507,19 +510,11 @@ public sealed class Sql2023WriterCoverageTests
 		Assert.Throws<ArgumentOutOfRangeException>(() => Sql2023Writer.Write(Granted(null, select with { Abbreviated = true })));
 
 		Assert.Contains("ON OBJECT::s", Sql2023Writer.Write(Granted(Securable(SecurableClass.Object), select)), StringComparison.Ordinal);
-		Assert.Contains("ON s", Sql2023Writer.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
-
-		// And the refusal names the member that conflicts, not merely the kind.
-		var classed = Securable(SecurableClass.Object);
-
-		Assert.Contains("Kind",         Refusal(classed with { Kind = PrivilegeObjectKind.Domain }), StringComparison.Ordinal);
-		Assert.Contains("TableKeyword", Refusal(classed with { TableKeyword = true }), StringComparison.Ordinal);
-		Assert.Contains("Routine",      Refusal(classed with { Routine = Routine }), StringComparison.Ordinal);
-
-		string Refusal(PrivilegeObject on)
-		{
-			return Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(on, select))).Message;
-		}
+		Assert.Contains("ON s TO",      Sql2023Writer.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
+		Assert.Contains(
+			"ON SCHEMA::s (c)",
+			Sql2023Writer.Write(Granted(new PrivilegeObject.Classed(SecurableClass.Schema, new QualifiedName([new Identifier("s")]), [new Identifier("c")]), select)),
+			StringComparison.Ordinal);
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>
