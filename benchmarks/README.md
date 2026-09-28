@@ -20,14 +20,16 @@ project is in the solution so that it has to keep compiling.
 
 ## The stand: every generated parser against its hand-written one
 
-**Build first, then run the built dll directly — never `dotnet run --project ...` for a timing.** `dotnet run` compiles the harness itself before `Main` gets a chance to run, and that compile is unannounced: nobody reading `dotgram-timing-window.txt` can tell it is about to become a timing (2026-09-26, a 66-second gap of `dotnet run`'s own MSBuild nodes before `--stand`'s announcement, on both a stale-sha run and its correct rerun). `Run-Bdn.ps1` and `Run-Announced.ps1` already build first and run the artifact directly for exactly this reason; `--stand` gets no such wrapper yet and has to be run by hand the same way: `dotnet build -c Release ...` on 16-31 first, then the resulting `.dll` directly.
+**Build first, then run the built dll through `Run-Announced.ps1` — never `dotnet run --project ...` for a timing.** `dotnet run` compiles the harness itself before `Main` gets a chance to run, and that compile is inside the window, on the stand's processors (2026-09-26, a 66-second gap of `dotnet run`'s own MSBuild nodes before `--stand`'s announcement, on both a stale-sha run and its correct rerun). Build through `Aside.sh` first, then hand the resulting `.dll` to `Run-Announced.ps1`, which takes the window and starts it under `taskset` on the stand's processors (below, *The window on this machine*):
 
 ```console
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --rebuild
+benchmarks/Aside.sh dotnet build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj -c Release
+pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll, --stand, --repeat, 5
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-compare before.json after.json
 dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-check
 ```
+
+The last two time nothing and need no window. The command lines below give the stand's arguments; every one that times is run the same way, through `Run-Announced.ps1 -Command`.
 
 One run over FIX (a string, bytes in memory and a stream), the web's formats, the expression
 language (by hand, on the tape and by the immediate carrier) and SQL:2023: time and allocation
@@ -35,18 +37,48 @@ per parse against the hand-written parser, the first call in a fresh process, wh
 streamed FIX parse holds, and what the generator took to write each parser, from the last
 build's reports (`Stand.cs`, `StandWeb.cs`). `--stand-check` holds every row's readings to one
 another and times nothing: run it after writing a row, before asking anyone for a quiet machine. Every row checks that its readings answer the same before it is timed, and a
-round a generation 1 or 2 collection fell inside is redone rather than kept. The process pins
-itself to logical processors 0 to 15 at high priority, and times a row of plain arithmetic in
+round a generation 1 or 2 collection fell inside is redone rather than kept. The process runs
+on the stand's processors (0-7 and 16-23, put there by `taskset`; its header says where it ran,
+and a run that was not pinned says so and is not quoted), and times a row of plain arithmetic in
 every round, so that two runs taken on different days can be told apart from two parsers that
-differ. Results go to `T:\TEMP\dotgram-stand\<time>` (`stand.md`, `stand.json`), or to a
-directory named after `--stand`.
+differ. Results go to `/ramdisk/build/dotgram/stand/<time>` (`stand.md`, `stand.json`), or to a
+directory named after `--stand`; what is worth keeping is copied into `results/`.
 
-It times; so, under the rule every session here keeps (docs/development.md), it runs in an announced window on cores 0-15 with
-nothing else TIMING; builds and tests of others run meanwhile pinned to 16-31 (Igor, D4: sessions do not wait for each other, a window is only for a measurement). A build on the other half still
-shares the last-level cache and the memory bandwidth, and it has spoiled a window before (2026-09-19, 6-11% of a false fall), so the stand does not trust one run: each run has its own control, a run whose control leaves 5% is dropped and named, and the A/A rides beside each pair; a session that needs a quiet machine for a particular run asks for that slot by name, and the practice of asking builders to hold is the stand's, not a rule. Reports of the generator appear only for projects the last build
+It times; so it runs in a window (D147, below): with nothing else heavy running on either half of the machine, and builds waiting for it
+through `Aside.sh`. A build on the other half shares the package's power and boost budget and the memory controller with the stand's half,
+and it has spoiled windows before (2026-09-19, 6-11% of a false fall; 2026-09-27, a pinned build doubled the control), so builds do not run
+beside a window, pinned or not. The stand does not trust one run either: each run has its own control, a run whose control leaves 5% is
+dropped and named, and the A/A rides beside each pair. Reports of the generator appear only for projects the last build
 actually compiled: `--rebuild` rebuilds every grammar-hosting project first (with `-t:Rebuild`,
 node reuse and the compiler server off) so the table is complete; without it, a project whose
 report is missing is named in its own section, with why.
+
+### The window on this machine (D147)
+
+The machine is a Ryzen 9 5950X on Linux: two CCDs, and a core's two threads are logical processors N and N+16. **Timings run on the first CCD with
+its siblings, processors 0-7 and 16-23** (the preferred cores are there), set by `taskset` on the process as it starts: on Linux
+`Process.ProcessorAffinity` pins only the main thread of the process that sets it, and what it starts does not inherit it. The priority is not raised
+(no privilege to), so every timing runs at the default one.
+
+**A window is a lock.** The process that times holds `/ramdisk/locks/timing-window.lock` exclusively (flock) for as long as it times, and the kernel
+lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. **Everything heavy that is not a timing goes
+through `benchmarks/Aside.sh`**, which holds `/ramdisk/locks/timing-builds.lock` shared while its command runs, and waits while a window is open:
+
+```console
+benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
+benchmarks/Aside.sh dotnet test tests/DotGram.Tests/DotGram.Tests.csproj -c Release
+pwsh benchmarks/Window.ps1        # IDLE, STALE, WITHIN or BUSY, and who holds it
+```
+
+A window (`Run-Announced.ps1`, `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`, and a stand run started by hand) takes the window lock,
+then waits at most twenty minutes for the builds that hold the builds lock to end, naming them (from `/proc/locks`), then runs the quiet check:
+it refuses above 6% of the machine in use over three seconds, or a build tool above 0.15 core, which is what catches a heavy process that did not go
+through `Aside.sh`, another project's build among them. While the window is open, new builds wait in `Aside.sh`; nothing heavy runs on either half.
+A process started inside a window inherits `DOTGRAM_WINDOW_HOLDER` and is inside it: a `--stand` run started by `Run-Announced.ps1` announces
+nothing of its own, and an `Aside.sh` inside a window runs at once. The directories are `DOTGRAM_WINDOW_DIR` (the locks), `DOTGRAM_SCRATCH` (output,
+`/ramdisk/build/dotgram`) and `DOTGRAM_STAND_CPUS` (the processors) when they are set.
+
+Timings here are for trends, and counts decide (D147): a periodic run of the stand is compared with the last one in `results/`, taken the same way.
 
 ### Medians, not runs
 
@@ -132,7 +164,7 @@ each row in a fresh process each, median of five, before and after.
 
 **A pair of two branches, not of two commits.** A folder of DLLs is made by `benchmarks/Build-Side.ps1 -Name x -Commit sha [-Property Name=value ...]`,
 which builds the five libraries of a commit in a worktree of its own, with the build properties given (rebuilt from scratch, so that the generator runs
-again with them), pinned to 16-31, and writes `build.txt` beside the DLLs: the commit and the properties. Two folders of one commit built with one
+again with them), as a build (it waits while a window is open and holds the builds lock while it builds), and writes `build.txt` beside the DLLs: the commit and the properties. Two folders of one commit built with one
 property flipped are a pair of the emitted code's two branches on one platform, in one process and one profile, with nothing else different, which is
 what a platform-dependent branch has to carry (the architect, 2026-09-20; a pair of the netstandard2.0 and net10.0 builds differs by polyfills and
 other conditional code too, and is not offered as the price of a branch). The report of a pair prints both sides' `build.txt` in its header. The generator
@@ -184,7 +216,7 @@ the report prints the word `reference` where a ratio would be, so that no one re
 `--stand-held beforeDir afterDir [--repeat N]` reads what the stream form of each side holds while
 it is walked: the live heap above what was live before, after a full collection, sampled eight
 times over a walk, each input of each side in a process of its own (it times nothing, so it needs
-no window, only cores 16-31). The inputs are a stream made as it is read (2,000,000 fields), memory
+no quiet machine, but like every stand mode it takes the window, so it is not run through `Aside.sh`). The inputs are a stream made as it is read (2,000,000 fields), memory
 streams of a million and a hundred thousand plain fields, and of the same with every second field
 malformed. The hand parser is read beside them; `--stand-held-one kept dir made-2000000` is the
 control that keeps every field it meets (137 MB), to show that the reading would see a reader that
@@ -215,7 +247,7 @@ machine — the morning's base commit, rebuilt that evening, read 22-39% above i
 a head is held to a base rebuilt in the same run. `benchmarks/Gate-Generation.ps1 -Base <commit>
 [-Head <commit>]` rebuilds DotGram.Sql and DotGram.Examples in a worktree of each, base, head, base,
 head, on the same cores, and names every host whose ratio of medians is more than 20% from 1 by at
-least 100 ms. It is a timing run: take it in a window.
+least 100 ms. It is a timing run: it takes the window itself, and its builds run on the stand's processors.
 
 ### The base of a row, and the regular expression
 
@@ -346,13 +378,13 @@ Under each row four lines (after the first parse, after eight small ones, after 
 
 ### BenchmarkDotNet as a timing window: `Run-Bdn.ps1`
 
-A BenchmarkDotNet run is a timing, and it starts a process of its own for every case, so pinning the launcher says nothing about where a case was measured. `benchmarks/Run-Bdn.ps1 -Assembly <the built BDN dll> -Label <name> -BdnArgs '--filter','*X*'` runs it the way the stand runs itself: it refuses to start when another window is announced and alive (or when BDN is asked to run in process), announces the window in `dotgram-timing-window.txt`, pins itself to 0-15 at high priority (the workers inherit the mask), and **reads back, for every benchmark worker it can catch (`--benchmarkId` in the command line, a direct child of the run), the affinity and the priority class the operating system reports**: a worker that is not on the mask stops the run at once, exit code 4, and its numbers are not to be quoted; a worker below High priority is raised and the raise is written down. `run.txt` beside BDN's artifacts (`T:\TEMP\dotgram-bdn\<label>-<time>`) carries the header: commit, mask, JIT variables, every worker read (pid, affinity, priority, time), the exit code, and the coverage, how many workers BDN executed (its own log) against how many were read. It builds nothing: build the assembly first, on 16-31 and before the window; BDN compiles a generated project once at the start of a run, and that is the only build inside the window. Nobody builds, tests or runs anything while a window is announced, on either half; **`pwsh benchmarks/Window.ps1` says in one line whether one is** (the announcement file always exists and its first line is `idle` or `pid <n>`, and a live announcement records the start time of its process (`process-start`), because Windows recycles pids: the announcer is alive only if a process holds the pid AND started when the file says (WindowLib.ps1, StandWindow.cs); the line begins with a word, IDLE, STALE, BUSY, MISSING or UNREADABLE, and no word means the check did not run).
+A BenchmarkDotNet run is a timing, and it starts a process of its own for every case, so where the launcher runs says nothing about where a case was measured. `pwsh benchmarks/Run-Bdn.ps1 -Assembly <the built BDN dll> -Label <name> -BdnArgs '--filter','*X*'` runs it the way the stand runs itself: it refuses when BDN is asked to run in process, takes the window (above, *The window on this machine*: the lock, the wait for builds, the quiet check), starts `taskset -c 0-7,16-23 dotnet <dll> ...` (the workers inherit the processors; the script itself watches from the other half), and **reads back, for every benchmark worker it can catch (`--benchmarkId` in the command line, a direct child of the run), the processors the kernel allows it (`Cpus_allowed_list`)**: a worker that is not on the stand's processors stops the run at once, exit code 4, and its numbers are not to be quoted. `run.txt` beside BDN's artifacts (`/ramdisk/build/dotgram/bdn/<label>-<time>`) carries the header: commit, processors, JIT variables, every worker read (pid, processors, time), the exit code, and the coverage, how many workers BDN executed (its own log) against how many were read. It builds nothing: build the assembly first, through `Aside.sh`, before the window; BDN compiles a generated project once at the start of a run, and that is the only build inside the window. BDN's own attempt to raise its workers to high priority fails here with a warning (no privilege), and they run at the default one.
 
-Checked on 2026-09-21, both ways: a run of `TinyParserBenchmarks` under a default job read its worker at `0xFFFF`, priority High; the same run with `--affinity 255` (BDN takes a DECIMAL integer; `0xFF` is "defined with a bad format" and the run ends at once with BDN's help) read the worker at `0xFF` and was stopped with exit code 4. The children inherit the mask; the priority was already High when they were read. **A case shorter than the read interval (100 ms, and a dry job's cases are) is not read**: run.txt says "BDN executed 4 workers, 1 were read"; those others carry the inherited mask, which is a rule and not a reading, and a real run's cases last many seconds.
+On Windows, 2026-09-21, the read-back was checked both ways: a worker of a default job read the launcher's mask, and a run with BDN's `--affinity 255` (a DECIMAL integer; `0xFF` is "defined with a bad format" and the run ends at once with BDN's help) was stopped with exit code 4. **A case shorter than the read interval (100 ms, and a dry job's cases are) is not read**: run.txt says "BDN executed 4 workers, 1 were read"; those others carry the inherited processors, which is a rule and not a reading, and a real run's cases last many seconds.
 
 **BenchmarkDotNet does not run the dll it is given.** At the start of every run (every step of a queue) it builds a generated project that references the benchmark PROJECT, so it rebuilds the project and what the project references from the SOURCES as they are at that moment (2026-09-21: the workers of the FIX comparison ran a qfcompare.dll and a DotGram.Finance.dll built at 11:17 by BDN, not the 11:02 build the caller named; the sources were being edited during the window). Two consequences the script now enforces. First, **the state of what will be measured is read, printed and written into run.txt, never asserted**: the project directory (found above the assembly), the repository HEAD, the number of modified tracked files, the source files newer than the assembly, and a hash of the project's sources; `-Commit` is a sentence the caller may add and is printed beside the reading, never in place of it (it used to replace it, and hid a reading that said "uncommitted changes"). A quotable run REFUSES (exit 5) on a repository with modified tracked files or with sources newer than the assembly; `-Probe` lets a run through on such a tree and stamps it, and a probe's numbers are not quoted. Second, **the source hash is read again at the end of the step and a run whose sources changed during it FAILS**. A benchmark project outside the repository is untracked by design (the hash is what watches it); measure it from a frozen tree: a worktree of one clean commit with the project copied in, built once before the window, nobody editing or building in it until the window is closed.
 
-`benchmarks/Run-BdnQueue.ps1 -Assembly <dll> -SlotMinutes <n> -Steps @(@{ Label = ...; BdnArgs = ... }, ...)` runs several BDN runs as ONE announced window: it announces once, calls Run-Bdn.ps1 with `-Within` for each step (no rewriting of the announcement and no idle between the steps, the quiet check and the state check before every step), stops at the first step that fails and names what did not run (exit 7), and puts the file back to idle once at the end. What was not run goes to a window of its own and is never shortened.
+`pwsh benchmarks/Run-BdnQueue.ps1 -Assembly <dll> -SlotMinutes <n> -Steps @(@{ Label = ...; BdnArgs = ... }, ...)` runs several BDN runs as ONE window: it takes the window once, calls Run-Bdn.ps1 with `-Within` for each step (no gap between the steps, the quiet check and the state check before every step), stops at the first step that fails and names what did not run (exit 7), and lets the window go once at the end. What was not run goes to a window of its own and is never shortened.
 
 BenchmarkDotNet is for an ABSOLUTE number and for allocations, one process per case. It cannot give a ratio on this machine (three default-job runs were thrown away, above); every class that compares two things carries an A/A row, the same method under two names, and a ratio is read against that row's spread, which is the hour's and not a constant of the stand. Startup rows (a constructor read once) need a fresh process per sample, not BDN's warm iteration.
 
@@ -883,7 +915,7 @@ the ratio widens to 0.21-0.32x; every figure here is with the default. The rows,
 and the twin are in [docs/design/stand-2026-09-18b.md](../docs/design/stand-2026-09-18b.md).
 
 The corpus-wide measurements, both taken on 2026-09-18 at 23:25 on a quiet machine, on logical
-processors 0-15 at high priority, with the runtime's defaults, on main at `68c60c58` (the silent
+processors 0-15 at high priority on the Windows machine of the time, with the runtime's defaults, on main at `68c60c58` (the silent
 reading of a refusal, the lookahead fix, the SQL:2023 split and the rest of the week in):
 
 ### The number to quote

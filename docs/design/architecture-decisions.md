@@ -9654,3 +9654,52 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   Prepare of FIX 4.4 with its errata takes 0.43 s since 723b7af8, in the background; not worth the
   second model it would need.
 
+## D147 — The stand on Linux: one CCD, a lock, and nothing heavy beside a window (Igor)
+
+2026-09-28. The work moved to a Linux machine (Ryzen 9 5950X: two CCDs of eight cores, SMT, 32 MB
+of L3 each, no V-cache; the preferred cores are on the first CCD; no root). Igor: periodic
+benchmarks are needed, absolute precision is not. Counts (allocations, steps) stay the instrument
+of a decision; a timing is a trend check. So the procedure is the simplest one that gives the same
+conditions every time, not the most precise one.
+
+- **Timings run on the first CCD with its SMT siblings: logical processors 0-7 and 16-23.** Linux
+  numbers a core's two threads N and N+16, so the old split (0-15 against 16-31, D4) would put the
+  two threads of every core on opposite sides. The processors are set with `taskset` on the
+  process as it starts: .NET's `Process.ProcessorAffinity` on Linux pins only the main thread of
+  the process that sets it, and neither its other threads nor the processes it starts inherit it
+  (checked: pwsh set to 0-7,16-23, its child read 0-31). The script that supervises a run is not
+  pinned; it watches from the other CCD. The priority is not raised: that needs a privilege this
+  machine does not give, and every timing runs at the default one.
+- **A window is a lock, not the text of a file.** `timing-window.lock` in `/ramdisk/locks` is held
+  exclusively (flock) by the process that times, for as long as it times; the kernel lets it go when
+  that process ends however it ends, so a window cannot go stale and there is no pid to hold
+  against a start time. `timing-window.txt` beside it names the holder. A process started inside a
+  window inherits `DOTGRAM_WINDOW_HOLDER` and is inside it.
+- **While a window is open nothing heavy runs, on either CCD, and nobody has to remember that.**
+  Builds, tests and other heavy runs go through `benchmarks/Aside.sh`, which holds
+  `timing-builds.lock` shared while the command runs and waits while a window is open. A window
+  waits for the builds that hold it to end (at most twenty minutes, naming them from
+  `/proc/locks`), then checks that the machine is quiet, then times. This settles the question D4
+  and D125 left open (benchmarks/README.md said both): builds do not run pinned to the other half
+  during a window, they wait. The permissive clause of D4 was conditional on the control row showing
+  that a build on the other half moves a timing by less than a run's spread; it did not (2026-09-27, a
+  pinned build during a window: controls of 87-178 ns against 31, two of five runs kept), and the
+  two CCDs share the package's power and boost budget and the memory controller, which no mask
+  divides. Lower precision does not make that run usable: a trend is read across weeks, and what it
+  needs is the same conditions each time. The cost is small because windows are periodic and short,
+  and the waiting is done by the lock rather than by every session: what D4 asked by hand ("a window
+  starts after everyone has stopped") is now what the window does. Since builds never share time
+  with a window, they are not pinned either; pinning would only halve them.
+- **What the lock cannot see, the quiet check still does.** A heavy process that did not go through
+  `Aside.sh` (another project's build, a forgotten compiler server) holds no lock; the check
+  refuses a window above 6% of the machine or with a build tool above 0.15 core, and names it.
+- **Disposable output goes to `/ramdisk/build/dotgram`** (`stand/`, `bdn/`, `window/`, `gate/`), never
+  the SSD. Only a result worth keeping is copied into `benchmarks/results/`.
+- **Profilers:** `dotnet-trace` (EventPipe: `dotnet-sampled-thread-time`, `gc-verbose`) and
+  `dotnet-counters`, installed as global tools. `dotnet-trace collect-linux` and `perf` need
+  privileges this machine does not give (`perf_event_paranoid` 4). dotTrace with its Reporter and
+  dotMemory stay where Windows is (`.claude/rules/profiling.md`).
+
+The scripts (`benchmarks/WindowLib.ps1`, `Window.ps1`, `Aside.sh`, `Run-Announced.ps1`,
+`Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`) and `StandWindow.cs` implement it; the
+procedure is in `benchmarks/README.md` and `docs/development.md`.

@@ -9,13 +9,22 @@ paths:
 What was worked out once and should not be searched for again. The measured subject is
 `GramGenerator` over `DotGram.Sql` — the slowest thing the solution builds.
 
+The machine is Linux (D147). `$scratch` below is a directory on the RAM disk
+(`/ramdisk/tmp/<task>`), never the SSD, and is deleted when the work it served is reported.
+Builds and profiling runs are heavy: run them through `benchmarks/Aside.sh`, which waits while the
+stand is timing. A profile is not a timing and needs no window. dotTrace and dotMemory (sections 4
+and 5) are what was used on the Windows machine; on Linux the profiler is `dotnet-trace`, with
+`dotnet-counters` beside it (`dotnet tool install -g dotnet-trace`, `dotnet-counters`; they land in
+`~/.dotnet/tools`). `dotnet-trace collect-linux` and `perf` need privileges this machine does not
+give.
+
 ## 1. Measure in the build first
 
-```powershell
-dotnet build src/DotGram.Sql/DotGram.Sql.csproj -c Debug --no-dependencies -t:Rebuild `
-    -p:ReportAnalyzer=true -bl:$scratch\sql.binlog
-dotnet msbuild $scratch\sql.binlog -noconlog "-flp:logfile=$scratch\sql.log;verbosity=diagnostic"
-Select-String $scratch\sql.log 'Total generator execution time'
+```bash
+benchmarks/Aside.sh dotnet build src/DotGram.Sql/DotGram.Sql.csproj -c Debug --no-dependencies -t:Rebuild \
+    -p:ReportAnalyzer=true -bl:$scratch/sql.binlog
+dotnet msbuild $scratch/sql.binlog -noconlog "-flp:logfile=$scratch/sql.log;verbosity=diagnostic"
+grep 'Total generator execution time' $scratch/sql.log
 ```
 
 One line per target framework. The generator runs once for each, so Visual Studio pays it twice.
@@ -60,12 +69,14 @@ using Microsoft.CodeAnalysis.Text;
 
 var repo = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 var root = Path.Combine(repo, "src", "DotGram.Sql");
+var obj  = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
+var bin  = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
 var dump = args.Length > 0 && args[0] != "-" ? args[0] : null;
 var runs = args.Length > 1 ? int.Parse(args[1]) : 1;
 
 var parse = new CSharpParseOptions(LanguageVersion.Latest, preprocessorSymbols: ["NET10_0", "NET10_0_OR_GREATER", "NET", "NETCOREAPP"]);
 var trees = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
-	.Where(p => !p.Contains(@"\obj\") && !p.Contains(@"\bin\"))
+	.Where(p => !p.Contains(obj) && !p.Contains(bin))
 	.Select(p => CSharpSyntaxTree.ParseText(File.ReadAllText(p), parse, p))
 	.ToList();
 
@@ -77,7 +88,7 @@ var compilation = CSharpCompilation.Create("DotGram.Sql", trees, refs,
 	new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
 var texts = Directory.EnumerateFiles(root, "*.gram", SearchOption.AllDirectories)
-	.Where(p => !p.Contains(@"\obj\"))
+	.Where(p => !p.Contains(obj))
 	.Select(p => (AdditionalText)new FileText(p))
 	.ToImmutableArray();
 
@@ -133,9 +144,9 @@ sealed class FileText(string path) : AdditionalText
 }
 ```
 
-```powershell
-dotnet build .work/genprof -c Release
-dotnet .work\genprof\bin\Release\net10.0\genprof.dll $scratch\after
+```bash
+benchmarks/Aside.sh dotnet build .work/genprof -c Release
+benchmarks/Aside.sh dotnet .work/genprof/bin/Release/net10.0/genprof.dll $scratch/after
 ```
 
 It prints the whole run and the `Compiled` stage per host: which grammar the time goes to. The
@@ -146,10 +157,10 @@ other stages (`Asked`, `Answered`) are fractions of a second.
 Before touching anything, take a baseline from the commit being changed, in a worktree of its
 own so the working tree stays as it is:
 
-```powershell
-git worktree add --detach $scratch\base-wt HEAD
-# a copy of .work/genprof whose ProjectReference points at $scratch\base-wt\src\DotGram\DotGram.csproj
-dotnet $scratch\genprof-base\bin\Release\net10.0\genprof.dll $scratch\baseline
+```bash
+git worktree add --detach $scratch/base-wt HEAD
+# a copy of .work/genprof whose ProjectReference points at $scratch/base-wt/src/DotGram/DotGram.csproj
+dotnet $scratch/genprof-base/bin/Release/net10.0/genprof.dll $scratch/baseline
 ```
 
 After each change, dump again and compare every file by hash. "same" for all of them is the
@@ -158,11 +169,38 @@ bar; a `DIFF` is a behaviour change, not a speed-up. Remove the worktree when do
 
 A baseline goes stale when a rebase brings grammar changes: re-take it rather than read a `DIFF`
 the grammar caused. Wall-clock comparisons need a quiet machine — run baseline and candidate
-alternately, never beside a test run.
+alternately, never beside a test run, and in a window (`benchmarks/Run-Announced.ps1 -Command`).
 
-## 4. dotTrace — where the time goes
+## 4. On Linux: dotnet-trace — where the time goes
 
-Installed as a dotnet tool, which is how it is run:
+```bash
+dotnet-trace collect --profile dotnet-sampled-thread-time --format Speedscope \
+    -o $scratch/gen.nettrace -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
+```
+
+EventPipe samples the managed stack of every thread about a hundred times a second, running or
+waiting. The Speedscope file (`gen.speedscope.json`, open it at speedscope.app or read it with a
+script) has one profile per thread: **read the thread that does the work, not all of them
+together.** A reading over all threads counts the waits of the others as time, and that is the
+reading that once put `Buffer.Memmove` at 20%, `RuntimeHelpers.GetHashCode` at 14% and
+`Monitor.Enter_Slowpath` at 9% where dotTrace showed none of them (on Windows; which threads
+those samples came from was not looked at). So a profile says where to look; what to fix is
+chosen by a count that moves (allocations, steps), or by a second road, never by the profile
+alone.
+
+`dotnet-counters` reads the runtime's counters while a process runs, which is enough for "does
+it collect, how big is the heap, how fast does it allocate" without a trace:
+
+```bash
+dotnet-counters collect --counters System.Runtime --refresh-interval 1 --format csv \
+    -o $scratch/counters.csv -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
+```
+
+The same arguments with `monitor` instead of `collect` print them live.
+
+## 4a. On Windows: dotTrace — where the time goes
+
+Installed as a dotnet tool, which is how it is run (on the Windows machine; the paths are its own):
 
 ```powershell
 dotnet tool install -g JetBrains.dotTrace.GlobalTools
@@ -210,9 +248,10 @@ put the function carrying the square at a ratio of 1.11, which exonerates it; pe
 Have the harness print its round count and divide by it. And rank by the RATIO between the two sizes
 rather than by share: share says where the time sits, the ratio says what grows with the input.
 
-**Do not use `dotnet-trace`'s thread-time profile to choose what to fix.** It reported
-`Buffer.Memmove` at 20%, `RuntimeHelpers.GetHashCode` at 14% and `Monitor.Enter_Slowpath` at 9%,
-and dotTrace shows none of those.
+**Do not use `dotnet-trace`'s thread-time profile, read over all threads, to choose what to fix.**
+It reported `Buffer.Memmove` at 20%, `RuntimeHelpers.GetHashCode` at 14% and
+`Monitor.Enter_Slowpath` at 9%, and dotTrace shows none of those (section 4 above: read one
+thread, and choose by a count).
 
 ## 5. Allocations and GC
 
@@ -220,13 +259,15 @@ What reads back as text is the runtime's own allocation events. dotTrace's Timel
 holds allocations too, but Reporter refuses it ("unsupported snapshot format"), and dotMemory has
 no command-line report at all.
 
-```powershell
-dotnet-trace collect --profile gc-verbose -o $scratch\gc.nettrace -- `
-    P:\...\.work\genprof\bin\Release\net10.0\genprof.exe $scratch\dump
+```bash
+dotnet-trace collect --profile gc-verbose -o $scratch/gc.nettrace -- \
+    .work/genprof/bin/Release/net10.0/genprof $scratch/dump
 
-dotnet build .work/allocs -c Release
-dotnet .work\allocs\bin\Release\net10.0\allocs.dll $scratch\gc.nettrace 30
+benchmarks/Aside.sh dotnet build .work/allocs -c Release
+dotnet .work/allocs/bin/Release/net10.0/allocs.dll $scratch/gc.nettrace 30
 ```
+
+This works the same on Linux and on Windows (on Windows the apphost is `genprof.exe`).
 
 `gc-verbose` carries `GCAllocationTick` — one sample per ~100 KB, with its stack — and the
 collections. The parser sums the samples by type, by the first `DotGram.*` frame on the stack,
@@ -341,9 +382,10 @@ static string Site(TraceCallStack? stack)
 }
 ```
 
-### dotMemory, for the UI
+### dotMemory, for the UI (Windows)
 
-When the question needs the object graph rather than a table. Not a dotnet tool. The console
+When the question needs the object graph rather than a table. Not a dotnet tool, and its
+workspace is read only by the dotMemory UI on Windows; nothing here replaces it on Linux. The console
 profiler is the NuGet package
 `JetBrains.dotMemory.Console.windows-x64`, unpacked into the scratchpad. The `dotMemory.exe` of
 the installed dotMemory prints nothing, and the one under Rider fails to load
@@ -368,9 +410,9 @@ analysis is the user's to open.
 reports "Zero tests ran". Where one class is what is wanted, build the project and run the
 assembly with its own xUnit runner:
 
-```powershell
-dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug &&
-dotnet tests\DotGram.Tests\bin\Debug\net10.0\DotGram.Tests.dll -class DotGram.Tests.ReaderTests
+```bash
+benchmarks/Aside.sh dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug &&
+benchmarks/Aside.sh dotnet tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.dll -class DotGram.Tests.ReaderTests
 ```
 
 **Joined by `&&`, and not two commands.** A project that fails to build leaves its previous

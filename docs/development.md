@@ -21,6 +21,11 @@ being net472 — `tests/DotGram.VisualStudio.Tests/bin/Debug/net472/DotGram.Visu
 The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/MethodName"`
 runs one test. `DotGram.Tests` runs everything in about two minutes.
 
+On the Linux machine the solution builds with `-c Linux` (the solution configuration that leaves
+out the Visual Studio extension), and builds and test runs go through `benchmarks/Aside.sh`
+(`benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux`), which waits while the stand is timing
+and keeps a timing from starting while they run (D147, *Measuring* below).
+
 What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
 whole refusal record — `DotGram.Tests` compiles one reading in five of it — the streaming
 memory bounds, `GRAM5003`'s parts at every size and a split of nine hundred rules
@@ -266,11 +271,12 @@ Benchmarks are a project of their own and are not run by CI — a number from a 
 runner is a number about the runner.
 
 ```
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*UrlBenchmarks*" --job short
+benchmarks/Aside.sh dotnet build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj -c Release
+pwsh benchmarks/Run-Bdn.ps1 -Assembly benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll -Label url -BdnArgs '--filter','*UrlBenchmarks*','--job','short'
 ```
 
 `--job short` is enough to see a regression; the error bars are wide, so read the order
-of magnitude rather than the second digit.
+of magnitude rather than the second digit. `Run-Bdn.ps1` takes the window described below.
 
 Nesting depth is bounded by the arena rather than by the machine's stack, so there is no
 limit to walk up to: `CSharpEmitterTests` nests a rule inside itself a hundred thousand
@@ -303,12 +309,32 @@ The instrument for a question of the form "is this faster, and than what" is **t
   takes to write the grammars of the solution to a base commit's, the two rebuilt alternately in
   the same run.
 
-**A timing is taken in an announced window**, on logical processors 0-15 at high priority, with
-nothing else timing; **a window announces itself**: a run of the stand (`--stand`, `--stand-paired`, the linearity modes) and `Gate-Generation.ps1` write `dotgram-timing-window.txt` in the user's temp directory (`pid`, `started`, `until`, `what`) for as long as they run and put it back to `idle` when they end; **the file always exists, and what it SAYS is what matters, not whether it is there: its first line is `idle` or `pid <n>` (with a `process-start` line: a pid alone proves nothing, Windows recycles them), and `pwsh benchmarks/Window.ps1` reads it in one line that BEGINS WITH A WORD (IDLE, STALE, BUSY, MISSING, UNREADABLE); read the word, not the exit code alone, and a check that printed no word, because the script is not in your checkout, did not run: that is NOT CHECKED, a refusal to proceed and never a pass (the exit code cannot tell it from "the file was missing")**; BenchmarkDotNet runs go through `benchmarks/Run-Bdn.ps1`, which announces the window and reads the affinity of every benchmark worker back from the operating system (benchmarks/README.md); read it before building, testing or running anything, and treat a file whose pid is not alive as stale (Window.ps1 says so and puts it back to idle; 2026-09-20: a window was known only by looking at the process list and asking). **While a window is announced the machine is taken whole: no builds, no tests, no allocation runs, no dry jobs, on either half** (16-31 shares the last-level cache and the memory bandwidth with 0-15; D125). **Two timed loads at
-once are one disturbed measurement, whichever halves of the machine they sit on**: the generation gate times the
-generator on 16-31, and a stand window on 0-15 beside it shares the caches, the memory and the boost, so neither can see
-through the other afterwards (2026-09-19: a window ran through a gate, the gate's `TransactSqlParser.Located` came back
-+23%, and it was rerun in a slot with nothing else timing). A timed load asks for the machine, not for cores.
+**A timing is taken in a window, and everything heavy that is not a timing goes through
+`benchmarks/Aside.sh`** (D147):
+
+```console
+benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
+benchmarks/Aside.sh dotnet test tests/DotGram.Tests/DotGram.Tests.csproj -c Release
+pwsh benchmarks/Window.ps1
+```
+
+A window is a lock: the process that times holds `/ramdisk/locks/timing-window.lock` exclusively
+for as long as it times, and the kernel lets it go when that process ends, however it ends;
+`timing-window.txt` beside it names the holder, and `pwsh benchmarks/Window.ps1` reads both in
+one line that begins with a word (IDLE, STALE, WITHIN, BUSY). `Aside.sh` holds
+`timing-builds.lock` shared while its command runs and waits while a window is open; a window
+waits for those commands to end (at most twenty minutes, naming them), then refuses a machine that
+is not quiet, which is what catches a heavy process that did not go through `Aside.sh`. **While a
+window is open nothing heavy runs, on either half of the machine**: the halves share the package's
+power budget and the memory controller, and a build pinned to the other half has doubled the
+control before (2026-09-27). Timings run on logical processors 0-7 and 16-23, the first CCD with
+its SMT siblings, set by `taskset` as the process starts; the windows are taken by
+`benchmarks/Run-Announced.ps1` (the stand, and any command), `Run-Bdn.ps1` and `Run-BdnQueue.ps1`
+(BenchmarkDotNet, with every worker's processors read back) and `Gate-Generation.ps1`; a stand
+run started by hand takes one itself, but is not pinned, says so in its header and is not quoted. Output goes to `/ramdisk/build/dotgram`, never the SSD; what is
+worth keeping is copied into `benchmarks/results/`. **Two timed loads at once are one disturbed
+measurement, whichever halves of the machine they sit on**; the window lock admits one at a time.
+Timings are for trends; a decision rests on counts (allocations, steps), which do not need a window.
 A before and an after are medians of five runs or more, never one run, and a lean on a row whose
 code did not change is read alone and with `DOTNET_TieredPGO=0` before it is believed. The rows,
 the medians, the paired stand's rules and what was learned of each are in
