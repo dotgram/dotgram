@@ -9654,13 +9654,14 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   Prepare of FIX 4.4 with its errata takes 0.43 s since 723b7af8, in the background; not worth the
   second model it would need.
 
-## D147 — The stand on Linux: one CCD, a lock, and nothing heavy beside a window (Igor)
+## D147 — The stand on Linux: one CCD, a lock, and nothing heavy beside a window (Igor delegated; decided on the new machine)
 
 2026-09-28. The work moved to a Linux machine (Ryzen 9 5950X: two CCDs of eight cores, SMT, 32 MB
 of L3 each, no V-cache; the preferred cores are on the first CCD; no root). Igor: periodic
 benchmarks are needed, absolute precision is not. Counts (allocations, steps) stay the instrument
 of a decision; a timing is a trend check. So the procedure is the simplest one that gives the same
-conditions every time, not the most precise one.
+conditions every time, not the most precise one. Igor left the choice of procedure to the
+supervisor of the machine, and this is it.
 
 - **Timings run on the first CCD with its SMT siblings: logical processors 0-7 and 16-23.** Linux
   numbers a core's two threads N and N+16, so the old split (0-15 against 16-31, D4) would put the
@@ -9668,18 +9669,19 @@ conditions every time, not the most precise one.
   process as it starts: .NET's `Process.ProcessorAffinity` on Linux pins only the main thread of
   the process that sets it, and neither its other threads nor the processes it starts inherit it
   (checked: pwsh set to 0-7,16-23, its child read 0-31). The script that supervises a run is not
-  pinned; it mostly sleeps, and the kernel may put it on either CCD. The priority is not raised: that needs a privilege this
-  machine does not give, and every timing runs at the default one.
+  pinned; it mostly sleeps, and the kernel may put it on either CCD. The priority is not raised:
+  that needs a privilege this machine does not give, and every timing runs at the default one.
 - **A window is a lock, not the text of a file.** `timing-window.lock` in `/ramdisk/locks` is held
   exclusively (flock) by the process that times, for as long as it times; the kernel lets it go when
   that process ends however it ends, so a window cannot go stale and there is no pid to hold
   against a start time. `timing-window.txt` beside it names the holder. A process started inside a
   window inherits `DOTGRAM_WINDOW_HOLDER` and is inside it.
-- **While a window is open nothing heavy runs, on either CCD, and nobody has to remember that.**
-  Builds, tests and other heavy runs go through `benchmarks/Aside.sh`, which holds
-  `timing-builds.lock` shared while the command runs and waits while a window is open. A window
-  waits for the builds that hold it to end (at most twenty minutes, naming them from
-  `/proc/locks`), then checks that the machine is quiet, then times. This settles the question D4
+- **While a window is open nothing heavy runs, on either CCD.** The supervisor schedules the windows
+  and starts no heavy work while one is open. Not every build has to go through a wrapper for that:
+  `benchmarks/Aside.sh` is the recommended one for builds and tests started by hand or by a script.
+  It holds `timing-builds.lock` shared while the command runs and waits while a window is open, and
+  a window waits for the builds that hold that lock to end (at most twenty minutes, naming them from
+  `/proc/locks`), then waits for the machine to be quiet, then times. This settles the question D4
   and D125 left open (benchmarks/README.md said both): builds do not run pinned to the other half
   during a window, they wait. The permissive clause of D4 was conditional on the control row showing
   that a build on the other half moves a timing by less than a run's spread; it did not (2026-09-27, a
@@ -9687,12 +9689,15 @@ conditions every time, not the most precise one.
   two CCDs share the package's power and boost budget and the memory controller, which no mask
   divides. Lower precision does not make that run usable: a trend is read across weeks, and what it
   needs is the same conditions each time. The cost is small because windows are periodic and short,
-  and the waiting is done by the lock rather than by every session: what D4 asked by hand ("a window
-  starts after everyone has stopped") is now what the window does. Since builds never share time
-  with a window, they are not pinned either; pinning would only halve them.
-- **What the lock cannot see, the quiet check still does.** A heavy process that did not go through
-  `Aside.sh` (another project's build, a forgotten compiler server) holds no lock; the check
-  refuses a window above 6% of the machine or with a build tool above 0.15 core, and names it.
+  and what D4 asked by hand ("a window starts after everyone has stopped") is now what the window
+  does. Since builds do not share time with a window, they are not pinned either; pinning would only
+  halve them.
+- **The quiet check is the safety net.** A heavy process that did not go through `Aside.sh` (a build
+  started without it, another project's run, a forgotten compiler server) holds no lock. Before it
+  times, a window reads the machine: above 6% in use or a build tool above 0.15 core, it says what
+  is busy and waits, for at most the same twenty minutes, and then refuses.
+- **The timing scripts are Linux-only.** No Windows machine takes timings any more, and CI's Windows
+  job does not run them; on another system they refuse to start.
 - **Disposable output goes to `/ramdisk/build/dotgram`** (`stand/`, `bdn/`, `window/`, `gate/`), never
   the SSD. Only a result worth keeping is copied into `benchmarks/results/`.
 - **Profilers:** `dotnet-trace` (EventPipe: `dotnet-sampled-thread-time`, `gc-verbose`) and

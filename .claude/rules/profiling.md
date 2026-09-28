@@ -11,8 +11,8 @@ What was worked out once and should not be searched for again. The measured subj
 
 The machine is Linux (D147). `$scratch` below is a directory on the RAM disk
 (`/ramdisk/tmp/<task>`), never the SSD, and is deleted when the work it served is reported.
-Builds and profiling runs are heavy: run them through `benchmarks/Aside.sh`, which waits while the
-stand is timing. A profile is not a timing and needs no window. dotTrace and dotMemory (sections 4
+Builds and profiling runs are heavy, and the examples run them through `benchmarks/Aside.sh`, the
+recommended wrapper, which waits while the stand is timing. A profile is not a timing and needs no window. dotTrace and dotMemory (sections 4
 and 5) are what was used on the Windows machine; on Linux the profiler is `dotnet-trace`, with
 `dotnet-counters` beside it (`dotnet tool install -g dotnet-trace`, `dotnet-counters`; they land in
 `~/.dotnet/tools`). `dotnet-trace collect-linux` and `perf` need privileges this machine does not

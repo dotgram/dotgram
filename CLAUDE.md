@@ -12,8 +12,8 @@ Keep the detailed rules there; this file covers project workflow and architectur
 How the generator is measured and profiled — the harness, the byte-for-byte check against a
 baseline, dotnet-trace and dotnet-counters on Linux, dotTrace and dotMemory where Windows is — is
 in `.claude/rules/profiling.md`. Read it before measuring anything rather than working it out again.
-On this machine builds and test runs go through `benchmarks/Aside.sh`, which waits while the stand
-is timing; the window procedure is D147 and `benchmarks/README.md`.
+On this machine a build or test run started by hand is best run through `benchmarks/Aside.sh`, which
+waits while the stand is timing; the window procedure is D147 and `benchmarks/README.md`.
 
 ## Git
 

@@ -44,8 +44,7 @@ every round, so that two runs taken on different days can be told apart from two
 differ. Results go to `/ramdisk/build/dotgram/stand/<time>` (`stand.md`, `stand.json`), or to a
 directory named after `--stand`; what is worth keeping is copied into `results/`.
 
-It times; so it runs in a window (D147, below): with nothing else heavy running on either half of the machine, and builds waiting for it
-through `Aside.sh`. A build on the other half shares the package's power and boost budget and the memory controller with the stand's half,
+It times; so it runs in a window (D147, below): with nothing else heavy running on either half of the machine. A build on the other half shares the package's power and boost budget and the memory controller with the stand's half,
 and it has spoiled windows before (2026-09-19, 6-11% of a false fall; 2026-09-27, a pinned build doubled the control), so builds do not run
 beside a window, pinned or not. The stand does not trust one run either: each run has its own control, a run whose control leaves 5% is
 dropped and named, and the A/A rides beside each pair. Reports of the generator appear only for projects the last build
@@ -61,8 +60,10 @@ its siblings, processors 0-7 and 16-23** (the preferred cores are there), set by
 (no privilege to), so every timing runs at the default one.
 
 **A window is a lock.** The process that times holds `/ramdisk/locks/timing-window.lock` exclusively (flock) for as long as it times, and the kernel
-lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. **Everything heavy that is not a timing goes
-through `benchmarks/Aside.sh`**, which holds `/ramdisk/locks/timing-builds.lock` shared while its command runs, and waits while a window is open:
+lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. **While a window is open
+nothing heavy runs, on either half**: the supervisor schedules windows and starts no heavy work during one. Builds and tests started by hand or by
+a script are best run through `benchmarks/Aside.sh`, which holds `/ramdisk/locks/timing-builds.lock` shared while its command runs, and waits while
+a window is open:
 
 ```console
 benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
@@ -71,9 +72,10 @@ pwsh benchmarks/Window.ps1        # IDLE, STALE, WITHIN or BUSY, and who holds i
 ```
 
 A window (`Run-Announced.ps1`, `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`, and a stand run started by hand) takes the window lock,
-then waits at most twenty minutes for the builds that hold the builds lock to end, naming them (from `/proc/locks`), then runs the quiet check:
-it refuses above 6% of the machine in use over three seconds, or a build tool above 0.15 core, which is what catches a heavy process that did not go
-through `Aside.sh`, another project's build among them. While the window is open, new builds wait in `Aside.sh`; nothing heavy runs on either half.
+then waits at most twenty minutes for the builds that hold the builds lock to end, naming them (from `/proc/locks`), then runs the quiet check,
+the safety net for a heavy process that did not go through `Aside.sh`, another project's build among them: above 6% of the machine in use over three
+seconds, or a build tool above 0.15 core, it says what is busy and waits, for at most twenty minutes more, and then refuses (exit 5). While the
+window is open, new builds in `Aside.sh` wait. The timing scripts are Linux-only: no Windows machine takes timings, and CI does not run them.
 A process started inside a window inherits `DOTGRAM_WINDOW_HOLDER` and is inside it: a `--stand` run started by `Run-Announced.ps1` announces
 nothing of its own, and an `Aside.sh` inside a window runs at once. The directories are `DOTGRAM_WINDOW_DIR` (the locks), `DOTGRAM_SCRATCH` (output,
 `/ramdisk/build/dotgram`) and `DOTGRAM_STAND_CPUS` (the processors) when they are set.

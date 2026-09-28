@@ -22,9 +22,10 @@ The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/Met
 runs one test. `DotGram.Tests` runs everything in about two minutes.
 
 On the Linux machine the solution builds with `-c Linux` (the solution configuration that leaves
-out the Visual Studio extension), and builds and test runs go through `benchmarks/Aside.sh`
-(`benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux`), which waits while the stand is timing
-and keeps a timing from starting while they run (D147, *Measuring* below).
+out the Visual Studio extension). A build or test run started by hand or by a script is best run
+through `benchmarks/Aside.sh` (`benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux`), which
+waits while the stand is timing and keeps a timing from starting while it runs (D147, *Measuring*
+below).
 
 What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
 whole refusal record — `DotGram.Tests` compiles one reading in five of it — the streaming
@@ -309,8 +310,8 @@ The instrument for a question of the form "is this faster, and than what" is **t
   takes to write the grammars of the solution to a base commit's, the two rebuilt alternately in
   the same run.
 
-**A timing is taken in a window, and everything heavy that is not a timing goes through
-`benchmarks/Aside.sh`** (D147):
+**A timing is taken in a window, and nothing heavy runs beside it** (D147). Builds and tests started
+by hand or by a script are best run through `benchmarks/Aside.sh`:
 
 ```console
 benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
@@ -323,9 +324,10 @@ for as long as it times, and the kernel lets it go when that process ends, howev
 `timing-window.txt` beside it names the holder, and `pwsh benchmarks/Window.ps1` reads both in
 one line that begins with a word (IDLE, STALE, WITHIN, BUSY). `Aside.sh` holds
 `timing-builds.lock` shared while its command runs and waits while a window is open; a window
-waits for those commands to end (at most twenty minutes, naming them), then refuses a machine that
-is not quiet, which is what catches a heavy process that did not go through `Aside.sh`. **While a
-window is open nothing heavy runs, on either half of the machine**: the halves share the package's
+waits for those commands to end (at most twenty minutes, naming them), then waits as long again for
+the machine to be quiet and refuses one that is not, which is the safety net for a heavy process
+that did not go through `Aside.sh`. **While a window is open nothing heavy runs, on either half of the
+machine**, and the supervisor starts no heavy work during one: the halves share the package's
 power budget and the memory controller, and a build pinned to the other half has doubled the
 control before (2026-09-27). Timings run on logical processors 0-7 and 16-23, the first CCD with
 its SMT siblings, set by `taskset` as the process starts; the windows are taken by
