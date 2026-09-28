@@ -133,6 +133,34 @@ What it catches is what nothing else can: an analyzer that will not load under t
 an emitted file that only compiles because of a setting this repository happens to have,
 and an analyzer folder the compiler does not look in.
 
+## The library packages
+
+`tests/DotGram.Sql.PackageSmoke`, `DotGram.Web.PackageSmoke`,
+`DotGram.ExpressionLanguage.PackageSmoke` and `DotGram.Finance.PackageSmoke` do the same for
+the four parser libraries: each is a consumer of its own package and nothing else, with empty
+`Directory.Build.props` and `Directory.Packages.props` of its own, and like the generator's
+they are outside the solution. They exercise SQL's three dialects and both writers, JSON
+Pointer and Patch over JSON values, compiled expression delegates, and a typed FIX heartbeat
+with its schema.
+
+Each runs on .NET 8, which consumes the package's `netstandard2.0` asset, and on .NET 10,
+which consumes its `net10.0` one, so both runtimes must be installed; CI installs .NET 8
+beside the SDK `global.json` selects. The version floats, and a `nuget.config` beside each
+project maps every DotGram package to `artifacts` and everything else to nuget.org, so a check
+with nothing packed fails at restore rather than passing on a published package. After a
+Release build and a pack of the libraries into `artifacts`, CI runs them with a package cache
+of their own, which is also what keeps a stale package of the same version out locally:
+
+```
+export NUGET_PACKAGES=$(mktemp -d)
+for library in Sql Web ExpressionLanguage Finance; do
+    for framework in net8.0 net10.0; do
+        dotnet run --project tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj \
+            --configuration Release --framework $framework
+    done
+done
+```
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and
@@ -218,7 +246,7 @@ for d in src/DotGram.Sql src/DotGram.ExpressionLanguage src/DotGram.Web src/DotG
 		mkdir -p "$out/$(dirname "$rel")"
 		# #line directives carry the worktree's absolute path; normalize it away.
 		python -c "import sys; d=open(sys.argv[1],'rb').read(); r=sys.argv[3].encode(); open(sys.argv[2],'wb').write(d.replace(r, b'<ROOT>'))" "$f" "$out/$rel" "$root_win"
-	done
+    done
 done
 (cd "$out" && find . -name '*.g.cs' | sort | xargs sha256sum) > "$out.sha256"
 echo "$(wc -l < "$out.sha256") files recorded in $out.sha256"

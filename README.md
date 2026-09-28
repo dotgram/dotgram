@@ -512,8 +512,9 @@ reads, what it hands back, and the suite it is held to.
 
 ## DotGram.Sql
 
-[`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own: the one tree of records every SQL
-grammar builds, and a parser per dialect beside it, each in a namespace of its own.
+[`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own, with a parser per dialect, each in a
+namespace of its own. SQL-92 and T-SQL build one tree of records in `DotGram.Sql`; SQL:2023 builds
+the standard's own tree in `DotGram.Sql.Ast`. Each tree has a writer that turns it back into SQL.
 
 ```csharp
 var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
@@ -525,7 +526,7 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 
 | Parser | What it reads |
 | --- | --- |
-| [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard.gram) | ISO SQL:2023, written from its BNF and being written |
+| [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard.gram) | ISO SQL:2023, written from its BNF, with typed expressions, queries and statements |
 | [`Sql92Parser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
 | [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
