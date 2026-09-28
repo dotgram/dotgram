@@ -175,6 +175,7 @@ try {
 	# BDN builds its generated project inside the window; a build node or a compiler server left behind by it would sit on the stand's processors.
 	$env:MSBUILDDISABLENODEREUSE = '1'
 	$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
+	$env:UseSharedCompilation = 'false'
 
 	$argumentList = (@('-c', $cpus, 'dotnet', $Assembly) + $BdnArgs + @('--artifacts', $out) | ForEach-Object { Quote $_ }) -join ' '
 	$process = Start-Process -FilePath 'taskset' -ArgumentList $argumentList -PassThru -WorkingDirectory (Split-Path $Assembly) -RedirectStandardOutput (Join-Path $out 'bdn.log') -RedirectStandardError (Join-Path $out 'bdn.err.log')
