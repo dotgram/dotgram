@@ -110,12 +110,17 @@ function Get-WindowState {
 	$probe = Open-Lock (Get-WindowLockFile)
 
 	if ($probe) {
-		$probe.Dispose()
-		$lines = Get-WindowLines
+		# Read, and put back to idle, while the probe still holds the lock: once it is let go a new window may write its announcement, and this must not overwrite it.
+		try {
+			$lines = Get-WindowLines
 
-		if ($lines.Count -gt 0 -and $lines[0] -like 'pid *') { Set-WindowIdle "the holder ended without saying so: $($lines -join '; ')"; return 'Stale' }
+			if ($lines.Count -gt 0 -and $lines[0] -like 'pid *') { Set-WindowIdle "the holder ended without saying so: $($lines -join '; ')"; return 'Stale' }
 
-		return 'Idle'
+			return 'Idle'
+		}
+		finally {
+			$probe.Dispose()
+		}
 	}
 
 	$lines = Get-WindowLines
