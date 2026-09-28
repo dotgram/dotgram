@@ -103,6 +103,21 @@ public sealed class GuardRepeatedCaptureTests
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
 	}
 
+	/// <summary>A switch's selector is handed its captures the way a guard is, and selects on the join.</summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_switch_selects_on_the_joined_pieces(CarrierKind carrier, bool direct, bool find)
+	{
+		var assembly = Compile(
+			"""
+			D = ['0'..'9']
+			T : @string = (y: D & ','?){2} & switch @(y) { case "12": 'a' default: 'b' } => @(y!)
+			""", carrier, direct, find);
+
+		foreach (var (input, read) in new[] { ("1,2a", true), ("12a", true), ("1,2b", false), ("2,2b", true) })
+			Assert.Equal(read, EmittedCode.Match(assembly, "Grammar", "TryParseT", input).IsSuccess);
+	}
+
 	/// <summary>A repetition that took no turn: the guard and the construction agree on absence.</summary>
 	[Theory]
 	[MemberData(nameof(Readings))]
