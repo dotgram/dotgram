@@ -60,7 +60,8 @@ its siblings, processors 0-7 and 16-23** (the preferred cores are there), set by
 (no privilege to), so every timing runs at the default one.
 
 **A window is a lock.** The process that times holds `/ramdisk/locks/timing-window.lock` exclusively (flock) for as long as it times, and the kernel
-lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. **While a window is open
+lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. Killing only the process that holds it (the
+pwsh of `Run-Bdn.ps1` or `Run-Announced.ps1`) frees the window at once, while the processes it started may still be running: kill those too. **While a window is open
 nothing heavy runs, on either half**: the supervisor schedules windows and starts no heavy work during one. Builds and tests started by hand or by
 a script are best run through `benchmarks/Aside.sh`, which holds `/ramdisk/locks/timing-builds.lock` shared while its command runs, and waits while
 a window is open:
