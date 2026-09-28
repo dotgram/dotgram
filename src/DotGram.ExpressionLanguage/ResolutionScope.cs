@@ -324,7 +324,7 @@ public sealed class ResolutionScope
 
 	/// <summary>
 	/// A reference loaded where its owner was: through the owner's load context on .NET, through
-	/// the assembly loader on .NET Framework, which has only the one.
+	/// Assembly.Load on .NET Framework, which has no AssemblyLoadContext.
 	/// </summary>
 	/// <remarks>
 	/// Not <c>Assembly.Load</c> on .NET: that binds in the context of the assembly calling it, which
@@ -335,12 +335,12 @@ public sealed class ResolutionScope
 	{
 #if NETSTANDARD2_0
 		// The netstandard2.0 asset runs on .NET too, where the context exists but cannot be named.
-		if (GetLoadContext?.Invoke(null, [owner]) is not { } context)
+		if (LoadFromAssemblyName is null || GetLoadContext?.Invoke(null, [owner]) is not { } context)
 			return Assembly.Load(name);
 
 		try
 		{
-			return (Assembly)LoadFromAssemblyName!.Invoke(context, [name])!;
+			return (Assembly)LoadFromAssemblyName.Invoke(context, [name])!;
 		}
 		catch (TargetInvocationException thrown) when (thrown.InnerException is { } inner)
 		{
