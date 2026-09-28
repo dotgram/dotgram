@@ -147,6 +147,8 @@ function Children([int]$parent) {
 	}
 }
 
+function Quote([string]$one) { if ($one -match '[\s"]') { '"' + $one.Replace('"', '\"') + '"' } else { $one } }
+
 function Descendants([int]$parent) {
 	foreach ($child in @(Children $parent)) {
 		$child
@@ -168,7 +170,7 @@ try {
 	$env:MSBUILDDISABLENODEREUSE = '1'
 	$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
 
-	$argumentList = @('-c', $cpus, 'dotnet', $Assembly) + $BdnArgs + @('--artifacts', $out)
+	$argumentList = (@('-c', $cpus, 'dotnet', $Assembly) + $BdnArgs + @('--artifacts', $out) | ForEach-Object { Quote $_ }) -join ' '
 	$process = Start-Process -FilePath 'taskset' -ArgumentList $argumentList -PassThru -WorkingDirectory (Split-Path $Assembly) -RedirectStandardOutput (Join-Path $out 'bdn.log') -RedirectStandardError (Join-Path $out 'bdn.err.log')
 
 	"Window open $($started.ToString('HH:mm:ss')), until $($until.ToString('HH:mm:ss')): $what; processors $cpus, out $out"
