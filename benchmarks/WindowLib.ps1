@@ -186,6 +186,9 @@ function Exit-Window($handle, [string]$why) {
 
 # For a heavy run that times nothing (a build, a test run, an allocation run): waits while a window is open, then holds the builds lock shared until Exit-Aside. $null inside a window.
 function Enter-Aside {
+	# Inside an Aside already: the outer one holds the builds lock, and waiting at the gate here would hold a window that is waiting for the outer one.
+	if ($env:DOTGRAM_ASIDE) { return $null }
+
 	if ((Get-WindowState) -eq 'Within') { return $null }
 
 	$said = $false
@@ -197,7 +200,7 @@ function Enter-Aside {
 			$probe.Dispose()
 			$builds = Open-Lock (Get-BuildsLockFile)
 
-			if ($builds) { return $builds }
+			if ($builds) { $env:DOTGRAM_ASIDE = '1'; return $builds }
 		}
 
 		if (-not $said) { "Waiting: a timing window is open: $((Get-WindowLines) -join '; ')" | Write-Host; $said = $true }
@@ -206,7 +209,9 @@ function Enter-Aside {
 	}
 }
 
-function Exit-Aside($handle) { if ($handle) { $handle.Dispose() } }
+function Exit-Aside($handle) {
+	if ($handle) { $handle.Dispose(); Remove-Item Env:DOTGRAM_ASIDE -ErrorAction SilentlyContinue }
+}
 
 # The quiet check: the CPU time of every readable process over three seconds, outside this one. Refuses above 6% of the machine, or when a build tool is above 0.15 core, which a small compile alone
 # would not lift the total to 6% for. What it saw is returned either way, for run.txt.

@@ -22,6 +22,12 @@ gate=$dir/timing-window.lock
 builds=$dir/timing-builds.lock
 text=$dir/timing-window.txt
 
+# Inside an Aside already: the outer one holds the builds lock. Waiting at the gate here would stall a window that
+# has taken the gate and is waiting for the outer one to end.
+if [ -n "${DOTGRAM_ASIDE:-}" ]; then
+	exec "$@"
+fi
+
 if [ -n "${DOTGRAM_WINDOW_HOLDER:-}" ] && [ "$(head -n 1 "$text" 2>/dev/null)" = "pid $DOTGRAM_WINDOW_HOLDER" ]; then
 	exec "$@"
 fi
@@ -33,7 +39,8 @@ fi
 # The gate is passed and let go; the builds lock is what the command holds. A window that took both in between
 # makes this wait for it. -o: the lock is not handed to the command, so a compiler server or build node the
 # command leaves running does not go on holding it.
-# DOTGRAM_ASIDE tells a timing started from inside the command that it would be waiting for itself.
+# DOTGRAM_ASIDE tells what the command starts that it is inside an Aside: a nested Aside runs at once, and a timing
+# refuses, since it would be waiting for itself.
 flock -s "$gate" true
-export DOTGRAM_ASIDE=$$
+export DOTGRAM_ASIDE=1
 exec flock -o -s "$builds" "$@"
