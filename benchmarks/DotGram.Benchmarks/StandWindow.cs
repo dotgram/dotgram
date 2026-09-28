@@ -51,6 +51,12 @@ static partial class Stand
 				return None.Instance;
 			}
 
+			// Inside a window already (a child of a repeated run, or a run started by Run-Announced.ps1): nothing to announce, and no retries to wait through.
+			var holder = Environment.GetEnvironmentVariable("DOTGRAM_WINDOW_HOLDER");
+
+			if (holder is { Length: > 0 } && ReadWindowFile().FirstOrDefault() == $"pid {holder}")
+				return None.Instance;
+
 			FileStream? gate = null;
 
 			// A shared probe (Window.ps1, Aside.sh) holds the lock for milliseconds: a few seconds of retries ride over it.
@@ -60,11 +66,7 @@ static partial class Stand
 
 			if (gate is null)
 			{
-				var lines  = ReadWindowFile();
-				var holder = Environment.GetEnvironmentVariable("DOTGRAM_WINDOW_HOLDER");
-
-				if (holder is not { Length: > 0 } || lines.FirstOrDefault() != $"pid {holder}")
-					Console.Error.WriteLine("Another timing window is open: " + string.Join("; ", lines) + ". This run times beside it, and its numbers are not to be quoted.");
+				Console.Error.WriteLine("Another timing window is open: " + string.Join("; ", ReadWindowFile()) + ". This run times beside it, and its numbers are not to be quoted.");
 
 				return None.Instance;
 			}
