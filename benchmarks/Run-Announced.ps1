@@ -17,7 +17,7 @@
 	     (exit 5) on modified tracked files; -Probe lets it through, stamped, and its numbers are not quoted;
 	  5. runs `taskset -c <cpus> <command>` with DOTGRAM_WINDOW_HOLDER set (a stand run inside knows it is inside this window and announces nothing of its own), the output shown and written to
 	     output.txt, and writes run.txt: the quiet reading, the state, the processors, the exit code. Both go to <scratch>/window/<label>-<time> (/ramdisk/build/dotgram on this machine).
-	This script itself is not pinned: it waits on the other half while the command runs.
+	This script itself is not pinned; it only waits while the command runs.
 
 	The priority cannot be raised here (no privilege to lower a nice value); every timing runs at the default priority and run.txt says so.
 

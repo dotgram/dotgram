@@ -15,7 +15,7 @@
 	     and then refused (exit 5); what it saw is printed and written to run.txt either way;
 	  3. reads the state of what will be measured (below) and refuses a quotable run on a tree that is not clean (exit 5; -Probe lets it through, stamped);
 	  4. starts `taskset -c <cpus> dotnet <Assembly> <BdnArgs> --artifacts <out>` (processors 0-7 and 16-23 by default: the first CCD with its SMT siblings); the children inherit the processors. This
-	     script itself is not pinned: it watches from the other half;
+	     script itself is not pinned (the kernel may put it anywhere; it sleeps between its reads);
 	  5. every 100 ms reads the workers that appeared and checks each once, by pid and start time (a worker that starts and ends between two reads is not checked, and run.txt says how many
 	     workers BDN executed, from its own log, against how many were read: a case of a real run lasts many seconds, a dry job's does not);
 	  6. (-Commit names the commit of what is under test when the assembly is built outside the repository, e.g. "library 1a2b3c4d, main 5e6f7a8b"; it is printed beside the reading, never in place

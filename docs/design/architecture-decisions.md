@@ -9668,7 +9668,7 @@ conditions every time, not the most precise one.
   process as it starts: .NET's `Process.ProcessorAffinity` on Linux pins only the main thread of
   the process that sets it, and neither its other threads nor the processes it starts inherit it
   (checked: pwsh set to 0-7,16-23, its child read 0-31). The script that supervises a run is not
-  pinned; it watches from the other CCD. The priority is not raised: that needs a privilege this
+  pinned; it mostly sleeps, and the kernel may put it on either CCD. The priority is not raised: that needs a privilege this
   machine does not give, and every timing runs at the default one.
 - **A window is a lock, not the text of a file.** `timing-window.lock` in `/ramdisk/locks` is held
   exclusively (flock) by the process that times, for as long as it times; the kernel lets it go when
