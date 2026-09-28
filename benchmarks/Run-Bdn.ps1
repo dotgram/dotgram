@@ -11,7 +11,8 @@
 	What it does, in order:
 	  0. refuses when BDN is asked to run in process (`--inProcess`: a number taken there is not a number of this stand), and on a system that is not Linux;
 	  1. takes the window (WindowLib.ps1, Enter-Window): refuses (exit 3) when another is open, waits at most -WaitMinutes for the builds that hold the builds lock (benchmarks/Aside.sh) to end;
-	  2. the quiet check (exit 5, no flag lifts it): more than 6% of the machine in use outside this script over three seconds, or any build tool above 0.15 core; what it saw is printed and written to run.txt either way;
+	  2. the quiet check (no flag lifts it): more than 6% of the machine in use outside this script over three seconds, or any build tool above 0.15 core, waited out for at most -WaitMinutes
+	     and then refused (exit 5); what it saw is printed and written to run.txt either way;
 	  3. reads the state of what will be measured (below) and refuses a quotable run on a tree that is not clean (exit 5; -Probe lets it through, stamped);
 	  4. starts `taskset -c <cpus> dotnet <Assembly> <BdnArgs> --artifacts <out>` (processors 0-7 and 16-23 by default: the first CCD with its SMT siblings); the children inherit the processors. This
 	     script itself is not pinned: it watches from the other half;
@@ -164,7 +165,7 @@ function Descendants([int]$parent) {
 try {
 	# The quiet check runs inside the window, after the builds it waited for have ended: a build or a run that somebody started without Aside.sh is found by the instrument, not by memory
 	# (2026-09-21: a restore and a compile were still running when a window was announced). No flag lifts it.
-	$quiet = Measure-Quiet
+	$quiet = Wait-Quiet $WaitMinutes
 	$quiet.Text
 
 	if (-not $quiet.Quiet) { Stop-Run 5 "The machine is not quiet: $($quiet.Why). $($quiet.Text) Nothing was started." }

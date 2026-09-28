@@ -75,7 +75,7 @@ $taken = @{ base = @{}; head = @{} }
 $perProject = @{ base = @{}; head = @{} }
 
 try {
-	$quiet = Measure-Quiet
+	$quiet = Wait-Quiet $WaitMinutes
 	$quiet.Text
 
 	if (-not $quiet.Quiet) { Stop-Run 5 "The machine is not quiet: $($quiet.Why). Nothing was built." }

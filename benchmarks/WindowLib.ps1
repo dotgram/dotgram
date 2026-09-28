@@ -233,3 +233,18 @@ function Measure-Quiet([double]$Percent = 6) {
 
 	[pscustomobject]@{ Quiet = -not $why; Why = $why; Text = $text }
 }
+
+# The quiet check, repeated until it passes or -WaitMinutes have gone by, saying what is busy each time it fails: a build somebody started by hand ends by itself, and a window that waits
+# for it costs less than one refused and asked for again. Returns the last reading; the caller refuses when it is still not quiet.
+function Wait-Quiet([double]$WaitMinutes = 20) {
+	$deadline = (Get-Date).AddMinutes($WaitMinutes)
+
+	while ($true) {
+		$quiet = Measure-Quiet
+
+		if ($quiet.Quiet -or (Get-Date) -gt $deadline) { return $quiet }
+
+		Write-Host "Waiting for the machine to be quiet ($((Get-Date).ToString('HH:mm:ss')), until $($deadline.ToString('HH:mm:ss'))): $($quiet.Why). $($quiet.Text)"
+		Start-Sleep -Seconds 10
+	}
+}

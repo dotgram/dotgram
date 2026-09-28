@@ -11,7 +11,8 @@
 	  1. refuses (exit 3) when another window is open;
 	  2. takes the window (WindowLib.ps1, Enter-Window): the lock, the announcement, and a wait of at most -WaitMinutes for the builds that hold the builds lock (benchmarks/Aside.sh) to end,
 	     naming them; they do not end in time, exit 3;
-	  3. the quiet check: refuses (exit 5) above 6% of the machine in use, or a build tool above 0.15 core, over three seconds (a build that did not go through Aside.sh);
+	  3. the quiet check: waits at most -WaitMinutes for the machine to be quiet, saying what is busy, and then refuses (exit 5): above 6% of the machine in use, or a build tool above
+	     0.15 core, over three seconds (a build that did not go through Aside.sh);
 	  4. reads the state of the repository the script or the command's first file sits in (HEAD, modified tracked files) and the sha256 of every file named in -Artifacts. A quotable run refuses
 	     (exit 5) on modified tracked files; -Probe lets it through, stamped, and its numbers are not quoted;
 	  5. runs `taskset -c <cpus> <command>` with DOTGRAM_WINDOW_HOLDER set (a stand run inside knows it is inside this window and announces nothing of its own), the output shown and written to
@@ -79,7 +80,7 @@ $exit   = $null
 $report = @()
 
 try {
-	$quiet = Measure-Quiet
+	$quiet = Wait-Quiet $WaitMinutes
 	$quiet.Text
 
 	if (-not $quiet.Quiet) { Stop-Run 5 "The machine is not quiet: $($quiet.Why). $($quiet.Text) Nothing was started." }
