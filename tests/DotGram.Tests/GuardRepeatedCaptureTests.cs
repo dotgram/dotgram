@@ -12,7 +12,7 @@ namespace DotGram.Tests;
 /// <summary>
 /// A guard is handed the value the construction is handed. A text capture written inside a
 /// repetition whose body has something else in it — <c>(y: D &amp; ','?){2}</c> — records one
-/// piece per turn, and §10 makes its value the pieces joined: the guard sees that join, not
+/// piece per turn, and §7.3 makes its value the pieces joined: the guard sees that join, not
 /// the last piece, in every carrier and with the direct reader on or off.
 /// </summary>
 /// <remarks>
@@ -25,6 +25,9 @@ public sealed class GuardRepeatedCaptureTests
 		static string seen = "<none>";
 		static bool Seen(string value) { seen = value; return true; }
 		static string Both(string value) => (seen ?? "<null>") + "|" + (value ?? "<null>");
+		static string log = "";
+		static bool Log(string value) { log += (log.Length > 0 ? ";" : "") + value; return true; }
+		static string Take() { var taken = log; log = ""; return taken; }
 		""";
 
 	public static IEnumerable<object[]> Readings()
@@ -81,8 +84,12 @@ public sealed class GuardRepeatedCaptureTests
 			("(y: D & ',')* & y: D",                "1,2,3",   "123|123"),
 			// Given back: the turn the loop gave up to what follows is not in the join.
 			("(y: D & ','?)+ & '9'",                "1,29",    "12|12"),
-			// The guard inside the loop: each turn's guard sees the turns so far.
-			("(y: D & ',' & when @(Seen(y))){2}",   "1,2,",    "12|12"),
+			// A turn's alternative abandoned after it captured: its piece is not in the join.
+			("((y: D & ',' & 'x') | (y: D & ','))+", "1,2,",   "12|12"),
+			// A called rule's own `y` is its own, not a piece of this one's.
+			("(y: D & R){2}",                       "12,34,",  "13|13"),
+			// The rule inside itself: the inner reading's pieces are the inner rule's.
+			("'(' & (y: D & ','?)+ & T? & ')'",     "(1,2(3,4))", "12|12"),
 			// One name in two alternatives, each repeated: a slot each, one member.
 			("((y: D & ',')+ | (y: D & ';')+)",     "1;2;",    "12|12"),
 			// A capture that does not repeat is a single piece, as before.
@@ -91,7 +98,8 @@ public sealed class GuardRepeatedCaptureTests
 			("y: D+ & '2'",                         "112",     "11|11"),
 		})
 		{
-			var grammar = "D = ['0'..'9']\n" + (body.Contains("Sep") ? "Sep = '-'+\n" : "") + "T : @string = " + body +
+			var grammar = "D = ['0'..'9']\n" + (body.Contains("Sep") ? "Sep = '-'+\n" : "") +
+				(body.Contains("& R)") ? "R : @string = y: D & ',' => @(y!)\n" : "") + "T : @string = " + body +
 				" & when @(Seen(y)) => @(Both(y))";
 			var assembly = Compile(grammar, carrier, direct, find);
 			var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", input);
@@ -101,6 +109,25 @@ public sealed class GuardRepeatedCaptureTests
 		}
 
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// A guard inside the loop runs at every turn and is handed the turns so far, each time
+	/// joined: <c>1</c>, then <c>12</c>, then <c>123</c>.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_inside_the_loop_sees_the_turns_so_far(CarrierKind carrier, bool direct, bool find)
+	{
+		foreach (var (turns, input, expected) in new[] { (2, "1,2,", "1;12"), (3, "1,2,3,", "1;12;123") })
+		{
+			var assembly = Compile(
+				"D = ['0'..'9']\nT : @string = (y: D & ',' & when @(Log(y))){" + turns + "} => @(Take())",
+				carrier, direct, find);
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", input);
+			Assert.True(match.IsSuccess, match.Error);
+			Assert.Equal(expected, match.Value);
+		}
 	}
 
 	/// <summary>A switch's selector is handed its captures the way a guard is, and selects on the join.</summary>
