@@ -160,7 +160,7 @@ own so the working tree stays as it is:
 ```bash
 git worktree add --detach $scratch/base-wt HEAD
 # a copy of .work/genprof whose ProjectReference points at $scratch/base-wt/src/DotGram/DotGram.csproj
-dotnet $scratch/genprof-base/bin/Release/net10.0/genprof.dll $scratch/baseline
+benchmarks/Aside.sh dotnet $scratch/genprof-base/bin/Release/net10.0/genprof.dll $scratch/baseline
 ```
 
 After each change, dump again and compare every file by hash. "same" for all of them is the
@@ -174,7 +174,7 @@ alternately, never beside a test run, and in a window (`benchmarks/Run-Announced
 ## 4. On Linux: dotnet-trace — where the time goes
 
 ```bash
-dotnet-trace collect --profile dotnet-sampled-thread-time --format Speedscope \
+benchmarks/Aside.sh dotnet-trace collect --profile dotnet-sampled-thread-time --format Speedscope \
     -o $scratch/gen.nettrace -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
 ```
 
@@ -192,7 +192,7 @@ alone.
 it collect, how big is the heap, how fast does it allocate" without a trace:
 
 ```bash
-dotnet-counters collect --counters System.Runtime --refresh-interval 1 --format csv \
+benchmarks/Aside.sh dotnet-counters collect --counters System.Runtime --refresh-interval 1 --format csv \
     -o $scratch/counters.csv -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
 ```
 
@@ -260,7 +260,7 @@ holds allocations too, but Reporter refuses it ("unsupported snapshot format"), 
 no command-line report at all.
 
 ```bash
-dotnet-trace collect --profile gc-verbose -o $scratch/gc.nettrace -- \
+benchmarks/Aside.sh dotnet-trace collect --profile gc-verbose -o $scratch/gc.nettrace -- \
     .work/genprof/bin/Release/net10.0/genprof $scratch/dump
 
 benchmarks/Aside.sh dotnet build .work/allocs -c Release
