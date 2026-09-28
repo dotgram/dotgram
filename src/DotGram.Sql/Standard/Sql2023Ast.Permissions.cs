@@ -22,17 +22,16 @@ namespace DotGram.Sql.Ast;
 /// </para>
 /// <para>
 /// A closed list because the engine's is: a permission SQL Server does not know is a syntax error there
-/// and a refusal here. It is written from the parser's own catalogue and held to it by a test (D148).
-/// The members' numbers follow the words' order and move when a permission is added, so nothing should
-/// keep them.
+/// and a refusal here. The members' numbers follow the words' order and move when a permission is
+/// added, so nothing should keep them.
 /// </para>
 /// </remarks>
 public enum PrivilegeKind
 {
 	// BNF: <action>, in the order the tree has always held it.
 	/// <summary>
-	/// <c>ALL PRIVILEGES</c>, and T-SQL's <c>ALL</c> where <see cref="Privilege.Abbreviated"/> is set. Of
-	/// every class.
+	/// <c>ALL PRIVILEGES</c>, and T-SQL's <c>ALL</c> where <see cref="Privilege.Abbreviated"/> is set. Read
+	/// of every class.
 	/// </summary>
 	AllPrivileges,
 	/// <summary>
@@ -738,8 +737,8 @@ public enum PrivilegeKind
 /// <c>ON SCHEMA::s</c>.
 /// </summary>
 /// <remarks>
-/// The classes the PARSER takes, which are the view's less CREDENTIAL, and are held to the catalogue by the
-/// same test as <see cref="PrivilegeKind"/>. <c>ON t</c>, with no class written, is
+/// The classes the parser takes, a closed list as the permissions are: SQL Server refuses any other
+/// word before <c>::</c> as syntax. <c>ON t</c>, with no class written, is
 /// <see cref="PrivilegeObject.Class"/> left null.
 /// </remarks>
 public enum SecurableClass
@@ -858,10 +857,14 @@ public enum SecurableClass
 	XmlSchemaCollection,
 }
 
-/// <summary>The words a permission and a class are written in, which is all the writer prints of them.</summary>
+/// <summary>
+/// The words a permission and a class are written in, which is all the writer prints of them.
+/// </summary>
 static class PermissionWords
 {
-	/// <summary>A privilege's words, or null for a value that has none.</summary>
+	/// <summary>
+	/// A privilege's words, or null for a value that has none.
+	/// </summary>
 	public static string? Text(PrivilegeKind kind)
 	{
 		return kind switch
@@ -1040,7 +1043,9 @@ static class PermissionWords
 		};
 	}
 
-	/// <summary>A class's words, without the <c>::</c> after them, or null for a value that has none.</summary>
+	/// <summary>
+	/// A class's words, without the <c>::</c> after them, or null for a value that has none.
+	/// </summary>
 	public static string? Text(SecurableClass kind)
 	{
 		return kind switch

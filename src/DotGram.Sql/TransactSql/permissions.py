@@ -33,6 +33,11 @@
 # and nothing else, which is what keeps the way back open: should the enum give way to plain strings --
 # D148 says when -- every member's string is already that table's right-hand side.
 #
+# The test holds the committed members to the committed catalogue; it does not hold the generated file
+# to a fresh run of this script, since Python is not part of CI. So after any change to the catalogue or
+# to the templates below, run this script (with --catalogue where there is no server) and commit what it
+# writes.
+#
 # Run it against a server whose version the grammar is written for, and read the diff: a permission or
 # a class that a release adds appears here, and the grammar's own PermissionName and SecurableClassName
 # want the same addition. Nothing reads this table at run time except the parser's guard.
@@ -160,7 +165,7 @@ def tree(named):
             text += ', and T-SQL\'s <c>%s</c> where <see cref="Privilege.Abbreviated"/> is set' % ABBREVIATED[words]
 
         if words == 'ALL PRIVILEGES':
-            return text + '. Of every class.'
+            return text + '. Read of every class.'
 
         if words not in classes_of:
             return text + '. The standard\'s; SQL Server has no such permission.'
@@ -292,9 +297,8 @@ namespace DotGram.Sql.Ast;
 /// </para>
 /// <para>
 /// A closed list because the engine's is: a permission SQL Server does not know is a syntax error there
-/// and a refusal here. It is written from the parser's own catalogue and held to it by a test (D148).
-/// The members' numbers follow the words' order and move when a permission is added, so nothing should
-/// keep them.
+/// and a refusal here. The members' numbers follow the words' order and move when a permission is
+/// added, so nothing should keep them.
 /// </para>
 /// </remarks>
 public enum PrivilegeKind
@@ -311,8 +315,8 @@ public enum PrivilegeKind
 /// <c>ON SCHEMA::s</c>.
 /// </summary>
 /// <remarks>
-/// The classes the PARSER takes, which are the view's less CREDENTIAL, and are held to the catalogue by the
-/// same test as <see cref="PrivilegeKind"/>. <c>ON t</c>, with no class written, is
+/// The classes the parser takes, a closed list as the permissions are: SQL Server refuses any other
+/// word before <c>::</c> as syntax. <c>ON t</c>, with no class written, is
 /// <see cref="PrivilegeObject.Class"/> left null.
 /// </remarks>
 public enum SecurableClass
@@ -320,10 +324,14 @@ public enum SecurableClass
 @CLASS_MEMBERS@
 }
 
-/// <summary>The words a permission and a class are written in, which is all the writer prints of them.</summary>
+/// <summary>
+/// The words a permission and a class are written in, which is all the writer prints of them.
+/// </summary>
 static class PermissionWords
 {
-\t/// <summary>A privilege's words, or null for a value that has none.</summary>
+\t/// <summary>
+\t/// A privilege's words, or null for a value that has none.
+\t/// </summary>
 \tpublic static string? Text(PrivilegeKind kind)
 \t{
 \t\treturn kind switch
@@ -332,7 +340,9 @@ static class PermissionWords
 \t\t};
 \t}
 
-\t/// <summary>A class's words, without the <c>::</c> after them, or null for a value that has none.</summary>
+\t/// <summary>
+\t/// A class's words, without the <c>::</c> after them, or null for a value that has none.
+\t/// </summary>
 \tpublic static string? Text(SecurableClass kind)
 \t{
 \t\treturn kind switch

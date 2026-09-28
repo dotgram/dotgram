@@ -1211,12 +1211,18 @@ public static partial class Sql2023Writer
 
 			Word("ON");
 
-			// T-SQL's class, `SCHEMA::s`, is the word before the name and stands where the standard's kind
-			// would: a node with both has no text that keeps them.
+			// T-SQL's class, `SCHEMA::s`, is the word before the name and stands where the standard's kind,
+			// its TABLE or its routine would: a node with both has no text that keeps them.
 			if (on.Class is { } securable)
 			{
-				if (on.Kind != PrivilegeObjectKind.Table || on.TableKeyword || on.Routine is not null)
+				if (on.Kind != PrivilegeObjectKind.Table)
 					throw Both(on, nameof(on.Class), nameof(on.Kind));
+
+				if (on.TableKeyword)
+					throw Both(on, nameof(on.Class), nameof(on.TableKeyword));
+
+				if (on.Routine is not null)
+					throw Both(on, nameof(on.Class), nameof(on.Routine));
 
 				Word(PermissionWords.Text(securable) ?? throw NoText(securable));
 				Tight("::");
@@ -1261,7 +1267,9 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		/// <summary>A privilege's words, or T-SQL's shorter ones where it was written so.</summary>
+		/// <summary>
+		/// A privilege's words, or T-SQL's shorter ones where it was written so.
+		/// </summary>
 		static string Spelled(Privilege privilege)
 		{
 			if (privilege.Abbreviated)

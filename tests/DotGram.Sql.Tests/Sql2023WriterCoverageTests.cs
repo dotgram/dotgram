@@ -62,7 +62,9 @@ public sealed class Sql2023WriterCoverageTests
 			To: to);
 	}
 
-	/// <summary>A GRANT of the privileges given, on the securable given or on none, to PUBLIC.</summary>
+	/// <summary>
+	/// A GRANT of the privileges given, on the securable given or on none, to PUBLIC.
+	/// </summary>
 	static Statement.Grant Granted(PrivilegeObject? on, params Privilege[] privileges)
 	{
 		return new Statement.Grant
@@ -71,7 +73,9 @@ public sealed class Sql2023WriterCoverageTests
 		};
 	}
 
-	/// <summary>A securable of one name, written with T-SQL's class or without one.</summary>
+	/// <summary>
+	/// A securable of one name, written with T-SQL's class or without one.
+	/// </summary>
 	static PrivilegeObject Securable(SecurableClass? of)
 	{
 		return new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("s")]), Class: of);
@@ -505,8 +509,17 @@ public sealed class Sql2023WriterCoverageTests
 		Assert.Contains("ON OBJECT::s", Sql2023Writer.Write(Granted(Securable(SecurableClass.Object), select)), StringComparison.Ordinal);
 		Assert.Contains("ON s", Sql2023Writer.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(Securable(SecurableClass.Object) with { Kind = PrivilegeObjectKind.Domain }, select)));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(Securable(SecurableClass.Object) with { TableKeyword = true }, select)));
+		// And the refusal names the member that conflicts, not merely the kind.
+		var classed = Securable(SecurableClass.Object);
+
+		Assert.Contains("Kind",         Refusal(classed with { Kind = PrivilegeObjectKind.Domain }), StringComparison.Ordinal);
+		Assert.Contains("TableKeyword", Refusal(classed with { TableKeyword = true }), StringComparison.Ordinal);
+		Assert.Contains("Routine",      Refusal(classed with { Routine = Routine }), StringComparison.Ordinal);
+
+		string Refusal(PrivilegeObject on)
+		{
+			return Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(on, select))).Message;
+		}
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>

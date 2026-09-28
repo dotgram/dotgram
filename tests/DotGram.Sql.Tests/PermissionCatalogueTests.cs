@@ -38,14 +38,18 @@ using Statement = DotGram.Sql.Ast.Statement;
 /// </remarks>
 public sealed class PermissionCatalogueTests
 {
-	/// <summary>The standard's actions that no row of the catalogue has, each for its own reason.</summary>
+	/// <summary>
+	/// The standard's actions that no row of the catalogue has, each for its own reason.
+	/// </summary>
 	/// <remarks>
 	/// <c>ALL PRIVILEGES</c> is every class's and so no class's row, as <c>ALL</c> and <c>EXEC</c> are;
 	/// <c>USAGE</c>, <c>TRIGGER</c> and <c>UNDER</c> are the standard's and SQL Server has none of them.
 	/// </remarks>
 	static readonly string[] StandardOnly = ["ALL PRIVILEGES", "TRIGGER", "UNDER", "USAGE"];
 
-	/// <summary>What the grammar reads besides the catalogue: every class's two, and EXECUTE's other spelling.</summary>
+	/// <summary>
+	/// What the grammar reads besides the catalogue: every class's two, and EXECUTE's other spelling.
+	/// </summary>
 	static readonly string[] ReadOfEveryClass = ["ALL", "ALL PRIVILEGES", "EXEC"];
 
 	[Fact]
@@ -106,7 +110,9 @@ public sealed class PermissionCatalogueTests
 			Alternatives("SecurableClassName").Order(StringComparer.Ordinal));
 	}
 
-	/// <summary>What the writer prints for a permission, alone in a GRANT.</summary>
+	/// <summary>
+	/// What the writer prints for a permission, alone in a GRANT.
+	/// </summary>
 	static string Words(PrivilegeKind kind)
 	{
 		var granted = Sql2023Writer.Write(new Statement.Grant
@@ -117,7 +123,9 @@ public sealed class PermissionCatalogueTests
 		return Regex.Match(granted, "^GRANT (.+) TO PUBLIC").Groups[1].Value;
 	}
 
-	/// <summary>What the writer prints for a class, before the <c>::</c>.</summary>
+	/// <summary>
+	/// What the writer prints for a class, before the <c>::</c>.
+	/// </summary>
 	static string Words(SecurableClass kind)
 	{
 		var on      = new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("s")]), Class: kind);
@@ -135,7 +143,9 @@ public sealed class PermissionCatalogueTests
 		return string.Concat(words.Split(' ').Select(one => one[..1] + one[1..].ToLowerInvariant()));
 	}
 
-	/// <summary>The catalogue's pairs, <c>CLASS|PERMISSION</c>, as the compiled package holds them.</summary>
+	/// <summary>
+	/// The catalogue's pairs, <c>CLASS|PERMISSION</c>, as the compiled package holds them.
+	/// </summary>
 	static IReadOnlyList<string[]> Pairs()
 	{
 		var catalogue = typeof(Sql2023Writer).Assembly.GetType("DotGram.Sql.TransactSql.PermissionCatalogue", throwOnError: true)!;
