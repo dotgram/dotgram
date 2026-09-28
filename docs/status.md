@@ -1385,7 +1385,7 @@ includes SQL-92 this way.
 compiled where `Portable` holds — by default, where the class is visible outside its
 assembly. A base or an include in a referenced assembly has no `.gram` file in reach, so
 its text is read from there; the file wins where both are. This is what the table's
-referenced-assembly row rests on, and no test yet builds two assemblies to pin it.
+referenced-assembly row rests on.
 
 `LocationType` names an interface with a settable `Span`; every value implementing it is
 handed the range it was read from.
