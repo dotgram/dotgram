@@ -9748,10 +9748,35 @@ values stops making sense, where plain strings would be simpler.
   a closed list its own parser refuses outside of, and the union stays in the hundreds. Revisit —
   with Igor, since it changes the public surface — when either stops being true: **a dialect would
   take `PrivilegeKind` past about 1,000 members**, or **a dialect's permissions are not a closed list**
-  (a name its grammar reads that no member can hold). T-SQL is 170 today.
+  (a name its grammar reads that no member can hold). T-SQL is 170 today. The second is likely to come
+  first: MySQL's dynamic privileges are registered by server components and plugins at run time, so its
+  list is open by design, and the first MySQL grammar would meet that condition long before a thousand
+  members. Its names are also spelled with underscores (`REPLICATION_SLAVE_ADMIN`), which `member()`
+  in `permissions.py` has no rule for: it capitalizes words split on spaces, so it would need one that
+  still lets the words be had back from the name, or the members stop being mechanical.
 - **How the switch would go, which is why it is cheap.** `Privilege.Kind` becomes a `string` holding
   the words, which for every member today is `PermissionWords.Text(kind)`; the enum and
-  `PermissionWords` go; the writer prints the string; `permissions.py` stops writing the tree's file;
-  and the enum half of `PermissionCatalogueTests` becomes "every name a grammar builds is a catalogue
-  name". Nothing else names a T-SQL member by hand, and that is to stay so: a grammar that builds
-  these nodes reaches a member through the generated table, never through a switch of its own.
+  `PermissionWords` go; `permissions.py` stops writing the tree's file; and the enum half of
+  `PermissionCatalogueTests` becomes "every name a grammar builds is a catalogue name". The places that
+  name a member and change with it, all of them the standard's ten:
+  - `SqlStandard.gram`, the `PrivilegeActions` rules, and `Nodes.PrivilegeKindOf`, which the grammar calls;
+  - the hand-written standard parser, `HandSqlStandard.Routines.cs` (about lines 3409-3526);
+  - the writer's `Spelled`, whose `ALL` and `EXEC` arms become a test of the string;
+  - `SqlStandardTreeTests`, whose printed trees change from `Privilege(Select, …)` to the string;
+  - `Sql2023Ast.BnfMap.csv`, whose `action` and `object privileges` rows name `PrivilegeKind`;
+  - the `PrivilegeKind` entries of `Sql2023WriterCoverageTests` (`Covered`, the spelling pair and the
+    permission rows).
+  Nothing names a T-SQL member by hand, and that is to stay so: a grammar that builds these nodes
+  reaches a member through the generated table, never through a switch of its own.
+  **`SecurableClass` stays an enum** through such a switch: the `::` class is T-SQL's own syntax, 28
+  words the parser refuses outside of, and no other dialect writes it. It follows the permissions to
+  strings only if its own list meets the same conditions. **A hybrid** is the other road: the standard's
+  ten stay members, which every grammar that follows the standard builds, and the rest become words —
+  `Privilege` holding a `PrivilegeKind?` and a name, one of them set. It keeps the standard's typing and
+  costs a second representation of one concept, which the writer and every consumer would have to ask
+  both of; it is an option to weigh when the time comes, not a plan.
+- **What the writer now prints that it refused before.** `ALL PRIVILEGES` was written only as the whole
+  list; any other place threw. It is now an ordinary member, so `ALL, SELECT` and `ALL PRIVILEGES (c)`
+  print. Both are T-SQL that SQL Server reads — `GRANT ALL, SELECT (c1, c2), …` and
+  `GRANT ALL PRIVILEGES (c1) ON t` are rows of `The_permission_statements_read_what_the_engine_does`
+  (ALL in a list since c4dd800c) — and the standard's grammar builds neither, so for its trees nothing changed.
