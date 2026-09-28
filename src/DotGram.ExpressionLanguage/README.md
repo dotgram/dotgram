@@ -105,8 +105,10 @@ written down, with the reason for each, at the top of the file below.
 
 Where a name is looked for is the caller's to say. By default it is the calling assembly and
 what it references — what a compilation of that assembly would see — so the same text answers the
-same whatever else the process has loaded. `ResolutionScope.Of(caller, plugin)` widens that,
-`WithoutInternals()` reads as another assembly would, and what a name MEANS stays C#'s either way.
+same whatever else the process has loaded. A caller loaded into an `AssemblyLoadContext` of its
+own has its references found in that context, as the runtime finds them for its own code.
+`ResolutionScope.Of(caller, plugin)` widens that, `WithoutInternals()` reads as another assembly
+would, and what a name MEANS stays C#'s either way.
 
 The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
 AST specific to .Gram that must later be translated into an expression tree — which also

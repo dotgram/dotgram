@@ -303,7 +303,7 @@ public sealed class ResolutionScope
 
 				try
 				{
-					Consider(Assembly.Load(name));
+					Consider(Load(one, name));
 				}
 				catch (Exception thrown) when (thrown is BadImageFormatException or System.IO.FileNotFoundException
 					or System.IO.FileLoadException)
@@ -321,6 +321,43 @@ public sealed class ResolutionScope
 				queue.Enqueue(one);
 		}
 	}
+
+	/// <summary>
+	/// A reference loaded where its owner was: through the owner's load context on .NET, through
+	/// the assembly loader on .NET Framework, which has only the one.
+	/// </summary>
+	/// <remarks>
+	/// Not <c>Assembly.Load</c> on .NET: that binds in the context of the assembly calling it, which
+	/// is this one, so a caller loaded into a context of its own — a plugin — had its references
+	/// looked for in the default context, found nothing there, and could name none of their types.
+	/// </remarks>
+	static Assembly Load(Assembly owner, AssemblyName name)
+	{
+#if NETSTANDARD2_0
+		// The netstandard2.0 asset runs on .NET too, where the context exists but cannot be named.
+		if (GetLoadContext?.Invoke(null, [owner]) is not { } context)
+			return Assembly.Load(name);
+
+		try
+		{
+			return (Assembly)LoadFromAssemblyName!.Invoke(context, [name])!;
+		}
+		catch (TargetInvocationException thrown) when (thrown.InnerException is { } inner)
+		{
+			System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(inner).Throw();
+			throw;
+		}
+#else
+		return (System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(owner) ??
+			System.Runtime.Loader.AssemblyLoadContext.Default).LoadFromAssemblyName(name);
+#endif
+	}
+
+#if NETSTANDARD2_0
+	static readonly Type?       LoadContextType      = typeof(object).Assembly.GetType("System.Runtime.Loader.AssemblyLoadContext");
+	static readonly MethodInfo? GetLoadContext       = LoadContextType?.GetMethod("GetLoadContext", [typeof(Assembly)]);
+	static readonly MethodInfo? LoadFromAssemblyName = LoadContextType?.GetMethod("LoadFromAssemblyName", [typeof(AssemblyName)]);
+#endif
 
 	static Assembly[] Joined(IReadOnlyList<Assembly> first, Assembly[] second)
 	{
