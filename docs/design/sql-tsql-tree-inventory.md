@@ -714,7 +714,10 @@ B. Of the 23 Statement B rows, 9 are DROP.
 Done since: the cursor options and the transaction statements, whose records are in the tree and whose
 decisions are in `sql-tsql-tree.md` (2026-09-27); the grammars still build the old nodes.
 
-Next in line: `Statement.Grant`/`Revoke` (permission and securable catalogue),
-`Clause.MergeWhen` (BY SOURCE), `Statement.ViewDefinition` (body as statement,
+And the permission statements: DENY, and GRANT's and REVOKE's permissions, securable classes and
+`NULL` principal, whose records are in the tree and whose decision is D148 (2026-09-28); the grammar
+still builds the old nodes.
+
+Next in line: `Clause.MergeWhen` (BY SOURCE), `Statement.ViewDefinition` (body as statement,
 options), `Statement.CreateTableAsSelect` (required `WithDataMode`), `Statement.TypeDefinition`, and
 the `SqlLiteralKind`-level question of `0x…`.

@@ -25029,3 +25029,36 @@ object name" are level 16 and come after a successful parse; 102, 156 and 117 ar
 The same conflation had already cost one wrong reading an hour earlier, when a probe of every class used
 `SELECT` as the permission and every class but OBJECT answered "near 'SELECT'" -- a message about the
 permission read as a message about the class.
+
+## A permission is a member, and the catalogue writes the members (D148)
+
+Igor decided the question b66d31d4 left open: a T-SQL permission in the SQL:2023 tree is a member of the
+public `PrivilegeKind`, not a list of words. 170 members -- the standard's ten, then the 160 permissions
+of `PermissionCatalogue` the standard does not name -- and `SecurableClass`, the 28 classes, beside it.
+Neither is typed by hand: `permissions.py` writes `Standard/Sql2023Ast.Permissions.cs` from the same
+pairs as the catalogue, and with `--catalogue` it asks no server and reads them back from the committed
+file, which is what this machine had to do.
+
+**Three lists, one catalogue, one test.** The catalogue the guard reads, the grammar's `PermissionName`
+and `SecurableClassName`, and now the enums were each written from the server at a different time, and
+nothing held them together: the grammar's list and the catalogue agree today because someone checked,
+once. `PermissionCatalogueTests` checks every build -- the catalogue by reflection on the compiled
+package, the enums through the public writer, the grammar by reading its two rules as text. Taking
+`UNMASK` out of the grammar fails it, which was tried before trusting it.
+
+**The member is its words, and that is what keeps D148's way back open.** `VIEW DEFINITION` is
+`ViewDefinition` and nothing was chosen, so the string a member would become is already there, in
+`PermissionWords`, the one table the writer reads. If a second dialect ever takes the enum past a
+thousand members, the switch to strings is a replacement, not a redesign; D148 lists the steps.
+
+**Two things that looked like members and are not.** `ALL` and `EXEC` are T-SQL's shorter spellings of
+`ALL PRIVILEGES` and `EXECUTE` -- one meaning, two words -- so they are `[Spelling]
+Privilege.Abbreviated`, which the writer refuses on any other permission rather than printing `SELECT`
+and losing the flag. And a class is not a `PrivilegeObjectKind`: the standard writes `TYPE t` where T-SQL
+writes `TYPE::t`, which would have been one member with two texts. `PrivilegeObject.Class` is null where
+no class is written, and the writer refuses a class beside a standard kind.
+
+**What stays open, for want of a server.** `PrincipalName` reads a qualified name, `TO a.b`, and
+`Grantee.Identifier` holds one identifier. Whether the engine reads a principal of two parts is a
+question for SQL Server, not for this machine; until it is asked, a grammar that builds these nodes has
+nowhere to put one.

@@ -1187,45 +1187,41 @@ public static partial class Sql2023Writer
 
 		void PutPrivileges(IReadOnlyList<Privilege> privileges, PrivilegeObject? on)
 		{
-			if (privileges is [{ Kind: PrivilegeKind.AllPrivileges }])
-				Word("ALL PRIVILEGES");
-			else
-				Each(privileges, privilege =>
-				{
-					Word(privilege.Kind switch
-					{
-						PrivilegeKind.Select     => "SELECT",
-						PrivilegeKind.Delete     => "DELETE",
-						PrivilegeKind.Insert     => "INSERT",
-						PrivilegeKind.Update     => "UPDATE",
-						PrivilegeKind.References => "REFERENCES",
-						PrivilegeKind.Usage      => "USAGE",
-						PrivilegeKind.Trigger    => "TRIGGER",
-						PrivilegeKind.Under      => "UNDER",
-						PrivilegeKind.Execute    => "EXECUTE",
-						// AllPrivileges is written by the branch above, where it is the whole list.
-						_                        => throw NoText(privilege.Kind),
-					});
+			Each(privileges, privilege =>
+			{
+				Word(Spelled(privilege));
 
-					if (privilege.Columns.Count > 0)
-					{
-						Open();
-						Each(privilege.Columns, PutIdentifier);
-						Close();
-					}
-					else if (privilege.Methods.Count > 0)
-					{
-						Open();
-						Each(privilege.Methods, one => PutDesignator(one));
-						Close();
-					}
-				});
+				if (privilege.Columns.Count > 0)
+				{
+					Open();
+					Each(privilege.Columns, PutIdentifier);
+					Close();
+				}
+				else if (privilege.Methods.Count > 0)
+				{
+					Open();
+					Each(privilege.Methods, one => PutDesignator(one));
+					Close();
+				}
+			});
 
 			// T-SQL's ON is optional: a server permission names no securable.
 			if (on is null)
 				return;
 
 			Word("ON");
+
+			// T-SQL's class, `SCHEMA::s`, is the word before the name and stands where the standard's kind
+			// would: a node with both has no text that keeps them.
+			if (on.Class is { } securable)
+			{
+				if (on.Kind != PrivilegeObjectKind.Table || on.TableKeyword || on.Routine is not null)
+					throw Both(on, nameof(on.Class), nameof(on.Kind));
+
+				Word(PermissionWords.Text(securable) ?? throw NoText(securable));
+				Tight("::");
+				Hold();
+			}
 
 			switch (on.Kind)
 			{
@@ -1265,6 +1261,22 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>A privilege's words, or T-SQL's shorter ones where it was written so.</summary>
+		static string Spelled(Privilege privilege)
+		{
+			if (privilege.Abbreviated)
+				return privilege.Kind switch
+				{
+					PrivilegeKind.AllPrivileges => "ALL",
+					PrivilegeKind.Execute       => "EXEC",
+					// No other permission has a second spelling, so the flag says nothing a text can keep.
+					_                           => throw NoText(privilege.Kind),
+				};
+
+			// The words are the catalogue's, written by permissions.py beside the enum (D148).
+			return PermissionWords.Text(privilege.Kind) ?? throw NoText(privilege.Kind);
+		}
+
 		/// <summary>T-SQL's <c>AS principal</c>, the principal whose authority the statement is under.</summary>
 		void PutAsPrincipal(Identifier? principal)
 		{
@@ -1277,10 +1289,14 @@ public static partial class Sql2023Writer
 
 		void PutGrantee(Grantee grantee)
 		{
-			if (grantee is Grantee.Identifier identifier)
-				PutIdentifier(identifier.Value.Name);
-			else
-				Word("PUBLIC");
+			switch (grantee)
+			{
+				case Grantee.Identifier identifier: PutIdentifier(identifier.Value.Name); break;
+				case Grantee.Public:                Word("PUBLIC"); break;
+				// T-SQL's: the engine reads NULL among the principals.
+				case Grantee.Null:                  Word("NULL"); break;
+				default:                            throw Unwritten(grantee);
+			}
 		}
 
 		void PutGrantedBy(Grantor? grantor)

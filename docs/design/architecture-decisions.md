@@ -2438,9 +2438,11 @@ it built, which is what refusing means. Counted, not timed; the count needs no q
    immediate, the original opens a way per turn and one inside the trivia rule; expr's rewrite
    goes. (2) `eol` itself: the choice `"
 " | '
-' | ''` keeps a way into itself after
+' | '
+'` keeps a way into itself after
    answering `"
-"`, since `''` alone is a later alternative, although nothing after a turn
+"`, since `'
+'` alone is a later alternative, although nothing after a turn
    can begin with `'
 '`. Decided: `Determinism` asks the question it asks of a seam of a choice
    too — an accepted alternative is settled where no later alternative reads a proper prefix
@@ -9708,3 +9710,48 @@ supervisor of the machine, and this is it.
 The scripts (`benchmarks/WindowLib.ps1`, `Window.ps1`, `Aside.sh`, `Run-Announced.ps1`,
 `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`) and `StandWindow.cs` implement it; the
 procedure is in `benchmarks/README.md` and `docs/development.md`.
+
+## D148 — T-SQL's permissions are members of `PrivilegeKind`, written from the catalogue (Igor)
+
+2026-09-28. How the SQL:2023 tree holds a permission's name once T-SQL builds it. Proposal 23 of
+`sql-tsql-tree.md` had said "a name of words", and b66d31d4 (DENY) left the choice open: about 185
+members on the public `PrivilegeKind` against a list of words. Igor: **members, generated from the
+grammar's permission catalogue and held to it by a test**, not a word list. His caveat, recorded
+below as the condition for revisiting it: other dialects will follow, and an enum of thousands of
+values stops making sense, where plain strings would be simpler.
+
+- **The members.** `PrivilegeKind` is the standard's ten `<action>`s, first and in their old order,
+  then the 160 permissions of `PermissionCatalogue` (`sys.fn_builtin_permissions`, held to the
+  parser; 166 names) that the standard does not name: 170. Where both name one permission (`SELECT`,
+  `EXECUTE` and four more) the member is the standard's. A member is its words run together —
+  `VIEW DEFINITION` is `ViewDefinition` — so no name is chosen by hand and the words can be had back
+  from it. The numbers follow the words' order and move when a permission is added; nothing keeps them.
+- **The same for the securable's class.** `SecurableClass`, 28 members from the catalogue's classes,
+  is `PrivilegeObject.Class`: null where none is written (`ON t`), and beside it the standard's `Kind`
+  is `Table` and says nothing, which the writer enforces. Not new `PrivilegeObjectKind` members: the
+  standard's `TYPE t` and T-SQL's `TYPE::t` would be one member with two texts.
+- **What is not a member.** `ALL` and `EXEC` are T-SQL's shorter words for `ALL PRIVILEGES` and
+  `EXECUTE`: one meaning, two words, so `[Spelling] Privilege.Abbreviated`, refused on any other kind.
+  `NULL` among the principals is `Grantee.Null`.
+- **Written, not typed.** `TransactSql/permissions.py` writes `Standard/Sql2023Ast.Permissions.cs` —
+  both enums and the internal `PermissionWords`, the one place a member's words are — from the same
+  pairs as `PermissionCatalogue.cs`. Against a server it writes both files from one answer;
+  `--catalogue` asks no server and reads the pairs back from the committed catalogue.
+- **Held by a test.** `PermissionCatalogueTests` holds three lists to one another: the catalogue as
+  compiled, the enums as the public writer prints them, and the grammar's `PermissionName` and
+  `SecurableClassName` as `TransactSql.gram` spells them. Every catalogue permission is exactly one
+  member; every member is a catalogue permission or one of the standard's four the catalogue lacks
+  (ALL PRIVILEGES, USAGE, TRIGGER, UNDER); every member is named for its words; the grammar reads the
+  catalogue's permissions and `ALL [PRIVILEGES]` and `EXEC`, and the catalogue's classes, and nothing
+  else. `Sql2023WriterCoverageTests` covers both enums, so no two members write one text.
+- **When to revisit: the growth condition.** An enum is right while every dialect's permissions are
+  a closed list its own parser refuses outside of, and the union stays in the hundreds. Revisit —
+  with Igor, since it changes the public surface — when either stops being true: **a dialect would
+  take `PrivilegeKind` past about 1,000 members**, or **a dialect's permissions are not a closed list**
+  (a name its grammar reads that no member can hold). T-SQL is 170 today.
+- **How the switch would go, which is why it is cheap.** `Privilege.Kind` becomes a `string` holding
+  the words, which for every member today is `PermissionWords.Text(kind)`; the enum and
+  `PermissionWords` go; the writer prints the string; `permissions.py` stops writing the tree's file;
+  and the enum half of `PermissionCatalogueTests` becomes "every name a grammar builds is a catalogue
+  name". Nothing else names a T-SQL member by hand, and that is to stay so: a grammar that builds
+  these nodes reaches a member through the generated table, never through a switch of its own.

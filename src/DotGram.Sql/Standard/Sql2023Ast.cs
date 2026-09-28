@@ -1766,25 +1766,34 @@ public abstract record RevokeBody : ISqlNode
 	public record Privileges(RevokeOption? Option, IReadOnlyList<Privilege> Items, PrivilegeObject? Object, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
 	public record Roles(bool AdminOptionFor, IReadOnlyList<Identifier> Names, IReadOnlyList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
-public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods) : ISqlNode { public SqlSpan Span { get; private set; }
+// BNF: <action>. PrivilegeKind is written by TransactSql/permissions.py, in Sql2023Ast.Permissions.cs,
+// because T-SQL's members are its permission catalogue (D148).
+// T-SQL: GRANT (Transact-SQL). `Abbreviated` is the page's shorter word for the same permission: `ALL`
+// for ALL PRIVILEGES and `EXEC` for EXECUTE. It has no text on any other kind, and the writer refuses
+// it there.
+public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods, [property: Spelling] bool Abbreviated = false) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);
 	}
 }
-public enum PrivilegeKind { AllPrivileges, Select, Delete, Insert, Update, References, Usage, Trigger, Under, Execute }
 // BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
 // T-SQL: GRANT Object Permissions (Transact-SQL). `Columns` is the column list that page lets follow the
 // SECURABLE — `ON t (a, b)` — and not only a permission, which is `Privilege.Columns`. The engine reads
-// both and objects afterwards where both are written (1019), so the tree holds them apart.
-public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, IReadOnlyList<Identifier>? Columns = null) : ISqlNode { public SqlSpan Span { get; private set; }
+// both and objects afterwards where both are written (1019), so the tree holds them apart. `Class` is the
+// securable's class, `SCHEMA` in `ON SCHEMA::s`, and null where none is written: `ON t`, which T-SQL reads
+// as OBJECT. Where it is set, `Kind` is Table and says nothing, `TableKeyword` is false and `Routine`
+// null -- the class is the word before the name -- and the writer refuses a node that says otherwise.
+public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, IReadOnlyList<Identifier>? Columns = null, SecurableClass? Class = null) : ISqlNode { public SqlSpan Span { get; private set; }
 	public void Locate(int at, int length)
 	{
 		Span = new SqlSpan(at, length);
 	}
 }
 public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
-public abstract record Grantee : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; }
+// T-SQL: GRANT (Transact-SQL). `Null` is the `NULL` the engine reads anywhere among the principals of GRANT,
+// DENY and REVOKE (and refuses after AS), which the standard has no word for.
+public abstract record Grantee : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) { Span = new SqlSpan(at, length); } public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; public record Null : Grantee; }
 public enum Grantor { CurrentUser, CurrentRole }
 public enum RevokeOption { GrantOptionFor, HierarchyOptionFor }
 

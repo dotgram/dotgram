@@ -37,6 +37,14 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   are all zero and all written, which ten rows of `SqlStandardTreeTests` said out loud when a printer
   rule tried to hide a zero enum. Where the word is mandatory, as in BEGIN and SAVE, a
   `[Spelling] bool Tran` is enough.
+- Permissions, decided 2026-09-28 (proposal 23; Igor, D148). A permission's name is NOT a name of words,
+  as the proposal first said: it is a member of the standard's `PrivilegeKind`, extended with every
+  permission of T-SQL's catalogue that the standard does not name and generated from that catalogue by
+  `TransactSql/permissions.py`, which also writes `SecurableClass`, the class of `ON SCHEMA::s`
+  (`PrivilegeObject.Class`, null where none is written). `ALL` and `EXEC` are
+  `[Spelling] Privilege.Abbreviated`, `NULL` among the principals is `Grantee.Null`, and DENY is its own
+  statement sharing these parts (b66d31d4). `PermissionCatalogueTests` holds the enums, the catalogue
+  and the grammar's lists to one another; D148 says when the enum would give way to strings.
 
 ## Principles proposed
 
@@ -129,8 +137,9 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
     `FAST_FORWARD`, `READ_ONLY`, `SCROLL_LOCKS`, `OPTIMISTIC`, `TYPE_WARNING`) are properties on
     `CursorProperties`; `DEALLOCATE` is a statement.
 23. **Permissions.** T-SQL's permissions are a name of words (`VIEW DEFINITION`, `CREATE TABLE`) rather than
-    the standard's enum; a securable gains its class (`OBJECT::`, `SCHEMA::`); `DENY` is a statement sharing
-    the shape; `AS principal` is a name.
+    the standard's enum (superseded by D148: members of the standard's enum, generated from the
+    catalogue); a securable gains its class (`OBJECT::`, `SCHEMA::`); `DENY` is a statement sharing the
+    shape; `AS principal` is a name.
 24. **`SET` options.** One flat `SetOption` family on `Statement.SetOptions`, the group an enum rather than a
     level.
 25. **Procedural statements.** SQL/PSM's names where SQL/PSM has the statement (compound, `IF`, `WHILE`,

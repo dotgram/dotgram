@@ -62,6 +62,21 @@ public sealed class Sql2023WriterCoverageTests
 			To: to);
 	}
 
+	/// <summary>A GRANT of the privileges given, on the securable given or on none, to PUBLIC.</summary>
+	static Statement.Grant Granted(PrivilegeObject? on, params Privilege[] privileges)
+	{
+		return new Statement.Grant
+		{
+			Body = new GrantBody.Privileges(privileges, on, [new Grantee.Public()], false, false, null),
+		};
+	}
+
+	/// <summary>A securable of one name, written with T-SQL's class or without one.</summary>
+	static PrivilegeObject Securable(SecurableClass? of)
+	{
+		return new PrivilegeObject(PrivilegeObjectKind.Table, new QualifiedName([new Identifier("s")]), Class: of);
+	}
+
 	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
 	static CursorProperties Scrolling(bool forwardOnly)
 	{
@@ -98,6 +113,10 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(BinaryTypeKind)]     = v => new DataType.Binary((BinaryTypeKind)v),
 		[typeof(IdentifierStyle)]    = v => new Identifier("x", (IdentifierStyle)v),
 		[typeof(TransactionKeyword)] = v => new Statement.Commit { Keyword = (TransactionKeyword)v },
+		// A hundred and seventy permissions and twenty-eight classes, generated from the catalogue (D148):
+		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
+		[typeof(PrivilegeKind)]      = v => Granted(null, new Privilege((PrivilegeKind)v, [], [])),
+		[typeof(SecurableClass)]     = v => Granted(Securable((SecurableClass)v), new Privilege(PrivilegeKind.Control, [], [])),
 	};
 
 	/// <summary>
@@ -276,6 +295,9 @@ public sealed class Sql2023WriterCoverageTests
 			["Privileges.To"] = (
 				new Statement.Revoke { Body = Revoked(false) },
 				new Statement.Revoke { Body = Revoked(true) }),
+			["Privilege.Abbreviated"] = (
+				Granted(null, new Privilege(PrivilegeKind.AllPrivileges, [], [])),
+				Granted(null, new Privilege(PrivilegeKind.AllPrivileges, [], [], Abbreviated: true))),
 			["DeclareCursor.Extended"] = (
 				Declared(Scrolling(false)),
 				Declared(Scrolling(false)) with { Extended = true }),
@@ -435,6 +457,56 @@ public sealed class Sql2023WriterCoverageTests
 					[new Grantee.Public()], false, false, null),
 			}),
 			StringComparison.Ordinal);
+
+		// T-SQL's permissions, its two shorter spellings, a securable's class, and NULL among the grantees.
+		Assert.Equal(
+			"GRANT ALL, EXEC, EXECUTE, VIEW DEFINITION (c) ON SCHEMA::s TO u, NULL WITH GRANT OPTION",
+			Sql2023Writer.Write(new Statement.Grant
+			{
+				Body = new GrantBody.Privileges(
+					[
+						new Privilege(PrivilegeKind.AllPrivileges, [], [], Abbreviated: true),
+						new Privilege(PrivilegeKind.Execute, [], [], Abbreviated: true),
+						new Privilege(PrivilegeKind.Execute, [], []),
+						new Privilege(PrivilegeKind.ViewDefinition, [new Identifier("c")], []),
+					],
+					Securable(SecurableClass.Schema),
+					[new Grantee.Identifier(new AuthorizationIdentifier(new Identifier("u"))), new Grantee.Null()],
+					false,
+					true,
+					null),
+			}).TrimEnd(';', ' '));
+
+		Assert.Equal(
+			"DENY ALTER ON DATABASE SCOPED CREDENTIAL::s TO NULL",
+			Sql2023Writer.Write(new Statement.Deny(
+				[new Privilege(PrivilegeKind.Alter, [], [])],
+				[new Grantee.Null()],
+				Securable(SecurableClass.DatabaseScopedCredential))).TrimEnd(';', ' '));
+	}
+
+	/// <summary>
+	/// That the two T-SQL parts of a permission statement that say something only of certain values are
+	/// refused where they say nothing: a shorter spelling of a permission that has none, and a class beside
+	/// the standard's kind.
+	/// </summary>
+	/// <remarks>
+	/// <c>Abbreviated</c> is <c>ALL</c> and <c>EXEC</c>; on <c>SELECT</c> there is no text for it, and
+	/// printing <c>SELECT</c> would lose the flag. A class is the word before the name, where the
+	/// standard's <c>DOMAIN</c> or <c>TABLE</c> would stand, so a securable with both has no text either.
+	/// </remarks>
+	[Fact]
+	public void A_permission_part_with_no_text_is_refused()
+	{
+		var select = new Privilege(PrivilegeKind.Select, [], []);
+
+		Assert.Throws<ArgumentOutOfRangeException>(() => Sql2023Writer.Write(Granted(null, select with { Abbreviated = true })));
+
+		Assert.Contains("ON OBJECT::s", Sql2023Writer.Write(Granted(Securable(SecurableClass.Object), select)), StringComparison.Ordinal);
+		Assert.Contains("ON s", Sql2023Writer.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
+
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(Securable(SecurableClass.Object) with { Kind = PrivilegeObjectKind.Domain }, select)));
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(Granted(Securable(SecurableClass.Object) with { TableKeyword = true }, select)));
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>
