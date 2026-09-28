@@ -140,8 +140,8 @@ and an analyzer folder the compiler does not look in.
 the four parser libraries: each is a consumer of its own package and nothing else, with empty
 `Directory.Build.props` and `Directory.Packages.props` of its own, and like the generator's
 they are outside the solution. They exercise SQL's three dialects and both writers, JSON
-Pointer and Patch over JSON values, compiled expression delegates, and a typed FIX heartbeat
-with its schema.
+Pointer and Patch over JSON values, compiled expression delegates and a plugin whose
+references are found in its own load context, and a typed FIX heartbeat with its schema.
 
 Each runs on .NET 8, which consumes the package's `netstandard2.0` asset, and on .NET 10,
 which consumes its `net10.0` one, so both runtimes must be installed; CI installs .NET 8
@@ -149,9 +149,14 @@ beside the SDK `global.json` selects. The version floats, and a `nuget.config` b
 project maps every DotGram package to `artifacts` and everything else to nuget.org, so a check
 with nothing packed fails at restore rather than passing on a published package. After a
 Release build and a pack of the libraries into `artifacts`, CI runs them with a package cache
-of their own, which is also what keeps a stale package of the same version out locally:
+of their own, which is also what keeps a stale package of the same version out locally. By
+hand:
 
 ```
+dotnet build DotGram.slnx -c Linux
+for library in Sql Web ExpressionLanguage Finance; do
+    dotnet pack src/DotGram.$library/DotGram.$library.csproj --no-build --configuration Release --output artifacts
+done
 export NUGET_PACKAGES=$(mktemp -d)
 for library in Sql Web ExpressionLanguage Finance; do
     for framework in net8.0 net10.0; do
@@ -246,7 +251,7 @@ for d in src/DotGram.Sql src/DotGram.ExpressionLanguage src/DotGram.Web src/DotG
 		mkdir -p "$out/$(dirname "$rel")"
 		# #line directives carry the worktree's absolute path; normalize it away.
 		python -c "import sys; d=open(sys.argv[1],'rb').read(); r=sys.argv[3].encode(); open(sys.argv[2],'wb').write(d.replace(r, b'<ROOT>'))" "$f" "$out/$rel" "$root_win"
-    done
+	done
 done
 (cd "$out" && find . -name '*.g.cs' | sort | xargs sha256sum) > "$out.sha256"
 echo "$(wc -l < "$out.sha256") files recorded in $out.sha256"
