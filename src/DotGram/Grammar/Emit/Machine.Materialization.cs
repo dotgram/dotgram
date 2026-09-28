@@ -663,16 +663,7 @@ sealed partial class Machine
 				else if (member.Rule is not null)
 					file.Line($"var captured{memberIndex}At = -1;");
 				else
-				{
-					file.Line($"var captured{memberIndex}From = -1;");
-					file.Line($"var captured{memberIndex}To   = -1;");
-
-					// A member a repetition repeats is measured as well as bounded: the
-					// pieces tell the span whether it is the text, and if it is not they
-					// are what the text is made of.
-					if (Joined(offset, member))
-						file.Line($"var captured{memberIndex}Length = 0;");
-				}
+					DeclareMeasure(file, $"captured{memberIndex}", Joined(offset, member));
 			}
 
 			if (scalars.Count > 0)
@@ -748,16 +739,7 @@ sealed partial class Machine
 									using (file.Block(
 										"if (candidate.Kind == ParserEntry.Capture && " +
 										"candidate.CallIndex == completedAt)"))
-									{
-										file.Line($"if (captured{memberIndex}To < 0)");
-										file.Then($"captured{memberIndex}To = candidate.Value;");
-										file.Line($"captured{memberIndex}From = candidate.Position;");
-
-										if (Joined(offset, member))
-											file.Line(
-												$"captured{memberIndex}Length += " +
-												"candidate.Value - candidate.Position;");
-									}
+										Measure(file, $"captured{memberIndex}", Joined(offset, member));
 
 								file.Line("break;");
 							}
@@ -900,21 +882,7 @@ sealed partial class Machine
 					continue;
 				}
 
-				// A span that arrives inside out is a generator bug, and the debug build
-				// says whose it is instead of throwing an index exception out of a line
-				// number nobody can read. Found the hard way: a reopened capture's start
-				// once survived backtracking in a local, and the report was
-				// ArgumentOutOfRangeException at generated line 34853.
-				file.Line("#if DEBUG");
-				file.Line(
-					$"if (captured{memberIndex}From >= 0 && captured{memberIndex}To < captured{memberIndex}From)");
-				file.Then(
-					"throw new global::System.InvalidOperationException(" +
-					$"\"DotGram invariant: capture '{Escape(member.Name)}' of rule " +
-					$"'{Escape(rule.Name)}' has its end before its start (\" + " +
-					$"captured{memberIndex}From.ToString() + \"..\" + captured{memberIndex}To.ToString() + " +
-					"\"). This is a generator defect; please report the grammar.\");");
-				file.Line("#endif");
+				CheckMeasured(file, $"captured{memberIndex}", member, rule);
 
 				if (!Joined(offset, member))
 				{
@@ -928,7 +896,7 @@ sealed partial class Machine
 					continue;
 				}
 
-				// §10: repeated text is the text joined.
+				// §7.3: repeated text is the text joined.
 				WriteJoin(
 					file, $"captured{memberIndex}", member.IsOptional,
 					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
@@ -1511,7 +1479,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// §10's join of a text member's pieces, into a local called <paramref name="name"/>, once a
+	/// §7.3's join of a text member's pieces, into a local called <paramref name="name"/>, once a
 	/// walk has measured them into <c>{name}From</c>, <c>{name}To</c> and <c>{name}Length</c>.
 	/// </summary>
 	/// <remarks>
@@ -1525,7 +1493,8 @@ sealed partial class Machine
 	/// <para>
 	/// Written once for the two that read a joined member: the walk at the end, over the
 	/// completed call's links, and a guard, over the arena from its end back to the call (§3.6:
-	/// the guard is handed the value the construction is). <paramref name="walk"/> visits the
+	/// the guard is handed the value the construction is). The pieces are measured before by
+	/// <see cref="DeclareMeasure"/>, <see cref="Measure"/> and <see cref="CheckMeasured"/>. <paramref name="walk"/> visits the
 	/// pieces newest first, naming the entry's index <paramref name="at"/>, so the buffer is
 	/// filled from its end; <paramref name="owner"/> is the call the pieces were captured in.
 	/// </para>
@@ -1607,5 +1576,56 @@ sealed partial class Machine
 					? $"{name} = {name}Built.ToString();"
 					: BorrowedCaptures ? $"{name} = {name}Chars;" : $"{name} = new string({name}Chars);");
 		}
+	}
+
+	/// <summary>
+	/// The locals a text member is measured into: where its first piece begins, where its last
+	/// ends, and — where a repetition repeats it — how long its pieces are together.
+	/// </summary>
+	/// <remarks>
+	/// A member a repetition repeats is measured as well as bounded: the pieces tell the span
+	/// whether it is the text, and if it is not they are what the text is made of. Written once
+	/// for the walk at the end and a guard, which measure the same pieces newest first.
+	/// </remarks>
+	void DeclareMeasure(Writer file, string name, bool joined)
+	{
+		file.Line($"var {name}From = -1;");
+		file.Line($"var {name}To   = -1;");
+
+		if (joined)
+			file.Line($"var {name}Length = 0;");
+	}
+
+	/// <summary>One piece, <c>candidate</c>, measured into the locals <see cref="DeclareMeasure"/> declared.</summary>
+	/// <remarks>Newest first: the first piece seen is the last read, and says where the text ends.</remarks>
+	void Measure(Writer file, string name, bool joined)
+	{
+		file.Line($"if ({name}To < 0)");
+		file.Then($"{name}To = candidate.Value;");
+		file.Line($"{name}From = candidate.Position;");
+
+		if (joined)
+			file.Line($"{name}Length += candidate.Value - candidate.Position;");
+	}
+
+	/// <summary>A span that arrives inside out, said in a debug build.</summary>
+	/// <remarks>
+	/// A span that arrives inside out is a generator bug, and the debug build says whose it is
+	/// instead of throwing an index exception out of a line number nobody can read. Found the
+	/// hard way: a reopened capture's start once survived backtracking in a local, and the
+	/// report was ArgumentOutOfRangeException at generated line 34853.
+	/// </remarks>
+	void CheckMeasured(Writer file, string name, ResultMember member, RuleSymbol rule)
+	{
+		file.Line("#if DEBUG");
+		file.Line(
+			$"if ({name}From >= 0 && {name}To < {name}From)");
+		file.Then(
+			"throw new global::System.InvalidOperationException(" +
+			$"\"DotGram invariant: capture '{Escape(member.Name)}' of rule " +
+			$"'{Escape(rule.Name)}' has its end before its start (\" + " +
+			$"{name}From.ToString() + \"..\" + {name}To.ToString() + " +
+			"\"). This is a generator defect; please report the grammar.\");");
+		file.Line("#endif");
 	}
 }

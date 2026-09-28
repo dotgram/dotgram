@@ -2834,15 +2834,15 @@ sealed partial class Machine
 						continue;
 					}
 
-					// A text capture a repetition repeats is the pieces joined (§10), and the guard is
-					// handed that: measured the way the walk at the end measures it, newest first,
-					// and joined by the same code. The last piece alone would be a value the rule
-					// never builds — `(y: D & ','?){2}` over "1,2" is "12", not "2".
+					// A text capture a repetition repeats is the pieces joined (§7.3), and the guard is
+					// handed that: measured and joined by the code the walk at the end uses, newest
+					// first. The last piece alone would be a value the rule never builds —
+					// `(y: D & ','?){2}` over "1,2" is "12", not "2". A guard inside the loop joins
+					// every turn so far at every turn, which is quadratic in the turns; accepted, as
+					// that is the value it names, and no shipped grammar has one.
 					if (member.Rule is null && Joined(_captureOffsets[rule], member))
 					{
-						writer.Line($"var guardCaptured{memberIndex}From   = -1;");
-						writer.Line($"var guardCaptured{memberIndex}To     = -1;");
-						writer.Line($"var guardCaptured{memberIndex}Length = 0;");
+						DeclareMeasure(writer, $"guardCaptured{memberIndex}", joined: true);
 
 						using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
 						{
@@ -2852,11 +2852,11 @@ sealed partial class Machine
 								"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
 								$"({string.Join(" || ", tests)}))"))
 							{
-								writer.Line($"if (guardCaptured{memberIndex}To < 0) guardCaptured{memberIndex}To = candidate.Value;");
-								writer.Line($"guardCaptured{memberIndex}From    = candidate.Position;");
-								writer.Line($"guardCaptured{memberIndex}Length += candidate.Value - candidate.Position;");
+								Measure(writer, $"guardCaptured{memberIndex}", joined: true);
 							}
 						}
+
+						CheckMeasured(writer, $"guardCaptured{memberIndex}", member, rule);
 
 						WriteJoin(
 							writer, $"guardCaptured{memberIndex}", member.IsOptional,
