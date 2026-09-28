@@ -2834,6 +2834,38 @@ sealed partial class Machine
 						continue;
 					}
 
+					// A text capture a repetition repeats is the pieces joined (§10), and the guard is
+					// handed that: measured the way the walk at the end measures it, newest first,
+					// and joined by the same code. The last piece alone would be a value the rule
+					// never builds — `(y: D & ','?){2}` over "1,2" is "12", not "2".
+					if (member.Rule is null && Joined(_captureOffsets[rule], member))
+					{
+						writer.Line($"var guardCaptured{memberIndex}From   = -1;");
+						writer.Line($"var guardCaptured{memberIndex}To     = -1;");
+						writer.Line($"var guardCaptured{memberIndex}Length = 0;");
+
+						using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+						{
+							writer.Line("var candidate = entries[candidateAt];");
+
+							using (writer.Block(
+								"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
+								$"({string.Join(" || ", tests)}))"))
+							{
+								writer.Line($"if (guardCaptured{memberIndex}To < 0) guardCaptured{memberIndex}To = candidate.Value;");
+								writer.Line($"guardCaptured{memberIndex}From    = candidate.Position;");
+								writer.Line($"guardCaptured{memberIndex}Length += candidate.Value - candidate.Position;");
+							}
+						}
+
+						WriteJoin(
+							writer, $"guardCaptured{memberIndex}", member.IsOptional,
+							"for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)",
+							"candidateAt", "call", slots.Select(slot => _captureOffsets[rule] + slot));
+
+						continue;
+					}
+
 					writer.Line($"var guardCaptured{memberIndex}At = -1;");
 
 					using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))

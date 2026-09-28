@@ -928,89 +928,12 @@ sealed partial class Machine
 					continue;
 				}
 
-				// §10's join, and the span where the span is the join. Turns of a repetition
-				// that has nothing else in it are adjacent, and then the pieces measure
-				// exactly the distance between the first start and the last end — one slice
-				// and one string, which is what this cost before it was right. Where they do
-				// not tile, what stands between them is not part of the value, and the
-				// pieces are copied out in reading order instead. The walk runs backwards,
-				// so the buffer is filled from its end.
-				file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (member.IsOptional ? "?" : ""))} captured{memberIndex};");
-				file.Line();
-				file.Line($"if (captured{memberIndex}From < 0)");
-				file.Then($"captured{memberIndex} = {(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty")};");
-				file.Line(
-					$"else if (captured{memberIndex}To - captured{memberIndex}From == " +
-					$"captured{memberIndex}Length)");
-				file.Then(
-					$"captured{memberIndex} = " +
-					Cut($"captured{memberIndex}From", $"captured{memberIndex}Length") + ";");
-
-				using (file.Block("else"))
-				{
-					// The walk runs backwards, so over characters the buffer is filled from
-					// its end. Over kinds it cannot be a buffer at all: `Length` counts
-					// positions, and over kinds a position is a token — what a piece is
-					// worth in characters is somewhere else entirely. The pieces are cut
-					// whole and put in front of what is already there, which is the same
-					// reading order for a fraction of a percent of the captures.
-					if (OverKinds)
-					{
-						file.Line(
-							$"var captured{memberIndex}Built = new global::System.Text.StringBuilder();");
-					}
-					else
-					{
-						file.Line($"var captured{memberIndex}Chars = new {(BufferedBytes ? "byte" : "char")}[captured{memberIndex}Length];");
-						file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
-					}
-
-					file.Line();
-
-					using (file.Block(
-						"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
-						"capturedAt = linkNexts[capturedAt])"))
-					{
-						file.Line("var candidate = entries[capturedAt];");
-						file.Line();
-						file.Line(
-							"if (candidate.Kind != ParserEntry.Capture || " +
-							"candidate.CallIndex != completedAt)");
-						file.Then("continue;");
-						file.Line();
-						file.Line(
-							"if (" +
-							string.Join(
-								" && ",
-								member.Slots.Select(slot => $"candidate.State != {offset + slot}")) +
-							")");
-						file.Then("continue;");
-						file.Line();
-						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
-						file.Line();
-
-						if (OverKinds)
-						{
-							file.Line(
-								$"captured{memberIndex}Built.Insert(0, " +
-								Cut("candidate.Position", $"captured{memberIndex}Piece") + ");");
-						}
-						else
-						{
-							file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
-							file.Line(
-								$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
-								$"new global::System.Span<{(BufferedBytes ? "byte" : "char")}>(captured{memberIndex}Chars, " +
-								$"captured{memberIndex}At, captured{memberIndex}Piece));");
-						}
-					}
-
-					file.Line();
-					file.Line(
-						OverKinds
-							? $"captured{memberIndex} = captured{memberIndex}Built.ToString();"
-							: BorrowedCaptures ? $"captured{memberIndex} = captured{memberIndex}Chars;" : $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
-				}
+				// §10: repeated text is the text joined.
+				WriteJoin(
+					file, $"captured{memberIndex}", member.IsOptional,
+					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
+					"capturedAt = linkNexts[capturedAt])",
+					"capturedAt", "completedAt", member.Slots.Select(slot => offset + slot));
 
 				file.Line();
 			}
@@ -1585,5 +1508,104 @@ sealed partial class Machine
 					ValueFrom(type, $"entries[foldCaptured{memberIndex}At].Position") + ";");
 
 		return $"foldCaptured{memberIndex}{(member.IsOptional ? "" : "!")}";
+	}
+
+	/// <summary>
+	/// §10's join of a text member's pieces, into a local called <paramref name="name"/>, once a
+	/// walk has measured them into <c>{name}From</c>, <c>{name}To</c> and <c>{name}Length</c>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The span where the span is the join. Turns of a repetition that has nothing else in it
+	/// are adjacent, and then the pieces measure exactly the distance between the first start
+	/// and the last end — one slice and one string, which is what this cost before it was
+	/// right. Where they do not tile, what stands between them is not part of the value, and
+	/// the pieces are copied out in reading order instead.
+	/// </para>
+	/// <para>
+	/// Written once for the two that read a joined member: the walk at the end, over the
+	/// completed call's links, and a guard, over the arena from its end back to the call (§3.6:
+	/// the guard is handed the value the construction is). <paramref name="walk"/> visits the
+	/// pieces newest first, naming the entry's index <paramref name="at"/>, so the buffer is
+	/// filled from its end; <paramref name="owner"/> is the call the pieces were captured in.
+	/// </para>
+	/// </remarks>
+	void WriteJoin(
+		Writer file, string name, bool optional, string walk, string at, string owner, IEnumerable<int> states)
+	{
+		file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (optional ? "?" : ""))} {name};");
+		file.Line();
+		file.Line($"if ({name}From < 0)");
+		file.Then($"{name} = {(BorrowedCaptures ? EmptyCapture : optional ? "null" : "string.Empty")};");
+		file.Line(
+			$"else if ({name}To - {name}From == " +
+			$"{name}Length)");
+		file.Then(
+			$"{name} = " +
+			Cut($"{name}From", $"{name}Length") + ";");
+
+		using (file.Block("else"))
+		{
+			// The walk runs backwards, so over characters the buffer is filled from
+			// its end. Over kinds it cannot be a buffer at all: `Length` counts
+			// positions, and over kinds a position is a token — what a piece is
+			// worth in characters is somewhere else entirely. The pieces are cut
+			// whole and put in front of what is already there, which is the same
+			// reading order for a fraction of a percent of the captures.
+			if (OverKinds)
+			{
+				file.Line(
+					$"var {name}Built = new global::System.Text.StringBuilder();");
+			}
+			else
+			{
+				file.Line($"var {name}Chars = new {(BufferedBytes ? "byte" : "char")}[{name}Length];");
+				file.Line($"var {name}At    = {name}Length;");
+			}
+
+			file.Line();
+
+			using (file.Block(walk))
+			{
+				file.Line($"var candidate = entries[{at}];");
+				file.Line();
+				file.Line(
+					"if (candidate.Kind != ParserEntry.Capture || " +
+					$"candidate.CallIndex != {owner})");
+				file.Then("continue;");
+				file.Line();
+				file.Line(
+					"if (" +
+					string.Join(
+						" && ",
+						states.Select(state => $"candidate.State != {state}")) +
+					")");
+				file.Then("continue;");
+				file.Line();
+				file.Line($"var {name}Piece = candidate.Value - candidate.Position;");
+				file.Line();
+
+				if (OverKinds)
+				{
+					file.Line(
+						$"{name}Built.Insert(0, " +
+						Cut("candidate.Position", $"{name}Piece") + ");");
+				}
+				else
+				{
+					file.Line($"{name}At -= {name}Piece;");
+					file.Line(
+						$"text.Slice(candidate.Position, {name}Piece).CopyTo(" +
+						$"new global::System.Span<{(BufferedBytes ? "byte" : "char")}>({name}Chars, " +
+						$"{name}At, {name}Piece));");
+				}
+			}
+
+			file.Line();
+			file.Line(
+				OverKinds
+					? $"{name} = {name}Built.ToString();"
+					: BorrowedCaptures ? $"{name} = {name}Chars;" : $"{name} = new string({name}Chars);");
+		}
 	}
 }
