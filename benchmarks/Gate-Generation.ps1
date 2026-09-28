@@ -6,16 +6,17 @@
 	The generator's time is machine-state dependent: the base of 2026-09-18 was read at 4.1 s on
 	T-SQL at 01:49 and 5.0 s by the same commit rebuilt that evening. So a head is not held to a number
 	written down on another day but to the base rebuilt here, alternately with it: base, head, base,
-	head, on the same cores, one build at a time, and the ratio of the medians is what is quoted; the
+	head, on the stand's processors (taskset, D147), one build at a time, and the ratio of the medians is what is quoted; the
 	milliseconds are not. A host whose ratio is more than the tolerance (20%) away from 1, by at least
 	the floor (100 ms), is named on a line of its own.
 
 	DotGram.Sql and DotGram.Examples are rebuilt in a worktree of each commit (`-t:Rebuild`, so that the
 	generator runs), and the generator's own reports are read. It builds; it times the build's
-	generation. Run it in a timing window: it is the machine's quiet that makes the ratio mean anything.
+	generation, so it is a timing: it takes the window itself (WindowLib.ps1: the lock, the wait for builds, the quiet check)
+	and lets it go when it ends. It is the machine's quiet that makes the ratio mean anything.
 
 .EXAMPLE
-	./benchmarks/Gate-Generation.ps1 -Base d4c58dfd -Head HEAD
+	pwsh benchmarks/Gate-Generation.ps1 -Base d4c58dfd -Head HEAD
 #>
 param(
 	[Parameter(Mandatory)][string]$Base,
@@ -23,33 +24,32 @@ param(
 	[int]$Rounds = 3,
 	[double]$Tolerance = 0.20,
 	[double]$FloorMilliseconds = 100,
-	[string]$Worktrees = (Join-Path ([IO.Path]::GetTempPath()) 'dotgram-gate'),
-	[UInt64]$Affinity = 0xFFFF,
+	[string]$Worktrees,
+	[double]$SlotMinutes = 60,
+	[double]$WaitMinutes = 20,
 
 	# Every project that hosts a grammar. It was DotGram.Sql and DotGram.Examples only, so that "No host moved" was true of two projects of six and read as a statement about the repository
 	# (expr, 2026-09-21: a change to DotGram.ExpressionLanguage was not built at all). The report names the projects and how many hosts each gave; a project that gave none is a hole, not a pass.
 	[string[]]$Projects = @(
-		'src\DotGram.Sql\DotGram.Sql.csproj',
-		'examples\DotGram.Examples\DotGram.Examples.csproj',
-		'src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj',
-		'src\DotGram.Web\DotGram.Web.csproj',
-		'src\DotGram.Finance\DotGram.Finance.csproj')
+		'src/DotGram.Sql/DotGram.Sql.csproj',
+		'examples/DotGram.Examples/DotGram.Examples.csproj',
+		'src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj',
+		'src/DotGram.Web/DotGram.Web.csproj',
+		'src/DotGram.Finance/DotGram.Finance.csproj')
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repo = (git rev-parse --show-toplevel).Trim()
-$me = Get-Process -Id $PID
 
-$me.ProcessorAffinity = [IntPtr]$Affinity
-$me.PriorityClass = 'High'
-$env:MSBUILDDISABLENODEREUSE = '1'
-
-# A timing window announces itself (StandWindow.cs): the temp directory's dotgram-timing-window.txt, read by every session before it times anything; a file whose pid is not alive is stale.
-$window = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
-Set-Content $window (@("pid $PID", "started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')", 'until unknown (a gate of alternating rebuilds)', "what Gate-Generation.ps1 -Base $Base -Head $Head -Rounds $Rounds") + "process-start $(Get-ProcessStartText $PID)")
-Register-EngineEvent PowerShell.Exiting -Action { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", 'why the window of a generation gate ended') -ErrorAction SilentlyContinue } | Out-Null
+
+Assert-Linux
+
+if (-not $Worktrees) { $Worktrees = Join-Path (Get-ScratchRoot) 'gate' }
+
+$cpus = Get-StandCpus
+$env:MSBUILDDISABLENODEREUSE = '1'
 
 $sides = [ordered]@{
 	base = @{ Commit = (git -C $repo rev-parse --short $Base).Trim(); Dir = Join-Path $Worktrees 'base' }
@@ -65,39 +65,54 @@ foreach ($side in $sides.Values) {
 	}
 }
 
+$what   = "Gate-Generation.ps1 -Base $Base -Head $Head -Rounds $Rounds"
+$window = Enter-Window $what (Get-Date).AddMinutes($SlotMinutes) $WaitMinutes
+
+if ($window -is [string]) { Stop-Run 3 $window }
+
 $summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation'
 $taken = @{ base = @{}; head = @{} }
 $perProject = @{ base = @{}; head = @{} }
 
-for ($round = 1; $round -le $Rounds; $round++) {
-	foreach ($name in $sides.Keys) {
-		$dir = $sides[$name].Dir
+try {
+	$quiet = Measure-Quiet
+	$quiet.Text
 
-		foreach ($project in $Projects) {
-			# The report level is set to "true" (the full report) on both sides: the property is a switch on a commit that predates the levels and the full level on one that has them.
-			dotnet build (Join-Path $dir $project) -c Release -t:Rebuild -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DotGramReportGeneration=true | Out-Null
+	if (-not $quiet.Quiet) { Stop-Run 5 "The machine is not quiet: $($quiet.Why). Nothing was built." }
 
-			if ($LASTEXITCODE -ne 0) { throw "$name $project did not build" }
+	for ($round = 1; $round -le $Rounds; $round++) {
+		foreach ($name in $sides.Keys) {
+			$dir = $sides[$name].Dir
 
-			$projectRoot = Split-Path (Join-Path $dir $project)
-			$hosts = 0
+			foreach ($project in $Projects) {
+				# The report level is set to "true" (the full report) on both sides: the property is a switch on a commit that predates the levels and the full level on one that has them.
+				& taskset -c $cpus dotnet build (Join-Path $dir $project) -c Release -t:Rebuild -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DotGramReportGeneration=true | Out-Null
 
-			foreach ($report in Get-ChildItem $projectRoot -Recurse -Filter '*.DotGramReport.g.cs' -ErrorAction SilentlyContinue) {
-				$m = $summary.Match((Get-Content $report.FullName -Raw))
+				if ($LASTEXITCODE -ne 0) { throw "$name $project did not build" }
 
-				if ($m.Success) {
-					$key = $m.Groups['host'].Value
-					if (-not $taken[$name].ContainsKey($key)) { $taken[$name][$key] = @() }
-					$taken[$name][$key] += [double]$m.Groups['ms'].Value
-					$hosts++
+				$projectRoot = Split-Path (Join-Path $dir $project)
+				$hosts = 0
+
+				foreach ($report in Get-ChildItem $projectRoot -Recurse -Filter '*.DotGramReport.g.cs' -ErrorAction SilentlyContinue) {
+					$m = $summary.Match((Get-Content $report.FullName -Raw))
+
+					if ($m.Success) {
+						$key = $m.Groups['host'].Value
+						if (-not $taken[$name].ContainsKey($key)) { $taken[$name][$key] = @() }
+						$taken[$name][$key] += [double]$m.Groups['ms'].Value
+						$hosts++
+					}
 				}
+
+				$perProject[$name][$project] = $hosts
 			}
 
-			$perProject[$name][$project] = $hosts
+			"round $round $name $($sides[$name].Commit) $(Get-Date -Format HH:mm:ss)"
 		}
-
-		"round $round $name $($sides[$name].Commit) $(Get-Date -Format HH:mm:ss)"
 	}
+}
+finally {
+	Exit-Window $window "the window of pid $PID ended: $what"
 }
 
 function Median($values) {
@@ -109,7 +124,7 @@ function Median($values) {
 ''
 "Generator time, head $($sides.head.Commit) against base $($sides.base.Commit), median of $Rounds alternating rounds (same cores):"
 ''
-($jit = 'JIT of the compiler process the generator runs in (the environment of this script, inherited by the builds): ' + ((@('DOTNET_TieredCompilation', 'DOTNET_TieredPGO', 'DOTNET_TC_QuickJitForLoops', 'DOTNET_ReadyToRun') | ForEach-Object { $value = [Environment]::GetEnvironmentVariable($_); if ($value) { "$_=$value" } else { "$_ unset" } }) -join ', ') + ' (unset is the runtime default). Cores ' + $Affinity.ToString('X') + ', report level true on both sides, node reuse and the shared compiler server off.')
+($jit = 'JIT of the compiler process the generator runs in (the environment of this script, inherited by the builds): ' + ((@('DOTNET_TieredCompilation', 'DOTNET_TieredPGO', 'DOTNET_TC_QuickJitForLoops', 'DOTNET_ReadyToRun') | ForEach-Object { $value = [Environment]::GetEnvironmentVariable($_); if ($value) { "$_=$value" } else { "$_ unset" } }) -join ', ') + ' (unset is the runtime default). Processors ' + $cpus + ' (taskset), default priority, report level true on both sides, node reuse and the shared compiler server off.')
 'Projects rebuilt, and the hosts each gave (a project that gave 0 is a hole in this report, not a pass):'
 foreach ($project in $Projects) { '- {0}: base {1}, head {2}' -f $project, $perProject.base[$project], $perProject.head[$project] }
 ''

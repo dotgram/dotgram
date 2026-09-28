@@ -1,42 +1,31 @@
 <#
 .SYNOPSIS
-	Says in one line whether a timing window is open: `pwsh benchmarks/Window.ps1`. Read it before you build, test or run anything on this machine.
+	Says in one line whether a timing window is open: `pwsh benchmarks/Window.ps1`.
 
 .DESCRIPTION
-	`dotgram-timing-window.txt` in the temp directory always exists and its FIRST LINE says what the machine is doing:
-	  idle         no window; the lines below say when the last one ended and what it was
-	  pid <n>      a window is announced by process <n>, with `started`, `until` and `what` below it
-	Whether the file exists says nothing about whether a window is open: a missing file is a defect of the stand (something deleted it) and this script says so.
-	A file that names a pid which is gone, or which is held by a process that started at another time than the announcement records (pids are recycled), is STALE: the run that announced it died without ending its window. The machine is free, and the file is put back to idle.
+	A window is the lock `timing-window.lock` in the window directory (`/ramdisk/locks` on this machine; WindowLib.ps1, D147), held by the process that times for as long as it times. The kernel lets
+	the lock go when that process ends, however it ends, so a window cannot outlive its holder. `timing-window.txt` beside it names the holder (pid, started, until, what).
 
-	Output is one line and it begins with a WORD, and the word is the answer: IDLE or STALE (the machine is free), BUSY (do not build, test or run anything, on either half), MISSING (the file was missing, a defect of the stand: created idle; tell the stand session) or UNREADABLE (treat as busy). The exit code repeats it: 0 IDLE/STALE, 1 BUSY/UNREADABLE, 2 MISSING.
+	You do not need this before a build: `benchmarks/Aside.sh <command>` waits for a window by itself, and a window waits for what runs through it. It is for a person or a session that wants to
+	know, and for scripts that must not start a timing inside somebody else's.
 
-	**A check that printed no word did not run.** An exit code alone cannot tell "the script says the file is missing" (2) from "the script is not in this checkout" (the shell's own code): a caller reads the word, and if the script cannot be found the answer is NOT CHECKED, which is a refusal to proceed and never a pass. From a script:
-	    if (-not (Test-Path benchmarks/Window.ps1)) { 'NOT CHECKED: Window.ps1 is not in this checkout'; exit 9 }
-	    $word = (& pwsh -NoProfile -File benchmarks/Window.ps1) -join ' '
-	    if ($word -notmatch '^(IDLE|STALE)') { "NOT FREE: $word"; exit 9 }
+	Output is one line and it begins with a WORD, and the word is the answer: IDLE (no window), STALE (no window; the text named a holder that ended without saying so, and is put back to idle),
+	WITHIN (a window is open and this process is inside it: DOTGRAM_WINDOW_HOLDER names its holder) or BUSY (a window is open: run heavy work through Aside.sh, which waits). The exit code repeats it:
+	0 IDLE/STALE, 1 BUSY, 3 WITHIN.
+
+	**A check that printed no word did not run.** A caller reads the word; if the script cannot be found the answer is NOT CHECKED, which is a refusal to proceed and never a pass.
 
 .EXAMPLE
 	pwsh benchmarks/Window.ps1
 #>
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
 
-$window = Get-WindowFile
-$idle   = { param($why) Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why $why") }
+$state = Get-WindowState
+$lines = Get-WindowLines
 
-if (-not (Test-Path $window)) {
-	& $idle 'the file was missing and Window.ps1 created it'
-	'MISSING: the announcement file did not exist (something deleted it; a window may have been open and nobody could tell). Created it idle. Tell the stand session.'
-	exit 2
-}
-
-$lines = @(Get-Content $window)
-
-switch (Get-WindowOwnerState $lines) {
+switch ($state) {
 	'Idle' { 'IDLE: no window is open. ' + (($lines | Select-Object -Skip 1) -join '; '); exit 0 }
-	'Alive' { 'BUSY: ' + ($lines -join '; ') + '. Do not build, test or run anything, on either half.'; exit 1 }
-	'AliveByPid' { 'BUSY: ' + ($lines -join '; ') + ". Do not build, test or run anything, on either half. (This announcement records no start time of its process, so only the pid could be checked: it is treated as live.)"; exit 1 }
-	'Gone' { & $idle "the announcing process is gone (it died without ending its window): $($lines -join '; ')"; "STALE: the process that announced a window is gone; the machine is free, the file is idle again. Was: $($lines -join '; ')"; exit 0 }
-	'Reused' { & $idle "the announced pid is held by a DIFFERENT process (started at another time than the announcement says): the announcer is gone: $($lines -join '; ')"; "STALE: the pid in the announcement is held now by a different process (its start time is not the one recorded), so the announcer is gone; the machine is free, the file is idle again. Was: $($lines -join '; ')"; exit 0 }
-	default { "UNREADABLE first line '$($lines[0])': treat the machine as busy and ask the stand session."; exit 1 }
+	'Stale' { 'STALE: no window is open; the announcement named a holder that ended without saying so, and is idle again.'; exit 0 }
+	'Within' { 'WITHIN: ' + ($lines -join '; ') + '. This process is inside that window.'; exit 3 }
+	default { 'BUSY: ' + ($lines -join '; ') + '. Run builds, tests and other heavy work through benchmarks/Aside.sh, which waits for the window to close.'; exit 1 }
 }

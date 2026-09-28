@@ -26,19 +26,19 @@
 	It pins nothing itself. A child inherits the affinity and priority of whoever starts it, and the
 	first milliseconds of a fresh process -- the runtime starting, the assembly loading, the first
 	method compiling -- ARE the figure here, so a mask applied after Start-Process has returned
-	arrives after the thing it was meant to govern. This is run under Run-Announced.ps1, which sets
-	the mask on itself before anything starts; this script only checks what it inherited and refuses
-	what it does not recognise.
+	arrives after the thing it was meant to govern. This is run under Run-Announced.ps1, which starts
+	it under taskset on the stand's processors (D147); this script only checks what it inherited and
+	refuses what it does not recognise.
 
 .EXAMPLE
-	& ./benchmarks/Run-Announced.ps1 -Label fix-first-validate -SlotMinutes 15 -Script ./benchmarks/FirstCall/Fix/Run-Validate.ps1 -Artifacts ./benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe, ./src/DotGram.Finance/bin/Release/net10.0/DotGram.Finance.dll
+	pwsh benchmarks/Run-Announced.ps1 -Label fix-first-validate -SlotMinutes 15 -Script benchmarks/FirstCall/Fix/Run-Validate.ps1 -Artifacts benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst, src/DotGram.Finance/bin/Release/net10.0/DotGram.Finance.dll
 #>
 param(
 	# A directory holding the DotGram.Finance.dll under test, built Release.
 	[string]   $Library  = 'src/DotGram.Finance/bin/Release/net10.0',
 	[string[]] $Types    = @('Heartbeat', 'NewOrderSingle', 'ExecutionReport', 'TradeCaptureReport'),
 	[int]      $Launches = 11,
-	[string]   $Harness  = 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe',
+	[string]   $Harness  = $(if ($IsWindows) { 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe' } else { 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst' }),
 
 	# One process that validates one message of EVERY type, instead of one type a process. It is
 	# the other question: not what the first message costs, but what a process pays to have met
@@ -52,9 +52,9 @@ if (-not (Test-Path benchmarks/Window.ps1)) { 'NOT CHECKED: Window.ps1 is not in
 
 $window = (& pwsh -NoProfile -File benchmarks/Window.ps1) -join ' '
 
-if ($window -notmatch '^(BUSY)') {
+if ($window -notmatch '^(WITHIN)') {
 	"NOT ANNOUNCED: this is a timing run and the machine says: $window"
-	'Announce a window first; a first-call figure taken on an unannounced machine is not a figure.'
+	'Run it through Run-Announced.ps1; a first-call figure taken on an unannounced machine is not a figure.'
 	exit 9
 }
 
@@ -64,14 +64,15 @@ foreach ($needed in @($Harness, (Join-Path $Library 'DotGram.Finance.dll'))) {
 
 # Inherited, never set here. Printing it means a run started without the announcer says so in its
 # own output rather than looking like every other run.
-$mask = [int64](Get-Process -Id $PID).ProcessorAffinity
-$rank = (Get-Process -Id $PID).PriorityClass
+. (Join-Path $PSScriptRoot '../../WindowLib.ps1')
 
-'affinity 0x{0:X} priority {1}' -f $mask, $rank
+$cpus = Get-ProcessCpus $PID
 
-if ($mask -ne 0xFFFF) {
-	'NOT THE TIMING HALF: this inherited a mask that is not 0xFFFF, the cores the stand times on.'
-	'Run it through Run-Announced.ps1, which sets the mask on itself before anything starts.'
+"processors $cpus"
+
+if ((ConvertTo-CpuSet $cpus) -ne (ConvertTo-CpuSet (Get-StandCpus))) {
+	"NOT THE TIMING HALF: this inherited processors $cpus, not $(Get-StandCpus), the ones the stand times on."
+	'Run it through Run-Announced.ps1, which starts it under taskset.'
 	exit 9
 }
 

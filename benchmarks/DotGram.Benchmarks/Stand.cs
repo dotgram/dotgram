@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
@@ -28,15 +28,15 @@ namespace DotGram.Benchmarks;
 /// <remarks>
 /// <para>
 /// <c>--stand [directory]</c> writes <c>stand.md</c> and <c>stand.json</c> there, by default into
-/// a directory of its own under <c>T:\TEMP\dotgram-stand</c>, a RAM disk where losing a result
+/// a directory of its own under <c>/ramdisk/build/dotgram/stand</c>, a RAM disk where losing a result
 /// costs nothing. <c>--stand-compare before.json after.json</c> puts two runs side by side.
 /// <c>--rebuild</c> rebuilds every grammar-hosting project first, so the generator's reports are
 /// this build's rather than whatever an earlier incremental one left; left out, a row missing
 /// its report is named and why, rather than the table silently coming up short.
 /// </para>
 /// <para>
-/// Nothing is timed until both parsers of a row have answered the same (D1). The process pins
-/// itself to logical processors 0 to 15 at high priority (D4), and a row of plain arithmetic
+/// Nothing is timed until both parsers of a row have answered the same (D1). The process runs
+/// on the stand's processors, put there by taskset (D147), and a row of plain arithmetic
 /// is timed in every round beside the parsers: two runs whose control rows differ were taken
 /// on different machines, whatever the clock says. Runs are compared by their ratios to the
 /// hand-written parsers, which a slower machine moves on both sides alike.
@@ -1994,7 +1994,7 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture, $"# Paired stand, {DateTime.Now:yyyy-MM-dd HH:mm}");
 		text.AppendLine();
 		text.AppendLine(CultureInfo.InvariantCulture,
-			$"{Environment.MachineName}, {(pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {control:F1} ns.");
+			$"{Environment.MachineName}, {(pinned ? _placement : "NOT pinned")}, control {control:F1} ns.");
 		text.AppendLine();
 		text.AppendLine(CultureInfo.InvariantCulture, $"This binary, and the libraries it holds as the control, was built from {BinaryCommit()}. {JitNote()}");
 		text.AppendLine();
@@ -2710,13 +2710,32 @@ static partial class Stand
 
 	// ── Where and on what ───────────────────────────────────────────────────────
 
+	/// <summary>Where this process runs, in the words the header of a run uses; written by <see cref="Pin"/>.</summary>
+	static string _placement = "NOT pinned";
+
 	/// <summary>
-	/// Logical processors 0 to 15 at high priority, where the machine has them (D4).
+	/// On Linux the stand does not pin itself: <c>Process.ProcessorAffinity</c> pins only the main thread there, and the processes a run starts would not inherit it. It is started under
+	/// <c>taskset</c> (<c>benchmarks/Run-Announced.ps1</c>, D147) and reads back where it was put; it counts as pinned when the kernel allows it fewer processors than are online. The priority
+	/// cannot be raised without privilege, and is not tried. On Windows it pins itself to logical processors 0 to 15 at high priority, where the machine has them (D4).
 	/// </summary>
 	static bool Pin()
 	{
 		try
 		{
+			if (OperatingSystem.IsLinux())
+			{
+				var allowed = File.ReadLines("/proc/self/status").FirstOrDefault(static line => line.StartsWith("Cpus_allowed_list:", StringComparison.Ordinal))?["Cpus_allowed_list:".Length..].Trim();
+				var online  = File.ReadAllText("/sys/devices/system/cpu/online").Trim();
+				var pinned  = allowed is not null && allowed != online;
+
+				_placement = pinned ? $"processors {allowed} (taskset), default priority" : $"NOT pinned (processors {allowed})";
+
+				if (!pinned)
+					Console.Error.WriteLine("Not pinned: start a timing through benchmarks/Run-Announced.ps1, which puts it on the stand's processors with taskset (D147). Its numbers are not to be quoted.");
+
+				return pinned;
+			}
+
 			var process = Process.GetCurrentProcess();
 
 			if (Environment.ProcessorCount >= 16 && OperatingSystem.IsWindows())
@@ -2724,9 +2743,12 @@ static partial class Stand
 
 			process.PriorityClass = ProcessPriorityClass.High;
 
+			if (Environment.ProcessorCount >= 16)
+				_placement = "pinned to 0-15, high priority";
+
 			return Environment.ProcessorCount >= 16;
 		}
-		catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or PlatformNotSupportedException)
+		catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or PlatformNotSupportedException or IOException)
 		{
 			return false;
 		}
@@ -2802,9 +2824,12 @@ static partial class Stand
 
 	static string DefaultDirectory()
 	{
-		var temp = Directory.Exists(@"T:\TEMP") ? @"T:\TEMP" : Path.GetTempPath();
+		// Never the SSD (D147): DOTGRAM_SCRATCH, /ramdisk/build/dotgram on this machine, the temp directory elsewhere; the same rule as benchmarks/WindowLib.ps1.
+		var scratch = Environment.GetEnvironmentVariable("DOTGRAM_SCRATCH") is { Length: > 0 } named ? named
+			: Directory.Exists("/ramdisk") ? "/ramdisk/build/dotgram"
+			: Path.Combine(Path.GetTempPath(), "dotgram");
 
-		return Path.Combine(temp, "dotgram-stand", DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+		return Path.Combine(scratch, "stand", DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
 	}
 
 	// ── Writing it down ─────────────────────────────────────────────────────────
@@ -2833,7 +2858,7 @@ static partial class Stand
 		text.AppendLine(CultureInfo.InvariantCulture, $"# Stand, {result.Commit}, {result.Taken:yyyy-MM-dd HH:mm}");
 		text.AppendLine();
 		text.AppendLine(CultureInfo.InvariantCulture,
-			$"{result.Machine}, {result.Runtime}, {(result.Pinned ? "pinned to 0-15, high priority" : "NOT pinned")}, control {result.Control:F1} ns.");
+			$"{result.Machine}, {result.Runtime}, {(result.Pinned ? _placement : "NOT pinned")}, control {result.Control:F1} ns.");
 		text.AppendLine();
 		var references = result.Rows.Any(static row => row.Readings.Any(static one => one.Reading.StartsWith("reference", StringComparison.Ordinal)));
 

@@ -1,42 +1,43 @@
 <#
 .SYNOPSIS
-	Runs a BenchmarkDotNet assembly as a timing window: pinned, announced, and with the affinity of every benchmark process READ back from the process.
+	Runs a BenchmarkDotNet assembly as a timing window: announced, on the stand's half of the machine, and with the processors of every benchmark process READ back from the kernel.
 
 .DESCRIPTION
-	BenchmarkDotNet starts a process of its own for every benchmark case, so pinning the launcher says nothing about where a case was
-	measured. This script does what the stand's own runs do (docs/development.md, "A timing is taken in an announced window") and adds the
-	one thing they do not need: it watches the descendants of the run and reads, for EACH worker (the processes whose command line carries
-	`--benchmarkId`), the processor affinity and the priority class the operating system reports. A worker that is not on the mask fails the run at once; the run
-	is stopped and its numbers are not to be quoted. A worker whose priority is below High is raised to High and the raise is written down.
+	BenchmarkDotNet starts a process of its own for every benchmark case, so where the launcher runs says nothing about where a case was measured. This script does what Run-Announced.ps1 does for the
+	stand (the window lock, the wait for builds, the quiet check, `taskset`; D147) and adds the one thing the stand does not need: it watches the children of the run and reads, for EACH worker (the
+	processes whose command line carries `--benchmarkId`), the processors the kernel allows it (`Cpus_allowed_list`). A worker that is not on the stand's processors fails the run at once; the run is
+	stopped and its numbers are not to be quoted.
 
 	What it does, in order:
-	  0. refuses to start (exit 5, no flag lifts it) when the machine is not quiet: more than 6% of it in use outside this script over three seconds, or any build tool above 0.15 core; what it saw is printed and written to run.txt either way;
-	  1. refuses to start when another window is announced and its process is alive (`dotgram-timing-window.txt` in the temp directory), or when BDN is asked
-	     to run in process (`--inProcess`: a number taken there is not a number of this stand);
-	  2. announces the window (pid, started, until, what) in the same format as the stand's own runs, and puts the file back to `idle` when the run ends (benchmarks/Window.ps1 reads it);
-	  3. pins itself to logical processors 0-15 (0xFFFF) at high priority and starts `dotnet <Assembly> <BdnArgs> --artifacts <out>`; the children inherit the mask;
-	  4. every 100 ms reads the workers that appeared and checks each once, by pid and start time (a worker that starts and ends between two reads is not checked, and run.txt says how many
+	  0. refuses when BDN is asked to run in process (`--inProcess`: a number taken there is not a number of this stand), and on a system that is not Linux;
+	  1. takes the window (WindowLib.ps1, Enter-Window): refuses (exit 3) when another is open, waits at most -WaitMinutes for the builds that hold the builds lock (benchmarks/Aside.sh) to end;
+	  2. the quiet check (exit 5, no flag lifts it): more than 6% of the machine in use outside this script over three seconds, or any build tool above 0.15 core; what it saw is printed and written to run.txt either way;
+	  3. reads the state of what will be measured (below) and refuses a quotable run on a tree that is not clean (exit 5; -Probe lets it through, stamped);
+	  4. starts `taskset -c <cpus> dotnet <Assembly> <BdnArgs> --artifacts <out>` (processors 0-7 and 16-23 by default: the first CCD with its SMT siblings); the children inherit the processors. This
+	     script itself is not pinned: it watches from the other half;
+	  5. every 100 ms reads the workers that appeared and checks each once, by pid and start time (a worker that starts and ends between two reads is not checked, and run.txt says how many
 	     workers BDN executed, from its own log, against how many were read: a case of a real run lasts many seconds, a dry job's does not);
-	  5. (-Commit names the commit of what is under test when the assembly is built outside the repository, e.g. "library 1a2b3c4d, main 5e6f7a8b"; without it the commit is read from the repository the assembly sits in, and says "no repository" when there is none. -Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
-	  6. at the end writes run.txt beside BDN's artifacts: the commit, the mask, the JIT variables, every worker checked (pid, affinity, priority,
-	     when) and the exit code, so that a reader a month later has the header a paired report carries.
+	  6. (-Commit names the commit of what is under test when the assembly is built outside the repository, e.g. "library 1a2b3c4d, main 5e6f7a8b"; it is printed beside the reading, never in place
+	     of it. -Note is written into the announcement and into run.txt: "a pricing probe, its numbers are not to be quoted")
+	  7. at the end writes run.txt beside BDN's artifacts (<scratch>/bdn/<label>-<time>, /ramdisk/build/dotgram on this machine): the commit, the processors, the JIT variables, every worker checked
+	     (pid, processors, when) and the exit code, so that a reader a month later has the header a paired report carries.
 
-	It builds nothing: build the assembly first, on 16-31 and before the window (benchmarks/Build-Side.ps1 pins builds there). BDN itself compiles a generated
-	project once at the start of a run; that is inside the window and on 0-15, and is the only build that is. Nobody else builds while a window is
-	announced, on either half: 16-31 shares the last-level cache and the memory bandwidth with 0-15 (benchmarks/README.md).
+	It builds nothing: build the assembly first, through Aside.sh and before the window. BDN compiles a generated project once at the start of a run; that is inside the window and on the stand's
+	processors, and is the only build that is. The priority cannot be raised on this machine (no privilege to lower a nice value): BDN's own attempt to raise its workers fails with a warning, and every
+	timing runs at the default priority.
 
 	Every class that compares two things carries an A/A row (the same method under two names), and a ratio is read against its spread: the resolution is the hour's.
 
 .EXAMPLE
-	& .\benchmarks\Run-Bdn.ps1 -Assembly .\benchmarks\DotGram.Benchmarks\bin\Release\net10.0\DotGram.Benchmarks.dll -Label sql-tsql -BdnArgs '--filter','*ScriptDomBenchmarks*' -LimitMinutes 45
+	pwsh benchmarks/Run-Bdn.ps1 -Assembly benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll -Label sql-tsql -BdnArgs '--filter','*ScriptDomBenchmarks*' -LimitMinutes 45
 #>
 param(
 	[Parameter(Mandatory)][string]$Assembly,
 	[Parameter(Mandatory)][string]$Label,
 	[string[]]$BdnArgs = @(),
 	[double]$LimitMinutes = 60,
-	[UInt64]$Affinity = 0xFFFF,
-	[string]$Root = 'T:\TEMP\dotgram-bdn',
+	[double]$WaitMinutes = 20,
+	[string]$Root,
 	[string]$Note = '',
 	[string]$Commit = '',
 	[switch]$Within,
@@ -47,66 +48,23 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
 
+Assert-Linux
+
 $Assembly = (Resolve-Path $Assembly).Path
-$window   = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
 $stamp    = Get-Date -Format 'yyyyMMdd-HHmmss'
-$out      = Join-Path $Root "$Label-$stamp"
+$cpus     = Get-StandCpus
+$cpuSet   = ConvertTo-CpuSet $cpus
 $repo     = (git -C (Split-Path $Assembly) rev-parse --show-toplevel 2>$null)
 
-if ($BdnArgs -contains '--inProcess' -or $BdnArgs -contains '-i') { Write-Error 'BDN in process is not a timing of this stand (benchmarks/README.md): run it out of process.'; exit 2 }
+if (-not $Root) { $Root = Join-Path (Get-ScratchRoot) 'bdn' }
 
-if (-not (Test-Path $window)) { Write-Warning 'The announcement file did not exist (it is meant to exist always, idle when there is no window): something deleted it. It is created now.' }
+$out = Join-Path $Root "$Label-$stamp"
 
-# -Within: this run is one step of a window that its CALLER announced in the same process (benchmarks/Run-BdnQueue.ps1): the file must already say `pid <this process>`, and the step neither rewrites the announcement nor puts the file back to idle, so that the
-# window has no gap between its steps. The quiet check still runs before every step.
-if ($Within) {
-	if ((Get-Content $window -ErrorAction SilentlyContinue | Select-Object -First 1) -ne "pid $PID") { Write-Error '-Within needs the window to be announced by the calling process (the first line of the file must be its pid).'; exit 3 }
-}
-elseif (Test-Path $window) {
-	# The announcer is checked by pid AND start time (WindowLib.ps1): a recycled pid is not a live window.
-	$lines = @(Get-Content $window)
+if ($BdnArgs -contains '--inProcess' -or $BdnArgs -contains '-i') { Stop-Run 2 'BDN in process is not a timing of this stand (benchmarks/README.md): run it out of process.' }
 
-	if ((Get-WindowOwnerState $lines) -in 'Alive', 'AliveByPid' -and $lines[0] -ne "pid $PID") {
-		Write-Error ("Another timing window is announced and its process is alive: " + ($lines -join '; ')); exit 3
-	}
-}
-
-# The quiet check: a build or a run that somebody started and forgot is found by the instrument, not by memory (2026-09-21: a restore and a compile were still running when a window was announced).
-# The CPU time of every readable process over three seconds, outside this script. Two refusals, and no flag that lifts either: the machine as a whole above 6% (an idle machine here reads 1.7-2.8%, twelve samples of
-# 2026-09-21: a light keeper at 0.3 core, the sessions' own processes about 0.2), and any build tool (dotnet, MSBuild, the compiler servers, csc, git) above 0.15 core, which a small compile alone would not
-# lift the total to 6% for. What it saw is printed and written into run.txt whether it passes or not, so the thresholds can be moved by the records and not by memory.
-$quietPercent = 6
-$buildTools   = 'dotnet', 'MSBuild', 'VBCSCompiler', 'csc', 'vbcscompiler', 'cl', 'link', 'git', 'nuget', 'node', 'msbuild'
-
-function CpuSample {
-	$sample = @{}
-
-	foreach ($process in Get-Process) {
-		# Keyed by pid AND start time: a pid recycled inside the three seconds is another process, not a jump in the first one's CPU time.
-		try { if ($process.Id -ne $PID -and $process.Id -ne 0) { $sample["$($process.Id)@$($process.StartTime.Ticks)"] = @($process.ProcessName, $process.TotalProcessorTime.TotalSeconds, $process.Id) } } catch { }
-	}
-
-	$sample
-}
-
-$before  = CpuSample
-Start-Sleep -Seconds 3
-$after   = CpuSample
-$cores   = [int]$env:NUMBER_OF_PROCESSORS
-$busy    = @(foreach ($id in $after.Keys) { if ($before.ContainsKey($id)) { [pscustomobject]@{ Id = $after[$id][2]; Name = $after[$id][0]; Cores = [math]::Round(($after[$id][1] - $before[$id][1]) / 3, 3) } } })
-$total   = ($busy | Measure-Object Cores -Sum).Sum
-$percent = [math]::Round(100 * $total / $cores, 1)
-$top     = ($busy | Sort-Object Cores -Descending | Select-Object -First 3 | ForEach-Object { "$($_.Name) (pid $($_.Id)) $($_.Cores)" }) -join '; '
-$builders = @($busy | Where-Object { $_.Name -in $buildTools -and $_.Cores -gt 0.15 })
-$quiet    = "Quiet check before the start: $percent% of the machine ($([math]::Round($total, 2)) of $cores logical processors) in use outside this script, three seconds; busiest: $top."
-
-$quiet
-
-if ($percent -gt $quietPercent -or $builders.Count -gt 0) {
-	$why = if ($builders.Count -gt 0) { "a build tool is running: $(($builders | ForEach-Object { "$($_.Name) (pid $($_.Id)) $($_.Cores) cores" }) -join '; ')" } else { "more than $quietPercent% of the machine is in use" }
-	Write-Error "The machine is not quiet: $why. $quiet Nothing was announced or started."
-	exit 5
-}
+# -Within: this run is one step of a window that its CALLER opened in the same process (benchmarks/Run-BdnQueue.ps1): the step neither takes the window nor lets it go, so that the window has no gap
+# between its steps. The quiet check still runs before every step.
+if ($Within -and (Get-WindowState) -ne 'Within') { Stop-Run 3 '-Within needs the window to be open and held by the calling process.' }
 
 # THE STATE OF WHAT WILL BE MEASURED, read and never asserted (2026-09-21: BenchmarkDotNet does not run the dll it is given; at the start of every run it builds a generated project that references the benchmark
 # PROJECT, so it rebuilds the project and what it references from the SOURCES as they are then. A tree that somebody edits while a window is open is measured as edited, and a caller's sentence about the commit
@@ -161,20 +119,19 @@ $stateLines
 
 if ($stateRefusal.Count -gt 0) {
 	if ($Probe) { $stateLines += "PROBE: a run marked a probe is allowed on this state, and its numbers are not to be quoted ($($stateRefusal -join '; '))." }
-	else { Write-Error "The tree is not in a state to be measured: $($stateRefusal -join '; '). A quotable run needs a clean, frozen tree built once before the window (or -Probe, and the numbers are then not quoted). Nothing was announced or started."; exit 5 }
+	else { Stop-Run 5 "The tree is not in a state to be measured: $($stateRefusal -join '; '). A quotable run needs a clean, frozen tree built once before the window (or -Probe, and the numbers are then not quoted). Nothing was started." }
 }
 
-New-Item -ItemType Directory -Force $out | Out-Null
+$started   = Get-Date
+$until     = $started.AddMinutes($LimitMinutes)
+$what      = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')$(if ($Note) { ' [' + $Note + ']' })"
+$window    = $null
 
-$started = Get-Date
-$until   = $started.AddMinutes($LimitMinutes)
-$what    = "Run-Bdn.ps1 $Label $($BdnArgs -join ' ')$(if ($Note) { ' [' + $Note + ']' })"
+if (-not $Within) {
+	$window = Enter-Window $what $until $WaitMinutes
 
-if (-not $Within) { Set-Content $window (New-WindowAnnouncement $started $until $what) }
-
-$me = Get-Process -Id $PID
-$me.ProcessorAffinity = [IntPtr][int64]$Affinity
-$me.PriorityClass = 'High'
+	if ($window -is [string]) { Stop-Run 3 $window }
+}
 
 $checked   = @{}
 $rows      = New-Object System.Collections.Generic.List[string]
@@ -183,60 +140,75 @@ $failure   = $null
 $exit      = $null
 $process   = $null
 
-function Descendants([int]$parent) {
-	foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$parent" -ErrorAction SilentlyContinue)) {
-		$child
-		Descendants $child.ProcessId
+# The children of a process, from every one of its threads (/proc/<pid>/task/<tid>/children).
+function Children([int]$parent) {
+	foreach ($task in @(Get-ChildItem "/proc/$parent/task" -Directory -ErrorAction SilentlyContinue)) {
+		foreach ($child in ((Get-Content (Join-Path $task.FullName 'children') -Raw -ErrorAction SilentlyContinue) -split '\s+')) { if ($child) { [int]$child } }
 	}
 }
 
-function Quote([string]$one) { if ($one -match '[\s"]') { '"' + $one.Replace('"', '\"') + '"' } else { $one } }
+function Descendants([int]$parent) {
+	foreach ($child in @(Children $parent)) {
+		$child
+		Descendants $child
+	}
+}
 
 try {
-	$argumentList = (@($Assembly) + $BdnArgs + @('--artifacts', $out) | ForEach-Object { Quote $_ }) -join ' '
-	$process = Start-Process -FilePath 'dotnet' -ArgumentList $argumentList -PassThru -NoNewWindow -WorkingDirectory (Split-Path $Assembly) -RedirectStandardOutput (Join-Path $out 'bdn.log') -RedirectStandardError (Join-Path $out 'bdn.err.log')
+	# The quiet check runs inside the window, after the builds it waited for have ended: a build or a run that somebody started without Aside.sh is found by the instrument, not by memory
+	# (2026-09-21: a restore and a compile were still running when a window was announced). No flag lifts it.
+	$quiet = Measure-Quiet
+	$quiet.Text
 
-	"Window announced $($started.ToString('HH:mm:ss')), until $($until.ToString('HH:mm:ss')): $what; mask 0x$($Affinity.ToString('X')), out $out"
+	if (-not $quiet.Quiet) { Stop-Run 5 "The machine is not quiet: $($quiet.Why). $($quiet.Text) Nothing was started." }
+
+	New-Item -ItemType Directory -Force $out | Out-Null
+
+	# BDN builds its generated project inside the window; a build node or a compiler server left behind by it would sit on the stand's processors.
+	$env:MSBUILDDISABLENODEREUSE = '1'
+	$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
+
+	$argumentList = @('-c', $cpus, 'dotnet', $Assembly) + $BdnArgs + @('--artifacts', $out)
+	$process = Start-Process -FilePath 'taskset' -ArgumentList $argumentList -PassThru -WorkingDirectory (Split-Path $Assembly) -RedirectStandardOutput (Join-Path $out 'bdn.log') -RedirectStandardError (Join-Path $out 'bdn.err.log')
+
+	"Window open $($started.ToString('HH:mm:ss')), until $($until.ToString('HH:mm:ss')): $what; processors $cpus, out $out"
 
 	while (-not $process.HasExited) {
 		Start-Sleep -Milliseconds 100
 
 		if ((Get-Date) -gt $until) { $truncated = $true; break }
 
-		# One query for every worker there is (a walk of the whole tree costs several hundred milliseconds and a short case is over before it ends); the workers of THIS run are its direct children.
-		foreach ($worker in @(Get-CimInstance Win32_Process -Filter "Name='dotnet.exe' AND CommandLine LIKE '%--benchmarkId%'" -ErrorAction SilentlyContinue | Where-Object { $_.ParentProcessId -eq $process.Id })) {
-			# A worker is told apart by its pid AND its start time: Windows recycles pids, and a set keyed by the pid alone skipped the second worker of a recycled pid (2026-09-21, the FIX window: 58 of 60 read, and the two
-			# unread were the second bearers of pids 60320 and 59296, not short cases).
-			$key = "$($worker.ProcessId)@$($worker.CreationDate.Ticks)"
+		# The workers of THIS run are its direct children (taskset executes dotnet in its own process, so the pid is the launcher's).
+		foreach ($id in @(Children $process.Id)) {
+			$command = (Get-Content "/proc/$id/cmdline" -Raw -ErrorAction SilentlyContinue) -replace "`0", ' '
 
-			if ($checked.ContainsKey($key)) { continue }
+			if ($command -notlike '*--benchmarkId*') { continue }
 
-			$live = Get-Process -Id $worker.ProcessId -ErrorAction SilentlyContinue
+			# A worker is told apart by its pid AND its start time: pids are recycled (2026-09-21, 58 of 60 read, the two unread were second bearers of recycled pids).
+			$live = Get-Process -Id $id -ErrorAction SilentlyContinue
 
 			if (-not $live) { continue }
 
-			$mask     = [UInt64][int64]$live.ProcessorAffinity
-			$priority = "$($live.PriorityClass)"
-			$note     = ''
+			$key = "$id@$($live.StartTime.Ticks)"
 
-			if ($priority -notin 'High', 'RealTime') {
-				$live.PriorityClass = 'High'
-				$note     = " (was $priority, raised by the script)"
-				$priority = "$((Get-Process -Id $worker.ProcessId).PriorityClass)"
-			}
+			if ($checked.ContainsKey($key)) { continue }
+
+			$allowed = Get-ProcessCpus $id
+
+			if (-not $allowed) { continue }
 
 			$checked[$key] = $true
-			$rows.Add("| $($worker.ProcessId) | 0x$($mask.ToString('X')) | $priority$note | $((Get-Date).ToString('HH:mm:ss')) |")
-			"worker $($worker.ProcessId): affinity 0x$($mask.ToString('X')), priority $priority$note"
+			$rows.Add("| $id | $allowed | $((Get-Date).ToString('HH:mm:ss')) |")
+			"worker ${id}: processors $allowed"
 
-			if ($mask -ne $Affinity) { $failure = "worker $($worker.ProcessId) runs on 0x$($mask.ToString('X')), not on 0x$($Affinity.ToString('X')): the run is stopped and its numbers are not to be quoted"; break }
+			if ((ConvertTo-CpuSet $allowed) -ne $cpuSet) { $failure = "worker $id runs on processors $allowed, not on $cpus`: the run is stopped and its numbers are not to be quoted"; break }
 		}
 
 		if ($failure) { break }
 	}
 
 	if ($failure -or $truncated) {
-		foreach ($d in @(Descendants $process.Id)) { Stop-Process -Id $d.ProcessId -Force -ErrorAction SilentlyContinue }
+		foreach ($id in @(Descendants $process.Id)) { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }
 		Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
 	}
 	else {
@@ -245,8 +217,7 @@ try {
 	}
 }
 finally {
-	# The file stays and says idle: its absence must mean "something is wrong with the stand", never "no window" (benchmarks/Window.ps1).
-	if (-not $Within -and (Test-Path $window) -and ((Get-Content $window | Select-Object -First 1) -eq "pid $PID")) { Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why the window of pid $PID ended: $what") }
+	if ($window) { Exit-Window $window "the window of pid $PID ended: $what" }
 }
 
 if (-not $failure -and -not $truncated -and $checked.Count -eq 0) { $failure = 'no benchmark worker was seen, so no case was checked: the run measured nothing this script can vouch for' }
@@ -262,20 +233,20 @@ $jit    = 'DOTNET_TieredCompilation', 'DOTNET_TieredPGO', 'DOTNET_TC_QuickJitFor
 $report = @(
 	"# BenchmarkDotNet run $Label, $($started.ToString('yyyy-MM-dd HH:mm')) - $((Get-Date).ToString('HH:mm'))",
 	'',
-	"Assembly $Assembly, commit $commit. Arguments: $($BdnArgs -join ' '). Machine $env:COMPUTERNAME, launcher and workers on mask 0x$($Affinity.ToString('X')) at high priority.",
+	"Assembly $Assembly, commit $commit. Arguments: $($BdnArgs -join ' '). Machine $([Environment]::MachineName), launcher and workers under taskset -c $cpus, default priority (it cannot be raised here).",
 	"JIT: $($jit -join ', ') (unset is the runtime's default: tiered compilation on, dynamic PGO on).",
 	$(if ($Note) { "**$Note**" }),
-	$quiet,
+	$quiet.Text,
 	$stateLines,
 	"Source hash at the end: $hashAtEnd$(if ($hashAtEnd -eq $hashAtStart) { ' (the same as at the start)' } else { ' (NOT the same as at the start)' }).",
 	"Exit code: $(if ($null -ne $exit) { $exit } else { 'none (stopped)' }). $(if ($truncated) { 'STOPPED at the limit of ' + $LimitMinutes + ' minutes: the results are incomplete.' })",
-	$(if ($failure) { "**FAILED: $failure**" } else { "Every worker that was read back from the operating system was on the mask. Coverage: BDN executed $executed workers (its log), $($checked.Count) were read$(if ($checked.Count -lt $executed) { '; the others ended between two reads, and the mask they had is the inherited one, not a reading' })." }),
+	$(if ($failure) { "**FAILED: $failure**" } else { "Every worker that was read back from the kernel was on the stand's processors. Coverage: BDN executed $executed workers (its log), $($checked.Count) were read$(if ($checked.Count -lt $executed) { '; the others ended between two reads, and the processors they had are the inherited ones, not a reading' })." }),
 	'',
-	'| worker pid | affinity read | priority read | at |',
-	'| --- | --- | --- | --- |'
+	'| worker pid | processors read | at |',
+	'| --- | --- | --- |'
 ) + $rows
 
-Set-Content (Join-Path $out 'run.txt') $report
+if (Test-Path $out) { Set-Content (Join-Path $out 'run.txt') $report }
 
 $report
 if ($failure) { exit 4 }

@@ -10,8 +10,8 @@
 	different: that is the pair a platform-dependent branch has to carry.
 
 	The build runs in a worktree of its own for each side (`-Tree`), rebuilt from scratch when a property is
-	given, so that the generator runs again with it. It is pinned to logical processors 16-31 by default (a
-	build times nothing but must not share the timing window's half of the machine) and it writes
+	given, so that the generator runs again with it. It is a build: it waits while a timing window is open and holds
+	the builds lock while it runs, so that a window waits for it (WindowLib.ps1, Enter-Aside; D147), and it writes
 	`build.txt` into the folder: the commit, the properties and a hash of the code the generator emitted (the
 	generated files with the worktree's path taken out of them, since `#line` carries it), which the report
 	of a pair prints in its header. **A property no generator reads changes nothing**: the property reaches the
@@ -23,47 +23,54 @@
 	applies only to two sides of ONE commit given different properties: its silence says nothing about two commits.
 
 .EXAMPLE
-	./benchmarks/Build-Side.ps1 -Name on  -Commit HEAD
-	./benchmarks/Build-Side.ps1 -Name off -Commit HEAD -Property DotGramSearchValues=off
+	pwsh benchmarks/Build-Side.ps1 -Name on  -Commit HEAD
+	pwsh benchmarks/Build-Side.ps1 -Name off -Commit HEAD -Property DotGramSearchValues=off
 #>
 param(
 	[Parameter(Mandatory)][string]$Name,
 	[string]$Commit = 'HEAD',
 	[string[]]$Property = @(),
-	[string]$Root = 'T:\TEMP\dotgram-stand',
+	[string]$Root,
 	[string]$Tree,
-	[string]$Framework = 'net10.0',
-	[UInt64]$Affinity = 4294901760
+	[string]$Framework = 'net10.0'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repo = (git rev-parse --show-toplevel).Trim()
 $sha  = (git -C $repo rev-parse --short $Commit).Trim()
-$me   = Get-Process -Id $PID
 
-$me.ProcessorAffinity = [IntPtr]$Affinity
+. (Join-Path $PSScriptRoot 'WindowLib.ps1')
+
+if (-not $Root) { $Root = Join-Path (Get-ScratchRoot) 'stand' }
+
 $env:MSBUILDDISABLENODEREUSE = '1'
 
-if (-not $Tree) { $Tree = Join-Path $Root "wt\$Name-$sha" }
+if (-not $Tree) { $Tree = Join-Path $Root "wt/$Name-$sha" }
 
 if (-not (Test-Path $Tree)) { git -C $repo worktree add --detach $Tree $sha | Out-Null }
 
-$projects = 'src\DotGram.Finance\DotGram.Finance.csproj', 'src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj',
-	'src\DotGram.Web\DotGram.Web.csproj', 'examples\DotGram.Examples\DotGram.Examples.csproj', 'src\DotGram.Sql\DotGram.Sql.csproj',
+$projects = 'src/DotGram.Finance/DotGram.Finance.csproj', 'src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj',
+	'src/DotGram.Web/DotGram.Web.csproj', 'examples/DotGram.Examples/DotGram.Examples.csproj', 'src/DotGram.Sql/DotGram.Sql.csproj',
 	# The document grammar the config rows read (Documents.cs, Config) is compiled into the benchmarks assembly, so a side without it has no config rows: window 79 of 2026-09-20 asked for config/ and got nothing.
-	'benchmarks\DotGram.Benchmarks\DotGram.Benchmarks.csproj'
+	'benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj'
 $flags    = @($Property | ForEach-Object { "-p:$_" })
 $rebuild  = @(if ($Property.Count -gt 0) { '-t:Rebuild' })
 $watch    = [Diagnostics.Stopwatch]::StartNew()
+$aside    = Enter-Aside
 
-foreach ($project in $projects) {
-	$log = dotnet build (Join-Path $Tree $project) -c Release -f $Framework -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false @rebuild @flags 2>&1
+try {
+	foreach ($project in $projects) {
+		$log = dotnet build (Join-Path $Tree $project) -c Release -f $Framework -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false @rebuild @flags 2>&1
 
-	if ($LASTEXITCODE -ne 0) { throw "$Name`: $project did not build:`n$(($log | Select-Object -Last 15) -join "`n")" }
+		if ($LASTEXITCODE -ne 0) { throw "$Name`: $project did not build:`n$(($log | Select-Object -Last 15) -join "`n")" }
+	}
+}
+finally {
+	Exit-Aside $aside
 }
 
-$out = Join-Path $Root "side\$Name"
+$out = Join-Path $Root "side/$Name"
 
 Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $out | Out-Null
@@ -71,13 +78,13 @@ New-Item -ItemType Directory -Force $out | Out-Null
 foreach ($project in $projects) {
 	$directory = Split-Path (Join-Path $Tree $project)
 
-	Copy-Item (Join-Path $directory "bin\Release\$Framework\$([IO.Path]::GetFileNameWithoutExtension($project)).dll") $out
+	Copy-Item (Join-Path $directory "bin/Release/$Framework/$([IO.Path]::GetFileNameWithoutExtension($project)).dll") $out
 }
 
 # The emitted code, hashed without the worktree's path (`#line` directives carry it), file by file in name order.
 $sha256 = [Security.Cryptography.SHA256]::Create()
 $bytes  = [Text.Encoding]::UTF8.GetBytes(($projects | ForEach-Object {
-	$generated = Join-Path (Split-Path (Join-Path $Tree $_)) 'obj\GeneratedFiles'
+	$generated = Join-Path (Split-Path (Join-Path $Tree $_)) 'obj/GeneratedFiles'
 
 	if (Test-Path $generated) {
 		Get-ChildItem $generated -Recurse -Filter *.g.cs | Where-Object { $_.Name -notlike '*DotGramReport*' } | Sort-Object FullName | ForEach-Object { (Get-Content $_.FullName -Raw).Replace($Tree, '') }

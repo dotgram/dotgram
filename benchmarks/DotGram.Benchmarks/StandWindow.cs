@@ -3,91 +3,188 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace DotGram.Benchmarks;
 
 static partial class Stand
 {
-	/// <summary>Where a timing window announces itself: one file in the user's temp directory, read by every session before it times anything (expr, 2026-09-20: a window is only known by looking at the process list and asking).</summary>
-	internal static string WindowFile => Path.Combine(Path.GetTempPath(), "dotgram-timing-window.txt");
+	/// <summary>
+	/// Where a timing window lives: <c>/ramdisk/locks</c> on this machine, <c>DOTGRAM_WINDOW_DIR</c> when it is set, the temp directory elsewhere. The same rule as
+	/// <c>benchmarks/WindowLib.ps1</c> and <c>benchmarks/Aside.sh</c>, which is what makes the three see one window (D147).
+	/// </summary>
+	internal static string WindowDirectory
+	{
+		get
+		{
+			var directory = Environment.GetEnvironmentVariable("DOTGRAM_WINDOW_DIR") is { Length: > 0 } named ? named
+				: Directory.Exists("/ramdisk") ? "/ramdisk/locks"
+				: Path.GetTempPath();
+
+			Directory.CreateDirectory(directory);
+
+			return directory;
+		}
+	}
+
+	/// <summary>The announcement: who holds the window, since when, until when and what for. Information for whoever reads it; the lock is the answer.</summary>
+	internal static string WindowFile => Path.Combine(WindowDirectory, "timing-window.txt");
+
+	static string WindowLock => Path.Combine(WindowDirectory, "timing-window.lock");
+	static string BuildsLock => Path.Combine(WindowDirectory, "timing-builds.lock");
 
 	/// <summary>
-	/// A timing run announces itself for as long as it runs: <c>pid</c>, <c>started</c>, <c>until</c> (the end of its <c>--limit</c>, or <c>unknown</c>), <c>what</c> (its arguments). The file is never removed: when the run
-	/// ends it is put back to <c>idle</c> (first line), so that its absence means a defect of the stand and not "no window", and a file whose pid is not alive is stale and is overwritten. A child process of a repeated run finds its parent's announcement alive and writes nothing. It does not stop anyone from timing:
-	/// it says that a window is open and when it ends, which is what a session that is about to time something needs to know before it asks whose process this is. A run that finds another announcement alive says so.
+	/// A timing run holds the window for as long as it runs: the lock <c>timing-window.lock</c>, exclusively, which the kernel lets go when the process ends however it ends, and the announcement
+	/// beside it (<c>pid</c>, <c>started</c>, <c>until</c>, <c>what</c>). It then waits, at most twenty minutes, for the builds that hold <c>timing-builds.lock</c> (they run through
+	/// <c>benchmarks/Aside.sh</c>) to end, naming them, and holds that lock too, so that no build starts until the run ends. It sets <c>DOTGRAM_WINDOW_HOLDER</c> to its pid, so that the
+	/// children a repeated run starts know they are inside it; a run started inside a window that way (or by <c>Run-Announced.ps1</c>) announces nothing. It does not stop anyone from timing: a
+	/// run that finds another window open says so and goes on, and a run whose builds did not end in time says so and goes on, and neither is a figure to quote.
 	/// </summary>
 	internal static IDisposable AnnounceWindow(double? limitMinutes, string what)
 	{
 		try
 		{
-			var path = WindowFile;
-
-			if (File.Exists(path))
+			if (Environment.GetEnvironmentVariable("DOTGRAM_ASIDE") is { Length: > 0 })
 			{
-				var lines = File.ReadAllLines(path);
-				var owner = lines.FirstOrDefault(static line => line.StartsWith("pid ", StringComparison.Ordinal));
+				Console.Error.WriteLine("This timing was started through benchmarks/Aside.sh, whose builds lock a window waits for: it announces nothing, and its numbers are not to be quoted. Run it through Run-Announced.ps1.");
 
-				if (owner is not null && int.TryParse(owner[4..], out var pid) && pid != Environment.ProcessId && IsAlive(pid, lines))
-				{
-					// Our parent (a repeated run started this child) or another session's window: either way this run announces nothing.
-					if (!IsParent(pid))
-						Console.Error.WriteLine("Another timing window is announced and its process is alive: " + string.Join("; ", lines));
-
-					return None.Instance;
-				}
+				return None.Instance;
 			}
 
-			File.WriteAllLines(path,
-			[
-				$"pid {Environment.ProcessId}",
-				$"started {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
-				$"until {(limitMinutes is { } minutes ? DateTime.Now.AddMinutes(minutes).ToString("yyyy-MM-dd HH:mm:ss") : "unknown")}",
-				$"what {what}",
-				$"process-start {Process.GetCurrentProcess().StartTime.ToUniversalTime():o}",
-			]);
+			FileStream? gate = null;
 
-			return new Announced(path, Environment.ProcessId);
+			// A shared probe (Window.ps1, Aside.sh) holds the lock for milliseconds: a few seconds of retries ride over it.
+			for (var attempt = 0; attempt < 25 && gate is null; attempt++)
+				if ((gate = TryLock(WindowLock, exclusive: true)) is null)
+					Thread.Sleep(200);
+
+			if (gate is null)
+			{
+				var lines  = ReadWindowFile();
+				var holder = Environment.GetEnvironmentVariable("DOTGRAM_WINDOW_HOLDER");
+
+				if (holder is not { Length: > 0 } || lines.FirstOrDefault() != $"pid {holder}")
+					Console.Error.WriteLine("Another timing window is open: " + string.Join("; ", lines) + ". This run times beside it, and its numbers are not to be quoted.");
+
+				return None.Instance;
+			}
+
+			var started = DateTime.Now;
+			var until   = limitMinutes is { } minutes ? started.AddMinutes(minutes).ToString("yyyy-MM-dd HH:mm:ss") : "unknown";
+
+			Environment.SetEnvironmentVariable("DOTGRAM_WINDOW_HOLDER", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+			WriteAnnouncement(started, until, what, "waiting for the builds that hold timing-builds.lock");
+
+			var builds   = TryLock(BuildsLock, exclusive: true);
+			var deadline = DateTime.Now.AddMinutes(20);
+			var said     = DateTime.MinValue;
+
+			while (builds is null && DateTime.Now < deadline)
+			{
+				if ((DateTime.Now - said).TotalSeconds >= 60)
+				{
+					Console.Error.WriteLine("Waiting for builds to end before the window opens: " + string.Join("; ", LockHolders(BuildsLock)));
+					said = DateTime.Now;
+				}
+
+				Thread.Sleep(2000);
+				builds = TryLock(BuildsLock, exclusive: true);
+			}
+
+			if (builds is null)
+				Console.Error.WriteLine("Builds did not end in twenty minutes; timing beside them, and the numbers are not to be quoted: " + string.Join("; ", LockHolders(BuildsLock)));
+
+			WriteAnnouncement(started, until, what, builds is null ? "open BESIDE builds that did not end" : $"open since {DateTime.Now:HH:mm:ss}");
+
+			return new Announced(gate, builds);
 		}
-		catch (Exception)
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
 		{
 			return None.Instance;
 		}
 	}
 
-	/// <summary>
-	/// Whether the process that announced is alive: a process holds the pid AND started when the announcement says it did. Windows recycles process ids, so "some process has that pid" says nothing about
-	/// whether the announcer is alive (2026-09-21); an announcement without a recorded start time can be checked by the pid only.
-	/// </summary>
-	static bool IsAlive(int pid, string[] lines)
+	static void WriteAnnouncement(DateTime started, string until, string what, string state)
+	{
+		File.WriteAllLines(WindowFile,
+		[
+			$"pid {Environment.ProcessId}",
+			$"started {started:yyyy-MM-dd HH:mm:ss}",
+			$"until {until}",
+			$"what {what}",
+			$"state {state}",
+		]);
+	}
+
+	static string[] ReadWindowFile()
 	{
 		try
 		{
-			using var process = Process.GetProcessById(pid);
-
-			if (process.HasExited)
-				return false;
-
-			var recorded = lines.FirstOrDefault(static line => line.StartsWith("process-start ", StringComparison.Ordinal));
-
-			return recorded is null || !DateTime.TryParse(recorded["process-start ".Length..], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var then)
-				|| Math.Abs((process.StartTime.ToUniversalTime() - then.ToUniversalTime()).TotalSeconds) < 2;
+			return File.ReadAllLines(WindowFile);
 		}
-		catch (ArgumentException)
+		catch (IOException)
 		{
-			return false;
+			return [];
 		}
 	}
 
-	static bool IsParent(int pid)
+	/// <summary>
+	/// A lock taken without waiting, or null. On Linux a <see cref="FileShare.None"/> open is an exclusive <c>flock</c> and any other share a shared one, so the lock is the one
+	/// <c>flock(1)</c> in <c>Aside.sh</c> takes.
+	/// </summary>
+	static FileStream? TryLock(string path, bool exclusive)
 	{
 		try
 		{
-			// The parent of a child of a repeated run is found from the command line the parent passed: a child is started with the same executable, so its parent is the process that announced.
-			return Process.GetProcessById(pid).ProcessName == Process.GetCurrentProcess().ProcessName;
+			return exclusive
+				? new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
+				: new FileStream(path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite);
 		}
-		catch (ArgumentException)
+		catch (IOException)
 		{
-			return false;
+			return null;
+		}
+	}
+
+	/// <summary>Who holds a lock, from <c>/proc/locks</c>: the pid and the command line of each holder (Linux; nothing elsewhere).</summary>
+	static IEnumerable<string> LockHolders(string path)
+	{
+		if (!OperatingSystem.IsLinux())
+			return [];
+
+		try
+		{
+			var start = new ProcessStartInfo("stat", ["-c", "%i", path]) { RedirectStandardOutput = true, UseShellExecute = false };
+
+			using var stat = Process.Start(start)!;
+
+			var inode = stat.StandardOutput.ReadToEnd().Trim();
+
+			stat.WaitForExit();
+
+			return
+			[
+				.. File.ReadAllLines("/proc/locks")
+					.Select(static line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+					.Where(fields => fields.Length >= 6 && fields[5].EndsWith(":" + inode, StringComparison.Ordinal))
+					.Select(static fields => $"pid {fields[4]} {CommandLine(fields[4])}"),
+			];
+		}
+		catch (Exception exception) when (exception is IOException or System.ComponentModel.Win32Exception)
+		{
+			return [];
+		}
+	}
+
+	static string CommandLine(string pid)
+	{
+		try
+		{
+			return File.ReadAllText($"/proc/{pid}/cmdline").Replace('\0', ' ').Trim();
+		}
+		catch (IOException)
+		{
+			return "(gone)";
 		}
 	}
 
@@ -100,18 +197,21 @@ static partial class Stand
 		}
 	}
 
-	sealed class Announced(string path, int pid) : IDisposable
+	sealed class Announced(FileStream gate, FileStream? builds) : IDisposable
 	{
 		public void Dispose()
 		{
 			try
 			{
-				if (File.Exists(path) && File.ReadLines(path).FirstOrDefault() == $"pid {pid}")
-					File.WriteAllLines(path, ["idle", $"since {DateTime.Now:yyyy-MM-dd HH:mm:ss}", $"why the window of pid {pid} ended"]);
+				File.WriteAllLines(WindowFile, ["idle", $"since {DateTime.Now:yyyy-MM-dd HH:mm:ss}", $"why the window of pid {Environment.ProcessId} ended"]);
 			}
 			catch (IOException)
 			{
 			}
+
+			Environment.SetEnvironmentVariable("DOTGRAM_WINDOW_HOLDER", null);
+			builds?.Dispose();
+			gate.Dispose();
 		}
 	}
 }

@@ -1,32 +1,34 @@
 <#
 .SYNOPSIS
-	Several BenchmarkDotNet runs as ONE announced window: `Run-Bdn.ps1` once per step, with the window announced once by this script and put back to idle once, so that there is no gap between the steps.
+	Several BenchmarkDotNet runs as ONE window: `Run-Bdn.ps1` once per step, with the window taken once by this script (WindowLib.ps1, Enter-Window: the lock, the announcement, the wait for builds) and let go once, so that there is no gap between the steps.
 
 .DESCRIPTION
-	The steps are hashtables of `Label` and `BdnArgs` (and optionally `Note`, `Commit`, `LimitMinutes`), run in order under one announcement of `-SlotMinutes`. A step that fails (a worker off the mask, exit 4; the machine not quiet, 5; the step's own limit, 6) stops the queue: what has not run is
-	named, and it is to be run in a window of its own, never shortened. The window is put back to idle when the queue ends, however it ends. Every step writes its own run.txt beside its artifacts.
+	The steps are hashtables of `Label` and `BdnArgs` (and optionally `Note`, `Commit`, `LimitMinutes`), run in order under one announcement of `-SlotMinutes`. A step that fails (a worker off the stand's processors, exit 4; the machine not quiet, 5; the step's own limit, 6) stops the queue: what has not run is
+	named, and it is to be run in a window of its own, never shortened. The window is let go when the queue ends, however it ends (and by the kernel if this process dies). Every step writes its own run.txt beside its artifacts.
 
 .EXAMPLE
-	& .\benchmarks\Run-BdnQueue.ps1 -Assembly <dll> -SlotMinutes 55 -Steps @(@{ Label = 'fix-hot'; BdnArgs = '--filter','*FixAgainstQuickFix*' }, @{ Label = 'fix-cold'; BdnArgs = '--filter','*FixDictionaryFirstCall*' })
+	pwsh benchmarks/Run-BdnQueue.ps1 -Assembly <dll> -SlotMinutes 55 -Steps @(@{ Label = 'fix-hot'; BdnArgs = '--filter','*FixAgainstQuickFix*' }, @{ Label = 'fix-cold'; BdnArgs = '--filter','*FixDictionaryFirstCall*' })
 #>
 param(
 	[Parameter(Mandatory)][string]$Assembly,
 	[Parameter(Mandatory)][hashtable[]]$Steps,
 	[double]$SlotMinutes = 60,
 	[string]$Commit = '',
-	[string]$Note = ''
+	[string]$Note = '',
+	[double]$WaitMinutes = 20
 )
 
-$window  = Join-Path ([IO.Path]::GetTempPath()) 'dotgram-timing-window.txt'
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
+
+Assert-Linux
+
 $script  = Join-Path $PSScriptRoot 'Run-Bdn.ps1'
-$first   = (Get-Content $window -ErrorAction SilentlyContinue | Select-Object -First 1)
-
-if ((Get-WindowOwnerState @(Get-Content $window -ErrorAction SilentlyContinue)) -in 'Alive', 'AliveByPid' -and $first -ne "pid $PID") { Write-Error "Another timing window is announced and its process is alive: $(Get-Content $window)"; exit 3 }
-
 $started = Get-Date
 $labels  = ($Steps | ForEach-Object { $_.Label }) -join ' + '
-Set-Content $window (New-WindowAnnouncement $started $started.AddMinutes($SlotMinutes) "Run-BdnQueue.ps1 $labels$(if ($Note) { ' [' + $Note + ']' })")
+$what    = "Run-BdnQueue.ps1 $labels$(if ($Note) { ' [' + $Note + ']' })"
+$window  = Enter-Window $what $started.AddMinutes($SlotMinutes) $WaitMinutes
+
+if ($window -is [string]) { Stop-Run 3 $window }
 
 $done   = @()
 $stoppedAt = $null
@@ -49,7 +51,7 @@ try {
 	}
 }
 finally {
-	Set-Content $window @('idle', "since $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))", "why the window of pid $PID ended: Run-BdnQueue.ps1 $labels")
+	Exit-Window $window "the window of pid $PID ended: $what"
 }
 
 "Queue: $($done -join '; ')"
