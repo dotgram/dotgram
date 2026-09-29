@@ -1337,17 +1337,77 @@ sealed partial class Machine
 		return arguments;
 	}
 
+	/// <summary>
+	/// A fold's value: each construction its call recorded applied in order, the base's first
+	/// and every step's to the value before it (§4.3).
+	/// </summary>
+	/// <remarks>
+	/// Where a guard in a step names the value so far (<see cref="FoldAsked"/>), each value is
+	/// also kept at the construction that built it, and a walk begins after the last one kept:
+	/// §3.6 builds a value a guard asks for once and reuses it on acceptance, and a guard in
+	/// every step that folded from the base each time would be quadratic in the steps. The
+	/// keeping is <c>built</c>'s, so a derivation given up takes its values with it. With
+	/// <paramref name="soFar"/> the walk is <see cref="FoldSoFar"/>'s, over a call that
+	/// has not ended, and hands the value back rather than writing it for the call.
+	/// </remarks>
 	void MaterializeFold(
 		Writer file, RuleSymbol rule, string type, int offset,
-		IReadOnlyList<Factory> factories)
+		IReadOnlyList<Factory> factories, bool soFar = false)
 	{
+		var keeps = soFar || FoldAsked(rule);
+
 		file.Line($"{type} accumulated = default!;");
 		file.Line("var hasAccumulated = false;");
 		file.Line("var partFrom = completedAt + 1;");
+
+		if (keeps)
+		{
+			// Newest first: the last value kept is where the walk resumes.
+			file.Line("var constructFrom = completedAt + 1;");
+			file.Line();
+
+			using (file.Block("for (var keptAt = entries.Count - 1; keptAt > completedAt; keptAt--)"))
+			using (file.Block(
+				"if (entries[keptAt].Kind == ParserEntry.Construct && entries[keptAt].CallIndex == completedAt && " +
+				"built[keptAt])"))
+			{
+				file.Line($"accumulated = {ValueFrom(type, "keptAt")};");
+				file.Line("hasAccumulated = true;");
+				file.Line("constructFrom = partFrom = keptAt + 1;");
+				file.Line("break;");
+			}
+		}
+
+		// What the steps not yet folded captured, built as a guard's own values are.
+		if (soFar)
+		{
+			file.Line();
+			file.Line("var buildFrom = entries.Count;");
+			file.Line();
+
+			using (file.Block("for (var capturedAt = partFrom; capturedAt < entries.Count; capturedAt++)"))
+			{
+				file.Line("var captured = entries[capturedAt];");
+
+				using (file.Block(
+					"if (captured.Kind == ParserEntry.RuleCapture && captured.CallIndex == completedAt && " +
+					"!built[captured.Position])"))
+				{
+					file.Line("values[captured.Position] = parser;");
+					file.Line("buildFrom = global::System.Math.Min(buildFrom, captured.Position);");
+				}
+			}
+
+			file.Line(
+				$"if (buildFrom < entries.Count) Materialize_DotGram{_tag}(text, parser, " +
+				$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, buildFrom);");
+		}
+
 		file.Line();
 
-		using (file.Block(
-			"for (var constructAt = completedAt + 1; constructAt < entries.Count; constructAt++)"))
+		using (file.Block(keeps
+			? "for (var constructAt = constructFrom; constructAt < entries.Count; constructAt++)"
+			: "for (var constructAt = completedAt + 1; constructAt < entries.Count; constructAt++)"))
 		{
 			file.Line("var construct = entries[constructAt];");
 			file.Line(
@@ -1366,7 +1426,9 @@ sealed partial class Machine
 					{
 						var arguments = Supplied(file, factory, "constructAt");
 
-						if (factory.Accumulator is not null)
+						// Handed on only where the step named it: a step that does not capture its
+						// rule has nothing in its signature to take the value so far (§4.3).
+						if (factory.Accumulator is { Length: > 0 })
 						{
 							file.Line("global::System.Diagnostics.Debug.Assert(hasAccumulated);");
 							arguments.Add("accumulated");
@@ -1387,6 +1449,13 @@ sealed partial class Machine
 						file.Line(
 							$"accumulated = {factory.Method}({string.Join(", ", arguments)});");
 						file.Line("hasAccumulated = true;");
+
+						if (keeps)
+						{
+							file.Line($"{ValueInto(type, "constructAt")} = accumulated;");
+							file.Line("built[constructAt] = true;");
+						}
+
 						file.Line("break;");
 					}
 				}
@@ -1397,7 +1466,94 @@ sealed partial class Machine
 
 		file.Line();
 		file.Line("global::System.Diagnostics.Debug.Assert(hasAccumulated);");
-		file.Line($"{ValueInto(type, "completedAt")} = accumulated;");
+		file.Line(soFar ? "return accumulated;" : $"{ValueInto(type, "completedAt")} = accumulated;");
+	}
+
+	/// <summary>The rules a guard in a fold step of which names the value so far.</summary>
+	readonly Dictionary<RuleSymbol, bool> _foldsAsked = [];
+
+	/// <summary>Whether a guard in one of the rule's fold steps names the value so far.</summary>
+	bool FoldAsked(RuleSymbol rule)
+	{
+		if (!_foldsAsked.TryGetValue(rule, out var asked))
+			_foldsAsked[rule] = asked = _graph.Folds.ContainsKey(rule) &&
+				NodeWalk.Descendants(_graph.Bodies[rule]).Any(node => GuardAccumulator(rule, node) is not null);
+
+		return asked;
+	}
+
+	/// <summary>The rules whose guards call <see cref="FoldSoFar"/>'s method, by the method's name.</summary>
+	readonly Dictionary<RuleSymbol, string> _foldsSoFar = [];
+
+	/// <summary>The method a guard in a fold's step calls for the value so far; written by <see cref="WriteFoldsSoFar"/>.</summary>
+	/// <remarks>
+	/// Named while the engine's states are compiled and written only where the engine is:
+	/// a grammar every rule of which the readers take compiles those states all the same.
+	/// </remarks>
+	string FoldSoFar(RuleSymbol rule)
+	{
+		if (!_foldsSoFar.TryGetValue(rule, out var method))
+			_foldsSoFar[rule] = method = $"Recognize_DotGram{_tag}_FoldSoFar{_ruleIds[rule]}";
+
+		return method;
+	}
+
+	/// <summary>
+	/// The methods guards in fold steps call for the value so far (§3.6, §4.3): the values
+	/// the steps before the guard captured built, as a guard's own are, then the fold walked
+	/// up to where the parse stands.
+	/// </summary>
+	/// <remarks>
+	/// The call has not ended, so where a construction is handed the text or the span it
+	/// was read over, that is the rule from where it began to the position the guard is
+	/// at — what the guard's own <c>parserText</c> is.
+	/// </remarks>
+	void WriteFoldsSoFar()
+	{
+		if (_foldsSoFarWritten)
+			return;
+
+		_foldsSoFarWritten = true;
+
+		foreach (var written in _foldsSoFar)
+			WriteFoldSoFar(written.Key, written.Value);
+	}
+
+	bool _foldsSoFarWritten;
+
+	void WriteFoldSoFar(RuleSymbol rule, string method)
+	{
+		var type   = _results.QualifiedOf(rule)!;
+		var helper = new Writer(0);
+
+		using (helper.Block(
+			$"static {type} {method}({InputType} text, Parser parser, " +
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int call, int p)"))
+		{
+			helper.Line("var values = parser.Materialization(entries.Count);");
+			DeclareTables(helper);
+			helper.Line("var built  = parser.Materialized();");
+			helper.Line("var completedAt = call;");
+
+			if (_factories[rule].Any(factory => CSharpEmitter.WantsText(_graph, factory) || CSharpEmitter.WantsSpan(_graph, factory)))
+			{
+				helper.Line("var called    = entries[call];");
+				helper.Line(
+					"var completed = new ParserEntry(ParserEntry.Completed, called.State, called.Position, called.CallIndex, " +
+					"called.AtomicIndex, called.RepeatIndex, called.LookaheadIndex, p, called.RuleIndex);");
+			}
+
+			// The marks are chained over the whole arena, so only for a construction that reads them.
+			if (_factories[rule].Any(factory =>
+				CSharpEmitter.Asks(_graph, factory, "parserState") || CSharpEmitter.Asks(_graph, factory, "parserMarks")))
+			{
+				MarkChain(helper);
+			}
+
+			MaterializeFold(helper, rule, type, _captureOffsets[rule], _factories[rule], soFar: true);
+		}
+
+		_extra.Add(helper.ToString());
 	}
 
 	string MaterializeFoldMember(

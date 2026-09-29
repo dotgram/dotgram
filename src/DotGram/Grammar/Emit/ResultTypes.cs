@@ -151,7 +151,13 @@ sealed class ResultTypes
 	/// <summary>The constructor parameter a capture becomes — the name as written.</summary>
 	public static string ParameterOf(ResultMember member)
 	{
-		return Keywords.Contains(member.Name) ? "@" + member.Name : member.Name;
+		return ParameterOf(member.Name);
+	}
+
+	/// <summary>A capture's name as a C# parameter: <c>using</c> is <c>@using</c>.</summary>
+	public static string ParameterOf(string name)
+	{
+		return Keywords.Contains(name) ? "@" + name : name;
 	}
 
 	/// <summary>

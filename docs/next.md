@@ -25238,3 +25238,44 @@ unrelated), DotGram.Sql.Tests (14,870) and DotGram.Finance.Tests (4,483) all pas
 snapshot stayed byte-identical, and both overloads answer the identical symbol set for
 `MeasureRaw` (checked by display string, since two different `Compilation` instances never
 call two of their symbols equal to begin with).
+
+## A fold step's value so far, named or not
+
+The two fold defects the entry "What a lookahead saw is a repeated capture too" left as found were
+both the generator's, by what §4.3 and §3.6 say. §4.3 makes the leading capture of a left-recursive
+alternative the accumulator, and says nothing more of a leading call written without a capture — so
+a step that does not name its rule simply is not handed the value so far. §3.6 lets a guard name any
+capture before it and builds a `=>` value for it, once, reused on acceptance; the accumulator is one
+of those captures.
+
+**An uncaptured recursive operand.** `F & ',' & y: D => @(y!) | y: D => @(y!)` wrote a step factory
+without the accumulator parameter and then called it with one (CS1501), on the engine's walk and in
+the readers. The argument is now passed where the step named it, which is where the factory's
+signature has it.
+
+**A guard naming the accumulator.** `l: F & ',' & y: D & when @(Log(l))` was CS0103. The guard is
+now handed the value so far on every path:
+
+- the readers hold it as `fold` — the value itself where the carrier builds as it reads, a record
+  where it is the tape, built there as a guard's other record values are;
+- the engine has no value until the walk at the end, so a fold whose step guard names its
+  accumulator gets a helper, written only where the engine is, that builds what the unfolded steps
+  captured and walks the fold's constructions up to where the parse stands. Each value is kept at the
+  construction entry that made it (`built`, so a derivation given up takes it along), and both the
+  next guard and the walk at acceptance resume from the last kept one: every construction runs once
+  (`A_fold_step_value_a_guard_asked_for_is_built_once`), and a guard in every step is not quadratic.
+  Where a step's construction asks for `parserText` or `parserSpan`, the helper hands it the rule
+  from its start to where the guard stands, as the guard's own `parserText` is.
+
+The name is looked for as a word, not as text as a capture's is: an accumulator called `l` is in
+every `Log`, and a false match here builds a fold during recognition. A guard in a head the steps
+share is handed the accumulator where every step names it alike, and not otherwise. A step
+accumulator spelled as a C# keyword is now escaped in the factory's signature as a capture is.
+
+Tests: `GuardRepeatedCaptureTests` — rows in `A_fold_step_is_handed_its_own_captures` for the
+uncaptured operand (with and without a guard, and beside a step that names it) and for guards naming
+the accumulator (text and rule values, two tails, a base capturing the same name), plus
+`A_fold_step_guard_can_refuse_on_the_value_so_far` and the built-once test; red before on every
+carrier with the reader on and off, green after. The absent optional of the earlier entry reaches the
+guard as null for a rule's value too (a row, green before). The emitted code of every shipped grammar
+is byte-identical: only a fold whose step guard names its accumulator changes shape, and none ships.

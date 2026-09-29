@@ -709,6 +709,10 @@ sealed partial class Machine
 				if (node is not Node.Guard)
 					continue;
 
+				// The value so far is built from what the steps before this one captured.
+				if (GuardAccumulator(rule, node) is not null)
+					return true;
+
 				var before = layout.Before(node);
 
 				foreach (var member in graph.Results[rule])
@@ -1408,6 +1412,72 @@ sealed partial class Machine
 		return !GrammarNormalizer.WritesBefore(within, guard, member.Name);
 	}
 
+	/// <summary>
+	/// The name a guard in a fold's step reads the value so far by, or null where it does
+	/// not stand in a step or does not name it.
+	/// </summary>
+	/// <remarks>
+	/// §4.3 makes the leading capture of a left-recursive alternative the accumulator, and
+	/// §3.6 lets a guard name any capture before it, building a `=>` value to do so. The
+	/// rewrite took the call away, so the name is no longer among the rule's captures and
+	/// is handed on its own. A guard in a head the steps share is read under the name they
+	/// all give it, and under none where they differ.
+	/// </remarks>
+	internal string? GuardAccumulator(RuleSymbol rule, Node guard)
+	{
+		if (guard is not Node.Guard { Text: var text } || !_graph.Folds.TryGetValue(rule, out var fold) ||
+			!NodeWalk.Descendants(fold.Loop).Any(node => ReferenceEquals(node, guard)))
+		{
+			return null;
+		}
+
+		string? named = null;
+		var     within = false;
+
+		foreach (var step in fold.Accumulators)
+			if (NodeWalk.Descendants(step.Key).Any(node => ReferenceEquals(node, guard)))
+			{
+				named  = step.Value;
+				within = true;
+			}
+
+		if (!within)
+			foreach (var step in fold.Accumulators)
+			{
+				if (named is not null && named != step.Value)
+					return null;
+
+				named = step.Value;
+			}
+
+		return named is { Length: > 0 } && Names(text, ResultTypes.ParameterOf(named)) ? named : null;
+	}
+
+	/// <summary>Whether C# text has the identifier in it as a word of its own.</summary>
+	/// <remarks>
+	/// Asked as a word rather than as text, unlike a capture's name: the value so far is a
+	/// fold built during recognition, and an accumulator called <c>l</c> is in every
+	/// <c>Log</c>.
+	/// </remarks>
+	static bool Names(string text, string name)
+	{
+		for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			var end = at + name.Length;
+
+			if ((at == 0 || !IsWordPart(text[at - 1])) && (end == text.Length || !IsWordPart(text[end])))
+				return true;
+		}
+
+		return false;
+
+		static bool IsWordPart(char c)
+		{
+			return char.IsLetterOrDigit(c) || c == '_';
+		}
+	}
+
 	int MarkSite(string text)
 	{
 		// Two sites writing the same C# are still two sites. Merging them would be sound —
@@ -1513,6 +1583,8 @@ sealed partial class Machine
 
 		if (hasValues)
 			EnsureMaterializer();
+
+		WriteFoldsSoFar();
 
 		PlanLayout();
 		// Large split machines would otherwise put thousands of case labels back
@@ -2752,6 +2824,16 @@ sealed partial class Machine
 				// the step collects it.
 				var inStep = fold is not null && NodeWalk.Descendants(fold.Loop).Any(one => ReferenceEquals(one, node));
 
+				// The value so far, where the guard names it: the steps before this one folded
+				// (FoldSoFar), from the base's value up.
+				var accumulator = GuardAccumulator(rule, node);
+
+				if (accumulator is not null)
+				{
+					parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+					arguments.Add("guardAccumulated");
+				}
+
 				foreach (var written in _graph.Results[rule])
 				{
 					var slots = new List<int>();
@@ -2760,7 +2842,7 @@ sealed partial class Machine
 						if (slot < before)
 							slots.Add(slot);
 
-					if (slots.Count == 0)
+					if (slots.Count == 0 || written.Name == accumulator)
 						continue;
 
 					var member = inStep
@@ -3037,6 +3119,11 @@ sealed partial class Machine
 						}
 					}
 				}
+
+				if (accumulator is not null)
+					writer.Line(
+						$"var guardAccumulated = {FoldSoFar(rule)}(text, parser, " +
+						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, call, p);");
 
 				// To wherever failure is routed, like a terminal test — which today is
 				// `Fail:` everywhere but inside a committed choice, where a refused guard

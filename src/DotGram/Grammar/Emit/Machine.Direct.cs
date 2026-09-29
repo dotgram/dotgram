@@ -339,6 +339,9 @@ sealed partial class Machine
 			? DirectStepSlots(rule)
 			: null;
 
+		// The accumulator's name is the value so far, handed on its own.
+		var accumulator = GuardAccumulator(rule, guard);
+
 		foreach (var member in _graph.Results[rule])
 		{
 			var slots = new List<int>();
@@ -347,7 +350,7 @@ sealed partial class Machine
 				if (slot < before && (step is null || step.Contains(slot)))
 					slots.Add(slot);
 
-			if (slots.Count == 0 || !guard.Text.Contains(ResultTypes.ParameterOf(member)))
+			if (slots.Count == 0 || !guard.Text.Contains(ResultTypes.ParameterOf(member)) || member.Name == accumulator)
 				continue;
 
 			var optional = GuardCaptureAdmitsAbsence(rule, guard, member);
@@ -400,6 +403,9 @@ sealed partial class Machine
 					foreach (var (member, _) in GuardMembers(rule, guard))
 						if (member.Rule is not null)
 							_directBuilds = true;
+
+					if (GuardAccumulator(rule, guard) is not null)
+						_directBuilds = true;
 				}
 			}
 	}

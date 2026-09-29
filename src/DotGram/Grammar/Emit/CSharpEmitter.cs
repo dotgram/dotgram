@@ -3106,7 +3106,7 @@ file.Line("return spare;");
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
 		if (factory.Accumulator is { Length: > 0 } accumulator)
-			parameters.Add($"{graph.Types[rule]} {accumulator}");
+			parameters.Add($"{graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
 
 		foreach (var member in factory.Members)
 			if (member.Name != "parserText" && member.Name != factory.Accumulator)

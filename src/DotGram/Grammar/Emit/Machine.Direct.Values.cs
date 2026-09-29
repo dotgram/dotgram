@@ -1834,7 +1834,8 @@ sealed partial class Machine
 				? "new global::System.ReadOnlySpan<int>(values.MarkAt, 0, marked)"
 				: "default");
 
-		if (factory.Accumulator is not null)
+		// Only where the step named it, which is where the factory has a parameter for it.
+		if (factory.Accumulator is { Length: > 0 })
 			arguments.Add(accumulator());
 
 		foreach (var wanted in factory.Members)

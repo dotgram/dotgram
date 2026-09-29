@@ -30,6 +30,9 @@ public sealed class GuardRepeatedCaptureTests
 		static bool Log(string value) { log += (log.Length > 0 ? ";" : "") + (value ?? "<null>"); return true; }
 		static bool LogA(string[] value) { log += (log.Length > 0 ? ";" : "") + string.Join("/", value); return true; }
 		static string Take() { var taken = log; log = ""; return taken; }
+		static int made;
+		static string Made(string value) { made++; return value; }
+		static int TakeMade() { var taken = made; made = 0; return taken; }
 		""";
 
 	public static IEnumerable<object[]> Readings()
@@ -264,6 +267,17 @@ public sealed class GuardRepeatedCaptureTests
 			("l: F & ',' & (r: V & ';'?){2} => @(l + string.Concat(r)) | y: D => @(y!)",     "1,2;3,4;5", "12v3v4v5v#"),
 			// Absent in this step is absent, whatever the base wrote.
 			("l: F & ',' & (y: D)? & 'x' & when @(Log(y)) => @(l + (y ?? \"_\")) | y: D => @(y!)", "1,x,2x", "1_2#<null>;2"),
+			("l: F & ',' & (r: V)? & 'x' & when @(Log(r)) => @(l + (r ?? \"_\")) | r: V => @(r!)", "1,x,2x", "1v_2v#<null>;2v"),
+			// A step that does not name its rule is not handed the value so far (§4.3).
+			("F & ',' & y: D => @(y!) | y: D => @(y!)",                                       "1,2,3",     "3#"),
+			("F & ',' & y: D & when @(Log(y)) => @(y!) | y: D => @(y!)",                      "1,2,3",     "3#2;3"),
+			("l: F & '+' & y: D => @(l + y) | F & '-' & y: D => @(\"m\" + y) | y: D => @(y!)", "1+2-3+4",   "m34#"),
+			// The leading capture is the value so far (§4.3), and a guard may name it (§3.6).
+			("l: F & ',' & y: D & when @(Log(l)) => @(l + y) | y: D => @(y!)",               "1,2,3",     "123#1;12"),
+			("l: F & ',' & r: V & when @(Log(l + r)) => @(l + r) | y: D => @(y!)",           "1,2,3",     "12v3v#12v;12v3v"),
+			("l: F & '+' & y: D & when @(Log(l)) => @(l + y) | " +
+				"l: F & '-' & y: D & when @(Log(l)) => @(l + \"m\" + y) | y: D => @(y!)",    "1+2-3+4",   "12m34#1;12;12m3"),
+			("l: F & ',' & y: D & when @(Log(l)) => @(l + y) | l: D => @(l! + \"b\")",       "1,2,3",     "1b23#1b;1b2"),
 		})
 		{
 			var grammar =
@@ -277,6 +291,49 @@ public sealed class GuardRepeatedCaptureTests
 		}
 
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// A guard that refuses a step on the value so far ends the fold there, and what follows
+	/// reads on from where the last step it let through ended.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_fold_step_guard_can_refuse_on_the_value_so_far(CarrierKind carrier, bool direct, bool find)
+	{
+		var assembly = Compile(
+			"""
+			D = ['0'..'9']
+			F : @string = l: F & ',' & y: D & when @(l.Length < 2) => @(l + y) | y: D => @(y!)
+			T : @string = f: F & ',' & r: D => @(f + "|" + r)
+			""", carrier, direct, find);
+
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3");
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal("12|3", match.Value);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3,4").IsSuccess);
+	}
+
+	/// <summary>
+	/// A value so far a guard asked for is built once (§3.6): the next step's guard and the
+	/// fold at acceptance go on from it rather than folding from the base again.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_fold_step_value_a_guard_asked_for_is_built_once(CarrierKind carrier, bool direct, bool find)
+	{
+		var assembly = Compile(
+			"""
+			D = ['0'..'9']
+			V : @string = d: D => @(d! + "v")
+			F : @string = l: F & ',' & r: V & when @(Log(l)) => @(Made(l + r)) | y: D => @(Made(y!))
+			T : @string = f: F => @(f + "#" + Take() + "#" + TakeMade())
+			""", carrier, direct, find);
+
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3,4");
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal("12v3v4v#1;12v;12v3v#4", match.Value);
 	}
 
 	/// <summary>

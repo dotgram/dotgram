@@ -4176,6 +4176,20 @@ sealed partial class Machine
 				arguments.Add("context");
 			}
 
+			// The value so far (§4.3), where a guard in a step names it: the reader holds it as
+			// `fold`, a value where the carrier builds as it reads and a record to build where
+			// it does not.
+			if (machine.GuardAccumulator(rule, guard) is { } accumulator)
+			{
+				var build = machine.Carrier.Materialize("fold", mark);
+
+				if (build.Length > 0)
+					code.Line(build);
+
+				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+				arguments.Add(ValueAt(rule, "fold"));
+			}
+
 			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
 			{
 				var handed = $"g{_guardLocals++}";
