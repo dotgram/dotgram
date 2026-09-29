@@ -89,11 +89,11 @@ public sealed class Names
 	            | left: Expr & '*' & right: Expr  << 2 => @(left * right)
 	            | '(' & inner: Expr & ')'              => @(inner)
 	            | n: Integer                           => @(n)
-	            // The `!` is not decoration. A guard is handed every capture of the rule
-	            // it stands in — here `n` as well — and the ones another alternative
-	            // would have set arrive as null, so the compiler cannot know this is the
-	            // alternative that set `name`. A `=>` runs after one alternative has been
-	            // chosen and needs none.
+	            // The `!` is not decoration: a capture only some alternatives set reaches a
+	            // guard nullable (§3.6), and this is how a condition says it knows better.
+	            // `name` here is captured unconditionally right before the guard, so it is
+	            // never actually null — the `!` just matches the shape a conditional capture
+	            // would need. A `=>` runs after one alternative has been chosen and needs none.
 	            | name: Identifier & when @(context.Known(name!)) => @(context.Of(name))
 
 	parse Program

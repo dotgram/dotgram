@@ -1082,10 +1082,9 @@ namespace DotGram.ExpressionLanguage;
 		// Whether what was read is an element of a name and nothing more is what the guard
 		// asks, of the one way that reads one (`Postfix`), so `a[0][1] = 1`, `(a)[0] = 1` and
 		// `b + a[0] = 1` are refused where they always were. The lookahead keeps the guard
-		// off every operand that no `=` follows. And the operand is not named `c`: a guard is
-		// handed every capture whose name its text contains, and `context` contains a `c`, so
-		// the guard would build the operand while the text is read — `x >= 0 && x = 9` then
-		// threw from `&&` rather than being refused at the `=`.
+		// off every operand that no `=` follows. And the guard is handed only what its own
+		// condition names — `parserSpan` and `context` — never the operand: nothing of it is
+		// built to run a guard that only asks whether *something* is being written.
 		| operand: Conditional & (?='=' & when @(context.Writes(parserSpan)) & '=' & ?!'=' & value: Assignment)?
 		  => @(value is null ? operand : ExpressionParser.Assigned(context.Here(parserSpan).Written(operand), value))
 

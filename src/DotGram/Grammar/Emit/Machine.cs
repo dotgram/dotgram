@@ -2841,11 +2841,11 @@ sealed partial class Machine
 
 					// Only what the condition names. Every one of these is materialized to run
 					// it — a rule's value built, a run cut into a string — and a condition
-					// asking about one capture was handed all of them. Read as text, like the
-					// supplied names above: a name inside a string literal costs one value
-					// built for nothing, and reading it exactly would mean lexing C# here.
+					// asking about one capture was handed all of them. Whether it names one is
+					// the scanner's answer (CSharpEmitter.Uses), like the supplied names above,
+					// not merely whether its text contains the parameter's spelling.
 					if (node is Node.Guard { Text: var asked } &&
-						!asked.Contains(ResultTypes.ParameterOf(member)))
+						!CSharpEmitter.Uses(_graph, asked, ResultTypes.ParameterOf(member)))
 					{
 						continue;
 					}

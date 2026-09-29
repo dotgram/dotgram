@@ -25311,3 +25311,65 @@ the readers ran five. It now marks nothing past the call's last construction ent
 reader's too now that it hands a fold's value on where its turns stop). Left as found: where a fold's
 construction reads `parserState` or `parserMarks`, the helper chains the marks from arena entry 0 at
 every guard, quadratic in the input, and no shipped grammar reaches it.
+
+## A guard's spelling isn't its name, and the engine had the same mistake twice
+
+`GuardMembers` (`Machine.Direct.cs`) picked what to hand a `when @(...)` guard by
+`guard.Text.Contains(ResultTypes.ParameterOf(member))` — a name reached the guard whenever it
+was spelled somewhere in the guard's C#, whole identifier or not: `c` matched inside `context`,
+`p` inside `parserSpan`, `at` inside `Statics`, `n` inside `Known`. Every one of those built a
+value nobody's condition asked for, and where the factory can throw or the value is otherwise
+not free to build early, a guard that should have refused could throw instead — which is what
+happened once in an expression-language experiment. `GuardAccumulator`'s own comment already
+pointed at the fix (`CSharpEmitter.Uses`, the scanner's free names, the whole-identifier fallback
+where there is no scanner) for the fold-step case (previous entry); `GuardMembers` never
+followed, and its own comment still described the substring test as "read as text, as the engine
+reads it" — because the engine had it too: `Machine.cs`'s own guard-parameter loop, the one every
+non-direct reader's guards go through, carried a second, identical `!asked.Contains(...)`, with
+its own copy of the same "read as text" reasoning. Both are now `CSharpEmitter.Uses` calls.
+
+The second site is the one that reaches shipped grammars, since the SQL parsers and most of the
+expression language read guards through the engine rather than the direct reader. Rebuilding
+`DotGram.Sql`, `DotGram.ExpressionLanguage` and `DotGram.Examples` from a clean `-t:Rebuild` and
+diffing every `.g.cs` against the parent commit found 265 guard signatures changed across six
+files — `SqlStandardParser.g.cs` (36), `TransactSqlParser.g.cs` and its `.Located` twin (89
+each), `ExpressionParser.g.cs` and its `.Immediate` twin (24 each), and the `Scoped` example (3).
+Every one of the 265 is a pure removal: the "after" parameter list is a subset of "before", in
+the same relative order, checked mechanically rather than by sampling. `AbsoluteValue`,
+`ExtractExpression` and `JSONTableTypedColumn` in `SqlStandard.gram` (`w`/`Towers`, `f`/`RolesOf`,
+`t`+`p`/`OnEmpty`) and `References`, `FunctionStatement`, `TriggerStatement` and the SPATIAL arm
+of `CreateIndexStatement` in `TransactSql.gram` (`t`/`c`/`n`/`ActedOnce`, `r`/`Parameter`,
+`on`/`options`, `o`/`not`) are all among them, exactly as expected. The build is warning-clean
+(`-warnaserror`, 0 warnings) — a mismatched call would have been CS1501, not a warning, and
+nothing was.
+
+Two comments this falsified got fixed rather than left to describe a defect that no longer
+exists. `ScopedExpressionExample.cs`'s `Expr` rule had explained its `name!` by "a guard is
+handed every capture of the rule it stands in — here `n` as well", which was the bug read as a
+feature; `n` is not handed to that guard, has never needed to be for the guard's own sake, and
+the comment now says why `!` is there without it. `ExpressionParser.cs`'s `Assignment` rule had
+"the operand is not named `c`: a guard is handed every capture whose name its text contains, and
+`context` contains a `c`" as a naming constraint the author worked around — the exact incident
+this entry opens with. The constraint is gone; the comment now states the guard's real, checked
+property instead (it is handed only `parserSpan` and `context`, never the operand). `Postfix`'s
+own guard, `when @(context.Statics())` guarding the last, expensive-to-reach alternative, is the
+`at`/`Statics` case among the 24 `ExpressionParser` changes: its comment already claimed "a text
+with no `using static` in it... should cost such a text a field read", which the bug had been
+quietly breaking (an `Expression[]?` built and gone unused) and the fix now actually keeps.
+
+Tests: `GuardRepeatedCaptureTests.A_guard_naming_only_a_substring_of_a_capture_is_not_handed_it`,
+one row each for `c`/`context`, `p`/`parserSpan`, `at`/`Statics`, plus a row where the guard
+really does name the capture. A named capture is otherwise always materialized once its rule
+accepts — `Construct_T(string c)` takes `c` as a parameter whether or not its body reads it — so
+every row's rule ends in a literal that never comes, refusing after the guard has run; a
+construction counted anyway is the guard's own doing. Read the counter by reflection rather than
+through the parse result, since a refused rule never returns one. Two carrier quirks are not the
+defect and are accounted for rather than hidden: a refusal is read twice (quietly, then again to
+report what it says, §7.2), so anything built at all is built twice; and the immediate carrier's
+direct reader builds a construction the moment it is read regardless of the guard (§3.7), but
+only there — `find` and the engine's own non-direct reader both defer the same way the tape
+carrier does. Red on `main` before this entry (10 of 12 readings), green after, on every carrier,
+direct on and off, `find` on and off. `DotGram.Tests` (9998), `DotGram.Tests.Slow` (297),
+`DotGram.Sql.Tests` (14906) and `DotGram.Finance.Tests` (4483) all pass; the snapshot baseline
+(`tests/Snapshots`) stayed byte-identical, since none of its five grammars has a guard this
+changes.

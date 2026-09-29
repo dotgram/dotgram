@@ -652,6 +652,78 @@ public sealed class GuardRepeatedCaptureTests
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.GuardNamesOtherAccumulator);
 	}
 
+	/// <summary>
+	/// A capture's name can sit inside a guard's C# as a bare substring of a longer word —
+	/// <c>c</c> inside <c>context</c>, <c>p</c> inside <c>parserSpan</c>, <c>at</c> inside
+	/// <c>Statics</c> — without the guard naming it. <c>GuardMembers</c> asks the scanner
+	/// (<see cref="CSharpEmitter.Uses"/>), not the spelling, so none of those captures is built
+	/// to hand to the guard. Every row's rule needs a literal that never comes, so it always
+	/// refuses after the guard runs: a construction counted anyway is one the guard's own
+	/// materialization made, not one an accepted derivation asked for — a named capture is
+	/// otherwise always built at acceptance, guard or no guard, so only a refused rule isolates
+	/// this. A capture the guard really does name is still handed over and built for it.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_naming_only_a_substring_of_a_capture_is_not_handed_it(CarrierKind carrier, bool direct, bool find)
+	{
+		var wrong = new List<string>();
+
+		foreach (var (rule, extra, handed) in new (string Rule, string Extra, bool Handed)[]
+		{
+			// `c` is only a substring of `context`.
+			("c: V & when @(context.Length > 0) & 'X'",
+				"\nstatic string context = \"ctx\";", false),
+			// `p` is only a substring of `parserSpan`.
+			("p: V & when @(parserSpan.Length >= 0) & 'X'", "", false),
+			// `at` is only a substring of `Statics`.
+			("at: V & when @(Statics()) & 'X'",
+				"\nstatic bool Statics() => true;", false),
+			// The guard really does name `c`: it is handed over and built for it.
+			("c: V & when @(c == \"1v\") & 'X'", "", true),
+		})
+		{
+			var grammar =
+				"D = ['0'..'9']\nV : @string = d: D => @(Made(d! + \"v\"))\nT : @string = " + rule + " => @(\"unreachable\")";
+			var result  = GramCompiler.Compile(
+				grammar + "\nparse T" + (find ? "\nfind T" : ""),
+				new GramCompilerOptions
+				{
+					ClassName     = "Grammar",
+					CSharpScanner = RoslynCSharpScanner.Instance,
+					Carrier       = carrier,
+					Direct        = direct,
+				});
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+			var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members + extra);
+
+			// No input ever has the trailing 'X', so the rule always refuses, after the guard
+			// has run: nothing here is ever accepted, and nothing about acceptance can explain
+			// a construction that ran anyway.
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1");
+			Assert.False(match.IsSuccess, "expected a refusal, got " + match.Value);
+
+			var made = (int)assembly.GetType("Grammar")!
+				.GetField("made", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+
+			// A refusal is read twice — quietly, then again to record what it says (Q7.2) — and
+			// each reading builds what it needs once, so anything built at all is built twice.
+			// The immediate carrier's direct reader also builds the moment it reads a capture,
+			// guard or no guard (the carrier's contract) — but only there: `find` reads ahead of
+			// where a derivation starts, and the engine's own (non-direct) reader defers the same
+			// way the tape carrier does, so neither carries the eagerness.
+			var resolvedImmediate = carrier == CarrierKind.Immediate || (carrier == CarrierKind.Auto &&
+				result.Diagnostics.Any(one => one.Id == GramCompiler.CarrierChosen && one.Message.Contains("carried as Immediate")));
+			var eager    = direct && !find && resolvedImmediate;
+			var expected = handed || eager ? 2 : 0;
+
+			if (made != expected)
+				wrong.Add(rule + ": made " + made + ", not " + expected);
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
 	/// <summary>Compiles <c>F</c> alone, without asserting it is free of errors.</summary>
 	static GramCompilation Compiled(string rule, CarrierKind carrier, bool direct, bool find)
 	{
