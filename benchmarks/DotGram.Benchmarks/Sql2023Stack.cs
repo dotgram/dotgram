@@ -23,13 +23,8 @@ static class Sql2023Stack
 {
 	const int Shallow = 400, Deep = 800;
 
-	/// <summary>
-	/// A stack no parse will exhaust, so the measurement is of frames and not of the guard. Odd
-	/// enough a size to be found by, on Linux, where the mapping is matched by it.
-	/// </summary>
+	/// <summary>A stack no parse will exhaust, so the measurement is of frames and not of the guard.</summary>
 	const int MeasuringStackKiB = 63 * 1024;
-
-	static int _measured;
 
 	public static void Run()
 	{
@@ -50,18 +45,17 @@ static class Sql2023Stack
 	{
 		var shallow = 0L;
 		var deep    = 0L;
-		var size    = (MeasuringStackKiB + 4 * Interlocked.Increment(ref _measured)) * 1024;
 
 		var thread = new Thread(
 			() =>
 			{
 				read(Shallow);
-				shallow = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
+				shallow = OperatingSystem.IsWindows() ? OnWindows() : OnLinux();
 
 				read(Deep);
-				deep = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
+				deep = OperatingSystem.IsWindows() ? OnWindows() : OnLinux();
 			},
-			size);
+			MeasuringStackKiB * 1024);
 
 		thread.Start();
 		thread.Join();
@@ -99,33 +93,59 @@ static class Sql2023Stack
 		return used;
 	}
 
-	static long OnLinux(int size)
+	/// <summary>The resident bytes of this thread's own stack range (StackFrameBudgetTests.OnLinux's note on why not a mapping found by its size).</summary>
+	static long OnLinux()
 	{
-		var want  = (ulong)size;
-		var found = false;
+		var attributes = Marshal.AllocHGlobal(1024);    // pthread_attr_t: 56 bytes on x64 glibc, 64 on arm64
 
-		foreach (var line in System.IO.File.ReadLines("/proc/self/smaps"))
+		try
 		{
-			var dash = line.IndexOf('-');
+			if (pthread_getattr_np(pthread_self(), attributes) != 0)
+				throw new InvalidOperationException("pthread_getattr_np failed.");
 
-			if (dash > 0 && Uri.IsHexDigit(line[0]))
+			try
 			{
-				var from = Convert.ToUInt64(line[..dash], 16);
-				var rest = line[(dash + 1)..];
-				var end  = rest.IndexOf(' ');
-				var to   = Convert.ToUInt64(end < 0 ? rest : rest[..end], 16);
+				if (pthread_attr_getstack(attributes, out var low, out var size) != 0)
+					throw new InvalidOperationException("pthread_attr_getstack failed.");
 
-				found = to - from == want;
+				var page  = Environment.SystemPageSize;
+				var pages = new byte[(size + page - 1) / page];
 
-				continue;
+				if (mincore(low, size, pages) != 0)
+					throw new InvalidOperationException($"mincore failed with errno {Marshal.GetLastPInvokeError()}.");
+
+				var resident = 0L;
+
+				foreach (var state in pages)
+					resident += state & 1;
+
+				return resident * page;
 			}
-
-			if (found && line.StartsWith("Rss:", StringComparison.Ordinal))
-				return long.Parse(line[4..].Replace("kB", "").Trim()) * 1024;
+			finally
+			{
+				_ = pthread_attr_destroy(attributes);
+			}
 		}
-
-		return 0;
+		finally
+		{
+			Marshal.FreeHGlobal(attributes);
+		}
 	}
+
+	[DllImport("libc")]
+	static extern nint pthread_self();
+
+	[DllImport("libc")]
+	static extern int pthread_getattr_np(nint thread, nint attributes);
+
+	[DllImport("libc")]
+	static extern int pthread_attr_getstack(nint attributes, out nint low, out nint size);
+
+	[DllImport("libc")]
+	static extern int pthread_attr_destroy(nint attributes);
+
+	[DllImport("libc", SetLastError = true)]
+	static extern int mincore(nint address, nint length, byte[] pages);
 
 	[DllImport("kernel32.dll")]
 	static extern void GetCurrentThreadStackLimits(out nuint low, out nuint high);

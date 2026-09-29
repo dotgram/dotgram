@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using System.Threading;
-
-using DotGram.ExpressionLanguage;
-using DotGram.Sql.Standard;
-using DotGram.Sql.TransactSql;
 
 using Xunit;
 
@@ -40,6 +39,13 @@ namespace DotGram.Tests;
 /// before <c>bafdcf00</c> made the towers' value types classes. The current levels are 4.15 and
 /// 3.36, so that arithmetic reserves against a level the parser no longer has. This test measures
 /// the level afresh on every run, so it is never reading a stale one.
+/// </para>
+/// <para>
+/// Those are Windows x64 figures. On Linux x64 the same Release tier-0 frames are narrower —
+/// SQL:2023 2.38 KiB a level against 3.36, about a hundred bytes on each of its ten frames a
+/// level. That is the size of what the Windows calling convention adds to a frame (the 32-byte
+/// home area of every call, RSI and RDI saved by the callee), which is the likely account; it has
+/// not been measured frame by frame, and the two figures are from different machines.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -107,14 +113,14 @@ public sealed class StackFrameBudgetTests
 	/// <summary>The generator's own interval, written out because <c>Machine</c> is internal to it.</summary>
 	const int Interval = 4;
 
-	/// <summary>The sizes the level is measured between, far enough apart that the fixed part cancels.</summary>
-	const int Shallow = 400, Deep = 800;
-
-	/// <summary>
-	/// A stack no parse will exhaust, so the measurement is of frames and not of the guard, and a
-	/// size distinctive enough to find the mapping by on Linux.
-	/// </summary>
+	/// <summary>A stack no parse will exhaust, so the measurement is of frames and not of the guard.</summary>
 	const int MeasuringStackKiB = 63 * 1024;
+
+	/// <summary>How deep the warming parse goes: enough to reach every rule the nest reaches.</summary>
+	const int Warm = 8;
+
+	/// <summary>How many fresh copies of a grammar may be spent on a reading the runtime did not disturb.</summary>
+	const int Attempts = 3;
 
 	public static TheoryData<string> Grammars()
 	{
@@ -125,13 +131,15 @@ public sealed class StackFrameBudgetTests
 	[MemberData(nameof(Grammars))]
 	public void A_grammar_costs_little_enough_a_level_to_be_probed_at_the_interval(string grammar)
 	{
-		var (shallow, deep) = Committed(grammar);
-		var level           = (deep - shallow) / (double)(Deep - Shallow) / 1024;
+		var shallowDepth    = Shallow(grammar);
+		var (shallow, deep) = Committed(grammar, shallowDepth);
+		var level           = (deep - shallow) / (double)shallowDepth / 1024;
 
 		Assert.True(
 			level > 0,
-			$"{grammar}: the level measured as {level:F2} KiB, which means the measurement failed " +
-			"rather than that the frames are free.");
+			$"{grammar}: the level measured as {level:F2} KiB ({shallow:N0} B at {shallowDepth} levels, " +
+			$"{deep:N0} B at {2 * shallowDepth}), which means the measurement failed rather than that " +
+			"the frames are free.");
 
 		var between = level * Reserve * Interval;
 
@@ -144,54 +152,164 @@ public sealed class StackFrameBudgetTests
 			"two probes; the interval in Machine.Reader.cs is what has to come down.");
 	}
 
+	/// <summary>The shallower of the two depths the level is measured between; the deeper is twice it.</summary>
+	/// <remarks>
+	/// Far enough apart that the fixed part cancels, and shallow enough that a reading ends inside
+	/// the tiering delay (<see cref="Committed"/>) even on a loaded machine: at 200 and 400 SQL:2023
+	/// took 9 ms alone and 41 ms inside the whole suite. T-SQL is read shallower still because it
+	/// refuses this input in time that grows with the cube of the depth at tier 0 — 1.9 s at 400
+	/// levels, 14.6 s at 800 — and takes 20 ms at 40 and 80. Every grammar's level is flat in the
+	/// depth from 25 levels up (T-SQL 1.28 to 1.40 KiB, the spread being one page in the
+	/// difference), so the shallower pairs cost only resolution.
+	/// </remarks>
+	static int Shallow(string grammar)
+	{
+		return grammar == "T-SQL" ? 40 : 100;
+	}
+
 	/// <summary>What the stack of a thread had committed after the shallow parse, and after the deep one, in bytes.</summary>
 	/// <remarks>
 	/// <para>
 	/// Both parses on ONE thread of its own, the shallow first: a stack commits as it grows and never
 	/// gives the pages back, so the second reading is the first plus what the deeper parse needed, and
-	/// nothing else. Until 2026-09-25 each depth had a thread of its own, and on Linux, where the
-	/// mapping is found by its size, the second thread could read a mapping the first had left — a
-	/// level of -1.28 KiB on a CI runner.
+	/// nothing else.
 	/// </para>
 	/// <para>
-	/// And each measuring thread's stack is a size no other thread has had, for the same reason.
+	/// <b>And both on code the JIT compiled at tier 0, which a reading has to make sure of.</b>
+	/// Tiered compilation promotes a method once it is hot, and a promoted frame is thinner: a
+	/// third of the tier-0 one for T-SQL (0.41 KiB a level against 1.3). A reading that straddles a
+	/// promotion reads a fat shallow parse and a thin deep one. That is what failed this test on
+	/// CI — 0.00 KiB for the expression language in one run and not the next, and -1.28 KiB for
+	/// SQL:2023 when the two depths still had threads of their own — and whether it happened
+	/// depended on how long the grammar took and on what the suite had run before. So:
+	/// </para>
+	/// <list type="bullet">
+	/// <item>The grammar is loaded afresh into a context of its own (<see cref="Cold"/>), so what
+	/// the suite has already run is never what is measured. The context is not collectible: code in
+	/// a collectible context is not tiered at all and is compiled optimized from the start, 1.78 KiB
+	/// a level for SQL:2023 against 2.38 at tier 0.</item>
+	/// <item>Parses on another thread compile it first, so no compilation lands on the measuring
+	/// stack.</item>
+	/// <item>The reading begins by calling a method nothing has called (<see cref="Marked"/>, in a
+	/// fresh copy of this assembly). The runtime counts no call toward a promotion until
+	/// <see cref="TieringDelay"/> has passed with no such first call, so a reading that ends
+	/// inside the delay ran on tier-0 code alone; one that does not is taken again on a fresh
+	/// copy. The bound is conservative: T-SQL read at growing depths first reads wrong at 630 ms.</item>
+	/// </list>
+	/// <para>
+	/// Tier 0 is also the frame a consumer's first deep input runs on.
 	/// </para>
 	/// </remarks>
-	static (long Shallow, long Deep) Committed(string grammar)
+	static (long Shallow, long Deep) Committed(string grammar, int shallowDepth)
 	{
-		var shallow = 0L;
-		var deep    = 0L;
-		var size    = (MeasuringStackKiB + 4 * Interlocked.Increment(ref _measured)) * 1024;
+		var took = TimeSpan.Zero;
 
-		var thread = new Thread(
-			() =>
-			{
-				Read(grammar, Shallow);
-				shallow = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
+		for (var attempt = 0; attempt < Attempts; attempt++)
+		{
+			var cold    = new Cold();
+			var read    = Reader(cold, grammar);
+			var marked  = Marker(cold);
+			var shallow = 0L;
+			var deep    = 0L;
 
-				Read(grammar, Deep);
-				deep = OperatingSystem.IsWindows() ? OnWindows() : OnLinux(size);
-			},
-			size);
+			OnThread(
+				() =>
+				{
+					for (var warming = 0; warming < 3; warming++)       // reflection settles on its second call
+						read(Warm);
+
+					_ = Reading();
+				});
+
+			OnThread(
+				() =>
+				{
+					var mark = Stopwatch.GetTimestamp();
+
+					marked();
+
+					read(shallowDepth);
+					shallow = Reading();
+
+					read(2 * shallowDepth);
+					deep = Reading();
+
+					took = Stopwatch.GetElapsedTime(mark);
+				});
+
+			if (took < TieringDelay)
+				return (shallow, deep);
+		}
+
+		throw new InvalidOperationException(
+			$"{grammar}: none of {Attempts} readings ended inside the runtime's tiering delay of " +
+			$"{TieringDelay.TotalMilliseconds} ms (the last took {took.TotalMilliseconds:F0} ms), so none is known " +
+			"to be of tier-0 frames alone.");
+	}
+
+	/// <summary>The runtime's default <c>TC_CallCountingDelayMs</c>, which nothing in the suite changes.</summary>
+	static readonly TimeSpan TieringDelay = TimeSpan.FromMilliseconds(100);
+
+	/// <summary>A method of this assembly's copy in that context, which nothing has called: the first call of it restarts the runtime's tiering delay.</summary>
+	static Action Marker(Cold cold)
+	{
+		var method = cold.LoadFromAssemblyPath(typeof(StackFrameBudgetTests).Assembly.Location)
+			.GetType(typeof(StackFrameBudgetTests).FullName!, throwOnError: true)!
+			.GetMethod(nameof(Marked), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+		return () => method.Invoke(null, null);
+	}
+
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	static void Marked()
+	{
+	}
+
+	static void OnThread(Action action)
+	{
+		var thread = new Thread(() => action(), MeasuringStackKiB * 1024);
 
 		thread.Start();
 		thread.Join();
-
-		return (shallow, deep);
 	}
 
-	static int _measured;
-
-	/// <summary>The nested input of each grammar, refused in every case so the reading goes all the way down.</summary>
-	static bool Read(string grammar, int depth)
+	/// <summary>The nested input of each grammar, read by the copy in that context and refused in every case so the reading goes all the way down.</summary>
+	static Action<int> Reader(Cold cold, string grammar)
 	{
+		var caller = typeof(StackFrameBudgetTests).Assembly;
+
 		return grammar switch
 		{
-			"SQL:2023"            => SqlStandardParser.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess,
-			"T-SQL"               => TransactSqlParser.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess,
-			"expression language" => ExpressionParser.TryParse("(int x) => " + new string('(', depth) + "x").IsSuccess,
+			"SQL:2023"            => Parse(cold, "DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser", "TryParseSearchCondition", [typeof(string)], depth => [new string('(', depth) + "a = 1"]),
+			"T-SQL"               => Parse(cold, "DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser", "TryParseSearchCondition", [typeof(string)], depth => [new string('(', depth) + "a = 1"]),
+			"expression language" => Parse(cold, "DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser", "TryParse", [typeof(string), typeof(Assembly)], depth => ["(int x) => " + new string('(', depth) + "x", caller]),
 			_                     => throw new ArgumentOutOfRangeException(nameof(grammar), grammar, "no such grammar"),
 		};
+	}
+
+	static Action<int> Parse(Cold cold, string assembly, string type, string method, Type[] parameters, Func<int, object[]> arguments)
+	{
+		var parser = cold.LoadFromAssemblyName(new AssemblyName(assembly)).GetType(type, throwOnError: true)!;
+		var parse  = parser.GetMethod(method, parameters) ?? throw new MissingMethodException(type, method);
+
+		return depth => parse.Invoke(null, arguments(depth));
+	}
+
+	/// <summary>A context of its own for the DotGram assemblies, so their code is compiled afresh.</summary>
+	/// <remarks>Everything else — the framework — is the default context's.</remarks>
+	sealed class Cold() : AssemblyLoadContext(nameof(StackFrameBudgetTests))
+	{
+		protected override Assembly? Load(AssemblyName name)
+		{
+			return name.Name is { } simple && (simple == "DotGram" || simple.StartsWith("DotGram.", StringComparison.Ordinal))
+				? LoadFromAssemblyPath(Path.Combine(AppContext.BaseDirectory, simple + ".dll"))
+				: null;
+		}
+	}
+
+	static long Reading()
+	{
+		return OperatingSystem.IsWindows() ? OnWindows() : OnLinux();
 	}
 
 	/// <summary>Walking this thread's own stack region and adding up what is committed.</summary>
@@ -215,42 +333,76 @@ public sealed class StackFrameBudgetTests
 		return used;
 	}
 
-	/// <summary>
-	/// The resident size of this thread's stack mapping, which is the same quantity.
-	/// </summary>
+	/// <summary>How many bytes of this thread's own stack range are resident, which is the same quantity.</summary>
 	/// <remarks>
-	/// Found by the mapping's SIZE rather than by an address or by the <c>[stack]</c> label: only
-	/// the main thread's mapping is labelled, and taking the address of a local would need an
-	/// unsafe context that no project here enables. <see cref="MeasuringStackKiB"/> is an odd
-	/// enough size to be this thread's and nothing else's.
+	/// <para>
+	/// A Linux thread stack is mapped whole up front and a page becomes resident when it is first
+	/// touched, so residency is the high-water mark just as commitment is on Windows. The range is
+	/// asked of the thread itself (<c>pthread_getattr_np</c>, which leaves out the guard) and counted
+	/// page by page with <c>mincore</c>, so nothing depends on how the kernel lays out or merges
+	/// mappings. Checked on a burner of known width: 256, 1,024 and 4,096 bytes a level read as the
+	/// width plus the same 176 bytes of frame each time.
+	/// </para>
+	/// <para>
+	/// Until 2026-09-28 the mapping was found in <c>/proc/self/smaps</c> by its size and its
+	/// <c>Rss</c> read. The mapping is not the size asked for everywhere: glibc 2.43 on kernel 7.0
+	/// keeps the guard page inside the stack's own mapping, which is then a page larger, where 2.39
+	/// splits it off with <c>mprotect</c>. Nothing matched, both readings were 0, and every grammar
+	/// read 0.00 KiB a level.
+	/// </para>
 	/// </remarks>
-	static long OnLinux(int size)
+	static long OnLinux()
 	{
-		var want  = (ulong)size;
-		var found = false;
+		var attributes = Marshal.AllocHGlobal(1024);    // pthread_attr_t: 56 bytes on x64 glibc, 64 on arm64
 
-		foreach (var line in File.ReadLines("/proc/self/smaps"))
+		try
 		{
-			var dash = line.IndexOf('-');
+			if (pthread_getattr_np(pthread_self(), attributes) != 0)
+				throw new InvalidOperationException("pthread_getattr_np failed.");
 
-			if (dash > 0 && Uri.IsHexDigit(line[0]))
+			try
 			{
-				var from = Convert.ToUInt64(line[..dash], 16);
-				var rest = line[(dash + 1)..];
-				var end  = rest.IndexOf(' ');
-				var to   = Convert.ToUInt64(end < 0 ? rest : rest[..end], 16);
+				if (pthread_attr_getstack(attributes, out var low, out var size) != 0)
+					throw new InvalidOperationException("pthread_attr_getstack failed.");
 
-				found = to - from == want;
+				var page  = Environment.SystemPageSize;
+				var pages = new byte[(size + page - 1) / page];
 
-				continue;
+				if (mincore(low, size, pages) != 0)
+					throw new InvalidOperationException($"mincore failed with errno {Marshal.GetLastPInvokeError()}.");
+
+				var resident = 0L;
+
+				foreach (var state in pages)
+					resident += state & 1;
+
+				return resident * page;
 			}
-
-			if (found && line.StartsWith("Rss:", StringComparison.Ordinal))
-				return long.Parse(line[4..].Replace("kB", "").Trim()) * 1024;
+			finally
+			{
+				_ = pthread_attr_destroy(attributes);
+			}
 		}
-
-		return 0;
+		finally
+		{
+			Marshal.FreeHGlobal(attributes);
+		}
 	}
+
+	[DllImport("libc")]
+	static extern nint pthread_self();
+
+	[DllImport("libc")]
+	static extern int pthread_getattr_np(nint thread, nint attributes);
+
+	[DllImport("libc")]
+	static extern int pthread_attr_getstack(nint attributes, out nint low, out nint size);
+
+	[DllImport("libc")]
+	static extern int pthread_attr_destroy(nint attributes);
+
+	[DllImport("libc", SetLastError = true)]
+	static extern int mincore(nint address, nint length, byte[] pages);
 
 	[DllImport("kernel32.dll")]
 	static extern void GetCurrentThreadStackLimits(out nuint low, out nuint high);
