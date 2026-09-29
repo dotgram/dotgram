@@ -253,6 +253,7 @@ public sealed partial class GrammarNormalizer
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
 			CheckRecovery     (rule);
+			CheckFoldGuards   (rule);
 		}
 
 		CheckTrivia();
@@ -558,6 +559,101 @@ public sealed partial class GrammarNormalizer
 		{
 			return char.IsLetterOrDigit(c) || c is '_' or '@';
 		}
+	}
+
+	/// <summary>
+	/// A guard inside a fold's loop names another step's name for the value so far, and not
+	/// its own (§4.3).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Several steps of one fold may capture the leading, self-recursive call under
+	/// different names. Where they all agree on one name, the emitter hands a guard that
+	/// names it the value so far (§3.6); where a step has none of its own, its guard cannot
+	/// ask for one either way. Both are sound, and neither is this.
+	/// </para>
+	/// <para>
+	/// What is left is a step that has its own name and a guard that spells a
+	/// <em>different</em> step's name instead. That name is not this step's value so far,
+	/// is not one of its own captures, and — unless it happens to be a host member, which
+	/// is a question for C# and not for this — the generator would otherwise hand the
+	/// emitter nothing for it: a CS0103 in a file the author did not write. Reported here
+	/// instead, before the emitter tries.
+	/// </para>
+	/// </remarks>
+	void CheckFoldGuards(RuleSymbol rule)
+	{
+		if (rule.Declaration is null || !_folds.TryGetValue(rule, out var fold))
+			return;
+
+		var names = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var accumulator in fold.Accumulators.Values)
+			if (accumulator.Length > 0)
+				names.Add(accumulator);
+
+		// One name, or none: every step that names one agrees, so there is nothing for a
+		// guard to tell apart.
+		if (names.Count < 2)
+			return;
+
+		foreach (var step in fold.Accumulators)
+		{
+			var own = step.Value;
+
+			// A step with no name of its own is not one of the steps that differ — its
+			// leading call was never captured, so a guard here naming a sibling's name is
+			// reading something else with the same spelling (docs/syntax.md §4.3).
+			if (own.Length == 0)
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(step.Key))
+			{
+				if (node is not Node.Guard(var text))
+					continue;
+
+				var free = _scanner?.FreeNames(text);
+
+				// Null where the scanner could not read the guard. Falling back to a word
+				// match, as CheckMarks does, would answer a question the emitter itself
+				// cannot ask (Machine.GuardAccumulator asks the same scanner and falls back
+				// the same way, to never being handed the value so far) — so nothing is
+				// said rather than guessed.
+				if (free is null)
+					continue;
+
+				foreach (var other in names)
+				{
+					if (other == own || !free.Contains(other))
+						continue;
+
+					if (Parameter(rule, other) || other == "context" ||
+						other.StartsWith("parser", StringComparison.Ordinal) ||
+						WritesBefore(step.Key, node, other))
+						continue;
+
+					Report(
+						GuardNamesOtherAccumulator,
+						$"A guard in '{rule.Name}' names '{other}', which is another step's name for the " +
+						$"value so far (§4.3) — this step calls it '{own}', so '{other}' is not bound here. " +
+						"Give every step of this fold that shares a head the same name, or capture the " +
+						$"leading call of this step under '{other}'.",
+						rule.Declaration.At);
+
+					break;
+				}
+			}
+		}
+	}
+
+	/// <summary>Whether a name is one of a parameterized rule's own parameters (§4.2).</summary>
+	static bool Parameter(RuleSymbol rule, string name)
+	{
+		foreach (var param in rule.Declaration!.Params)
+			if (param.Name == name)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>

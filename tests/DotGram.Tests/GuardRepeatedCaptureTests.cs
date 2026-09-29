@@ -550,6 +550,96 @@ public sealed class GuardRepeatedCaptureTests
 		Assert.Contains("the value of 'V'", refused.Message);
 	}
 
+	/// <summary>
+	/// Two steps of one fold that name the value so far differently share the loop they are
+	/// both tails of. A guard in one of them naming the <em>other</em>'s name is not bound —
+	/// it is neither this step's own name nor one of its captures — and left to C# it is a
+	/// CS0103 in a file the author did not write (GRAM4031, replacing it).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_naming_another_steps_name_is_refused(CarrierKind carrier, bool direct, bool find)
+	{
+		var result = Compiled(
+			"l: F & '+' & y: D & when @(Log(m)) => @(l + y) | m: F & '-' & y: D & when @(Log(m)) => @(m + y) | y: D => @(y!)",
+			carrier, direct, find);
+
+		var refused = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.GuardNamesOtherAccumulator);
+		Assert.Contains("'m'", refused.Message);
+		Assert.Contains("'l'", refused.Message);
+
+		// Replaces the CS0103: nothing is emitted for a grammar the generator refused, so
+		// there is no file left for the C# compiler to find the missing name in.
+		Assert.Empty(result.Sources);
+	}
+
+	/// <summary>
+	/// A step whose leading call is not captured has no name of its own, so a guard there
+	/// naming another step's name is not this defect — it may be a host member, which is a
+	/// question for C# and not for the generator (must not fire).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_naming_a_host_member_in_a_step_without_an_accumulator_is_not_refused(
+		CarrierKind carrier, bool direct, bool find)
+	{
+		var result = Compiled(
+			"l: F & '+' & y: D => @(l + y) | m: F & '-' & y: D => @(m + y) | " +
+			"F & '*' & y: D & when @(Seen(m)) => @(y!) | y: D => @(y!)",
+			carrier, direct, find);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.GuardNamesOtherAccumulator);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members + "\nstatic string m = \"42\";");
+	}
+
+	/// <summary>
+	/// A capture of the same name, made in the same step before the guard, binds it there —
+	/// it is not the other step's value so far, whatever it is also called (must not fire).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_naming_its_own_steps_same_name_capture_is_not_refused(CarrierKind carrier, bool direct, bool find)
+	{
+		var result = Compiled(
+			"l: F & '+' & m: D & when @(Seen(m)) => @(l + m) | m: F & '-' & y: D & when @(Seen(m)) => @(m + y) | y: D => @(y!)",
+			carrier, direct, find);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.GuardNamesOtherAccumulator);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members);
+	}
+
+	/// <summary>
+	/// A guard the scanner cannot parse answers nothing (<see cref="ICSharpScanner.FreeNames"/>),
+	/// and falling back to a word match here would be guessing at a name the emitter itself
+	/// cannot ask for — so nothing is said (must not fire).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_the_scanner_cannot_parse_is_not_refused(CarrierKind carrier, bool direct, bool find)
+	{
+		var result = Compiled(
+			"l: F & '+' & y: D & when @(m +) => @(l + y) | m: F & '-' & y: D & when @(Seen(m)) => @(m + y) | y: D => @(y!)",
+			carrier, direct, find);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.GuardNamesOtherAccumulator);
+	}
+
+	/// <summary>Compiles <c>F</c> alone, without asserting it is free of errors.</summary>
+	static GramCompilation Compiled(string rule, CarrierKind carrier, bool direct, bool find)
+	{
+		return GramCompiler.Compile(
+			"D = ['0'..'9']\nF : @string = " + rule + "\nparse F" + (find ? "\nfind F" : ""),
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Carrier       = carrier,
+				Direct        = direct,
+			});
+	}
+
 	public static IEnumerable<object[]> Carriers()
 	{
 		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })

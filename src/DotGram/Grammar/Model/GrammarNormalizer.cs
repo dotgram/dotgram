@@ -83,6 +83,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A mark whose value names a capture of its own alternative.</summary>
 	public const string MarkNamesCapture = "GRAM4030";
 
+	/// <summary>A guard in a fold step names another step's name for the value so far, not its own.</summary>
+	public const string GuardNamesOtherAccumulator = "GRAM4031";
+
 	/// <summary>Whether a refused input is read again over a context put back as it was, or read once.</summary>
 	public const string ContextRestored = "GRAM5013";
 
