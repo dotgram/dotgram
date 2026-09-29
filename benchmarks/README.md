@@ -248,9 +248,14 @@ reports of a complete build, so a run for the record is `--rebuild`.
 That comparison is history, not the gate to quote: the generator's milliseconds move with the
 machine — the morning's base commit, rebuilt that evening, read 22-39% above its own report — so
 a head is held to a base rebuilt in the same run. `benchmarks/Gate-Generation.ps1 -Base <commit>
-[-Head <commit>]` rebuilds DotGram.Sql and DotGram.Examples in a worktree of each, base, head, base,
-head, on the same cores, and names every host whose ratio of medians is more than 20% from 1 by at
-least 100 ms. It is a timing run: it takes the window itself, and its builds run on the stand's processors.
+[-Head <commit>]` rebuilds every grammar-hosting project (DotGram.Sql, DotGram.Examples, DotGram.ExpressionLanguage,
+DotGram.Web, DotGram.Finance) in a worktree of each, base, head, base, head, on the same cores, and names every
+host whose ratio of medians is more than 20% from 1 by at least 100 ms. Beside the hosts it holds the compiler's
+own count of the generator (`-p:ReportAnalyzer=true`), one row per project and target framework, to the same
+rule: a base older than the generator's reports (they arrived on 2026-09-17, so v0.1.0 has none) is held by that
+table alone, and the report says so. It is a timing run: it takes the window itself, and its builds run on the
+stand's processors. The worktrees stay under `/ramdisk/build/dotgram/gate` for the next run; remove them with
+`git worktree remove` when done.
 
 ### The base of a row, and the regular expression
 

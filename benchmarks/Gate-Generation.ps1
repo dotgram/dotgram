@@ -11,7 +11,10 @@
 	the floor (100 ms), is named on a line of its own.
 
 	DotGram.Sql and DotGram.Examples are rebuilt in a worktree of each commit (`-t:Rebuild`, so that the
-	generator runs), and the generator's own reports are read. It builds; it times the build's
+	generator runs), and the generator's own reports are read. The compiler's own count of the generator's time
+	(`-p:ReportAnalyzer=true`, per compilation of each project and target framework) is read beside them: it is the
+	one a base without the reports can give (they arrived on 2026-09-17, after v0.1.0), and the table of it is
+	held to the same tolerance. It builds; it times the build's
 	generation, so it is a timing: it takes the window itself (WindowLib.ps1: the lock, the wait for builds, the quiet check)
 	and lets it go when it ends. It is the machine's quiet that makes the ratio mean anything.
 
@@ -74,6 +77,12 @@ $summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<b
 $taken = @{ base = @{}; head = @{} }
 $perProject = @{ base = @{}; head = @{} }
 
+# The compiler's count: at detailed verbosity with ReportAnalyzer, each compilation prints the generators' seconds after its command line (`/out:obj/Release/<tfm>/<name>.dll`). Only the compilations
+# of the project itself are kept: a -t:Rebuild rebuilds what the project references too, and that is the referenced project's row.
+$compilerLine  = [regex]'/out:(?<out>\S+\.dll)'
+$generatorLine = [regex]'^\s*(?<seconds>[\d.]+)\s+\S+\s+DotGram\.Generation\.GramGenerator\s*$'
+$compiled = @{ base = @{}; head = @{} }
+
 try {
 	$quiet = Wait-Quiet $WaitMinutes
 	$quiet.Text
@@ -86,7 +95,21 @@ try {
 
 			foreach ($project in $Projects) {
 				# The report level is set to "true" (the full report) on both sides: the property is a switch on a commit that predates the levels and the full level on one that has them.
-				& taskset -c $cpus dotnet build (Join-Path $dir $project) -c Release -t:Rebuild -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DotGramReportGeneration=true | Out-Null
+				$assembly = [IO.Path]::GetFileNameWithoutExtension($project)
+				$out      = $null
+
+				& taskset -c $cpus dotnet build (Join-Path $dir $project) -c Release -t:Rebuild -v:detailed -m:1 -nodeReuse:false -p:UseSharedCompilation=false -p:DotGramReportGeneration=true -p:ReportAnalyzer=true | ForEach-Object {
+					if (($m = $compilerLine.Match($_)).Success) { $out = $m.Groups['out'].Value }
+					elseif ($out -and ($m = $generatorLine.Match($_)).Success) {
+						if ([IO.Path]::GetFileNameWithoutExtension($out) -eq $assembly) {
+							$key = "$assembly $(Split-Path (Split-Path $out) -Leaf)"
+							if (-not $compiled[$name].ContainsKey($key)) { $compiled[$name][$key] = @() }
+							$compiled[$name][$key] += 1000 * [double]::Parse($m.Groups['seconds'].Value, [Globalization.CultureInfo]::InvariantCulture)
+						}
+
+						$out = $null
+					}
+				}
 
 				if ($LASTEXITCODE -ne 0) { throw "$name $project did not build" }
 
@@ -128,27 +151,38 @@ function Median($values) {
 'Projects rebuilt, and the hosts each gave (a project that gave 0 is a hole in this report, not a pass):'
 foreach ($project in $Projects) { '- {0}: base {1}, head {2}' -f $project, $perProject.base[$project], $perProject.head[$project] }
 ''
-'| host | base ms (min-max) | head ms (min-max) | head / base |'
-'| --- | ---: | ---: | ---: |'
-
 $named = @()
 
-foreach ($hostName in ($taken.head.Keys | Sort-Object)) {
-	if (-not $taken.base.ContainsKey($hostName)) { $named += "$hostName`: new"; continue }
+# One table: a row per key, base against head, and the rows that moved beyond the tolerance named.
+function Held([string]$what, [hashtable]$base, [hashtable]$head) {
+	"| $what | base ms (min-max) | head ms (min-max) | head / base |"
+	'| --- | ---: | ---: | ---: |'
 
-	$b = Median $taken.base[$hostName]
-	$h = Median $taken.head[$hostName]
-	$ratio = $h / $b
+	foreach ($key in ($head.Keys | Sort-Object)) {
+		if (-not $base.ContainsKey($key)) { $script:named += "$key`: new"; continue }
 
-	$bRange = $taken.base[$hostName] | Measure-Object -Minimum -Maximum
-	$hRange = $taken.head[$hostName] | Measure-Object -Minimum -Maximum
+		$b = Median $base[$key]
+		$h = Median $head[$key]
+		$ratio = $h / $b
 
-	'| {0} | {1:N0} ({2:N0}-{3:N0}) | {4:N0} ({5:N0}-{6:N0}) | {7:N2}x |' -f $hostName, $b, $bRange.Minimum, $bRange.Maximum, $h, $hRange.Minimum, $hRange.Maximum, $ratio
+		$bRange = $base[$key] | Measure-Object -Minimum -Maximum
+		$hRange = $head[$key] | Measure-Object -Minimum -Maximum
 
-	if ([math]::Abs($ratio - 1) -gt $Tolerance -and [math]::Abs($h - $b) -ge $FloorMilliseconds) {
-		$named += '{0}: {1:N0} ms to {2:N0} ms ({3:+0%;-0%})' -f $hostName, $b, $h, ($ratio - 1)
+		'| {0} | {1:N0} ({2:N0}-{3:N0}) | {4:N0} ({5:N0}-{6:N0}) | {7:N2}x |' -f $key, $b, $bRange.Minimum, $bRange.Maximum, $h, $hRange.Minimum, $hRange.Maximum, $ratio
+
+		if ([math]::Abs($ratio - 1) -gt $Tolerance -and [math]::Abs($h - $b) -ge $FloorMilliseconds) {
+			$script:named += '{0}: {1:N0} ms to {2:N0} ms ({3:+0%;-0%})' -f $key, $b, $h, ($ratio - 1)
+		}
 	}
 }
+
+if ($taken.base.Count -gt 0) { Held 'host' $taken.base $taken.head }
+else { "The base wrote no generation reports (they arrived on 2026-09-17; v0.1.0 predates them), so no host is held: the compiler's count below is the gate." }
+
+''
+"The compiler's count of the generator (ReportAnalyzer), per compilation of each project and target framework; it includes what the generator does besides writing the hosts:"
+''
+Held 'compilation' $compiled.base $compiled.head
 
 ''
 if ($named.Count -eq 0) { 'No host of the projects named above moved by more than the tolerance.' }
