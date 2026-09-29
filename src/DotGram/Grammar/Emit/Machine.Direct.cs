@@ -325,12 +325,18 @@ sealed partial class Machine
 		var before  = layout.Before(guard);
 		var visible = new List<(ResultMember, IReadOnlyList<int>)>();
 
+		// A guard in a fold's step is handed what that step captured (§4.3), as its `=>` is:
+		// a slot before it outside the loop is the base's, written once for every step.
+		var step = fold is not null && NodeWalk.Descendants(fold.Loop).Any(node => ReferenceEquals(node, guard))
+			? DirectStepSlots(rule)
+			: null;
+
 		foreach (var member in _graph.Results[rule])
 		{
 			var slots = new List<int>();
 
 			foreach (var slot in member.Slots)
-				if (slot < before)
+				if (slot < before && (step is null || step.Contains(slot)))
 					slots.Add(slot);
 
 			if (slots.Count == 0 || !guard.Text.Contains(ResultTypes.ParameterOf(member)))
@@ -338,7 +344,9 @@ sealed partial class Machine
 
 			var optional = GuardCaptureAdmitsAbsence(rule, guard, member);
 
-			visible.Add((member with { IsOptional = optional }, slots));
+			// And as one thing, which is how the step's `=>` takes it: a slot under the fold's
+			// loop is kept as a sequence only because the loop writes it once per step.
+			visible.Add((member with { IsOptional = optional, IsSequence = member.IsSequence && step is null }, slots));
 		}
 
 		return visible;

@@ -125,7 +125,7 @@ sealed partial class Machine
 				for (var i = 0; i < members.Count; i++)
 					if (members[i].Name == mine.Name)
 						shaped.Add(new DirectMember(
-							mine, i, mine.Rule is null ? MemberShape.Text : MemberShape.Record, mine.Slots));
+							mine, i, mine.Rule is null ? Shaped(mine, mine.Slots, repeated) : MemberShape.Record, mine.Slots));
 			}
 
 			return shaped;
@@ -148,7 +148,7 @@ sealed partial class Machine
 
 				for (var i = 0; i < members.Count; i++)
 					if (members[i].Name == wanted.Name)
-						shaped.Add(new DirectMember(members[i], i, Shaped(members[i], wanted.Slots, repeated), wanted.Slots));
+						shaped.Add(new DirectMember(members[i], i, Shaped(members[i], members[i].Slots, repeated), wanted.Slots));
 			}
 
 			return shaped;

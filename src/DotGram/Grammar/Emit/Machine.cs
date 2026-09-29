@@ -2735,9 +2735,15 @@ sealed partial class Machine
 				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
-				foreach (var member in _graph.Results[rule])
+				// A guard in a fold's step takes a member as the step's `=>` does, one thing: a
+				// slot under the fold's loop is kept as a sequence only because the loop writes
+				// it once per step (§4.3).
+				var inStep = fold is not null && NodeWalk.Descendants(fold.Loop).Any(one => ReferenceEquals(one, node));
+
+				foreach (var written in _graph.Results[rule])
 				{
-					var slots = new List<int>();
+					var member = inStep ? written with { IsSequence = false } : written;
+					var slots  = new List<int>();
 
 					foreach (var slot in member.Slots)
 						if (slot < before)
