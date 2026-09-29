@@ -164,6 +164,8 @@ public sealed class Rfc8288Tests
 	[InlineData("<a>; rel=\"x")]                // a quoted-string never closed
 	[InlineData("<a b>; rel=x")]                // a space is no part of a URI-Reference
 	[InlineData("<a>; rel=x;")]                 // a semicolon with nothing after it
+	[InlineData("<a>; rel=x, <unclosed")]       // good links, then one whose target is never closed
+	[InlineData("<a>; rel=x, <unclosed, <c>; rel=y")] // the never-closed one in the middle, not at the end
 	public void What_the_ABNF_does_not_make_is_refused(string field)
 	{
 		Assert.False(WebLink.TryParseField(field, out _), $"'{field}' was read.");

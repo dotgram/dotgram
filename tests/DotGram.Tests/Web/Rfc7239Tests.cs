@@ -198,6 +198,8 @@ public sealed class Rfc7239Tests
 	[InlineData("for")]
 	[InlineData("for=_a by=_b")]
 	[InlineData("for=\"_a")]
+	[InlineData("for=192.0.2.43, for=")]                    // a good element, then one with no value after `for=`
+	[InlineData("for=192.0.2.43, for=, for=198.51.100.17")] // the empty-valued one in the middle, not at the end
 	public void What_is_no_field(string field)
 	{
 		Assert.False(ForwardedElement.TryParseField(field, out _), $"'{field}' was read.");

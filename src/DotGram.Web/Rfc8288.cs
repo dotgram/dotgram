@@ -141,7 +141,11 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 	// ── Link ─────────────────────────────────────────────────────────────────────
 
 	// `#link-value`: empty elements before, between and after, and nothing else between two values.
-	Field : @WebLink[] = Ows & (',' & Ows)* & links: Element* => @(links)
+	// The list is atomic for the same reason RFC 7239's is: unsealed, a refused field (an
+	// unclosed `<` after n good links, say) gives a link back a retry and replays the whole
+	// list from its start each time, squaring both the count and the bytes it materialises —
+	// 414 MB at 1,024 links. The greedy reading is the only one a comma list ever meant.
+	Field : @WebLink[] = Ows & (',' & Ows)* & { links: Element* } => @(links)
 
 	Element : @WebLink = link: LinkValue & Ows & ((',' & Ows)+ | ?!any) => @(link)
 

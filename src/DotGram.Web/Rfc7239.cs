@@ -216,7 +216,13 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 	// Forwarded = 1#forwarded-element.
 	ForwardedField : @ForwardedElement[] = Ows & elements: ElementList & Ows & when @(elements!.Length > 0) => @(elements)
 
-	ElementList : @ForwardedElement[] = first: Element & rest: NextElement* => @(Rfc7239.Present(first, rest))
+	// Atomic: once the list has read as many elements as it can, a later failure (an unclosed
+	// tail after the last one, say) must not give elements back to try again with fewer.
+	// Unsealed, a refused list gives one element back a retry and each retry re-reads the
+	// elements before it from ElementList's start — values rematerialised every time — which
+	// squares both the count and the bytes: n retries of O(n), a gigabyte at 1,024 elements.
+	// The greedy reading is the only one a comma list ever meant, so nothing downstream loses.
+	ElementList : @ForwardedElement[] = { first: Element & rest: NextElement* } => @(Rfc7239.Present(first, rest))
 
 	NextElement : @ForwardedElement = Ows & ',' & Ows & element: Element => @(element)
 
