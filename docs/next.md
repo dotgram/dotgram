@@ -25123,6 +25123,9 @@ answered the join already. Three did not, all around the fold (§4.3):
   inside a step were handed as one value too (`(r: V & ';'?){2}` built "3v" of "2v", "3v"), because
   the layout let the fold's loop decide what collects. A slot the author's repetition collects is now
   the step's array, to its `=>` and to a guard, and the direct reader leaves such a rule to the engine;
+  a behaviour change as well as a fix: where another alternative holds the same name as one value,
+  the two now have different types and GRAM4007 refuses the grammar, which used to compile and hand
+  the step the last value it collected;
 - a guard in a step asked whether a member could be absent over the whole body, where the base always
   writes it, so an absent `(y: D)?` in a step reached the guard and the reader's construction as ""
   or as the base's piece. It is asked over the step;

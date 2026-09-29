@@ -4,6 +4,7 @@ using System.Reflection;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Model;
 
 using Xunit;
 
@@ -339,6 +340,25 @@ public sealed class GuardRepeatedCaptureTests
 		}
 
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// A name a fold step collects and another alternative holds as one value has two types,
+	/// and is refused as any such name is, saying which is which. Before, the step silently
+	/// took the last of what it collected.
+	/// </summary>
+	[Theory]
+	[InlineData("l: F & ',' & (r: V & ';'?){2} => @(l + string.Concat(r)) | r: V => @(r!)")]
+	[InlineData("l: F & '+' & (r: V & ';'?){2} => @(l + string.Concat(r)) | l: F & '-' & r: V => @(l + r) | y: D => @(y!)")]
+	public void A_fold_step_collecting_what_another_alternative_holds_is_refused(string rule)
+	{
+		var result = GramCompiler.Compile(
+			"D = ['0'..'9']\nV : @string = d: D => @(d! + \"v\")\nF : @string = " + rule + "\nparse F",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		var refused = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.CaptureTypeMismatch);
+		Assert.Contains("a sequence of 'V'", refused.Message);
+		Assert.Contains("the value of 'V'", refused.Message);
 	}
 
 	public static IEnumerable<object[]> Carriers()

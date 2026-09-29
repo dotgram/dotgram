@@ -777,11 +777,15 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <remarks>
+	/// What the author sees, as the comparison it explains does: a slot under a fold's loop is
+	/// kept as a sequence and is one value to its step.
+	/// </remarks>
 	static string Held(CaptureSlot slot)
 	{
 		return slot.Rule is null
 			? "text"
-			: slot.IsSequence
+			: slot.Collects
 				? $"a sequence of '{slot.Rule.Name}'"
 				: $"the value of '{slot.Rule.Name}'";
 	}
