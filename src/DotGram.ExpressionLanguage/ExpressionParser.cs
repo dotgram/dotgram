@@ -1049,18 +1049,10 @@ namespace DotGram.ExpressionLanguage;
 	// before finding out it is not the one, and an operand may be a block — which made a
 	// lambda with two braces in it take longer to read than there is time.
 	Assignment : @Expression
-		// An element is written to by one alternative and not by eleven, and that is a
-		// measurement: an index is an expression, eleven alternatives read it eleven times
-		// before finding out which operator they are, and `a[a[a[a[0]]]] = 1` took most of
-		// a second. So a compound assignment writes to a name or a member of one, and only
-		// the plain `=` writes to an element.
-		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Here(parserSpan).Reach), value))
-
 		// Each compound form names the assignment the API has for it and the operator it
 		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
 		// where the operator's own type is the target's.
-		| target: Target & "+="  & value: Assignment
+		= target: Target & "+="  & value: Assignment
 		  => @(ExpressionParser.AddAssign(target, value, parserState))
 		| target: Target & "-="  & value: Assignment
 		  => @(ExpressionParser.SubtractAssign(target, value, parserState))
@@ -1081,7 +1073,21 @@ namespace DotGram.ExpressionLanguage;
 		| target: Target & ">>=" & value: Assignment
 		  => @(ExpressionParser.ShiftAssign(Expression.RightShiftAssign, Expression.RightShift, target, value, parserState))
 		| target: Target & '=' & ?!'=' & value: Assignment => @(ExpressionParser.Assigned(target, value))
-		| c: Conditional                           => @(c)
+
+		// An element is written to by the plain `=` alone, and it is read once: as the operand
+		// it is, after which a `=` says it was a target. Read as a target first, as it was, an
+		// index that found no `=` after it was read again as an operand — twice a level, so
+		// `a[a[a[0]]]` twenty-four deep, a text C# accepts, took nine seconds; before that,
+		// eleven alternatives each read it, and `a[a[a[a[0]]]] = 1` took most of a second.
+		// Whether what was read is an element of a name and nothing more is what the guard
+		// asks, of the one way that reads one (`Postfix`), so `a[0][1] = 1`, `(a)[0] = 1` and
+		// `b + a[0] = 1` are refused where they always were. The lookahead keeps the guard
+		// off every operand that no `=` follows. And the operand is not named `c`: a guard is
+		// handed every capture whose name its text contains, and `context` contains a `c`, so
+		// the guard would build the operand while the text is read — `x >= 0 && x = 9` then
+		// threw from `&&` rather than being refused at the `=`.
+		| operand: Conditional & (?='=' & when @(context.Writes(parserSpan)) & '=' & ?!'=' & value: Assignment)?
+		  => @(value is null ? operand : ExpressionParser.Assigned(context.Here(parserSpan).Written(operand), value))
 
 	// What may be written to. An element is read one way and written another — `ArrayIndex`
 	// answers with a value and `ArrayAccess` with a place — and which is wanted is decided
@@ -1217,6 +1223,14 @@ namespace DotGram.ExpressionLanguage;
 		// tail is read as data and handed over whole, and `Chained` builds it inside the test.
 		| target: Postfix & chain: Guarded
 		  => @(ExpressionParser.Chained(target, chain, context.Here(parserSpan)))
+
+		// An element of a name, which is the one element `Assignment` writes to: read here with
+		// its name, as a head of its own, so that what it was is known where a `=` follows. The
+		// only way to read one — `Primary` takes no name a `[` follows, and no static member of
+		// a name the text declared — so an index that is never closed is read once, and not
+		// here and again as a suffix of the fold above.
+		| target: Name & at: Indices & (?='=' & when @(context.Indexes(parserSpan)))?
+		  => @(ExpressionParser.Indexed(target, at, context.Here(parserSpan).Reach))
 
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
@@ -1431,7 +1445,8 @@ namespace DotGram.ExpressionLanguage;
 		// which node it is.
 		| "null"     => @(ExpressionParser.Null)
 
-		| n: Name    => @(n)
+		// Not before a `[`: an element of a name is `Postfix`'s own head.
+		| n: Name & ?!'[' => @(n)
 
 		// A bare name that is a static member a `using static` brought into reach. LAST, after the
 		// name a text declared, which is C#'s order; and behind a guard that reads nothing, so a
@@ -4155,13 +4170,19 @@ public static partial class ExpressionParser
 
 		/// <summary>Whether a bare name is a static member a `using static` brought into reach.</summary>
 		/// <remarks>
-		/// Asked where nothing the text declared has the name, which is C#'s order: a local of the
-		/// name wins, and this way stands after the one that reads a declared name.
+		/// Not where the text declared the name, which is C#'s order: a local of the name wins.
+		/// This way stands after the one that reads a declared name, which settles it everywhere
+		/// but before a `[`, where that way stops so that `Postfix` reads the element whole; a
+		/// declared `a` whose index is never closed would otherwise be read again here as a static
+		/// `a`, index and all.
 		/// </remarks>
 		internal bool Reads(string name, SourceSpan at)
 		{
 			if (name is null)
 				throw new ArgumentNullException(nameof(name));
+
+			if (Find(name, at) is not null)
+				return false;
 
 			for (var one = 0; one < (_statics?.Count ?? 0); one++)
 				if (HasStatic(_statics![one], name, Reach))
@@ -4662,6 +4683,56 @@ public static partial class ExpressionParser
 
 		/// <summary>The same, for a refusal that has no position of its own.</summary>
 		internal int Where => _where;
+
+		/// <summary>Where the last element of a name that a `=` follows was read.</summary>
+		SourceSpan _indexed = new(-1, 0);
+
+		/// <summary>Records an element of a name, read where a `=` follows it.</summary>
+		/// <remarks>
+		/// Nothing takes it back when the reading is given up. All it says is that these characters
+		/// read as an element of a name, which holds for as long as the declarations in scope are
+		/// the ones it was read under — whether a word is a name depends on them — and a reading
+		/// that asks <see cref="Writes"/> reads those characters under its own declarations, as the
+		/// element again or not at all. The last one is enough, because the element before a `=` is
+		/// the last thing read before it: any other recorded while it was read stands inside its
+		/// brackets and ended earlier.
+		/// </remarks>
+		internal bool Indexes(SourceSpan at)
+		{
+			_indexed = at;
+
+			return true;
+		}
+
+		/// <summary>Whether what was read there is an element of a name and nothing more.</summary>
+		/// <remarks>
+		/// Where it is, it is the last element recorded and spans exactly that: an element with a
+		/// suffix after it, one inside brackets or an operator, or an operand after one, spans
+		/// more, or begins elsewhere. What the record is worth is said at <see cref="Indexes"/>;
+		/// <see cref="Written(Expression)"/> does not rest on it alone.
+		/// </remarks>
+		internal bool Writes(SourceSpan at)
+		{
+			return at.Start == _indexed.Start && at.Length == _indexed.Length;
+		}
+
+		/// <summary>The same element as a place to write rather than a value to read.</summary>
+		/// <remarks>
+		/// The API keeps the two apart where C# does not: <c>ArrayIndex</c> answers with a value
+		/// and cannot be assigned to, <c>ArrayAccess</c> answers with the element itself. Which one
+		/// `a[0]` means is decided by which side of the `=` it stands on, which the grammar knows
+		/// only once it has read the element as a value (<see cref="ExpressionParser.Indexed"/>):
+		/// so an array's (its <c>Get</c> call) is spelled again over the same array and indices, and
+		/// an indexer's is the indexer itself; nothing else is respelled. Called on the state that
+		/// <c>Here</c> answers, so that what <c>Assigned</c> refuses is placed where the assignment
+		/// begins.
+		/// </remarks>
+		internal Expression Written(Expression element)
+		{
+			return element is MethodCallExpression { Object: { Type.IsArray: true } array, Method.Name: "Get" } read
+				? Expression.ArrayAccess(array, read.Arguments)
+				: element;
+		}
 
 		/// <summary>Whether a delegate was named, which is what makes an untyped lambda readable.</summary>
 		/// <remarks>

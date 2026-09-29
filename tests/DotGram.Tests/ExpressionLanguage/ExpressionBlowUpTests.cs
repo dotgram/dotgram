@@ -116,6 +116,75 @@ public sealed class ExpressionBlowUpTests
 			"multiple of it, never a power of it.");
 	}
 
+	/// <summary>
+	/// What nests is read once a level: doubling the depth adds to the cost what the last doubling
+	/// added, or twice that, and never its square.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// An element of a name was read twice a level, so each level doubled the cost of the one
+	/// inside it: first as the target of <c>a[i] = v</c> and again, no <c>=</c> after it, as the
+	/// operand it is. Twenty-four levels of a text C# accepts took nine seconds.
+	/// </para>
+	/// <para>
+	/// Counted in bytes, at four depths a doubling apart, and judged by the exponent of the
+	/// INCREMENTS — <c>log2((C(4n) - C(2n)) / (C(2n) - C(n)))</c> — so that what every reading
+	/// costs whatever its depth cannot read as a slope. Linear is 1 and quadratic 2; the
+	/// defect read 7.7 to 8.1 at the last doubling. A shape whose count does not grow at all
+	/// (a refusal decided before anything is built) is flat, which passes.
+	/// </para>
+	/// <para>
+	/// All four readings on one thread, after one of the deepest, so that the stores a reading
+	/// rents have grown to what the deepest needs before anything is counted. The cost of first
+	/// sight is left out that way too, and what is counted is what a level adds — which is what
+	/// the defect multiplied. Sixteen levels is deep enough that the defect fails here by five
+	/// orders of magnitude and shallow enough that it fails in a fraction of a second.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("an index",                  "(int[] a) => ", "a[", "0", "]",     "")]
+	[InlineData("an index, unclosed",        "(int[] a) => ", "a[", "0", "",      "")]
+	[InlineData("an index, then a bad tail", "(int[] a) => ", "a[", "0", "]",     " +")]
+	[InlineData("an element written to",     "(int[] a) => ", "a[", "0", "] = 1", "")]
+	public void What_nests_is_read_once_a_level(
+		string what, string head, string opener, string middle, string closer, string tail)
+	{
+		var counts    = Warmly(Array.ConvertAll(Depths, depth => Nested(head, opener, middle, closer, tail, depth)));
+		var exponents = new double[Depths.Length - 2];
+
+		for (var at = 0; at < exponents.Length; at++)
+			exponents[at] = Exponent(counts[at + 1] - counts[at], counts[at + 2] - counts[at + 1]);
+
+		Assert.True(
+			Array.TrueForAll(exponents, one => one <= Linear),
+			$"{what}: {string.Join(", ", counts)} bytes at {string.Join(", ", Depths)} levels, increment " +
+			$"exponents {string.Join(", ", Array.ConvertAll(exponents, one => one.ToString("F2")))}. A level " +
+			"is to cost what the one before it did, not what everything inside it did.");
+	}
+
+	static readonly int[] Depths = [2, 4, 8, 16];
+
+	/// <summary>The most an increment exponent may read.</summary>
+	/// <remarks>
+	/// Linear shapes read 0.6 to 1.3 here — a store that grows at one depth and not the next moves
+	/// an increment — and the defect 7.7 to 8.1.
+	/// </remarks>
+	const double Linear = 1.6;
+
+	/// <summary>How the later of two increments grew on the earlier, as a power of two.</summary>
+	static double Exponent(long earlier, long later)
+	{
+		if (later <= 0)
+			return 0;
+
+		return earlier <= 0 ? double.PositiveInfinity : Math.Log2((double)later / earlier);
+	}
+
+	static string Nested(string head, string opener, string middle, string closer, string tail, int times)
+	{
+		return head + Repeated(opener, times) + middle + Repeated(closer, times) + tail;
+	}
+
 	static string Text(string head, string opener, int times, string tail)
 	{
 		return head + Repeated(opener, times) + tail;
@@ -215,6 +284,40 @@ public sealed class ExpressionBlowUpTests
 			fewest = Math.Min(fewest, AllocatedOnce(text));
 
 		return fewest;
+	}
+
+	/// <summary>What each reading allocates, on one thread whose stores the largest has grown.</summary>
+	static long[] Warmly(string[] texts)
+	{
+		_ = Warmed;
+
+		var counts = new long[texts.Length];
+
+		var thread = new Thread(
+			() =>
+			{
+				ExpressionParser.TryParse(texts[^1]);
+
+				for (var at = 0; at < texts.Length; at++)
+				{
+					counts[at] = long.MaxValue;
+
+					for (var reading = 0; reading < 3; reading++)
+					{
+						var before = GC.GetAllocatedBytesForCurrentThread();
+
+						ExpressionParser.TryParse(texts[at]);
+
+						counts[at] = Math.Min(counts[at], GC.GetAllocatedBytesForCurrentThread() - before);
+					}
+				}
+			},
+			16 * 1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		return counts;
 	}
 
 	static long AllocatedOnce(string text)

@@ -133,27 +133,7 @@ public static partial class ExpressionParser
 		};
 	}
 
-	/// <summary>The same element as a place to write rather than a value to read.</summary>
-	/// <remarks>
-	/// The API keeps the two apart where C# does not: <c>ArrayIndex</c> answers with a
-	/// value and cannot be assigned to, <c>ArrayAccess</c> answers with the element itself.
-	/// Which one `a[0]` means is decided by which side of the `=` it stands on, which the
-	/// grammar knows and the API cannot.
-	/// </remarks>
-	internal static Expression Place(Expression target, Expression[] at, ResolutionScope scope)
-	{
-		if (target is null)
-			throw new ArgumentNullException(nameof(target));
-
-		if (at is null)
-			throw new ArgumentNullException(nameof(at));
-
-		return target.Type.IsArray
-			? Expression.ArrayAccess(target, Converted(at, typeof(int)))
-			: Indexed(target, at, scope);
-	}
-
-	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
+	/// <summary>What <c>a[i]</c> reads.</summary>
 	/// <remarks>
 	/// An array's element is a node of this tree and anything else's is an indexer — whose
 	/// name is not always <c>Item</c>, `string` calling its own <c>Chars</c>. The type says

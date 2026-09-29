@@ -1809,6 +1809,10 @@ public static class HandExpression
 		int[]? _placed;
 		int _marked;
 
+		// Where the last element of a name that a `=` follows was read: the grammar's
+		// `context.Indexes`, kept here because this reader has no guards to keep it.
+		(int From, int To) _element = (-1, -1);
+
 		/// <summary>The furthest token looked at.</summary>
 		public readonly int Furthest => _furthest;
 
@@ -3387,14 +3391,6 @@ public static class HandExpression
 
 		public int Assignment(int i, out Expression? node)
 		{
-			if (Kind(i) == Identifier)
-			{
-				var element = Written(i, out node);
-
-				if (element >= 0)
-					return element;
-			}
-
 			var target = Target(i, out var name, out var member);
 
 			if (target >= 0)
@@ -3420,45 +3416,30 @@ public static class HandExpression
 				}
 			}
 
-			return Conditional(i, out node);
+			return Written(i, out node);
 		}
 
-		/// <summary>An element written to: `a[i] = v`, and only the plain `=`.</summary>
+		/// <summary>An operand, or an element written to: `a[i] = v`, and only the plain `=`.</summary>
 		/// <remarks>
-		/// The indices are read before it is known whether they are a target or the operand of
-		/// something else, so they are read first without being built: an index read as the
-		/// wrong one of the two would have been built on a path the reading leaves.
+		/// The element is read once, as the operand it is, and a `=` after it says it was a target:
+		/// read as a target first, an element no `=` followed was read again as an operand, twice a
+		/// level. <see cref="Postfix"/> says where the element of a name a `=` follows was read, and
+		/// the operand is one only where it is that element and nothing more.
 		/// </remarks>
 		int Written(int i, out Expression? node)
 		{
-			node = null;
+			var at = Conditional(i, out node);
 
-			Quiet(out var was);
-
-			var name = Name(i, out _);
-			var at   = name >= 0 ? Indices(name, out _) : -1;
-
-			_build = was;
-
-			if (at < 0 || Kind(at) != Assign || Peek(at + 1) == Assign)
-				return -1;
-
-			Expression?   written = null;
-			Expression[]? indices = null;
-
-			if (_build)
-			{
-				Name(i, out written);
-				Indices(name, out indices);
-			}
+			if (at < 0 || Peek(at) != Assign || _element != (i, at) || Peek(at + 1) == Assign)
+				return at;
 
 			var value = Assignment(at + 1, out var read);
 
 			if (value < 0)
-				return -1;
+				return at;
 
 			if (_build)
-				node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Reach), read!);
+				node = ExpressionParser.Assigned(_context.Written(node!), read!);
 
 			return value;
 		}
@@ -3905,7 +3886,8 @@ public static class HandExpression
 		{
 			node = null;
 
-			var at = -1;
+			var at    = -1;
+			var named = -1;
 
 			// The three heads that are a name and something: a call of one, and the two that
 			// write to one.
@@ -3931,6 +3913,8 @@ public static class HandExpression
 
 				if (name >= 0)
 				{
+					named = name;
+
 					if (Kind(name) == LeftParen)
 					{
 						var arguments = Arguments(name, out var args);
@@ -4010,6 +3994,11 @@ public static class HandExpression
 
 					if (_build)
 						node = ExpressionParser.Indexed(node!, read!, _context.Reach);
+
+					// An element of a name and nothing before it, which is what `Assignment` may
+					// write to: said where a `=` follows, as the grammar's `context.Indexes` says it.
+					if (at == named && Peek(indices) == Assign)
+						_element = (i, indices);
 
 					at = indices;
 
