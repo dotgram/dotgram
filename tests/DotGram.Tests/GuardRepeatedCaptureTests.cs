@@ -96,9 +96,26 @@ public sealed class GuardRepeatedCaptureTests
 			("y: D & ',' & z: D",                   "1,2",     "1|1"),
 			("y: D{2}",                             "12",      "12|12"),
 			("y: D+ & '2'",                         "112",     "11|11"),
+			// A capture of what a lookahead saw is repeated the way any capture is (§3.4: `?=X`
+			// produces X's value): the turns joined, not the span, and not the last turn.
+			("(y: ?=D & D & ','?){2}",              "1,2",     "12|12"),
+			("(y: ?=(D & D) & D & D & ','?){2}",    "12,34",   "1234|1234"),
+			("(y: ?=D & D & ',')* & y: D",          "1,2,3",   "123|123"),
+			("(y: D & ',')* & y: ?=D & D",          "1,2,3",   "123|123"),
+			("(y: ?=D & D & ','?)?",                "1,",      "1|1"),
+			// Its pieces can overlap, so whether they tile is not their lengths summed: "ab",
+			// "b" and "d" measure the span "abcd", and are not it.
+			("(y: ?=(D & D) & D){2} & D",           "123",     "1223|1223"),
+			("(y: ?=(\"ab\" | L) & L & 'c'?)+",       "abcd",    "abbd|abbd"),
+			// A negative lookahead produces nothing, and repeated, nothing joined.
+			("(y: ?!'x' & D & ','?){2}",            "1,2",     "|"),
+			// Repeated in one alternative and not in the other: one member, one shape.
+			("((y: D & ','?){2} & 'a' | y: D & 'b')", "1,2a",  "12|12"),
+			("((y: D & ','?){2} & 'a' | y: D & 'b')", "1b",    "1|1"),
+			("(y: D & 'b' | (y: D & ','?){2} & 'a')", "1,2a",  "12|12"),
 		})
 		{
-			var grammar = "D = ['0'..'9']\n" + (body.Contains("Sep") ? "Sep = '-'+\n" : "") +
+			var grammar = "D = ['0'..'9']\nL = ['a'..'z']\n" + (body.Contains("Sep") ? "Sep = '-'+\n" : "") +
 				(body.Contains("& R)") ? "R : @string = y: D & ',' => @(y!)\n" : "") + "T : @string = " + body +
 				" & when @(Seen(y)) => @(Both(y))";
 			var assembly = Compile(grammar, carrier, direct, find);
@@ -168,6 +185,161 @@ public sealed class GuardRepeatedCaptureTests
 		}
 	}
 
+	/// <summary>
+	/// The repro of a capture over a lookahead: the guard and the construction both had the
+	/// last turn and the span, <c>"2"</c> and <c>"1,2"</c>, where the value is <c>"12"</c>.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void What_a_lookahead_saw_is_joined_like_any_capture(CarrierKind carrier, bool direct, bool find)
+	{
+		var assembly = Compile(
+			"""
+			D = ['0'..'9']
+			T : @string = (y: ?=D & D & ','?){2} & when @(y == "12") => @(y!)
+			""", carrier, direct, find);
+
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2");
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal("12", match.Value);
+	}
+
+	/// <summary>
+	/// One member, repeated in one alternative and not in the other, is recorded in one shape:
+	/// the reader once wrote the capture as pieces and the other alternative's record as plain
+	/// text, whose end it never declared.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_member_repeated_in_one_alternative_only_is_built_by_each(CarrierKind carrier, bool direct, bool find)
+	{
+		foreach (var rule in new[]
+		{
+			"(y: D & ','?){2} & 'a' => @(y!) | y: D & 'b' => @(y! + \"b\")",
+			"y: D & 'b' => @(y! + \"b\") | (y: D & ','?){2} & 'a' => @(y!)",
+		})
+		{
+			var assembly = Compile("D = ['0'..'9']\nT : @string = " + rule, carrier, direct, find);
+
+			foreach (var (input, expected) in new[] { ("1,2a", "12"), ("12a", "12"), ("1b", "1b") })
+			{
+				var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", input);
+				Assert.True(match.IsSuccess, rule + " on " + input + ": " + match.Error);
+				Assert.Equal(expected, match.Value);
+			}
+		}
+	}
+
+	/// <summary>
+	/// A left-recursive rule is a loop over its steps (§4.3), and the loop is not a repetition
+	/// of the author's: each step's guard and `=>` are handed what that step captured, and a
+	/// repetition inside one step is joined within it.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_fold_step_is_handed_its_own_captures(CarrierKind carrier, bool direct, bool find)
+	{
+		var wrong = new List<string>();
+
+		foreach (var (rule, input, expected) in new[]
+		{
+			// One piece a step: each guard sees its own, not the base's nor every step's.
+			("l: F & ',' & y: D & when @(Log(y)) => @(l + y) | y: D => @(y!)",               "1,2,3",     "123#2;3"),
+			// A name only the steps capture, text and a rule's value.
+			("l: F & ',' & z: D & when @(Log(z)) => @(l + z) | y: D => @(y!)",               "1,2,3",     "123#2;3"),
+			("l: F & ',' & r: V & when @(Log(r)) => @(l + r) | y: D => @(y!)",               "1,2,3",     "12v3v#2v;3v"),
+			// Two tails, each its own step.
+			("l: F & '+' & y: D & when @(Log(y)) => @(l + y) | " +
+				"l: F & '-' & y: D & when @(Log(y)) => @(l + \"m\" + y) | y: D => @(y!)",    "1+2-3+4",   "12m34#2;3;4"),
+			// A repetition inside a step: joined within the step, by the guard and the `=>`.
+			("l: F & ',' & (y: D & ';'?){2} & when @(Log(y)) => @(l + y) | y: D => @(y!)",   "1,2;3,4;5", "12345#23;45"),
+			("l: F & ',' & (y: ?=D & D & ';'?){2} & when @(Log(y)) => @(l + y) | y: D => @(y!)", "1,2;3,4;5", "12345#23;45"),
+			("l: F & ',' & (y: D & ';'?){2} => @(l + y) | y: D => @(y!)",                    "1,2;3,4;5", "12345#"),
+		})
+		{
+			var grammar =
+				"D = ['0'..'9']\nV : @string = d: D => @(d! + \"v\")\nF : @string = " + rule +
+				"\nT : @string = f: F => @(f + \"#\" + Take())";
+			var match = EmittedCode.Match(Compile(grammar, carrier, direct, find), "Grammar", "TryParseT", input);
+			var answer = match.IsSuccess ? (string)match.Value! : "<refused " + match.Error + ">";
+
+			if (answer != expected)
+				wrong.Add(rule + " on '" + input + "': " + answer + ", not " + expected);
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// The rule a lexical join keeps on every path (30bccceb): turns that tile — adjacent
+	/// tokens — are cut whole, keeping what stood between them, and turns with something
+	/// outside the capture between them are cut one by one. The same for the walk at the end
+	/// and a guard, a guard inside the loop and a switch's selector, a capture of a token and
+	/// of what a lookahead saw.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Carriers))]
+	public void A_lexical_join_keeps_the_tiling_rule_on_every_path(CarrierKind carrier, bool direct)
+	{
+		const string head =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Num = ['0'..'9']+
+			}
+
+			""";
+		var wrong = new List<string>();
+
+		foreach (var (rule, input, expected) in new[]
+		{
+			// The walk and a guard after the loop.
+			("(y: Lexical.Num & ','?){2} & when @(Seen(y)) => @(Both(y))",              "1 2",       "1 2|1 2"),
+			("(y: Lexical.Num & ','?){2} & when @(Seen(y)) => @(Both(y))",              "1 , 2",     "12|12"),
+			("(y: Lexical.Num & ','?){2} & when @(Seen(y)) => @(Both(y))",              "1,2",       "12|12"),
+			("(y: Lexical.Num & ','?){2} => @(y)",                                      "1 2",       "1 2"),
+			("(y: Lexical.Num & ','?){2} => @(y)",                                      "1 , 2",     "12"),
+			("y: Lexical.Num+ & when @(Seen(y)) => @(Both(y))",                         "1 2 3",     "1 2 3|1 2 3"),
+			// What a lookahead saw.
+			("(y: ?=Lexical.Num & Lexical.Num & ','?){2} & when @(Seen(y)) => @(Both(y))", "1 2",    "1 2|1 2"),
+			("(y: ?=Lexical.Num & Lexical.Num & ','?){2} & when @(Seen(y)) => @(Both(y))", "1 , 2",  "12|12"),
+			// A guard inside the loop, at every turn.
+			("(y: Lexical.Num & ','? & when @(Log(y))){3} => @(Take())",                "1 2 3",     "1;1 2;1 2 3"),
+			("(y: Lexical.Num & ','? & when @(Log(y))){3} => @(Take())",                "1 , 2 , 3", "1;12;123"),
+			// A switch's selector.
+			("(y: Lexical.Num & ','?){2} & switch @(y) { case \"1 2\": 'a' case \"12\": 'b' } => @(y)", "1 2 a",   "1 2"),
+			("(y: Lexical.Num & ','?){2} & switch @(y) { case \"1 2\": 'a' case \"12\": 'b' } => @(y)", "1 , 2 b", "12"),
+		})
+		{
+			var result = GramCompiler.Compile(head + "T : @string = " + rule + "\nparse T", new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Carrier       = carrier,
+				Direct        = direct,
+				Lexical       = true,
+			});
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+			var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members);
+			var match    = EmittedCode.Match(assembly, "Grammar", "TryParseT", input);
+			var answer   = match.IsSuccess ? (string)match.Value! : "<refused " + match.Error + ">";
+
+			if (answer != expected)
+				wrong.Add(rule + " on '" + input + "': " + answer + ", not " + expected);
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	public static IEnumerable<object[]> Carriers()
+	{
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var direct in new[] { false, true })
+				yield return [carrier, direct];
+	}
+
 	public static IEnumerable<object[]> Hosts()
 	{
 		foreach (var host in new[] { "spans", "buffered", "bytes", "lexical" })
@@ -194,12 +366,16 @@ public sealed class GuardRepeatedCaptureTests
 					Num = ['0'..'9']+
 				}
 				T : @string = (y: Lexical.Num & ','?){2} & when @(y.ToString() == "12") => @(y.ToString())
+				U : @string = (y: ?=Lexical.Num & Lexical.Num & ','?){2} & when @(y.ToString() == "12") => @(y.ToString())
 				parse T
+				parse U
 				"""
 			: """
 				D = ['0'..'9']
 				T : @string = (y: D & ','?){2} & when @(y.ToString() == "12") => @(y.ToString())
+				U : @string = (y: ?=D & D & ','?){2} & when @(y.ToString() == "12") => @(y.ToString())
 				parse T
+				parse U
 				""";
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -216,11 +392,12 @@ public sealed class GuardRepeatedCaptureTests
 		var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text);
 
 		foreach (var input in host == "lexical" ? new[] { "1,2", "1 , 2" } : new[] { "1,2", "12" })
-		{
-			var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", input);
-			Assert.True(match.IsSuccess, input + ": " + match.Error);
-			Assert.Equal("12", match.Value);
-		}
+			foreach (var method in new[] { "TryParseT", "TryParseU" })
+			{
+				var match = EmittedCode.Match(assembly, "Grammar", method, input);
+				Assert.True(match.IsSuccess, method + " " + input + ": " + match.Error);
+				Assert.Equal("12", match.Value);
+			}
 	}
 
 	static Assembly Compile(string grammar, CarrierKind carrier, bool direct, bool find)
