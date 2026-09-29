@@ -64,5 +64,6 @@ The one plausible way a clock alone could rise while the work does not: the thre
 falls inside the ladder's range, whose top rung is 188. A rung that pays for thread creations can bend a fit
 over the top of a ladder, more so on Windows, where creating a thread costs more. It did not bend it here.
 
-SINCE THEN. The guard prints every series' fitted exponent with where it was measured (commit, OS, runtime,
-machine), so that the next figure like this one has a source.
+SINCE THEN. The guard writes every series' fitted exponent with where it was measured (commit, OS, runtime,
+machine): to RefusalExponents.txt beside the test assembly, on standard output, and in the message of a series
+that is reported. The next figure like this one will have a source.

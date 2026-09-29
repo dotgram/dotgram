@@ -32,6 +32,11 @@ namespace DotGram.Tests;
 /// A class has a margin so that a series on the edge of a threshold does not flap in CI: linear holds to 1.20
 /// (what an accepted input is held to), superlinear to 1.60, quadratic to the explosive threshold.
 /// </para>
+/// <para>
+/// <strong>Every series' exponent is written down with where it was measured</strong>: the commit of the binary, the system, the runtime and the
+/// machine (<c>RefusalLadders.Provenance</c>), in <c>RefusalExponents.txt</c> beside the assembly, on standard output, and in the message of a series
+/// that is reported. A figure of 1.72 once reached the queue with none of that, and when it was looked into there was nothing to go back to.
+/// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
@@ -96,10 +101,25 @@ public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
 		}
 
 		var exponents = string.Join(", ", attempts.Select(static one => one.Exponent.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
+		var fitted    = attempts[^1];
+
+		// Every series says what it measured and where, passing or not, so that a figure quoted later has a source: a build and a machine, not only a number.
+		// Three places, because none of them is seen everywhere. `dotnet test` prints neither a passing test's standard output nor any diagnostic message,
+		// even with --output Detailed (tried 2026-09-29), so the file beside the assembly is the one that always holds the whole table; the xunit runner
+		// run by hand prints the standard output; and a series that is REPORTED carries the provenance in the message `dotnet test` does print.
+		var reading = string.Create(
+			System.Globalization.CultureInfo.InvariantCulture,
+			$"{id}: exponent {fitted.Exponent:F2} (runs {exponents}), {fitted.Class} against a baseline of {allowed}, {fitted.Last.N:N0} {series.Unit} at the largest; {RefusalLadders.Provenance}.");
+
+		lock (RecordLock)
+			File.AppendAllText(Readings.Value, reading + Environment.NewLine);
+
+		Console.WriteLine("refusal exponent | " + reading);
+		TestContext.Current.SendDiagnosticMessage(reading);
 
 		if (worse is not null)
 		{
-			var message = attempts.Count == 1 ? worse : $"{worse} Worse in {attempts.Count} runs of {Attempts} (exponents {exponents}).";
+			var message = (attempts.Count == 1 ? worse : $"{worse} Worse in {attempts.Count} runs of {Attempts} (exponents {exponents}).") + $" Measured at {RefusalLadders.Provenance}.";
 			var last2   = attempts[^1];
 
 			// An explosion is not a matter of a margin: a call that had not finished in two seconds, or an exponent of 3 and more on every run WITH the ladder ended by its budget at 
@@ -200,6 +220,18 @@ public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
 	const int Attempts = 3;
 
 	static readonly object RecordLock = new();
+
+	/// <summary>
+	/// The file every series' reading is written to, beside the assembly, emptied once a process and headed with where it was measured.
+	/// </summary>
+	static readonly Lazy<string> Readings = new(static () =>
+	{
+		var path = Path.Combine(AppContext.BaseDirectory, "RefusalExponents.txt");
+
+		File.WriteAllText(path, $"# The exponent of every refusal series as RefusalGuardTests measured it, {DateTime.UtcNow:u}; {RefusalLadders.Provenance}.{Environment.NewLine}");
+
+		return path;
+	});
 
 	/// <summary>The series held as Unstable in the baseline, filled when it is read.</summary>
 	static readonly HashSet<string> Unstable = new(StringComparer.Ordinal);

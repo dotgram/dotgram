@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 using DotGram.Examples.Feeds;
@@ -41,6 +43,34 @@ internal static class RefusalLadders
 	internal static string Id(Series series)
 	{
 		return series.Parser + " | " + series.Shape;
+	}
+
+	/// <summary>
+	/// Where a figure of these ladders was measured: the commit the binary was built from, the operating system, the runtime and the machine.
+	/// </summary>
+	/// <remarks>
+	/// A clock's exponent is a property of a build AND a machine, and one quoted without them cannot be checked. On 2026-09-28 a queue item said
+	/// the T-SQL unclosed subqueries had gone from 0.91 to 1.72; nothing recorded where, the work turned out to be identical at every revision
+	/// (benchmarks/results/2026-09-29-refusal-subquery), and there was no source left to ask. The commit is the one the SDK writes into the
+	/// informational version of this assembly, which is the one that ran whatever tree it is run from; CI's own variable stands in only where the
+	/// build carries none. The machine is the CI runner's name where there is one.
+	/// </remarks>
+	internal static string Provenance { get; } = DescribeProvenance();
+
+	static string DescribeProvenance()
+	{
+		var version = typeof(RefusalLadders).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "";
+		var plus    = version.IndexOf('+');
+		var sha     = Environment.GetEnvironmentVariable("GITHUB_SHA");
+		var runner  = Environment.GetEnvironmentVariable("RUNNER_NAME");
+
+		var commit = plus >= 0 && version.Length > plus + 1 ? version[(plus + 1)..Math.Min(version.Length, plus + 9)]
+			: sha is { Length: >= 8 } ? sha[..8]
+			: "unknown";
+		var machine = runner is { Length: > 0 } ? $"CI runner {runner}" : Environment.MachineName;
+
+		return $"commit {commit}, {RuntimeInformation.OSDescription} {RuntimeInformation.OSArchitecture}, {RuntimeInformation.FrameworkDescription}, " +
+			$"machine {machine}, {Environment.ProcessorCount} logical processors";
 	}
 
 	/// <summary>
