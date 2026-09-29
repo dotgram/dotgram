@@ -80,7 +80,7 @@ $perProject = @{ base = @{}; head = @{} }
 # The compiler's count: at detailed verbosity with ReportAnalyzer, each compilation prints the generators' seconds after its command line (`/out:obj/Release/<tfm>/<name>.dll`). Only the compilations
 # of the project itself are kept: a -t:Rebuild rebuilds what the project references too, and that is the referenced project's row.
 $compilerLine  = [regex]'/out:(?<out>\S+\.dll)'
-$generatorLine = [regex]'^\s*(?<seconds>[\d.]+)\s+\S+\s+DotGram\.Generation\.GramGenerator\s*$'
+$generatorLine = [regex]'^\s*(?<seconds>\d+[.,]\d+)\s+\S+\s+DotGram\.Generation\.GramGenerator\s*$'
 $compiled = @{ base = @{}; head = @{} }
 
 try {
@@ -104,7 +104,7 @@ try {
 						if ([IO.Path]::GetFileNameWithoutExtension($out) -eq $assembly) {
 							$key = "$assembly $(Split-Path (Split-Path $out) -Leaf)"
 							if (-not $compiled[$name].ContainsKey($key)) { $compiled[$name][$key] = @() }
-							$compiled[$name][$key] += 1000 * [double]::Parse($m.Groups['seconds'].Value, [Globalization.CultureInfo]::InvariantCulture)
+							$compiled[$name][$key] += 1000 * [double]::Parse($m.Groups['seconds'].Value.Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
 						}
 
 						$out = $null
@@ -185,5 +185,5 @@ else { "The base wrote no generation reports (they arrived on 2026-09-17; v0.1.0
 Held 'compilation' $compiled.base $compiled.head
 
 ''
-if ($named.Count -eq 0) { 'No host of the projects named above moved by more than the tolerance.' }
+if ($named.Count -eq 0) { 'Nothing in the tables above moved by more than the tolerance.' }
 foreach ($line in $named) { "- DEVIATION $line" }
