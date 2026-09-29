@@ -21,12 +21,21 @@ using System.Text;
 //               directory too): load, the type initializers, the first parse, the second.
 //   build       FixMessages.Build of the fields the field parser read from the same message: the same phases,
 //               with the field parse before the first build so that the build is what is timed.
-//   validate            FixMessage.Validate of a parsed NewOrderSingle -- the walk over the schema tables.
-//   validate-generated  NewOrderSingle.ValidateDefault of the same message -- the rule written out per type.
-//               Both parse first and do not time the parse, so what is timed is one act: the first call of
-//               validation in a fresh process, which is where a generated method of five thousand lines is
-//               paid for. They are two modes rather than two phases of one, because a first call is a
-//               property of the process and the second act in a process is not a first call.
+//   validate             FixMessage.Validate of a parsed NewOrderSingle against Fix44Context.Default --
+//               the built-in schema generate.py compiled in; no dictionary is applied.
+//   validate-generated   The same message against a context with the full FIX44 dictionary applied
+//               (tests/Corpus/Fix/FIX44.xml plus its errata) immediately before validating, so the check
+//               its type needs has almost certainly not finished compiling in the background yet, and
+//               Validate compiles it there, on this thread (D143). "Generated" now names that check: it is
+//               the dictionary's text, compiled through the expression language, rather than a rule
+//               generate.py wrote out. Before the 2026-09-24/25 FIX API change these two named a different
+//               pair -- a generic walk over schema tables against NewOrderSingle's own ValidateDefault --
+//               which the API no longer has: every check, built-in or loaded, is one compiled slot now,
+//               and what differs is only whether that slot was ready before this call reached it.
+//               Both modes parse first and do not time the parse, so what is timed is one act: the first
+//               call of validation in a fresh process, which is where a generated method (or a generated
+//               check) is paid for. They are two modes rather than two phases of one, because a first call
+//               is a property of the process and the second act in a process is not a first call.
 //
 // The compiled methods come from the runtime's MethodJittingStarted events through an EventListener,
 // which costs time of its own: the absolute figures run above `--stand-paired --first`'s (7.5 ms against
@@ -191,57 +200,71 @@ switch (mode)
 		RuntimeHelpers.RunClassConstructor(messages.TypeHandle);
 		Phase("FixMessages cctor", false);
 
+		var generated = mode.EndsWith("-generated", StringComparison.Ordinal);
+		var context   = generated ? LoadDictionary() : DefaultContext();
+
+		if (generated)
+			Phase("load dictionary", false);
+
 		var parseOne = MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
-		var built    = new List<object>();
 
 		// One message of every type the package knows, found by asking it: a MsgType it does not
 		// describe comes back as the Custom class, and everything else is one of the ninety-three.
 		// Reading the list out of the package rather than writing it here means a type that is
 		// added or removed changes the count below instead of being quietly left out.
-		foreach (var candidate in Candidates())
+		List<object> Built()
 		{
-			try
-			{
-				var message = parseOne.Invoke(null, [WireOfType(candidate), null])!;
+			var built = new List<object>();
 
-				if (message.GetType().Name != "Custom")
-					built.Add(message);
-			}
-			catch (TargetInvocationException)
+			foreach (var candidate in Candidates())
 			{
-				// Not a message type; the candidates are a superset on purpose.
+				try
+				{
+					var message = parseOne.Invoke(null, [WireOfType(candidate), null])!;
+
+					if (message.GetType().Name != "Custom")
+						built.Add(message);
+				}
+				catch (TargetInvocationException)
+				{
+					// Not a message type; the candidates are a superset on purpose.
+				}
 			}
+
+			return built;
 		}
 
-		Phase($"parse {built.Count} types", false);
+		// Two full batches, not one: Validate remembers its result once called (a message is
+		// validated once, per D143's FixMessage), so the second round needs its own never-validated
+		// messages to measure the call rather than read back a cached answer.
+		var firstBatch  = Built();
+		var secondBatch = Built();
 
-		var wanted = mode.EndsWith("-generated", StringComparison.Ordinal);
-		var walk   = (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
-		var rules  = built.ToDictionary(
-			static message => message,
-			message => wanted
-				? message.GetType().GetMethod("ValidateDefault", BindingFlags.Public | BindingFlags.Static)
-					?? throw new MissingMethodException($"{message.GetType().Name} has no generated rule in this build.")
-				: walk);
+		Phase($"parse {firstBatch.Count + secondBatch.Count} types", false);
 
-		var round = () =>
+		var validate = (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", [options])!;
+
+		int Round(List<object> batch)
 		{
 			var found = 0;
 
-			foreach (var message in built)
-				found += ((Array)(wanted ? rules[message].Invoke(null, [message])! : rules[message].Invoke(message, null)!)).Length;
+			foreach (var message in batch)
+			{
+				validate.Invoke(message, [context]);
+				found += ((System.Collections.ICollection?)message.GetType().GetProperty("InvalidFindings")!.GetValue(message))?.Count ?? 0;
+			}
 
 			return found;
-		};
+		}
 
-		var first = round();
+		var first = Round(firstBatch);
 
 		Phase("first validate all", true);
 
-		var second = round();
+		var second = Round(secondBatch);
 
 		Phase("second validate all", false);
-		Console.WriteLine($"{built.Count} types, {first} findings ({second} again)");
+		Console.WriteLine($"{firstBatch.Count} types, {first} findings ({second} again)");
 
 		break;
 	}
@@ -258,26 +281,27 @@ switch (mode)
 		Phase("FixMessages cctor", false);
 
 		var parse   = MessageCall("Parse", "ParseMessage", [typeof(string), options])!;
-		var message = parse.Invoke(null, [Wire(which), null])!;
+		var wire    = Wire(which);
+		var message = parse.Invoke(null, [wire, null])!;
+		// A second, never-validated instance of the same type: Validate remembers its result once
+		// called (D143's FixMessage), so "second validate" needs its own message to measure the call
+		// rather than read back message's cached answer.
+		var again   = parse.Invoke(null, [wire, null])!;
 
 		Phase("parse", false);
 
-		// The walk is a call on the message; the generated rule is a static of the message's own
-		// class. They are asked for the same act by the two roads they are reached by.
 		var generated = mode == "validate-generated";
-		var rule      = generated
-			? message.GetType().GetMethod("ValidateDefault", BindingFlags.Public | BindingFlags.Static)
-				?? throw new MissingMethodException($"{message.GetType().Name} has no generated rule in this build.")
-			: (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", Type.EmptyTypes)!;
+		var context   = generated ? LoadDictionary() : DefaultContext();
 
-		var call = generated
-			? new Func<object>(() => rule.Invoke(null, [message])!)
-			: () => rule.Invoke(message, null)!;
+		if (generated)
+			Phase("load dictionary", false);
 
-		var first = Guard(call);
+		var validate = (finance.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? finance.GetType("DotGram.Finance.Fix.FixMessage"))!.GetMethod("Validate", [options])!;
+
+		var first = Guard(() => { validate.Invoke(message, [context]); return message; });
 
 		Phase("first validate", true);
-		Guard(call);
+		Guard(() => { validate.Invoke(again, [context]); return again; });
 		Phase("second validate", false);
 		Console.WriteLine($"{which} {first}");
 
@@ -344,6 +368,28 @@ static string Guard(Func<object> call)
 	{
 		return "refused: " + exception.InnerException?.GetType().Name + " " + exception.InnerException?.Message;
 	}
+}
+
+// The built-in schema, no dictionary applied: Fix44Context.Default.
+object DefaultContext()
+{
+	return options.GetProperty("Default", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+}
+
+// The full FIX44 dictionary applied over the default (D143): Fix44Context.Default.Load([...]).
+// Only a build with the dictionary API can answer this; there is nothing older to fall back to,
+// since the API this asks for did not exist before it.
+object LoadDictionary()
+{
+	var texts = new[]
+	{
+		File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "FIX44.xml")),
+		File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "quickfixn-fix44-errata.xml")),
+	};
+	var load = options.GetMethod("Load", [typeof(IEnumerable<string>), typeof(string)])
+		?? throw new MissingMethodException($"{options.Name} has no Load(IEnumerable<string>, string) in this build; the -generated modes need the dictionary API (D143).");
+
+	return load.Invoke(DefaultContext(), [texts, null])!;
 }
 
 // A NewOrderSingle with the framing done: BodyLength (9) counts what follows it up to the checksum,

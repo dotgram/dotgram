@@ -64,10 +64,16 @@ public class FixGrammarComparisonBenchmarks
 			assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Parser", throwOnError: true)!;
 	}
 
+	// The field door was renamed when it was merged into DotGram.Finance.Fix.Fix44 (2026-09-24,
+	// cd989ade): ParseFields from a buffer, ReadFields from a reader or a stream. The oracle beside
+	// it (tests/DotGram.Finance.Fix44) and an assembly loaded from before the rename still answer to
+	// Parse, so a name is asked for by every name it has had, current first.
 	internal static Func<object, IEnumerable> Bind(Type type, string input)
 	{
 		var domain = input == "String" ? typeof(string) : input == "Bytes" ? typeof(Stream) : typeof(TextReader);
-		var method = type.GetMethods().Single(m => m.Name == "Parse" && m.GetParameters()[0].ParameterType == domain);
+		var names  = domain == typeof(string) ? new[] { "ParseFields", "Parse" } : new[] { "ReadFields", "Parse" };
+		var method = type.GetMethods().FirstOrDefault(m => names.Contains(m.Name) && m.GetParameters() is { Length: > 0 } parameters && parameters[0].ParameterType == domain)
+			?? throw new MissingMethodException($"{type.Name} has none of {string.Join(", ", names)} for {input}.");
 		var argument = Expression.Parameter(typeof(object));
 		var parameters = method.GetParameters();
 		var arguments = parameters.Select((p, i) => i == 0 ? (Expression)Expression.Convert(argument, domain)

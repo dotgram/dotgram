@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
-	What the first call of validation costs, the walk against the generated rule, one fresh process
-	per sample.
+	What the first call of validation costs: the built-in schema against a freshly loaded FIX44
+	dictionary's checks (D143), one fresh process per sample.
 
 .DESCRIPTION
 	A first call is a property of a process, not of a loop: the runtime compiles a method the first
@@ -82,15 +82,15 @@ if ((ConvertTo-CpuSet $cpus) -ne (ConvertTo-CpuSet (Get-StandCpus))) {
 # resolution.
 $roads = if ($All) {
 	[ordered]@{
-		'the walk'      = 'validate-all'
-		'generated'     = 'validate-all-generated'
-		'generated A/A' = 'validate-all-generated'
+		'built-in'        = 'validate-all'
+		'dictionary'      = 'validate-all-generated'
+		'dictionary A/A'  = 'validate-all-generated'
 	}
 } else {
 	[ordered]@{
-		'the walk'      = 'validate'
-		'generated'     = 'validate-generated'
-		'generated A/A' = 'validate-generated'
+		'built-in'        = 'validate'
+		'dictionary'      = 'validate-generated'
+		'dictionary A/A'  = 'validate-generated'
 	}
 }
 
@@ -188,5 +188,5 @@ foreach ($type in $Types) {
 ''
 "$Launches launches a cell, one fresh process each, on the mask this script inherited."
 'Wall is the call; compiling is the part of it the runtime spent on the JIT.'
-'Read every difference against the two generated cells of the same message: that pair is the same'
+'Read every difference against the two dictionary cells of the same message: that pair is the same'
 'road twice, so what separates them is what this run cannot tell apart.'

@@ -14,5 +14,9 @@
 		     wrote is a program. The package itself does not reference the expression language. -->
 		<ProjectReference Include="../../src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 		<ProjectReference Include="../../tests/DotGram.Finance.Fix44/DotGram.Finance.Fix44.csproj" />
+
+		<!-- For FixInitializationBenchmarks: the dictionary D143 measures loading and applying. -->
+		<None Include="../../tests/Corpus/Fix/FIX44.xml" Link="FIX44.xml" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="../../tests/Corpus/Fix/quickfixn-fix44-errata.xml" Link="quickfixn-fix44-errata.xml" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 </Project>

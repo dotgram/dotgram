@@ -46,11 +46,6 @@ static class Program
 			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix");
 			return;
 		}
-		if (args.Length == 2 && args[0] == "--fix-jit-probe")
-		{
-			FixInitializationBenchmarks.Probe(args[1] == "previous");
-			return;
-		}
 		if (args.Length == 3 && args[0] == "--memory")
 		{
 			new Fix44InputBenchmarks { Workload = args[1] }.MeasureMemory(args[2]);

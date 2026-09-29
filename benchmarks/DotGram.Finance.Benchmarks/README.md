@@ -7,6 +7,30 @@ can still select an older assembly. For `profile`, pass the Finance assembly
 with parser `Fix`, or the Fix44 fixture's assembly with parser `Fix44`.
 Reports below retain the parser names and paths used at measurement time.
 
+The field door was renamed when it was merged into `DotGram.Finance.Fix.Fix44`
+(2026-09-24, `cd989ade`): `ParseFields` from a buffer, `ReadFields` from a reader or
+a stream, where both parsers used to answer to `Parse`. `FixGrammarComparisonBenchmarks.Bind`
+asks for a type's current name first and falls back to `Parse`, so it reads the oracle
+(which kept `Parse`), a pre-rename `DOTGRAM_FIX_BASELINE` assembly, and the current
+production parser alike.
+
+## Dictionary initialization: 2026-09-29
+
+`FixInitializationBenchmarks` used to compare the shared ADT grammar against an older
+build (`Previous`/`Simplified`, loaded through `DOTGRAM_FIX_BASELINE`); that is
+`FixGrammarComparisonBenchmarks`'s job. Since D143 made a dictionary a value read,
+merged and applied in its own step, initialization's interesting cost moved from the
+grammar's class constructor to that step, and this class now measures it instead:
+`Dictionary` (`Venue`, a small fragment -- one message, a handful of fields, the same
+literal `FixDictionaryTests` uses -- or `Full`, the FIX44 standard with the QuickFIX/n
+errata it needs to apply at all: the QuickFIX/n copy alone is refused, a group it
+places has no member in the model) crossed with `Phase` (`Default`, no dictionary at
+all; `Read`, `FixDictionary.Parse`/`Merge` only; `Apply`, `Fix44Context.With`;
+`Prepare`, `Apply` plus waiting for every check to compile; `FirstValidate`, `Apply`
+and then holding a message to it at once, racing whatever the background compile has
+not finished). Ten cases, the same count the class had before; its numbers are not
+comparable with the historical results filed under its old name above.
+
 # FIX 4.4 parsing benchmarks
 
 Each operation parses one complete message in Strict mode and returns its typed
