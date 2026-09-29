@@ -478,6 +478,19 @@ sealed partial class Machine
 		}
 
 		/// <remarks>
+		/// The value so far is in hand, but the register is not sure to hold it: the loop stops
+		/// at a step it gave back, and that step may have read a value of the rule's own type
+		/// first — <c>l: F &amp; ',' &amp; r: V &amp; '.'</c> read <c>V</c> and found no dot —
+		/// which left the register holding what nothing stands on. So the rule writes its value
+		/// once more where the turns stop, and is last again, as <see cref="ReaderRegisters"/>
+		/// requires.
+		/// </remarks>
+		public override string Folded(RuleSymbol owner)
+		{
+			return $"{Last(owner)} = fold;";
+		}
+
+		/// <remarks>
 		/// Where a guard of the rule cut the member already, what it cut is the value when it
 		/// stands on the same positions: the same text, cut once. Compared where it is taken,
 		/// so a capture written again after the guard — another turn, another alternative —

@@ -676,9 +676,10 @@ sealed partial class Machine
 
 		/// <summary>What a folding rule is worth once its turns are done, if anything.</summary>
 		/// <remarks>
-		/// A carrier that builds the fold as it goes has the value already and says nothing
-		/// here. A carrier keeping the turns as a run has the base, the run and its length
-		/// in hand and nothing holding them together: this is where they become the rule.
+		/// A carrier that builds the fold as it goes has the value already, and says only what
+		/// hands it on where a step given back may have written over it. A carrier keeping the
+		/// turns as a run has the base, the run and its length in hand and nothing holding them
+		/// together: this is where they become the rule.
 		/// </remarks>
 		public virtual string Folded(RuleSymbol owner)
 		{
