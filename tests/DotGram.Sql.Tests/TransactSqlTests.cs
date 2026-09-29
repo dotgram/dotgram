@@ -14462,6 +14462,73 @@ public sealed class TransactSqlTests
 		Assert.False(TransactSqlParser.TryParseSql("SELECT 1\nGO\nSELECT 2").IsSuccess);
 	}
 
+	/// <summary>
+	/// <c>ParseSql</c> and <c>ParseStatement</c> are one call to the server, not a script, so a
+	/// trailing <c>GO</c> never cuts a batch there (<see cref="A_GO_line_ends_a_batch_wherever_it_stands"/>
+	/// is <c>ParseScript</c>'s own rule): it is the alias its last column takes without <c>AS</c>,
+	/// a line break after it or not — held to the engine directly, which reads either spelling as
+	/// one row named <c>GO</c> (`SET PARSEONLY` cannot be asked here, since a line break is
+	/// exactly what a `sqlcmd`-fed script would cut at; probed through a raw
+	/// <c>Microsoft.Data.SqlClient</c> call instead, which never splits a batch).
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1 GO")]
+	[InlineData("SELECT 1\nGO")]
+	[InlineData("SELECT 1\nGO\n")]
+	[InlineData("SELECT 1\r\nGO\r\n")]
+	[InlineData("SELECT 1\nGO \n")]
+	[InlineData("SELECT 1\nGO -- c\n")]
+	[InlineData("SELECT 1\nGO /* c */\n")]
+	public void A_trailing_GO_is_the_last_columns_alias(string input)
+	{
+		var match = TransactSqlParser.TryParseSql(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+
+		var select = Assert.IsType<Statement.Select>(Assert.Single(match.Value));
+		var spec   = Assert.IsType<Query.Specification>(select.Of);
+		var column = Assert.IsType<Clause.DerivedColumn>(Assert.Single(spec.Columns));
+
+		Assert.Equal("GO", column.Name);
+	}
+
+	/// <summary>The same trailing <c>GO</c>, read through <c>ParseStatement</c> instead.</summary>
+	[Theory]
+	[InlineData("SELECT 1\nGO")]
+	[InlineData("SELECT 1\nGO\n")]
+	[InlineData("SELECT 1\r\nGO\r\n")]
+	public void A_trailing_GO_is_one_statements_alias_too(string input)
+	{
+		var match = TransactSqlParser.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+
+		var select = Assert.IsType<Statement.Select>(match.Value);
+		var spec   = Assert.IsType<Query.Specification>(select.Of);
+		var column = Assert.IsType<Clause.DerivedColumn>(Assert.Single(spec.Columns));
+
+		Assert.Equal("GO", column.Name);
+	}
+
+	/// <summary>
+	/// A trailing <c>GO</c> refused where the statement in front of it has no column to carry
+	/// it — the engine's own answer (<c>Msg 102</c>, "Incorrect syntax near 'GO'") whichever way
+	/// the line ends, and a count after <c>GO</c> refused the same way (<c>Msg 102</c> near the
+	/// digits): a script's own reading of <c>GO 5</c> stays a script's, never an alias.
+	/// </summary>
+	[Theory]
+	[InlineData("PRINT 1\nGO")]
+	[InlineData("PRINT 1\nGO\n")]
+	[InlineData("DECLARE @x INT\nGO")]
+	[InlineData("DECLARE @x INT\nGO\n")]
+	[InlineData("CREATE TABLE t (a INT)\nGO")]
+	[InlineData("CREATE TABLE t (a INT)\nGO\n")]
+	[InlineData("SELECT 1\nGO 5\n")]
+	public void A_trailing_GO_is_refused_where_no_column_can_carry_it(string input)
+	{
+		Assert.False(TransactSqlParser.TryParseSql(input).IsSuccess, input);
+	}
+
 	/// <summary>A text of several statements, as one call to the server carries them.</summary>
 	[Theory]
 	[InlineData("SELECT 1 SELECT 2", 2)]

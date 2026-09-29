@@ -1523,8 +1523,23 @@ namespace Dialect with (
 	Query     : @Query      = q: Sql92.QueryExpression => @(q)
 	Condition : @Expression = c: Sql92.SearchCondition => @(c)
 	Value     : @Expression = v: Sql92.ValueExpression => @(v)
-	Statement : @Statement = s: TSqlStatement         => @(s)
-	Sql       : @Statement[] = s: SqlText             => @(s)
+	// `ParseStatement` and `ParseSql` read one call to the server, not a script: a trailing
+	// `GO` reaches neither `GoText` nor `FinalGo` (both `ScriptText`'s own), so where it stood
+	// before was left over and refused — even though the engine reads it as the ordinary word
+	// it is, exactly as it does where no line break follows. `Syntax.EndedInGo` folds it onto
+	// the last statement's last column, the alias a column takes without `AS`; the `when`
+	// guard is what keeps a `PRINT`, a `DECLARE` or a `CREATE TABLE` refused with one after,
+	// the engine refusing a trailing `GO` there the same in both spellings.
+	Statement : @Statement
+		= s: TSqlStatement & trailing: TSql.GoLine?
+		  & when @(trailing is null || (Syntax.IsPlainGo(trailing) && Syntax.TakesTrailingGo(s)))
+			=> @(Syntax.EndedInGo(s, trailing))
+
+	Sql : @Statement[]
+		= s: SqlText & trailing: TSql.GoLine?
+		  & when @(trailing is null || (Syntax.IsPlainGo(trailing) && s.Length > 0 && Syntax.TakesTrailingGo(s[^1])))
+			=> @(Syntax.EndedInGo(s, trailing))
+
 	Script    : @Batch[]     = s: ScriptText          => @(s)
 }
 
