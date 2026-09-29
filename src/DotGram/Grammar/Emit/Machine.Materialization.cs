@@ -1445,6 +1445,33 @@ sealed partial class Machine
 			return $"foldCaptured{memberIndex}";
 		}
 
+		// §7.3 within the step: a text member a repetition inside the step repeats is its
+		// pieces joined, measured and joined by the code the walk of an ordinary rule uses,
+		// over this step's entries and none of another's.
+		if (member.Rule is null && Joined(offset, member))
+		{
+			var name     = $"foldCaptured{memberIndex}";
+			var overlaps = Overlaps(offset, member);
+			var walk     = "for (var candidateAt = constructAt - 1; candidateAt >= partFrom; candidateAt--)";
+
+			DeclareMeasure(file, name, joined: true, overlaps);
+
+			using (file.Block(walk))
+			{
+				file.Line("var candidate = entries[candidateAt];");
+
+				using (file.Block($"if ({test})"))
+					Measure(file, name, joined: true, overlaps);
+			}
+
+			CheckMeasured(file, name, member, rule);
+			WriteJoin(
+				file, name, member.IsOptional, overlaps, walk, "candidateAt", "completedAt",
+				member.Slots.Select(slot => offset + slot));
+
+			return name + (member.IsOptional ? "" : "!");
+		}
+
 		file.Line($"var foldCaptured{memberIndex}At = -1;");
 
 		using (file.Block(

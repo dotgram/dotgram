@@ -457,7 +457,7 @@ sealed partial class Machine
 			_captureOffsets[rule] = _captures;
 			_factories[rule] = factories;
 
-			var looped = Looped(graph.Bodies[rule]);
+			var looped = Looped(graph.Bodies[rule], graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			{
@@ -656,8 +656,15 @@ sealed partial class Machine
 	/// a repetition of at most one turn and encloses nothing in that sense — which is not
 	/// a nicety: `X?` is how the model spells an optional, so counting it would put every
 	/// `(':' & port: Digit+)?` in the arena for a second turn that cannot happen.
+	/// <para>
+	/// Nor is a fold's loop (<paramref name="fold"/>) the author's repetition: it is what a
+	/// left-recursive rule was rewritten into, and each of its turns is a step of the rule
+	/// with a value of its own, built at the step's `=>` from what that step captured.
+	/// `l: E & ',' & y: D` names one piece at every step, and joining them across steps
+	/// would hand a guard every earlier step's `y` too.
+	/// </para>
 	/// </remarks>
-	static HashSet<Node> Looped(Node body)
+	static HashSet<Node> Looped(Node body, Node? fold)
 	{
 		var found   = NodeWalk.ByIdentity([]);
 		var pending = new Stack<(Node Node, bool Inside)>();
@@ -671,7 +678,7 @@ sealed partial class Machine
 			if (inside && node is Node.Capture)
 				found.Add(node);
 
-			var loops = node is Node.Repeat(_, _, var most) && most != 1;
+			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, fold);
 
 			foreach (var child in node.Children)
 				pending.Push((child, inside || loops));
@@ -2795,6 +2802,28 @@ sealed partial class Machine
 				writer.Line("global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);");
 				writer.Line("var ruleStart = entries[call].Position;");
 
+				// A fold's step is handed what it captured itself (§4.3): everything its rule
+				// captured before is earlier steps', each of which ended in the construction
+				// that made it. So what a guard reads in a fold begins after the last of those,
+				// and the same pieces the step's `=>` is built from are the ones it sees.
+				var floor = "call";
+
+				if (fold is not null && visible.Count > 0)
+				{
+					floor = "guardFloor";
+
+					writer.Line("var guardFloor = call;");
+					writer.Line();
+
+					using (writer.Block("for (var floorAt = entries.Count - 1; floorAt > call; floorAt--)"))
+					using (writer.Block(
+						"if (entries[floorAt].Kind == ParserEntry.Construct && entries[floorAt].CallIndex == call)"))
+					{
+						writer.Line("guardFloor = floorAt;");
+						writer.Line("break;");
+					}
+				}
+
 				var hasTyped = false;
 
 				foreach (var item in visible)
@@ -2834,7 +2863,7 @@ sealed partial class Machine
 					{
 						var collected = GuardSequenceTest(rule, slots);
 
-						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						using (writer.Block($"for (var candidateAt = {floor} + 1; candidateAt < entries.Count; candidateAt++)"))
 						{
 							writer.Line("var candidate = entries[candidateAt];");
 
@@ -2865,7 +2894,7 @@ sealed partial class Machine
 
 						DeclareMeasure(writer, $"guardCaptured{memberIndex}", joined: true, overlaps);
 
-						using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+						using (writer.Block($"for (var candidateAt = entries.Count - 1; candidateAt > {floor}; candidateAt--)"))
 						{
 							writer.Line("var candidate = entries[candidateAt];");
 
@@ -2881,7 +2910,7 @@ sealed partial class Machine
 
 						WriteJoin(
 							writer, $"guardCaptured{memberIndex}", member.IsOptional, overlaps,
-							"for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)",
+							$"for (var candidateAt = entries.Count - 1; candidateAt > {floor}; candidateAt--)",
 							"candidateAt", "call", slots.Select(slot => _captureOffsets[rule] + slot));
 
 						continue;
@@ -2889,7 +2918,7 @@ sealed partial class Machine
 
 					writer.Line($"var guardCaptured{memberIndex}At = -1;");
 
-					using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+					using (writer.Block($"for (var candidateAt = entries.Count - 1; candidateAt > {floor}; candidateAt--)"))
 					{
 						writer.Line("var candidate = entries[candidateAt];");
 
@@ -2964,7 +2993,7 @@ sealed partial class Machine
 
 						writer.Line($"var guardCaptured{memberIndex}Count = 0;");
 
-						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						using (writer.Block($"for (var candidateAt = {floor} + 1; candidateAt < entries.Count; candidateAt++)"))
 						{
 							writer.Line("var candidate = entries[candidateAt];");
 							writer.Line($"if ({collected}) guardCaptured{memberIndex}Count++;");
@@ -2973,7 +3002,7 @@ sealed partial class Machine
 						writer.Line($"var guardCaptured{memberIndex} = new {type}[guardCaptured{memberIndex}Count];");
 						writer.Line($"var guardCaptured{memberIndex}Item = 0;");
 
-						using (writer.Block("for (var candidateAt = call + 1; candidateAt < entries.Count; candidateAt++)"))
+						using (writer.Block($"for (var candidateAt = {floor} + 1; candidateAt < entries.Count; candidateAt++)"))
 						{
 							writer.Line("var candidate = entries[candidateAt];");
 
