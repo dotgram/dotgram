@@ -2751,6 +2751,7 @@ file.Line("return spare;");
 			var to      = layout.After(node);
 			var own     = Writes(layout, node);
 			var visible = new List<ResultMember>();
+			var step    = fold is not null && fold.Accumulators.ContainsKey(node);
 
 			// Only what this alternative wrote, and optional only where this alternative may
 			// skip it. A sibling's captures are neither its business nor ever written when it
@@ -2779,6 +2780,11 @@ file.Line("return spare;");
 						IsOptional = !GrammarNormalizer.Writes(node, member.Name) &&
 							(layout.SharedHead(node) is not { } head ||
 								!GrammarNormalizer.Writes(head, member.Name)),
+
+						// A fold step is applied once per iteration and handed that iteration's
+						// captures, so what the fold's loop collects arrives as one of it; what a
+						// repetition inside the step collects arrives as the step's sequence.
+						IsSequence = step ? mine.Exists(slot => layout.Slots[slot].Collects) : member.IsSequence,
 					});
 			}
 
@@ -3008,10 +3014,8 @@ file.Line("return spare;");
 				parameters.Add(
 					(spanCaptures && member.Rule is null ? captureType : results.ValueOf(member.Rule)) +
 
-					// A fold step is applied once per iteration and is handed that
-					// iteration's captures, so what collects for the rule arrives here as
-					// one of what it collected.
-					(member.IsSequence && factory.Accumulator is null ? "[]" :
+					// A fold step's members already say what the step is handed (BuildFactories).
+					(member.IsSequence ? "[]" :
 						member.IsOptional && !(spanCaptures && member.Rule is null) ? "?" : "") +
 
 					" " + ResultTypes.ParameterOf(member));

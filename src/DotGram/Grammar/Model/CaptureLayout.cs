@@ -163,10 +163,13 @@ public sealed class CaptureLayout
 
 				_slotOf[node] = _slots.Count;
 
+				// Under a fold's loop a slot collects because the loop writes it once per step;
+				// a repetition of the author's inside the step collects for the author as well,
+				// and then the step is handed the sequence (§7.3), not one of it.
 				_slots.Add(new CaptureSlot(
 					_slots.Count, name, called,
 					IsSequence: inFold || (repeated && called is not null),
-					InFold: inFold));
+					InFold: inFold && !(repeated && called is not null)));
 
 				Walk(captured, buildsValue, repeated, inFold);
 				break;
@@ -189,7 +192,9 @@ public sealed class CaptureLayout
 
 				_before[node] = _slots.Count;
 
-				Walk(body, buildsValue, repeated || max != 1, inFold || ReferenceEquals(node, _fold));
+				Walk(
+					body, buildsValue, repeated || max != 1 && !ReferenceEquals(node, _fold),
+					inFold || ReferenceEquals(node, _fold));
 
 				_after[node] = _slots.Count;
 				break;

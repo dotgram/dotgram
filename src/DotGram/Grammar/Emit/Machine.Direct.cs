@@ -115,6 +115,14 @@ sealed partial class Machine
 			if (!DirectValuedRule(rule))
 				return Refused(rule, "of what it builds");
 
+			// A step's record holds one of each thing the step captured; a sequence of values
+			// collected inside one step is kept by the engine.
+			if (_graph.Folds.ContainsKey(rule) &&
+				_factories[rule].Any(static made => made.Accumulator is not null && made.Members.Any(static one => one.IsSequence)))
+			{
+				return Refused(rule, "a step of its fold collects a rule's values");
+			}
+
 			var bodies = new List<Node> { body };
 
 			if (_graph.Trivia.TryGetValue(rule, out var seam))
@@ -344,9 +352,12 @@ sealed partial class Machine
 
 			var optional = GuardCaptureAdmitsAbsence(rule, guard, member);
 
-			// And as one thing, which is how the step's `=>` takes it: a slot under the fold's
-			// loop is kept as a sequence only because the loop writes it once per step.
-			visible.Add((member with { IsOptional = optional, IsSequence = member.IsSequence && step is null }, slots));
+			// And as the step's `=>` takes it: a slot under the fold's loop is kept as a
+			// sequence because the loop writes it once per step, and is one thing to the step
+			// unless a repetition of the author's inside the step collects it.
+			var sequence = step is null ? member.IsSequence : slots.Exists(slot => layout.Slots[slot].Collects);
+
+			visible.Add((member with { IsOptional = optional, IsSequence = sequence }, slots));
 		}
 
 		return visible;

@@ -26,7 +26,8 @@ public sealed class GuardRepeatedCaptureTests
 		static bool Seen(string value) { seen = value; return true; }
 		static string Both(string value) => (seen ?? "<null>") + "|" + (value ?? "<null>");
 		static string log = "";
-		static bool Log(string value) { log += (log.Length > 0 ? ";" : "") + value; return true; }
+		static bool Log(string value) { log += (log.Length > 0 ? ";" : "") + (value ?? "<null>"); return true; }
+		static bool LogA(string[] value) { log += (log.Length > 0 ? ";" : "") + string.Join("/", value); return true; }
 		static string Take() { var taken = log; log = ""; return taken; }
 		""";
 
@@ -255,6 +256,13 @@ public sealed class GuardRepeatedCaptureTests
 			("l: F & ',' & (y: D & ';'?){2} & when @(Log(y)) => @(l + y) | y: D => @(y!)",   "1,2;3,4;5", "12345#23;45"),
 			("l: F & ',' & (y: ?=D & D & ';'?){2} & when @(Log(y)) => @(l + y) | y: D => @(y!)", "1,2;3,4;5", "12345#23;45"),
 			("l: F & ',' & (y: D & ';'?){2} => @(l + y) | y: D => @(y!)",                    "1,2;3,4;5", "12345#"),
+			("l: F & ',' & (y: ?=(D & D?) & D){2} & when @(Log(y)) => @(l + y) | y: D => @(y!)", "1,23",    "1233#233"),
+			// A rule's values repeated inside a step are the step's sequence (§7.3), to both.
+			("l: F & ',' & (r: V & ';'?){2} & when @(LogA(r)) => @(l + string.Concat(r)) | y: D => @(y!)",
+				"1,2;3,4;5", "12v3v4v5v#2v/3v;4v/5v"),
+			("l: F & ',' & (r: V & ';'?){2} => @(l + string.Concat(r)) | y: D => @(y!)",     "1,2;3,4;5", "12v3v4v5v#"),
+			// Absent in this step is absent, whatever the base wrote.
+			("l: F & ',' & (y: D)? & 'x' & when @(Log(y)) => @(l + (y ?? \"_\")) | y: D => @(y!)", "1,x,2x", "1_2#<null>;2"),
 		})
 		{
 			var grammar =

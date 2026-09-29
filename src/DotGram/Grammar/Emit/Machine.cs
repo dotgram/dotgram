@@ -236,7 +236,7 @@ sealed partial class Machine
 	readonly HashSet<int> _repeatedCaptures = [];
 
 	/// <summary>
-	/// The repeated captures whose pieces can overlap, which are those of a lookahead: see
+	/// The repeated captures whose pieces can overlap, which are those of a positive lookahead: see
 	/// <see cref="Overlaps"/>.
 	/// </summary>
 	readonly HashSet<int> _overlappingCaptures = [];
@@ -513,7 +513,10 @@ sealed partial class Machine
 					else if (node is Node.Capture(_, Node.Lookahead) && looped.Contains(node))
 					{
 						_repeatedCaptures.Add(slot);
-						_overlappingCaptures.Add(slot);
+
+						// A negative lookahead's piece is empty, and overlaps nothing.
+						if (node is Node.Capture(_, Node.Lookahead(true, _)))
+							_overlappingCaptures.Add(slot);
 					}
 				}
 				else if (node is Node.Construct)
@@ -1394,7 +1397,15 @@ sealed partial class Machine
 	/// </remarks>
 	internal bool GuardCaptureAdmitsAbsence(RuleSymbol rule, Node guard, ResultMember member)
 	{
-		return !GrammarNormalizer.WritesBefore(_graph.Bodies[rule], guard, member.Name);
+		// A guard in a fold's step is asked about the step: the base wrote the member once,
+		// before every step, and says nothing about whether this one did.
+		var within = _graph.Folds.TryGetValue(rule, out var fold) &&
+			fold.Loop is Node.Repeat(var steps, _, _) &&
+			NodeWalk.Descendants(steps).Any(node => ReferenceEquals(node, guard))
+				? steps
+				: _graph.Bodies[rule];
+
+		return !GrammarNormalizer.WritesBefore(within, guard, member.Name);
 	}
 
 	int MarkSite(string text)
@@ -2735,22 +2746,26 @@ sealed partial class Machine
 				}
 				var visible = new List<(ResultMember Member, IReadOnlyList<int> Slots)>();
 
-				// A guard in a fold's step takes a member as the step's `=>` does, one thing: a
-				// slot under the fold's loop is kept as a sequence only because the loop writes
-				// it once per step (§4.3).
+				// A guard in a fold's step takes a member as the step's `=>` does: a slot under
+				// the fold's loop is kept as a sequence because the loop writes it once per step
+				// (§4.3), and is one thing to the step unless a repetition of the author's inside
+				// the step collects it.
 				var inStep = fold is not null && NodeWalk.Descendants(fold.Loop).Any(one => ReferenceEquals(one, node));
 
 				foreach (var written in _graph.Results[rule])
 				{
-					var member = inStep ? written with { IsSequence = false } : written;
-					var slots  = new List<int>();
+					var slots = new List<int>();
 
-					foreach (var slot in member.Slots)
+					foreach (var slot in written.Slots)
 						if (slot < before)
 							slots.Add(slot);
 
 					if (slots.Count == 0)
 						continue;
+
+					var member = inStep
+						? written with { IsSequence = slots.Exists(slot => layout.Slots[slot].Collects) }
+						: written;
 
 					// Only what the condition names. Every one of these is materialized to run
 					// it — a rule's value built, a run cut into a string — and a condition

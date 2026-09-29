@@ -1381,7 +1381,7 @@ sealed partial class Machine
 
 							arguments.Add(MaterializeFoldMember(
 								file, rule, member, captured++, offset,
-								sequence: member.IsSequence && factory.Accumulator is null));
+								sequence: member.IsSequence));
 						}
 
 						file.Line(
