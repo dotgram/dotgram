@@ -80,6 +80,45 @@ public sealed class ColdThreadTests
 			DotGram.Sql.Standard.SqlStandardParser.TryParseQueryExpression("SELECT a FROM t WHERE a = 1").IsSuccess));
 	}
 
+	/// <summary>A value in brackets and an operator with nothing after it: refused, on a first reading.</summary>
+	/// <remarks>
+	/// The operator's record is opened and given back when no operand follows, and the guard on the
+	/// value before it then built the operator into that value's slot, because the place it built
+	/// from was where the last record OPENED began, which a give-back does not put back. The brackets
+	/// only make the record's number large enough to be past a fresh thread's tables; without them
+	/// (<c>SELECT a +</c>) the same wrong value was read out of a table long enough to hold it, and
+	/// nothing threw. GuardMaterializationTests holds that side, where it changes an answer.
+	/// </remarks>
+	[Fact]
+	public void A_first_reading_of_an_operator_with_nothing_after_it_refuses_rather_than_throwing()
+	{
+		Assert.False(OnANewThread(static () =>
+			DotGram.Sql.Standard.SqlStandardParser.TryParseQueryExpression("SELECT (a) +").IsSuccess));
+	}
+
+	/// <summary>The same defect in the located T-SQL reader, where it threw on a warm thread as well.</summary>
+	/// <remarks>
+	/// There the value built into the wrong slot reached a factory, which dereferenced it, so the
+	/// NullReferenceException did not depend on what the thread had read before. The unlocated
+	/// reader reaches the same state on this input and happens to refuse without touching the value.
+	/// </remarks>
+	[Fact]
+	public void A_located_reading_of_an_unfinished_option_list_refuses_on_any_thread()
+	{
+		const string unfinished = "CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1,";
+
+		Assert.False(OnANewThread(static () =>
+			DotGram.Sql.TransactSql.TransactSqlParser.Located.TryParseScript(unfinished).IsSuccess));
+
+		Assert.False(OnANewThread(static () =>
+		{
+			DotGram.Sql.TransactSql.TransactSqlParser.Located.TryParseScript(
+				"CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1, LISTENER_IP = ALL) FOR TSQL ()");
+
+			return DotGram.Sql.TransactSql.TransactSqlParser.Located.TryParseScript(unfinished).IsSuccess;
+		}));
+	}
+
 	[Fact]
 	public void A_first_reading_of_an_expression_answers()
 	{

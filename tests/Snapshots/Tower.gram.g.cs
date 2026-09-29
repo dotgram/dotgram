@@ -2160,10 +2160,13 @@ namespace DotGram.Snapshots
 
 			var known = ways.AllBuilt >= root;
 			var from_ = first > ways.AllBuilt ? first : ways.AllBuilt;
-			if (roots < 0 && root >= first && root == ways.Records - 1 &&
+			if (roots < 0 && root >= first && root == ways.Records - 1 && ways.Opened < ways.LogCount &&
 				(known || global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, from_, root - from_), false) < 0))
 			{
 				var at    = ways.Opened;
+				#if DOTGRAM_CHECKS
+				if (at >= ways.LogCount || at + log[at] != ways.LogCount) throw new global::System.InvalidOperationException("record " + root + " is built where it stands, but the record there begins at " + at + " and the log ends at " + ways.LogCount);
+				#endif
 				var slot  = root;
 				var read  = at + 2;
 
@@ -3451,7 +3454,9 @@ namespace DotGram.Snapshots
 			/// <summary>Where the record being written begins, and which record it is.</summary>
 			/// <remarks>
 			/// Once it is closed, where the last one begins: a guard asking for the record it just
-			/// captured is handed its place without a walk of the log to find it.
+			/// captured is handed its place without a walk of the log to find it. A give-back does not
+			/// put it back, so where the last record opened was discarded it stands at or past the end
+			/// of the log, which is how the one reader of it tells that it names nothing.
 			/// </remarks>
 			internal int Opened;
 			int _number;

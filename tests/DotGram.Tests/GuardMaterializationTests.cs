@@ -143,4 +143,50 @@ public sealed class GuardMaterializationTests
 
 		Assert.False(EmittedCode.Match(assembly, "Grammar", entry, input.Replace('1', '0')).IsSuccess);
 	}
+
+	/// <summary>
+	/// A guard on the record before one that was opened and then given back is handed the value of
+	/// its own record, and not of the one given back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The shape of <c>SqlStandardParser.TryParseQueryExpression("SELECT (a) +")</c>, which threw
+	/// IndexOutOfRangeException. Reading <c>a+</c>, the repetition reads <c>Op</c>, which closes a
+	/// record, then fails on <c>Word</c> and gives it back. The guard on <c>a</c> then asks for the
+	/// last record left, and the walk built it where it stands: at <c>ways.Opened</c>, which a
+	/// give-back does not put back, so it built the operator into the word's slot.
+	/// </para>
+	/// <para>
+	/// Both values are strings here, so they share one table and the guard read <c>"+"</c> where
+	/// <c>"a"</c> was written: a wrong answer on every thread, where the SQL grammar's two types
+	/// only threw on a thread whose tables were still short. The recursion keeps the rules out of
+	/// the flat rendering and in methods, as the SQL grammar's are, and the sixteen letters give the
+	/// walk enough arms to put each in a method of its own, which is where the one-record path that
+	/// read <c>ways.Opened</c> is written.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_guard_after_a_record_given_back_reads_its_own_record()
+	{
+		var compilation = GramCompiler.Compile("""
+			Top  : @string = h: Head & '+' => @(h) | '(' & t: Top & ')' => @(t)
+			Head : @string = a: Word & Tail* & when @(a == "a") => @(a)
+			Tail : @string = o: Op & w: Word => @(o + w)
+			Op   : @string = '+' => @("+")
+			Word : @string = w: Letter => @(w) | '(' & w: Word & ')' => @(w)
+			parse Top
+			""" + "\nLetter : @string = " + string.Join(" | ", "abcdefghijklmnop".Select(one => $"'{one}' => @(\"{one}\")")),
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(compilation.Diagnostics);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text);
+
+		foreach (var input in new[] { "a+", "(a+)", "a+a+" })
+		{
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseTop", input);
+
+			Assert.True(match.IsSuccess, input + ": " + match.Error);
+			Assert.Equal("a", match.Value);
+		}
+	}
 }

@@ -904,12 +904,35 @@ sealed partial class Machine
 					// range starts at whichever is higher and the answer is the one the full scan gives.
 					file.Line("var known = ways.AllBuilt >= root;");
 					file.Line("var from_ = first > ways.AllBuilt ? first : ways.AllBuilt;");
-					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 &&");
+
+					// The record is found at `ways.Opened`, which is where the last record OPENED begins, and a
+					// give-back does not put that back. So after one that discarded a record, the root is the
+					// last record left and `Opened` still names the one discarded above it: `a +` with nothing
+					// after the `+` opens a record for the operator, gives it back, and the guard on `a` then
+					// built the operator into the operand's slot, leaving the operand's own table unwritten.
+					// A cold thread threw IndexOutOfRangeException reading it; a warm one read whatever an
+					// earlier parse had left there; and where the value went on into a factory, as in the
+					// located T-SQL reader, a NullReferenceException came out on any thread.
+					//
+					// `Opened` below the end of the log is exactly the case where it is the root. A discarded
+					// record began at or after the position the log was put back to, so `Opened` is then at or
+					// past the end; and where no marks are placed, which is the only place this is written,
+					// the log grows again only by opening a record, which moves `Opened` with it. One
+					// comparison here rather than `Opened` saved at every mark a give-back restores; where it
+					// fails, the walk below answers.
+					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 && ways.Opened < ways.LogCount &&");
 					file.Then("(known || global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, from_, root - from_), false) < 0))");
 
 					using (file.Block(""))
 					{
 						file.Line("var at    = ways.Opened;");
+
+						// What the condition is there to make true: the record at `at` is the root, the last
+						// in the log. Asserted, not assumed, because a wrong `at` builds another record's kind
+						// into the root's slot and says nothing where the tables are long enough.
+						file.Line("#if DOTGRAM_CHECKS");
+						file.Line("if (at >= ways.LogCount || at + log[at] != ways.LogCount) throw new global::System.InvalidOperationException(\"record \" + root + \" is built where it stands, but the record there begins at \" + at + \" and the log ends at \" + ways.LogCount);");
+						file.Line("#endif");
 						file.Line("var slot  = root;");
 						if (placed)
 						{

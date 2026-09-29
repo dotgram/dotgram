@@ -4082,7 +4082,9 @@ namespace DotGram.Snapshots
 			/// <summary>Where the record being written begins, and which record it is.</summary>
 			/// <remarks>
 			/// Once it is closed, where the last one begins: a guard asking for the record it just
-			/// captured is handed its place without a walk of the log to find it.
+			/// captured is handed its place without a walk of the log to find it. A give-back does not
+			/// put it back, so where the last record opened was discarded it stands at or past the end
+			/// of the log, which is how the one reader of it tells that it names nothing.
 			/// </remarks>
 			internal int Opened;
 			int _number;
