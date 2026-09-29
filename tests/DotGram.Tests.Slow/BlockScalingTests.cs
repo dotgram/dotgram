@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq.Expressions;
 
 using DotGram.ExpressionLanguage;
@@ -27,9 +26,9 @@ namespace DotGram.Tests;
 /// machine, no window and no tiering switch, and it is the same number on every machine. The
 /// first version of this gate timed the same shapes and failed on CI (36230002599, Linux,
 /// 2026-09-26) at 1.69 and 1.36 on shapes whose counts are flat — 1.69 being past what a square
-/// would have to clear, so no bound could have told the runner from the defect. The time is still
-/// read here, bounded where only a blow-up trips it, because a count cannot see a step that grows
-/// more expensive without growing more numerous.
+/// would have to clear, so no bound could have told the runner from the defect. A step that grows
+/// more expensive without growing more numerous, which the places cannot see, is held by a second
+/// count, the bytes a reading allocates; the clock that held it before is gone (below).
 /// </para>
 /// <para>
 /// Written against the state directly, and not against a parse. The state is what was made to
@@ -62,7 +61,7 @@ public sealed class BlockScalingTests
 	/// 1608.00, both shapes.</item>
 	/// </list>
 	/// <para>
-	/// The time assertion below passed on all three of them.
+	/// The clock this file used to read beside it passed on all three of them.
 	/// </para>
 	/// </remarks>
 	[Theory]
@@ -79,28 +78,46 @@ public sealed class BlockScalingTests
 			$"{shorter:F2} over 200, which is {longer / shorter:F2} times as many for each.");
 	}
 
-	/// <summary>And the time it takes does not blow up, which a count cannot see.</summary>
+	/// <summary>Four times the blocks, and what a reading allocates grows by about four.</summary>
 	/// <remarks>
-	/// Bounded at 2.0 — the square — and no tighter, because a shared runner reads well past 1.3 on a
-	/// shape that is flat by count (1.69 on CI, above). What this catches is a step that becomes
-	/// more expensive as the text grows without being taken more often, which the count above is
-	/// blind to; what it cannot catch is any of the defects the count catches, since those read 1.50
-	/// and 1.55 here. So it is a ratchet against a blow-up and the count is the gate.
+	/// <para>
+	/// This was a clock bounded at the square, kept as a ratchet against a step that grows more
+	/// expensive without being taken more often, and it failed on CI with a name apiece (Linux,
+	/// ec372a87, 2026-09-29: 16.3 times as long for four times the blocks, an exponent of 2.01; the
+	/// next two runs passed). The work was counted instead, every method entry and loop turn of the
+	/// language's own code at 100 to 1,600 blocks (2026-09-29): a name apiece 79.1, 85.3, 92.0,
+	/// 98.8 and 105.7 a block, the same name 98.9 to 141.6, each doubling adding the same few turns
+	/// of the binary searches that find a block and a name — n log n, 1.16 times as much a block at
+	/// 800 as at 200 against the 4.1 the failing clock implied. No declaration was ever moved by an
+	/// insertion, and the bytes a block allocates were flat, 1,026 to 1,125 and 821 to 873. So the
+	/// 2.01 was the runner's and not the reading's, and a clock with a bound wide enough to survive a
+	/// runner is blind to what it guards (D144).
+	/// </para>
+	/// <para>
+	/// A count holds that place now. A step that copies what has been written so far — the likeliest
+	/// way for one to grow dearer without growing more numerous — allocates in proportion to the
+	/// copy, so bytes a block rising is what such a step looks like, and bytes are the same number on
+	/// every machine. The shorter text is read first and the longer after it, so a method that tiers
+	/// up in between can only make the longer one allocate less; the margin is for that and for the
+	/// collections' growth steps, nothing else. A copy of the index by place taken at every
+	/// declaration was put in to see this fail, and it did: 2.68 times the bytes a block with a name
+	/// apiece and 2.80 with the same name, where the places above did not move.
+	/// </para>
 	/// </remarks>
 	[Theory]
 	[InlineData("the same name in every block", true)]
 	[InlineData("a name apiece", false)]
-	public void Four_times_the_blocks_does_not_cost_sixteen(string what, bool alike)
+	public void Four_times_the_blocks_allocates_about_four_times_the_bytes(string what, bool alike)
 	{
-		var shorter = Best(200, alike);
-		var longer  = Best(800, alike);
+		Allocated(200, alike);
 
-		var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+		var shorter = Allocated(200, alike) / 200.0;
+		var longer  = Allocated(800, alike) / 800.0;
 
 		Assert.True(
-			exponent <= 2.0,
-			$"With {what}, four times the blocks took {longer / shorter:F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
+			longer <= shorter * 1.10,
+			$"With {what}, a reading allocated {longer:F1} bytes a block over 800 blocks against " +
+			$"{shorter:F1} over 200, which is {longer / shorter:F2} times as many for each.");
 	}
 
 	/// <summary>The places a reading of that many blocks looks at.</summary>
@@ -113,26 +130,14 @@ public sealed class BlockScalingTests
 		return state.Places;
 	}
 
-	/// <summary>The fastest of several readings of what a text of that many blocks writes down.</summary>
-	static double Best(int blocks, bool alike)
+	/// <summary>The bytes a reading of that many blocks allocates on this thread.</summary>
+	static long Allocated(int blocks, bool alike)
 	{
+		var before = GC.GetAllocatedBytesForCurrentThread();
+
 		Read(blocks, alike);
 
-		GC.Collect();
-		GC.WaitForPendingFinalizers();
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 7; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			Read(blocks, alike);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
+		return GC.GetAllocatedBytesForCurrentThread() - before;
 	}
 
 	/// <summary>What reading a lambda whose body is that many sibling blocks writes down.</summary>
