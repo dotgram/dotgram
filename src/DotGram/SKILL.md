@@ -502,3 +502,6 @@ The traps, in the order they are usually met:
   type — the grammar says what the syntax is, and what a thing means is the C#'s.
 - **On `netstandard2.0` and `net472`** add a `System.Memory` reference: the generated
   methods take `ReadOnlySpan<char>`, which those frameworks do not carry.
+- **The generated code is yours to license.** What the generator writes into your compilation
+  may be shipped under your own terms without the MIT notice; the package README's last
+  paragraph has the exact words.
