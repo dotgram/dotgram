@@ -333,6 +333,11 @@ public sealed class SqlStandardTreeTests
 	[InlineData("JSON_VALUE(a, '$.x' NULL ON EMPTY)", "JsonValue(JsonApiCommon(a, '$.x', null, [], null), null, Null(), null)")]
 	[InlineData("JSON_OBJECT(KEY 'a' VALUE 1, 'b' : 2 ABSENT ON NULL)", "JsonObject([JsonMember('a', 1, KeyValue, null), JsonMember('b', 2, Colon, null)], AbsentOnNull, null, null)")]
 	[InlineData("a[$ to last]", "JsonAccessor(a, Array([JsonSubscript(Variable(Context, null), Variable(Last, null))]))")]
+	// A sign is its own token capture, not text joined across it, so a comment between two signs
+	// does not add a third: two minuses either way, never a plus for what the comment holds.
+	[InlineData("a[- /*+*/ - $]", "JsonAccessor(a, Array([JsonSubscript(Unary(Minus, Unary(Minus, Variable(Context, null))), null)]))")]
+	[InlineData("a[-/*+*/-$]", "JsonAccessor(a, Array([JsonSubscript(Unary(Minus, Unary(Minus, Variable(Context, null))), null)]))")]
+	[InlineData("a[- /*x*/ - $]", "JsonAccessor(a, Array([JsonSubscript(Unary(Minus, Unary(Minus, Variable(Context, null))), null)]))")]
 	[InlineData("a.double()", "Member(a, Dot, double, [])")]
 	public void A_function_is_built_as_written(string input, string tree)
 	{

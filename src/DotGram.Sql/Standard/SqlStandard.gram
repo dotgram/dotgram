@@ -1088,7 +1088,9 @@ JSONPathWff            : @JsonPathExpression = first: JSONPathMultiplicative & (
 JSONPathAdded          : @Nodes.PathOperated = o: ['+' | '-'] & e: JSONPathMultiplicative => @(new Nodes.PathOperated(o, e))
 JSONPathMultiplicative : @JsonPathExpression = first: JSONPathUnary & (trivia & rest: JSONPathMultiplied)* => @(Nodes.PathFold(first, rest))
 JSONPathMultiplied     : @Nodes.PathOperated = o: ['*' | '/' | '%'] & e: JSONPathUnary => @(new Nodes.PathOperated(o, e))
-JSONPathUnary          : @JsonPathExpression = (trivia & signs: ['+' | '-'])* & a: JSONPathAccessor => @(Nodes.PathSigned(signs, a))
+JSONPathSign           : @JsonPathUnaryOperator = '+' => @(JsonPathUnaryOperator.Plus)
+                                                | '-' => @(JsonPathUnaryOperator.Minus)
+JSONPathUnary          : @JsonPathExpression = (trivia & signs: JSONPathSign)* & a: JSONPathAccessor => @(Nodes.PathSigned(signs, a))
 JSONPathAccessor       : @JsonPathExpression = p: JSONPathPrimary & (trivia & ops: JSONPathAccessorOp)* => @(Nodes.PathAccessed(p, ops))
 
 // <JSON path primary>: the context variable, `last`, or a wff in brackets. A named variable is `$` and

@@ -739,20 +739,14 @@ static class Nodes
 
 	/// <summary>The signs in front of a path operand, innermost last.</summary>
 	/// <remarks>
-	/// What the repetition captures is the text it covered, and between two signs that text holds
-	/// whatever separated them — over kinds a space, over characters nothing. So the signs are
-	/// picked out rather than counted: `- - $` is two minuses either way, and never a plus for the
-	/// space between them.
+	/// Each sign is its own token capture, so `signs` is the array of operators actually matched —
+	/// never the source text between them. That is what keeps a comment between two signs, as in
+	/// `- /*+*/ - $`, from being read for a third sign it only looks like it contains.
 	/// </remarks>
-	public static JsonPathExpression PathSigned(string? signs, JsonPathExpression operand)
+	public static JsonPathExpression PathSigned(JsonPathUnaryOperator[]? signs, JsonPathExpression operand)
 	{
 		for (var at = (signs?.Length ?? 0) - 1; at >= 0; at--)
-		{
-			if (signs![at] != '-' && signs[at] != '+')
-				continue;
-
-			operand = new JsonPathExpression.Unary(signs[at] == '-' ? JsonPathUnaryOperator.Minus : JsonPathUnaryOperator.Plus, operand);
-		}
+			operand = new JsonPathExpression.Unary(signs![at], operand);
 
 		return operand;
 	}

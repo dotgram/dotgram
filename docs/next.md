@@ -25146,3 +25146,16 @@ Left as found: a capture of a lookahead over a rule with a value is that rule's 
 a fold whose recursive operand is not captured passes the value so far to a `=>` that does not take
 it (CS1501); and a guard in a step cannot name the value so far (`when @(Log(l))` is CS0103), since
 the accumulator is a parameter of the step's factory and not a capture a guard is handed.
+
+## A JSON path sign reads its own token, not the text a repetition covered
+
+`PathSigned` was left as found above: a comment between two signs joined into the text a repeated
+`signs: ['+' | '-']` captured, so `j[- /*+*/ - $]` read minus, plus, minus — a stray sign out of
+what the comment happened to contain. The join was not wrong: capturing the text a repetition
+covers, comments included, is what a joined text capture is for elsewhere in this grammar (§7.3).
+`JSONPathUnary` did not want that text — it wanted each sign counted once — so it now captures a
+rule, `JSONPathSign : @JsonPathUnaryOperator`, and `signs` is `JsonPathUnaryOperator[]?`, one array
+entry per match rather than one span over all of them, immune to whatever stands between two signs.
+`PathSigned` walks that array instead of a string. `j[- /*+*/ - $]`, `j[-/*+*/-$]` and `j[- /*x*/ -
+$]` all read two minuses now. `SqlStandardParser` gained the one rule (665) and lost 8,274 generated
+bytes overall: a joined-text capture moved to a valued one costs less than it saved.
