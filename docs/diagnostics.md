@@ -99,7 +99,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4003` | `trivia` must accept empty input. | It is inserted between every pair of operands, and a required match would demand whitespace everywhere (§4.5). |
 | `GRAM4005` | A name in an element set is not a rule. | |
 | `GRAM4006` | A capture inside a lookahead. | What a lookahead records is dropped whether it matched or not. Capture the lookahead itself: `?=X` produces X's value (§3.4). |
-| `GRAM4007` | One name is captured twice with different types. | A member has one type; give the two captures the same one, or different names (§7.3). |
+| `GRAM4007` | One name is captured twice with different types. | A member has one type; give the two captures the same one, or different names (§7.3). A fold step (§4.3) that collects a name another alternative holds once is the same case: one side is a sequence, the other a scalar. |
 | `GRAM4008` | A `=>` is not on an alternative, or a rule that builds does not say what type. | A `=>` builds the rule's value, so it belongs at the end of an alternative, and the rule needs `: @T` to say what it builds. |
 | `GRAM4009` | An alternative is recursive and states no strength while its siblings do. | A rule uses one convention or the other — levels as rules, or `<<` and `>>` on every recursive alternative (§4.3.1). |
 | `GRAM4010` | A recovery's `=>` has no sequence to put the rejected element in. | The repetition collects text rather than values. Give the repeated rule a capture of its own, or drop the `=>` and report out of band (§8.2). |
