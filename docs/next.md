@@ -25119,7 +25119,13 @@ answered the join already. Three did not, all around the fold (§4.3):
   `DirectRepeated` already left it out;
 - a repetition inside a step was never joined by the step's construction (`MaterializeFoldMember`
   took the last piece), and a guard's join reached across steps. Both now read the step's own
-  entries, from the last construction of the call;
+  entries, from the last construction of the call. That is the text case; a rule's values repeated
+  inside a step were handed as one value too (`(r: V & ';'?){2}` built "3v" of "2v", "3v"), because
+  the layout let the fold's loop decide what collects. A slot the author's repetition collects is now
+  the step's array, to its `=>` and to a guard, and the direct reader leaves such a rule to the engine;
+- a guard in a step asked whether a member could be absent over the whole body, where the base always
+  writes it, so an absent `(y: D)?` in a step reached the guard and the reader's construction as ""
+  or as the base's piece. It is asked over the step;
 - the direct reader handed a step's guard the base's piece ("1;1"), typed a member named only in
   steps as an array (CS1503), and wrote a text member's record in a different shape from its capture
   wherever one alternative repeats it and another does not (CS0103) — which needs no fold:
@@ -25135,4 +25141,5 @@ ALGORITHM AES`.
 
 Left as found: a capture of a lookahead over a rule with a value is that rule's text, not its value;
 a fold whose recursive operand is not captured passes the value so far to a `=>` that does not take
-it (CS1501).
+it (CS1501); and a guard in a step cannot name the value so far (`when @(Log(l))` is CS0103), since
+the accumulator is a parameter of the step's factory and not a capture a guard is handed.
