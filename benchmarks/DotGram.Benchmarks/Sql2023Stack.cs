@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -19,7 +19,9 @@ namespace DotGram.Benchmarks;
 /// correspondingly shallower for the same stack, which is part of what this comparison answers.
 /// Prints, and asks nothing of a benchmark: <c>--sql2023-stack</c>.
 /// <para>
-/// <b>Run it under <c>DOTNET_TieredCompilation=0</c>.</b> Unlike the test, this does not pin the
+/// <b>It runs under <c>DOTNET_TieredCompilation=0</c></b>: a process started without the variable
+/// starts itself again with it (Program.cs); one that sets it gets what it set. Unlike the test,
+/// this does not pin the
 /// reading to tier 0 on a fresh copy of the grammar: with tiering on, the shallow parse can run on
 /// tier-0 code and the deep one on promoted code, whose frames are thinner, and the level then
 /// reads low, zero or negative. With tiering off both run on optimized code, which is a steady

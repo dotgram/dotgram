@@ -18,6 +18,27 @@ namespace DotGram.Benchmarks;
 /// </remarks>
 static class Program
 {
+	/// <summary>Runs this program again with the same arguments and one more environment variable, its output passed through; the child's exit code.</summary>
+	static int Again(string[] args, string variable, string value)
+	{
+		var host  = Environment.ProcessPath!;
+		var start = new System.Diagnostics.ProcessStartInfo(host) { UseShellExecute = false };
+
+		if (System.IO.Path.GetFileNameWithoutExtension(host).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+			start.ArgumentList.Add(typeof(Program).Assembly.Location);
+
+		foreach (var argument in args)
+			start.ArgumentList.Add(argument);
+
+		start.Environment[variable] = value;
+
+		using var process = System.Diagnostics.Process.Start(start)!;
+
+		process.WaitForExit();
+
+		return process.ExitCode;
+	}
+
 	/// <summary>The minutes of a --limit, or null.</summary>
 	static double? LimitOf(string[] args)
 	{
@@ -529,8 +550,19 @@ static class Program
 
 		// `--sql2023-stack` is not a benchmark either: it prints what SQL:2023's SearchCondition
 		// costs a level of nesting to refuse, tape carrier beside immediate. See Sql2023Stack.cs.
+		// It runs under DOTNET_TieredCompilation=0 (Sql2023Stack's remarks say why): a process
+		// started without the variable runs the tool again in one with it; a caller who sets it
+		// gets what was set, and the first line says which.
 		if (args.Length == 1 && args[0] == "--sql2023-stack")
 		{
+			if (Environment.GetEnvironmentVariable("DOTNET_TieredCompilation") is not { Length: > 0 } tiering)
+			{
+				Environment.ExitCode = Again(args, "DOTNET_TieredCompilation", "0");
+
+				return;
+			}
+
+			Console.WriteLine($"DOTNET_TieredCompilation={tiering}{(tiering == "0" ? ": optimized code from the first call, no tier 0" : "")}.");
 			Sql2023Stack.Run();
 
 			return;
