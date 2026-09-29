@@ -23,18 +23,18 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Many threads read at once, with every shipped parser, and each gets exactly what a lone
-/// thread reading the same input gets.
+/// Many threads read at once, with a parser of every shipped package, and each gets exactly
+/// what a lone thread reading the same input gets.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The architect's plan, item 16, written after A-030 (<c>notes/parser-instances.md</c>):
-/// every mutable static an emitted parser keeps is <c>[ThreadStatic]</c> — the working stores
-/// come from a per-thread pool, tables are <c>static readonly</c>, and the expression
-/// language's own resolution caches are a <c>ConcurrentDictionary</c> — so concurrent calls
-/// from different threads are safe by construction. That is a claim about the generator, not
-/// a proof; this is the proof, and it is what the threading contract in
-/// <c>docs/status.md</c> and the package READMEs is written against.
+/// A generated parser keeps its working state in per-thread stores and reads its tables from
+/// <c>static readonly</c> fields, which is a design that should make two threads reading at
+/// once safe by construction: neither should ever see the other's state, and neither should
+/// have to wait for it. That is a claim about the design, not a proof — a field one call site
+/// forgot to make per-thread, or a table one grammar built as mutable, would only show up
+/// under real concurrency, and nothing else in the suite reads more than one thread at a time.
+/// This is that proof.
 /// </para>
 /// <para>
 /// <b>What "the same answer" means here.</b> A generated tree's own equality is not
@@ -44,7 +44,13 @@ namespace DotGram.Tests;
 /// <see cref="Ast.Sql2023Writer"/> print a tree back as text, a <c>LambdaExpression</c>
 /// prints itself, and a plain record of strings (<see cref="UriReference"/>, a mailbox) is
 /// joined into one line. A refusal is its position and message, or, where the public surface
-/// is a bare <c>bool</c>, the bool itself.
+/// is a bare <c>bool</c>, the bool itself. Where a tree carries positions — today, only the
+/// T-SQL <c>Located</c> form; <c>SqlStandardParser</c>'s own tree has the same <c>Span</c> on
+/// every node but does not populate it yet — the printed text is not enough by itself: two
+/// trees that print alike can still disagree about where each piece was found, which is
+/// exactly the shape a race that swaps two threads' spans would take. So both rows fold every
+/// node's own <c>(At, Length)</c> into the signature too, the SQL:2023 one for whenever that
+/// changes and at no cost while it has not.
 /// </para>
 /// <para>
 /// <b>Cold and warm, at once.</b> <see cref="ColdThreadTests"/> already reads what a fresh
@@ -58,8 +64,7 @@ namespace DotGram.Tests;
 /// action, so that row is a small grammar built for it: the same shape
 /// <c>ValueStoreRetentionTests</c> already compiles to prove a nested parse gives back what
 /// it rented. <c>Outer</c>'s action calls <c>TryParseInner</c> while <c>Outer</c>'s own store
-/// is still checked out — which is what the pool's "deeper spares" stack exists for
-/// (<c>notes/parser-instances.md</c>) — now with many threads doing it at once instead of one.
+/// is still checked out, now with many threads doing it at once instead of one.
 /// </para>
 /// <para>
 /// <b>Bounded on purpose.</b> Every input is short, the thread counts are a small multiple of
@@ -79,7 +84,7 @@ public sealed class ConcurrentParsingTests
 	}
 
 	[Fact]
-	public void Every_shipped_parser_answers_alike_under_concurrency_and_alone()
+	public void A_parser_of_every_shipped_package_answers_alike_under_concurrency_and_alone()
 	{
 		var rows = BuildRows();
 
@@ -121,20 +126,29 @@ public sealed class ConcurrentParsingTests
 			},
 			new Row
 			{
+				// The Located form carries a Span on every node; a race that swapped two
+				// threads' positions but left the tree's shape alone would print the same
+				// text, so the signature folds every node's (At, Length) in too.
 				Name = "T-SQL: the Located form of a statement",
 				Compute = () =>
 				{
 					var match = TransactSqlParser.Located.TryParseStatement("SELECT * FROM t WHERE c = 1 AND d = 2;");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => SqlWriter.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error,
+						() => SqlWriter.Write(match.Value) + "|" + SpansSignature(match.Value));
 				},
 			},
 			new Row
 			{
+				// Every SQL:2023 Ast node has the same Span property the Located row above
+				// has (ISqlNode extends ISqlSpan), though SqlStandardParser does not populate
+				// it today — this folds spans in anyway, so the row starts pulling its weight
+				// the moment that changes, and costs nothing (every span is 0/0) while it has not.
 				Name = "SQL:2023: a query expression that reads",
 				Compute = () =>
 				{
 					var match = SqlStandardParser.TryParseQueryExpression("SELECT a FROM t WHERE a = 1");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error,
+						() => Ast.Sql2023Writer.Write(match.Value) + "|" + SpansSignature(match.Value));
 				},
 			},
 			new Row
@@ -224,6 +238,43 @@ public sealed class ConcurrentParsingTests
 			{
 				Name = "Web: a mailbox list with no local part is refused",
 				Compute = () => EmailAddress.TryParseMailboxList("@@@, not-an-email", out _) ? "READ" : "REFUSED",
+			},
+			new Row
+			{
+				// A different Web package class again (Rfc8259 owns its own emitted pool),
+				// with an object, an array, a number kept as text, a boolean and a null —
+				// one of each of the six cases the tree is closed over.
+				Name = "Web: a JSON value that reads",
+				Compute = () =>
+				{
+					var read = JsonValue.TryParse("""{"a":[1,2,true,null],"b":"x"}""", out var value);
+
+					return read ? "OK:" + value!.ToString() : "REFUSED";
+				},
+			},
+			new Row
+			{
+				Name = "Web: an unterminated JSON object is refused",
+				Compute = () => JsonValue.TryParse("{", out _) ? "READ" : "REFUSED",
+			},
+			new Row
+			{
+				// A third Web package class (Rfc9651, its own emitted pool again): a
+				// structured-field Item, an integer bare value with two parameters.
+				Name = "Web: a structured-field item that reads",
+				Compute = () =>
+				{
+					var read = StructuredField.TryParseItem("42;a=1;b=?0", out var item);
+
+					return read
+						? "OK:" + BareItemText(item!.Value) + "|" + ParametersText(item.Parameters)
+						: "REFUSED";
+				},
+			},
+			new Row
+			{
+				Name = "Web: an unterminated structured-field string is refused",
+				Compute = () => StructuredField.TryParseItem("\"unterminated", out _) ? "READ" : "REFUSED",
 			},
 			new Row
 			{
@@ -353,6 +404,51 @@ public sealed class ConcurrentParsingTests
 		return isSuccess
 			? "OK:" + whenSuccess()
 			: "REFUSED:" + position.ToString(CultureInfo.InvariantCulture) + ":" + error;
+	}
+
+	/// <summary>
+	/// Every node under <paramref name="root"/>, in the walk's own order, as its <c>(At, Length)</c>.
+	/// </summary>
+	/// <remarks>
+	/// Printed text alone would miss a race that swaps two nodes' recorded positions but leaves
+	/// the tree's shape and every value untouched — <see cref="SqlWalker"/> walks both the
+	/// shared T-SQL/SQL-92 tree and the SQL:2023 one, since <c>ISqlNode</c> extends <see cref="ISqlSpan"/>.
+	/// </remarks>
+	static string SpansSignature(ISqlSpan root)
+	{
+		var spans = new List<string>();
+
+		SqlWalker.Walk(root, node =>
+		{
+			spans.Add(node.Span.At.ToString(CultureInfo.InvariantCulture) + "/" +
+				node.Span.Length.ToString(CultureInfo.InvariantCulture));
+
+			return true;
+		});
+
+		return string.Join(",", spans);
+	}
+
+	/// <summary>A structured-field bare item as one line: <c>BareItem</c> is a closed set of eight cases.</summary>
+	static string BareItemText(BareItem item)
+	{
+		return item switch
+		{
+			BareItem.Integer       one => "i:" + one.Value.ToString(CultureInfo.InvariantCulture),
+			BareItem.Decimal       one => "d:" + one.Value.ToString(CultureInfo.InvariantCulture),
+			BareItem.String        one => "s:" + one.Value,
+			BareItem.Token         one => "t:" + one.Value,
+			BareItem.ByteSequence  one => "b:" + Convert.ToBase64String(one.Value),
+			BareItem.Boolean       one => "?:" + one.Value,
+			BareItem.Date          one => "date:" + one.Value.ToString(CultureInfo.InvariantCulture),
+			BareItem.DisplayString one => "ds:" + one.Value,
+			_                          => throw new NotSupportedException(item.GetType().Name),
+		};
+	}
+
+	static string ParametersText(OrderedMap<BareItem> parameters)
+	{
+		return string.Join(",", parameters.Select(pair => pair.Key + "=" + BareItemText(pair.Value)));
 	}
 
 	static string FieldsSignature(IReadOnlyList<FixField> fields)
