@@ -122,15 +122,17 @@ public sealed class ExpressionBlowUpTests
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// An element of a name was read twice a level, so each level doubled the cost of the one
-	/// inside it: first as the target of <c>a[i] = v</c> and again, no <c>=</c> after it, as the
-	/// operand it is. Twenty-four levels of a text C# accepts took nine seconds.
+	/// Two ways of this grammar read what they nest twice, so each level doubled the cost of the
+	/// one inside it: an element of a name, read first as the target of <c>a[i] = v</c> and again,
+	/// no <c>=</c> after it, as the operand it is — 24 levels of a text C# accepts took nine
+	/// seconds — and an array initializer never closed, read by the array's way and again by the
+	/// collection initializer's.
 	/// </para>
 	/// <para>
 	/// Counted in bytes, at four depths a doubling apart, and judged by the exponent of the
 	/// INCREMENTS — <c>log2((C(4n) - C(2n)) / (C(2n) - C(n)))</c> — so that what every reading
-	/// costs whatever its depth cannot read as a slope. Linear is 1 and quadratic 2; the
-	/// defect read 7.7 to 8.1 at the last doubling. A shape whose count does not grow at all
+	/// costs whatever its depth cannot read as a slope. Linear is 1 and quadratic 2; the two
+	/// defects read 7.7 to 8.1 at the last doubling. A shape whose count does not grow at all
 	/// (a refusal decided before anything is built) is flat, which passes.
 	/// </para>
 	/// <para>
@@ -142,10 +144,13 @@ public sealed class ExpressionBlowUpTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("an index",                  "(int[] a) => ", "a[", "0", "]",     "")]
-	[InlineData("an index, unclosed",        "(int[] a) => ", "a[", "0", "",      "")]
-	[InlineData("an index, then a bad tail", "(int[] a) => ", "a[", "0", "]",     " +")]
-	[InlineData("an element written to",     "(int[] a) => ", "a[", "0", "] = 1", "")]
+	[InlineData("an index",                              "(int[] a) => ", "a[",                  "0", "]",     "")]
+	[InlineData("an index, unclosed",                    "(int[] a) => ", "a[",                  "0", "",      "")]
+	[InlineData("an index, then a bad tail",             "(int[] a) => ", "a[",                  "0", "]",     " +")]
+	[InlineData("an element written to",                 "(int[] a) => ", "a[",                  "0", "] = 1", "")]
+	[InlineData("an array initializer, unclosed",        "(int x) => ",   "new object[] { ",     "x", "",      "")]
+	[InlineData("an array initializer, then a bad tail", "(int x) => ",   "new object[] { ",     "x", " }",    " +")]
+	[InlineData("a collection initializer, unclosed",    "(int x) => ",   "new List<object> { ", "x", "",      "")]
 	public void What_nests_is_read_once_a_level(
 		string what, string head, string opener, string middle, string closer, string tail)
 	{
@@ -167,7 +172,7 @@ public sealed class ExpressionBlowUpTests
 	/// <summary>The most an increment exponent may read.</summary>
 	/// <remarks>
 	/// Linear shapes read 0.6 to 1.3 here — a store that grows at one depth and not the next moves
-	/// an increment — and the defect 7.7 to 8.1.
+	/// an increment — and the defects 7.7 to 8.1.
 	/// </remarks>
 	const double Linear = 1.6;
 

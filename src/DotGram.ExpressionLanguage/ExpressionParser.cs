@@ -1335,7 +1335,13 @@ namespace DotGram.ExpressionLanguage;
 		// input that ran out. The hand-written parser's agreement check found it on exactly
 		// that text. `Type` is read twice on this path, which is the price of keeping the
 		// difference between "not this" and "not yet".
-		| "new" & type: Type & (fields: Bindings | '{' & items: Elements & '}')
+		//
+		// Not of an array type, whose braces are the array initializer's above: read here as
+		// well, an initializer that way refused was read again as a collection's — twice a
+		// level, so `new object[] { new object[] { … x` never closed doubled with every `new`.
+		// Nothing was lost by it: a collection initializer of an array type constructs an array
+		// with `new`, which there is no such thing as.
+		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | '{' & items: Elements & '}')
 		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
