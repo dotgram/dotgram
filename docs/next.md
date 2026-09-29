@@ -25159,3 +25159,26 @@ entry per match rather than one span over all of them, immune to whatever stands
 `PathSigned` walks that array instead of a string. `j[- /*+*/ - $]`, `j[-/*+*/-$]` and `j[- /*x*/ -
 $]` all read two minuses now. `SqlStandardParser` gained the one rule (665) and lost 8,274 generated
 bytes overall: a joined-text capture moved to a valued one costs less than it saved.
+
+## RFC 5322: a space beside a dot belongs to one side, and a refused phrase is not given back
+
+A display name with dots, `a . a . a <b@c` left unclosed, was exponential in its words: 41 seconds at
+twenty-two, `Mailbox.TryParse` and `TryParseList` alike. `ObsPhrase = WordText & (WordText | '.' | Cfws)*`
+let the space after a dot be the repetition's own `Cfws` or the next word's leading `Cfws?` — the double
+ownership `WordText` was sealed against between two words, one step over, on the other side of the dot.
+With a comment before each word it was thirty seconds at twelve. A third way in had the same shape: in
+`Cfws = { comments } & Fws? | Fws` the folding after a comment could end that `Cfws` or be one of its own,
+and an obsolete route of `(a) ,` repeated took 2.5 seconds at twenty.
+
+The dot now owns what follows it, `{ '.' & Cfws? }`, which leaves obs-phrase's lone `CFWS` with nowhere to
+match (a word already takes the folding after it) and it is gone; `Cfws` seals its trailing folding. And
+the phrase, the local part and the obsolete domain are sealed whole: nothing that follows any of them can
+begin with a word, a dot or folding, so a shorter reading never matters, and giving one back a word per
+retry was the square beside the exponential (words then an unclosed `<`: 1.9 s at 8,192 words, now 4 ms).
+The language is unchanged: 720,000 generated inputs — random token strings, dotted phrases with folding and
+comments in every gap, dotted local parts and domains — through all eight public readers of the old and new
+package gave the same accept or refuse and the same values. `WebRefusalCountTests` counts the whitespace a
+refusal reads at 4 to 32 units, compiling the shipped grammar with a counting guard on `Wsp`: 42, 90, 186,
+378 now, where the old grammar read 389 then 13,925. Generated `Rfc5322` grew 4,906 bytes (0.6%).
+`RefusalBaseline.txt` still says Quadratic for "words, then an unclosed <"; it may be tightened to Linear at
+the next recording window.

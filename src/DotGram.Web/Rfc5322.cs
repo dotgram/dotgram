@@ -323,7 +323,13 @@ public abstract record EmailAddress
 	// between the two repetitions n ways. Sealing the whitespace did not close this: measured
 	// after that, a refused address whose route carried twenty comments took 311 ms and twelve
 	// took 6.6. A run of comments cut in two is the same run.
-	Cfws     = { (Fws? & Comment)+ } & Fws? | Fws
+	//
+	// And the folding after the run is inside the seal, because it was the third way in: left
+	// outside, the space after a comment could end this `Cfws` or be a `Cfws` of its own, and a
+	// route of `(a) ,` repeated had two readings a comment — measured, twenty of them then a
+	// refusal took 2.5 seconds. Nothing that follows a `Cfws` anywhere here needs to begin with
+	// that space, so the longest reading is the only one that can matter.
+	Cfws     = { (Fws? & Comment)+ & Fws? } | Fws
 
 	// ── §3.2.3, §3.2.4, §3.2.5 ───────────────────────────────────────────────────
 
@@ -348,9 +354,19 @@ public abstract record EmailAddress
 		| Cfws? & body: QuotedBody & Cfws? => @(Rfc5322.Unquoted(body))
 
 	// phrase = 1*word / obs-phrase, and obs-phrase = word *(word / "." / CFWS) holds the first.
+	//
+	// obs-phrase's lone CFWS is here the dot's: a word already takes the folding after it, so a
+	// CFWS can only stand after a dot, and there it could also have been the next word's leading
+	// one — two readings a gap, the same double ownership `WordText` is sealed against below, on
+	// the other side of the dot. Measured before the dot took it: `a . a . … <b@c` took 41
+	// SECONDS at twenty-two words, and with a comment before each word thirty seconds at twelve.
+	//
+	// And the whole phrase is sealed, so that a refusal after it does not give it back a word or
+	// a dot at a time: what follows a phrase is `<`, `:` or folding before them, never a word or a
+	// dot, so no shorter phrase can be followed by anything the longest one could not.
 	Phrase        = ObsPhrase
-	CurrentPhrase = WordText+
-	ObsPhrase     = WordText & (WordText | '.' | Cfws)*
+	CurrentPhrase = { WordText+ }
+	ObsPhrase     = { WordText & (WordText | { '.' & Cfws? })* }
 	// Sealed, and for a different ambiguity than the runs above — this one is not `(A+)*`. A word
 	// may take folding on BOTH sides, and `ObsPhrase` repeats words, so the space between two of
 	// them can belong to the left word's trailing `Cfws?` or the right one's leading `Cfws?`:
@@ -365,7 +381,10 @@ public abstract record EmailAddress
 	AddrSpecRule : @AddrSpec = local: LocalPart & '@' & domain: Domain => @(new AddrSpec(local, domain))
 
 	// local-part = dot-atom / quoted-string / obs-local-part, and obs-local-part = word *("." word) holds both.
-	LocalPart : @string = first: Word & rest: DotWord* => @(Rfc5322.Dotted(first, rest))
+	// Sealed as the phrase is, and for the same reason: `@` follows a local part, and a shorter
+	// one would end before a dot or folding. A dotted name refused as a display name is read
+	// again as a local part, and unsealed that reading gave its words back one retry at a time.
+	LocalPart : @string = { first: Word & rest: DotWord* } => @(Rfc5322.Dotted(first, rest))
 
 	CurrentLocalPart : @string
 		= Cfws? & text: DotAtomText & Cfws? => @(text)
@@ -374,9 +393,10 @@ public abstract record EmailAddress
 	DotWord : @string = '.' & word: Word => @(word)
 
 	// domain = dot-atom / domain-literal / obs-domain, and obs-domain = atom *("." atom) holds the dot-atom.
+	// Sealed like the local part: nothing that follows a domain begins with a dot or folding.
 	Domain : @string
 		= literal: DomainLiteral => @(literal)
-		| first: Atom & rest: DotAtom* => @(Rfc5322.Dotted(first, rest))
+		| { first: Atom & rest: DotAtom* } => @(Rfc5322.Dotted(first, rest))
 
 	CurrentDomain : @string
 		= literal: DomainLiteral             => @(literal)

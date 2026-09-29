@@ -116,6 +116,26 @@ public sealed class Rfc5322Tests
 		Assert.False(EmailAddress.TryParseStrictList("Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example", out _));
 	}
 
+	/// <summary>
+	/// Folding and comments on either side of an obsolete phrase's dots, a dot last, and comments then a space in
+	/// a route: the gaps the grammar gives to one side only, read as they were before it did.
+	/// </summary>
+	[Fact]
+	public void Obsolete_gaps_beside_dots_and_in_a_route()
+	{
+		Assert.Equal(
+			new EmailAddress.Mailbox("Joe . Q . Public .", new AddrSpec("joe", "example.com")),
+			EmailAddress.Mailbox.Parse("Joe . Q . (middle) Public . <joe@example.com>"));
+
+		Assert.Equal(
+			new EmailAddress.Mailbox("Joe . Q. Public", new AddrSpec("joe", "example.com")),
+			EmailAddress.Mailbox.Parse("Joe .(x) Q.  \"Public\" <joe@example.com>"));
+
+		Assert.Equal(
+			new EmailAddress.Mailbox(null, new AddrSpec("mary", "example.net")),
+			EmailAddress.Mailbox.Parse("<(a) ,(b) , @node.test:mary@example.net>"));
+	}
+
 	/// <summary>A.6.3: a comment inside a domain, and a folded line of nothing but white space.</summary>
 	[Fact]
 	public void Obsolete_white_space_and_comments()
