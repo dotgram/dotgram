@@ -25182,3 +25182,59 @@ refusal reads at 4 to 32 units, compiling the shipped grammar with a counting gu
 378 now, where the old grammar read 389 then 13,925. Generated `Rfc5322` grew 4,906 bytes (0.6%).
 `RefusalBaseline.txt` still says Quadratic for "words, then an unclosed <"; it may be tightened to Linear at
 the next recording window.
+
+## Answered asked the compilation instead of asking it by name
+
+DotGram.ExpressionLanguage's `Answered` stage — the one that re-runs on every host-only
+edit, because it is the only stage still handed a fresh `Compilation` — cost on the order
+of a hundred milliseconds per host, twice over (the grammar is compiled once plain and once
+under `GramCarrier.Immediate`). `RoslynSymbolResolver.TryResolveExternalValue` and the
+compilation-wide fallback inside `ResolveExternalMethod` both asked for one external name —
+this grammar's `@MeasureRaw` — through `Compilation.GetSymbolsWithName(Func<string, bool>,
+SymbolFilter)`.
+
+Both of `GetSymbolsWithName`'s overloads search only the compilation's own source
+declarations — Roslyn's declaration table, built from the parsed syntax and never touching a
+referenced assembly — but not the same way, which the Roslyn source itself says plainly
+(`CSharpCompilation.PredicateSymbolSearcher` and `.NameSymbolSearcher`, both over
+`AbstractSymbolSearcher`). The predicate overload's `ShouldCheckTypeForMembers` always
+answers true, so it descends into and binds every type's full member list to test the
+predicate against each name in turn. The exact-name overload's version of that method first
+asks the type's own declaration for the member names already recorded on it while parsing
+(`SingleTypeDeclaration.MemberNames`, no binding needed) and skips — never binds — any type
+that provably does not declare the name asked for.
+
+A small harness against the same narrow reference set (`.work/genprof-el`, built the way
+`.claude/rules/profiling.md` §2 builds one, root pointed at `src/DotGram.ExpressionLanguage`)
+counted and timed both calls, each against its own fresh `Compilation`, in a fresh process
+for each ordering, since whichever call goes first pays the (larger) shared cost of parsing
+this source tree and building its declaration table for the first time. Predicate first: the
+predicate visited 551 declared names and took ~550-860 ms; the exact-name call that followed,
+on an unrelated fresh `Compilation` in the same warmed process, took ~29-39 ms. String
+first: the exact-name call alone took ~340-500 ms (cheaper than the predicate even cold, by
+roughly a third — real, not an artifact of ordering); the predicate call that followed took
+~220-380 ms, visiting the same 551 names again — a call is not cheaper for being second, since
+nothing about a fresh `Compilation` carries over, and 551 names get bound and tested every
+time regardless of what ran before. So the one comparison that is not confounded by which side
+paid the shared warm-up is second call against second call: ~30 ms against ~220-380 ms, an
+order of magnitude, matching what the source above predicts — skipping the bind for almost
+every type against reading and testing all of them.
+
+Both call sites now pass the name straight through. Nothing else changed: same filter, same
+accessibility and shape checks downstream, same `AnsweredSymbolResolver` reading the answers
+back by `Question` equality, which does not know or care how an answer was reached. A
+host-only edit on ExpressionLanguage, measured end to end with the same harness running the
+generator twice on one driver (once to warm it, once over an edited host so only `Answered`
+and what depends on it re-run), dropped from roughly 100-150 ms of `Answered` per host to
+roughly 50-90 ms — the more representative number for what a real edit costs, since `Ask`
+touches the compilation extensively before it ever reaches this one question, so neither side
+is measured genuinely cold there. `Answered` also asks several hundred
+`Fits`/`Builds`/`Sets`/`Exists` questions unrelated to this fix (the O(n²) loop
+`docs/design/generator-performance-2026-09-16.md` already describes), which this entry does
+not touch and which is most of what is left of the 100-150 ms.
+
+DotGram.Tests (9,847), DotGram.Tests.Slow (287, one report-only skip pre-existing and
+unrelated), DotGram.Sql.Tests (14,870) and DotGram.Finance.Tests (4,483) all pass; every
+snapshot stayed byte-identical, and both overloads answer the identical symbol set for
+`MeasureRaw` (checked by display string, since two different `Compilation` instances never
+call two of their symbols equal to begin with).
