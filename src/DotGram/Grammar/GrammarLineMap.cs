@@ -30,11 +30,12 @@ public sealed class GrammarLineMap : ILineMap
 				_starts.Add(i + 1);
 	}
 
-	public bool TryMap(int position, out string file, out int line, out int column)
+	public bool TryMap(int position, out string file, out int line, out int column, out bool fromLiteral)
 	{
-		file   = _path;
-		line   = 0;
-		column = 0;
+		file        = _path;
+		line        = 0;
+		column      = 0;
+		fromLiteral = false;
 
 		if (position < 0 || position > _length)
 			return false;

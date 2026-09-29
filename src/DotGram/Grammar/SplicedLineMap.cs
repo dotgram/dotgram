@@ -71,17 +71,18 @@ public sealed class SplicedLineMap : ILineMap
 
 	public IReadOnlyList<Segment> Segments => _segments;
 
-	public bool TryMap(int position, out string file, out int line, out int column)
+	public bool TryMap(int position, out string file, out int line, out int column, out bool fromLiteral)
 	{
-		file   = "";
-		line   = 0;
-		column = 0;
+		file        = "";
+		line        = 0;
+		column      = 0;
+		fromLiteral = false;
 
 		if (SegmentAt(position) is var at && at < 0)
 			return false;
 
 		var segment = _segments[at];
 
-		return segment.Map is { } map && map.TryMap(position - segment.Start, out file, out line, out column);
+		return segment.Map is { } map && map.TryMap(position - segment.Start, out file, out line, out column, out fromLiteral);
 	}
 }

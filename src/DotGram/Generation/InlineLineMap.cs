@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 using DotGram.Grammar;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
-
 namespace DotGram.Generation;
 
 /// <summary>
@@ -45,14 +42,23 @@ namespace DotGram.Generation;
 /// author reads a place that has nothing wrong with it and concludes the message is
 /// nonsense.
 /// </para>
+/// <para>
+/// <b>From the spelling alone, and never the file.</b> A place in the literal is a line counted
+/// from the literal's first and a column — counted from the literal's first character where
+/// that line is the literal's first, and from the line's start where it is not. That is all
+/// the compile is told (<see cref="ILineMap"/>'s <c>fromLiteral</c>), so that an edit which
+/// moves the literal and leaves it as it was leaves the compile to be reused; where the
+/// literal is in the file is written into the output afterwards (D145).
+/// </para>
 /// </remarks>
-sealed class InlineLineMap(string grammar, string spelling, int spellingAt, SyntaxTree tree) : ILineMap
+sealed class InlineLineMap(string grammar, string spelling) : ILineMap
 {
-	public bool TryMap(int position, out string file, out int line, out int column)
+	public bool TryMap(int position, out string file, out int line, out int column, out bool fromLiteral)
 	{
-		file   = tree.FilePath;
-		line   = 0;
-		column = 0;
+		file        = "";
+		line        = 0;
+		column      = 0;
+		fromLiteral = true;
 
 		if (position < 0 || position >= grammar.Length)
 			return false;
@@ -62,13 +68,60 @@ sealed class InlineLineMap(string grammar, string spelling, int spellingAt, Synt
 		if (!Placed().TryGetValue(from, out var at) || at < 0)
 			return false;
 
-		var placed = tree.GetText().Lines.GetLinePosition(spellingAt + at + (position - from));
+		var offset = at + (position - from);
+		var starts = Starts();
 
-		line   = placed.Line + 1;
-		column = placed.Character + 1;
+		// The last line of the spelling that starts at or before the offset.
+		var low  = 0;
+		var high = starts.Count - 1;
+
+		while (low < high)
+		{
+			var middle = (low + high + 1) / 2;
+
+			if (starts[middle] <= offset)
+				low = middle;
+			else
+				high = middle - 1;
+		}
+
+		line   = low;
+		column = offset - starts[low] + 1;
 
 		return true;
 	}
+
+	/// <summary>Where every line of the spelling begins, by the line breaks a C# file has.</summary>
+	/// <remarks>
+	/// The same ones Roslyn counts a file's lines by — CR LF, CR, LF, NEL and the two Unicode
+	/// separators — or a raw literal holding one of the rarer ones would be a line off.
+	/// </remarks>
+	List<int> Starts()
+	{
+		if (_starts is not null)
+			return _starts;
+
+		_starts = [0];
+
+		for (var at = 0; at < spelling.Length; at++)
+			switch (spelling[at])
+			{
+				case '\r' when at + 1 < spelling.Length && spelling[at + 1] == '\n':
+					_starts.Add(at + 2);
+					at++;
+
+					break;
+
+				case '\r' or '\n' or '\u0085' or '\u2028' or '\u2029':
+					_starts.Add(at + 1);
+
+					break;
+			}
+
+		return _starts;
+	}
+
+	List<int>? _starts;
 
 	/// <summary>Where every line of the grammar begins in the spelling, or -1 for none.</summary>
 	Dictionary<int, int> Placed()

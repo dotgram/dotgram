@@ -21,10 +21,11 @@ namespace DotGram.Generation;
 /// to avoid.
 /// </para>
 /// <para>
-/// So the pieces travel and the <c>Diagnostic</c> is built at delivery. The one location
-/// kept as a location is the fallback — the host class's own — because it points into a
-/// tree that only changes when the file holding the grammar changes, which is a
-/// regeneration anyway.
+/// So the pieces travel and the <c>Diagnostic</c> is built at delivery. Where a report has no
+/// place in a grammar file it names an attribute instead — the host's, or that of a grammar
+/// the host includes — by its <see cref="Anchor"/> in the host's <see cref="Site"/>, and not by
+/// where that attribute is: a report is made by the compile, and the compile is reused across
+/// edits that move the attribute (D145).
 /// </para>
 /// </remarks>
 /// <summary>Where something is, in a form that compares the way arithmetic does.</summary>
@@ -62,6 +63,66 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 	}
 }
 
+/// <summary>
+/// Where one host's grammar is written: the attribute, the literal in it, and the attribute of
+/// every grammar it includes.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Everything about a host that changes when an edit moves it and nothing else, kept apart from
+/// the <c>Host</c> the compile reads so that such an edit leaves the compile to be reused (D145).
+/// Only the output step and the reporting read it: the one to write the literal's line and
+/// column into each <c>#line</c>, the other to put a report on an attribute.
+/// </para>
+/// <para>
+/// A report names a place here by an anchor rather than by carrying one: <see cref="None"/>,
+/// <see cref="Attribute"/>, or <see cref="Base"/> of an include's index.
+/// </para>
+/// </remarks>
+/// <param name="Key">Which host this is, the same as its <c>Host.Key</c>.</param>
+/// <param name="At">The attribute.</param>
+/// <param name="Path">The C# file the literal is in, or null for none.</param>
+/// <param name="LiteralAt">Where the literal's spelling begins in that file, or 0 for none.</param>
+/// <param name="Line">The literal's first line, 1-based.</param>
+/// <param name="Column">The literal's first column, 1-based.</param>
+/// <param name="Bases">The attribute of each grammar the host includes, in the host's order.</param>
+readonly record struct Site(
+	string                   Key,
+	Place?                   At,
+	string?                  Path,
+	int                      LiteralAt,
+	int                      Line,
+	int                      Column,
+	EquatableArray<Site.Base> Bases)
+{
+	public const int None      = -1;
+	public const int Attribute = 0;
+
+	/// <summary>An included grammar's attribute, and where its literal begins.</summary>
+	/// <param name="At">Null where the base is in a referenced assembly.</param>
+	public readonly record struct Base(Place? At, int LiteralAt);
+
+	/// <summary>The anchor of the include at <paramref name="index"/>.</summary>
+	public static int Of(int index)
+	{
+		return index + 1;
+	}
+
+	public Place? PlaceOf(int anchor)
+	{
+		return anchor == Attribute
+			? At
+			: anchor > Attribute && anchor <= Bases.Items.Length ? Bases.Items[anchor - 1].At : null;
+	}
+
+	public int LiteralAtOf(int anchor)
+	{
+		return anchor == Attribute
+			? LiteralAt
+			: anchor > Attribute && anchor <= Bases.Items.Length ? Bases.Items[anchor - 1].LiteralAt : 0;
+	}
+}
+
 readonly record struct Report(
 	string           Id,
 	string           Title,
@@ -71,14 +132,14 @@ readonly record struct Report(
 	int              Position,
 	int              Length,
 	LinePositionSpan Lines,
-	Place?           Fallback,
+	int              Anchor,
 	EquatableArray<string> Arguments,
 	string?          Written   = null,
-	int              WrittenAt = 0,
 	string?          Grammar   = null)
 {
 	/// <summary>A diagnostic the shell raises about the host, from a fixed descriptor.</summary>
-	public static Report Of(DiagnosticDescriptor descriptor, Place? at, params string[] arguments)
+	/// <param name="at">Which attribute it is about, as a <see cref="Site"/> anchor.</param>
+	public static Report Of(DiagnosticDescriptor descriptor, int at, params string[] arguments)
 	{
 		return new(
 			descriptor.Id,
@@ -89,18 +150,21 @@ readonly record struct Report(
 			Position: 0,
 			Length: 0,
 			Lines: default,
-			Fallback: at,
+			Anchor: at,
 			Arguments: new EquatableArray<string>([.. arguments]));
 	}
 
 	/// <summary>A diagnostic the grammar half raised, placed in the grammar it came from.</summary>
+	/// <param name="anchor">
+	/// The attribute it falls back to, as a <see cref="Site"/> anchor, and whose literal
+	/// <paramref name="written"/> is.
+	/// </param>
 	/// <param name="written">
 	/// The attribute's string as the author spelled it, when the grammar came from one.
 	/// </param>
-	/// <param name="writtenAt">Where that spelling begins in the C# file.</param>
 	public static Report Of(
-		GramDiagnostic diagnostic, string? filePath, string grammarText, Place? fallback,
-		string? written = null, int writtenAt = 0)
+		GramDiagnostic diagnostic, string? filePath, string grammarText, int anchor,
+		string? written = null)
 	{
 		var span = new TextSpan(diagnostic.Position, diagnostic.Length);
 
@@ -118,10 +182,9 @@ readonly record struct Report(
 			Position:  diagnostic.Position,
 			Length:    diagnostic.Length,
 			Lines:     filePath is null ? default : Diagnostics.LinesOf(grammarText, span),
-			Fallback:  fallback,
+			Anchor:    anchor,
 			Arguments: new EquatableArray<string>([diagnostic.Message]),
 			Written:   written,
-			WrittenAt: writtenAt,
 			Grammar:   filePath is null ? grammarText : null);
 	}
 
@@ -143,10 +206,10 @@ readonly record struct Report(
 	/// Never wrong, sometimes silent.
 	/// </para>
 	/// </remarks>
-	Location? Inline(Func<string, SyntaxTree?> treeOf)
+	Location? Inline(Func<string, SyntaxTree?> treeOf, Site site)
 	{
 		if (Written is not { } spelling || Grammar is not { } grammar ||
-			Fallback?.Path is not { } path || treeOf(path) is not { } tree)
+			site.PlaceOf(Anchor)?.Path is not { } path || treeOf(path) is not { } tree)
 			return null;
 
 		var from = grammar.LastIndexOf('\n', Math.Min(Position, grammar.Length - 1)) + 1;
@@ -161,18 +224,19 @@ readonly record struct Report(
 		if (at < 0 || spelling.IndexOf(line, at + 1, StringComparison.Ordinal) >= 0)
 			return null;
 
-		var start = WrittenAt + at + (Position - from);
+		var start = site.LiteralAtOf(Anchor) + at + (Position - from);
 
 		return Location.Create(tree, new TextSpan(start, Math.Max(Length, 1)));
 	}
 
-	public Diagnostic ToRoslyn(Func<string, SyntaxTree?> treeOf)
+	/// <param name="site">Where the host that made this report is written.</param>
+	public Diagnostic ToRoslyn(Func<string, SyntaxTree?> treeOf, Site site)
 	{
 		// A grammar in a file points into that file. One written into the attribute points
 		// as far into the attribute's own string as it can be placed — and at the whole
 		// attribute when it cannot, which is still the right place to look.
 		var location = FilePath is null
-			? Inline(treeOf) ?? Fallback?.ToLocation(treeOf) ?? Location.None
+			? Inline(treeOf, site) ?? site.PlaceOf(Anchor)?.ToLocation(treeOf) ?? Location.None
 			: Location.Create(FilePath, new TextSpan(Position, Length), Lines);
 
 		return Diagnostic.Create(

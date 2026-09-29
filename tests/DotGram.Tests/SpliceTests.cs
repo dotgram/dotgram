@@ -71,7 +71,7 @@ public sealed class SpliceTests
 		// `Start` in the including grammar, on its second line.
 		var own = Own.IndexOf("Start", StringComparison.Ordinal);
 
-		Assert.True(map.TryMap(own, out var ownFile, out var ownLine, out var ownColumn));
+		Assert.True(map.TryMap(own, out var ownFile, out var ownLine, out var ownColumn, out _));
 		Assert.Equal("Derived.gram", ownFile);
 		Assert.Equal(2, ownLine);
 		Assert.Equal(1, ownColumn);
@@ -80,7 +80,7 @@ public sealed class SpliceTests
 		// that is nowhere near it.
 		var joined = text.IndexOf("Word = ", StringComparison.Ordinal);
 
-		Assert.True(map.TryMap(joined, out var file, out var line, out var column));
+		Assert.True(map.TryMap(joined, out var file, out var line, out var column, out _));
 		Assert.Equal("Base.gram", file);
 		Assert.Equal(2, line);
 		Assert.Equal(1, column);
@@ -94,7 +94,7 @@ public sealed class SpliceTests
 		var wrapper     = text.IndexOf("namespace Base", StringComparison.Ordinal);
 
 		Assert.Equal(-1, map.SegmentAt(wrapper));
-		Assert.False(map.TryMap(wrapper, out _, out _, out _));
+		Assert.False(map.TryMap(wrapper, out _, out _, out _, out _));
 	}
 
 	/// <summary>
@@ -111,7 +111,7 @@ public sealed class SpliceTests
 		var segment  = map.Segments[1];
 
 		Assert.Equal(1, map.SegmentAt(segment.End));
-		Assert.True(map.TryMap(segment.End, out var file, out _, out _));
+		Assert.True(map.TryMap(segment.End, out var file, out _, out _, out _));
 		Assert.Equal("Base.gram", file);
 	}
 
@@ -217,7 +217,7 @@ public sealed class SpliceTests
 
 		// Not "somewhere in the joined text": the first line of Base.gram, where `Missing`
 		// is written.
-		Assert.True(map.TryMap(diagnostic.Position, out var file, out var line, out var column));
+		Assert.True(map.TryMap(diagnostic.Position, out var file, out var line, out var column, out _));
 		Assert.Equal("Base.gram", file);
 		Assert.Equal(1, line);
 		Assert.Equal(8, column);

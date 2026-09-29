@@ -30,10 +30,18 @@ public interface ILineMap
 	/// 1-based. The emitter pads the line it writes out to this column, so that a squiggle
 	/// under one argument of a `=>` lands under that argument and not at the start of it.
 	/// </param>
+	/// <param name="fromLiteral">
+	/// True where the grammar is a string inside a C# file and where that string stands in the
+	/// file is not the compile's to know (D145): <paramref name="line"/> then counts from the
+	/// literal's first line, which is 0, <paramref name="column"/> on that first line counts from
+	/// the literal's first character, and <paramref name="file"/> is not said. The emitter writes
+	/// a mark in place of each (<c>CSharpEmitter.Handed</c>), and the output step, which knows
+	/// where the literal is, writes the numbers (<c>CSharpEmitter.Placed</c>).
+	/// </param>
 	/// <remarks>
 	/// False rather than a guess: a directive pointing at the wrong line is worse than no
 	/// directive at all, because the error then names a place the author will read and
 	/// find nothing wrong with.
 	/// </remarks>
-	bool TryMap(int position, out string file, out int line, out int column);
+	bool TryMap(int position, out string file, out int line, out int column, out bool fromLiteral);
 }

@@ -2943,16 +2943,106 @@ file.Line("return spare;");
 
 	internal static void Handed(Writer file, ILineMap? lines, int at, string text)
 	{
-		if (lines is null || at < 0 || !lines.TryMap(at, out var path, out var line, out var column))
+		if (lines is null || at < 0 || !lines.TryMap(at, out var path, out var line, out var column, out var fromLiteral))
 		{
 			file.Line("\t" + text);
 
 			return;
 		}
 
-		file.Exactly($"#line {line.ToString(System.Globalization.CultureInfo.InvariantCulture)} \"{path}\"");
-		file.Exactly(new string(' ', column - 1) + text);
+		if (fromLiteral)
+		{
+			// Where the literal stands in its file is the output step's to write (Placed): the line
+			// as a count from the literal's first, and on that first line the column as a count from
+			// the literal's first character, with a mark where the literal's own column goes.
+			file.Exactly(LineMark + line.ToString(System.Globalization.CultureInfo.InvariantCulture));
+			file.Exactly((line == 0 ? ColumnMark : "") + new string(' ', column - 1) + text);
+		}
+		else
+		{
+			file.Exactly($"#line {line.ToString(System.Globalization.CultureInfo.InvariantCulture)} \"{path}\"");
+			file.Exactly(new string(' ', column - 1) + text);
+		}
+
 		file.Exactly("#line default");
+	}
+
+	/// <summary>A <c>#line</c> whose number and file the output step writes: the mark, then the line's count from the literal's first.</summary>
+	/// <remarks>
+	/// Control characters no other mark uses: a state is fenced by 1 (Machine.Graph.cs) and a
+	/// value table by 3 and 4 (Machine.cs), and both are settled before the file is finished.
+	/// </remarks>
+	const string LineMark = "#line \u0005";
+
+	/// <summary>Where the literal's own column goes, at the head of the line under such a <c>#line</c>.</summary>
+	const string ColumnMark = "\u0006";
+
+	/// <summary>
+	/// The emitted text with the place of the literal written into every mark <see cref="Handed"/>
+	/// left in it, or the same text where it left none.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The second half of a <c>#line</c> into a grammar written into an attribute (D145). The
+	/// compile knows the grammar and not where it stands in its file, so that it can be reused
+	/// across every edit that leaves the grammar as it was; this is the part that changes when
+	/// the grammar moves, and it is a pass over the text rather than a compile.
+	/// </para>
+	/// <para>
+	/// A mark is only read at the head of a line, which is where <see cref="Handed"/> writes one
+	/// and where the author's own C# cannot put one: it is the line after a directive, and a
+	/// directive is the generator's.
+	/// </para>
+	/// </remarks>
+	/// <param name="path">The C# file the literal is in.</param>
+	/// <param name="line">The literal's first line in it, 1-based.</param>
+	/// <param name="column">The literal's first column in it, 1-based.</param>
+	internal static string Placed(string text, string path, int line, int column)
+	{
+		var at = text.IndexOf(LineMark, StringComparison.Ordinal);
+
+		if (at < 0)
+			return text;
+
+		var placed = new StringBuilder(text.Length + 256);
+		var from   = 0;
+		var indent = new string(' ', column - 1);
+
+		for (; at >= 0; at = text.IndexOf(LineMark, from, StringComparison.Ordinal))
+		{
+			if (at > 0 && text[at - 1] != '\n')
+			{
+				placed.Append(text, from, at + LineMark.Length - from);
+				from = at + LineMark.Length;
+
+				continue;
+			}
+
+			var digits = at + LineMark.Length;
+			var end    = digits;
+			var count  = 0;
+
+			while (end < text.Length && text[end] is >= '0' and <= '9')
+				count = count * 10 + (text[end++] - '0');
+
+			placed.Append(text, from, at - from)
+				.Append("#line ")
+				.Append((line + count).ToString(System.Globalization.CultureInfo.InvariantCulture))
+				.Append(" \"").Append(path).Append('"');
+
+			from = end;
+
+			// The line under it: its column mark, where it is on the literal's first line.
+			var under = text.IndexOf('\n', end) + 1;
+
+			if (under > 0 && under < text.Length && text[under] == ColumnMark[0])
+			{
+				placed.Append(text, from, under - from).Append(indent);
+				from = under + 1;
+			}
+		}
+
+		return placed.Append(text, from, text.Length - from).ToString();
 	}
 
 	static void EmitFactory(
