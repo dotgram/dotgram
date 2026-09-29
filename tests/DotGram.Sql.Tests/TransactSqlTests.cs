@@ -14466,7 +14466,7 @@ public sealed class TransactSqlTests
 	/// <c>ParseSql</c> and <c>ParseStatement</c> are one call to the server, not a script, so a
 	/// trailing <c>GO</c> never cuts a batch there (<see cref="A_GO_line_ends_a_batch_wherever_it_stands"/>
 	/// is <c>ParseScript</c>'s own rule): it is the alias its last column takes without <c>AS</c>,
-	/// a line break after it or not — held to the engine directly, which reads either spelling as
+	/// a line break after it or not — held to the engine directly, which reads every spelling as
 	/// one row named <c>GO</c> (`SET PARSEONLY` cannot be asked here, since a line break is
 	/// exactly what a `sqlcmd`-fed script would cut at; probed through a raw
 	/// <c>Microsoft.Data.SqlClient</c> call instead, which never splits a batch).
@@ -14511,10 +14511,33 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
-	/// A trailing <c>GO</c> refused where the statement in front of it has no column to carry
-	/// it — the engine's own answer (<c>Msg 102</c>, "Incorrect syntax near 'GO'") whichever way
-	/// the line ends, and a count after <c>GO</c> refused the same way (<c>Msg 102</c> near the
-	/// digits): a script's own reading of <c>GO 5</c> stays a script's, never an alias.
+	/// A trailing <c>GO</c> is not only a column's: it is whatever a bare word reads as there,
+	/// held to the engine — a table's own alias (a name, a common table expression, a
+	/// table-valued function, one side of a <c>CROSS JOIN</c>), or the alias of a <c>UNION</c>'s
+	/// last branch's own last column.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT object_id FROM sys.objects\nGO\n")]
+	[InlineData("WITH cte AS (SELECT 1 AS a) SELECT a FROM cte\nGO\n")]
+	[InlineData("SELECT value FROM string_split('a,b', ',')\nGO\n")]
+	[InlineData("SELECT a.object_id FROM sys.objects a CROSS JOIN sys.tables\nGO\n")]
+	[InlineData("SELECT 1 AS a UNION SELECT 2\nGO\n")]
+	public void A_trailing_GO_lands_wherever_a_bare_word_would(string input)
+	{
+		var match = TransactSqlParser.TryParseSql(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// A trailing <c>GO</c> refused where the engine refuses a bare word the same way whichever
+	/// line ending is used (<c>Msg 102</c>, "Incorrect syntax near 'GO'", or near the digits of a
+	/// count): a statement with no column or table to carry it (<c>PRINT</c>, <c>DECLARE</c>,
+	/// <c>CREATE TABLE</c>); a column, a table, a derived table or an <c>APPLY</c>'s right side
+	/// already named; a table hint, which closes a table reference the same as a name does; a
+	/// <c>JOIN … ON</c>, whose condition leaves no room after it for the next table's alias; and
+	/// <c>WHERE</c>, <c>GROUP BY</c>, <c>HAVING</c>, <c>ORDER BY</c>, <c>OPTION</c>, <c>FOR</c> and
+	/// <c>INTO</c>, none of which end in a place a bare word is read.
 	/// </summary>
 	[Theory]
 	[InlineData("PRINT 1\nGO")]
@@ -14524,7 +14547,21 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (a INT)\nGO")]
 	[InlineData("CREATE TABLE t (a INT)\nGO\n")]
 	[InlineData("SELECT 1\nGO 5\n")]
-	public void A_trailing_GO_is_refused_where_no_column_can_carry_it(string input)
+	[InlineData("SELECT o.object_id FROM sys.objects o\nGO\n")]
+	[InlineData("SELECT * FROM sys.objects a\nGO\n")]
+	[InlineData("SELECT x.a FROM (SELECT 1 AS a) x\nGO\n")]
+	[InlineData("SELECT b.value FROM sys.objects a CROSS APPLY (SELECT 1 AS value) b\nGO\n")]
+	[InlineData("SELECT object_id FROM sys.objects WITH (NOLOCK)\nGO\n")]
+	[InlineData("SELECT a.object_id FROM sys.objects a JOIN sys.tables ON 1 = 1\nGO\n")]
+	[InlineData("SELECT 1 WHERE 1 = 1\nGO\n")]
+	[InlineData("SELECT object_id FROM sys.objects GROUP BY object_id\nGO\n")]
+	[InlineData("SELECT object_id FROM sys.objects GROUP BY object_id HAVING COUNT(*) > 0\nGO\n")]
+	[InlineData("SELECT 1 ORDER BY 1\nGO\n")]
+	[InlineData("SELECT 1 OPTION (RECOMPILE)\nGO\n")]
+	[InlineData("SELECT 1 AS a FOR XML PATH('')\nGO\n")]
+	[InlineData("SELECT 1 AS a INTO #t1\nGO\n")]
+	[InlineData("SELECT 1 UNION SELECT 2 AS z\nGO\n")]
+	public void A_trailing_GO_is_refused_where_no_bare_word_is_read(string input)
 	{
 		Assert.False(TransactSqlParser.TryParseSql(input).IsSuccess, input);
 	}

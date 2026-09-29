@@ -1525,20 +1525,28 @@ namespace Dialect with (
 	Value     : @Expression = v: Sql92.ValueExpression => @(v)
 	// `ParseStatement` and `ParseSql` read one call to the server, not a script: a trailing
 	// `GO` reaches neither `GoText` nor `FinalGo` (both `ScriptText`'s own), so where it stood
-	// before was left over and refused — even though the engine reads it as the ordinary word
-	// it is, exactly as it does where no line break follows. `Syntax.EndedInGo` folds it onto
-	// the last statement's last column, the alias a column takes without `AS`; the `when`
-	// guard is what keeps a `PRINT`, a `DECLARE` or a `CREATE TABLE` refused with one after,
-	// the engine refusing a trailing `GO` there the same in both spellings.
+	// before was left over and refused — even though the engine reads it exactly as it does
+	// where no line break follows it: a column's alias, a table's, the last branch of a
+	// `UNION`'s, wherever an ordinary trailing word is read, and refused the same way after
+	// a `WHERE`, a `GROUP BY`, an `OPTION`, and the rest. Naming every one of those positions
+	// again would only disagree with them the moment one is missed, so the fallback asks the
+	// grammar itself instead: `GoLine` took the line break because it had to (longest match,
+	// TSql.GoLine's own comment); strip it back to the bare word — and a count with it, which
+	// is refused the same in both spellings, `Msg 102` near the digits — and read the shorter
+	// text over. `parserText` is this rule's own match so far (`docs/syntax.md` §4.1); calling
+	// a publication by name from inside its own action, over a piece of the input read again,
+	// is what that section documents next.
 	Statement : @Statement
 		= s: TSqlStatement & trailing: TSql.GoLine?
-		  & when @(trailing is null || (Syntax.IsPlainGo(trailing) && Syntax.TakesTrailingGo(s)))
-			=> @(Syntax.EndedInGo(s, trailing))
+		  & when @(trailing is null
+			|| (Syntax.IsPlainGo(trailing) && TryParseStatement(parserText[..^trailing.Length] + trailing[..2]).IsSuccess))
+			=> @(trailing is null ? s : TryParseStatement(parserText[..^trailing.Length] + trailing[..2]).Value)
 
 	Sql : @Statement[]
 		= s: SqlText & trailing: TSql.GoLine?
-		  & when @(trailing is null || (Syntax.IsPlainGo(trailing) && s.Length > 0 && Syntax.TakesTrailingGo(s[^1])))
-			=> @(Syntax.EndedInGo(s, trailing))
+		  & when @(trailing is null
+			|| (Syntax.IsPlainGo(trailing) && TryParseSql(parserText[..^trailing.Length] + trailing[..2]).IsSuccess))
+			=> @(trailing is null ? s : TryParseSql(parserText[..^trailing.Length] + trailing[..2]).Value)
 
 	Script    : @Batch[]     = s: ScriptText          => @(s)
 }

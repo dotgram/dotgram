@@ -3923,69 +3923,6 @@ public static class Syntax
 	}
 
 	/// <summary>
-	/// Whether a statement's own grammar could still take a trailing <c>GO</c> as an ordinary
-	/// word — the one case being <see cref="Clause.DerivedColumn"/>, a <c>SELECT</c>'s last
-	/// column read without one yet, the alias a column takes without <c>AS</c>.
-	/// </summary>
-	public static bool TakesTrailingGo(Statement statement)
-	{
-		return statement is Statement.Select { Of: Query.Specification { Columns.Length: > 0 } spec }
-			&& spec.Columns[^1] is Clause.DerivedColumn { Name: null };
-	}
-
-	/// <summary>
-	/// The one statement of <see cref="EndedInGo(Statement[], string?)"/>, held to the same rule.
-	/// </summary>
-	/// <remarks>
-	/// <paramref name="trailing"/> is the whole matched <c>TSql.GoLine</c> text, not the cleaned
-	/// word: its first two characters are the alias, kept exactly as written (<c>go</c> stays
-	/// <c>go</c>), and it is used at all only where <see cref="IsPlainGo"/> says there was no count.
-	/// </remarks>
-	public static Statement EndedInGo(Statement statement, string? trailing)
-	{
-		if (trailing is null || !IsPlainGo(trailing) ||
-			statement is not Statement.Select { Of: Query.Specification spec } select ||
-			spec.Columns.Length == 0 || spec.Columns[^1] is not Clause.DerivedColumn { Name: null } column)
-			return statement;
-
-		var columns = (Clause[])spec.Columns.Clone();
-
-		columns[^1] = column with { Name = trailing[..2] };
-
-		return select with { Of = spec with { Columns = columns } };
-	}
-
-	/// <summary>
-	/// A text of statements with a trailing bare <c>GO</c> folded onto the last one's last
-	/// column, as its alias — what the engine does with it, since <c>GO</c> is not a word it
-	/// knows. <c>ParseSql</c> and <c>ParseStatement</c> read one call to the server, which never
-	/// cuts at <c>GO</c>, unlike a script (`FinalGo`, `Syntax.Scripted`): a lone <c>GO</c> there
-	/// is what its own column is called, trailing newline or not.
-	/// </summary>
-	/// <remarks>
-	/// Left untouched when there is no trailing <c>GO</c>, when it carries a count, or when the
-	/// last statement has nowhere to carry it — a <c>PRINT</c>, a <c>DECLARE</c>, a
-	/// <c>CREATE TABLE</c>, which the engine refuses a trailing <c>GO</c> after as well.
-	/// </remarks>
-	public static Statement[] EndedInGo(Statement[] statements, string? trailing)
-	{
-		if (trailing is null || statements.Length == 0)
-			return statements;
-
-		var last  = statements[^1];
-		var ended = EndedInGo(last, trailing);
-
-		if (ReferenceEquals(ended, last))
-			return statements;
-
-		var result = (Statement[])statements.Clone();
-
-		result[^1] = ended;
-
-		return result;
-	}
-
-	/// <summary>
 	/// A table primary and everything written around it, as the one node it is.
 	/// </summary>
 	/// <remarks>
