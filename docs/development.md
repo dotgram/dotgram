@@ -385,6 +385,43 @@ can start, and the check that a change to speed changed no output.
 What has already been measured, and what came of it, is in [`status.md`](status.md) under
 *What has been measured*.
 
+## SQL engine checks on Linux
+
+`--engine` (`Engine.cs`) asks a real SQL Server whether a statement is syntax, which is why
+it needs one on the machine — see "Measuring" above and `benchmarks/README.md` for what it
+answers. `--roundtrip` (`RoundTrip.cs`/`CorpusRoundTrip.cs`) does not: it holds ScriptDom's
+own printer against itself and opens no connection, so it runs the same everywhere and needs
+nothing here.
+
+`Engine.cs` used to hard-code `Server=localhost;…Integrated Security=true`, which is a
+Windows-only connection (a local instance, trusted). It now reads the **base** connection
+string — everything except the database — from the environment variable
+**`DOTGRAM_SQLSERVER`**, and falls back to that same Windows default when the variable is
+unset, so nothing changes there. The database is never string-built onto it: the base is
+parsed with `SqlConnectionStringBuilder` and only `InitialCatalog` is set to
+`DotGram_{version}`, so a password holding a character concatenation would trip over survives
+intact.
+
+On Linux, point it at a SQL Server 2025 container and set the login in the variable, e.g.:
+
+```console
+export DOTGRAM_SQLSERVER='Server=localhost,14330;User Id=sa;Password=<its password>;TrustServerCertificate=True'
+```
+
+`--engine` needs one database per compatibility level it can ask about, made once and kept:
+`DotGram_100` through `DotGram_170` (100 is the lowest a 2025 server accepts; 80 and 90 have
+no engine to ask — see `Engine.Connected`'s remarks). Create them with `sqlcmd` against the
+container, compatibility level matching the name:
+
+```console
+docker exec <container> /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '<password>' -C -Q "
+  CREATE DATABASE DotGram_100; ALTER DATABASE DotGram_100 SET COMPATIBILITY_LEVEL = 100;
+  ... same for 110 120 130 140 150 160 170"
+```
+
+No connection string, login or password is ever committed; where they live is machine-local
+and outside the repo.
+
 ## Where a change goes
 
 The layout and the file-format rules are in `CLAUDE.md`; the two seams that keep

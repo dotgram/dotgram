@@ -876,7 +876,21 @@ static class Engine
 	/// for them are the last reading of those languages anybody wrote down; from 100 up the
 	/// engine can be asked, and what it says outranks what any parser thinks.
 	/// </para>
+	/// <para>
+	/// The server itself is named by <c>DOTGRAM_SQLSERVER</c>, a connection string without a
+	/// database — <c>Server=localhost;Integrated Security=true;…</c> on Windows, a
+	/// container's host and port with a SQL login on a machine with no Integrated Security to
+	/// have. Unset, the default below stands, so a Windows machine that never heard of the
+	/// variable sees no change. Either way the database is never string-built into it: the
+	/// base is read with <see cref="SqlConnectionStringBuilder"/> and only
+	/// <see cref="SqlConnectionStringBuilder.InitialCatalog"/> is set, so a password holding a
+	/// character a concatenation would trip over is carried unchanged.
+	/// </para>
 	/// </remarks>
+	internal const string DefaultConnection =
+		"Server=localhost;Integrated Security=true;TrustServerCertificate=true;" +
+		"Connect Timeout=5;Application Name=DotGram";
+
 	internal static SqlConnection? Connected(string version)
 	{
 		if (version is "80" or "90")
@@ -890,9 +904,13 @@ static class Engine
 			return null;
 		}
 
-		var connection = new SqlConnection(
-			$"Server=localhost;Database=DotGram_{version};Integrated Security=true;" +
-			"TrustServerCertificate=true;Connect Timeout=5;Application Name=DotGram");
+		var builder = new SqlConnectionStringBuilder(
+			Environment.GetEnvironmentVariable("DOTGRAM_SQLSERVER") ?? DefaultConnection)
+		{
+			InitialCatalog = $"DotGram_{version}",
+		};
+
+		var connection = new SqlConnection(builder.ConnectionString);
 
 		try
 		{
