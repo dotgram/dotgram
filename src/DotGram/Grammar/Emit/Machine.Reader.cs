@@ -4181,7 +4181,7 @@ sealed partial class Machine
 			// it does not.
 			if (machine.GuardAccumulator(rule, guard) is { } accumulator)
 			{
-				var build = machine.Carrier.Materialize("fold", mark);
+				var build = machine.Carrier.BuildFold(rule, mark);
 
 				if (build.Length > 0)
 					code.Line(build);

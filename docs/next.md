@@ -25257,18 +25257,28 @@ signature has it.
 now handed the value so far on every path:
 
 - the readers hold it as `fold` — the value itself where the carrier builds as it reads, a record
-  where it is the tape, built there as a guard's other record values are;
+  where it is the tape, built there as a guard's other record values are. Built from the rule's mark
+  that was quadratic in the steps, since every guard listed the whole log of the rule again; the
+  tape reader of such a rule
+  now also carries where the last fold record a guard built ends, and the next guard walks from
+  there (`A_guard_naming_the_value_so_far_builds_a_fixed_amount_a_step`, a count: 203 records listed a
+  step over 200 steps and 803 over 800 before, flat after);
 - the engine has no value until the walk at the end, so a fold whose step guard names its
   accumulator gets a helper, written only where the engine is, that builds what the unfolded steps
   captured and walks the fold's constructions up to where the parse stands. Each value is kept at the
   construction entry that made it (`built`, so a derivation given up takes it along), and both the
   next guard and the walk at acceptance resume from the last kept one: every construction runs once
-  (`A_fold_step_value_a_guard_asked_for_is_built_once`), and a guard in every step is not quadratic.
+  per derivation (`A_fold_step_value_a_guard_asked_for_is_built_once`), and the engine's guard in
+  every step is linear in the steps. Once per derivation, not once per parse: where `F` is read again
+  after a give-back, the tape and the engine build that reading's steps again, as §3.6 allows.
   Where a step's construction asks for `parserText` or `parserSpan`, the helper hands it the rule
   from its start to where the guard stands, as the guard's own `parserText` is.
 
-The name is looked for as a word, not as text as a capture's is: an accumulator called `l` is in
-every `Log`, and a false match here builds a fold during recognition. A guard in a head the steps
+Whether a guard names the accumulator is the scanner's answer (`CSharpEmitter.Uses`, the free names
+of the C#), with a word match only where there is no scanner: a match on text builds a fold during
+recognition for nothing, and `Log("l")`, `y.Length` for an accumulator `Length` and a lambda's own
+`l => l` all matched as words, while `\u006C` — `l` as C# spells it — did not match and was CS0103.
+A guard in a head the steps
 share is handed the accumulator where every step names it alike, and not otherwise. A step
 accumulator spelled as a C# keyword is now escaped in the factory's signature as a capture is.
 

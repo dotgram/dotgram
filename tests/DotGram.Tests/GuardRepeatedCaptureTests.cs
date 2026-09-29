@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -278,6 +280,8 @@ public sealed class GuardRepeatedCaptureTests
 			("l: F & '+' & y: D & when @(Log(l)) => @(l + y) | " +
 				"l: F & '-' & y: D & when @(Log(l)) => @(l + \"m\" + y) | y: D => @(y!)",    "1+2-3+4",   "12m34#1;12;12m3"),
 			("l: F & ',' & y: D & when @(Log(l)) => @(l + y) | l: D => @(l! + \"b\")",       "1,2,3",     "1b23#1b;1b2"),
+			// Named as C# names it, which is not always as it is spelled.
+			("l: F & ',' & y: D & when @(Log(\\u006C)) => @(l + y) | y: D => @(y!)",         "1,2,3",     "123#1;12"),
 		})
 		{
 			var grammar =
@@ -291,6 +295,97 @@ public sealed class GuardRepeatedCaptureTests
 		}
 
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// A guard whose C# spells the accumulator's name without naming it — in a string, after a
+	/// dot, as a lambda's own parameter — is not handed the value so far, which would build the
+	/// fold while the text is read for nothing.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Carriers))]
+	public void A_guard_that_does_not_name_the_value_so_far_is_not_handed_it(CarrierKind carrier, bool direct)
+	{
+		var wrong = new List<string>();
+
+		foreach (var (rule, input, expected) in new[]
+		{
+			("l: F & ',' & y: D & when @(Log(\"l\") && Log(y)) => @(l + y) | y: D => @(y!)",          "1,2,3", "123#l;2;l;3"),
+			("Length: F & ',' & y: D & when @(y.Length == 1 && Log(y)) => @(Length + y) | y: D => @(y!)", "1,2,3", "123#2;3"),
+			("l: F & ',' & y: D & when @(((System.Func<string, bool>)(l => Log(l)))(y)) => @(l + y) | y: D => @(y!)",
+				"1,2,3", "123#2;3"),
+		})
+		{
+			var result = GramCompiler.Compile(
+				"D = ['0'..'9']\nF : @string = " + rule + "\nT : @string = f: F => @(f + \"#\" + Take())\nparse T",
+				new GramCompilerOptions
+				{
+					ClassName     = "Grammar",
+					CSharpScanner = RoslynCSharpScanner.Instance,
+					Carrier       = carrier,
+					Direct        = direct,
+				});
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+			var source = Assert.Single(result.Sources).Text;
+
+			// The guard's own method would take it: `string l` or `string Length` among its parameters.
+			if (Regex.IsMatch(source, @"static bool Recognize_DotGram_Guard\d+\([^)]*\bstring (l|Length)\b"))
+				wrong.Add(rule + ": the guard is handed the value so far");
+
+			var match  = EmittedCode.Match(EmittedCode.Compile(source, declarationMembers: Members), "Grammar", "TryParseT", input);
+			var answer = match.IsSuccess ? (string)match.Value! : "<refused " + match.Error + ">";
+
+			if (answer != expected)
+				wrong.Add(rule + " on '" + input + "': " + answer + ", not " + expected);
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// A guard in every step that names the value so far costs the tape reader a fixed amount a
+	/// step: it builds from the last fold record a guard built, not from where the rule began.
+	/// </summary>
+	[Fact]
+	public void A_guard_naming_the_value_so_far_builds_a_fixed_amount_a_step()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			D = ['0'..'9']
+			V : @string = d: D => @(d!)
+			F : @string = l: F & ',' & r: V & when @(l.Length >= 0) => @(r) | y: D => @(y!)
+			parse F
+			""",
+			new GramCompilerOptions
+			{
+				ClassName     = "Counted",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Carrier       = CarrierKind.Tape,
+				Direct        = true,
+			});
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text, "Counted", symbols: ["DOTGRAM_COUNTS"])
+			.GetType("Counted")!;
+		var listed = parser.GetNestedType("Ways", BindingFlags.NonPublic)!
+			.GetField("CountListed", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+		double PerStep(int steps)
+		{
+			listed.SetValue(null, 0L);
+
+			var match = EmittedCode.Match(parser.Assembly, "Counted", "TryParseF", "1" + string.Concat(Enumerable.Repeat(",2", steps)));
+			Assert.True(match.IsSuccess, match.Error);
+			Assert.Equal("2", match.Value);
+
+			return (long)listed.GetValue(null)! / (double)steps;
+		}
+
+		var small = PerStep(200);
+		var large = PerStep(800);
+
+		Assert.True(small > 0, "nothing was counted");
+		Assert.True(large <= small * 1.05, $"{large:F2} records listed a step over 800 steps, {small:F2} over 200");
 	}
 
 	/// <summary>

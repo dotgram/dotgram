@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 using DotGram.Grammar.Binding;
@@ -1492,6 +1493,8 @@ sealed partial class Machine
 	/// </remarks>
 	string FoldSoFar(RuleSymbol rule)
 	{
+		Debug.Assert(!_foldsSoFarWritten, "A fold's helper is named before the helpers are written.");
+
 		if (!_foldsSoFar.TryGetValue(rule, out var method))
 			_foldsSoFar[rule] = method = $"Recognize_DotGram{_tag}_FoldSoFar{_ruleIds[rule]}";
 

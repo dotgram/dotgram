@@ -761,6 +761,12 @@ sealed partial class Machine
 		/// <summary>A record built into a value where the reader is, for a guard that asks (§3.6); nothing where it already is one.</summary>
 		public abstract string Materialize(string record, string sinceMark);
 
+		/// <summary>The value so far built for a guard in a fold's step that names it, from the rule's mark.</summary>
+		public virtual string BuildFold(RuleSymbol owner, string sinceMark)
+		{
+			return Materialize("fold", sinceMark);
+		}
+
 		/// <summary>The value a record holds, as a guard sees it.</summary>
 		public abstract string ValueOf(RuleSymbol rule, string record);
 
@@ -954,7 +960,37 @@ sealed partial class Machine
 
 		public override string DeclareAccumulator(RuleSymbol rule)
 		{
-			return "var fold = -1;";
+			return machine.FoldAsked(rule)
+				? "var fold = -1; var foldSince = ways.LogCount; var foldSinceR = ways.Records; var foldEnd = foldSince; var foldEndR = foldSinceR;"
+				: "var fold = -1;";
+		}
+
+		/// <remarks>
+		/// Where a guard in a step names the value so far, the log's mark after the last fold
+		/// record a guard built (<c>foldSince</c>) and after the newest one (<c>foldEnd</c>) go
+		/// with it: the next guard builds from the first, not from the rule's mark, since
+		/// everything before it is built and walking it again at every step is quadratic in
+		/// the steps.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner)
+		{
+			return machine.FoldAsked(owner)
+				? [("int ", "fold"), ("int ", "foldSince"), ("int ", "foldSinceR"), ("int ", "foldEnd"), ("int ", "foldEndR")]
+				: base.FoldState(owner);
+		}
+
+		public override string Accumulated(RuleSymbol owner)
+		{
+			return machine.FoldAsked(owner)
+				? "fold = ways.Last; foldEnd = ways.LogCount; foldEndR = ways.Records;"
+				: base.Accumulated(owner);
+		}
+
+		public override string BuildFold(RuleSymbol owner, string sinceMark)
+		{
+			return machine.FoldAsked(owner)
+				? Materialize("fold", "foldSince") + " foldSince = foldEnd; foldSinceR = foldEndR;"
+				: base.BuildFold(owner, sinceMark);
 		}
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType)

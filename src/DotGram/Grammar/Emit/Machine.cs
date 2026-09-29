@@ -1421,16 +1421,31 @@ sealed partial class Machine
 	/// §3.6 lets a guard name any capture before it, building a `=>` value to do so. The
 	/// rewrite took the call away, so the name is no longer among the rule's captures and
 	/// is handed on its own. A guard in a head the steps share is read under the name they
-	/// all give it, and under none where they differ.
+	/// all give it, and under none where they differ. Whether the condition names it is the
+	/// scanner's answer (<see cref="CSharpEmitter.Uses"/>): a name in a string, after a dot
+	/// or bound by a lambda is not the accumulator, and naming it builds a fold while the
+	/// text is read. Asked once a guard: every emitter asks, and the walks are the rule's.
 	/// </remarks>
 	internal string? GuardAccumulator(RuleSymbol rule, Node guard)
 	{
-		if (guard is not Node.Guard { Text: var text } || !_graph.Folds.TryGetValue(rule, out var fold) ||
-			!NodeWalk.Descendants(fold.Loop).Any(node => ReferenceEquals(node, guard)))
-		{
+		if (guard is not Node.Guard { Text: var text } || !_graph.Folds.TryGetValue(rule, out var fold))
 			return null;
-		}
 
+		if (_guardAccumulators.TryGetValue(guard, out var known))
+			return known;
+
+		var found = NodeWalk.Descendants(fold.Loop).Any(node => ReferenceEquals(node, guard))
+			? StepAccumulator(fold, guard)
+			: null;
+
+		return _guardAccumulators[guard] = found is { Length: > 0 } && CSharpEmitter.Uses(_graph, text, found) ? found : null;
+	}
+
+	readonly Dictionary<Node, string?> _guardAccumulators = new(NodeIdentity.Instance);
+
+	/// <summary>The name the steps a guard stands in give the value so far, if they agree on one.</summary>
+	static string? StepAccumulator(Fold fold, Node guard)
+	{
 		string? named = null;
 		var     within = false;
 
@@ -1450,32 +1465,7 @@ sealed partial class Machine
 				named = step.Value;
 			}
 
-		return named is { Length: > 0 } && Names(text, ResultTypes.ParameterOf(named)) ? named : null;
-	}
-
-	/// <summary>Whether C# text has the identifier in it as a word of its own.</summary>
-	/// <remarks>
-	/// Asked as a word rather than as text, unlike a capture's name: the value so far is a
-	/// fold built during recognition, and an accumulator called <c>l</c> is in every
-	/// <c>Log</c>.
-	/// </remarks>
-	static bool Names(string text, string name)
-	{
-		for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
-			at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
-		{
-			var end = at + name.Length;
-
-			if ((at == 0 || !IsWordPart(text[at - 1])) && (end == text.Length || !IsWordPart(text[end])))
-				return true;
-		}
-
-		return false;
-
-		static bool IsWordPart(char c)
-		{
-			return char.IsLetterOrDigit(c) || c == '_';
-		}
+		return named;
 	}
 
 	int MarkSite(string text)
