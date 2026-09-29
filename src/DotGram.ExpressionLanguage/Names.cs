@@ -42,18 +42,30 @@ public static partial class ExpressionParser
 		return tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 	}
 
-	/// <summary>A dotted name within a namespace as a type, or null where it is none.</summary>
+	/// <summary>A dotted name within a namespace as a type: none, one, or the two it is ambiguous between.</summary>
 	/// <remarks>
+	/// <para>
 	/// The longest part of the name that is a type by its full name, and the rest as types
 	/// nested in it one at a time — so `Environment.SpecialFolder` is found through
 	/// <c>Environment</c>, which metadata calls <c>System.Environment+SpecialFolder</c> and no
 	/// full name written with dots would reach.
-	///
+	/// </para>
+	/// <para>
 	/// The calling assembly is asked first, and its internal types answer as well as its
 	/// public ones: a type the calling code declares stands in front of one of the same full
-	/// name elsewhere, as a type in C#'s own compilation does.
+	/// name elsewhere, as a type in C#'s own compilation does (CS0436, which C# only warns
+	/// about and this, having no warnings, says nothing about).
+	/// </para>
+	/// <para>
+	/// Two answers are two referenced assemblies declaring that full name as two different
+	/// types, which C# refuses (CS0433). Where the ambiguous type is the head of a longer name,
+	/// the two answers are that head and not what is nested in it, since that is the type C#
+	/// names — and they stand only where either holds the rest, so `N.T.Value` over a property
+	/// is still no type and `N.T` is where the refusal is said. The array is kept and shared;
+	/// nothing may write to it.
+	/// </para>
 	/// </remarks>
-	static Type? Qualified(string? space, string dotted, ResolutionScope scope)
+	static Type[] Qualified(string? space, string dotted, ResolutionScope scope)
 	{
 		// Kept, because every import is asked about every name a text writes and the answer cannot
 		// change under a scope. The key is the three parts and not the name they make, so a question
@@ -64,36 +76,53 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>The same question, worked out: the longest prefix that is a type, then what is nested.</summary>
-	static Type? Walked(string? space, string dotted, ResolutionScope scope)
+	static Type[] Walked(string? space, string dotted, ResolutionScope scope)
 	{
 		var end = dotted.Length;
 
 		while (true)
 		{
-			var head = dotted.Substring(0, end);
-			var full = space is null ? head : space + "." + head;
+			var head  = dotted.Substring(0, end);
+			var full  = space is null ? head : space + "." + head;
+			var found = Loaded.Inside(scope, full) is { } own ? [own] : Loaded.Find(scope, full);
 
-			if ((Loaded.Inside(scope, full) ?? Loaded.Find(scope, full)) is { } type)
+			if (found.Length > 0)
 			{
-				for (var at = end; type is not null && at < dotted.Length;)
-				{
-					var next = dotted.IndexOf('.', at + 1);
+				if (end == dotted.Length)
+					return found;
 
-					if (next < 0)
-						next = dotted.Length;
+				var inner = Inward(found[0], dotted, end, scope);
 
-					type = Nested(type, dotted.Substring(at + 1, next - at - 1), scope);
-					at   = next;
-				}
+				if (found.Length == 1)
+					return inner is null ? [] : [inner];
 
-				return type;
+				return inner is not null || Inward(found[1], dotted, end, scope) is not null ? found : [];
 			}
 
 			end = dotted.LastIndexOf('.', end - 1);
 
 			if (end < 0)
-				return null;
+				return [];
 		}
+	}
+
+	/// <summary>The rest of a dotted name after <paramref name="end"/>, as types nested in that one.</summary>
+	static Type? Inward(Type outer, string dotted, int end, ResolutionScope scope)
+	{
+		var type = (Type?)outer;
+
+		for (var at = end; type is not null && at < dotted.Length;)
+		{
+			var next = dotted.IndexOf('.', at + 1);
+
+			if (next < 0)
+				next = dotted.Length;
+
+			type = Nested(type, dotted.Substring(at + 1, next - at - 1), scope);
+			at   = next;
+		}
+
+		return type;
 	}
 
 	/// <summary>A type nested in another by that name, where C# in the calling assembly could name it.</summary>
@@ -127,10 +156,10 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static class Loaded
 	{
-		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _types = new();
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _types = new();
 
 		/// <summary>The same, for the names of that shape that are not there.</summary>
-		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _typesAbsent = new();
+		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _typesAbsent = new();
 
 		static readonly ConcurrentDictionary<ResolutionScope, HashSet<string>> _namespaces = new();
 
@@ -219,8 +248,11 @@ public static partial class ExpressionParser
 			}
 		}
 
-		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
-		public static Type? Find(ResolutionScope scope, string fullName)
+		/// <summary>
+		/// The public type that full name means in the scope's assemblies; none; or, where two of
+		/// them declare it as two different types, both.
+		/// </summary>
+		public static Type[] Find(ResolutionScope scope, string fullName)
 		{
 			return Cached(
 				_types, _typesAbsent, (scope, fullName), static key => Search(key.Item2, key.Item1), Nothing);
@@ -314,13 +346,47 @@ public static partial class ExpressionParser
 			return true;
 		}
 
-		static Type? Search(string name, ResolutionScope scope)
+		/// <summary>What <see cref="Find"/> answers, worked out.</summary>
+		/// <remarks>
+		/// <para>
+		/// Every assembly is asked, and not only until one answers: two references declaring one
+		/// full name is C#'s CS0433, and the first found winning made the meaning of a text depend
+		/// on the order the references were walked in. Asking the rest costs only the first lookup
+		/// of a name that IS found — a name that is not has always asked every assembly — and the
+		/// answer is kept like any other.
+		/// </para>
+		/// <para>
+		/// Compared by identity, since one type may be answered by many assemblies: a facade
+		/// (<c>System.Runtime</c>, <c>netstandard</c>) forwards <c>System.Object</c> to where it is
+		/// declared, and each returns that one type. Two versions of one assembly side by side are
+		/// two assemblies and two types, and ambiguous — which is C#'s answer where both are
+		/// referenced and strongly named (CS0433; weakly named, it refuses the second reference
+		/// itself, CS1704).
+		/// </para>
+		/// <para>
+		/// The calling assembly, which the scope holds first, answers alone where it answers at
+		/// all: its own type wins over a reference's, as C# prefers the compilation's (CS0436).
+		/// </para>
+		/// </remarks>
+		static Type[] Search(string name, ResolutionScope scope)
 		{
-			foreach (var assembly in scope.Assemblies)
-				if (!assembly.IsDynamic && assembly.GetType(name, false, false) is { IsVisible: true } type)
-					return type;
+			var found = default(Type?);
 
-			return null;
+			foreach (var assembly in scope.Assemblies)
+			{
+				if (assembly.IsDynamic || assembly.GetType(name, false, false) is not { IsVisible: true } type)
+					continue;
+
+				if (assembly == scope.Caller)
+					return [type];
+
+				if (found is null)
+					found = type;
+				else if (type != found)
+					return [found, type];
+			}
+
+			return found is null ? [] : [found];
 		}
 
 		static HashSet<string> Gather(ResolutionScope scope)

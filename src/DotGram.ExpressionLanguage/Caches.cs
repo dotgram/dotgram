@@ -140,8 +140,8 @@ public static partial class ExpressionParser
 	// strings, counted by an instrumented copy of this file and not read off the stand; the row
 	// name only says which text was read (el/try, 2026-09-27).
 
-	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type?> _qualified = new();
+	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type[]> _qualified = new();
 
 	/// <summary>The same, for the names of that shape that are not there.</summary>
-	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type?> _qualifiedAbsent = new();
+	static readonly ConcurrentDictionary<(string? Space, string Name, ResolutionScope Scope), Type[]> _qualifiedAbsent = new();
 }

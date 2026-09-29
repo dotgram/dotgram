@@ -81,7 +81,11 @@ or bring a type's static members, nested types and extension methods into reach 
 (`using static System.Math; () => Abs(-2)`). A name the text itself declares wins over one a
 `using static` gives, as in C#; and `static` is a keyword here, as it is in C#, so nothing may
 be named it. What a text can name is what C# written in the calling assembly could: public
-types, and that assembly's own internal types and members.
+types, and that assembly's own internal types and members. A full name that two referenced
+assemblies declare as two different types is refused where it is used, naming both assemblies,
+as C# refuses it (CS0433) — it used to mean whichever was found first. One type that several
+assemblies answer for, as a facade forwards `System.Object`, is one type; and the calling
+assembly's own type wins over a reference's, as the compilation's does in C#.
 
 ```csharp
 using System.Collections.Generic;

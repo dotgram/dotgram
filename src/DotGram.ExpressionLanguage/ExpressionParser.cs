@@ -3834,7 +3834,7 @@ public static partial class ExpressionParser
 
 			// C#'s CS0576, in the terms this language has: a type in no namespace IS the global
 			// namespace's, and an alias may not be given a name it already has.
-			if (Qualified(null, name, Reach) is not null)
+			if (Qualified(null, name, Reach).Length > 0)
 			{
 				Refuse(
 					at.Start,
@@ -3875,10 +3875,14 @@ public static partial class ExpressionParser
 		/// <remarks>
 		/// The head of the name is what an alias may give: `L` where `L` names a type, `L.Inner`
 		/// where it does and `Inner` is nested in it, and `C.List` where `C` names a namespace. A
-		/// namespace alias alone is no type, as it is none in C#.
+		/// namespace alias alone is no type, as it is none in C#. Through a namespace alias the
+		/// name can mean two types, as it can written whole, and <paramref name="other"/> is the
+		/// second.
 		/// </remarks>
-		Type? Aliased(string dotted)
+		Type? Aliased(string dotted, out Type? other)
 		{
+			other = null;
+
 			if (_aliases is null || _aliases.Count == 0)
 				return null;
 
@@ -3892,7 +3896,14 @@ public static partial class ExpressionParser
 					continue;
 
 				if (_aliases[one].Space is { } space)
-					return rest is null ? null : Qualified(space, rest, Reach);
+				{
+					if (rest is null || Qualified(space, rest, Reach) is not { Length: > 0 } found)
+						return null;
+
+					other = found.Length > 1 ? found[1] : null;
+
+					return found[0];
+				}
 
 				var type = _aliases[one].Type;
 
@@ -4003,12 +4014,19 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>The one type a metadata name means, or why there is not one.</summary>
+		/// <remarks>
+		/// Two meanings of one full name are two assemblies declaring it (CS0433), and said so in
+		/// C#'s words, naming both assemblies: the types alone would read the same twice.
+		/// </remarks>
 		Type Only(string name, string shown)
 		{
 			return Meanings(name, out var first, out var second) switch
 			{
 				0 => throw new FormatException($"The type or namespace name '{shown}' could not be found."),
 				1 => first!,
+				_ when string.Equals(first!.FullName, second!.FullName, StringComparison.Ordinal) =>
+					throw new InvalidOperationException(
+						$"The type '{first}' exists in both '{first.Assembly.FullName}' and '{second.Assembly.FullName}'."),
 				_ => throw new InvalidOperationException(
 					$"'{shown}' is an ambiguous reference between '{first}' and '{second}'."),
 			};
@@ -4027,23 +4045,26 @@ public static partial class ExpressionParser
 			// `using` can make it ambiguous. `Qualified` reads a dotted name as C# reads one:
 			// the longest prefix that is a type, then what is nested in it, so the first
 			// segment is resolved in the enclosing namespace by construction.
-			if (Qualified(null, name, Reach) is { } written)
+			//
+			// Written whole it may still mean two types, where two referenced assemblies declare
+			// that full name (CS0433), and then it is those two.
+			if (Qualified(null, name, Reach) is { Length: > 0 } written)
 			{
-				first  = written;
-				second = null;
+				first  = written[0];
+				second = written.Length > 1 ? written[1] : null;
 
-				return 1;
+				return written.Length;
 			}
 
 			// An alias next, and before the `using`s: C# lets an alias beat a name a `using` brings
 			// in, with no diagnostic at all, and lets it collide only with the global namespace —
 			// which is refused where the alias is written, so nothing is ambiguous here.
-			if (Aliased(name) is { } given)
+			if (Aliased(name, out var other) is { } given)
 			{
 				first  = given;
-				second = null;
+				second = other;
 
-				return 1;
+				return other is null ? 1 : 2;
 			}
 
 			// And a name whose LEFTMOST part is already something here is not offered to the
@@ -4070,13 +4091,13 @@ public static partial class ExpressionParser
 			var   count = 0;
 
 			for (var at = 0; at < _imports.Count; at++)
-				Take(Qualified(_imports[at], name, Reach));
+				TakeAll(Qualified(_imports[at], name, Reach));
 
 			// And the ones every text gets, after the ones it wrote. They are peers, so the order
 			// here decides nothing: `Take` counts what it has not counted, and two namespaces both
 			// giving a name make it ambiguous whichever was walked first.
 			for (var at = 0; at < (_defaults?.Count ?? 0); at++)
-				Take(Qualified(_defaults![at], name, Reach));
+				TakeAll(Qualified(_defaults![at], name, Reach));
 
 			// And what a `using static` named: its nested types are peers of the namespaces above,
 			// which is C#'s answer — a nested type from one and a type from the other, both giving
@@ -4084,6 +4105,14 @@ public static partial class ExpressionParser
 			// are counted in the same pass and the ambiguity falls out of the count.
 			for (var at = 0; at < (_statics?.Count ?? 0); at++)
 				Take(Within(_statics![at], name));
+
+			// A namespace can give a name twice, where two assemblies declare it there, and both
+			// count: that is an ambiguity whatever else is imported.
+			void TakeAll(Type[] found)
+			{
+				for (var each = 0; each < found.Length; each++)
+					Take(found[each]);
+			}
 
 			void Take(Type? found)
 			{
@@ -4189,7 +4218,7 @@ public static partial class ExpressionParser
 			var head = dotted.Substring(0, cut);
 
 			return Loaded.Has(Reach, head) || Loaded.HasInside(Reach, head) ||
-				Qualified(null, head, Reach) is not null;
+				Qualified(null, head, Reach).Length > 0;
 		}
 
 		static string NothingNamed(string name)

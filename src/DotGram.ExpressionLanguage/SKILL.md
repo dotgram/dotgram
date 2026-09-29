@@ -106,6 +106,12 @@ in a helper that lives in another assembly: the helper's assembly is the one the
   in scope is ambiguous where a VALUE is wanted and is the type where a type is wanted — which
   is C#'s answer, and two different diagnostics there (CS0104 and CS0229).
 - `static` is a keyword here, as it is in C#, so nothing may be named it.
+- **A full name two referenced assemblies declare as two different types is ambiguous** where it
+  is used, written whole or through a `using`, and the refusal names both assemblies — C#'s
+  CS0433. Two versions of one assembly handed in side by side are two assemblies here too. One
+  type that several assemblies answer for (a facade forwarding `System.Object`) is not
+  ambiguous, and a type the calling assembly declares wins over a reference's, as the
+  compilation's own does in C#; C# warns there (CS0436), this is silent.
 - A `using` written twice is the same `using`, and nothing is said about it. C# warns there
   (CS0105); this language has no warnings channel, so it is silent — a deliberate difference.
 - **A name the global namespace declares wins over one a `using` brings in**, as in C#: a
