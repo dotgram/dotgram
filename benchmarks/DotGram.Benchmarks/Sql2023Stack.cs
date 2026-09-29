@@ -18,12 +18,22 @@ namespace DotGram.Benchmarks;
 /// carrier recurses through the reader alone; if it costs more a level, its refusal depth is
 /// correspondingly shallower for the same stack, which is part of what this comparison answers.
 /// Prints, and asks nothing of a benchmark: <c>--sql2023-stack</c>.
+/// <para>
+/// <b>Run it under <c>DOTNET_TieredCompilation=0</c>.</b> Unlike the test, this does not pin the
+/// reading to tier 0 on a fresh copy of the grammar: with tiering on, the shallow parse can run on
+/// tier-0 code and the deep one on promoted code, whose frames are thinner, and the level then
+/// reads low, zero or negative. With tiering off both run on optimized code, which is a steady
+/// state and good for comparing two carriers, but is narrower than the tier-0 frames the test
+/// holds to the budget.
+/// </para>
 /// </remarks>
 static class Sql2023Stack
 {
 	const int Shallow = 400, Deep = 800;
 
-	/// <summary>A stack no parse will exhaust, so the measurement is of frames and not of the guard.</summary>
+	/// <summary>
+	/// A stack no parse will exhaust, so the measurement is of frames and not of the guard.
+	/// </summary>
 	const int MeasuringStackKiB = 63 * 1024;
 
 	public static void Run()
@@ -93,7 +103,10 @@ static class Sql2023Stack
 		return used;
 	}
 
-	/// <summary>The resident bytes of this thread's own stack range (StackFrameBudgetTests.OnLinux's note on why not a mapping found by its size).</summary>
+	/// <summary>
+	/// The resident bytes of this thread's own stack range (StackFrameBudgetTests.OnLinux's note on
+	/// why not a mapping found by its size).
+	/// </summary>
 	static long OnLinux()
 	{
 		var attributes = Marshal.AllocHGlobal(1024);    // pthread_attr_t: 56 bytes on x64 glibc, 64 on arm64

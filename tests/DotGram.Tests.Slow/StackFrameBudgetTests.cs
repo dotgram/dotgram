@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.Loader;
 using System.Threading;
 
@@ -46,6 +48,15 @@ namespace DotGram.Tests;
 /// level. That is the size of what the Windows calling convention adds to a frame (the 32-byte
 /// home area of every call, RSI and RDI saved by the callee), which is the likely account; it has
 /// not been measured frame by frame, and the two figures are from different machines.
+/// </para>
+/// <para>
+/// <see cref="Budget"/> and <see cref="HandOff"/> are Windows measurements too. The budget holds
+/// on Linux with room to spare: <c>TryEnsureSufficientExecutionStack</c> refuses at the same
+/// 128 KiB above the stack's low end, and glibc's guard is one 4 KiB page, so a recursing burner
+/// bisected on survival the same way (64, 256 and 1,024 bytes a level, the burner's own frame
+/// solved for) spends about 125 KiB past the refusal against Windows' 114.4. The hand-off has not
+/// been measured on Linux; it is the cost of compiling one emitted path, which is the JIT's work
+/// and not the operating system's, and is taken as the same.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -113,13 +124,19 @@ public sealed class StackFrameBudgetTests
 	/// <summary>The generator's own interval, written out because <c>Machine</c> is internal to it.</summary>
 	const int Interval = 4;
 
-	/// <summary>A stack no parse will exhaust, so the measurement is of frames and not of the guard.</summary>
+	/// <summary>
+	/// A stack no parse will exhaust, so the measurement is of frames and not of the guard.
+	/// </summary>
 	const int MeasuringStackKiB = 63 * 1024;
 
-	/// <summary>How deep the warming parse goes: enough to reach every rule the nest reaches.</summary>
+	/// <summary>
+	/// How deep the warming parse goes: enough to reach every rule the nest reaches.
+	/// </summary>
 	const int Warm = 8;
 
-	/// <summary>How many fresh copies of a grammar may be spent on a reading the runtime did not disturb.</summary>
+	/// <summary>
+	/// How many fresh copies of a grammar may be spent on a reading the runtime did not disturb.
+	/// </summary>
 	const int Attempts = 3;
 
 	public static TheoryData<string> Grammars()
@@ -152,15 +169,17 @@ public sealed class StackFrameBudgetTests
 			"two probes; the interval in Machine.Reader.cs is what has to come down.");
 	}
 
-	/// <summary>The shallower of the two depths the level is measured between; the deeper is twice it.</summary>
+	/// <summary>
+	/// The shallower of the two depths the level is measured between; the deeper is twice it.
+	/// </summary>
 	/// <remarks>
 	/// Far enough apart that the fixed part cancels, and shallow enough that a reading ends inside
 	/// the tiering delay (<see cref="Committed"/>) even on a loaded machine: at 200 and 400 SQL:2023
 	/// took 9 ms alone and 41 ms inside the whole suite. T-SQL is read shallower still because it
 	/// refuses this input in time that grows with the cube of the depth at tier 0 — 1.9 s at 400
 	/// levels, 14.6 s at 800 — and takes 20 ms at 40 and 80. Every grammar's level is flat in the
-	/// depth from 25 levels up (T-SQL 1.28 to 1.40 KiB, the spread being one page in the
-	/// difference), so the shallower pairs cost only resolution.
+	/// depth from 25 levels up (T-SQL 1.28 at 25 levels and 1.40 from 40 up, the difference being
+	/// one page), so the shallower pairs cost only resolution.
 	/// </remarks>
 	static int Shallow(string grammar)
 	{
@@ -177,7 +196,7 @@ public sealed class StackFrameBudgetTests
 	/// <para>
 	/// <b>And both on code the JIT compiled at tier 0, which a reading has to make sure of.</b>
 	/// Tiered compilation promotes a method once it is hot, and a promoted frame is thinner: a
-	/// third of the tier-0 one for T-SQL (0.41 KiB a level against 1.3). A reading that straddles a
+	/// third of the tier-0 one for T-SQL (0.40 KiB a level against 1.40). A reading that straddles a
 	/// promotion reads a fat shallow parse and a thin deep one. That is what failed this test on
 	/// CI — 0.00 KiB for the expression language in one run and not the next, and -1.28 KiB for
 	/// SQL:2023 when the two depths still had threads of their own — and whether it happened
@@ -194,7 +213,16 @@ public sealed class StackFrameBudgetTests
 	/// fresh copy of this assembly). The runtime counts no call toward a promotion until
 	/// <see cref="TieringDelay"/> has passed with no such first call, so a reading that ends
 	/// inside the delay ran on tier-0 code alone; one that does not is taken again on a fresh
-	/// copy. The bound is conservative: T-SQL read at growing depths first reads wrong at 630 ms.</item>
+	/// copy. The clock starts when the first warming parse returns, the last moment the grammar's
+	/// own methods are certainly being met for the first time, so a gap between warming and
+	/// measuring is inside the bound rather than outside it. The bound is conservative: T-SQL read
+	/// at growing depths first reads wrong at 630 ms.</item>
+	/// <item>On-stack replacement, which moves a method with a loop off tier 0 while it runs, is not
+	/// gated by that delay; it is by a count of loop iterations that a nest of this depth does not
+	/// reach at the runtime's default thresholds.</item>
+	/// <item>All of it assumes the runtime's defaults for tiering, so a process that changes one
+	/// (<see cref="Tiering"/>) fails here rather than reading something else: with the delay set
+	/// to 0, T-SQL read 1.20 KiB, a mixed-tier figure the clock could not see.</item>
 	/// </list>
 	/// <para>
 	/// Tier 0 is also the frame a consumer's first deep input runs on.
@@ -202,6 +230,10 @@ public sealed class StackFrameBudgetTests
 	/// </remarks>
 	static (long Shallow, long Deep) Committed(string grammar, int shallowDepth)
 	{
+		if (Tiering() is { } changed)
+			throw new InvalidOperationException(
+				$"{grammar}: {changed} is set, and the reading assumes the runtime's default tiering; unset it to measure.");
+
 		var took = TimeSpan.Zero;
 
 		for (var attempt = 0; attempt < Attempts; attempt++)
@@ -211,12 +243,16 @@ public sealed class StackFrameBudgetTests
 			var marked  = Marker(cold);
 			var shallow = 0L;
 			var deep    = 0L;
+			var mark    = 0L;
 
 			OnThread(
 				() =>
 				{
-					for (var warming = 0; warming < 3; warming++)       // reflection settles on its second call
-						read(Warm);
+					read(Warm);
+					mark = Stopwatch.GetTimestamp();
+
+					read(Warm);                 // reflection settles on its second call
+					read(Warm);
 
 					_ = Reading();
 				});
@@ -224,8 +260,6 @@ public sealed class StackFrameBudgetTests
 			OnThread(
 				() =>
 				{
-					var mark = Stopwatch.GetTimestamp();
-
 					marked();
 
 					read(shallowDepth);
@@ -247,10 +281,48 @@ public sealed class StackFrameBudgetTests
 			"to be of tier-0 frames alone.");
 	}
 
-	/// <summary>The runtime's default <c>TC_CallCountingDelayMs</c>, which nothing in the suite changes.</summary>
+	/// <summary>
+	/// The runtime's default <c>TC_CallCountingDelayMs</c>, which nothing in the suite changes.
+	/// </summary>
 	static readonly TimeSpan TieringDelay = TimeSpan.FromMilliseconds(100);
 
-	/// <summary>A method of this assembly's copy in that context, which nothing has called: the first call of it restarts the runtime's tiering delay.</summary>
+	/// <summary>
+	/// The first setting found that moves tiering off the runtime's defaults, or null.
+	/// </summary>
+	static string? Tiering()
+	{
+		foreach (DictionaryEntry variable in Environment.GetEnvironmentVariables())
+		{
+			var name = (string)variable.Key;
+			var knob = name.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase)  ? name[7..]
+			         : name.StartsWith("COMPlus_", StringComparison.OrdinalIgnoreCase) ? name[8..]
+			         : null;
+
+			if (knob is not null
+			    && (knob.StartsWith("TieredCompilation", StringComparison.OrdinalIgnoreCase)
+			        || knob.StartsWith("TC_", StringComparison.OrdinalIgnoreCase)
+			        || knob.StartsWith("OSR_", StringComparison.OrdinalIgnoreCase)))
+				return name;
+		}
+
+		string[] properties =
+		[
+			"System.Runtime.TieredCompilation",
+			"System.Runtime.TieredCompilation.QuickJit",
+			"System.Runtime.TieredCompilation.QuickJitForLoops",
+		];
+
+		foreach (var property in properties)
+			if (AppContext.GetData(property) is not null)
+				return property;
+
+		return null;
+	}
+
+	/// <summary>
+	/// A method of this assembly's copy in that context, which nothing has called: the first call of
+	/// it restarts the runtime's tiering delay.
+	/// </summary>
 	static Action Marker(Cold cold)
 	{
 		var method = cold.LoadFromAssemblyPath(typeof(StackFrameBudgetTests).Assembly.Location)
@@ -265,15 +337,38 @@ public sealed class StackFrameBudgetTests
 	{
 	}
 
+	/// <summary>
+	/// Runs that on a thread with a stack of <see cref="MeasuringStackKiB"/>, and throws what it threw
+	/// here, where the test can report it, rather than on a thread whose exception ends the process.
+	/// </summary>
 	static void OnThread(Action action)
 	{
-		var thread = new Thread(() => action(), MeasuringStackKiB * 1024);
+		ExceptionDispatchInfo? thrown = null;
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					action();
+				}
+				catch (Exception exception)
+				{
+					thrown = ExceptionDispatchInfo.Capture(exception);
+				}
+			},
+			MeasuringStackKiB * 1024);
 
 		thread.Start();
 		thread.Join();
+
+		thrown?.Throw();
 	}
 
-	/// <summary>The nested input of each grammar, read by the copy in that context and refused in every case so the reading goes all the way down.</summary>
+	/// <summary>
+	/// The nested input of each grammar, read by the copy in that context and refused in every case
+	/// so the reading goes all the way down.
+	/// </summary>
 	static Action<int> Reader(Cold cold, string grammar)
 	{
 		var caller = typeof(StackFrameBudgetTests).Assembly;
@@ -295,7 +390,9 @@ public sealed class StackFrameBudgetTests
 		return depth => parse.Invoke(null, arguments(depth));
 	}
 
-	/// <summary>A context of its own for the DotGram assemblies, so their code is compiled afresh.</summary>
+	/// <summary>
+	/// A context of its own for the DotGram assemblies, so their code is compiled afresh.
+	/// </summary>
 	/// <remarks>Everything else — the framework — is the default context's.</remarks>
 	sealed class Cold() : AssemblyLoadContext(nameof(StackFrameBudgetTests))
 	{
@@ -309,7 +406,9 @@ public sealed class StackFrameBudgetTests
 
 	static long Reading()
 	{
-		return OperatingSystem.IsWindows() ? OnWindows() : OnLinux();
+		return OperatingSystem.IsWindows() ? OnWindows()
+		     : OperatingSystem.IsLinux()   ? OnLinux()
+		     : throw new PlatformNotSupportedException("The stack is read on Windows and Linux only.");
 	}
 
 	/// <summary>Walking this thread's own stack region and adding up what is committed.</summary>
@@ -333,7 +432,9 @@ public sealed class StackFrameBudgetTests
 		return used;
 	}
 
-	/// <summary>How many bytes of this thread's own stack range are resident, which is the same quantity.</summary>
+	/// <summary>
+	/// How many bytes of this thread's own stack range are resident, which is the same quantity.
+	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// A Linux thread stack is mapped whole up front and a page becomes resident when it is first
