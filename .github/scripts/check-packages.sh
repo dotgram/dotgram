@@ -62,6 +62,7 @@ check_library() {
     test -f "$dir/lib/$tfm/$id.dll" || { echo "$id: $tfm assembly missing"; exit 1; }
   done
   test -f "$dir/README.md" || { echo "$id: readme missing"; exit 1; }
+  test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
   if [ -d "$dir/analyzers" ]; then echo "$id carries the generator:"; find "$dir/analyzers" -type f; exit 1; fi
   check_face "$dir"
 

@@ -11,10 +11,16 @@ time, no runtime package, and nothing to deploy beside the application.
 
 Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
-[`examples/`][examples], and the largest grammars written in this notation — RFC 3986,
-RFC 5646, RFC 6570 and RFC 9651, an expression language, SQL:2023, and SQL-92 with T-SQL as
-a dialect over it — are
-[`DotGram.Web`][web], [`DotGram.ExpressionLanguage`][expressions] and [`DotGram.Sql`][sql].
+[`examples/`][examples], and the largest grammars written in this notation — Microsoft's
+T-SQL, its own grammar of over 1,000 rules that includes SQL-92's for what the two share
+and builds one tree of records with it; ISO SQL:2023, a separate grammar with a tree of its
+own; an expression language; a FIX message format; and RFC 3986, RFC 5646, RFC 6570 and
+RFC 9651 among others — are [`DotGram.Sql`][sql], [`DotGram.ExpressionLanguage`][expressions],
+[`DotGram.Finance`][finance] and [`DotGram.Web`][web].
+
+**Each of those four library packages ships its own `SKILL.md` beside its `README.md`** —
+read the one beside the package you are using for what its parsers publish and where they
+are easy to get wrong; this file is only the notation they are written in.
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
 [diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
@@ -22,6 +28,7 @@ a dialect over it — are
 [web]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web
 [expressions]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage
 [sql]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql
+[finance]:     https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance
 
 ## The order to do it in
 

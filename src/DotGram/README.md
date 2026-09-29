@@ -24,7 +24,7 @@ nothing to deploy beside your application.
 ## Getting started
 
 ```xml
-<PackageReference Include="DotGram" Version="0.1.0"
+<PackageReference Include="DotGram" Version="0.2.0"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
@@ -315,16 +315,20 @@ the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.
 and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
 [`DotGram.Web`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web) is a
-package of its own — RFC 3986 URIs, RFC 5646 language tags, RFC 6570 URI templates and
-RFC 9651 structured field values —
-[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another, ISO
-SQL:2023, and SQL-92 with T-SQL written as a dialect over it, and
+package of its own — RFC 3986 URIs, RFC 5646 language tags, RFC 6570 URI templates,
+RFC 9651 structured field values and the rest of the formats of the web —
+[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another —
+Microsoft's T-SQL, which includes SQL-92's grammar for what the two share and builds one
+tree of records with it, and ISO SQL:2023, a separate grammar with a tree of its own —
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
-a third: a C#-style expression language that builds `System.Linq.Expressions` trees. They
+a third — a C#-style expression language that builds `System.Linq.Expressions` trees — and
+[`DotGram.Finance`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance) a
+fourth: FIX 4.2, 4.4 and 5.0 SP2 tag-value messages. They
 are also the largest grammars there are to read —
 [T-SQL](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) in over 1,000
 rules, and the
 [expression language](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs) in
-over 80.
+over 80. Each of the four ships its own `README.md` and `SKILL.md`, which say what its
+parsers publish and what is easy to get wrong.
 
 [MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE)

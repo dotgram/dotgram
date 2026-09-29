@@ -90,7 +90,7 @@ answers yes and builds the wrong thing.
 ## Taking one
 
 ```xml
-<PackageReference Include="DotGram.Sql" Version="0.1.0" />
+<PackageReference Include="DotGram.Sql" Version="0.2.0" />
 ```
 
 There is no companion runtime package, and no generator to install alongside it: the parsers

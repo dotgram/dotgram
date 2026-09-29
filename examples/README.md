@@ -66,7 +66,7 @@ Record-oriented input, four ways, over one line-oriented format.
 Two things, and nothing else:
 
 ```xml
-<PackageReference Include="DotGram" Version="0.1.0"
+<PackageReference Include="DotGram" Version="0.2.0"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
