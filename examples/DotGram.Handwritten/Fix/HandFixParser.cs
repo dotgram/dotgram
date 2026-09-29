@@ -11,14 +11,17 @@ namespace DotGram.Handwritten.Fix;
 /// </summary>
 public static class HandFixParser
 {
+	// The framing is the context's, as it is for the generated parser: Parse reads what the context
+	// names, and ParseLog is Parse with log framing.
+
 	public static FixField[] Parse(string input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		return Read(new Input<char>(input.AsMemory()), false, options).ToArray();
+		return Read(new Input<char>(input.AsMemory()), IsLog(options), options).ToArray();
 	}
 
 	/// <summary>
-	/// Reads wire fields separated by SOH from a copy of the input.
+	/// Reads the fields of the context's framing from a copy of the input.
 	/// </summary>
 	/// <remarks>
 	/// The parser reads strings, so the input is copied into one first; no returned field refers to the copy.
@@ -31,27 +34,26 @@ public static class HandFixParser
 	public static FixField[] Parse(byte[] input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
-		return Read(new Input<byte>(input), false, options).ToArray();
+		return Read(new Input<byte>(input), IsLog(options), options).ToArray();
 	}
 
 	public static IEnumerable<FixField> Parse(TextReader input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		var settings = options ?? Fix44Context.Default;
-		return ReadText(input, false, options, settings.BufferSize, settings.MaxRetained);
+		return ReadText(input, IsLog(options), options, settings.BufferSize, settings.MaxRetained);
 	}
 
 	public static IEnumerable<FixField> Parse(Stream input, Fix44Context? options = null)
 	{
 		ArgumentNullException.ThrowIfNull(input);
 		var settings = options ?? Fix44Context.Default;
-		return ReadBytes(input, false, options, settings.BufferSize, settings.MaxRetained);
+		return ReadBytes(input, IsLog(options), options, settings.BufferSize, settings.MaxRetained);
 	}
 
 	public static FixField[] ParseLog(string input, Fix44Context? options = null)
 	{
-		ArgumentNullException.ThrowIfNull(input);
-		return Read(new Input<char>(input.AsMemory()), true, options).ToArray();
+		return Parse(input, LogFraming(options));
 	}
 
 	/// <summary>
@@ -62,27 +64,32 @@ public static class HandFixParser
 	/// </remarks>
 	public static FixField[] ParseLog(ReadOnlySpan<char> input, Fix44Context? options = null)
 	{
-		return ParseLog(input.ToString(), options);
+		return Parse(input, LogFraming(options));
 	}
 
 	public static FixField[] ParseLog(byte[] input, Fix44Context? options = null)
 	{
-		ArgumentNullException.ThrowIfNull(input);
-		return Read(new Input<byte>(input), true, options).ToArray();
+		return Parse(input, LogFraming(options));
 	}
 
 	public static IEnumerable<FixField> ParseLog(TextReader input, Fix44Context? options = null)
 	{
-		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? Fix44Context.Default;
-		return ReadText(input, true, options, settings.BufferSize, settings.MaxRetained);
+		return Parse(input, LogFraming(options));
 	}
 
 	public static IEnumerable<FixField> ParseLog(Stream input, Fix44Context? options = null)
 	{
-		ArgumentNullException.ThrowIfNull(input);
-		var settings = options ?? Fix44Context.Default;
-		return ReadBytes(input, true, options, settings.BufferSize, settings.MaxRetained);
+		return Parse(input, LogFraming(options));
+	}
+
+	static bool IsLog(Fix44Context? options)
+	{
+		return options?.Framing == FixFraming.Log;
+	}
+
+	static Fix44Context LogFraming(Fix44Context? options)
+	{
+		return (options ?? Fix44Context.Default) with { Framing = FixFraming.Log };
 	}
 
 	static IEnumerable<FixField> ReadText(TextReader input, bool log, Fix44Context? options, int bufferSize, int maxRetained)

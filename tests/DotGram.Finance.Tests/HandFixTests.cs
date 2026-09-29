@@ -74,6 +74,50 @@ public sealed class HandFixTests
 	}
 
 	[Fact]
+	public void Framing_comes_from_the_context_and_recovery_resumes_after_the_next_separator()
+	{
+		// The log separator is ' '* & '|' & ' '*. Recovery skips to its next match, which is the
+		// run of spaces before the pipe, not the long run after "broken" that no pipe follows.
+		var spaces = new string(' ', 4096);
+		var input  = "broken" + spaces + "x | 55=END";
+
+		var fields = HandFixParser.Parse(input, Fix44Context.WithLogFraming);
+
+		Assert.Equal(2, fields.Length);
+		var invalid = Assert.IsType<FixField.Invalid>(fields[0]);
+		Assert.Equal("broken" + spaces + "x", invalid.RawText);
+		Assert.Equal(0, invalid.Position);
+		Assert.Equal("END", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[1]).Value);
+
+		Compare(input, true);
+
+		// Every buffered form, of either parser, reads what the whole input reads, whatever the buffer.
+		var bytes      = Encoding.Latin1.GetBytes(input);
+		var fromBytes  = HandFixParser.Parse(bytes, Fix44Context.WithLogFraming);
+		foreach (var bufferSize in new[] { 1, 3, 4095, 4096, 4097 })
+		{
+			var context = Fix44Context.WithLogFraming with { BufferSize = bufferSize };
+			Equal(fields,    HandFixParser.Parse(new StringReader(input), context));
+			Equal(fields,    FixParser.ReadFields(new StringReader(input), context));
+			Equal(fromBytes, HandFixParser.Parse(new MemoryStream(bytes, false), context));
+			Equal(fromBytes, FixParser.ReadFields(new MemoryStream(bytes, false), context));
+		}
+
+		// A retention bound too small for the rejected element and the separator it resumes after
+		// is refused by both, and the smallest one that holds them is enough for both.
+		var tight = Fix44Context.WithLogFraming with { BufferSize = 3, MaxRetained = input.Length - "55=END".Length };
+		Assert.Throws<IOException>(() => HandFixParser.Parse(new StringReader(input), tight).ToArray());
+		Assert.Throws<IOException>(() => FixParser.ReadFields(new StringReader(input), tight).ToArray());
+		Assert.Throws<IOException>(() => HandFixParser.Parse(new MemoryStream(bytes, false), tight).ToArray());
+		Assert.Throws<IOException>(() => FixParser.ReadFields(new MemoryStream(bytes, false), tight).ToArray());
+		var enough = tight with { MaxRetained = tight.MaxRetained + 1 };
+		Equal(fields,    HandFixParser.Parse(new StringReader(input), enough));
+		Equal(fields,    FixParser.ReadFields(new StringReader(input), enough));
+		Equal(fromBytes, HandFixParser.Parse(new MemoryStream(bytes, false), enough));
+		Equal(fromBytes, FixParser.ReadFields(new MemoryStream(bytes, false), enough));
+	}
+
+	[Fact]
 	public void Deterministic_malformed_inputs_match_recovery_boundaries()
 	{
 		var random = new Random(817);
@@ -127,19 +171,27 @@ public sealed class HandFixTests
 
 	static void Compare(string input, bool log, Fix44Context? options = null)
 	{
-		var expected = log ? FixParser.ParseFields(input, (options ?? new Fix44Context()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(input, options);
-		Equal(expected, log ? HandFixParser.ParseLog(input, options) : HandFixParser.Parse(input, options));
-		Equal(expected, log ? HandFixParser.ParseLog(input.AsSpan(), options) : HandFixParser.Parse(input.AsSpan(), options));
+		// Both parsers are told the framing the same way: by the context, never by the method.
+		var context = (options ?? new Fix44Context()) with { Framing = log ? FixFraming.Log : FixFraming.Wire };
+		var expected = FixParser.ParseFields(input, context);
+		Equal(expected, HandFixParser.Parse(input, context));
+		Equal(expected, HandFixParser.Parse(input.AsSpan(), context));
 		using var reader = new StringReader(input);
-		Equal(expected, log ? HandFixParser.ParseLog(reader, (options ?? new Fix44Context()) with { BufferSize = 1 }) : HandFixParser.Parse(reader, (options ?? new Fix44Context()) with { BufferSize = 1 }));
+		Equal(expected, HandFixParser.Parse(reader, context with { BufferSize = 1 }));
 		Assert.Equal(-1, reader.Peek());
 
 		var bytes = Encoding.Latin1.GetBytes(input);
-		var expectedBytes = log ? FixParser.ParseFields(bytes, (options ?? new Fix44Context()) with { Framing = FixFraming.Log }) : FixParser.ParseFields(bytes, options);
-		Equal(expectedBytes, log ? HandFixParser.ParseLog(bytes, options) : HandFixParser.Parse(bytes, options));
+		var expectedBytes = FixParser.ParseFields(bytes, context);
+		Equal(expectedBytes, HandFixParser.Parse(bytes, context));
 		using var stream = new ShortStream(bytes);
-		Equal(expectedBytes, log ? HandFixParser.ParseLog(stream, (options ?? new Fix44Context()) with { BufferSize = 3 }) : HandFixParser.Parse(stream, (options ?? new Fix44Context()) with { BufferSize = 3 }));
+		Equal(expectedBytes, HandFixParser.Parse(stream, context with { BufferSize = 3 }));
 		Assert.True(stream.CanRead);
+
+		// The buffered forms of the generated parser agree with its whole-input form.
+		using var generatedReader = new StringReader(input);
+		Equal(expected, FixParser.ReadFields(generatedReader, context with { BufferSize = 1 }));
+		using var generatedStream = new ShortStream(bytes);
+		Equal(expectedBytes, FixParser.ReadFields(generatedStream, context with { BufferSize = 3 }));
 	}
 
 	static void Equal(IEnumerable<FixField> expected, IEnumerable<FixField> actual)
