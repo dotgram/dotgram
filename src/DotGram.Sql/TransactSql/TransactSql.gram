@@ -848,10 +848,16 @@ TSqlPredicate : @Expression
 	  & '(' & args: Arguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| m: GraphMatch => @(m)
-	| row: RowValueConstructor & tail: PredicateTail => @(Expression.Predicated(row, tail))
-	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
-	  & other: DistinctTail
-		=> @(new Expression.IsDistinctFrom(left, negated is not null, other))
+	// The row is read once for everything that may follow it, as the standard's predicate is.
+	// Written as two alternatives, the row was read again for `IS DISTINCT FROM` wherever the
+	// tails found nothing, and a `CASE` in a condition is such a row at every level of a nest:
+	// 2^n readings, refused unclosed and accepted with `IS DISTINCT FROM` at each level alike.
+	| row: RowValueConstructor
+	  & ( tail: PredicateTail
+	    | "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i & other: DistinctTail )
+		=> @(tail is not null
+			 ? Expression.Predicated(row, tail)
+			 : new Expression.IsDistinctFrom(row, negated is not null, other!))
 
 DistinctTail : @Expression
 	= q: Quantifier & sub: TableSubquery => @(new Expression.Prefixed(Syntax.Squared(q), new Expression.Subquery(sub)))

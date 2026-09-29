@@ -16,26 +16,29 @@ namespace DotGram.Sql.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The shape is one where a level was read twice</b>, so a nest of n was read 2^n times: 24
-/// levels took seconds, and every level more doubled it. A bare <c>CAST(</c> that <c>TSqlCast</c>
-/// refused was read again as a call to a function named <c>CAST</c>, and <c>TRY_CAST</c>,
-/// <c>PARSE</c> and <c>TRY_PARSE</c> alike.
+/// <b>The shapes are the two where one level was read twice</b>, so a nest of n was read 2^n times:
+/// 24 levels took seconds, and every level more doubled it. A bare <c>CAST(</c> that <c>TSqlCast</c>
+/// refused was read again as a call to a function named <c>CAST</c> (<c>TRY_CAST</c>, <c>PARSE</c> and
+/// <c>TRY_PARSE</c> alike), and a predicate read its row once for its tails and again for
+/// <c>IS DISTINCT FROM</c>, which a <c>CASE</c> nested in a condition reaches at every level — refused
+/// when unclosed, and ACCEPTED where each level is itself an <c>IS DISTINCT FROM</c>.
 /// </para>
 /// <para>
-/// <b>The witness is the bytes, and a watchdog behind them.</b> Each depth is read on a thread of its
-/// own, so the parser's stores start empty and the bytes it allocates are the stores it had to grow:
-/// the second reading of a <c>CAST</c> operand left records behind, and 16 levels allocated 6.3 MB
-/// where 8 allocated 36 KB. A doubling of the depth may cost a constant or a multiple of it, and 8 is
-/// twice the worst a store growing by doubling can show. A blow-up that allocated nothing would still
-/// be caught by the watchdog: 32 levels read twice a level are hours of reading, and read once they
-/// take well under a millisecond, so ten seconds cannot fail on a loaded machine and cannot pass on
-/// the defect. The depths go up in order and the first one out of bounds ends the test, so a defect
-/// fails it rather than hanging it.
+/// <b>Two witnesses, because one of the blow-ups allocates and the other does not.</b> Each depth is
+/// read on a thread of its own, so the parser's stores start empty and the bytes it allocates are the
+/// stores it had to grow: the second reading of a <c>CAST</c> operand left records behind, and 16
+/// levels allocated 6.3 MB where 8 allocated 36 KB. A doubling of the depth may cost a constant or a
+/// multiple of it, and 8 is twice the worst a store growing by doubling can show. The unclosed
+/// <c>CASE</c> nest allocated 11 KB at 8 levels and at 16 while its time doubled a level, so for it
+/// the witness is the watchdog: 32 levels of it were hours of reading, and read once they take well
+/// under a millisecond, so ten seconds cannot fail on a loaded machine and cannot pass on the defect.
+/// The depths go up in order and the first one out of bounds ends the test, so a defect fails it
+/// rather than hanging it.
 /// </para>
 /// <para>
 /// No count of rules entered is available to a test: the emitted counters are per machine, never per
 /// rule (D144). The counts the fixes were measured by — rule entries and loop turns of an instrumented
-/// copy, x2.00 a level before and an increment exponent of 1.00 after — are in the commit message.
+/// copy, x2.00 a level before and an increment exponent of 1.00 after — are in the commit messages.
 /// </para>
 /// </remarks>
 public sealed class TransactSqlNestingCostTests
@@ -55,6 +58,14 @@ public sealed class TransactSqlNestingCostTests
 	[InlineData("PARSE, unclosed",     "SELECT ", "PARSE(",     "a", "",         false)]
 	[InlineData("TRY_PARSE, unclosed", "SELECT ", "TRY_PARSE(", "a", "",         false)]
 	[InlineData("CAST, closed",        "SELECT ", "CAST(",      "a", " AS INT)", true)]
+	[InlineData("CASE in a condition, unclosed", "SELECT 1 WHERE ", "CASE WHEN ", "a = 1", "", false)]
+	[InlineData("CASE in a condition, closed", "SELECT 1 WHERE ", "CASE WHEN ", "a = 1", " THEN 1 END = 1", true)]
+	[InlineData(
+		"CASE in a condition, IS DISTINCT FROM at every level",
+		"SELECT 1 WHERE ", "CASE WHEN ", "a IS DISTINCT FROM b", " THEN 1 END IS DISTINCT FROM 1", true)]
+	[InlineData(
+		"CASE in a condition, IS NOT DISTINCT FROM at every level",
+		"SELECT 1 WHERE ", "CASE WHEN ", "a IS NOT DISTINCT FROM b", " THEN 1 END IS NOT DISTINCT FROM 1", true)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, bool accepted)
 	{
 		// The shape once at a small depth and on this thread, so that the first depth measured is not
