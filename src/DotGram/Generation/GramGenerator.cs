@@ -305,7 +305,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </para>
 	/// </remarks>
 	/// <param name="Key">The host it came from, to find where that host is written.</param>
-	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null)
+	/// <param name="Marked">
+	/// Whether any mark in the text is the compile's. False where the grammar holds the mark's
+	/// character itself, and then nothing in the text is rewritten.
+	/// </param>
+	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false)
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
 		public void Report(SourceProductionContext context, Site site, Func<string, SyntaxTree?> treeOf)
@@ -335,8 +339,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				return this;
 
 			var path  = site.Path ?? "";
-			var text  = CSharpEmitter.Placed(Text, path, site.Line, site.Column);
-			var parts = new EquatableArray<GeneratedSource>(
+			var text  = Marked ? CSharpEmitter.Placed(Text, path, site.Line, site.Column) : Text;
+			var parts = !Marked ? Parts : new EquatableArray<GeneratedSource>(
 			[
 				.. Parts.Items.Select(part => part with { Text = CSharpEmitter.Placed(part.Text, path, site.Line, site.Column) }),
 			]);
@@ -628,6 +632,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// well went silently missing until it was looked for.
 		reports.AddRange(grammar.Reports.Items);
 
+		// Whether a `#line` into the host's literal may be left to the output step as a mark. Not
+		// where the grammar itself holds the mark's character: its C# is copied into the output as
+		// written, and a mark the author wrote would be rewritten as one the compile did. Such a
+		// grammar keeps its literal's C# without a `#line` rather than risk a broken file.
+		var marked = CSharpEmitter.CanMark(text);
+
 		var timer = reporting != Reporting.None ? Stopwatch.StartNew() : null;
 		var result = GramCompiler.Compile(text, new GramCompilerOptions
 		{
@@ -646,7 +656,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// rather than computed — see InlineLineMap. Where a host inherits grammars the
 			// text is several of them joined, and the map is one per piece with the same
 			// two cases inside it.
-			LineMap        = MapOf(grammar, text),
+			LineMap        = MapOf(grammar, text, marked),
 
 			// Nought is what the attribute holds when nobody set it, and what somebody
 			// setting it to nought means: take the measured default either way.
@@ -707,40 +717,42 @@ public sealed class GramGenerator : IIncrementalGenerator
 					(CarrierKind)host.Carrier,
 					host.BufferedInput, host.BufferedBytes, host.SpanCaptures) +
 					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
-				: null);
+				: null,
+			marked);
 	}
 
 	/// <summary>Where each piece of the joined text belongs (§7.6).</summary>
-	static ILineMap? MapOf(Grammar grammar, string text)
+	/// <param name="marked">Whether the host's own literal may be mapped with marks at all.</param>
+	static ILineMap? MapOf(Grammar grammar, string text, bool marked)
 	{
 		var pieces = grammar.Pieces.Items;
 
 		if (pieces.Length == 0)
-			return MapOfPiece(new Piece(0, text.Length, grammar.Path, grammar.Host.Literal, Site.Attribute), text, own: true);
+			return MapOfPiece(new Piece(0, text.Length, grammar.Path, grammar.Host.Literal, Site.Attribute), text, marked);
 
 		// One piece is the ordinary case and needs no splicing over it: a host inheriting
 		// nothing compiles the map it always did.
 		if (pieces.Length == 1)
-			return MapOfPiece(pieces[0], text, own: true);
+			return MapOfPiece(pieces[0], text, marked);
 
 		return new SplicedLineMap(
 		[
 			.. pieces.Select((piece, at) => new SplicedLineMap.Segment(
-				piece.Start, piece.Length, MapOfPiece(piece, text, own: at == 0))),
+				piece.Start, piece.Length, MapOfPiece(piece, text, marked && at == 0))),
 		]);
 	}
 
-	/// <param name="own">
-	/// Whether the piece is the host's own grammar. Only that one, written into an attribute, is
-	/// mapped into its C# file: a base's literal is left without a <c>#line</c>, as it always was.
+	/// <param name="inline">
+	/// Whether the piece, if it is written into an attribute, is mapped into its C# file. Only the
+	/// host's own is: a base's literal is left without a <c>#line</c>, as it always was.
 	/// </param>
-	static ILineMap? MapOfPiece(Piece piece, string text, bool own)
+	static ILineMap? MapOfPiece(Piece piece, string text, bool inline)
 	{
 		var written = text.Substring(piece.Start, piece.Length);
 
 		return piece.Path is { } path
 			? new GrammarLineMap(written, path)
-			: own && piece.Literal is { } spelling
+			: inline && piece.Literal is { } spelling
 				? new InlineLineMap(written, spelling)
 				: null;
 	}

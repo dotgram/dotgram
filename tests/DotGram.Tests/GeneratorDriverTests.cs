@@ -2666,6 +2666,29 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(new[] { 4, 6 }, lines);
 	}
 
+	/// <summary>
+	/// A grammar's own C# that holds the character the output step reads as a mark is copied as
+	/// written, and nothing in it is rewritten.
+	/// </summary>
+	/// <remarks>
+	/// A <c>#line</c> into an attribute is written with a mark the output step fills in (D145),
+	/// and the C# of a <c>=&gt;</c> is copied as the author wrote it. A verbatim string in it that
+	/// spells a mark at the head of a line would be taken for one and the file broken; such a
+	/// grammar is written without the <c>#line</c> into its literal instead.
+	/// </remarks>
+	[Fact]
+	public void A_grammars_C_sharp_that_spells_a_mark_is_not_rewritten()
+	{
+		var parse = Build("""
+			[DotGram.Gram("Start : @string = 'a' => @(@\"x\n#line \u00053\n\" + \"y\")\nparse Start")]
+			public partial class Forged;
+			""")
+			.GetType("Forged")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("x\n#line \u00053\ny", parse.Invoke(null, ["a"]));
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>

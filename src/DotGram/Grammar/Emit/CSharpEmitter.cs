@@ -2978,6 +2978,16 @@ file.Line("return spare;");
 	const string ColumnMark = "\u0006";
 
 	/// <summary>
+	/// Whether a grammar's C# can be written under marks: not where the grammar holds either
+	/// mark's character, because its C# is copied as written and <see cref="Placed"/> could not
+	/// tell a mark of the author's from its own.
+	/// </summary>
+	internal static bool CanMark(string grammar)
+	{
+		return grammar.IndexOf(LineMark[LineMark.Length - 1]) < 0 && grammar.IndexOf(ColumnMark[0]) < 0;
+	}
+
+	/// <summary>
 	/// The emitted text with the place of the literal written into every mark <see cref="Handed"/>
 	/// left in it, or the same text where it left none.
 	/// </summary>

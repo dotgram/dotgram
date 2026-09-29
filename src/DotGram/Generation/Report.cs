@@ -8,26 +8,6 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace DotGram.Generation;
 
-/// <summary>
-/// One diagnostic, as values.
-/// </summary>
-/// <remarks>
-/// <para>
-/// An incremental generator decides whether the next step must run by comparing what the
-/// last one produced, so everything a step produces has to compare by value. A
-/// <c>Diagnostic</c> does not, reliably: it holds a descriptor and a <c>Location</c>, and
-/// a location holds the syntax tree it came from. Carrying one would make the output
-/// unequal whenever any tree was reparsed, which is what the whole arrangement is trying
-/// to avoid.
-/// </para>
-/// <para>
-/// So the pieces travel and the <c>Diagnostic</c> is built at delivery. Where a report has no
-/// place in a grammar file it names an attribute instead — the host's, or that of a grammar
-/// the host includes — by its <see cref="Anchor"/> in the host's <see cref="Site"/>, and not by
-/// where that attribute is: a report is made by the compile, and the compile is reused across
-/// edits that move the attribute (D145).
-/// </para>
-/// </remarks>
 /// <summary>Where something is, in a form that compares the way arithmetic does.</summary>
 /// <remarks>
 /// A <see cref="Location"/> compares by tree and span, and a tree is a new object after every
@@ -123,6 +103,26 @@ readonly record struct Site(
 	}
 }
 
+/// <summary>
+/// One diagnostic, as values.
+/// </summary>
+/// <remarks>
+/// <para>
+/// An incremental generator decides whether the next step must run by comparing what the
+/// last one produced, so everything a step produces has to compare by value. A
+/// <c>Diagnostic</c> does not, reliably: it holds a descriptor and a <c>Location</c>, and
+/// a location holds the syntax tree it came from. Carrying one would make the output
+/// unequal whenever any tree was reparsed, which is what the whole arrangement is trying
+/// to avoid.
+/// </para>
+/// <para>
+/// So the pieces travel and the <c>Diagnostic</c> is built at delivery. Where a report has no
+/// place in a grammar file it names an attribute instead — the host's, or that of a grammar
+/// the host includes — by its <see cref="Anchor"/> in the host's <see cref="Site"/>, and not by
+/// where that attribute is: a report is made by the compile, and the compile is reused across
+/// edits that move the attribute (D145).
+/// </para>
+/// </remarks>
 readonly record struct Report(
 	string           Id,
 	string           Title,

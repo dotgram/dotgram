@@ -66,6 +66,51 @@ public sealed class ReferencedGrammarTests
 		Assert.False(IsSuccess(consumer, "DerivedGrammar", "TryParseStart", "42?"));
 	}
 
+	/// <summary>
+	/// A warning inside a grammar the assembly carries lands on the attribute of the class that
+	/// includes it: the carried text is written in no file, so there is no place in one to find.
+	/// </summary>
+	/// <remarks>
+	/// It used to be looked for as if it were that class's literal — found in the carried text
+	/// and its offset applied from the start of the class's file, which put the squiggle on
+	/// whatever stood there.
+	/// </remarks>
+	[Fact]
+	public void A_warning_in_a_carried_grammar_lands_on_the_including_attribute()
+	{
+		// `Other` is published by the library and reached by nothing in the consumer.
+		var library = Emit("GrammarLibrary", Library, ("Lexemes.gram", Lexemes + "\nOther = 'x' & Number\nparse Other"));
+
+		const string consumer = """
+			// Lines above, so that an offset into the carried text
+			// would land somewhere other than the attribute.
+			using GrammarLibrary;
+
+			[DotGram.GramInclude(typeof(Lexemes), As = "L")]
+			[DotGram.Gram("using L;\nSum : @int = a: L.Number & '+' & b: L.Number => @(a + b)\nparse Sum")]
+			public partial class ImportedGrammar { }
+			""";
+
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation  = CSharpCompilation.Create(
+			"GrammarConsumer",
+			[CSharpSyntaxTree.ParseText(consumer, parseOptions, "GrammarConsumer.cs", cancellationToken: TestContext.Current.CancellationToken)],
+			((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
+				.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
+				.Append(MetadataReference.CreateFromImage(library)),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+			.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics, TestContext.Current.CancellationToken);
+
+		var unreached = Assert.Single(diagnostics, static one => one.Id == "GRAM4018");
+
+		Assert.Contains("Other", unreached.GetMessage(), StringComparison.Ordinal);
+		Assert.Equal("GrammarConsumer.cs", unreached.Location.SourceTree?.FilePath);
+		Assert.Equal(consumer.IndexOf("DotGram.Gram(", StringComparison.Ordinal), unreached.Location.SourceSpan.Start);
+	}
+
 	static object? Call(Assembly assembly, string type, string method, string input)
 	{
 		return assembly.GetType(type, true)!.GetMethod(method, [typeof(string)])!.Invoke(null, [input]);
