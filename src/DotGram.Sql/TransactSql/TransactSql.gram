@@ -560,8 +560,19 @@ NextValue : @Expression
 // `dbo.[LEN]('a')` is read. A bare `IIF` is never a call of this kind: `IIF (1, 2, 3)`, `IIF
 // (NULL, 1, 0)` and `IIF ()` are `Msg 4145`, a value where its condition stands, and `dbo.IIF
 // (1, 2, 3)` is read.
+//
+// Nor is a bare `CAST`, `TRY_CAST`, `PARSE` or `TRY_PARSE`: `CAST (1)`, `PARSE ()` and `TRY_CAST
+// (1) OVER ()` are `Msg 1035`, "expected 'AS'", so where `TSqlCast` did not read one nothing
+// else may. Read here as well, each operand was read twice — once by `TSqlCast`, once as an
+// argument — and a nest of n that `TSqlCast` refused cost 2^n: 24 levels of `CAST(` took
+// seconds. Qualified, each is anybody's function name, `dbo.PARSE (1)` and `dbo.[CAST] (1)`
+// alike, and a set quantifier makes one an aggregate's call, which the engine reads and then
+// finds no such aggregate (`Msg 195`): `CAST (DISTINCT 1)`. `CONVERT` and `TRY_CONVERT` need no
+// line of their own: no name reads them, and `dbo.CONVERT (1)` is `Msg 156`.
 FunctionCall : @Expression
-	= ?!((JsonOwnName | "IIF"i) & '(') & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	= ?!((JsonOwnName | "IIF"i) & '(')
+	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
+	  & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(

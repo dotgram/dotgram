@@ -14052,6 +14052,60 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// The casts with a syntax of their own called as functions: bare, never — `CAST (1)` is `Msg
+	/// 1035`, "expected 'AS'", and so are `TRY_CAST`, `PARSE` and `TRY_PARSE` — and qualified,
+	/// always, as any user's function is. As SQL Server 2025 answers them at levels 170 and 100.
+	/// </summary>
+	/// <remarks>
+	/// Read as calls too, a nest of them refused was read 2^n times, once by the cast and once as an
+	/// argument at every level; <see cref="TransactSqlNestingCostTests"/> holds its cost.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT CAST (1)")]
+	[InlineData("SELECT CAST ()")]
+	[InlineData("SELECT cast (1, 2)")]
+	[InlineData("SELECT TRY_CAST (1)")]
+	[InlineData("SELECT PARSE ('1')")]
+	[InlineData("SELECT TRY_PARSE ()")]
+	[InlineData("SELECT CAST (1) OVER ()")]
+	[InlineData("SELECT CAST/**/(1)")]
+	[InlineData("SELECT [CAST] (1)")]
+	[InlineData("SELECT [PARSE] (1)")]
+	[InlineData("SELECT dbo.CONVERT (1)")]
+	[InlineData("SELECT CAST (CAST (CAST (a")]
+	[InlineData("SELECT CAST (CAST (a AS ) AS )")]
+	[InlineData("SELECT PARSE (TRY_PARSE (TRY_CAST (a")]
+	public void Named_casts_called_refuse_what_the_engine_does(string input)
+	{
+		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
+
+	/// <summary>
+	/// And read the forms beside them: a qualified name, bracketed or not, a set quantifier, which
+	/// makes the call an aggregate's (`Msg 195` when there is none by that name, the statement read),
+	/// and the non-reserved names as columns.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT dbo.CAST (1)")]
+	[InlineData("SELECT dbo.[CAST] (1)")]
+	[InlineData("SELECT dbo.TRY_CAST (1)")]
+	[InlineData("SELECT dbo.PARSE (1), dbo.[PARSE] ('1')")]
+	[InlineData("SELECT x.PARSE (1) FROM t x")]
+	[InlineData("SELECT dbo.TRY_PARSE (), dbo.[TRY_PARSE] (1, 2)")]
+	[InlineData("SELECT dbo.[CONVERT] (1), dbo.[TRY_CONVERT] (1)")]
+	[InlineData("SELECT CAST (DISTINCT 1)")]
+	[InlineData("SELECT TRY_PARSE (ALL a) FROM t")]
+	[InlineData("SELECT TRY_CAST, PARSE FROM t")]
+	[InlineData("SELECT CASTX (1)")]
+	[InlineData("SELECT CAST (CAST (a AS INT) AS INT), PARSE ('1' AS INT USING 'en-US')")]
+	public void Named_casts_called_read_what_the_engine_does(string input)
+	{
+		var match = TransactSqlParser.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
 	/// A variable assigned, in its own `SET` and in an `UPDATE`, as the engine answers it with
 	/// the variable declared: `DEFAULT` is a column's, and a column between the variable and
 	/// its value an `UPDATE`'s.
