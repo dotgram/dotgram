@@ -142,12 +142,22 @@ is for, in three named stages:
 Asked      grammar + host         -> the questions its C# names raise   cached on both
 Answered   questions + Compilation -> the answers, as values             re-runs, and is cheap
 Compiled   grammar + host + answers -> the file and its diagnostics      cached on all three
+Placed     file + site            -> the file with its #line numbers     a pass over the text
 ```
 
 Editing a C# file re-runs the middle stage — a handful of symbol lookups — and stops
 there, because the answers it produces compare equal to the last ones. Every value that
 crosses a stage is a value (strings, numbers, equatable arrays); a Roslyn `Diagnostic` is
-built only at delivery. The stage names are public because they are what a test reads to
+built only at delivery.
+
+The host is what the class says, not where it says it (D145). Where — the attribute, where
+a grammar written into it begins, that literal's line and column — is the host's *site*,
+which the compile never reads: a `#line` into a literal is emitted as a count from the
+literal's first line (`CSharpEmitter.Handed`), and `Placed` writes the numbers in
+(`CSharpEmitter.Placed`). A report names the attribute it is about and is put on it at
+delivery. So an edit that moves the attribute re-runs `Placed` and not the compile, and one
+that leaves it where it was re-runs neither; a `.gram` grammar's `#line`s point into its own
+file and are never rewritten. The stage names are public because they are what a test reads to
 say which stage re-ran. An unexpected exception in any stage becomes a diagnostic
 against the host rather than a generator Roslyn disables.
 

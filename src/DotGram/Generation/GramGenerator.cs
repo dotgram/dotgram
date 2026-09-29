@@ -97,9 +97,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 		//                              │
 		//                              ▼
 		//   grammar + host + answers ──► the parser            cached on all three
+		//                              │
+		//                              ▼
+		//   parser + site ──► the parser's #line numbers        a pass over the text
 		//
 		// So editing a C# file re-runs the middle stage — a handful of symbol lookups —
-		// and stops there, because the answers it produces are the same ones.
+		// and stops there, because the answers it produces are the same ones. Editing the
+		// host's own file above its attribute re-runs the last, and only it.
 		// The names are what a test reads to say which stage re-ran, and are the only way
 		// to tell "the answers were the same" from "nothing was asked".
 		var asked = hosts
@@ -510,7 +514,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		for (var index = 0; index < host.Includes.Items.Length; index++)
 		{
 			var inherited = host.Includes.Items[index];
-			var anchor    = inherited.Placed ? Site.Of(index) : Site.None;
+			var anchor    = inherited.Placed ? Site.Include(index) : Site.None;
 
 			// The file first, so that a grammar somebody can still edit is the one whose
 			// offsets a diagnostic points into. What the assembly carries is the fallback and
@@ -550,13 +554,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// namespace, and then they can — reported here, where the names are still names,
 		// rather than later as a duplicate rule in a namespace nobody wrote.
 		foreach (var group in bases.GroupBy(static one => one.Included.Name, StringComparer.Ordinal))
-			if (group.Count() > 1)
-				reports.Add(Report.Of(
-					Diagnostics.RepeatedIncludedName,
-					Math.Max(group.First().Anchor, Site.Attribute),
-					host.ClassName,
-					string.Join(" and ", group.Select(static one => SimpleNameOf(one.Included.ClassName))),
-					group.Key));
+		{
+			if (group.Count() < 2)
+				continue;
+
+			var first = group.First().Anchor;
+
+			reports.Add(Report.Of(
+				Diagnostics.RepeatedIncludedName,
+				first == Site.None ? Site.Attribute : first,
+				host.ClassName,
+				string.Join(" and ", group.Select(static one => SimpleNameOf(one.Included.ClassName))),
+				group.Key));
+		}
 
 		var (text, joined) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), parts);
 
@@ -576,7 +586,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 				// A base in a referenced assembly has no attribute to point at; the host's
 				// is the nearest place that is somebody's.
-				Math.Max(bases[at].Anchor, Site.Attribute)));
+				bases[at].Anchor == Site.None ? Site.Attribute : bases[at].Anchor));
 
 		// Parsed twice over a grammar's life: once here for the questions, once in the
 		// third stage for the answer. Both are cheap next to normalization and emission,

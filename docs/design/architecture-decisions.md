@@ -9635,6 +9635,16 @@ text was a change. Dropping it broke `#pragma` suppression, which needs a locati
   grammar to file (`#line`) is computed inside it from the host's text. The shape agreed: the compile
   depends on the grammar text and options only; file coordinates are applied at the output step.
   A design note comes first. This one matters most to consumers, whose own class carries the grammar.
+- Done, 2026-09-29 (Igor chose this shape over a separate file for the public surface). The host is
+  split into what it says (`Host`, which the compile reads) and where it says it (`Site`: the
+  attribute, the literal's start, line and column, and each include's attribute). A `#line` into a
+  literal is emitted as a count from the literal's first line, with a mark for the literal's column
+  on its first line, and a `Placed` stage after the compile writes the numbers in; a report names
+  the attribute it is about by an anchor and is placed at the reporting step. An edit above the
+  attribute re-runs `Placed` (a pass over the text) and not the compile; emitted text is
+  byte-identical. What it leaves on such an edit is the output re-added and re-parsed whole; putting
+  every `#line`-carrying method in a file of its own would shrink that, and is built only if a count
+  says it is worth it.
 
 ## D146 — Three decisions of Igor's, 2026-09-26
 

@@ -76,7 +76,7 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// </para>
 /// <para>
 /// A report names a place here by an anchor rather than by carrying one: <see cref="None"/>,
-/// <see cref="Attribute"/>, or <see cref="Base"/> of an include's index.
+/// <see cref="Attribute"/>, or <see cref="Include"/> of an include's index.
 /// </para>
 /// </remarks>
 /// <param name="Key">Which host this is, the same as its <c>Host.Key</c>.</param>
@@ -103,7 +103,7 @@ readonly record struct Site(
 	public readonly record struct Base(Place? At, int LiteralAt);
 
 	/// <summary>The anchor of the include at <paramref name="index"/>.</summary>
-	public static int Of(int index)
+	public static int Include(int index)
 	{
 		return index + 1;
 	}

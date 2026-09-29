@@ -3006,7 +3006,7 @@ file.Line("return spare;");
 
 		var placed = new StringBuilder(text.Length + 256);
 		var from   = 0;
-		var indent = new string(' ', column - 1);
+		var indent = new string(' ', Math.Max(column - 1, 0));
 
 		for (; at >= 0; at = text.IndexOf(LineMark, from, StringComparison.Ordinal))
 		{
@@ -3018,9 +3018,8 @@ file.Line("return spare;");
 				continue;
 			}
 
-			var digits = at + LineMark.Length;
-			var end    = digits;
-			var count  = 0;
+			var end   = at + LineMark.Length;
+			var count = 0;
 
 			while (end < text.Length && text[end] is >= '0' and <= '9')
 				count = count * 10 + (text[end++] - '0');
