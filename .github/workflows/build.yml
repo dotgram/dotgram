@@ -37,6 +37,21 @@ jobs:
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Linux
 
+      # The refusal guard reports and never fails, and a report nobody sees on a green run is
+      # how a figure comes to circulate without its source. This prints every series' exponent
+      # with the commit and machine it was measured on, and keeps the table.
+      - name: Show the refusal exponents
+        if: always()
+        shell: bash
+        run: cat tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt || echo "no RefusalExponents.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: refusal-exponents-linux
+          path: tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt
+          if-no-files-found: warn
+
       - name: Pack
         run: |
           dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
@@ -144,6 +159,18 @@ jobs:
 
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Release
+
+      - name: Show the refusal exponents
+        if: always()
+        shell: bash
+        run: cat tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt || echo "no RefusalExponents.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: refusal-exponents-windows
+          path: tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt
+          if-no-files-found: warn
 
       # The third artifact of the tag, and the only one that cannot be built above.
       - name: Check the extension was built
