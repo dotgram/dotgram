@@ -371,6 +371,11 @@ writes static state of its own. That is why the line above says a `when` that wr
 plain static field has made it global — make any such state thread-safe yourself, the
 same as you would in any other C# called from more than one thread.
 
+One exception to running on the thread that called: a parse from memory that goes deep
+enough hands the rest of that depth to a fresh thread (`Stacks` bounds how many) while the
+calling thread waits. An action or guard reached past that point is not on the thread the
+call came from — write nothing in them that assumes it is.
+
 ## What the attribute can be told
 
 ```csharp
