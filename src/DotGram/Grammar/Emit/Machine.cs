@@ -2843,9 +2843,12 @@ sealed partial class Machine
 					// it — a rule's value built, a run cut into a string — and a condition
 					// asking about one capture was handed all of them. Whether it names one is
 					// the scanner's answer (CSharpEmitter.Uses), like the supplied names above,
-					// not merely whether its text contains the parameter's spelling.
+					// not merely whether its text contains the name's spelling — and asked by
+					// the capture's own name, not the parameter it becomes: `class` is escaped
+					// to `@class` as a parameter, but the scanner's free names hold `class`
+					// either way.
 					if (node is Node.Guard { Text: var asked } &&
-						!CSharpEmitter.Uses(_graph, asked, ResultTypes.ParameterOf(member)))
+						!CSharpEmitter.Uses(_graph, asked, member.Name))
 					{
 						continue;
 					}

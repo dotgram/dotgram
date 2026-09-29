@@ -323,8 +323,11 @@ sealed partial class Machine
 	/// The members a guard is handed: those captured before it that its condition names,
 	/// each with the slots that stand before it. Whether the condition names one is the
 	/// scanner's answer (<see cref="CSharpEmitter.Uses"/>), not merely whether its text
-	/// contains the parameter's spelling — a guard mentioning <c>context</c> does not also
-	/// name a capture called <c>c</c>.
+	/// contains the name's spelling — a guard mentioning <c>context</c> does not also name
+	/// a capture called <c>c</c>. Asked by the capture's own name, not the parameter it
+	/// becomes: a capture called <c>class</c> is escaped to <c>@class</c> as a parameter
+	/// (<see cref="ResultTypes.ParameterOf(ResultMember)"/>), but the scanner's free names
+	/// hold what C# calls the identifier, which is <c>class</c> either way.
 	/// </summary>
 	List<(ResultMember Member, IReadOnlyList<int> Slots)> GuardMembers(RuleSymbol rule, Node.Guard guard)
 	{
@@ -352,7 +355,7 @@ sealed partial class Machine
 				if (slot < before && (step is null || step.Contains(slot)))
 					slots.Add(slot);
 
-			if (slots.Count == 0 || !CSharpEmitter.Uses(_graph, guard.Text, ResultTypes.ParameterOf(member)) || member.Name == accumulator)
+			if (slots.Count == 0 || !CSharpEmitter.Uses(_graph, guard.Text, member.Name) || member.Name == accumulator)
 				continue;
 
 			var optional = GuardCaptureAdmitsAbsence(rule, guard, member);

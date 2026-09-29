@@ -25373,3 +25373,30 @@ direct on and off, `find` on and off. `DotGram.Tests` (9998), `DotGram.Tests.Slo
 `DotGram.Sql.Tests` (14906) and `DotGram.Finance.Tests` (4483) all pass; the snapshot baseline
 (`tests/Snapshots`) stayed byte-identical, since none of its five grammars has a guard this
 changes.
+
+## The scanner's free names are the capture's own, not the parameter it becomes
+
+Review of the entry above found the same fix one step short. `CSharpEmitter.Uses` was asked
+about `ResultTypes.ParameterOf(member)` at both sites, which is the capture's name *escaped for
+where it becomes a C# parameter* — `class` is `@class` there. The scanner's free names hold what
+Roslyn calls the identifier, which is `class` either way (`Identifier.ValueText` drops the `@`),
+so `Uses(_graph, text, "@class")` was never true and a guard genuinely naming a keyword-named
+capture lost it exactly as the substring bug's victims did — `class: D & when @(@class == "5")`
+built a guard method with no `@class` parameter at all: CS0103, or worse, a silent read of a
+same-named host member if one happened to be in scope, since `@class` then resolves to whatever
+the enclosing class declares. `GuardAccumulator` already asked by the plain name (previous
+entry's `found`, never `ParameterOf(found)`); both sites now do the same — `member.Name`, not
+`ResultTypes.ParameterOf(member)` — which is also what the word-match fallback needed: `Names`
+does not treat `@` as continuing an identifier, so it already found `class` inside `@class`
+correctly and needed no change.
+
+No shipped grammar names a capture for a keyword, so this changes nothing built:
+`SqlStandardParser.g.cs` and `TransactSqlParser.g.cs`, rebuilt clean and compared byte for byte
+against the fix one commit before this one, are identical.
+
+Tests: `GuardRepeatedCaptureTests.A_guard_naming_a_keyword_named_capture_reads_the_capture_not_a_host_member`,
+`class` and `using` as an ordinary (non-accumulator) capture a guard names for real, on every
+carrier, direct on and off, `find` on and off — once compiled plain, where the previous mistake
+was CS0103, and once beside an unrelated host member of the same escaped name, where the previous
+mistake would have compiled and read the wrong thing. `DotGram.Tests` (10010) and
+`DotGram.Sql.Tests` (14906) pass.

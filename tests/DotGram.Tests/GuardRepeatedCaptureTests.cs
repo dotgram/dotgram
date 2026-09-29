@@ -724,6 +724,65 @@ public sealed class GuardRepeatedCaptureTests
 		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
 	}
 
+	/// <summary>
+	/// A capture named for a C# keyword is escaped as a parameter — <c>class</c> becomes
+	/// <c>@class</c> — but a guard is asked for by the capture's own name, what the scanner
+	/// calls it, which is <c>class</c> either way: the free names of <c>@class == "5"</c> are
+	/// <c>{ "class" }</c>, not <c>{ "@class" }</c>. Getting this backwards costs more than the
+	/// capture: with no host member of the escaped name in scope the guard's own method simply
+	/// never declares <c>@class</c> (CS0103), and with one — a static field, unrelated, that
+	/// happens to share the spelling — the guard compiles and silently reads that instead of
+	/// the capture the parse actually made. The fold accumulator's own <c>class</c> row
+	/// (<c>A_fold_step_is_handed_its_own_captures</c>, "Named as C# names it") goes through
+	/// <see cref="Machine.GuardAccumulator"/>, a different path; this is an ordinary capture,
+	/// through <see cref="GuardMembers"/> and the engine's own guard-parameter loop.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_guard_naming_a_keyword_named_capture_reads_the_capture_not_a_host_member(
+		CarrierKind carrier, bool direct, bool find)
+	{
+		var wrong = new List<string>();
+
+		foreach (var keyword in new[] { "class", "using" })
+		{
+			var grammar =
+				"D = ['0'..'9']\nT : @string = " + keyword + ": D & when @(@" + keyword + " == \"5\") => @(@" + keyword + "!)";
+			var result  = GramCompiler.Compile(
+				grammar + "\nparse T" + (find ? "\nfind T" : ""),
+				new GramCompilerOptions
+				{
+					ClassName     = "Grammar",
+					CSharpScanner = RoslynCSharpScanner.Instance,
+					Carrier       = carrier,
+					Direct        = direct,
+				});
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+			var source = Assert.Single(result.Sources).Text;
+
+			// No host member of the escaped name: the bug this guards against is a flat
+			// CS0103, the guard's own method never declaring `@class` at all.
+			var plain      = EmittedCode.Compile(source, declarationMembers: Members);
+			var plainMatch = EmittedCode.Match(plain, "Grammar", "TryParseT", "5");
+			if (!plainMatch.IsSuccess || (string)plainMatch.Value! != "5")
+				wrong.Add(keyword + " (no host member): " +
+					(plainMatch.IsSuccess ? (string)plainMatch.Value! : "<refused " + plainMatch.Error + ">"));
+
+			// One in scope, deliberately wrong: the guard has to read "5", the capture, and
+			// not "wrong", the host field — which it would, silently, on the bug's watch.
+			// A property, not a field: a host field the fixed guard never reads would be
+			// CS0414 ("assigned but its value is never used"), which the harness also treats
+			// as a failure, and that is not the property this row is testing.
+			var shadowed      = EmittedCode.Compile(source, declarationMembers: Members + "\nstatic string @" + keyword + " => \"wrong\";");
+			var shadowedMatch = EmittedCode.Match(shadowed, "Grammar", "TryParseT", "5");
+			if (!shadowedMatch.IsSuccess || (string)shadowedMatch.Value! != "5")
+				wrong.Add(keyword + " (host member shadows): " +
+					(shadowedMatch.IsSuccess ? (string)shadowedMatch.Value! : "<refused " + shadowedMatch.Error + ">"));
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
 	/// <summary>Compiles <c>F</c> alone, without asserting it is free of errors.</summary>
 	static GramCompilation Compiled(string rule, CarrierKind carrier, bool direct, bool find)
 	{
