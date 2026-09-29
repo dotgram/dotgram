@@ -224,8 +224,7 @@ public sealed class RoslynSymbolResolver(
 		var host  = (ISymbol?)(_host is not null ? _compilation.GetTypeByMetadataName(_host) : null) ??
 			_compilation.Assembly;
 
-		foreach (var symbol in _compilation.GetSymbolsWithName(
-			name => string.Equals(name, methodName, StringComparison.Ordinal), SymbolFilter.Member))
+		foreach (var symbol in _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member))
 		{
 			if (symbol is not IMethodSymbol method || !Recognizes(method) ||
 				method.Parameters.Length < 3 || method.Parameters[2].RefKind != RefKind.Out ||
@@ -303,8 +302,7 @@ public sealed class RoslynSymbolResolver(
 					return RecognitionForm(method, role);
 			}
 
-		foreach (var symbol in _compilation.GetSymbolsWithName(
-			name => string.Equals(name, methodName, StringComparison.Ordinal), SymbolFilter.Member))
+		foreach (var symbol in _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member))
 		{
 			if (symbol is not IMethodSymbol method)
 				continue;
