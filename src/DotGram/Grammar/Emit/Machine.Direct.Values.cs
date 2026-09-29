@@ -917,7 +917,9 @@ sealed partial class Machine
 					// `Opened` below the end of the log is exactly the case where it is the root. A discarded
 					// record began at or after the position the log was put back to, so `Opened` is then at or
 					// past the end; and where no marks are placed, which is the only place this is written,
-					// the log grows again only by opening a record, which moves `Opened` with it. One
+					// the log grows again only by opening a record, which moves `Opened` with it. That rests on
+					// two more things: a record's Begin, its values and its End are written with nothing between
+					// them, so a give-back never lands inside one; and no recovery reads the rule. One
 					// comparison here rather than `Opened` saved at every mark a give-back restores; where it
 					// fails, the walk below answers.
 					file.Line("if (roots < 0 && root >= first && root == ways.Records - 1 && ways.Opened < ways.LogCount &&");
