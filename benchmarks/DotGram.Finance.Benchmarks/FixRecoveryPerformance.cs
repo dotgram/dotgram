@@ -57,11 +57,14 @@ public static class FixRecoveryPerformance
 
 	static Func<string,Array> Bind(string path, string name)
 	{
+		// ParseFields under log framing, which is what ParseLog became: the framing is the context's.
 		var assembly = new AssemblyLoadContext(name).LoadFromAssemblyPath(Path.GetFullPath(path));
-		var type = (assembly.GetType("DotGram.Finance.Fix.Fix44.FixParser") ?? assembly.GetType("DotGram.Finance.Fix.FixParser", true))!;
-		var method = type.GetMethods().Single(m => m.Name == "ParseLog" && m.GetParameters()[0].ParameterType == typeof(string));
-		var input = Expression.Parameter(typeof(string));
-		var call = Expression.Call(method, input, Expression.Constant(null, method.GetParameters()[1].ParameterType));
+		var type     = assembly.GetType("DotGram.Finance.Fix.Fix44.FixParser", true)!;
+		var context  = assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Context", true)!;
+		var method   = type.GetMethod("ParseFields", [typeof(string), context])!;
+		var framing  = context.GetProperty("WithLogFraming")!.GetValue(null);
+		var input    = Expression.Parameter(typeof(string));
+		var call     = Expression.Call(method, input, Expression.Constant(framing, context));
 
 		return Expression.Lambda<Func<string,Array>>(Expression.Convert(call, typeof(Array)), input).Compile();
 	}
