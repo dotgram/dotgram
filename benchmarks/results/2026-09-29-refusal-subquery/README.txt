@@ -1,5 +1,5 @@
 T-SQL, "subqueries opened and not closed": the reported rise of the refusal's exponent from 0.91 (2026-09-20)
-to 1.72, counted rather than timed. 2026-09-29. Verdict: THE RISE DOES NOT REPRODUCE, and no commit changed the work.
+to 1.72, counted rather than timed. 2026-09-29. Verdict: the work did not change; 1.72 does not reproduce here, on CI, or in the guard.
 
 THE SERIES. RefusalLadders' `T-SQL statement | subqueries opened and not closed`: "SELECT * FROM " + n times
 "(SELECT * FROM " + "t", through TransactSqlParser.TryParseStatement(t).IsSuccess, n from 4 to 188.
@@ -59,6 +59,10 @@ now include two thread creations a call. It was measured in the ladder at 1 MiB 
 ends. Which commit moved it was not bisected.
 
 WHAT THIS DOES NOT PROVE. The counts cover the generated code and DotGram.Sql's own. They do not cover the
-runtime (JIT, GC, thread creation) or the machine, which is where a clock-only rise would have to live. A
-reading of 1.72 on the old machine may have been real there, from a cause that the counts, this machine and CI
-cannot see. It may also have been noise. With no record of it, nothing here can tell those apart.
+runtime (JIT, GC, thread creation) or the machine. This says nothing about what was measured on the old machine.
+The one plausible way a clock alone could rise while the work does not: the thread hop at about 175 levels now
+falls inside the ladder's range, whose top rung is 188. A rung that pays for thread creations can bend a fit
+over the top of a ladder, more so on Windows, where creating a thread costs more. It did not bend it here.
+
+SINCE THEN. The guard prints every series' fitted exponent with where it was measured (commit, OS, runtime,
+machine), so that the next figure like this one has a source.
