@@ -292,6 +292,22 @@ Everything a generated parser needs is emitted into the consuming assembly as in
 There is no runtime assembly to deploy, and no generator/runtime version pair that can
 drift apart.
 
+## Threads
+
+A generated parser's static methods may be called from any number of threads at once,
+and a parse reached from inside another's action or guard is safe the same way. What one
+call needs while it runs is kept per thread and handed back when the call returns; a
+nested call takes a spare of its own rather than contending with the call that reached it.
+What is shared between threads is only what the grammar never changes once generated. A
+thread whose one large parse needed an oversized buffer is not charged for it forever: the
+buffer is let go once a few calls in a row stop needing it that size.
+
+None of this reaches your own C#. A `=>`, a `when`, a recovery hook or an external
+recognizer that keeps state of its own — a static field, a cache — is your code, and
+making it safe under concurrency is your job there the same as anywhere else you write
+it: see [§7.7](https://github.com/dotgram/dotgram/blob/main/docs/syntax.md#77-what-a-parse-works-out-and-the-api-has-nowhere-to-keep)
+on why a `when` should not simply write one.
+
 ## Compatibility
 
 The generated parser is C# 8 and targets whatever the project around it targets.

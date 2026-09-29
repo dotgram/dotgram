@@ -1794,3 +1794,26 @@ coverage. Many diagnostics are raised and asserted by the semantic, driver and e
 tests, but no test checks that each of them is, and "every diagnostic has a test that
 raises it" — which this paragraph used to say, of twenty-nine — is not claimed for today's
 eighty-odd.
+
+`ConcurrentParsingTests` holds the concurrency claim to a real race rather than to
+reasoning about it: a parser of every shipped package, read at once by a large batch of
+brand-new threads and a smaller batch already several rounds into reading, is required to
+answer every row exactly as the one single-threaded reading computed before any of them
+started. Its re-entrant row is a small grammar built for the one shape no shipped grammar
+happens to need — an action that calls the generated class's own `TryParse` while the
+outer parse is still open — read the same way, by many threads at once. What makes this
+true rather than assumed: every mutable field the pool keeps (`CSharpEmitter`, around the
+`Rented_`/`Recycle_` pair for each machine) is `[ThreadStatic]`, and a call reached while a
+thread is already inside one takes a deeper spare instead of the one already checked out.
+Memory held per thread is not unbounded, but it is not simply the largest parse that
+thread ever did either: a buffer grown past the ordinary size is only weakly held once the
+next few calls stop asking for it (`_largeTokensIdle`, `_spareTokensIdle`), so a thread's
+one large parse is eventually let go rather than kept forever. A handful of statics are
+shared rather than per-thread — the `Expected` arrays a refusal's message is built from,
+lazily built the first time one is asked for behind an `Interlocked.CompareExchange` — and
+are safe for the same reason a `[ThreadStatic]` field is not needed there: the value built
+is the same regardless of which thread's attempt wins, so a race costs a discarded
+duplicate array and nothing else. None of this reaches the grammar author's own C#: a
+`=>`, `when`, recovery hook or external recognizer that keeps static state of its own is
+exactly as unsafe under concurrency as any other static field written from more than one
+thread, which is what §7.7 already says about a `when` writing one.

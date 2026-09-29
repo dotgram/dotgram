@@ -65,6 +65,11 @@ if (!match.IsSuccess)                    // there is no minus over a string
     Console.WriteLine(match.Error);      // what Expression.Subtract said about String and Int32
 ```
 
+`Compile`, `Parse` and `TryParse` may all be called from any number of threads at once — the
+generated parser's own contract — and the member-resolution caches behind name and overload
+lookups are shared across every call and thread, kept in their own concurrent tables rather
+than per call.
+
 A type named rather than spelled as a keyword is found the way C# finds one: written whole,
 or through a `using` at the top of the text. Five namespaces are there already — the set a
 new project gets: `System`, `System.Collections.Generic`, `System.Linq`, `System.Text` and

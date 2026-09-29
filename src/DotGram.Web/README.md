@@ -52,6 +52,10 @@ Every `Parse` throws `FormatException`, its message naming where the text stoppe
 every `TryParse` answers `false` instead. A value that parses is a record: equal to another
 that means the same, and written back by `ToString` in the form the specification generates.
 
+Every one of these may be called from any number of threads at once; that is the generated
+parser's own contract, not something this package adds
+([`DotGram`'s README](https://github.com/dotgram/dotgram/blob/main/src/DotGram/README.md#threads)).
+
 ## JSON
 
 ```csharp

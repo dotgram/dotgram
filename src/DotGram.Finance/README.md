@@ -91,6 +91,10 @@ field in source order, repeated and unknown tags included, and assemble nothing:
 groups, no required fields, no BodyLength or CheckSum. Use them for logs, for pulling a few values
 out, and for anything that must not reject input.
 
+`FixParser`'s methods, on every version, may be called from any number of threads at once; that
+is the generated parser's own contract, not something this package adds
+([`DotGram`'s README](https://github.com/dotgram/dotgram/blob/main/src/DotGram/README.md#threads)).
+
 A syntax error does not throw: it becomes one `FixField.Invalid`, with the position, the length and
 the raw input of what was refused, and reading resumes after the next separator. A value that does
 not convert — `38=abc` — is still its field, with `IsValid` false.

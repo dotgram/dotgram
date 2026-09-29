@@ -87,6 +87,10 @@ What they read is held against SQL Server itself, against a corpus of somebody e
 against a round trip — parse, print, and compare the two readings — which catches a parser that
 answers yes and builds the wrong thing.
 
+All three of these parsers may be called from any number of threads at once; that is the
+generated parser's own contract, not something this package adds
+([`DotGram`'s README](https://github.com/dotgram/dotgram/blob/main/src/DotGram/README.md#threads)).
+
 ## Taking one
 
 ```xml

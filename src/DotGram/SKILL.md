@@ -359,6 +359,18 @@ it, so declaring one and never using it costs nothing and adds no argument.
 `X with state @(1)`, which is how a grammar reads something differently inside a region
 it entered.
 
+## Threads
+
+A generated parser's static methods may be called from any number of threads at once,
+nested calls included — a guard or an action that parses again while the outer parse is
+still running gets its own working state rather than sharing or waiting for the outer
+call's. Nothing written in the notation itself can break this.
+
+What can: a `=>`, a `when`, a recovery hook or an external recognizer that reads or
+writes static state of its own. That is why the line above says a `when` that writes a
+plain static field has made it global — make any such state thread-safe yourself, the
+same as you would in any other C# called from more than one thread.
+
 ## What the attribute can be told
 
 ```csharp
