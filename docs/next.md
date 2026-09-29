@@ -25271,8 +25271,8 @@ now handed the value so far on every path:
   per derivation (`A_fold_step_value_a_guard_asked_for_is_built_once`), and the engine's guard in
   every step is linear in the steps. Once per derivation, not once per parse: where `F` is read again
   after a give-back, the tape and the engine build that reading's steps again, as §3.6 allows.
-  Where a step's construction asks for `parserText` or `parserSpan`, the helper hands it the rule
-  from its start to where the guard stands, as the guard's own `parserText` is.
+  A step's construction that asks for `parserText` or `parserSpan` is handed its own application's
+  extent (below), so building it early changes nothing it is handed.
 
 Whether a guard names the accumulator is the scanner's answer (`CSharpEmitter.Uses`, the free names
 of the C#), with a word match only where there is no scanner: a match on text builds a fold during
@@ -25289,3 +25289,12 @@ the accumulator (text and rule values, two tails, a base capturing the same name
 carrier with the reader on and off, green after. The absent optional of the earlier entry reaches the
 guard as null for a rule's value too (a row, green before). The emitted code of every shipped grammar
 is byte-identical: only a fold whose step guard names its accumulator changes shape, and none ships.
+
+**A fold step's extent is its application's.** The engine handed every construction of a fold the
+whole call's extent — `parserText` of each step of "1,2,3" was "1,2,3", and the base's too — while the
+readers hand each the application's, "1", "1,2", "1,2,3". §4.3 makes each application a derivation of
+the rule, and §3.6 has a value built early for a guard be exactly the value acceptance uses, so the
+readers are right: the engine now cuts from where the call began to where the construction entry was
+recorded, at acceptance and in the guard's helper alike (`A_fold_step_is_handed_its_own_extent`, red
+on the engine's readings before). A behaviour change to the engine's output wherever a fold's
+construction asks for its text or span or is located.

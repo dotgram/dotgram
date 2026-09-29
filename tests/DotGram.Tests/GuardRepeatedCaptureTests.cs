@@ -389,6 +389,43 @@ public sealed class GuardRepeatedCaptureTests
 	}
 
 	/// <summary>
+	/// Each application of a fold is a derivation of the rule (§4.3), so a construction asking
+	/// for the text or the span it was read over is handed that application's — from where the
+	/// rule began to where that step ended — on every path, and the same whether its value was
+	/// built at acceptance or for a guard in a later step.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_fold_step_is_handed_its_own_extent(CarrierKind carrier, bool direct, bool find)
+	{
+		var wrong = new List<string>();
+
+		foreach (var (rule, input, expected) in new[]
+		{
+			("l: F & ',' & y: D => @(l + \"[\" + parserText + \"]\") | y: D => @(\"[\" + parserText + \"]\")",
+				"1,2,3", "[1][1,2][1,2,3]#"),
+			("l: F & ',' & y: D => @(l + parserSpan.Start + \"+\" + parserSpan.Length + \";\") | " +
+				"y: D => @(parserSpan.Start + \"+\" + parserSpan.Length + \";\")",
+				"1,2,3", "0+1;0+3;0+5;#"),
+			// Built for a guard before the call has ended, in the middle of a step and at its end.
+			("l: F & ',' & when @(Log(l)) & y: D => @(l + \"[\" + parserText + \"]\") | y: D => @(\"[\" + parserText + \"]\")",
+				"1,2,3", "[1][1,2][1,2,3]#[1];[1][1,2]"),
+			("l: F & ',' & y: D & when @(Log(l)) => @(l + \"[\" + parserText + \"]\") | y: D => @(\"[\" + parserText + \"]\")",
+				"1,2,3", "[1][1,2][1,2,3]#[1];[1][1,2]"),
+		})
+		{
+			var grammar = "D = ['0'..'9']\nF : @string = " + rule + "\nT : @string = f: F => @(f + \"#\" + Take())";
+			var match   = EmittedCode.Match(Compile(grammar, carrier, direct, find), "Grammar", "TryParseT", input);
+			var answer  = match.IsSuccess ? (string)match.Value! : "<refused " + match.Error + ">";
+
+			if (answer != expected)
+				wrong.Add(rule + " on '" + input + "': " + answer + ", not " + expected);
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
 	/// A guard that refuses a step on the value so far ends the fold there, and what follows
 	/// reads on from where the last step it let through ended.
 	/// </summary>

@@ -1245,20 +1245,27 @@ sealed partial class Machine
 	/// the span and about none of the three added since. A factory's parameters are written
 	/// once, in <c>CSharpEmitter</c>, so what fills them has to be written once too or the
 	/// next name added is a call missing an argument in somebody else's build.
+	/// <para>
+	/// The extent is the application's, not the call's (§4.3): each construction of a fold
+	/// is a derivation of the rule, from where the rule began to where that construction was
+	/// recorded (the construction entry keeps the position), which is what the readers hand
+	/// it. So the base is handed "1" of "1,2,3" and the second step "1,2,3", whether the fold
+	/// is walked at acceptance or for a guard before the call has ended.
+	/// </para>
 	/// </remarks>
 	List<string> Supplied(Writer file, Factory factory, string at)
 	{
 		var arguments = new List<string>();
 
 		// Materialized only where the expression names it. It is the whole of what the
-		// rule matched, so building it for an expression that never looks at it doubles
-		// what a parse allocates — twice the string, for a rule whose value is the
+		// application matched, so building it for an expression that never looks at it
+		// doubles what a parse allocates — twice the string, for a rule whose value is the
 		// capture inside it.
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
+			arguments.Add(Cut("entries[completedAt].Position", "construct.Position - entries[completedAt].Position"));
 
 		if (CSharpEmitter.WantsSpan(_graph, factory))
-			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
+			arguments.Add(Span("entries[completedAt].Position", "construct.Position - entries[completedAt].Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -1506,11 +1513,6 @@ sealed partial class Machine
 	/// the steps before the guard captured built, as a guard's own are, then the fold walked
 	/// up to where the parse stands.
 	/// </summary>
-	/// <remarks>
-	/// The call has not ended, so where a construction is handed the text or the span it
-	/// was read over, that is the rule from where it began to the position the guard is
-	/// at — what the guard's own <c>parserText</c> is.
-	/// </remarks>
 	void WriteFoldsSoFar()
 	{
 		if (_foldsSoFarWritten)
@@ -1531,20 +1533,12 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static {type} {method}({InputType} text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int call, int p)"))
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int call)"))
 		{
 			helper.Line("var values = parser.Materialization(entries.Count);");
 			DeclareTables(helper);
 			helper.Line("var built  = parser.Materialized();");
 			helper.Line("var completedAt = call;");
-
-			if (_factories[rule].Any(factory => CSharpEmitter.WantsText(_graph, factory) || CSharpEmitter.WantsSpan(_graph, factory)))
-			{
-				helper.Line("var called    = entries[call];");
-				helper.Line(
-					"var completed = new ParserEntry(ParserEntry.Completed, called.State, called.Position, called.CallIndex, " +
-					"called.AtomicIndex, called.RepeatIndex, called.LookaheadIndex, p, called.RuleIndex);");
-			}
 
 			// The marks are chained over the whole arena, so only for a construction that reads them.
 			if (_factories[rule].Any(factory =>

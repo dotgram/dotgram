@@ -3113,7 +3113,7 @@ sealed partial class Machine
 				if (accumulator is not null)
 					writer.Line(
 						$"var guardAccumulated = {FoldSoFar(rule)}(text, parser, " +
-						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, call, p);");
+						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, call);");
 
 				// To wherever failure is routed, like a terminal test — which today is
 				// `Fail:` everywhere but inside a committed choice, where a refused guard
