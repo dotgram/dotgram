@@ -30,12 +30,34 @@ namespace DotGram.Tests;
 /// same question <see cref="BlockScalingTests"/> does, at four doubling sizes: bytes an element
 /// stays flat, rather than reading a total against one number picked to fit a first measurement.
 /// </para>
+/// <para>
+/// <b>Warmed at the top size, not the one being measured.</b> This read intermittently on the
+/// GitHub Windows job (0e4af21b, 0d8fa0cd): 128 elements at 721.8 bytes each and 256 at 906.7, 1.26
+/// times as many, where the fix leaves both flat. The cause is not the JIT: disabling tiered
+/// compilation outright (<c>DOTNET_TieredCompilation=0</c>, and separately <c>DOTNET_TieredPGO=0</c>
+/// and <c>DOTNET_TC_QuickJitForLoops=0</c>) reproduces byte-for-byte the same counts as an ordinary
+/// run. What moves instead is the generated parser's own state — the value table, the choice
+/// stores, the materialization arena — kept in <c>[ThreadStatic]</c> fields and grown by doubling
+/// the first time a size asks more of them than a spare already holds, with a spare let go once
+/// several parses in a row have not wanted the room it holds. Warming up only at the size about to
+/// be measured, as this did, leaves it to chance which of the handful of calls at a size pays for a
+/// pool's growth or its release; which size that lands on depends on what earlier work already grew
+/// this thread's pools to, not on the count under test — which is why it read fine on Linux and only
+/// sometimes on Windows, where the earlier work differs. Running the largest size once before
+/// anything is measured settles every pool at the capacity the whole sweep needs, and keeping the
+/// smallest of several runs at each size absorbs whatever a release still costs later on: measured
+/// this way the four sizes read 600.6, 599.7, 599.3 and 599.2 bytes an element, identical across
+/// repeated runs of the process.
+/// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class WebListRefusalAllocationTests
 {
 	/// <summary>Doubling sizes; the note's own worst case (1,024) is the top rung.</summary>
 	static readonly int[] Sizes = [128, 256, 512, 1024];
+
+	/// <summary>How many timed runs a size is measured over; the smallest of them is kept.</summary>
+	const int Runs = 5;
 
 	[Fact]
 	public void A_refused_Forwarded_field_still_refuses_at_every_size()
@@ -55,14 +77,14 @@ public sealed class WebListRefusalAllocationTests
 	[Fact]
 	public void A_refused_Forwarded_field_allocates_about_as_many_bytes_an_element_at_every_size()
 	{
-		AssertLinear(size => Allocated(() => ForwardedElement.TryParseField(ForwardedRefusal(size), out _)));
+		AssertLinear(ForwardedRefusal, text => ForwardedElement.TryParseField(text, out _));
 	}
 
 	/// <summary>Four times the links, and what a refusal allocates grows by about four — not sixteen.</summary>
 	[Fact]
 	public void A_refused_Link_field_allocates_about_as_many_bytes_a_link_at_every_size()
 	{
-		AssertLinear(size => Allocated(() => WebLink.TryParseField(LinkRefusal(size), out _)));
+		AssertLinear(LinkRefusal, text => WebLink.TryParseField(text, out _));
 	}
 
 	/// <summary>
@@ -70,9 +92,19 @@ public sealed class WebListRefusalAllocationTests
 	/// quadratic allocator doubles bytes an element at every doubling in the count; this catches that at
 	/// each of three steps rather than only between the first and the last.
 	/// </summary>
-	static void AssertLinear(Func<int, long> allocatedFor)
+	static void AssertLinear(Func<int, string> textFor, Func<string, bool> parse)
 	{
-		var perElement = Sizes.Select(size => allocatedFor(size) / (double)size).ToArray();
+		var texts = Sizes.Select(textFor).ToArray();
+
+		// The largest size, run once and discarded, before any size below it is measured: whatever
+		// growing the parser's thread-static pools to fit it costs is paid here, not by whichever
+		// size's measured run happens to ask a pool for more room next.
+		parse(texts[^1]);
+
+		var perElement = new double[Sizes.Length];
+
+		for (var i = 0; i < Sizes.Length; i++)
+			perElement[i] = Allocated(texts[i], parse) / (double)Sizes[i];
 
 		for (var i = 1; i < Sizes.Length; i++)
 			Assert.True(
@@ -82,17 +114,25 @@ public sealed class WebListRefusalAllocationTests
 				"times as many, where a list that does not re-read itself would stay flat.");
 	}
 
-	/// <summary>Bytes this thread allocates running <paramref name="action"/>, warmed up first so pool growth is not counted.</summary>
-	static long Allocated(Action action)
+	/// <summary>
+	/// The fewest bytes this thread allocates running <paramref name="parse"/> over <paramref name="text"/>,
+	/// across <see cref="Runs"/> runs. The fewest and not an average or a last: a pool's one-time growth or
+	/// release can still land on any one of them, and the fewest is the run neither cost reached.
+	/// </summary>
+	static long Allocated(string text, Func<string, bool> parse)
 	{
-		action();
-		action();
+		var fewest = long.MaxValue;
 
-		var before = GC.GetAllocatedBytesForCurrentThread();
+		for (var run = 0; run < Runs; run++)
+		{
+			var before = GC.GetAllocatedBytesForCurrentThread();
 
-		action();
+			parse(text);
 
-		return GC.GetAllocatedBytesForCurrentThread() - before;
+			fewest = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
+		}
+
+		return fewest;
 	}
 
 	/// <summary><paramref name="elements"/> valid Forwarded elements, then one with no value after <c>for=</c>.</summary>
