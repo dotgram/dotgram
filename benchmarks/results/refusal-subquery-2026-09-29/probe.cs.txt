@@ -1,0 +1,52 @@
+using DotGram.Sql.TransactSql;
+namespace RecProbe
+{
+	public static class C
+	{
+		public static long[] ByName = new long[65536];
+		public static void Enter(int id) { ByName[id]++; }
+		public static bool Turn(int id) { ByName[id]++; return true; }
+	}
+	static class Program
+	{
+		static string Text(int n) => "SELECT * FROM " + string.Concat(Enumerable.Repeat("(SELECT * FROM ", n)) + "t";
+		static void Main(string[] args)
+		{
+			var names = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "names.txt"));
+			var depths = args.Length > 0 ? args.Select(int.Parse).ToArray() : new[] { 25, 50, 100, 200 };
+			var stack = int.Parse(Environment.GetEnvironmentVariable("STACK") ?? "262144") * 1024;
+			var table = new List<long[]>();
+			foreach (var n in depths)
+			{
+				var text = Text(n); var ok = false;
+				var t = new Thread(() =>
+				{
+					TransactSqlParser.TryParseStatement(Text(3));
+					Array.Clear(C.ByName);
+					ok = TransactSqlParser.TryParseStatement(text).IsSuccess;
+				}, stack);
+				t.Start(); t.Join();
+				table.Add((long[])C.ByName.Clone());
+				long reads = 0, other = 0, loops = 0, deep = 0, hand = 0;
+				for (var i = 0; i < names.Length; i++)
+				{
+					if (names[i].StartsWith("h:")) hand += C.ByName[i];
+					else if (names[i].Contains("  [")) loops += C.ByName[i];
+					else if (names[i].Contains(" Deepen_")) deep += C.ByName[i];
+					else if (names[i].Contains(" Read_")) reads += C.ByName[i];
+					else other += C.ByName[i];
+				}
+				Console.WriteLine($"n={n,4} accepted={ok} Read_ entries={reads,12:N0} other entries={other,12:N0} loop turns={loops,12:N0} hand-offs={deep} handwritten={hand,10:N0}");
+			}
+			var over = Enumerable.Range(0, names.Length).Where(i => table[^1][i] > 4 && (table[^2][i] == 0 || Math.Log((double)table[^1][i] / table[^2][i]) / Math.Log((double)depths[^1] / depths[^2]) > 1.1)).ToList();
+			Console.WriteLine($"sites growing faster than linear between the last two depths: {over.Count}");
+			foreach (var i in over.Take(40)) Console.WriteLine($"  {table[^2][i],10:N0} -> {table[^1][i],10:N0}  {names[i]}");
+			// per-rule growth between the last two depths, top 25 by count at the largest
+			var a = table[^2]; var b = table[^1];
+			var ratio = (double)depths[^1] / depths[^2];
+			Console.WriteLine($"top rules at n={depths[^1]} (count at n={depths[^2]} -> n={depths[^1]}, exponent):");
+			foreach (var i in Enumerable.Range(0, names.Length).Where(i => b[i] > 0).OrderByDescending(i => b[i]).Take(int.Parse(Environment.GetEnvironmentVariable("TOP") ?? "25")))
+				Console.WriteLine($"  {a[i],10:N0} -> {b[i],10:N0}  {(a[i] > 0 ? Math.Log((double)b[i] / a[i]) / Math.Log(ratio) : double.NaN),5:F2}  {names[i]}");
+		}
+	}
+}

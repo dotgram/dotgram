@@ -1,0 +1,16 @@
+#!/bin/bash
+# run.sh <worktree> <label> [depths...]: build DotGram.Sql there, instrument its generated parsers and its handwritten code, count.
+set -e
+W=$1; L=$2; shift 2
+source ~/.profile; export MSBUILDDISABLENODEREUSE=1
+R=/ramdisk/tmp/refexp/rec
+cd $W
+if [ -z "$NOBUILD" ]; then
+dotnet build src/DotGram.Sql/DotGram.Sql.csproj -c Release -f net10.0 -nodeReuse:false -p:EmitCompilerGeneratedFiles=true -p:CompilerGeneratedFilesOutputPath=obj/GeneratedFiles > /ramdisk/logs/refexp-$L.log 2>&1 || { tail -20 /ramdisk/logs/refexp-$L.log; exit 1; }
+fi
+GD=$(dirname $(find src/DotGram.Sql/obj/GeneratedFiles -name "*TransactSqlParser.g.cs" | head -1))
+rm -rf $R/gen $R/names.txt; mkdir -p $R/gen
+python3 $R/instrument.py $R/gen g $(ls $GD/*.cs | grep -v DotGramReport)
+python3 $R/instrument.py $R/gen h $(find src/DotGram.Sql -name "*.cs" -not -path "*/obj/*" -not -path "*/bin/*")
+cd $R && dotnet build rec.csproj -c Release -nodeReuse:false -o $R/out > /ramdisk/logs/refexp-rec-$L.log 2>&1 || { grep -E "error" /ramdisk/logs/refexp-rec-$L.log | sort -u | head -20; exit 1; }
+dotnet $R/out/rec.dll "$@"

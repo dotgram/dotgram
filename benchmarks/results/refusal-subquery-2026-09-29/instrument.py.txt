@@ -1,0 +1,73 @@
+# instrument.py <out-dir> <label> <file>...: every method entry and every loop turn counted by site.
+# Method: a counter as the first statement of the body. Loop: for/while count in their condition
+# (so an unbraced body is counted too; one extra per exit), foreach in its braced body.
+import re, os, glob, sys
+S, label, files = sys.argv[1], sys.argv[2], sys.argv[3:]
+NL, TAB = chr(10), chr(9)
+os.makedirs(S, exist_ok=True)
+meth = re.compile(r'^\s*(?:(?:public|internal|private|protected|static|override|readonly|unsafe|sealed|virtual|new|async)\s+)+(?:[\w.<>\[\],:?() ]+\s+)?(\w+)\s*(?:<[^>]*>)?\([^;]*\)\s*(?:where .*)?$')
+head = re.compile(r'^(\s*)(for|while)\s*\((.*)\)(\s*;?\s*(?://.*)?)$')
+names_path = S + '/../names.txt'
+names = open(names_path).read().split(NL) if os.path.exists(names_path) and os.path.getsize(names_path) else []
+missed = 0
+def split_top(s):
+    parts, depth, cur = [], 0, ''
+    for ch in s:
+        if ch in '([{': depth += 1
+        if ch in ')]}': depth -= 1
+        if ch == ';' and depth == 0:
+            parts.append(cur); cur = ''
+        else:
+            cur += ch
+    parts.append(cur)
+    return parts
+def balanced(s):
+    d = 0
+    for ch in s:
+        if ch == '(': d += 1
+        if ch == ')':
+            d -= 1
+            if d < 0: return False
+    return d == 0
+for path in files:
+    base = os.path.basename(path)
+    short = label + ':' + base.replace('DotGram.Sql.', '').replace('.g.cs', '').replace('TransactSql.TransactSqlParser', 'T').replace('Standard.', '').replace('.cs', '')
+    src = open(path, encoding='utf-8-sig').read().split(NL)
+    out, pending, current = [], None, '?'
+    for i, ln in enumerate(src):
+        if pending is not None:
+            if ln.strip() == '{':
+                out.append(ln)
+                out.append(TAB * 4 + 'global::RecProbe.C.Enter(%d);' % pending)
+                pending = None
+                continue
+            pending = None
+        st = ln.strip()
+        m = meth.match(ln)
+        h = head.match(ln)
+        if h and balanced(h.group(3)):
+            names.append('%s %s  [%s @%d]' % (short, current, h.group(2), i + 1))
+            idx = len(names) - 1
+            if h.group(2) == 'while':
+                ln = '%swhile (global::RecProbe.C.Turn(%d) && (%s))%s' % (h.group(1), idx, h.group(3), h.group(4))
+            else:
+                p = split_top(h.group(3))
+                if len(p) == 3:
+                    cond = p[1].strip() or 'true'
+                    ln = '%sfor (%s; global::RecProbe.C.Turn(%d) && (%s);%s)%s' % (h.group(1), p[0], idx, cond, p[2], h.group(4))
+                else:
+                    missed += 1
+        elif st.startswith('foreach (') and st.endswith(')'):
+            if i + 1 < len(src) and src[i + 1].strip() == '{':
+                names.append('%s %s  [foreach @%d]' % (short, current, i + 1))
+                pending = len(names) - 1
+            else:
+                missed += 1
+        elif m and not st.startswith(('return', 'if', 'else', 'var ', 'case', 'using', 'lock', 'catch', 'switch')) and ' class ' not in ln and ' struct ' not in ln and ' record ' not in ln and '=' not in ln.split('(')[0]:
+            current = m.group(1)
+            names.append('%s %s' % (short, current))
+            pending = len(names) - 1
+        out.append(ln)
+    open(S + '/' + label + '.' + base, 'w', encoding='utf-8').write(NL.join(out))
+open(names_path, 'w', encoding='utf-8').write(NL.join(names))
+print(label, 'sites', len(names), 'loops not counted:', missed)

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<NoWarn>$(NoWarn);CS0649;CS0162;CS0219;CS8618;CS8625;CS1591;CS0436;CS8600;CS8601;CS8602;CS8603;CS8604;CS1573;CS1570;CS1574</NoWarn>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>latest</LangVersion>
+		<AssemblyName>rec</AssemblyName>
+		<RootNamespace>RecProbe</RootNamespace>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Include="gen\*.cs" />
+		<Compile Include="probe.cs" />
+
+		<None Include="names.txt" CopyToOutputDirectory="Always" />
+	</ItemGroup>
+</Project>

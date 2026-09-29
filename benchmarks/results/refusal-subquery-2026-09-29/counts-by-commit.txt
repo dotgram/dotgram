@@ -1,0 +1,63 @@
+=== 06d34791 (main at 2026-09-20 20:38, the baseline's day)
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,895 loop turns=       2,563 hand-offs=0 handwritten=       204
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,652 loop turns=       5,063 hand-offs=0 handwritten=       404
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,164 loop turns=      10,079 hand-offs=0 handwritten=       804
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,190 loop turns=      20,103 hand-offs=0 handwritten=     1,604
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @278449]
+=== 342b76c8
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,895 loop turns=       2,563 hand-offs=0 handwritten=       204
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,652 loop turns=       5,063 hand-offs=0 handwritten=       404
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,164 loop turns=      10,079 hand-offs=0 handwritten=       804
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,190 loop turns=      20,103 hand-offs=0 handwritten=     1,604
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @278596]
+=== 4b6cc0b0
+n=  50 accepted=False Read_ entries=       1,330 other entries=       3,291 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       6,442 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      12,742 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      25,342 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @278588]
+=== 99effd0f
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @278606]
+=== eb3983e4
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @278606]
+=== bfb36682
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @281072]
+=== b09d95aa
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @281094]
+=== 488a4d5f
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @281428]
+=== 3f091b49 (origin/main at the time of this reading)
+n=  50 accepted=False Read_ entries=       1,330 other entries=       2,989 loop turns=       2,563 hand-offs=0 handwritten=       208
+n= 100 accepted=False Read_ entries=       2,630 other entries=       5,840 loop turns=       5,063 hand-offs=0 handwritten=       408
+n= 200 accepted=False Read_ entries=       5,230 other entries=      11,540 loop turns=      10,079 hand-offs=0 handwritten=       808
+n= 400 accepted=False Read_ entries=      10,430 other entries=      22,940 loop turns=      20,103 hand-offs=0 handwritten=     1,608
+sites growing faster than linear between the last two depths: 1
+          16 ->         40  g:T Clear  [for @292593]
