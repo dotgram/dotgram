@@ -60,6 +60,21 @@ public sealed class AssemblyAmbiguityTests
 	}
 
 	[Fact]
+	public void A_generic_type_is_named_as_CSharp_writes_it()
+	{
+		var first  = Library("A", 1);
+		var second = Library("B", 2);
+		var caller = Caller(Probe, first, second);
+
+		Assert.Equal("CS0433", CSharp("N.G<int>.Value", "", "", first, second));
+		Assert.Contains("The type 'N.G<X>' exists in both", Refused("() => N.G<int>.Value", ResolutionScope.Around(caller)), StringComparison.Ordinal);
+
+		Assert.Equal(
+			"System.Collections.Generic.Dictionary<TKey, TValue>.Enumerator",
+			ExpressionParser.Spelled(typeof(Dictionary<,>.Enumerator)));
+	}
+
+	[Fact]
 	public void The_answer_does_not_depend_on_the_order_of_the_references()
 	{
 		var first  = Load(Library("A", 1));
@@ -172,6 +187,7 @@ public sealed class AssemblyAmbiguityTests
 					public static int Value => {{value}};
 					public static class Inner { public static int Value => {{value}}0; }
 				}
+				public static class G<X> { public static int Value => {{value}}; }
 				public class {{only}} { public int Value => {{value}}; }
 			}
 			""", signed);

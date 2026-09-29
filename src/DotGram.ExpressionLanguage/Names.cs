@@ -125,6 +125,33 @@ public static partial class ExpressionParser
 		return type;
 	}
 
+	/// <summary>A type as C# writes it in a message: <c>N.Outer.G&lt;X&gt;</c>, not <c>N.Outer+G`1[X]</c>.</summary>
+	internal static string Spelled(Type type)
+	{
+		return type.IsGenericParameter ? type.Name : Spelled(type, type.GetGenericArguments());
+	}
+
+	/// <summary>
+	/// The same, where <paramref name="arguments"/> are the innermost type's: metadata puts every
+	/// argument of every enclosing generic type on the nested one, and each level shows its own.
+	/// </summary>
+	static string Spelled(Type type, Type[] arguments)
+	{
+		var outer = type.DeclaringType;
+		var from  = outer is null ? 0 : outer.GetGenericArguments().Length;
+		var to    = type.GetGenericArguments().Length;
+		var tick  = type.Name.IndexOf('`');
+		var text  = outer is not null ? Spelled(outer, arguments) + "." :
+			type.Namespace is { } space ? space + "." : "";
+
+		text += tick < 0 ? type.Name : type.Name.Substring(0, tick);
+
+		if (to > from)
+			text += "<" + string.Join(", ", arguments.Skip(from).Take(to - from).Select(Spelled)) + ">";
+
+		return text;
+	}
+
 	/// <summary>A type nested in another by that name, where C# in the calling assembly could name it.</summary>
 	/// <remarks>
 	/// Public, or — inside a type the calling assembly declares — internal or protected

@@ -4026,9 +4026,9 @@ public static partial class ExpressionParser
 				1 => first!,
 				_ when string.Equals(first!.FullName, second!.FullName, StringComparison.Ordinal) =>
 					throw new InvalidOperationException(
-						$"The type '{first}' exists in both '{first.Assembly.FullName}' and '{second.Assembly.FullName}'."),
+						$"The type '{Spelled(first)}' exists in both '{first.Assembly.FullName}' and '{second.Assembly.FullName}'."),
 				_ => throw new InvalidOperationException(
-					$"'{shown}' is an ambiguous reference between '{first}' and '{second}'."),
+					$"'{shown}' is an ambiguous reference between '{Spelled(first)}' and '{Spelled(second)}'."),
 			};
 		}
 

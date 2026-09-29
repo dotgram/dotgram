@@ -9787,3 +9787,28 @@ values stops making sense, where plain strings would be simpler.
   print. Both are T-SQL that SQL Server reads — `GRANT ALL, SELECT (c1, c2), …` and
   `GRANT ALL PRIVILEGES (c1) ON t` are rows of `The_permission_statements_read_what_the_engine_does`
   (ALL in a list since c4dd800c) — and the standard's grammar builds neither, so for its trees nothing changed.
+
+## D149 — A name two references declare as different types is ambiguous in the expression language (Igor)
+
+2026-09-29. EL took the first assembly in the scope that answered a full name, so what a text meant
+depended on the order the references were walked in. Igor: refuse it as C# does, CS0433, although
+it costs time. Now every assembly is asked, and two different types under one full name refuse the
+name where it is used — written whole, through a `using` or a namespace alias, or as the head of a
+longer name (`N.T.Inner` names `N.T`, as Roslyn does) — with a message naming both assemblies.
+
+- **Type identity, not the name.** A facade (`System.Runtime`, `netstandard`) forwards `System.Object`
+  and the rest to where they are declared, so several assemblies return one type; that is not
+  ambiguous.
+- **The caller's own type wins** over a reference's, as the compilation's does in C#. C# warns
+  (CS0436); EL has no warnings channel and is silent. Under `WithoutInternals()` the caller is still
+  the compilation, so its public type still wins; an internal one is then invisible, and two
+  references declaring the name are ambiguous.
+- **Two versions of one assembly side by side are two types, and refused (CS0433).** That is Roslyn's
+  answer for strongly named references; weakly named, Roslyn refuses the second reference itself
+  (CS1704), a refusal EL has no set of references to make, so both come to the name.
+- **Cost.** Paid once per scope and name, on a name that is found: a name that is not already asked
+  every assembly. About 70-160 µs a name over 174 warm assemblies; first-call times of three texts
+  within noise.
+
+Every case is held against Roslyn compiling the same expression over the same in-memory libraries
+(`AssemblyAmbiguityTests`). `9033c0a9`.
