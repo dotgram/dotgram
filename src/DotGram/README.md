@@ -323,8 +323,8 @@ tree of records with it, and ISO SQL:2023, a separate grammar with a tree of its
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
 a third — a C#-style expression language that builds `System.Linq.Expressions` trees — and
 [`DotGram.Finance`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance) a
-fourth: FIX 4.2, 4.4 and 5.0 SP2 tag-value messages. They
-are also the largest grammars there are to read —
+fourth: FIX 4.2, 4.4 and 5.0 SP2 tag-value messages. Two of them
+hold the largest grammars there are to read —
 [T-SQL](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) in over 1,000
 rules, and the
 [expression language](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs) in
