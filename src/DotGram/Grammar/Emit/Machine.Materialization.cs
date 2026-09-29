@@ -1386,14 +1386,27 @@ sealed partial class Machine
 			}
 		}
 
-		// What the steps not yet folded captured, built as a guard's own values are.
+		// What the steps not yet folded captured, built as a guard's own values are — up to the
+		// last construction of the call and not past it: what follows is the step the guard
+		// stands in, which the value so far does not use and the guard may yet refuse.
 		if (soFar)
 		{
 			file.Line();
 			file.Line("var buildFrom = entries.Count;");
+			file.Line("var foldTo    = partFrom;");
 			file.Line();
 
-			using (file.Block("for (var capturedAt = partFrom; capturedAt < entries.Count; capturedAt++)"))
+			using (file.Block("for (var lastAt = entries.Count - 1; lastAt >= partFrom; lastAt--)"))
+			using (file.Block(
+				"if (entries[lastAt].Kind == ParserEntry.Construct && entries[lastAt].CallIndex == completedAt)"))
+			{
+				file.Line("foldTo = lastAt;");
+				file.Line("break;");
+			}
+
+			file.Line();
+
+			using (file.Block("for (var capturedAt = partFrom; capturedAt < foldTo; capturedAt++)"))
 			{
 				file.Line("var captured = entries[capturedAt];");
 

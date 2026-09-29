@@ -25258,11 +25258,14 @@ now handed the value so far on every path:
 
 - the readers hold it as `fold` — the value itself where the carrier builds as it reads, a record
   where it is the tape, built there as a guard's other record values are. Built from the rule's mark
-  that was quadratic in the steps, since every guard listed the whole log of the rule again; the
-  tape reader of such a rule
-  now also carries where the last fold record a guard built ends, and the next guard walks from
-  there (`A_guard_naming_the_value_so_far_builds_a_fixed_amount_a_step`, a count: 203 records listed a
-  step over 200 steps and 803 over 800 before, flat after);
+  that was quadratic in the steps, since every guard listed the whole log of the rule again; the tape
+  reader of such a rule now also carries where the last fold record a guard built ends, and a guard
+  that names the accumulator and no other value walks from there
+  (`A_guard_naming_the_value_so_far_builds_a_fixed_amount_a_step`, a count: 203 records listed a step
+  over 200 steps and 803 over 800 before, flat after). Only that guard: one that also names a rule's
+  value the step captured — `when @(l.Length >= 0 && r.Length >= 0)`, or `r` alone — builds that value
+  from the rule's mark as it did before, and on the tape with the reader on that is still quadratic in
+  the steps, as it is on main. Left for a change of its own, which moves shipped output;
 - the engine has no value until the walk at the end, so a fold whose step guard names its
   accumulator gets a helper, written only where the engine is, that builds what the unfolded steps
   captured and walks the fold's constructions up to where the parse stands. Each value is kept at the
@@ -25278,9 +25281,9 @@ Whether a guard names the accumulator is the scanner's answer (`CSharpEmitter.Us
 of the C#), with a word match only where there is no scanner: a match on text builds a fold during
 recognition for nothing, and `Log("l")`, `y.Length` for an accumulator `Length` and a lambda's own
 `l => l` all matched as words, while `\u006C` — `l` as C# spells it — did not match and was CS0103.
-A guard in a head the steps
-share is handed the accumulator where every step names it alike, and not otherwise. A step
-accumulator spelled as a C# keyword is now escaped in the factory's signature as a capture is.
+A guard in a head the steps share is handed the accumulator where every step names it alike, and not
+otherwise. A step accumulator spelled as a C# keyword is now escaped in the factory's signature as a
+capture is, and a guard names it as C# does (`class: F … when @(Log(@class))`).
 
 Tests: `GuardRepeatedCaptureTests` — rows in `A_fold_step_is_handed_its_own_captures` for the
 uncaptured operand (with and without a guard, and beside a step that names it) and for guards naming
@@ -25298,3 +25301,13 @@ readers are right: the engine now cuts from where the call began to where the co
 recorded, at acceptance and in the guard's helper alike (`A_fold_step_is_handed_its_own_extent`, red
 on the engine's readings before). A behaviour change to the engine's output wherever a fold's
 construction asks for its text or span or is located.
+
+**What the engine's helper builds for a guard stops at the last construction.** It built every rule's
+value its call had captured since the last value kept, the step the guard stands in included — which
+the value so far never uses, and which the guard may then refuse: `l: F & ',' & r: V & when @(Log(l)
+&& l.Length < 4)` over "1,2,3,4" ran `V`'s construction for the refused "4", six constructions where
+the readers ran five. It now marks nothing past the call's last construction entry
+(`A_step_a_guard_refuses_after_a_rule_capture_builds_nothing_of_it`, on every reading, the immediate
+reader's too now that it hands a fold's value on where its turns stop). Left as found: where a fold's
+construction reads `parserState` or `parserMarks`, the helper chains the marks from arena entry 0 at
+every guard, quadratic in the input, and no shipped grammar reaches it.

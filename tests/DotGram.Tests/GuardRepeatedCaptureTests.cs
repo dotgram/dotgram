@@ -282,6 +282,7 @@ public sealed class GuardRepeatedCaptureTests
 			("l: F & ',' & y: D & when @(Log(l)) => @(l + y) | l: D => @(l! + \"b\")",       "1,2,3",     "1b23#1b;1b2"),
 			// Named as C# names it, which is not always as it is spelled.
 			("l: F & ',' & y: D & when @(Log(\\u006C)) => @(l + y) | y: D => @(y!)",         "1,2,3",     "123#1;12"),
+			("class: F & ',' & y: D & when @(Log(@class)) => @(@class + y) | y: D => @(y!)",   "1,2,3",     "123#1;12"),
 		})
 		{
 			var grammar =
@@ -466,6 +467,31 @@ public sealed class GuardRepeatedCaptureTests
 		var match = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3,4");
 		Assert.True(match.IsSuccess, match.Error);
 		Assert.Equal("12v3v4v#1;12v;12v3v#4", match.Value);
+	}
+
+	/// <summary>
+	/// The value so far is built from the steps before the guard and nothing of the step it
+	/// stands in: a rule's value captured in a step the guard then refuses is not built for it.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_step_a_guard_refuses_after_a_rule_capture_builds_nothing_of_it(CarrierKind carrier, bool direct, bool find)
+	{
+		var assembly = Compile(
+			"""
+			D = ['0'..'9']
+			V : @string = d: D => @(Made(d! + "v"))
+			F : @string = l: F & ',' & r: V & when @(Log(l) && l.Length < 4) => @(Made(l + r)) | y: D => @(Made(y!))
+			T : @string = f: F & ',' & z: D => @(f + "|" + z + "#" + Take() + "#" + TakeMade())
+			""", carrier, direct, find);
+
+		// The immediate reader runs a construction the moment it is read, and one given up
+		// afterwards has already run (the carrier's contract): the refused step's `V` is its
+		// sixth. Every other reading builds from the accepted derivation, and runs five.
+		var immediate = carrier == CarrierKind.Immediate && direct && !find;
+		var match     = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3,4");
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal("12v3v|4#1;12v;12v3v#" + (immediate ? 6 : 5), match.Value);
 	}
 
 	/// <summary>
