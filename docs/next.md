@@ -25090,3 +25090,49 @@ nothing; `ALTER SCHEMA ... TRANSFER` and a securable's own name (`OBJECT::dbo.t`
 so `--roundtrip` and `CorpusRoundTripTests` (7,716 statements) pass unchanged. `TransactSqlTests` gained
 one theory, `A_principal_refuses_the_second_part_the_engine_refuses`, with a row per site above, each
 row a claim about the engine and not about the grammar.
+
+## What a lookahead saw is a repeated capture too, and a fold's loop is not one
+
+`(y: ?=D & D & ','?){2}` over "1,2" built "1,2" and handed a guard "2", on every carrier. §3.4 makes
+`?=X` produce X's value, so the row is well-formed and the value is "12". The cause was one line of
+the capture analysis: a capture over a lookahead records its piece without an opening
+(`CompileLookaheadCapture`), so it was kept out of the text captures, and the repeated ones were
+only ever looked for among those. Fixed by marking it repeated where a repetition encloses it.
+
+**Its pieces can overlap, which the join did not know.** A lookahead's piece ends where the lookahead
+stopped reading, past where the turn did. The join took the span whenever the pieces' lengths summed
+to it, which for pieces read one after another means "no gaps"; with overlaps the two can cancel.
+`(y: ?=("ab" | L) & L & 'c'?)+` over "abcd" records "ab", "b" and "d": four characters, the span's
+length, and not the span. Such a member now asks each pair of neighbours whether they meet. Only
+members with a lookahead slot pay for it; the generated code of every shipped grammar is
+byte-identical (979 files).
+
+**What else, asked construct by construct.** Negative lookahead (joined, as nothing), an optional
+inside a repeat and a repeat inside an optional, nested repeats, `{2,3}`, an atomic group, a repeat
+reached through a called rule, a group lowered into a rule of its own, a switch's selector, a guard
+inside the loop, `find`, spans, buffered characters and bytes, and parts split at `PartSize = 1` all
+answered the join already. Three did not, all around the fold (§4.3):
+
+- the fold's own loop counted as the author's repetition, so since the guard join (caaeea84) a guard
+  in a step joined the step's capture with every earlier step's and the base's: `l: F & ',' & y: D &
+  when @(Log(y))` over "1,2,3" logged "12;123". A regression; the loop is now left out, as
+  `DirectRepeated` already left it out;
+- a repetition inside a step was never joined by the step's construction (`MaterializeFoldMember`
+  took the last piece), and a guard's join reached across steps. Both now read the step's own
+  entries, from the last construction of the call;
+- the direct reader handed a step's guard the base's piece ("1;1"), typed a member named only in
+  steps as an array (CS1503), and wrote a text member's record in a different shape from its capture
+  wherever one alternative repeats it and another does not (CS0103) — which needs no fold:
+  `(y: D & ','?){2} & 'a' | y: D & 'b'` did not compile with the reader on.
+
+**The lexical rows keep the rule of 30bccceb on every path**, and were not moved: the walk, a guard,
+a guard inside the loop and a switch's selector give "1 2" for adjacent tokens and "12" for "1 , 2",
+tape and immediate, reader on and off. Only the rows capturing a lookahead failed before. What the
+rule means where trivia holds a comment is a fact, not a finding: SQL:2023 reads `j[- /*+*/ - $]` as
+minus, plus, minus, since `PathSigned` picks signs out of the joined text; T-SQL keeps the comment in
+`HADR /*x*/ AVAILABILITY GROUP`, `TRANSACTION /*x*/ ISOLATION LEVEL` and the value `REQUIRED /*x*/
+ALGORITHM AES`.
+
+Left as found: a capture of a lookahead over a rule with a value is that rule's text, not its value;
+a fold whose recursive operand is not captured passes the value so far to a `=>` that does not take
+it (CS1501).
