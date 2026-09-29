@@ -234,6 +234,12 @@ sealed partial class Machine
 	/// collected, and the span is taken only where the measurements say it tiles.
 	/// </remarks>
 	readonly HashSet<int> _repeatedCaptures = [];
+
+	/// <summary>
+	/// The repeated captures whose pieces can overlap, which are those of a lookahead: see
+	/// <see cref="Overlaps"/>.
+	/// </summary>
+	readonly HashSet<int> _overlappingCaptures = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
 	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
 	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
@@ -495,6 +501,19 @@ sealed partial class Machine
 						// from the first start to the last end is not that text.
 						if (looped.Contains(node))
 							_repeatedCaptures.Add(slot);
+					}
+
+					// What a lookahead saw is recorded as a piece of its own too, with no
+					// opening to keep (CompileLookaheadCapture), and a repetition repeats it
+					// the same way: `(y: ?=D & D & ','?){2}` is the turns joined, as §3.4 makes
+					// `?=X` produce X's value. Its piece ends where the lookahead stopped
+					// reading, not where the turn did, so the next turn's piece can begin
+					// inside it — the pieces can overlap, and a sum of lengths no longer says
+					// whether they tile.
+					else if (node is Node.Capture(_, Node.Lookahead) && looped.Contains(node))
+					{
+						_repeatedCaptures.Add(slot);
+						_overlappingCaptures.Add(slot);
 					}
 				}
 				else if (node is Node.Construct)
@@ -2842,7 +2861,9 @@ sealed partial class Machine
 					// that is the value it names, and no shipped grammar has one.
 					if (member.Rule is null && Joined(_captureOffsets[rule], member))
 					{
-						DeclareMeasure(writer, $"guardCaptured{memberIndex}", joined: true);
+						var overlaps = Overlaps(_captureOffsets[rule], member);
+
+						DeclareMeasure(writer, $"guardCaptured{memberIndex}", joined: true, overlaps);
 
 						using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
 						{
@@ -2852,14 +2873,14 @@ sealed partial class Machine
 								"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
 								$"({string.Join(" || ", tests)}))"))
 							{
-								Measure(writer, $"guardCaptured{memberIndex}", joined: true);
+								Measure(writer, $"guardCaptured{memberIndex}", joined: true, overlaps);
 							}
 						}
 
 						CheckMeasured(writer, $"guardCaptured{memberIndex}", member, rule);
 
 						WriteJoin(
-							writer, $"guardCaptured{memberIndex}", member.IsOptional,
+							writer, $"guardCaptured{memberIndex}", member.IsOptional, overlaps,
 							"for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)",
 							"candidateAt", "call", slots.Select(slot => _captureOffsets[rule] + slot));
 

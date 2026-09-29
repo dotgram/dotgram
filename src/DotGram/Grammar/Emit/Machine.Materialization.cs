@@ -663,7 +663,7 @@ sealed partial class Machine
 				else if (member.Rule is not null)
 					file.Line($"var captured{memberIndex}At = -1;");
 				else
-					DeclareMeasure(file, $"captured{memberIndex}", Joined(offset, member));
+					DeclareMeasure(file, $"captured{memberIndex}", Joined(offset, member), Overlaps(offset, member));
 			}
 
 			if (scalars.Count > 0)
@@ -739,7 +739,7 @@ sealed partial class Machine
 									using (file.Block(
 										"if (candidate.Kind == ParserEntry.Capture && " +
 										"candidate.CallIndex == completedAt)"))
-										Measure(file, $"captured{memberIndex}", Joined(offset, member));
+										Measure(file, $"captured{memberIndex}", Joined(offset, member), Overlaps(offset, member));
 
 								file.Line("break;");
 							}
@@ -898,7 +898,7 @@ sealed partial class Machine
 
 				// §7.3: repeated text is the text joined.
 				WriteJoin(
-					file, $"captured{memberIndex}", member.IsOptional,
+					file, $"captured{memberIndex}", member.IsOptional, Overlaps(offset, member),
 					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
 					"capturedAt = linkNexts[capturedAt])",
 					"capturedAt", "completedAt", member.Slots.Select(slot => offset + slot));
@@ -1497,18 +1497,21 @@ sealed partial class Machine
 	/// <see cref="DeclareMeasure"/>, <see cref="Measure"/> and <see cref="CheckMeasured"/>. <paramref name="walk"/> visits the
 	/// pieces newest first, naming the entry's index <paramref name="at"/>, so the buffer is
 	/// filled from its end; <paramref name="owner"/> is the call the pieces were captured in.
+	/// Where they can <paramref name="overlaps"/>, the sum of their lengths says nothing about
+	/// gaps, and the measure kept whether each piece ended where the next began instead.
 	/// </para>
 	/// </remarks>
 	void WriteJoin(
-		Writer file, string name, bool optional, string walk, string at, string owner, IEnumerable<int> states)
+		Writer file, string name, bool optional, bool overlaps, string walk, string at, string owner, IEnumerable<int> states)
 	{
 		file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (optional ? "?" : ""))} {name};");
 		file.Line();
 		file.Line($"if ({name}From < 0)");
 		file.Then($"{name} = {(BorrowedCaptures ? EmptyCapture : optional ? "null" : "string.Empty")};");
 		file.Line(
-			$"else if ({name}To - {name}From == " +
-			$"{name}Length)");
+			overlaps
+				? $"else if ({name}Tiles)"
+				: $"else if ({name}To - {name}From == {name}Length)");
 		file.Then(
 			$"{name} = " +
 			Cut($"{name}From", $"{name}Length") + ";");
@@ -1585,23 +1588,34 @@ sealed partial class Machine
 	/// <remarks>
 	/// A member a repetition repeats is measured as well as bounded: the pieces tell the span
 	/// whether it is the text, and if it is not they are what the text is made of. Written once
-	/// for the walk at the end and a guard, which measure the same pieces newest first.
+	/// for the walk at the end and a guard, which measure the same pieces newest first. Pieces
+	/// that can overlap (<see cref="Overlaps"/>) are also asked, pair by pair, whether they tile.
 	/// </remarks>
-	void DeclareMeasure(Writer file, string name, bool joined)
+	void DeclareMeasure(Writer file, string name, bool joined, bool overlaps = false)
 	{
 		file.Line($"var {name}From = -1;");
 		file.Line($"var {name}To   = -1;");
 
 		if (joined)
 			file.Line($"var {name}Length = 0;");
+		if (overlaps)
+			file.Line($"var {name}Tiles  = true;");
 	}
 
 	/// <summary>One piece, <c>candidate</c>, measured into the locals <see cref="DeclareMeasure"/> declared.</summary>
 	/// <remarks>Newest first: the first piece seen is the last read, and says where the text ends.</remarks>
-	void Measure(Writer file, string name, bool joined)
+	void Measure(Writer file, string name, bool joined, bool overlaps = false)
 	{
 		file.Line($"if ({name}To < 0)");
 		file.Then($"{name}To = candidate.Value;");
+
+		// Newest first, so the piece read after this one began at `From`.
+		if (overlaps)
+		{
+			file.Line($"else if (candidate.Value != {name}From)");
+			file.Then($"{name}Tiles = false;");
+		}
+
 		file.Line($"{name}From = candidate.Position;");
 
 		if (joined)

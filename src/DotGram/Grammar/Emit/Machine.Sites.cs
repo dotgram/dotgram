@@ -93,6 +93,24 @@ sealed partial class Machine
 		member.Slots.Any(slot => _repeatedCaptures.Contains(offset + slot));
 	}
 
+	/// <summary>
+	/// Whether a joined member's pieces can overlap, so that whether they tile is asked of each
+	/// pair of neighbours rather than of their lengths together.
+	/// </summary>
+	/// <remarks>
+	/// Pieces read one after another never overlap, and then the lengths summing to the span is
+	/// the same thing as no gap between them. A lookahead's piece ends where the lookahead
+	/// stopped reading, which can be past where the next turn begins: over "abcd",
+	/// <c>(y: ?=("ab" | L) &amp; L &amp; 'c'?)+</c> records "ab", "b" and "d", and the overlap of the
+	/// first two pays for the gap before the third to the character — the span "abcd" has
+	/// their length and is not their join.
+	/// </remarks>
+	bool Overlaps(int offset, ResultMember member)
+	{
+		return Joined(offset, member) &&
+		member.Slots.Any(slot => _overlappingCaptures.Contains(offset + slot));
+	}
+
 	/// <summary>The site a member's one slot was compiled as, or null.</summary>
 	SitePlan? SiteFor(int offset, ResultMember member)
 	{
