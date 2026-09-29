@@ -66,6 +66,8 @@ foreach ($needed in @($Harness, (Join-Path $Library 'DotGram.Finance.dll'))) {
 # own output rather than looking like every other run.
 . (Join-Path $PSScriptRoot '../../WindowLib.ps1')
 
+$Types = @(Split-FileList $Types)
+
 $cpus = Get-ProcessCpus $PID
 
 "processors $cpus"

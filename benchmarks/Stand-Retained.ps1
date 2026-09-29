@@ -22,6 +22,9 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
 
+$Sides = @(Split-FileList $Sides)
+$Rows  = @(Split-FileList $Rows)
+
 $aside = Enter-Aside
 
 $lines = try {

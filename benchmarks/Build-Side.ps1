@@ -42,6 +42,8 @@ $sha  = (git -C $repo rev-parse --short $Commit).Trim()
 
 . (Join-Path $PSScriptRoot 'WindowLib.ps1')
 
+$Property = @(Split-FileList $Property)
+
 if (-not $Root) { $Root = Join-Path (Get-ScratchRoot) 'stand' }
 
 $env:MSBUILDDISABLENODEREUSE = '1'

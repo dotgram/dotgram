@@ -60,11 +60,15 @@ function Stop-Run([int]$code, [string]$message) {
 }
 
 # `pwsh -File script.ps1 -List 'a','b'` from bash hands the list over as ONE string, "a,b" (2026-09-19, a keep-list read that way deleted a queue's trees). A list parameter that arrives as a single
-# element with commas in it is split; an argument that needs a comma of its own is passed from PowerShell, not through -File.
+# element with commas in it is split back into its parts. One of those parts can itself be a comma list of its own (`--only a,b`, `--aa-only a,b`): write its comma TWICE, `a,,b`, which survives
+# bash untouched (bash gives no meaning to a comma) and tells the element's own comma apart from the one separating elements (2026-09-29, `--only a,b` sent through Run-Announced.ps1 from bash read
+# as `--only a` plus a stray element `b`, taken as the output directory, and silently changed what was timed).
 function Split-FileList([string[]]$list) {
-	if ($list.Count -eq 1 -and $list[0].Contains(',')) { return $list[0].Split(',') }
+	if ($list.Count -ne 1 -or -not $list[0].Contains(',')) { return $list }
 
-	$list
+	$marker = [char]1
+
+	($list[0] -replace ',,', $marker) -split ',' | ForEach-Object { $_ -replace $marker, ',' }
 }
 
 function Assert-Linux {

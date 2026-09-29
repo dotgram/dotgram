@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -23,13 +24,26 @@ static partial class Stand
 	const double ControlTolerance = 0.05;
 
 	/// <summary>Fewer clean runs than this and the median is not one to quote: the run refuses to say it is.</summary>
-	const int MinimumKept = 3;
+	internal const int MinimumKept = 3;
 
 	/// <summary>What a run of the paired stand leaves for the runs to be merged from.</summary>
 	sealed record Taken(double Control, Row[] Rows);
 
 	/// <summary>The runs' medians, and what to say about which runs were used.</summary>
 	sealed record Pooled(Row[] Rows, double Control, int[] Kept, string Note);
+
+	/// <summary>
+	/// A clean refusal: the message to stderr, then the process ends with the given code, documented beside
+	/// the refusal that raises it (benchmarks/README.md). Mirrors WindowLib.ps1's Stop-Run, so a refusal reads
+	/// the same on both halves of the stand instead of an unhandled exception's stack trace and an undocumented
+	/// exit code (2026-09-29: `--repeat 2` crashed that way before this existed).
+	/// </summary>
+	[DoesNotReturn]
+	internal static void Refuse(int code, string message)
+	{
+		Console.Error.WriteLine(message);
+		Environment.Exit(code);
+	}
 
 	public static void Repeat(string? directory, bool rebuild, string? only, string? against, int count, double? limitMinutes = null)
 	{
@@ -192,9 +206,9 @@ static partial class Stand
 		var listed   = string.Join(", ", controls.Select(static one => one.ToString("F1", CultureInfo.InvariantCulture)));
 
 		if (keep.Length < MinimumKept)
-			throw new InvalidOperationException(
+			Refuse(3,
 				$"Only {keep.Length} of {runs.Length} runs kept a control within {ControlTolerance:P0} of {middle:F1} ns ({listed}): " +
-				$"the machine was not quiet enough for a median to be quoted. The runs are in {output}.");
+				$"the machine was not quiet enough for a median to be quoted (exit code 3). The runs are in {output}.");
 
 		var kept    = keep.Select(i => runs[i]).ToArray();
 		var control = Median([.. kept.Select(static one => one.Control)]);

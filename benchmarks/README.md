@@ -31,6 +31,20 @@ dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll 
 
 The last two time nothing and need no window. The command lines below give the stand's arguments; every one that times is run the same way, through `Run-Announced.ps1 -Command`.
 
+**A `-Command`/`-Arguments`/`-Sides`/`-Rows`/`-Property`/`-Projects`/`-Types` list called from bash arrives flattened, and a comma inside one of its own values needs to be doubled.** `pwsh -File` from bash hands such a list over as ONE string (`WindowLib.ps1`, `Split-FileList`), which is split back into its parts; a piece that is itself a comma list — an `--only`/`--aa-only` value — must write its comma TWICE, `a,,b`, so it survives as one piece rather than becoming two and shifting whatever came after it (2026-09-29: `--stand --only fix/Order.text,el/ladder` sent through `Run-Announced.ps1` from bash this way, with a single comma, read as `--only fix/Order.text` plus a stray element `el/ladder` taken as the output directory, and silently changed what was timed):
+
+```console
+pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll, --stand, --only, fix/Order.text,,el/ladder, --repeat, 5
+```
+
+A check that this reconstructs the pieces without the bug (`--repeat`'s own five is unaffected, and the doubled comma between the two row ids becomes one, not two elements):
+
+```console
+pwsh -Command '. benchmarks/WindowLib.ps1; Split-FileList @("dotnet,path.dll,--stand,--only,fix/Order.text,,el/ladder,--repeat,5")'
+```
+
+prints `dotnet`, `path.dll`, `--stand`, `--only`, `fix/Order.text,el/ladder`, `--repeat`, `5` — seven elements, the `--only` value whole. Called from PowerShell directly rather than through `-File` (a quoted string with a comma of its own stays one array element there already), the doubled comma is not needed.
+
 One run over FIX (a string, bytes in memory and a stream), the web's formats, the expression
 language (by hand, on the tape and by the immediate carrier) and SQL:2023: time and allocation
 per parse against the hand-written parser, the first call in a fresh process, what a lazily
@@ -97,11 +111,25 @@ one run of the stand spreads 4-16% from the next there, and on a machine other p
 a single run has been 85% off (2026-09-18: 56 runs under a build, medians within +-4% of the
 quiet ones, single runs to +85%). `--repeat N` takes the run N times, each in a process of its
 own, and reports each reading's median. A run whose control is more than 5% off the median of
-the controls is dropped and named; fewer than three kept and it refuses to say a number. The
-control sees a machine that is busy, not every kind of interference: a run can keep a clean
-control and still have one row 50% off, which is what the other runs are for. The spread
-column of such a report is the base reading's spread between runs, which is the one to hold a
-change against.
+the controls is dropped and named; fewer than three kept and it refuses to say a number
+(exit code 3, on stderr). `--repeat` asked for fewer than three refuses at once, before running
+anything, since fewer can never keep three: `--repeat 2` and `--repeat 1` behave differently
+here, and only the first is this refusal — `--repeat 1` (or no `--repeat` at all) is a single
+run, which never claimed a median. The control sees a machine that is busy, not every kind of
+interference: a run can keep a clean control and still have one row 50% off, which is what the
+other runs are for. The spread column of such a report is the base reading's spread between
+runs, which is the one to hold a change against.
+
+A check that this refuses cleanly rather than crashing (2026-09-29: `--repeat` below three threw
+an unhandled exception, an undocumented exit code, and a stack trace instead of the message
+above):
+
+```console
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --repeat 2; echo "exit $?"
+```
+
+prints one line to stderr and `exit 3`, nothing else — no stack trace, and no run of the stand
+in between.
 
 ### A short probe in a cold process overstates its first rows
 
@@ -386,7 +414,7 @@ Under each row four lines (after the first parse, after eight small ones, after 
 
 ### BenchmarkDotNet as a timing window: `Run-Bdn.ps1`
 
-A BenchmarkDotNet run is a timing, and it starts a process of its own for every case, so where the launcher runs says nothing about where a case was measured. `pwsh benchmarks/Run-Bdn.ps1 -Assembly <the built BDN dll> -Label <name> -BdnArgs '--filter','*X*'` runs it the way the stand runs itself: it refuses when BDN is asked to run in process, takes the window (above, *The window on this machine*: the lock, the wait for builds, the quiet check), starts `taskset -c 0-7,16-23 dotnet <dll> ...` (the workers inherit the processors; the script itself is not pinned, and sleeps between its reads), and **reads back, for every benchmark worker it can catch (`--benchmarkId` in the command line, a direct child of the run), the processors the kernel allows it (`Cpus_allowed_list`)**: a worker that is not on the stand's processors stops the run at once, exit code 4, and its numbers are not to be quoted. `run.txt` beside BDN's artifacts (`/ramdisk/build/dotgram/bdn/<label>-<time>`) carries the header: commit, processors, JIT variables, every worker read (pid, processors, time), the exit code, and the coverage, how many workers BDN executed (its own log) against how many were read. It builds nothing: build the assembly first, through `Aside.sh`, before the window; BDN compiles a generated project once at the start of a run, and that is the only build inside the window. BDN's own attempt to raise its workers to high priority fails here with a warning (no privilege), and they run at the default one. That build is the whole of what the benchmark project references, every grammar included, on sixteen processors, and it did not fit BDN's default limit of two minutes (2026-09-28, every case read NA): the script passes `--buildTimeout 900` unless the caller gives one. Called from bash, `pwsh -File` hands `-BdnArgs '--filter','*X*'` over as one string with commas in it; the scripts split such a string back into its parts, so an argument that needs a comma of its own is passed from PowerShell.
+A BenchmarkDotNet run is a timing, and it starts a process of its own for every case, so where the launcher runs says nothing about where a case was measured. `pwsh benchmarks/Run-Bdn.ps1 -Assembly <the built BDN dll> -Label <name> -BdnArgs '--filter','*X*'` runs it the way the stand runs itself: it refuses when BDN is asked to run in process, takes the window (above, *The window on this machine*: the lock, the wait for builds, the quiet check), starts `taskset -c 0-7,16-23 dotnet <dll> ...` (the workers inherit the processors; the script itself is not pinned, and sleeps between its reads), and **reads back, for every benchmark worker it can catch (`--benchmarkId` in the command line, a direct child of the run), the processors the kernel allows it (`Cpus_allowed_list`)**: a worker that is not on the stand's processors stops the run at once, exit code 4, and its numbers are not to be quoted. `run.txt` beside BDN's artifacts (`/ramdisk/build/dotgram/bdn/<label>-<time>`) carries the header: commit, processors, JIT variables, every worker read (pid, processors, time), the exit code, and the coverage, how many workers BDN executed (its own log) against how many were read. It builds nothing: build the assembly first, through `Aside.sh`, before the window; BDN compiles a generated project once at the start of a run, and that is the only build inside the window. BDN's own attempt to raise its workers to high priority fails here with a warning (no privilege), and they run at the default one. That build is the whole of what the benchmark project references, every grammar included, on sixteen processors, and it did not fit BDN's default limit of two minutes (2026-09-28, every case read NA): the script passes `--buildTimeout 900` unless the caller gives one. Called from bash, `pwsh -File` hands `-BdnArgs '--filter','*X*'` over as one string with commas in it; the scripts split such a string back into its parts (above, *The stand: every generated parser against its hand-written one*, on the doubled comma a piece needs for one of its own).
 
 On Windows, 2026-09-21, the read-back was checked both ways: a worker of a default job read the launcher's mask, and a run with BDN's `--affinity 255` (a DECIMAL integer; `0xFF` is "defined with a bad format" and the run ends at once with BDN's help) was stopped with exit code 4. **A case shorter than the read interval (100 ms, and a dry job's cases are) is not read**: run.txt says "BDN executed 4 workers, 1 were read"; those others carry the inherited processors, which is a rule and not a reading, and a real run's cases last many seconds.
 

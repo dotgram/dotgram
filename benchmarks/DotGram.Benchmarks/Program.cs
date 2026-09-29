@@ -114,6 +114,11 @@ static class Program
 				rest.RemoveRange(flag, 2);
 			}
 
+			// Fewer than Stand.MinimumKept runs can never keep enough for a median (StandRepeat.cs, Pool):
+			// refuse at once rather than run any of them only to hit the same refusal afterward.
+			if (repeat > 1 && repeat < Stand.MinimumKept)
+				Stand.Refuse(3, $"--repeat {repeat}: fewer than {Stand.MinimumKept} runs can never keep {Stand.MinimumKept}, and the stand refuses to quote a median from fewer than that (benchmarks/README.md, \"Medians, not runs\"). Ask for --repeat {Stand.MinimumKept} or more.");
+
 			// `--limit minutes` stops a `--repeat` at the announced end of a window: a run in progress is
 			// killed, and the runs finished before it are what is reported.
 			double? limit = null;
@@ -280,6 +285,11 @@ static class Program
 
 				rest.RemoveRange(flag, 2);
 			}
+
+			// Fewer than Stand.MinimumKept runs can never keep enough for a median (StandRepeat.cs, Pool):
+			// refuse at once rather than run any of them only to hit the same refusal afterward.
+			if (repeat > 1 && repeat < Stand.MinimumKept)
+				Stand.Refuse(3, $"--repeat {repeat}: fewer than {Stand.MinimumKept} runs can never keep {Stand.MinimumKept}, and the stand refuses to quote a median from fewer than that (benchmarks/README.md, \"Medians, not runs\"). Ask for --repeat {Stand.MinimumKept} or more.");
 
 			double? limit = null;
 

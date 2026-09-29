@@ -49,6 +49,8 @@ $repo = (git rev-parse --show-toplevel).Trim()
 
 Assert-Linux
 
+$Projects = @(Split-FileList $Projects)
+
 if (-not $Worktrees) { $Worktrees = Join-Path (Get-ScratchRoot) 'gate' }
 
 $cpus = Get-StandCpus
