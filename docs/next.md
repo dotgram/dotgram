@@ -25400,3 +25400,67 @@ carrier, direct on and off, `find` on and off — once compiled plain, where the
 was CS0103, and once beside an unrelated host member of the same escaped name, where the previous
 mistake would have compiled and read the wrong thing. `DotGram.Tests` (10010) and
 `DotGram.Sql.Tests` (14906) pass.
+
+## The direct reader scans a padded separator, as the engine has since 2026-09-17
+
+A FIX log field with a long run of spaces in it cost the square of the run: `"broken" + 4096
+spaces + "x | 55=END"` took 3.6 ms over a string and 8.6 ms over a reader or a stream, about a
+thousand times the hand-written parser, and a *valid* value with the same spaces in it
+(`"58=a" + 4096 spaces + "b | 55=END"`) was as slow. Under log framing the separator is
+`' '* & '|' & ' '*`, and two things asked it from every position of the run. The value,
+`(?!Separator & any)+`, asked it at every character, and at every space the separator read the
+rest of the run before it found `x` rather than `|`. And a field that did not read was recovered
+past by searching for the characters the separator begins with, `' '` and `|`, and trying the
+whole separator at each hit, which inside a run of spaces is every character.
+
+The engine has read both in one pass since 1986ce43 and ab35c7a7 (`Machine.Delimiter.cs`: the
+padded scan and the recovery search), and FIX was on the engine then. The direct reader took the
+FIX readings over afterwards and never had either, so the defect came back with it. Counted
+through a minimal grammar with nothing of FIX in it, the engine was linear on every carrier and
+the reader quadratic on every carrier and input form; the carrier made no difference.
+
+So the reader now scans as the engine does, reusing `EmitDelimiterScan`:
+
+- **A guarded run** (`EmitScan`) is scanned to where the separator first matches (the start of
+  the padding in front of the first stop, or the end), and the loop it replaces is then written
+  as before and handed the last turns: as many as the repetition's minimum, or all of them where
+  the scan found fewer. Every position before that point is one the separator does not match at,
+  so the loop ends where it would have, and whatever it says where it ends — a refusal of `any`
+  at the end of the input where the reading records, a note, too few turns — it says as before.
+  The engine re-enters its general path on a minimum-length failure for the same reason. Only a
+  repetition nothing asks for a shorter reading is scanned, settled on the tape or carried
+  immediately: one that is asked would have to give back what the scan read, which is not what
+  the turns' ways offer. FIX's value is settled.
+- **The recovery search** (`Broken`) scans to the first stop and then replays the one attempt the
+  old search failed furthest at, so the failure it leaves reads as it did. Which attempt that is
+  depends on how the reader searched before: where it looked only for the few characters the
+  separator begins with, the last run of padding that ended at something other than a stop
+  (every try inside such a run failed where the run ended, and nothing else was tried); where it
+  tried every position, the position before the match, as the engine replays. The attempt after
+  the scan cannot fail, so the loop runs at most twice.
+
+What is not covered is the same value followed by something that can begin with padding —
+`Text & ' '* & ('|' & ' '* | eof)` — which the tape must be able to give back from, and which
+the reader still reads in turns, quadratically (266,820, 1,057,860 and 4,212,804 buffer asks at
+512, 1,024 and 2,048 spaces, against the engine's 1,067, 2,091 and 4,139), and cubically when the
+parse is then refused. Scanning it needs the run's one way on the tape in place of a way a turn,
+with the loop's tail kept out of replays; it is left as a follow-up rather than folded in here.
+
+**Counted, not timed** (D144). The buffered input types count every `Ensure` under
+`DOTGRAM_COUNTS` (`CountEnsured`), which a reading calls for every character it reads, so a
+reader, a stream and octets held whole are counted; a string, read as a span, is not.
+`PaddedSeparatorCountTests` holds the minimal grammar to it on both carriers, direct and not,
+every buffered reading of a `parse` and a `yield`, a value and a bad element, at 512 to 4096
+spaces; `FixSeparatorCountTests` (Slow) runs `FixGrammar.cs` as it ships through the generator
+with the symbol set, both framings, all eight buffered FIX readings. Both are red on the parent
+(4,212,802 asks at 2,048 spaces against 1,057,858 at 1,024) and linear now (1,097, 2,121, 4,169
+and 8,265 at 512 to 4,096). `DelimiterScanTests` holds both reader scans to the same grammar
+spelled so that neither is recognized, on both carriers and every input form, comparing values,
+positions and refusal text, including a padding of more characters than a search takes.
+
+Generated code: every file with a buffered input gains the counter, inside `#if` (the `Buffered`
+snapshot, `StockCountReader`, seven `DotGram.Compatibility` grammars and the FIX 4.4 fixture);
+`FixGrammar.g.cs` also gains both scans in each of its five log-framing reader renderings and
+nothing else. By the stopwatch, not gated: the recovery row at 4096 spaces is 3.2 us over a string
+and 6-8 us over the rest, the valid value 2-6 us, and the hand-written parser's `Recovery`
+workload is now slower than the generated one on every input form.

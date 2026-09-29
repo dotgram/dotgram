@@ -3162,6 +3162,10 @@ sealed partial class Machine
 				FirstSets.Of(body, _graph).Or(following.Plain),
 				following.AfterSeam);
 
+			// `(?!Separator & any)*` before a stop between runs of padding is a scan to the first
+			// stop, as the engine's is (Machine.CompilePaddedScan): EmitScan.
+			var delimiter = ReferenceEquals(_scanned, repeat) ? null : machine.PaddedDelimiter(repeat);
+
 			if (_tape)
 			{
 				// A repetition that can never be asked for a shorter reading writes nothing
@@ -3181,13 +3185,24 @@ sealed partial class Machine
 				if (analyzing && !settled && max != 0)
 					machine.OpeningRepeat(owner, repeat, following, run: machine.RunTest(body) is not null);
 
-				if (machine.RunTest(body) is { } test)
+				if (settled && delimiter is { } scanned)
+					EmitScan(code, repeat, scanned.Padding, scanned.Stop, following);
+				else if (machine.RunTest(body) is { } test)
 					EmitRun(code, body, test, min, max, settled);
 				else
 					EmitTurns(code, repeat, inside, settled);
 
 				return;
 			}
+
+			// Carried immediately, a repetition is never asked for a shorter reading.
+			if (delimiter is { } found)
+			{
+				EmitScan(code, repeat, found.Padding, found.Stop, following);
+
+				return;
+			}
+
 			// At most one turn is not a loop, and writing it as one costs a counter nothing
 			// reads, a test of it at the top and a jump backwards the reader never takes.
 			// What a person writes is an `if`, and `?` is in every grammar there is — the
@@ -3289,6 +3304,56 @@ sealed partial class Machine
 				code.Then("return -1;");
 			}
 		}
+
+		/// <summary>
+		/// A repetition of <c>(?!Separator &amp; any)</c>, where the separator is a stop between
+		/// runs of padding: scanned to where the separator first matches, then finished by its own
+		/// loop.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Written as turns, the loop asks the separator at every character, and at every
+		/// character of a run of padding the separator reads the rest of the run before it finds
+		/// no stop there: a run of n was n²/2 characters read (a FIX log field's value with a
+		/// long run of spaces in it). The scan reads each once (Machine.EmitDelimiterScan), and
+		/// where it stops is where the loop would have: every position before the padding in
+		/// front of the first stop is one the separator does not match at, and at that position
+		/// it does.
+		/// </para>
+		/// <para>
+		/// The loop is then written as it always was and handed the last turns: as many as the
+		/// fewest it may take, or all of them where the scan found fewer. So whatever it says
+		/// where it ends — a refusal at the end of the input, a note, too few turns — it says as
+		/// before, and for no more than the fewest turns' worth of reading again. Only a
+		/// repetition nothing asks for a shorter reading: one that is asked gives back what the
+		/// scan read, which the turns' ways are not there to offer.
+		/// </para>
+		/// </remarks>
+		void EmitScan(Writer code, Node.Repeat repeat, string padding, string stop, FollowSets.Continuation following)
+		{
+			var min  = repeat.Min;
+			var mark = $"m{_marks++}";
+
+			_character = true;
+
+			code.Line($"var {mark} = p;");
+
+			// A block of its own: a rule may scan more than once, and the scan names its locals.
+			using (code.Block(""))
+				machine.EmitDelimiterScan(code, padding, stop);
+
+			if (min > 0)
+				code.Line($"p = p - {mark} > {min} ? p - {min} : {mark};");
+
+			code.Line();
+
+			_scanned = repeat;
+			EmitRepeat(code, repeat, following);
+			_scanned = null;
+		}
+
+		/// <summary>The repetition <see cref="EmitScan"/> is writing the loop of.</summary>
+		Node.Repeat? _scanned;
 
 		/// <summary>
 		/// A repetition of at most one turn: the turn, under the test that says it is there.
@@ -3654,6 +3719,10 @@ sealed partial class Machine
 			code.Line("var p     = pos;");
 			code.Line("var reach = failure.Reach;");
 			code.Line("var to    = p;");
+
+			if (machine.PaddedDelimiter(read.Plan.Recovery.Sync) is not null)
+				code.Line(machine.BufferedBytes ? "var c     = 0;" : "var c     = '\\0';");
+
 			code.Line();
 
 			using (code.Block("while (true)"))
@@ -3668,11 +3737,40 @@ sealed partial class Machine
 
 				code.Line();
 
+				var stops = SyncStops(read.Plan.Recovery.Sync);
+
+				// A stop between runs of padding (`' '* & '|' & ' '*`) is found as the engine finds
+				// it (Machine.EmitRecoverySearch): in one pass to the first stop, from the start of the
+				// padding before it. Tried at every character of a run, it read the rest of the run
+				// each time, and a long run was a square. The one try that failed furthest is made
+				// again, so the failure reads as it did: where only the few characters it begins
+				// with were tried, the last run that did not end at a stop; where every position
+				// was, the one before the match.
+				if (machine.PaddedDelimiter(read.Plan.Recovery.Sync) is { } delimiter)
+				{
+					if (stops is null)
+						code.Line("var searchStart = p;");
+
+					machine.EmitDelimiterScan(code, delimiter.Padding, delimiter.Stop, stops is null ? null : "unmatched");
+					code.Line();
+
+					code.Line(stops is null ? "if (p > searchStart)" : "if (unmatched >= 0)");
+					code.Then(stops is null ? "p--;" : "p = unmatched;");
+					code.Line($"else if ({machine.Past("p")})");
+
+					using (code.Block(""))
+					{
+						code.Line("to = p;");
+						code.Line("break;");
+					}
+
+					code.Line();
+				}
 				// Where the synchronization begins with one of a few characters, the next place it
 				// can begin is searched for (Machine.EmitSearch, IndexOf) rather than tried at
 				// every position: a feed with a bad line in ten pays a scan, not an attempt per
 				// character.
-				if (SyncStops(read.Plan.Recovery.Sync) is { } stops)
+				else if (stops is not null)
 				{
 					machine.EmitSearch(code, "hit", "p", stops);
 					code.Line("if (hit < 0)");

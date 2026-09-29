@@ -83,12 +83,20 @@ sealed partial class Machine
 		return state;
 	}
 
-	void EmitDelimiterScan(Writer writer, string? padding, string stop)
+	/// <param name="unmatched">
+	/// Where to keep the last character of the last run of padding that ended at something other
+	/// than the stop, or -1: the one place a search that tried the delimiter at every padding
+	/// character would have failed furthest (the reader's recovery, which replays it).
+	/// </param>
+	void EmitDelimiterScan(Writer writer, string? padding, string stop, string? unmatched = null)
 	{
 		_usesChar = true;
 		writer.Line("// Linear delimiter scan: remember the start of trailing padding.");
 		if (padding != null)
 			writer.Line("var paddingStart = p;");
+
+		if (padding != null && unmatched != null)
+			writer.Line($"var {unmatched} = -1;");
 
 		using (writer.Block($"while ({Room(1)})"))
 		{
@@ -99,10 +107,15 @@ sealed partial class Machine
 					writer.Line("p = paddingStart;");
 				writer.Line("break;");
 			}
+			if (padding != null && unmatched != null)
+				writer.Line($"if (p > paddingStart && !({padding})) {unmatched} = p - 1;");
 			writer.Line("p++;");
 			if (padding != null)
 				writer.Line($"if (!({padding})) paddingStart = p;");
 		}
+
+		if (padding != null && unmatched != null)
+			writer.Line($"if (p > paddingStart) {unmatched} = p - 1;");
 	}
 
 	void EmitRecoverySearch(Writer writer, Node sync)

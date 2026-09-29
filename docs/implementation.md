@@ -391,6 +391,18 @@ proves today:
   Raw error extents still exclude delimiter padding, while unmatched EOF padding
   remains part of the error. Unsupported synchronization rules keep the original
   per-position search.
+- **The direct reader scans the same padded delimiters** (`Machine.Reader.cs`, `EmitScan`
+  and the recovery's `Broken`), which it did not when it took the direct readings over from
+  the engine: it asked the separator at every character, and the separator re-read the rest
+  of a run of padding each time, so a run of n cost n²/2. A guarded run is scanned to where
+  the delimiter first matches and then finished by its ordinary loop from the last minimum's
+  worth of turns, which keeps whatever that loop says where it ends. Only a repetition
+  nothing asks for a shorter reading is scanned: settled on the tape, or carried
+  immediately. Recovery scans to the first stop and replays the one attempt the old search
+  failed furthest at: the last run of padding that did not end at a stop where the search
+  looked only for the characters the delimiter begins with, and the position before the
+  match where it tried every position. `PaddedSeparatorCountTests` and
+  `FixSeparatorCountTests` hold both to a count.
 - **Text alternatives none of which begins another** are decided where they differ, reading
   what they share once and moving the position only when one has matched whole.
 

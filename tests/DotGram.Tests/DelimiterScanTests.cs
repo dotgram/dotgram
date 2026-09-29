@@ -218,6 +218,84 @@ public sealed class DelimiterScanTests
 				Assert.Equal(ReadRecovered(slow, input, mode), ReadRecovered(fast, input, mode));
 	}
 
+	/// <summary>
+	/// The reader's two scans — a value up to the separator, and the end of a bad element — against
+	/// the same grammar spelled so that neither is recognized: turns that ask the separator at every
+	/// character, and a synchronization tried wherever it can begin. What was read, where, and what a
+	/// refusal says, over every input form and both carriers.
+	/// </summary>
+	/// <remarks>
+	/// The last separator pads with more characters than a search takes, so its recovery tries every
+	/// position rather than a few characters; the others are searched for.
+	/// </remarks>
+	[Theory]
+	[InlineData("' '* & '|' & ' '*",            "+")]
+	[InlineData("' '* & '|' & ' '*",            "*")]
+	[InlineData("' '* & '|'",                   "+")]
+	[InlineData("[' ' | '\\t']* & ['|' | ';']", "+")]
+	[InlineData("['a'..'f']* & '|'",            "+")]
+	public void The_reader_scans_as_its_turns_and_its_search_read(string separator, string count)
+	{
+		var grammar = "Separator = " + separator + "\nSync = Separator\n" +
+			"Text = (?!Separator & any)" + count + "\n" +
+			"Item : @string = \"k=\" & t: Text & (Separator | eof) => @(Show(t))\n" +
+			"Start : @string[] = Item* recover Sync => @(Error(parserPosition, parserText, parserMessage))\n" +
+			"parse Start stream bytes";
+		const string members = """
+			static string Show(string text)
+			{
+				return "[" + text + "]";
+			}
+			static string Show(global::System.ReadOnlySpan<char> text)
+			{
+				return Show(text.ToString());
+			}
+			static string Show(global::System.ReadOnlySpan<byte> text)
+			{
+				return Show(global::System.Text.Encoding.ASCII.GetString(text.ToArray()));
+			}
+			static string Error(long position, string raw, string message)
+			{
+				return position + ":" + raw + ":" + message;
+			}
+			static string Error(long position, global::System.ReadOnlySpan<byte> raw, string message)
+			{
+				return Error(position, global::System.Text.Encoding.ASCII.GetString(raw.ToArray()), message);
+			}
+			""";
+		var run     = new string(' ', 4096);
+		var inputs  = new[] { "", "k=", "k=a", "k=a|", "k=a   |", "k=a  b | k=c", "k=a | k=", "k= |",
+			"k=  ", "k=a\t;k=b;", "||", " | ", "bad", "bad   ", "bad  x | k=v", "bad x  y |k=v |",
+			"k=a | bad x  | k=b", "bad |", "k=abc|", "k=xyz|k=fa|", "bad fx|k=abc|", "badxyz", "k=fff",
+			"bad ;k=a;", "k=a" + run + "b | k=v", "bad" + run + "x | k=v", "bad" + run, "k=a" + run };
+
+		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		{
+			Assembly Build(string text, bool scans)
+			{
+				var result = GramCompiler.Compile(text, new GramCompilerOptions
+				{
+					BufferedInput = true, BufferedBytes = true, Carrier = carrier,
+					CSharpScanner = RoslynCSharpScanner.Instance,
+				});
+				EmittedCode.Quiet(result.Diagnostics);
+				var source = Assert.Single(result.Sources).Text;
+				Assert.Equal(scans, source.Contains("Linear delimiter scan", StringComparison.Ordinal));
+
+				return EmittedCode.Compile(source, declarationMembers: members);
+			}
+
+			var fast = Build(grammar, scans: true);
+			var slow = Build(
+				grammar.Replace("Sync = Separator", "Sync = { Separator }").Replace("& any)", "& when @(true) & any)"),
+				scans: false);
+
+			foreach (var input in inputs)
+				foreach (var mode in new[] { typeof(string), typeof(TextReader), typeof(Stream) })
+					Assert.Equal(ReadRecovered(slow, input, mode), ReadRecovered(fast, input, mode));
+		}
+	}
+
 	static string ReadRecovered(Assembly assembly, string input, Type mode)
 	{
 		using var reader = new StringReader(input);

@@ -611,8 +611,22 @@ public static partial class CSharpEmitter
 				return value;
 			}
 
+			#if DOTGRAM_COUNTS
+
+			/// <summary>
+			/// How many times a reading asked for room, which it does for every character it reads:
+			/// what a gate that counts reads (D144). <b>Compiled only under <c>DOTGRAM_COUNTS</c>,
+			/// which no project defines; it is not a supported setting.</b>
+			/// </summary>
+			internal static long CountEnsured;
+
+			#endif
+
 			public bool Ensure(int position, int length)
 			{
+				#if DOTGRAM_COUNTS
+				CountEnsured++;
+				#endif
 				if (position < _start || length < 0) throw new global::System.ArgumentOutOfRangeException();
 				if (position <= _count && length <= _count - position) return true;
 				return Fill(position, length);
