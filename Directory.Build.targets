@@ -20,17 +20,21 @@
 			<_DotGramPinned>$(IntermediateOutputPath)pinned\</_DotGramPinned>
 		</PropertyGroup>
 
-		<MakeDir Directories="$(_DotGramPinned)" Condition="'@(_DotGramPage)' != ''" />
+		<!-- Two pages may share a filename (a package's own README.md and a subfolder's, say),
+		     so the pinned copy keeps the source's own subfolder under the pinned root rather than
+		     flattening every page into one directory, where the second page pinned would overwrite
+		     the first. -->
+		<MakeDir Directories="@(_DotGramPage->'$(_DotGramPinned)%(RelativeDir)')" Condition="'@(_DotGramPage)' != ''" />
 
 		<!-- Escaped, so that a semicolon in the page is text and not a list separator. -->
 		<WriteLinesToFile Condition="'@(_DotGramPage)' != ''"
-		                  File="$(_DotGramPinned)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
+		                  File="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
 		                  Lines="$([MSBuild]::Escape($([System.IO.File]::ReadAllText('%(_DotGramPage.FullPath)').Replace('/blob/main/', '/blob/v$(Version)/').Replace('/tree/main/', '/tree/v$(Version)/'))))"
 		                  Overwrite="true" WriteOnlyWhenDifferent="true" />
 
 		<ItemGroup>
 			<None Remove="@(_DotGramPage)" />
-			<None Include="$(_DotGramPinned)%(_DotGramPage.Filename)%(_DotGramPage.Extension)" Pack="true" PackagePath="%(_DotGramPage.PackagePath)" />
+			<None Include="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)" Pack="true" PackagePath="%(_DotGramPage.PackagePath)" />
 		</ItemGroup>
 	</Target>
 </Project>

@@ -5,9 +5,9 @@ rather than descriptions — so the names below are the names of that day. Sever
 since moved: there is no `ParseLog` (framing is a value, `FixFieldOptions.Log`), no
 `FixOptions`, and no Strict and Lenient modes (reading and validating are two calls).
 A supplied length/data dictionary adds to the standard's pairs rather than replacing
-them. What the package does today is in [the package's own README](../../src/DotGram.Finance/README.md)
-and its SKILL beside it; this file is kept for the reasoning, the coverage matrix and
-the measurements, which are dated by what they measured.
+them. What the package does today is in [the FIX document](../../src/DotGram.Finance/Fix/README.md)
+and the SKILL beside its package overview; this file is kept for the reasoning, the coverage
+matrix and the measurements, which are dated by what they measured.
 
 ## Flat parser and explicit semantics
 

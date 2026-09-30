@@ -49,6 +49,10 @@
 		     says where it is, in a comment nothing renders. -->
 		<None Include="SKILL.md" Pack="true" PackagePath="/" />
 
+		<!-- The FIX reference, packed beside the fields and messages it documents, so an agent
+		     reading the restored package offline has it without a repository to browse. -->
+		<None Include="Fix/README.md" Pack="true" PackagePath="Fix/" />
+
 		<None Include="../../LICENSE" Pack="true" PackagePath="licenses/DotGram/" />
 	</ItemGroup>
 

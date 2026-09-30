@@ -562,8 +562,8 @@ run time.
 
 ## The FIX package's reading, for its maintainers
 
-The package's own page (`src/DotGram.Finance/README.md`) says what a consumer writes; this is how the
-package reads, which that page no longer carries.
+The package's own page (`src/DotGram.Finance/Fix/README.md`) says what a consumer writes; this is
+how the package reads, which that page no longer carries.
 
 ### Fields: recovery and binary data
 

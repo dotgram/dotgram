@@ -16,7 +16,7 @@ namespace DotGram.Finance.Tests;
 /// The code the package's own pages open with, run rather than read.
 /// </summary>
 /// <remarks>
-/// Both README.md and SKILL.md opened their length/data example with a dictionary holding
+/// Both Fix/README.md and SKILL.md opened their length/data example with a dictionary holding
 /// <c>[95] = 96</c>, which D27 turned into an <see cref="System.ArgumentException"/> — so the two
 /// pages a consumer reads first shipped a first call that throws. The pages were written before
 /// the rule changed and nothing held them to it. These are the same calls, compiled: a change to
@@ -68,7 +68,7 @@ public sealed class ShippedExampleTests
 		var blocks = ShippedPages.Blocks(page);
 		var code   = ShippedPages.Inherited(blocks, block) + blocks[block];
 
-		if (Fragments.TryGetValue((Path.GetFileName(page), block), out var why))
+		if (Fragments.TryGetValue((page, block), out var why))
 		{
 			Assert.NotNull(why);
 
@@ -82,7 +82,8 @@ public sealed class ShippedExampleTests
 
 	public static TheoryData<string, int> Pages => ShippedPages.Every(
 		ShippedPages.PageOf(typeof(FixField), "README.md"),
-		ShippedPages.PageOf(typeof(FixField), "SKILL.md"));
+		ShippedPages.PageOf(typeof(FixField), "SKILL.md"),
+		ShippedPages.PageOf(typeof(FixField), "Fix/README.md"));
 
 	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>
 	static readonly Dictionary<(string Page, int Block), string> Fragments = new();

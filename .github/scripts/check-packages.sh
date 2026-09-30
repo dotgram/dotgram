@@ -84,3 +84,9 @@ check_library sql         DotGram.Sql                "System.Memory" ""
 check_library web         DotGram.Web                "System.Memory" ""
 check_library finance     DotGram.Finance            "System.Memory Portable.System.DateTimeOnly DotGram.ExpressionLanguage" "DotGram.ExpressionLanguage"
 check_library expressions DotGram.ExpressionLanguage "System.Memory" ""
+
+# DotGram.Finance ships the FIX reference beside the fields and messages it documents, for an
+# agent reading the restored package with no repository to browse; its pack-time link pinning is
+# checked here too, since check_face only looks at the top-level README.md and SKILL.md.
+test -f "finance/Fix/README.md" || { echo "DotGram.Finance: Fix/README.md missing"; exit 1; }
+if grep -nE '/(blob|tree)/main/' "finance/Fix/README.md"; then echo "DotGram.Finance: Fix/README.md links to main"; exit 1; fi

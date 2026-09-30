@@ -18,10 +18,10 @@ to initialize.
 messages too, since the framing is the same, but builds its own classes and holds them to its own
 version: a 4.2 order read through `Fix44` is told its BeginString is wrong and meets 4.4's fields.
 
-The [README][readme] beside this file is the reference. This is the order to decide
+The [FIX README][readme] is the reference. This is the order to decide
 things in, and the mistakes that are easy to make.
 
-[readme]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance
+[readme]: https://github.com/dotgram/dotgram/blob/main/src/DotGram.Finance/Fix/README.md
 
 ## Choose the answer first
 
