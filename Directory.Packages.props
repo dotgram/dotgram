@@ -23,6 +23,14 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 	</ItemGroup>
 
+	<ItemGroup Label="Public API">
+		<!-- Holds a package's public surface to the PublicAPI.*.txt files beside its project, so
+		     that a member added or removed without being written down fails the build. It runs
+		     in the compiler of whoever builds this repository, not the generator's floor above,
+		     and nothing of it ships: the projects that take it reference it PrivateAssets="all". -->
+		<PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+	</ItemGroup>
+
 	<ItemGroup Label="Visual Studio">
 		<PackageVersion Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" />
 		<PackageVersion Include="Microsoft.VisualStudio.LanguageServices" Version="4.14.0" />

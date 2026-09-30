@@ -34,6 +34,12 @@
 		     slot, typed on the class it checks. -->
 		<ProjectReference Include="../DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj" />
 
+		<!-- The public surface, held to PublicAPI.*.txt beside this file. What only one framework
+		     has is in PublicAPI/<framework>/: a record's clone returns its own type on net10.0 and
+		     the base type on netstandard2.0, which has no covariant returns. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" />
+
 		<AdditionalFiles Include="Fix/**/*.gram" />
 
 		<None Include="README.md" Pack="true" PackagePath="/" />

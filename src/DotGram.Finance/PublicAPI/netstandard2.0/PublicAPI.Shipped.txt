@@ -1,0 +1,4 @@
+#nullable enable
+override DotGram.Finance.Fix.Fix42.Fix42Context.<Clone>$() -> DotGram.Finance.Fix.FixContext!
+override DotGram.Finance.Fix.Fix44.Fix44Context.<Clone>$() -> DotGram.Finance.Fix.FixContext!
+override DotGram.Finance.Fix.Fix50.Fix50Context.<Clone>$() -> DotGram.Finance.Fix.FixContext!
