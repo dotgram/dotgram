@@ -25521,3 +25521,31 @@ And the refusal message does move where a tail past the stop refuses without rec
 "ab  x|z" became "Input does not match 'Item'." at 0. Accepted, and pinned. The differential,
 widened with ignore-case stops and literals and their non-ASCII folds, compared 1,654,200
 answers with none different.
+
+## A single-character ignore-case stop shortcut skipped its own folds
+
+`StopCharacters` turned a run's own negated class, or the class a lookahead refuses, into up to
+five characters to search for directly rather than run the per-turn matcher — the same
+optimization `CompileRun` uses for `(?!Separator & any)+` before a one-character FIX field
+separator. A single-character literal took this path by its written character alone, ignoring
+case: `Separator = ' '* & 's'i` stopped the search at the written `'s'` alone, so a value spelled with
+`'S'`, the long s or the other folds the matcher and `FirstSets` already read — U+017F for `'s'i`, U+00B5 for
+`'μ'i` — was read past rather than stopped at, and the run captured too much or the reader
+accepted what should have refused.
+
+An ignore-case literal now opts out of the shortcut and falls to the general per-turn matcher,
+which already folds the way `FirstSets` does. `DelimiterScanTests` gained rows for `s`/`S`/long s,
+`k`/`K` (the Kelvin sign kept apart, as the matcher and `FirstSets` keep it), and `μ`/`Μ`/micro
+sign, over every carrier, parse and find, direct reading on and off.
+
+The other half of the same function — the body's own negated class, or the class a lookahead
+refuses — was checked and left alone: a character class has no ignore-case of its own in this
+grammar (`Node.Element` carries no such flag; only `Node.Literal` does), so its ranges are always
+the exhaustive set as written, never a literal folded down to one case. The sibling shortcuts
+this family of bugs was traced from — the run-length and fails-where-it-began questions
+elsewhere in the emitter, and the dispatch table a run of plain-case literal alternatives builds
+— either ask only how many characters a literal reads, which case does not change, or already
+exclude an ignore-case literal the same way this one now does.
+
+Generated code: every grammar in the solution is byte-identical to the parent's (946 files); no
+shipped grammar uses a single-character ignore-case stop.
