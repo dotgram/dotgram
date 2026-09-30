@@ -25508,3 +25508,16 @@ different. So the scan is followed by the one try that succeeds. `FixGrammar.g.c
 replay in each of its five log-framing readings and nothing else moves. `DelimiterScanTests`
 now also holds both scans at `{3,}`, a run inside a line that a repetition reads, two runs in one
 rule, a separator of named parts, and Latin-1 padding read as bytes.
+
+Review found the proof too narrow about case. A stop the continuation reads without regard to
+case was taken to begin with its upper and lower case, where the matcher folds wider: `'s'i`
+also reads U+017F and `'μ'i` U+00B5, so a delimiter stopping at `['s' | 'S']` did not refuse a
+way in that read `ſ`, and the reader refused "aſ" where it had accepted. The lead now keeps
+whether its literal ignores case, and the proof asks the literal's first set as the matcher
+folds it. The same flag closes an older hole in `Lead.Refuses`: a look for `'s'` was taken to
+refuse `'s'i`, so after `(?!'s' & any)+` the reader refused "aS" where the engine accepted.
+And the refusal message does move where a tail past the stop refuses without recording anything
+(a look, or the end on the buffered readings): the reader's "Expected '|'." at 4 over
+"ab  x|z" became "Input does not match 'Item'." at 0. Accepted, and pinned. The differential,
+widened with ignore-case stops and literals and their non-ASCII folds, compared 1,654,200
+answers with none different.

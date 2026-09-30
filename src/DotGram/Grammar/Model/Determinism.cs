@@ -229,13 +229,10 @@ public static class Determinism
 		if (lead.Ends && Observed(graph))
 			return false;
 
+		// Every character the literal can begin with, as its matcher folds case (FirstSets): 's'i
+		// begins with U+017F as well as 's' and 'S'.
 		if (lead.Literal is { Length: > 0 } literal)
-		{
-			var upper = char.ToUpperInvariant(literal[0]);
-			var lower = char.ToLowerInvariant(literal[0]);
-
-			return stop.Covers(FirstSets.First.Chars([new CharRange(literal[0], literal[0]), new CharRange(upper, upper), new CharRange(lower, lower)]));
-		}
+			return stop.Covers(FirstSets.Of(new Node.Literal(literal.Substring(0, 1)) { IgnoreCase = lead.IgnoreCase }, graph));
 
 		if (lead.Rule is { } rule)
 		{

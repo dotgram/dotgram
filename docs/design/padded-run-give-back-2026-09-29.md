@@ -134,8 +134,10 @@ Linear on both, with the same answers.
   follows it must consume: a part that may read nothing and is not padding makes the lead
   unknown. Nothing that consumes nothing but can refuse (a guard, a selector, a look, glue, a
   reading test) may stand in front of the node it consumes with, at any depth: the lead is then
-  marked `Still` and the proof declines. `P` and `S` must be apart. `PaddedRunProofTests` has a
-  row for each, and for each form the proof accepts.
+  marked `Still` and the proof declines. `P` and `S` must be apart. A stop read without regard
+  to case begins with every character the matcher folds to it (`'s'i` with U+017F, `'μ'i` with
+  U+00B5), and `S` must hold them all. `PaddedRunProofTests` has a row for each, and for each
+  form the proof accepts; bounded padding (`' '{0,2}`) is padding too.
 - **The observers of the second case are asked of the whole grammar**, which holds every
   publication's rules: any `when` guard (a `switch` selector is one), any captured look, any
   recognizer the host writes. Narrowing it to what stands after the run would need a proof of
@@ -146,8 +148,12 @@ Linear on both, with the same answers.
   report's timing are set aside.
 - **The refusal message.** A give-back the proof removes fails before the end of the run, so
   what it recorded could only have been the furthest refusal where every way past that end
-  failed without recording anything. Accepted, as the existing lead proof accepts it, and
-  checked by the differential below.
+  failed without recording anything. Accepted, as the existing lead proof accepts it. It does
+  happen: `Item = t: Text & ' '* & '|' & ?!any` over "ab  x|z" was refused by the reader with
+  "Expected '|'." at 4 and is now refused with "Input does not match 'Item'." at 0, since a look
+  refuses without recording anything; the same with `?='q' & 'q'`, and with `eof` after the
+  stop on the buffered readings. The engine records the look and is unchanged. The parse is
+  refused either way; `PaddedRunProofTests` pins the case.
 
 ## Verified
 
@@ -155,12 +161,15 @@ Linear on both, with the same answers.
   then `;` or the end), both carriers, reader and engine, every buffered reading of a `parse`
   and a `yield`, accepted and refused, at 128 to 1,024 spaces. Red before on all eight rows
   (reader quadratic accepting, engine quadratic refusing), linear after.
-- The same grammars through the generator before and after: a family of 1,020 grammars (five
-  delimiters, three counts, seventeen continuations including every exclusion above, with and
+- The same grammars through the generator before and after: a family of 2,484 grammars (nine
+  delimiters, among them stops read without regard to case and a Greek one, three counts,
+  twenty-three continuations including every exclusion above and ignore-case literals, with and
   without a recovery and with and without a guard in the grammar), each on both carriers,
-  direct and not. 888 of the 4,080 renderings differ and were compiled and run over 40 inputs
-  through every public reading (string, reader, one-byte stream, bytes; parse, yield, find):
-  461,760 answers compared in full (values, positions, refusal text), none different. The one
+  direct and not. 2,850 of the 9,936 renderings differ and were compiled and run over 62 inputs,
+  among them U+017F, U+00B5 and U+039C where `'s'i` and `'μ'i` may read them, through every
+  public reading (string, reader, one-byte stream, bytes; parse, yield, find): 1,654,200
+  answers compared in full (values, positions, refusal text), none different. The family's
+  tails all record where they fail, so it does not reach the refusal case above. The one
   other difference is GRAM5015, the warning for an immediate carrier asked for over a grammar
   that reads again: it no longer names the run, which no longer reads again, and where the run
   was the only reason it is no longer given.
