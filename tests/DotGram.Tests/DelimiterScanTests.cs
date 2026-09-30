@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -134,6 +135,7 @@ public sealed class DelimiterScanTests
 	[Theory]
 	[InlineData("+")]
 	[InlineData("{2,}")]
+	[InlineData("{3,}")]
 	[InlineData("{2,4}")]
 	public void Minimum_and_maximum_lengths_keep_failure_and_rollback_behavior(string count)
 	{
@@ -141,7 +143,7 @@ public sealed class DelimiterScanTests
 			"\nStart : @int = value: Text & (Separator | eof) => @(value.Length)\nparse Start stream bytes";
 		var fast = Compile(grammar);
 		var slow = Compile(grammar.Replace("& any)", "& when @(true) & any)"));
-		foreach (var input in new[] { "", "|", " |", "a|", "ab|", "abcdef|", "ab   |", "ab   " })
+		foreach (var input in new[] { "", "|", " |", "a|", "ab|", "abc|", "abcdef|", "ab   |", "ab   ", "abc   " })
 		{
 			Assert.Equal(EmittedCode.Match(slow, "Grammar", "TryParseStart", input),
 				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
@@ -231,6 +233,7 @@ public sealed class DelimiterScanTests
 	[Theory]
 	[InlineData("' '* & '|' & ' '*",            "+")]
 	[InlineData("' '* & '|' & ' '*",            "*")]
+	[InlineData("' '* & '|' & ' '*",            "{3,}")]
 	[InlineData("' '* & '|'",                   "+")]
 	[InlineData("[' ' | '\\t']* & ['|' | ';']", "+")]
 	[InlineData("['a'..'f']* & '|'",            "+")]
@@ -296,10 +299,99 @@ public sealed class DelimiterScanTests
 		}
 	}
 
+	/// <summary>
+	/// The same two scans where they stand elsewhere: a run written inside a line that a
+	/// repetition reads, two runs in one rule, a separator whose parts are named, and padding
+	/// that is a Latin-1 character read as a byte.
+	/// </summary>
+	[Theory]
+	[InlineData("inside a repetition")]
+	[InlineData("two in a rule")]
+	[InlineData("named")]
+	[InlineData("Latin-1")]
+	public void The_reader_scans_as_its_turns_read_wherever_the_run_stands(string shape)
+	{
+		var pad = shape == "Latin-1" ? "'\\u00A0'" : "' '";
+		var grammar = shape switch
+		{
+			"inside a repetition" =>
+				"Separator = ' '* & '|' & ' '*\nSync = Separator\n" +
+				"Line = \"k=\" & (?!Separator & any)+ & (Separator | eof)\n" +
+				"Entry : @string = t: Line+ => @(Show(t))\n" +
+				"Start : @string[] = Entry* recover Sync => @(Error(parserPosition, parserText, parserMessage))\n",
+			"two in a rule" =>
+				"Separator = ' '* & '|' & ' '*\nSync = Separator\n" +
+				"Text = (?!Separator & any)+\n" +
+				"Item : @string = \"k=\" & a: Text & Separator & b: Text & (Separator | eof) => @(Show(a) + Show(b))\n" +
+				"Start : @string[] = Item* recover Sync => @(Error(parserPosition, parserText, parserMessage))\n",
+			_ =>
+				"Pad = " + pad + "\nBar = '|'\nSeparator = Pad* & Bar & Pad*\nSync = Separator\n" +
+				"Text = (?!Separator & any)+\n" +
+				"Item : @string = \"k=\" & t: Text & (Separator | eof) => @(Show(t))\n" +
+				"Start : @string[] = Item* recover Sync => @(Error(parserPosition, parserText, parserMessage))\n",
+		} + "parse Start stream bytes";
+		const string members = """
+			static string Show(string text)
+			{
+				return "[" + text + "]";
+			}
+			static string Show(global::System.ReadOnlySpan<char> text)
+			{
+				return Show(text.ToString());
+			}
+			static string Show(global::System.ReadOnlySpan<byte> text)
+			{
+				return Show(global::System.Text.Encoding.Latin1.GetString(text.ToArray()));
+			}
+			static string Error(long position, string raw, string message)
+			{
+				return position + ":" + raw + ":" + message;
+			}
+			static string Error(long position, global::System.ReadOnlySpan<byte> raw, string message)
+			{
+				return Error(position, global::System.Text.Encoding.Latin1.GetString(raw.ToArray()), message);
+			}
+			""";
+		var space = shape == "Latin-1" ? '\u00A0' : ' ';
+		var run   = new string(space, 300);
+		var inputs = new[] { "", "k=", "k=a", "k=a|", "k=a   |", "k=a  b | k=c", "k=a | k=", "k= |", "k=  ",
+			"||", " | ", "bad", "bad   ", "bad  x | k=v", "k=a | bad x  | k=b", "k=a|k=b|c", "k=a | b | k=c | d",
+			"k=\u00E9 \u00E9|k=\u00FF", "k=a|b", "k=a | b", "k=a|b|", "k=a" + run + "b | k=v", "bad" + run + "x | k=v",
+			"k=a" + run, "k=a|b" + run + "c | k=v" }
+			.Select(input => input.Replace(' ', space))
+			.ToArray();
+
+		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		{
+			Assembly Build(string text, bool scans)
+			{
+				var result = GramCompiler.Compile(text, new GramCompilerOptions
+				{
+					BufferedInput = true, BufferedBytes = true, Carrier = carrier,
+					CSharpScanner = RoslynCSharpScanner.Instance,
+				});
+				EmittedCode.Quiet(result.Diagnostics);
+				var source = Assert.Single(result.Sources).Text;
+				Assert.Equal(scans, source.Contains("Linear delimiter scan", StringComparison.Ordinal));
+
+				return EmittedCode.Compile(source, declarationMembers: members);
+			}
+
+			var fast = Build(grammar, scans: true);
+			var slow = Build(
+				grammar.Replace("Sync = Separator", "Sync = { Separator }").Replace("& any)", "& when @(true) & any)"),
+				scans: false);
+
+			foreach (var input in inputs)
+				foreach (var mode in new[] { typeof(string), typeof(TextReader), typeof(Stream) })
+					Assert.Equal(ReadRecovered(slow, input, mode), ReadRecovered(fast, input, mode));
+		}
+	}
+
 	static string ReadRecovered(Assembly assembly, string input, Type mode)
 	{
 		using var reader = new StringReader(input);
-		using var stream = new OneByteStream(Encoding.ASCII.GetBytes(input));
+		using var stream = new OneByteStream(Encoding.Latin1.GetBytes(input));
 		var parameters = mode == typeof(string) ? new[] { mode } : new[] { mode, typeof(int?), typeof(int?) };
 		object?[] arguments = mode == typeof(string) ? [input] : [mode == typeof(Stream) ? stream : reader, 1, int.MaxValue];
 		var result = assembly.GetType("Grammar")!.GetMethod("TryParseStart", parameters)!.Invoke(null, arguments)!;
