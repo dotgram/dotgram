@@ -166,6 +166,33 @@ for library in Sql Web ExpressionLanguage Finance; do
 done
 ```
 
+### The public surface
+
+`DotGram.Finance` holds its public surface to text: every public type and member is a line of
+`src/DotGram.Finance/PublicAPI.Shipped.txt` or `PublicAPI.Unshipped.txt`, and
+Microsoft.CodeAnalysis.PublicApiAnalyzers compares the two with the assembly on every build. A
+member added without its line is RS0016 and a line whose member is gone is RS0017, both errors here,
+so the surface cannot move without the diff showing it. Shipped is what a published version has.
+A change between releases goes to Unshipped — a new member as its line, a removed one as its
+shipped line prefixed `*REMOVED*` — and at a release Unshipped is emptied into Shipped, a
+`*REMOVED*` line taking its shipped line with it; every file keeps `#nullable enable` as its first
+line and the rest sorted. The two frameworks agree but for a record's clone, which returns its own
+type on net10.0 and the base type on netstandard2.0, having no covariant returns: what only one
+framework has is in `PublicAPI/<framework>/`, beside the shared files, and read by that
+framework's build alone. The generated FIX versions are most of the surface, so a change to
+`generate.py` or a template that changes a version's members changes these files too.
+
+The lines are written by the analyzer, not by hand. The editor's fix for RS0016 adds one, and a
+build that lets the analyzer warn rather than fail prints every missing one, each RS0016 naming
+the line it wants — which is how the 0.2.0 surface, some forty thousand lines, was recorded.
+Build each framework with `-f` and compare: a line only one of them reports goes in its folder.
+
+```
+dotnet build src/DotGram.Finance/DotGram.Finance.csproj -c Release -f net10.0 --no-incremental \
+    -p:TreatWarningsAsErrors=false \
+    | grep -oP "RS0016: Symbol '\K.*(?=' is not part of the declared public API)" | sort -u
+```
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and
