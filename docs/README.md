@@ -77,6 +77,7 @@ construction. A change meant to move a grammar off the tape is measured by its d
 | [`design/sql-over-kinds.md`](design/sql-over-kinds.md) | Reading SQL over tokens rather than characters. |
 | [`design/read-directive-2026-09-19.md`](design/read-directive-2026-09-19.md) | Reading one rule from a position: what the positional forms already do and what they still owe. |
 | [`design/reader-input-forms.md`](design/reader-input-forms.md) | The input forms the generator compiles for. |
+| [`design/padded-run-give-back-2026-09-29.md`](design/padded-run-give-back-2026-09-29.md) | A run up to a padded delimiter followed by padding of its own: why it is read in turns, why the engine and a one-way tape do not cure it, and the proof that would settle it. A proposal. |
 | [`design/test-audit-2026-09-18.md`](design/test-audit-2026-09-18.md) | What each test proves, and what was removed for proving it twice. |
 
 Nothing here is a statement about the current compiler. Where one of them has been
