@@ -398,11 +398,10 @@ proves today:
   the delimiter first matches and then finished by its ordinary loop from the last minimum's
   worth of turns, which keeps whatever that loop says where it ends. Only a repetition
   nothing asks for a shorter reading is scanned: settled on the tape, or carried
-  immediately. Recovery scans to the first stop and replays the one attempt the old search
-  failed furthest at: the last run of padding that did not end at a stop where the search
-  looked only for the characters the delimiter begins with, and the position before the
-  match where it tried every position. `PaddedSeparatorCountTests` and
-  `FixSeparatorCountTests` hold both to a count.
+  immediately. Recovery scans to the first stop and tries the synchronization there: the
+  tries the old search made before it could only fail short of the stop, which the reading
+  then goes past, and nothing it answers with was found to read them. `PaddedSeparatorCountTests`
+  and `FixSeparatorCountTests` hold both to a count.
 - **A padded run before padding of its own is settled** where what follows can only pad and then
   stop: `Text & ' '* & ('|' & ' '* | eof)`. A continuation that reads characters of the
   delimiter's padding and then its stop would have been the delimiter matching where the run's

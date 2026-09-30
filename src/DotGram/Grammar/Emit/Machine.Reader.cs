@@ -3742,21 +3742,14 @@ sealed partial class Machine
 				// A stop between runs of padding (`' '* & '|' & ' '*`) is found as the engine finds
 				// it (Machine.EmitRecoverySearch): in one pass to the first stop, from the start of the
 				// padding before it. Tried at every character of a run, it read the rest of the run
-				// each time, and a long run was a square. The one try that failed furthest is made
-				// again, so the failure reads as it did: where only the few characters it begins
-				// with were tried, the last run that did not end at a stop; where every position
-				// was, the one before the match.
+				// each time, and a long run was a square. The tries it skips could only fail short of
+				// the stop, which the reading then goes past.
 				if (machine.PaddedDelimiter(read.Plan.Recovery.Sync) is { } delimiter)
 				{
-					if (stops is null)
-						code.Line("var searchStart = p;");
-
-					machine.EmitDelimiterScan(code, delimiter.Padding, delimiter.Stop, stops is null ? null : "unmatched");
+					machine.EmitDelimiterScan(code, delimiter.Padding, delimiter.Stop);
 					code.Line();
 
-					code.Line(stops is null ? "if (p > searchStart)" : "if (unmatched >= 0)");
-					code.Then(stops is null ? "p--;" : "p = unmatched;");
-					code.Line($"else if ({machine.Past("p")})");
+					code.Line($"if ({machine.Past("p")})");
 
 					using (code.Block(""))
 					{

@@ -25497,3 +25497,14 @@ every exclusion, recovery and guards on and off), both carriers, direct and not:
 differ, and 461,760 answers from them (values, positions, refusal text, every public reading)
 agree. GRAM5015 no longer names the run among what reads again. Generated code: every grammar in
 the solution is byte-identical before and after (1,172 files, paths and report timings aside).
+
+The same round took out what the previous entry's recovery kept for safety. After scanning to the
+first stop, `Broken` went back to replay the one try the old search had failed furthest at, "so
+the failure it leaves reads as it did". Nothing reads that failure: a mutation that made the
+replay dead passed every test, and the parent-against-branch run above, widened with recovering
+grammars and a delimiter padded by more characters than a search takes, compared 861,396
+answers, refusal messages and the recovered elements' `parserMessage` among them, with none
+different. So the scan is followed by the one try that succeeds. `FixGrammar.g.cs` loses the
+replay in each of its five log-framing readings and nothing else moves. `DelimiterScanTests`
+now also holds both scans at `{3,}`, a run inside a line that a repetition reads, two runs in one
+rule, a separator of named parts, and Latin-1 padding read as bytes.
