@@ -4476,7 +4476,9 @@ sealed partial class Machine
 
 		switch (stop)
 		{
-			case Node.Literal(var text) when text.Length == 1:
+			// An ignore-case literal stops at every character its matcher folds together,
+			// not just the written one. Leave those literals to the per-turn matcher.
+			case Node.Literal(var text) { IgnoreCase: false } when text.Length == 1:
 				return [text[0]];
 
 			// The body's own negated class, or a class the lookahead refuses: never a negated

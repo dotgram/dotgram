@@ -12,6 +12,87 @@ namespace DotGram.Tests;
 
 public sealed class DelimiterScanTests
 {
+	public static TheoryData<string, string, CarrierKind, bool, bool> IgnoreCaseStops
+	{
+		get
+		{
+			var rows = new TheoryData<string, string, CarrierKind, bool, bool>();
+
+			foreach (var (literal, folds) in new[] { ("s", "sSſ"), ("k", "kK"), ("μ", "μΜµ") })
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+					foreach (var direct in new[] { false, true })
+						foreach (var find in new[] { false, true })
+							rows.Add(literal, folds, carrier, direct, find);
+
+			return rows;
+		}
+	}
+
+	/// <summary>
+	/// A stop literal refuses every character its matcher accepts, including Unicode folds
+	/// beyond the ordinary lower and upper case pair. Finding may leave a suffix; parsing may not.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(IgnoreCaseStops))]
+	public void Ignore_case_stops_keep_the_matchers_folds(
+		string literal, string folds, CarrierKind carrier, bool direct, bool find)
+	{
+		// Recursion keeps this out of the flat rendering. Find always uses the engine,
+		// even when direct reading is enabled; parse must exercise the reader as well.
+		var grammar = "Text = (?!'" + literal + "'i & any)+\n" +
+			"Item : @string = t: Text & '" + literal + "'i => @(t.ToString())\n" +
+			"     | '(' & inner: Item & ')' => @(inner)\n" +
+			(find ? "find Item" : "parse Item");
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			Carrier = carrier, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Equal(direct && !find, source.Contains("Read_Item(", StringComparison.Ordinal));
+		var assembly = EmittedCode.Compile(source);
+
+		void Check(string input, string? expected)
+		{
+			if (find)
+			{
+				var found = EmittedCode.Found(assembly, "Grammar", "FindItem", input);
+
+				if (expected is null)
+					Assert.Empty(found);
+				else
+					Assert.Equal(expected, Assert.Single(found));
+			}
+			else
+			{
+				var match = EmittedCode.Match(assembly, "Grammar", "TryParseItem", input);
+				Assert.Equal(expected is not null, match.IsSuccess);
+
+				if (expected is not null)
+					Assert.Equal(expected, match.Value);
+			}
+		}
+
+		Check("", null);
+		Check("abc", null);
+
+		// The matcher and FirstSets use invariant uppercase: Kelvin sign stays distinct
+		// from k/K. It is text to keep, rather than another stop to search for.
+		if (literal == "k")
+		{
+			Check("aK", null);
+			Check("aKk", "aK");
+		}
+
+		foreach (var fold in folds)
+		{
+			Check(fold.ToString(), null);
+			Assert.Multiple(
+				() => Check("a" + fold, "a"),
+				() => Check("a" + fold + literal, find ? "a" : null));
+		}
+	}
+
 	[Theory]
 	[InlineData("'|'")]
 	[InlineData("any")]
