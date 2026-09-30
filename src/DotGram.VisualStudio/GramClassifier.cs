@@ -210,14 +210,15 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 
 		foreach (var diagnostic in _analysis.Document(snapshot).Diagnostics)
 		{
-			var tagged = Span(snapshot, diagnostic.Position, diagnostic.Length);
+			var (position, length) = GramDiagnosticText.Span(diagnostic.Position, diagnostic.Length, snapshot.Length);
+			var tagged = new SnapshotSpan(snapshot, position, length);
 
 			if (spans.IntersectsWith(tagged))
 				yield return new TagSpan<ErrorTag>(
 					tagged,
 					new ErrorTag(
 						ErrorType(diagnostic.Severity),
-						$"{diagnostic.Id}: {diagnostic.Message}"));
+						GramDiagnosticText.Format(diagnostic)));
 		}
 	}
 
@@ -225,22 +226,6 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
 			new SnapshotSpan(snapshot, 0, snapshot.Length)));
-	}
-
-	static SnapshotSpan Span(ITextSnapshot snapshot, int position, int length)
-	{
-		position = Math.Max(0, Math.Min(position, snapshot.Length));
-		length   = Math.Max(0, Math.Min(length, snapshot.Length - position));
-
-		if (length == 0 && snapshot.Length > 0)
-		{
-			if (position == snapshot.Length)
-				position--;
-
-			length = 1;
-		}
-
-		return new SnapshotSpan(snapshot, position, length);
 	}
 
 	static string ErrorType(GramSeverity severity)
@@ -413,6 +398,16 @@ sealed class GramBufferAnalysis
 		ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
 	}
 
+	/// <summary>
+	/// A grammar read with what it includes spliced on after it, and told about only as far as
+	/// its own text goes. Until the includes are known, what depends on them is not said: a
+	/// name from an included grammar is not missing, it has not been looked up yet.
+	/// </summary>
+	internal static GramDocument Analyze(string own, string tail, bool suppressContextDiagnostics)
+	{
+		return Project(GramLanguageService.Analyze(own + tail), own.Length, suppressContextDiagnostics);
+	}
+
 	static bool IsIdentifier(char character)
 	{
 		return character == '_' || char.IsLetterOrDigit(character);
@@ -492,9 +487,7 @@ sealed class GramBufferAnalysis
 					suppressContextDiagnostics = _inheritancePending;
 				}
 
-				var own = snapshot.GetText();
-				var document = Project(
-					GramLanguageService.Analyze(own + tail), own.Length, suppressContextDiagnostics);
+				var document = Analyze(snapshot.GetText(), tail, suppressContextDiagnostics);
 
 				lock (_gate)
 				{

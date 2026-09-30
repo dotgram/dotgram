@@ -101,12 +101,29 @@ sealed class GramQuickInfoSource(
 		if (point is null)
 			return null;
 
+		var item = await ItemAsync(session, snapshot, point.Value, cancellationToken).ConfigureAwait(false);
+		var diagnostics = GramDiagnosticText.At(
+			analysis.Document(snapshot).Diagnostics.Select(static diagnostic =>
+				(diagnostic.Position, diagnostic.Length, diagnostic)),
+			point.Value.Position,
+			snapshot.Length);
+
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		return WithDiagnostics(item, diagnostics);
+	}
+
+	async Task<QuickInfoItem?> ItemAsync(
+		IAsyncQuickInfoSession session,
+		ITextSnapshot snapshot,
+		SnapshotPoint point,
+		CancellationToken cancellationToken)
+	{
 		if (GramCSharpCompletionContext.TryGetExpression(
-			snapshot.GetText(), point.Value.Position,
+			snapshot.GetText(), point.Position,
 			out var expression, out var expressionStart, out var symbolStart, out var symbolLength))
 		{
 			var csharp = await roslyn.GetQuickInfoAsync(
-				expression, point.Value.Position - expressionStart, cancellationToken).ConfigureAwait(false);
+				expression, point.Position - expressionStart, cancellationToken).ConfigureAwait(false);
 			if (csharp is not null)
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
@@ -117,7 +134,7 @@ sealed class GramQuickInfoSource(
 		}
 
 		foreach (var item in analysis.Document(snapshot).Classifications)
-			if (Contains(item.Position, item.Length, point.Value.Position))
+			if (Contains(item.Position, item.Length, point.Position))
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 				return Create(
@@ -136,6 +153,41 @@ sealed class GramQuickInfoSource(
 
 	public void Dispose()
 	{
+	}
+
+	/// <summary>
+	/// The squiggles' messages put in front of what DotGram shows, which the tooltip presenter
+	/// shows alone (<see cref="GramDiagnosticText"/>). Where DotGram shows nothing, Visual
+	/// Studio's own text for the squiggle stands, and nothing is added.
+	/// </summary>
+	internal static QuickInfoItem? WithDiagnostics(QuickInfoItem? item, IReadOnlyList<string> diagnostics)
+	{
+		if (item is null || diagnostics.Count == 0)
+			return item;
+
+		var foreground = Application.Current.TryFindResource(EnvironmentColors.ToolTipTextBrushKey) as System.Windows.Media.Brush
+			?? SystemColors.InfoTextBrush;
+
+		if (item.Item is not Panel panel ||
+			item.Item is not IDotGramQuickInfoContent { ShouldDisplay: true })
+		{
+			var trackingSpan = item.Item is IDotGramQuickInfoContent content
+				? content.TrackingSpan
+				: item.ApplicableToSpan;
+			panel = new InteractiveQuickInfoPanel(trackingSpan);
+			item  = new QuickInfoItem(item.ApplicableToSpan, panel);
+		}
+
+		for (var index = diagnostics.Count - 1; index >= 0; index--)
+			panel.Children.Insert(0, new TextBlock
+			{
+				Text         = diagnostics[index],
+				TextWrapping = TextWrapping.Wrap,
+				Foreground   = foreground,
+				Margin       = new Thickness(0, 0, 0, 6),
+			});
+
+		return item;
 	}
 
 	internal static QuickInfoItem Create(
@@ -502,12 +554,30 @@ sealed class EmbeddedGramQuickInfoSource(
 		var snapshot = buffer.CurrentSnapshot;
 		var point    = session.GetTriggerPoint(snapshot);
 
-		if (point is null || !analysis.TryGet(snapshot, out var classifications, out _))
+		if (point is null || !analysis.TryGet(snapshot, out var classifications, out var diagnostics))
 			return null;
 
+		var item = await ItemAsync(session, snapshot, point.Value, classifications, cancellationToken).ConfigureAwait(false);
+		var messages = GramDiagnosticText.At(
+			diagnostics.Select(static diagnostic =>
+				(diagnostic.Span.Start, diagnostic.Span.Length, diagnostic.Diagnostic)),
+			point.Value.Position,
+			snapshot.Length);
+
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		return GramQuickInfoSource.WithDiagnostics(item, messages);
+	}
+
+	async Task<QuickInfoItem?> ItemAsync(
+		IAsyncQuickInfoSession session,
+		ITextSnapshot snapshot,
+		SnapshotPoint point,
+		IReadOnlyList<HostClassification> classifications,
+		CancellationToken cancellationToken)
+	{
 		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols) &&
 			dslSymbols
-				.Where(symbol => symbol.Span.Contains(point.Value.Position))
+				.Where(symbol => symbol.Span.Contains(point.Position))
 				.OrderBy(symbol => symbol.Target.IndexOf('.') < 0)
 				.ThenBy(symbol => symbol.Span.Length)
 				.FirstOrDefault() is { Span.Length: > 0 } dslSymbol)
@@ -526,7 +596,7 @@ sealed class EmbeddedGramQuickInfoSource(
 
 		if (analysis.TryGetDslSites(snapshot, out var dslSites))
 			foreach (var site in dslSites)
-				if (site.Span.Contains(point.Value.Position))
+				if (site.Span.Contains(point.Position))
 				{
 					var span = new SnapshotSpan(snapshot, site.Span.Start, site.Span.Length);
 					var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
@@ -537,13 +607,13 @@ sealed class EmbeddedGramQuickInfoSource(
 						new DslQuickInfoContent(trackingSpan, site.LanguageId, site.EntryRule));
 				}
 
-		if (classifications.Any(item => item.GrammarSpan.Contains(point.Value.Position)) &&
+		if (classifications.Any(item => item.GrammarSpan.Contains(point.Position)) &&
 			GramCSharpCompletionContext.TryGetExpression(
-				snapshot.GetText(), point.Value.Position,
+				snapshot.GetText(), point.Position,
 				out var expression, out var expressionStart, out var symbolStart, out var symbolLength))
 		{
 			var csharp = await roslyn.GetQuickInfoAsync(
-				expression, point.Value.Position - expressionStart, cancellationToken).ConfigureAwait(false);
+				expression, point.Position - expressionStart, cancellationToken).ConfigureAwait(false);
 			if (csharp is not null)
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
@@ -554,7 +624,7 @@ sealed class EmbeddedGramQuickInfoSource(
 		}
 
 		foreach (var item in classifications)
-			if (item.Span.Contains(point.Value.Position))
+			if (item.Span.Contains(point.Position))
 			{
 				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 				return GramQuickInfoSource.Create(
@@ -569,9 +639,9 @@ sealed class EmbeddedGramQuickInfoSource(
 			}
 
 		foreach (var item in classifications)
-			if (item.GrammarSpan.Contains(point.Value.Position))
+			if (item.GrammarSpan.Contains(point.Position))
 			{
-				var span = new SnapshotSpan(snapshot, point.Value.Position, 0);
+				var span = new SnapshotSpan(snapshot, point.Position, 0);
 				var trackingSpan = snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeExclusive);
 				return new QuickInfoItem(
 					trackingSpan,

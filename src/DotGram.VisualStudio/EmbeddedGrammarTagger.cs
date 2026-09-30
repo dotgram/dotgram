@@ -188,14 +188,15 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 
 		foreach (var item in diagnostics)
 		{
-			var tagged = Span(snapshot, item.Span.Start, item.Span.Length);
+			var (position, length) = GramDiagnosticText.Span(item.Span.Start, item.Span.Length, snapshot.Length);
+			var tagged = new SnapshotSpan(snapshot, position, length);
 
 			if (spans.IntersectsWith(tagged))
 				yield return new TagSpan<ErrorTag>(
 					tagged,
 					new ErrorTag(
 						ErrorType(item.Diagnostic.Severity),
-						$"{item.Diagnostic.Id}: {item.Diagnostic.Message}"));
+						GramDiagnosticText.Format(item.Diagnostic)));
 		}
 	}
 
@@ -203,22 +204,6 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 	{
 		TagsChanged?.Invoke(this, new SnapshotSpanEventArgs(
 			new SnapshotSpan(snapshot, 0, snapshot.Length)));
-	}
-
-	static SnapshotSpan Span(ITextSnapshot snapshot, int position, int length)
-	{
-		position = Math.Max(0, Math.Min(position, snapshot.Length));
-		length   = Math.Max(0, Math.Min(length, snapshot.Length - position));
-
-		if (length == 0 && snapshot.Length > 0)
-		{
-			if (position == snapshot.Length)
-				position--;
-
-			length = 1;
-		}
-
-		return new SnapshotSpan(snapshot, position, length);
 	}
 
 	static string ErrorType(GramSeverity severity)

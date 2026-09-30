@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
+using DotGram.Grammar;
 using DotGram.VisualStudio;
 
 using Microsoft.CodeAnalysis;
@@ -80,5 +81,20 @@ public sealed class StandaloneGrammarInheritanceTests
 		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", ruleTarget?.FilePath);
 		Assert.Equal(0, ruleTarget?.Line);
 		Assert.Equal(0, ruleTarget?.Column);
+	}
+
+	[Fact]
+	public void ADialectIsCleanOnceWhatItIncludesIsFoundAndQuietUntilThen()
+	{
+		const string dialect = "using Sql92;\nStart = Sql92.Word & Word\nparse Start";
+		var tail = GrammarSplice.Join(
+			new GrammarSplice.Part("", null, null),
+			[new GrammarSplice.Part("Word = ['a'..'z']+", "Sql92", null)]).Text;
+
+		var found = GramBufferAnalysis.Analyze(dialect, tail, suppressContextDiagnostics: false);
+		var pending = GramBufferAnalysis.Analyze(dialect, "", suppressContextDiagnostics: true);
+
+		Assert.Empty(found.Diagnostics);
+		Assert.Empty(pending.Diagnostics);
 	}
 }
