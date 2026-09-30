@@ -34,6 +34,10 @@ check_face() {
   grep -q '<projectUrl>'                "$1"/*.nuspec || { echo "$1: no <projectUrl>";   exit 1; }
   grep -q '<tags>'                      "$1"/*.nuspec || { echo "$1: no <tags>";         exit 1; }
   grep -q '<releaseNotes>'              "$1"/*.nuspec || { echo "$1: no <releaseNotes>"; exit 1; }
+
+  # The packed pages link to this version's tag: a link to main would change under a package that
+  # cannot, and the pack is what rewrites them, so the packed copies are what to look at.
+  if grep -nE '/(blob|tree)/main/' "$1/README.md" "$1/SKILL.md"; then echo "$1: a packed page links to main"; exit 1; fi
 }
 check_face generator
 
