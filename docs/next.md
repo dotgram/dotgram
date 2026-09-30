@@ -25464,3 +25464,36 @@ snapshot, `StockCountReader`, seven `DotGram.Compatibility` grammars and the FIX
 nothing else. By the stopwatch, not gated: the recovery row at 4096 spaces is 3.2 us over a string
 and 6-8 us over the rest, the valid value 2-6 us, and the hand-written parser's `Recovery`
 workload is now slower than the generated one on every input form.
+
+## A padded run before padding of its own is settled
+
+What the previous entry left: a value up to a padded separator followed by padding of its own and
+then the separator's stop or the end, `Text & ' '* & ('|' & ' '* | eof)`, or a statement, its
+trailing spaces, then `;` or the end. The run's turns read spaces and so does what follows, so
+nothing proved the run need never give back, and the reader read it a turn at a time: quadratic
+where it accepted (17,604, 67,908 and 266,820 buffer asks at 128, 256 and 512 spaces) and cubic
+where a whole parse refused (11,653,955 at 256). Counting the engine on refused input as well
+showed it quadratic there too (17,952, 68,640, 268,320): its run keeps one entry and gives back a
+character at a time, and each give-back into spaces has `' '*` read them again. So sending the
+shape to the engine would not have cured it, and would have moved whole publications and the
+carrier with them; a tape with one way per run is what the engine's entry already is.
+
+The give-back is futile, and now proved so (`Determinism.SettlesPaddedRun`). A turn of
+`(?!D & any)` begins only where `D = P* & S & Q*` did not match; a continuation that reads
+characters of `P` and then one of `S` would have been `D` matching there. The only other way in
+is padding to the end of the input, where the longest reading already stands with the same
+continuation, and only a split of the padding differs: admitted where nothing in the grammar can
+answer by it (no guard or selector, captured look, or host recognizer). `FollowSets.Lead` follows
+optional padding instead of giving up on it (`Padding`) and remembers whether something that can
+refuse without reading stands in front of what the way in consumes with (`Still`); every
+condition fails closed, and `PaddedRunProofTests` has a row for each. The reader then scans the
+run as it scans a settled one, and the engine's scan pushes no entry, but only where this proof
+holds.
+
+`PaddingAfterRunCountTests` holds both forms, both carriers, reader and engine, every buffered
+reading: red on all eight rows before, linear now. Checked against the parent through the
+generator over a family of 1,020 grammars (delimiters, counts, seventeen continuations including
+every exclusion, recovery and guards on and off), both carriers, direct and not: 888 renderings
+differ, and 461,760 answers from them (values, positions, refusal text, every public reading)
+agree. GRAM5015 no longer names the run among what reads again. Generated code: every grammar in
+the solution is byte-identical before and after (1,172 files, paths and report timings aside).

@@ -403,6 +403,15 @@ proves today:
   looked only for the characters the delimiter begins with, and the position before the
   match where it tried every position. `PaddedSeparatorCountTests` and
   `FixSeparatorCountTests` hold both to a count.
+- **A padded run before padding of its own is settled** where what follows can only pad and then
+  stop: `Text & ' '* & ('|' & ' '* | eof)`. A continuation that reads characters of the
+  delimiter's padding and then its stop would have been the delimiter matching where the run's
+  turn began, so a shorter reading can only fail, or reach the end of the input where the longest
+  already stands (`Determinism.SettlesPaddedRun`, over `FollowSets.Lead.Padding`). The reader
+  scans such a run instead of reading it in turns, and the engine's scan keeps no entry to give
+  back from. Before, the reader was quadratic where it accepted and cubic where it refused, and
+  the engine quadratic where it refused. `PaddingAfterRunCountTests` holds both to a count and
+  `PaddedRunProofTests` every condition of the proof.
 - **Text alternatives none of which begins another** are decided where they differ, reading
   what they share once and moving the position only when one has matched whole.
 

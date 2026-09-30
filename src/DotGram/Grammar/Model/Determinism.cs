@@ -143,6 +143,10 @@ public static class Determinism
 		if (Leading(read) is Node.Lookahead(false, var refused) && following.Lead.Refuses(refused))
 			return true;
 
+		// The same, where what follows first reads optional padding: SettlesPaddedRun.
+		if (Leading(read) is Node.Lookahead(false, var delimiter) && PaddedLeadRefuses(delimiter, following.Lead, graph))
+			return true;
+
 		if (seam is not null &&
 			read is Node.Sequence(var parts) && parts.Count > 1 &&
 			parts[0] is Node.Call(var called, _) && ReferenceEquals(called, seam))
@@ -170,6 +174,166 @@ public static class Determinism
 
 		return !FirstSets.Of(body, graph).Overlaps(following.Plain);
 	}
+
+	/// <summary>
+	/// Whether a run up to a padded delimiter need never hand a turn back to a continuation that
+	/// reads optional padding first: <c>(?!D &amp; any)+ &amp; ' '* &amp; ('|' &amp; ' '* | eof)</c>
+	/// with <c>D = ' '* &amp; '|' &amp; ' '*</c>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The delimiter is <c>P* &amp; S &amp; Q*</c>, <c>P</c> and <c>S</c> single character classes
+	/// with nothing in common. The continuation reads optional padding of classes inside
+	/// <c>P</c>, nothing else that could refuse on the way, and then consumes with a node every
+	/// way into which begins with a character of <c>S</c>, or with the delimiter itself, or is at
+	/// the end of the input (<see cref="FollowSets.Lead.Padding"/>). Say the run gave back to
+	/// the start of a completed turn, <c>x</c>. That turn began because <c>D</c> did not match
+	/// there. Had the continuation matched at <c>x</c>, it would have read characters of
+	/// <c>P</c> up to one of <c>S</c> — and then <c>D</c>, whose <c>P*</c> stops at the same
+	/// character because <c>S</c> is not in <c>P</c>, matches at <c>x</c>. So it cannot, and
+	/// every such give-back fails.
+	/// </para>
+	/// <para>
+	/// Unless it met the end of the input after the padding. Then every character from
+	/// <c>x</c> to the end is padding, the run's longest reading took them all, and the
+	/// continuation matches after it too, each padding reading none: both stand at the end with
+	/// the same continuation, and only how the padding was split between the run and what follows
+	/// differs. Something there can answer by the split only if it is handed it: a guard or a
+	/// selector, a captured look, a recognizer the host writes. Where any stands in the grammar,
+	/// the end is not admitted.
+	/// </para>
+	/// <para>
+	/// A turn that gives back only to fail was the reader's cube and the engine's square: every
+	/// give-back into a run of spaces had the padding read again. Settled, each reads it once
+	/// (Machine.CompilePaddedScan, and the reader's EmitScan).
+	/// </para>
+	/// </remarks>
+	public static bool SettlesPaddedRun(Node.Repeat repeat, FollowSets.Continuation following, RecognitionGraph graph)
+	{
+		return !FirstSets.Nullable(repeat.Body, graph) &&
+			Leading(Unbuilt(repeat.Body)) is Node.Lookahead(false, var delimiter) &&
+			PaddedLeadRefuses(delimiter, following.Lead, graph);
+	}
+
+	static bool PaddedLeadRefuses(Node delimiter, FollowSets.Lead lead, RecognitionGraph graph)
+	{
+		if (lead.IsUnknown || lead.IsNothing || lead.Padding is null || lead.Still ||
+			PaddedDelimiter(delimiter, graph) is not { } found)
+			return false;
+
+		var (padding, stop, named) = found;
+
+		if (!padding.Covers(lead.PaddingSet))
+			return false;
+
+		if (lead.Ends && Observed(graph))
+			return false;
+
+		if (lead.Literal is { Length: > 0 } literal)
+		{
+			var upper = char.ToUpperInvariant(literal[0]);
+			var lower = char.ToLowerInvariant(literal[0]);
+
+			return stop.Covers(FirstSets.First.Chars([new CharRange(literal[0], literal[0]), new CharRange(upper, upper), new CharRange(lower, lower)]));
+		}
+
+		if (lead.Rule is { } rule)
+		{
+			if (ReferenceEquals(rule, named))
+				return true;
+
+			var first = FirstSets.Of(new Node.Call(rule, []), graph);
+
+			return graph.Bodies.TryGetValue(rule, out var body) && first.IsKnown && !first.Ends &&
+				stop.Covers(first) && !LeadsStill(body, graph, []);
+		}
+
+		// Padding and then the end of the input, and nothing else.
+		return lead.Ends;
+	}
+
+	/// <summary>
+	/// <c>P* &amp; S</c> or <c>P* &amp; S &amp; Q*</c>, each a single character class, <c>P</c> and
+	/// <c>S</c> apart: the padding, the stop, and the rule where the delimiter is named.
+	/// </summary>
+	static (FirstSets.First Padding, FirstSets.First Stop, RuleSymbol? Rule)? PaddedDelimiter(Node delimiter, RecognitionGraph graph)
+	{
+		var named = delimiter is Node.Call(var rule, { Count: 0 }) ? rule : null;
+
+		if (Named(delimiter, graph) is not Node.Sequence(var parts) || parts.Count is < 2 or > 3 ||
+			Named(parts[0], graph) is not Node.Repeat(var repeated, 0, null) ||
+			FollowSets.PaddingOf(repeated, graph) is not { } padding ||
+			FollowSets.PaddingOf(parts[1], graph) is not { } stop ||
+			padding.Overlaps(stop))
+			return null;
+
+		if (parts.Count == 3 &&
+			(Named(parts[2], graph) is not Node.Repeat(var suffix, 0, null) || FollowSets.PaddingOf(suffix, graph) is null))
+			return null;
+
+		return (padding, stop, named);
+	}
+
+	/// <summary>A node, or the body of the rule it names where it names one with nothing else.</summary>
+	static Node Named(Node node, RecognitionGraph graph)
+	{
+		var seen = new HashSet<RuleSymbol>();
+
+		while (node is Node.Call(var rule, { Count: 0 }) && seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var body))
+			node = body;
+
+		return node;
+	}
+
+	/// <summary>Whether a node may begin with something that consumes nothing but can refuse.</summary>
+	static bool LeadsStill(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
+				return true;
+
+			case Node.Choice choice:
+				return choice.Selection is not null || choice.Nodes.Any(one => LeadsStill(one, graph, seen));
+
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+					if (part is not Node.Empty)
+						return LeadsStill(part, graph, seen);
+
+				return false;
+
+			case Node.Capture(_, var held):    return LeadsStill(held, graph, seen);
+			case Node.Construct(var built, _): return LeadsStill(built, graph, seen);
+			case Node.Atomic(var kept):        return LeadsStill(kept, graph, seen);
+			case Node.Marked(var kept, _):     return LeadsStill(kept, graph, seen);
+			case Node.Repeat(var body, _, _):  return LeadsStill(body, graph, seen);
+
+			case Node.Call(var rule, _):
+				return seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var called) && LeadsStill(called, graph, seen);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>
+	/// Whether anything in the grammar can answer by where a run of padding was split rather than
+	/// by what was read: a guard or a selector, a look whose reading is captured, a recognizer
+	/// the host writes. Asked of the whole grammar, which holds every publication's rules.
+	/// </summary>
+	static bool Observed(RecognitionGraph graph)
+	{
+		return (bool)_observed.GetValue(graph, static one =>
+		{
+			var roots = one.Bodies.Values.Concat(one.Trivia.Values).Concat(one.Recoveries.Values.Select(static recovery => recovery.Sync));
+
+			return roots.SelectMany(static root => NodeWalk.Descendants(root)).Any(static node =>
+				node is Node.Guard or Node.External or Node.Capture(_, Node.Lookahead));
+		});
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, object> _observed = new();
 
 	/// <summary>A node without the captures and constructions around it.</summary>
 	static Node Unbuilt(Node node)

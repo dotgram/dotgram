@@ -78,7 +78,10 @@ sealed partial class Machine
 		// Re-enter the original path only on a minimum-length failure, so its
 		// exact diagnostic and failure position remain unchanged.
 		var retry = repeat.Min > 0 ? CompileRepeat(repeat, next, following) : (int?)null;
-		FinishScan(writer, repeat, next, retry);
+		// A run whose continuation reads padding first and cannot begin inside it keeps no entry
+		// to give back from (Determinism.SettlesPaddedRun); a give-back there only failed, after
+		// reading the padding again.
+		FinishScan(writer, repeat, next, retry, settled: Determinism.SettlesPaddedRun(repeat, following, _graph));
 
 		return state;
 	}

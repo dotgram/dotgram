@@ -104,12 +104,14 @@ public static class FollowSets
 	{
 		readonly byte _kind;
 
-		Lead(byte kind, RuleSymbol? rule, string? literal, bool ends)
+		Lead(byte kind, RuleSymbol? rule, string? literal, bool ends, string? padding = null, bool still = false)
 		{
 			_kind   = kind;
 			Rule    = rule;
 			Literal = literal;
 			Ends    = ends;
+			Padding = padding;
+			Still   = still;
 		}
 
 		/// <summary>The rule a continuation leading with a call names, where it leads with one.</summary>
@@ -120,6 +122,28 @@ public static class FollowSets
 
 		/// <summary>Whether the end of the input is one of the ways in.</summary>
 		public bool Ends { get; }
+
+		/// <summary>
+		/// The characters a way in may read first, one at a time, before it begins to consume with
+		/// the rule, the literal or the end: optional padding, <c>' '* &amp; ('|' | eof)</c>. Null
+		/// where no way in reads any. Kept as the ranges' bounds in pairs, sorted and merged, so
+		/// that two leads that pad alike are equal.
+		/// </summary>
+		/// <remarks>
+		/// Only a repetition of one character class with no minimum is padding: it can read none
+		/// of it, or any of it, and nothing else. What is proved over it is
+		/// <see cref="Determinism.SettlesPaddedRun"/>'s; <see cref="Refuses"/> claims nothing of a
+		/// padded lead, which was unknown before padding was followed.
+		/// </remarks>
+		public string? Padding { get; }
+
+		/// <summary>
+		/// Whether something that consumes nothing but can refuse — a guard, a selector, a look —
+		/// stands in front of the node the lead names. Read only where there is padding: a way in
+		/// that pads and then asks such a thing is not one <see cref="Determinism.SettlesPaddedRun"/>
+		/// reasons about.
+		/// </summary>
+		public bool Still { get; }
 
 		/// <summary>Nothing is known: the top of the lattice, and what <c>default</c> is.</summary>
 		public static readonly Lead Unknown = default;
@@ -153,15 +177,67 @@ public static class FollowSets
 			if (other.IsNothing) return this;
 			if (IsUnknown || other.IsUnknown) return Unknown;
 
+			// Either may pad: the join pads with what either does, and is still where either is.
+			var padding = Pad(Padding, other.Padding);
+			var still   = Still || other.Still;
+
 			// The end joins with a node rather than fighting it: a continuation may be the
 			// end of the input or that one rule, which is the shape `(Separator | eof)` has.
 			if (ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal))
-				return new(2, Rule, Literal, Ends || other.Ends);
+				return new(2, Rule, Literal, Ends || other.Ends, padding, still);
 
-			if (Rule is null && Literal is null)      return new(2, other.Rule, other.Literal, true);
-			if (other.Rule is null && other.Literal is null) return new(2, Rule, Literal, true);
+			if (Rule is null && Literal is null)      return new(2, other.Rule, other.Literal, true, padding, still);
+			if (other.Rule is null && other.Literal is null) return new(2, Rule, Literal, true, padding, still);
 
 			return Unknown;
+		}
+
+		/// <summary>This lead, with a way in that may first read padding of these characters.</summary>
+		/// <remarks>
+		/// Unknown stays unknown. So does nothing: padding and then no way in at all is a
+		/// continuation that may stop anywhere in the padding, which nothing here reasons about.
+		/// </remarks>
+		public Lead Padded(FirstSets.First padding)
+		{
+			return IsUnknown || IsNothing || !padding.IsKnown || padding.Ends
+				? Unknown
+				: new(2, Rule, Literal, Ends, Pad(Padding, Encode(padding.Ranges)), Still);
+		}
+
+		/// <summary>This lead, behind something that consumes nothing but can refuse.</summary>
+		public Lead Stilled()
+		{
+			return IsUnknown || IsNothing ? this : new(2, Rule, Literal, Ends, Padding, true);
+		}
+
+		/// <summary>The padding as a set of characters; nothing where there is none.</summary>
+		public FirstSets.First PaddingSet => Padding is null ? FirstSets.First.None : FirstSets.First.Chars(Decode(Padding));
+
+		static string? Pad(string? one, string? other)
+		{
+			if (one is null)   return other;
+			if (other is null || string.Equals(one, other, StringComparison.Ordinal)) return one;
+
+			return Encode(FirstSets.First.Normalized([.. Decode(one), .. Decode(other)]));
+		}
+
+		static string Encode(IReadOnlyList<CharRange> ranges)
+		{
+			var text = new char[ranges.Count * 2];
+
+			for (var i = 0; i < ranges.Count; i++)
+			{
+				text[i * 2]     = ranges[i].From;
+				text[i * 2 + 1] = ranges[i].To;
+			}
+
+			return new string(text);
+		}
+
+		static IEnumerable<CharRange> Decode(string padding)
+		{
+			for (var i = 0; i + 1 < padding.Length; i += 2)
+				yield return new CharRange(padding[i], padding[i + 1]);
 		}
 
 		/// <summary>
@@ -176,7 +252,9 @@ public static class FollowSets
 			!IsNothing &&
 			(ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal) ||
 				other.Rule is null && other.Literal is null) &&
-			(Ends || !other.Ends);
+			(Ends || !other.Ends) &&
+			(Still || !other.Still) &&
+			(other.Padding is null || Padding is not null && PaddingSet.Covers(other.PaddingSet));
 		}
 
 		/// <summary>
@@ -186,7 +264,7 @@ public static class FollowSets
 		/// </summary>
 		public bool Refuses(Node refused)
 		{
-			return !IsUnknown && !IsNothing && refused switch
+			return !IsUnknown && !IsNothing && Padding is null && refused switch
 			{
 				Node.Call(var called, { Count: 0 }) => ReferenceEquals(Rule, called),
 				Node.Literal(var text) => Literal is not null &&
@@ -411,16 +489,25 @@ public static class FollowSets
 				return text.Length == 0 ? after.Lead : Lead.Reading(text);
 
 			// Zero-width: it decides nothing about what is consumed, so the question passes
-			// through to whatever consumes next.
-			case Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
+			// through to whatever consumes next — marked as standing behind something that can
+			// refuse where it is not merely empty.
+			case Node.Empty:
 				return after.Lead;
+
+			case Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
+				return after.Lead.Stilled();
 
 			case Node.Capture(_, var captured):  return LeadOf(captured, after, graph);
 			case Node.Construct(var built, _):   return LeadOf(built,    after, graph);
 			case Node.Atomic(var kept):          return LeadOf(kept,     after, graph);
 			case Node.Marked(var kept, _):       return LeadOf(kept,     after, graph);
 
+			// Optional padding is followed: what the way in begins to consume with is what
+			// follows it, read after any of it (Lead.Padding).
 			case Node.Repeat(var body, var min, _):
+				if (min == 0 && PaddingOf(body, graph) is { } pads)
+					return after.Lead.Padded(pads);
+
 				return min == 0 ? Lead.Unknown : LeadOf(body, after, graph);
 
 			case Node.Choice(var alternatives):
@@ -435,27 +522,73 @@ public static class FollowSets
 
 			case Node.Sequence(var parts):
 			{
+				// What optional padding the parts read first, and whether something that can
+				// refuse stood among them: carried to the lead of the part that consumes.
+				FirstSets.First? padding = null;
+				var still = false;
+
+				Lead Carried(Lead lead)
+				{
+					lead = still ? lead.Stilled() : lead;
+
+					return padding is null ? lead : lead.Padded(padding);
+				}
+
 				foreach (var part in parts)
 				{
+					if (padding is not null && AtEnd(part, graph))
+						return Carried(Lead.Ending);
+
 					if (FirstSets.Nullable(part, graph))
 					{
 						// Zero-width parts are stepped over; a part that may read nothing but
-						// could have read something is the unknown this refuses to guess at.
+						// could have read something is the unknown this refuses to guess at,
+						// unless it is padding.
 						if (part is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading)
+						{
+							still |= part is not Node.Empty;
+
 							continue;
+						}
+
+						if (part is Node.Repeat(var body, 0, _) && PaddingOf(body, graph) is { } more)
+						{
+							padding = padding is null ? more : padding.Or(more);
+
+							continue;
+						}
 
 						return Lead.Unknown;
 					}
 
-					return LeadOf(part, after, graph);
+					return Carried(LeadOf(part, after, graph));
 				}
 
-				return after.Lead;
+				return Carried(after.Lead);
 			}
 
 			default:
 				return Lead.Unknown;
 		}
+	}
+
+	/// <summary>
+	/// The characters a repetition's body is, where it is one character class and nothing else —
+	/// written in place, or named by a rule that is only that — and null where it is anything more.
+	/// </summary>
+	internal static FirstSets.First? PaddingOf(Node body, RecognitionGraph graph)
+	{
+		var seen = new HashSet<RuleSymbol>();
+
+		while (body is Node.Call(var rule, { Count: 0 }) && seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var named))
+			body = named;
+
+		if (body is not (Node.Element or Node.Literal { Text.Length: 1, IgnoreCase: false }))
+			return null;
+
+		var first = FirstSets.Of(body, graph);
+
+		return first.IsKnown && !first.Ends ? first : null;
 	}
 
 	static Continuation ComputePrecedes(

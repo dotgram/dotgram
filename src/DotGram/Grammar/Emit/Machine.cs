@@ -4504,7 +4504,7 @@ sealed partial class Machine
 		return made.Count == 0 ? null : [.. made];
 	}
 
-	void FinishScan(Writer writer, Node.Repeat repeatNode, int next, int? retry = null)
+	void FinishScan(Writer writer, Node.Repeat repeatNode, int next, int? retry = null, bool settled = false)
 	{
 		var min   = repeatNode.Min;
 		var floor = min == 0 ? "runStart" : $"runStart + {min}";
@@ -4526,10 +4526,13 @@ sealed partial class Machine
 			}
 		}
 
-		writer.Line($"if (p > {floor})");
-		writer.Then(
-			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
-			"call, atomic, repeat, lookahead, p));");
+		if (!settled)
+		{
+			writer.Line($"if (p > {floor})");
+			writer.Then(
+				$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
+				"call, atomic, repeat, lookahead, p));");
+		}
 
 		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");

@@ -1,6 +1,7 @@
-# A run followed by the padding its delimiter begins with (proposal, 2026-09-29)
+# A run followed by the padding its delimiter begins with (2026-09-29)
 
-Status: a proposal for review. Nothing here is built.
+Status: built as proposed, with the conditions the review added (the last two sections). The
+proof is `Determinism.SettlesPaddedRun`; the padded lead is `FollowSets.Lead.Padding`.
 
 ## The shape
 
@@ -59,7 +60,7 @@ the engine's run entry already is, and the engine is quadratic on refusal. It wo
 rule that steps over a whole run of padding in one give-back, which is the proof below applied
 at run time.
 
-## Proposed: prove the give-back futile, and settle the run
+## Built: prove the give-back futile, and settle the run
 
 Let the run be `(?!D & any){m,}` with `D = P* & S & Q*`, the padded delimiter the scan already
 recognizes (`P` and `S` single-character classes, disjoint). Let the scan end at `e`: the first
@@ -82,23 +83,25 @@ character of `S`, or is `D` itself, or is the end of the input.
   ends there, and what follows matches there too (every `Ci` may read nothing, then `E` is the
   end). Both readings stand at the end of the input with the same continuation; only the split
   of the padding between the run and the `Ci` differs. That is an answer only where something
-  after it can succeed or fail by the split: a `when` handed a capture or a value that holds the
-  run. So this case requires that no guard the publication reaches is handed a capture or value
-  (the observer question `SeamSplits` asks for the seam; here asked for guards only). Where one
-  is, the proof does not apply and the rendering is as today.
+  after it can succeed or fail by the split: a guard or selector, a captured look, a recognizer
+  the host writes (the observer question `SeamSplits` asks for the seam). So this case requires
+  that the grammar has none. Where it has one, the proof does not apply and the rendering is as
+  before.
 
 Where the claim holds, the run is **settled**:
 
 - The reader already scans a settled padded run (`EmitScan`) on either carrier and every input
   form; this only makes it settled.
-- The engine's padded scan (`CompilePaddedScan`, `FinishScan`) pushes its run entry
-  unconditionally; it would not push it where the run is settled, so it is not given back.
+- The engine's padded scan (`CompilePaddedScan`, `FinishScan`) pushed its run entry
+  unconditionally; it does not push it where this proof holds, so the run is not given back.
 
 Where this lives: `FollowSets.Lead`, the lattice of what a continuation begins to consume with,
-answers "unknown" for a repetition that may read nothing. It would gain one more kind, "padding
-of class C, then lead L", joined like the others, and `Lead.Refuses` would gain the delimiter
-form above. `Determinism.NeverGivesBack` asks it in the branch that already handles a turn led by
-`?!X`. Over kinds nothing changes: the padded scan is characters only.
+answered "unknown" for a repetition that may read nothing. A lead now carries the padding a way
+in may read first (`Padding`, joined as a union) and whether something that can refuse without
+consuming stands in front of what it consumes with (`Still`). `Lead.Refuses` claims nothing of a
+padded lead; `Determinism.SettlesPaddedRun` reasons about it, and `NeverGivesBack` asks it in
+the branch that already handles a turn led by `?!X`. Over kinds nothing changes: the padded scan
+is characters only.
 
 ### Prototype evidence
 
@@ -124,14 +127,40 @@ Linear on both, with the same answers.
   construction of what follows; the second removes constructions of readings the parse then gave
   up, which syntax.md 7.5 already keeps from failing the parse.
 
-## Questions for review
+## What the review settled
 
-1. Is the second case's observer condition (no guard handed a capture or value, anywhere the
-   publication reaches) strict enough, and should it be narrower (only guards after the run)?
-2. The engine: settle its padded scan only where the new proof holds, or wherever
-   `NeverGivesBack` holds (which also drops the run entry from padded scans the existing proof
-   already settles, a wider change to generated code)?
-3. A refusal message: the give-backs removed fail at positions before `e`. If every way past
-   `e` then fails without recording anything, the furthest refusal could have been one of
-   theirs. The existing lead proof accepts the same; the parent-against-branch differential is
-   the check.
+- **Every condition is enforced, and fails closed.** Padding is a repetition with a minimum of 0
+  (`' '+` is not padding) of one character class, written in place or named, inside `P`. What
+  follows it must consume: a part that may read nothing and is not padding makes the lead
+  unknown. Nothing that consumes nothing but can refuse (a guard, a selector, a look, glue, a
+  reading test) may stand in front of the node it consumes with, at any depth: the lead is then
+  marked `Still` and the proof declines. `P` and `S` must be apart. `PaddedRunProofTests` has a
+  row for each, and for each form the proof accepts.
+- **The observers of the second case are asked of the whole grammar**, which holds every
+  publication's rules: any `when` guard (a `switch` selector is one), any captured look, any
+  recognizer the host writes. Narrowing it to what stands after the run would need a proof of
+  its own, since "after" runs through the callers.
+- **The engine drops its run entry only where this proof holds**, not wherever
+  `NeverGivesBack` does. No grammar in the solution meets it, and every grammar the solution
+  generates was compared before and after: 1,172 generated files, identical once paths and the
+  report's timing are set aside.
+- **The refusal message.** A give-back the proof removes fails before the end of the run, so
+  what it recorded could only have been the furthest refusal where every way past that end
+  failed without recording anything. Accepted, as the existing lead proof accepts it, and
+  checked by the differential below.
+
+## Verified
+
+- `PaddingAfterRunCountTests`: the shape and the consumer form (a statement, trailing spaces,
+  then `;` or the end), both carriers, reader and engine, every buffered reading of a `parse`
+  and a `yield`, accepted and refused, at 128 to 1,024 spaces. Red before on all eight rows
+  (reader quadratic accepting, engine quadratic refusing), linear after.
+- The same grammars through the generator before and after: a family of 1,020 grammars (five
+  delimiters, three counts, seventeen continuations including every exclusion above, with and
+  without a recovery and with and without a guard in the grammar), each on both carriers,
+  direct and not. 888 of the 4,080 renderings differ and were compiled and run over 40 inputs
+  through every public reading (string, reader, one-byte stream, bytes; parse, yield, find):
+  461,760 answers compared in full (values, positions, refusal text), none different. The one
+  other difference is GRAM5015, the warning for an immediate carrier asked for over a grammar
+  that reads again: it no longer names the run, which no longer reads again, and where the run
+  was the only reason it is no longer given.
