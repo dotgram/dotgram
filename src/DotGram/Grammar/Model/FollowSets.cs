@@ -104,14 +104,15 @@ public static class FollowSets
 	{
 		readonly byte _kind;
 
-		Lead(byte kind, RuleSymbol? rule, string? literal, bool ends, string? padding = null, bool still = false)
+		Lead(byte kind, RuleSymbol? rule, string? literal, bool ends, string? padding = null, bool still = false, bool ignoreCase = false)
 		{
-			_kind   = kind;
-			Rule    = rule;
-			Literal = literal;
-			Ends    = ends;
-			Padding = padding;
-			Still   = still;
+			_kind      = kind;
+			Rule       = rule;
+			Literal    = literal;
+			Ends       = ends;
+			Padding    = padding;
+			Still      = still;
+			IgnoreCase = ignoreCase;
 		}
 
 		/// <summary>The rule a continuation leading with a call names, where it leads with one.</summary>
@@ -119,6 +120,12 @@ public static class FollowSets
 
 		/// <summary>The text a continuation leading with a literal reads, where it leads with one.</summary>
 		public string? Literal { get; }
+
+		/// <summary>
+		/// Whether that literal matches without regard to case (<c>'s'i</c>), and so matches more
+		/// than its text: <c>'s'i</c> reads an <c>S</c> a look for <c>'s'</c> did not refuse.
+		/// </summary>
+		public bool IgnoreCase { get; }
 
 		/// <summary>Whether the end of the input is one of the ways in.</summary>
 		public bool Ends { get; }
@@ -161,9 +168,9 @@ public static class FollowSets
 		}
 
 		/// <summary>A continuation that begins by reading one literal.</summary>
-		public static Lead Reading(string literal)
+		public static Lead Reading(string literal, bool ignoreCase = false)
 		{
-			return new(2, null, literal, false);
+			return new(2, null, literal, false, ignoreCase: ignoreCase);
 		}
 
 		public bool IsUnknown => _kind == 0;
@@ -183,11 +190,12 @@ public static class FollowSets
 
 			// The end joins with a node rather than fighting it: a continuation may be the
 			// end of the input or that one rule, which is the shape `(Separator | eof)` has.
+			// The same literal read with and without regard to case is read without: the wider.
 			if (ReferenceEquals(Rule, other.Rule) && string.Equals(Literal, other.Literal, StringComparison.Ordinal))
-				return new(2, Rule, Literal, Ends || other.Ends, padding, still);
+				return new(2, Rule, Literal, Ends || other.Ends, padding, still, IgnoreCase || other.IgnoreCase);
 
-			if (Rule is null && Literal is null)      return new(2, other.Rule, other.Literal, true, padding, still);
-			if (other.Rule is null && other.Literal is null) return new(2, Rule, Literal, true, padding, still);
+			if (Rule is null && Literal is null)      return new(2, other.Rule, other.Literal, true, padding, still, other.IgnoreCase);
+			if (other.Rule is null && other.Literal is null) return new(2, Rule, Literal, true, padding, still, IgnoreCase);
 
 			return Unknown;
 		}
@@ -201,13 +209,13 @@ public static class FollowSets
 		{
 			return IsUnknown || IsNothing || !padding.IsKnown || padding.Ends
 				? Unknown
-				: new(2, Rule, Literal, Ends, Pad(Padding, Encode(padding.Ranges)), Still);
+				: new(2, Rule, Literal, Ends, Pad(Padding, Encode(padding.Ranges)), Still, IgnoreCase);
 		}
 
 		/// <summary>This lead, behind something that consumes nothing but can refuse.</summary>
 		public Lead Stilled()
 		{
-			return IsUnknown || IsNothing ? this : new(2, Rule, Literal, Ends, Padding, true);
+			return IsUnknown || IsNothing ? this : new(2, Rule, Literal, Ends, Padding, true, IgnoreCase);
 		}
 
 		/// <summary>The padding as a set of characters; nothing where there is none.</summary>
@@ -254,6 +262,7 @@ public static class FollowSets
 				other.Rule is null && other.Literal is null) &&
 			(Ends || !other.Ends) &&
 			(Still || !other.Still) &&
+			(IgnoreCase || !other.IgnoreCase) &&
 			(other.Padding is null || Padding is not null && PaddingSet.Covers(other.PaddingSet));
 		}
 
@@ -267,8 +276,10 @@ public static class FollowSets
 			return !IsUnknown && !IsNothing && Padding is null && refused switch
 			{
 				Node.Call(var called, { Count: 0 }) => ReferenceEquals(Rule, called),
-				Node.Literal(var text) => Literal is not null &&
-													   string.Equals(Literal, text, StringComparison.Ordinal),
+				// A look for 's' refuses a way in that reads 's', not one that reads 's'i.
+				Node.Literal(var text) refusedText => Literal is not null &&
+													   string.Equals(Literal, text, StringComparison.Ordinal) &&
+													   (refusedText.IgnoreCase || !IgnoreCase),
 				_ => false,
 			};
 		}
@@ -486,7 +497,7 @@ public static class FollowSets
 				return FirstSets.Nullable(node, graph) ? Lead.Unknown : Lead.Calling(called);
 
 			case Node.Literal(var text):
-				return text.Length == 0 ? after.Lead : Lead.Reading(text);
+				return text.Length == 0 ? after.Lead : Lead.Reading(text, ((Node.Literal)node).IgnoreCase);
 
 			// Zero-width: it decides nothing about what is consumed, so the question passes
 			// through to whatever consumes next — marked as standing behind something that can
