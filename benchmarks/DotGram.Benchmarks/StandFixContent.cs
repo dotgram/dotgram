@@ -47,6 +47,10 @@ static partial class Stand
 		{
 			var side = new PairedSide(name, directory);
 
+			// A side with no unified FixParser (v0.1.0) has no FIX rows to build, and so nothing to check here.
+			if (!side.HasFix)
+				continue;
+
 			foreach (var (input, text) in inputs)
 			{
 				var bytes = Encoding.Latin1.GetBytes(text);

@@ -473,9 +473,15 @@ Fix44's stream form, +10-13% two-process, +4% and every one of 16 alternating ro
 agreeing once measured properly) before `--stand-paired` closed that gap.
 
 `beforeDir` and `afterDir` are two Release build output directories — each holding its own
-`DotGram.Sql.dll`, `DotGram.ExpressionLanguage.dll` and `DotGram.Finance.dll` — loaded into
-two isolated `AssemblyLoadContext`s in the one process running `--stand-paired`, so the same
-process can call both builds' same-named types without collision. Every row `Workloads()`
+`DotGram.Sql.dll` and `DotGram.ExpressionLanguage.dll`, loaded into two isolated
+`AssemblyLoadContext`s in the one process running `--stand-paired`, so the same process can
+call both builds' same-named types without collision. `DotGram.Finance.dll` is read the same
+way `DotGram.Web.dll` already is, below: only a side that has a unified `FixParser` to reflect
+on has FIX rows at all. A side without one — no `DotGram.Finance.dll`, or one built before FIX
+had a unified door (v0.1.0: 93 per-message parsers, none of them this one) — loses every FIX
+and `fixmsg` row and says nothing, the same trade as a side missing `DotGram.Web.dll`; every
+other family still reads, and a pair against such a side is a pair of everything but FIX rather
+than a pairing that refuses outright. Every row `Workloads()`
 times is timed here too, alternating round-robin between `before` and `after` exactly as
 `--stand` alternates hand and generated; a row where either side disagrees with this process's
 own hand parser is refused before anything is timed, the same rule as `--stand`. SQL's

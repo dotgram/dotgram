@@ -22,11 +22,16 @@ static partial class Stand
 
 	static IEnumerable<Workload> PairedSweeps(PairedSide before, PairedSide after)
 	{
-		var orders = string.Concat(Enumerable.Repeat(SweepOrder, 400));
-		var fields = FixSlopeText(1600);
+		// A side with no unified FixParser (v0.1.0) has no FIX rows at all (this optionality, finance-fo):
+		// the rest of this sweep (T-SQL, and the web rows below) does not depend on it.
+		if (before.HasFix && after.HasFix)
+		{
+			var orders = string.Concat(Enumerable.Repeat(SweepOrder, 400));
+			var fields = FixSlopeText(1600);
 
-		yield return PairedFixForm("orders400.text", () => HandFixParser.Parse(orders), before.FixText(orders), after.FixText(orders));
-		yield return PairedFixForm("slope-1600.text", () => HandFixParser.Parse(fields), before.FixText(fields), after.FixText(fields));
+			yield return PairedFixForm("orders400.text", () => HandFixParser.Parse(orders), before.FixText(orders), after.FixText(orders));
+			yield return PairedFixForm("slope-1600.text", () => HandFixParser.Parse(fields), before.FixText(fields), after.FixText(fields));
+		}
 
 		var columns    = "SELECT " + string.Join(", ", Enumerable.Range(0, 1000).Select(static i => "c" + i)) + " FROM t";
 		var conditions = "SELECT 1 WHERE " + string.Join(" AND ", Enumerable.Range(0, 1000).Select(static i => "a" + i + " = 1"));

@@ -732,9 +732,15 @@ static partial class Stand
 		readonly Type _elTape;
 		readonly Type _elImmediate;
 		readonly Type _elState;
-		readonly Type _fix;
-		readonly Type _fixOptions;
-		readonly Type _fixMessages;
+		// Null where the side has no unified FixParser at all (v0.1.0: 93 per-message parsers, no
+		// door to reflect on): the side then has no FIX rows, but every other family still reads
+		// (finance-fo, this optionality). The `Fix`/`FixOptions`/`FixMessages` properties below are
+		// the non-null accessors every FIX-reading method uses, and they throw if asked without
+		// `HasFix` having been checked first -- the same contract `HasFixVersions` already carries
+		// for FIX 4.2 and 5.0 SP2.
+		readonly Type? _fix;
+		readonly Type? _fixOptions;
+		readonly Type? _fixMessages;
 		readonly Type? _fixParseMode;
 		readonly Type? _fixParseOptions;
 		readonly Type? _fix42;
@@ -757,6 +763,18 @@ static partial class Stand
 		/// </summary>
 		public bool HasFixVersions => _fix42 is not null && _fix42Context is not null && _fix50 is not null && _fix50Context is not null;
 
+		/// <summary>Whether the side has a unified FixParser to read at all (v0.1.0 had 93 per-message parsers instead, and none).</summary>
+		public bool HasFix => _fix is not null;
+
+		/// <summary>The unified FIX door; throws where <see cref="HasFix"/> was not asked first.</summary>
+		Type Fix => _fix ?? throw new InvalidOperationException("this side has no FIX reader, and HasFix was not asked");
+
+		/// <summary>The FIX field context/options type; throws where <see cref="HasFix"/> was not asked first.</summary>
+		Type FixOptions => _fixOptions ?? throw new InvalidOperationException("this side has no FIX reader, and HasFix was not asked");
+
+		/// <summary>The FIX message layer type; throws where <see cref="HasFix"/> was not asked first.</summary>
+		Type FixMessages => _fixMessages ?? throw new InvalidOperationException("this side has no FIX reader, and HasFix was not asked");
+
 		/// <summary>Whether the side was given DotGram.Examples, and so has a stock count to read.</summary>
 		public bool HasStock => _stock is not null;
 
@@ -767,7 +785,7 @@ static partial class Stand
 			{
 				"el" => [_elTape, _elImmediate],
 				"tsql" => [_tsql],
-				"fix" => new[] { _fix, (_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) }.OfType<Type>().ToArray(),
+				"fix" => _fix is null ? [] : new[] { _fix, (_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) }.OfType<Type>().ToArray(),
 				"web" => new[] { _json, _uri }.OfType<Type>().ToArray(),
 				_ => [_sql],
 			};
@@ -804,24 +822,34 @@ static partial class Stand
 			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
 			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
-			_fix         = (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixParser") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixParser"));
-			// The context since 2026-09-22 (D136: the options and the schema are one value); FixFieldOptions before it.
-			_fixOptions  = (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.Fix44Context") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44Context")) ?? (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixFieldOptions") ?? Load("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions"));
-			// The message layer was its own internal class until 2026-09-23; since then its calls are the door's own, which form 4 already reads.
-			_fixMessages = (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixMessages") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixMessages") ?? _fix);
-			// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
-			// settings are Fix44Context, an optional parameter after the first (main): the entry is found with the mode, plain, or with Fix44Context after the first parameter, in that order.
-			var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
+			// Only a side that was given DotGram.Finance.dll at all has FIX to read: v0.1.0's FIX package predates
+			// the file (93 per-message parsers, no unified door), so a pair against it built without it must not
+			// even try to load it -- `Find`/`Load` above call LoadFromAssemblyPath unconditionally, and that
+			// throws FileNotFoundException on a missing file, same as `Load` throws on a missing type. Guarded
+			// (this optionality, finance-fo) the same way DotGram.Web and DotGram.Examples already are below: a
+			// side without it has no FIX rows and every other family still reads, rather than the whole pairing
+			// refusing before `--only` is even applied.
+			if (File.Exists(Path.Combine(directory, "DotGram.Finance.dll")))
+			{
+				_fix         = Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixParser") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixParser");
+				// The context since 2026-09-22 (D136: the options and the schema are one value); FixFieldOptions before it.
+				_fixOptions  = (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.Fix44Context") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44Context")) ?? Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixFieldOptions") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixFieldOptions");
+				// The message layer was its own internal class until 2026-09-23; since then its calls are the door's own, which form 4 already reads.
+				_fixMessages = (Find("DotGram.Finance", "DotGram.Finance.Fix.Fix44.FixMessages") ?? Find("DotGram.Finance", "DotGram.Finance.Fix.FixMessages") ?? _fix);
+				// Three forms of the FIX message layer (finance-9a, 2026-09-20): (1) FixParseMode is a parameter; (2) no mode, FixParseOptions still there and a plain overload (2d3373f6); (3) no mode and no FixParseOptions, the
+				// settings are Fix44Context, an optional parameter after the first (main): the entry is found with the mode, plain, or with Fix44Context after the first parameter, in that order.
+				var finance = alc.LoadFromAssemblyPath(Path.Combine(directory, "DotGram.Finance.dll"));
 
-			_fixParseMode    = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
-			_fixParseOptions = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseOptions") ?? finance.GetType("DotGram.Finance.Fix.FixParseOptions"));
+				_fixParseMode    = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseMode") ?? finance.GetType("DotGram.Finance.Fix.FixParseMode"));
+				_fixParseOptions = (finance.GetType("DotGram.Finance.Fix.Fix44.FixParseOptions") ?? finance.GetType("DotGram.Finance.Fix.FixParseOptions"));
 
-			// FIX 4.2 and FIX 5.0 SP2, each its own generated reader over its own schema (d0aeaeaf, f787f18b). A side
-			// older than those has neither, and the rows that read them are left out of the pair.
-			_fix42        = finance.GetType("DotGram.Finance.Fix.Fix42.FixParser");
-			_fix42Context = finance.GetType("DotGram.Finance.Fix.Fix42.Fix42Context");
-			_fix50        = finance.GetType("DotGram.Finance.Fix.Fix50.FixParser");
-			_fix50Context = finance.GetType("DotGram.Finance.Fix.Fix50.Fix50Context");
+				// FIX 4.2 and FIX 5.0 SP2, each its own generated reader over its own schema (d0aeaeaf, f787f18b). A side
+				// older than those has neither, and the rows that read them are left out of the pair.
+				_fix42        = finance.GetType("DotGram.Finance.Fix.Fix42.FixParser");
+				_fix42Context = finance.GetType("DotGram.Finance.Fix.Fix42.Fix42Context");
+				_fix50        = finance.GetType("DotGram.Finance.Fix.Fix50.FixParser");
+				_fix50Context = finance.GetType("DotGram.Finance.Fix.Fix50.Fix50Context");
+			}
 
 			// Only a side that was given DotGram.Web has URLs and JSON to read.
 			// A side without this file loses every web row and says nothing: `--only web/` then matches no
@@ -974,13 +1002,20 @@ static partial class Stand
 			return () => IsSuccess(call.Invoke(null, arguments)!);
 		}
 
-		/// <summary>The token scanner of a parser ("sql", "tsql" or "el"), looped over a text: how many tokens it found.</summary>
-		public Func<int> Scan(string parser, string text)
+		/// <summary>
+		/// The token scanner of a parser ("sql", "tsql" or "el"), looped over a text: how many tokens it found.
+		/// Null where the side predates the scanner (v0.1.0: none of the three parsers had one), the same trade
+		/// <see cref="SqlBool"/>/<see cref="ElBool"/>/<see cref="TsqlScriptBool"/> already make for their own later forms.
+		/// </summary>
+		public Func<int>? Scan(string parser, string text)
 		{
 			var type   = parser switch { "tsql" => _tsql, "el" => _elTape, _ => _sql };
-			var method = type.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-				?? throw new InvalidOperationException($"{type.Name}.Scan not found");
-			var scan   = (ScanFunction)Delegate.CreateDelegate(typeof(ScanFunction), method);
+			var method = type.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+			if (method is null)
+				return null;
+
+			var scan = (ScanFunction)Delegate.CreateDelegate(typeof(ScanFunction), method);
 
 			return () => ScanCount(scan, text);
 		}
@@ -1000,8 +1035,8 @@ static partial class Stand
 			{
 				// Form 5: the door takes no span, so a caller holding one copies it into a string
 				// first, as the span overload used to do inside; the copy is part of what is timed.
-				if (_fix.GetMethod("ParseMessage", [typeof(string), _fixOptions]) is { } stringDoor
-					&& _fix.GetMethod("ParseMessage", [typeof(ReadOnlySpan<char>), _fixOptions]) is null)
+				if (Fix.GetMethod("ParseMessage", [typeof(string), FixOptions]) is { } stringDoor
+					&& Fix.GetMethod("ParseMessage", [typeof(ReadOnlySpan<char>), FixOptions]) is null)
 				{
 					var validateCopy = FixValidate();
 
@@ -1093,19 +1128,19 @@ static partial class Stand
 				return one;
 			}
 
-			if (_fixParseMode is not null && _fixMessages.GetMethod(name, Inserted(_fixParseMode)) is { } withMode)
+			if (_fixParseMode is not null && FixMessages.GetMethod(name, Inserted(_fixParseMode)) is { } withMode)
 				return (withMode, FixEntry.Mode);
 
 			// Form 4 (finance-fc, 4219b316): the public door is FixParser (ParseMessage, ReadMessage, ReadMessages), FixMessages is internal behind it. A consumer calls the door, so where the side has it the door is what is read.
 			var doorName = name == "Parse" ? (plain[0] == typeof(string) || plain[0] == typeof(ReadOnlySpan<char>) ? "ParseMessage" : "ReadMessage") : name;
 
-			if (_fix.GetMethod(doorName, Inserted(_fixOptions)) is { } door)
+			if (Fix.GetMethod(doorName, Inserted(FixOptions)) is { } door)
 				return (door, FixEntry.Door);
 
-			if (_fixMessages.GetMethod(name, plain) is { } direct)
+			if (FixMessages.GetMethod(name, plain) is { } direct)
 				return (direct, FixEntry.Plain);
 
-			if (_fixMessages.GetMethod(name, Inserted(_fixOptions)) is { } withOptions)
+			if (FixMessages.GetMethod(name, Inserted(FixOptions)) is { } withOptions)
 				return (withOptions, FixEntry.FieldOptions);
 
 			throw new InvalidOperationException($"FixMessages.{name}({string.Join(", ", plain.Select(static one => one.Name))}) not found: not with FixParseMode (form 1), as FixParser.{doorName} with Fix44Context after the first parameter (form 4), plain (form 2), or as FixMessages with Fix44Context after the first parameter (form 3)");
@@ -1120,7 +1155,7 @@ static partial class Stand
 		/// <summary>FixParser.DefaultMaxMessageLength of a side that has the door: the value the streaming forms are called with, as a consumer that names none calls them.</summary>
 		int FixMaxMessageLength()
 		{
-			return (int)_fix.GetField("DefaultMaxMessageLength", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetRawConstantValue()!;
+			return (int)Fix.GetField("DefaultMaxMessageLength", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetRawConstantValue()!;
 		}
 
 		/// <summary>Strict, the first member of the enum: what the old sides were always asked for.</summary>
@@ -1135,7 +1170,7 @@ static partial class Stand
 		/// </summary>
 		Func<object, object?>? FixValidate()
 		{
-			var message  = (_fixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? _fixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage"));
+			var message  = (FixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixMessage") ?? FixMessages.Assembly.GetType("DotGram.Finance.Fix.FixMessage"));
 			var validate = message?.GetMethod("Validate", Type.EmptyTypes);
 			var parameter = System.Linq.Expressions.Expression.Parameter(typeof(object));
 
@@ -1147,7 +1182,7 @@ static partial class Stand
 			// Form 5 (2026-09-22): the schema is a context passed in, Validate(Fix44Context), and a consumer
 			// that names none holds a message to Fix44Context.Default. That is what this side is asked, so
 			// that a pair of form 4 against form 5 compares parse-and-check with parse-and-check.
-			var context = (_fixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Context") ?? _fixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44Context"));
+			var context = (FixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Context") ?? FixMessages.Assembly.GetType("DotGram.Finance.Fix.Fix44Context"));
 			var withContext = context is null ? null : message?.GetMethod("Validate", [context]);
 
 			if (withContext is null)
@@ -1171,13 +1206,13 @@ static partial class Stand
 		/// <summary>FixParser.Parse(ReadOnlySpan&lt;char&gt;) of this side, through a dynamic method: how many fields it read.</summary>
 		public Func<int> FixSpan(string text)
 		{
-			var target = _fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), _fixOptions]) ?? _fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), _fixOptions]);
+			var target = Fix.GetMethod("Parse", [typeof(ReadOnlySpan<char>), FixOptions]) ?? Fix.GetMethod("ParseFields", [typeof(ReadOnlySpan<char>), FixOptions]);
 
 			// Form 5: no span overload, so the span is copied into a string by the caller, as the
 			// overload used to do inside; the copy is part of what is timed.
 			if (target is null)
 			{
-				var door = _fix.GetMethod("ParseFields", [typeof(string), _fixOptions])
+				var door = Fix.GetMethod("ParseFields", [typeof(string), FixOptions])
 					?? throw new InvalidOperationException("FixParser.Parse or ParseFields (ReadOnlySpan<char> | string, Fix44Context) not found");
 
 				return () => ((Array)door.Invoke(null, [text.AsSpan().ToString(), null])!).Length;
@@ -1270,10 +1305,10 @@ static partial class Stand
 		/// </summary>
 		public Func<object, object> FixWhole(bool textReader)
 		{
-			var grammar = (_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
+			var grammar = (Fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? Fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
 			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("Fix44Context", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
-			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
-			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("Fix44Context(Fix44Context) not found");
+			var options = (FixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? FixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [FixOptions]) ?? throw new InvalidOperationException("Fix44Context(Fix44Context) not found");
 			var method  = grammar.GetMethod("ParseFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
 				[textReader ? typeof(TextReader) : typeof(Stream), context, typeof(int?), typeof(int?)], null)
 				?? throw new InvalidOperationException("FixGrammar.ParseFields(Stream | TextReader, context, int?, int?) not found");
@@ -1289,10 +1324,10 @@ static partial class Stand
 		/// </summary>
 		public Func<int>? FixYieldMemory(bool memory, byte[] bytes, string text)
 		{
-			var grammar = (_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
+			var grammar = (Fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? Fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) ?? throw new InvalidOperationException("FixGrammar not found");
 			var context = grammar.GetNestedType("FixReading", BindingFlags.Public | BindingFlags.NonPublic) ?? grammar.GetNestedType("Fix44Context", BindingFlags.Public | BindingFlags.NonPublic) ?? throw new InvalidOperationException("FixGrammar.FixReading not found");
-			var options = (_fixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? _fixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
-			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [_fixOptions]) ?? throw new InvalidOperationException("Fix44Context(Fix44Context) not found");
+			var options = (FixOptions.GetProperty("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) ?? FixOptions.GetField("Default", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
+			var make    = context.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, [FixOptions]) ?? throw new InvalidOperationException("Fix44Context(Fix44Context) not found");
 			var method  = grammar.GetMethod("ReadFields", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, null,
 				[memory ? typeof(ReadOnlyMemory<byte>) : typeof(string), context], null);
 
@@ -1440,12 +1475,12 @@ static partial class Stand
 		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
 		public Func<int> FixMessageBuild(string wire)
 		{
-			var fields = FixCall("Parse", [typeof(string), _fixOptions], [wire, null]);
-			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod((_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixField") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixField"))!);
-			var build  = _fix.GetMethod("BuildMessage", [typeof(string), array.ReturnType, _fixOptions])
-				?? (_fixParseOptions is null ? null : _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
-				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
-				?? _fixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixOptions])
+			var fields = FixCall("Parse", [typeof(string), FixOptions], [wire, null]);
+			var array  = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray))!.MakeGenericMethod((Fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixField") ?? Fix.Assembly.GetType("DotGram.Finance.Fix.FixField"))!);
+			var build  = Fix.GetMethod("BuildMessage", [typeof(string), array.ReturnType, FixOptions])
+				?? (_fixParseOptions is null ? null : FixMessages.GetMethod("Build", [typeof(string), array.ReturnType, _fixParseOptions]))
+				?? FixMessages.GetMethod("Build", [typeof(string), array.ReturnType])
+				?? FixMessages.GetMethod("Build", [typeof(string), array.ReturnType, FixOptions])
 				?? throw new InvalidOperationException("FixParser.BuildMessage, or FixMessages.Build(string, FixField[]) with FixParseOptions, plain, or with Fix44Context, not found");
 			var withOptions = build.GetParameters().Length == 3;
 
@@ -1458,44 +1493,44 @@ static partial class Stand
 			var bytes = Encoding.Latin1.GetBytes(text);
 
 			// Form 3 of the message layer has no ParseLog at all: the framing is a value, Fix44Context.WithLogFraming, passed to Parse (finance-9a, 2026-09-20).
-			if (_fix.GetMethod("ParseLog", [typeof(string), _fixOptions]) is null && _fixOptions.GetProperty("WithLogFraming", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
+			if (Fix.GetMethod("ParseLog", [typeof(string), FixOptions]) is null && FixOptions.GetProperty("WithLogFraming", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
 			{
 				return form switch
 				{
-					"bytes"  => FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, log])),
-					"stream" => FixCount(() => FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), log, 4096, null])()),
-					_        => FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, log])),
+					"bytes"  => FixCount(FixCall("Parse", [typeof(byte[]), FixOptions], [bytes, log])),
+					"stream" => FixCount(() => FixCall("Parse", [typeof(Stream), FixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), log, 4096, null])()),
+					_        => FixCount(FixCall("Parse", [typeof(string), FixOptions], [text, log])),
 				};
 			}
 
 			return form switch
 			{
-				"bytes"  => FixCount(FixCall("ParseLog", [typeof(byte[]), _fixOptions], [bytes, null])),
-				"stream" => FixCount(() => FixCall("ParseLog", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])()),
-				_        => FixCount(FixCall("ParseLog", [typeof(string), _fixOptions], [text, null])),
+				"bytes"  => FixCount(FixCall("ParseLog", [typeof(byte[]), FixOptions], [bytes, null])),
+				"stream" => FixCount(() => FixCall("ParseLog", [typeof(Stream), FixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])()),
+				_        => FixCount(FixCall("ParseLog", [typeof(string), FixOptions], [text, null])),
 			};
 		}
 
 		public Func<int> FixText(string text)
 		{
-			return FixCount(FixCall("Parse", [typeof(string), _fixOptions], [text, null]));
+			return FixCount(FixCall("Parse", [typeof(string), FixOptions], [text, null]));
 		}
 
 		public Func<int> FixBytes(byte[] bytes)
 		{
-			return FixCount(FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null]));
+			return FixCount(FixCall("Parse", [typeof(byte[]), FixOptions], [bytes, null]));
 		}
 
 		/// <summary>FixParser.Parse(TextReader) of this side, the yield form over a reader: the fields' tags summed.</summary>
 		public IEnumerable<object> FixYieldReaderFields(TextReader input, int? maxRetained = null)
 		{
-			return (IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [input, null, 4096, maxRetained])()).Cast<object>();
+			return (IEnumerable<object>)((IEnumerable)FixCall("Parse", [typeof(TextReader), FixOptions, typeof(int), typeof(int?)], [input, null, 4096, maxRetained])()).Cast<object>();
 		}
 
 		public Func<int> FixYieldReader(string text)
 		{
 			return FixCount(() =>
-			FixCall("Parse", [typeof(TextReader), _fixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
+			FixCall("Parse", [typeof(TextReader), FixOptions, typeof(int), typeof(int?)], [new StringReader(text), null, 4096, null])());
 		}
 
 		/// <summary>
@@ -1507,9 +1542,9 @@ static partial class Stand
 			var bytes  = Encoding.Latin1.GetBytes(text);
 			var fields = form switch
 			{
-				"bytes"  => FixCall("Parse", [typeof(byte[]), _fixOptions], [bytes, null])(),
-				"stream" => FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])(),
-				_        => FixCall("Parse", [typeof(string), _fixOptions], [text, null])(),
+				"bytes"  => FixCall("Parse", [typeof(byte[]), FixOptions], [bytes, null])(),
+				"stream" => FixCall("Parse", [typeof(Stream), FixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])(),
+				_        => FixCall("Parse", [typeof(string), FixOptions], [text, null])(),
 			};
 
 			return [.. ((IEnumerable)fields).Cast<object>().Select(DescribeFixField)];
@@ -1523,36 +1558,36 @@ static partial class Stand
 		public Func<int> FixStream(byte[] bytes)
 		{
 			return FixCount(() =>
-			FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
+			FixCall("Parse", [typeof(Stream), FixOptions, typeof(int), typeof(int?)], [new MemoryStream(bytes, false), null, 4096, null])());
 		}
 
 		/// <summary>The stream form of this side, as the lazy sequence it returns, for a held-memory reading.</summary>
 		public IEnumerable FixStreamFields(Stream stream, int? maxRetained = null)
 		{
-			return (IEnumerable)FixCall("Parse", [typeof(Stream), _fixOptions, typeof(int), typeof(int?)], [stream, null, 4096, maxRetained])();
+			return (IEnumerable)FixCall("Parse", [typeof(Stream), FixOptions, typeof(int), typeof(int?)], [stream, null, 4096, maxRetained])();
 		}
 
 		Func<object> FixCall(string method, Type[] parameters, object?[] arguments)
 		{
 			// The field readers were Parse; since finance-fc's 4219b316 they are ParseFields (memory) and ReadFields (a reader or a stream).
 			var reader = parameters[0] == typeof(TextReader) || parameters[0] == typeof(Stream);
-			var call   = _fix.GetMethod(method, parameters)
-				?? (method == "Parse" ? _fix.GetMethod(reader ? "ReadFields" : "ParseFields", parameters) : null);
+			var call   = Fix.GetMethod(method, parameters)
+				?? (method == "Parse" ? Fix.GetMethod(reader ? "ReadFields" : "ParseFields", parameters) : null);
 
 			// Since 2026-09-23 a reader's buffer and its bound are the context's, BufferSize and MaxRetained,
 			// and ReadFields takes the reader and the context alone.
-			if (call is null && reader && parameters.Length == 4 && _fix.GetMethod(method == "Parse" ? "ReadFields" : method, [parameters[0], _fixOptions]) is { } two)
+			if (call is null && reader && parameters.Length == 4 && Fix.GetMethod(method == "Parse" ? "ReadFields" : method, [parameters[0], FixOptions]) is { } two)
 			{
 				return () =>
 				{
 					var context = arguments[1] is { } given
-						? _fixOptions.GetMethod("<Clone>$")!.Invoke(given, null)!
-						: Activator.CreateInstance(_fixOptions)!;
+						? FixOptions.GetMethod("<Clone>$")!.Invoke(given, null)!
+						: Activator.CreateInstance(FixOptions)!;
 
-					_fixOptions.GetProperty("BufferSize")!.SetValue(context, arguments[2]);
+					FixOptions.GetProperty("BufferSize")!.SetValue(context, arguments[2]);
 
 					if (arguments[3] is int limit)
-						_fixOptions.GetProperty("MaxRetained")!.SetValue(context, limit);
+						FixOptions.GetProperty("MaxRetained")!.SetValue(context, limit);
 
 					return two.Invoke(null, [arguments[0], context])!;
 				};
@@ -1617,45 +1652,52 @@ static partial class Stand
 		var binaryMany     = string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64));
 		var orders128      = string.Concat(Enumerable.Repeat(order, 128));
 
+		// A side with no unified FixParser (v0.1.0: 93 per-message parsers, no door) produces no FIX rows rather
+		// than refusing the whole pairing (this optionality, finance-fo): the same trade `HasStock`/`HasWeb`/
+		// `HasConfig` already make for their libraries below.
+		var hasFix = before.HasFix && after.HasFix;
+
 		return
 		[
-			.. PairedFix("One", "55=ABC\u0001", before, after),
-			.. PairedFix("Order", order, before, after),
-			.. PairedFix("BinaryMany", binaryMany, before, after),
-			.. PairedFix("Orders128", orders128, before, after),
-			.. PairedFix("OrderMalformed", orderMalformed, before, after),
+			.. hasFix ? PairedFix("One", "55=ABC\u0001", before, after) : [],
+			.. hasFix ? PairedFix("Order", order, before, after) : [],
+			.. hasFix ? PairedFix("BinaryMany", binaryMany, before, after) : [],
+			.. hasFix ? PairedFix("Orders128", orders128, before, after) : [],
+			.. hasFix ? PairedFix("OrderMalformed", orderMalformed, before, after) : [],
 
 			// D13: same rows as Workloads(), text and bytes forms.
-			.. FixSlopeCounts.Select(n => PairedFixForm(
+			.. !hasFix ? [] : FixSlopeCounts.Select(n => PairedFixForm(
 				$"slope-{n}.text",
 				() => HandFixParser.Parse(FixSlopeText(n)),
 				before.FixText(FixSlopeText(n)),
 				after.FixText(FixSlopeText(n)))),
 
-			.. FixSlopeCounts.Select(n => PairedFixForm(
+			.. !hasFix ? [] : FixSlopeCounts.Select(n => PairedFixForm(
 				$"slope-{n}.bytes",
 				() => HandFixParser.Parse(FixSlopeBytes(n)),
 				before.FixBytes(FixSlopeBytes(n)),
 				after.FixBytes(FixSlopeBytes(n)))),
 
-			.. FixSlopeCounts.Select(n => PairedFixForm(
+			.. !hasFix ? [] : FixSlopeCounts.Select(n => PairedFixForm(
 				$"slope-{n}.stream",
 				() => HandFixParser.Parse(new MemoryStream(FixSlopeBytes(n), false)),
 				before.FixStream(FixSlopeBytes(n)),
 				after.FixStream(FixSlopeBytes(n)))),
 
-			.. PairedFixMessages(before, after),
+			.. hasFix ? PairedFixMessages(before, after) : [],
 
 			// The largest size of each linearity series, held before and after like any row: a change that makes a parser
 			// superlinear shows here, in the pair of the commit that does it, and not a day later in `linearity`.
+			// (The FIX rows of this family are skipped inside PairedSweeps itself where either side has no FixParser.)
 			.. PairedSweeps(before, after),
 
 			// The published forms no row read (docs/design/stand-coverage-2026-09-19.md): positional and window, the token scanner, FixMessages'
 			// streams, readers and lazy reading, a span, the streaming feed.
+			// (PairedForms itself skips the fixmsg and fix/Order.span rows where either side has no FixParser.)
 			.. PairedForms(before, after),
 
 			// FIX's log forms: the separator is `|` between spaces, and the way opened at it is what performance-ff's 55c46da6 removes.
-			.. PairedFixLog(before, after),
+			.. hasFix ? PairedFixLog(before, after) : [],
 
 			// The quiet form beside the match (expr's dba87a9e): only where the after side has it.
 			.. PairedBool(before, after),
@@ -1667,7 +1709,7 @@ static partial class Stand
 			.. PairedRetention(before, after),
 
 			// The whole-stream forms, FixGrammar.ParseFields(Stream | TextReader): the yield form `.stream` is another driver.
-			.. PairedWholeStreams(before, after),
+			.. hasFix ? PairedWholeStreams(before, after) : [],
 
 			// The rows of the libraries a side was not given are left out: a pair of Finance alone is a pair of FIX.
 			.. (before.HasStock && after.HasStock ? PairedFeeds(before, after) : []),

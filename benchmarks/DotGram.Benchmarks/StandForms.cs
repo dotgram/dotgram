@@ -68,13 +68,22 @@ static partial class Stand
 			after.SqlPositional(true, "TryParseStatement", prefix + insert, prefix.Length, null));
 
 		// ── the token scanner ──
+		// A side that predates the scanner (v0.1.0: none of the three parsers had one) has none of these rows,
+		// each checked independently: a pair of an old "sql"/"tsql" side can still read "el", and vice versa.
 		var conditions = SqlConditions(100);
 		var ladder     = "(int x, int y) => (x + y) * 3 - x / 5";
 
-		yield return PairedFormRow("sql", "select20.scan", "control", () => ScanCount(SqlStandardParser.Scan, select20), before.Scan("sql", select20), after.Scan("sql", select20));
-		yield return PairedFormRow("sql", "conditions100.scan", "control", () => ScanCount(SqlStandardParser.Scan, conditions), before.Scan("sql", conditions), after.Scan("sql", conditions));
-		yield return PairedFormRow("tsql", "select20.scan", "control", () => ScanCount(TransactSqlParser.Scan, select20), before.Scan("tsql", select20), after.Scan("tsql", select20));
-		yield return PairedFormRow("el", "ladder.scan", "control", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), before.Scan("el", ladder), after.Scan("el", ladder));
+		if (before.Scan("sql", select20) is { } beforeSqlScan && after.Scan("sql", select20) is { } afterSqlScan)
+			yield return PairedFormRow("sql", "select20.scan", "control", () => ScanCount(SqlStandardParser.Scan, select20), beforeSqlScan, afterSqlScan);
+
+		if (before.Scan("sql", conditions) is { } beforeConditionsScan && after.Scan("sql", conditions) is { } afterConditionsScan)
+			yield return PairedFormRow("sql", "conditions100.scan", "control", () => ScanCount(SqlStandardParser.Scan, conditions), beforeConditionsScan, afterConditionsScan);
+
+		if (before.Scan("tsql", select20) is { } beforeTsqlScan && after.Scan("tsql", select20) is { } afterTsqlScan)
+			yield return PairedFormRow("tsql", "select20.scan", "control", () => ScanCount(TransactSqlParser.Scan, select20), beforeTsqlScan, afterTsqlScan);
+
+		if (before.Scan("el", ladder) is { } beforeElScan && after.Scan("el", ladder) is { } afterElScan)
+			yield return PairedFormRow("el", "ladder.scan", "control", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), beforeElScan, afterElScan);
 
 		// ── FixMessages: the streams, the readers, the lazy reading and a span ──
 		//
@@ -95,16 +104,22 @@ static partial class Stand
 		// stands still. The lazy rows had a second mismatch of the same kind: their control passed
 		// 4096 where the door's third parameter is the largest message it will read, not a buffer
 		// size, so the control was capped where the side was not.
-		var wire = FixMessageWire();
+		// A side with no unified FixParser (v0.1.0: 93 per-message parsers, no door) has none of the fixmsg or
+		// fix rows below (this optionality, finance-fo): the sql/tsql/el rows above and the feed row below do
+		// not depend on it.
+		if (before.HasFix && after.HasFix)
+		{
+			var wire = FixMessageWire();
 
-		// Every reading of these rows answers ONE for a message read, and zero for none: the stand
-		// reads a non-zero answer as an acceptance. Not "how many findings" -- that counts the other
-		// way and is what broke them.
-		foreach (var form in new[] { "parse-stream", "parse-reader", "parse-span" })
-			yield return PairedFormRow("fixmsg", "Order." + form, "control", OwnFixMessagesForm(form, wire, 1), before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
+			// Every reading of these rows answers ONE for a message read, and zero for none: the stand
+			// reads a non-zero answer as an acceptance. Not "how many findings" -- that counts the other
+			// way and is what broke them.
+			foreach (var form in new[] { "parse-stream", "parse-reader", "parse-span" })
+				yield return PairedFormRow("fixmsg", "Order." + form, "control", OwnFixMessagesForm(form, wire, 1), before.FixMessagesForm(form, wire, 1), after.FixMessagesForm(form, wire, 1));
 
-		foreach (var form in new[] { "read-stream", "read-reader" })
-			yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", OwnFixMessagesForm(form, wire, 100), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
+			foreach (var form in new[] { "read-stream", "read-reader" })
+				yield return PairedFormRow("fixmsg", "Order." + form + "100", "control", OwnFixMessagesForm(form, wire, 100), before.FixMessagesForm(form, wire, 100), after.FixMessagesForm(form, wire, 100));
+		}
 
 		// ── FIX 4.2 and FIX 5.0 SP2: the string door, and the door with the schema ──
 		//
@@ -126,9 +141,12 @@ static partial class Stand
 		}
 
 		// ── one span row for FIX ──
-		var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
+		if (before.HasFix && after.HasFix)
+		{
+			var order = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
 
-		yield return PairedFormRow("fix", "Order.span", "hand", () => HandFixParser.Parse(order).Count(), before.FixSpan(order), after.FixSpan(order));
+			yield return PairedFormRow("fix", "Order.span", "hand", () => HandFixParser.Parse(order).Count(), before.FixSpan(order), after.FixSpan(order));
+		}
 
 		// ── the lazy feed of the examples ──
 		if (before.HasStock && after.HasStock)
