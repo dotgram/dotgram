@@ -356,12 +356,16 @@ public sealed class PositionalFollowTests
 		var graph = GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(
 				"trivia = { ' '* }\nStart = \"ab\" & (\"c\" | \"d\")?\nparse Start\n", RoslynCSharpScanner.Instance)).File),
-			positionalFollow: positionalFollow);
+			positionalFollow: positionalFollow,
+			positionalSplit: true);
 
 		var split = LexicalSplit.Of(graph);
 
 		Assert.NotNull(split);
 		Assert.Equal(positionalFollow, split.Syntax.PositionalFollow);
+
+		// The split means nothing without the option, and is carried with it.
+		Assert.Equal(positionalFollow, split.Syntax.PositionalSplit);
 	}
 
 	/// <summary>The option is off unless asked for.</summary>
@@ -369,6 +373,7 @@ public sealed class PositionalFollowTests
 	public void The_option_is_off_by_default()
 	{
 		Assert.False(new GramCompilerOptions().PositionalFollow);
+		Assert.False(new GramCompilerOptions().PositionalFollowSplit);
 		Assert.False(Graph(Shapes["Optional"].Grammar).PositionalFollow);
 	}
 

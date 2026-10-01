@@ -2320,6 +2320,18 @@ with `NoWarn`. A token grammar (`Lexical`) changes only the order of its expecte
 The property is for a build that needs the positional forms right now and accepts that cost; the
 default stays off until the analysis can tell the two kinds of entry apart.
 
+Set to `split` instead, it is the same switch with the two kinds of entry told apart where that
+changes no answer. After a reading from a position nothing is demanded, so nothing after the rule
+can fail; the proofs that ask only that — whether a repetition may be asked to give back a turn it
+completed, whether a longer literal may be asked to give way to a shorter one — are told so, and
+hold for the whole forms as they did without the switch. A look, a guard (`when`), a selector or a
+recognizer the host writes between the construct and the end of the rule can fail, and from there
+the proof is answered as `true` answers it. Every other question — whether what follows can *begin*
+where a body that failed began — is answered as `true` answers it too. Every reading answers as
+under `true`; what differs is the reader the generator writes. In this repository's packages only
+the readers whose rule ends behind a `when` move from the immediate carrier: the fragment form of
+JSON Pointer and the `Set-Cookie` reader.
+
 #### Attributes for tooling
 
 These describe the language to editors. An editor reads them rather than executing them, and
