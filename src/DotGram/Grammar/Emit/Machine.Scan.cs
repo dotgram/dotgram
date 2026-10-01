@@ -668,6 +668,9 @@ sealed partial class Machine
 		int _marks;
 		int _deepestMark;
 		int _turns;
+
+		/// <summary>The failure labels that put the position back where a sequence began.</summary>
+		readonly HashSet<string> _restores = [];
 		bool _character;
 		bool _reaches;
 
@@ -872,6 +875,8 @@ sealed partial class Machine
 
 					var mark    = Mark();
 					var restore = $"L{_labels++}_undo";
+
+					_restores.Add(restore);
 					var over    = $"L{_labels++}_on";
 					var buffer  = new Writer(0);
 					var carry   = loaded;
@@ -1094,7 +1099,20 @@ sealed partial class Machine
 				// a search that finds nothing stops at the end, and the loop raised nothing else.
 				code.Line($"p = {found} < 0 ? text.Length : p + {found};");
 
-				if (min > 0)
+				// Short of the least, the run read characters it now gives back: what is tried
+				// next begins where the run did.
+				if (min > 1 && !_restores.Contains(fail))
+				{
+					code.Line($"if (p - {from} < {min})");
+
+					using (code.Block(""))
+					{
+						code.Line("if (p > furthest) furthest = p;");
+						code.Line($"p = {from};");
+						code.Line($"goto {fail};");
+					}
+				}
+				else if (min > 0)
 					code.Line($"if (p - {from} < {min}) goto {fail};");
 
 				return;
@@ -1103,6 +1121,14 @@ sealed partial class Machine
 			var done    = $"L{_labels++}_done";
 			var counted = min > 0 || max is not null;
 			var turn    = counted ? _turns++ : -1;
+
+			// A run that needs two turns or more can fail after reading some: `'b'{2}` on `by`
+			// reads the `b`, and whatever is tried next has to begin where the run began. Where
+			// it fails into a sequence's own way back, that puts the position further back still.
+			var mark = min > 1 && !_restores.Contains(fail) ? Mark() : -1;
+
+			if (mark >= 0)
+				code.Line($"mark{mark} = p;");
 
 			if (counted)
 				code.Line($"turns{turn} = 0;");
@@ -1120,7 +1146,20 @@ sealed partial class Machine
 			code.Line($"goto {loop};");
 			code.Line($"{done}:");
 
-			if (min > 0)
+			if (mark >= 0)
+			{
+				code.Line($"if (turns{turn} < {min})");
+
+				using (code.Block(""))
+				{
+					code.Line("if (p > furthest) furthest = p;");
+					code.Line($"p = mark{mark};");
+					code.Line($"goto {fail};");
+				}
+
+				Unmark();
+			}
+			else if (min > 0)
 				code.Line($"if (turns{turn} < {min}) goto {fail};");
 			else
 				code.Line(";");
