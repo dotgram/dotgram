@@ -26,12 +26,11 @@ public sealed class PositionalFormFindingsTests
 	}
 
 	/// <summary>
-	/// The same cause by other routes: a published rule the lexer holds — a set of terminals,
-	/// a terminal of its own — is still entered by name, and reads one token over kinds.
+	/// The same cause by another route: a published set of terminals called from elsewhere
+	/// is still entered by name, and reads one token over kinds.
 	/// </summary>
 	[Theory]
 	[InlineData("trivia = { ' '* }\nStart = X & Y\nX = (\"ac\" | \"b\")\nY = (\"c\" | \"dd\")\nparse Start\nparse X\n", "ParseX", "ac")]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9'] & ['0'..'9']*\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "ParseDigits", "12")]
 	public void A_published_rule_the_lexer_holds_reads_one_token(string grammar, string method, string input)
 	{
 		foreach (var direct in new[] { false, true })
@@ -50,18 +49,22 @@ public sealed class PositionalFormFindingsTests
 	}
 
 	/// <summary>
-	/// A published rule the seam is made of has no kind: the lexer skips it rather than reads
-	/// it. The grammar is read over characters and says so, rather than throwing.
+	/// A published rule that is no token of its own over kinds, or one whose namespace has no
+	/// trivia, is not read over kinds: the grammar is read over characters and says so,
+	/// rather than throwing or accepting trivia the rule does not.
 	/// </summary>
-	[Fact]
-	public void A_published_rule_of_the_seam_is_read_over_characters()
+	[Theory]
+	[InlineData("trivia = { Sp }\nSp = ' '*\nStart = \"a\" & \"bb\"\nparse Start\nparse Sp\n", "TryParseSp", "  ", true)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9'] & ['0'..'9']*\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", "12", true)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9'] & ['0'..'9']*\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", " 12", false)]
+	public void A_published_rule_that_is_no_token_of_its_own_is_read_over_characters(string grammar, string method, string input, bool read)
 	{
 		var result = GramCompiler.Compile(
-			"trivia = { Sp }\nSp = ' '*\nStart = \"a\" & \"bb\"\nparse Start\nparse Sp\n",
+			grammar,
 			new GramCompilerOptions { ClassName = "Grammar", Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
 
 		Assert.Contains(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
-		Assert.True(EmittedCode.Match(EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseSp", "  ").IsSuccess);
+		Assert.Equal(read, EmittedCode.Match(EmittedCode.Compile(result.Sources[0].Text), "Grammar", method, input).IsSuccess);
 	}
 
 	/// <summary>

@@ -210,13 +210,22 @@ public sealed class LexicalSplit
 					// type it declared. What it no longer has is members: the parts it named
 					// are inside one token now, so nothing the syntactic machine walks can
 					// build it, and its value is read again from the text (see `Valued`).
+					var published = graph.Bodies.ContainsKey(rule) && graph.Publications.Any(one => one.Rule == rule);
+
+					// Over tokens the trivia around every token is skipped, so a publication
+					// of a rule whose namespace has none would accept text the same publication
+					// over characters refuses (` if` for `Kw = ("if" | "do")`). Read over
+					// characters instead.
+					if (published && !graph.Trivia.ContainsKey(rule))
+						blocked.Add($"{rule.Name} is published from a namespace without trivia, and over tokens the trivia around a token is always skipped");
+
 					if (_valued.Contains(rule))
 					{
 						rules.Add(rule);
 						bodies[rule] = Testing(inventory.KindsOf(inventory.PatternOf(rule)!));
 						valued.Add(rule);
 					}
-					else if (graph.Bodies.ContainsKey(rule) && graph.Publications.Any(one => one.Rule == rule))
+					else if (published)
 					{
 						rules.Add(rule);
 						bodies[rule] = Published(rule, blocked);
@@ -293,9 +302,9 @@ public sealed class LexicalSplit
 		/// syntactic machine, which only ever met it as a range at a call site. Its publication
 		/// does not leave with it: <c>Start = ("on" | "off")</c> published as <c>parse Start</c>
 		/// is still entered by name, and a machine with no body for it threw rather than
-		/// generated. So it stays, as the one token it is. A rule the seam is made of has no
-		/// kind at all — the lexer skips it rather than reads it — and a publication of one is
-		/// refused here and read over characters instead.
+		/// generated. So it stays, as the one token it is. A rule that is only a part of a
+		/// token — what the seam is made of, or a helper a terminal calls — has no kind of its
+		/// own, and a publication of one is refused here and read over characters instead.
 		/// </remarks>
 		Node Published(RuleSymbol rule, List<string> blocked)
 		{
@@ -305,7 +314,7 @@ public sealed class LexicalSplit
 			if (_sets.Contains(rule.Name) && inventory.SetOf(rule.Name) is { } set)
 				return Testing(set.Ranges);
 
-			blocked.Add($"{rule.Name} is published, and the lexer skips it as the space between tokens");
+			blocked.Add($"{rule.Name} is published, and over tokens it is no token of its own");
 
 			return Node.Empty.Instance;
 		}
