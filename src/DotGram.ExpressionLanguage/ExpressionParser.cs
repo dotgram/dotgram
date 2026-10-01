@@ -700,22 +700,24 @@ namespace DotGram.ExpressionLanguage;
 	// begins `Name =`, so a text these refuse is not read a second time — and the second
 	// reading was the costly one: `Next = …` is an assignment where a variable of that name is
 	// in scope, so nested and never closed, each level read twice what the level inside it did.
-	// A comma may follow the last of them, as in C#.
-	Bindings : @Setting[] = '{' & first: Binding & (',' & rest: Binding)* & Stray? & ','? & '}'
-		    => @(ExpressionParser.Set(first, rest))
+	// A comma may follow the last of them, as in C#: after a comma, a member, an entry that
+	// is not one, or the closing brace. Written inside the repetition rather than as `','?`
+	// after it, where the comma would be one the repetition could also have begun with.
+	Bindings : @Setting[]
+		= '{' & first: Binding & (',' & (rest: Binding | Unbound | ?='}'))* & '}'
+		=> @(ExpressionParser.Set(first, rest))
 
 	// An entry after a member initializer that is not one, refused with the reason: what the
 	// parser alone would say is where it stopped, and a list of tokens that could have stood
 	// there says nothing about the braces having been settled two tokens in. Never a match —
-	// the guard answers no — so `Stray?` reads nothing either way.
+	// the guard answers no — and it reads nothing.
 	//
 	// Only where the entry is there to be seen. A name at the end of the text may yet be
 	// followed by its `=`, and a text cut short there is starved, not wrong; so a name has to
 	// have a token after it, and anything else has to be a token at all — other than the
-	// closing brace, after which the comma was a trailing one.
-	Stray = ',' & Unbound
-
-	Unbound = ?!(NameOnly & '=') & ?!'}' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
+	// closing brace, after which the comma was a trailing one, and another comma, which is
+	// no entry either.
+	Unbound = ?!(NameOnly & '=') & ?!'}' & ?!',' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
 
 	// The name and the `=` are read once, and what follows is `Initial`'s to tell apart.
 	Binding : @Setting = name: Identifier & '=' & set: Initial => @(set with { Name = name })
@@ -732,27 +734,39 @@ namespace DotGram.ExpressionLanguage;
 		| '{' & items: Elements & '}'   => @(new Setting("", null, null, items))
 		| value: Expression             => @(new Setting("", value, null, null))
 
-	// A collection initializer's elements, and a comma after the last, as C# allows.
+	// A collection initializer's elements, and a comma after the last, as C# allows; written
+	// as `Bindings` writes it.
 	Elements : @Element[]
-		= first: Element & (',' & rest: Element)* & Assigning? & ','?
+		= first: Element & (',' & (rest: Element | Assigned | ?='}'))* & Written?
 		=> @(ExpressionParser.Listed(first, rest))
 
-	// `Name =` after elements, which C# refuses as it refuses an element after members
-	// (CS0747), and refused here with the reason, as `Stray` is. An element is no
-	// assignment to a name, so it is not read as one; a parenthesized one is an
-	// expression like any other, `(x = 1)`. Never a match, as `Stray` is none.
-	Assigning = ',' & Assigned
+	// An assignment among elements, which C# refuses as it refuses an element after members
+	// (CS0747): its element is an expression that is no assignment. Refused here with the
+	// reason, as an entry after members is, and never a match either. `Name =` after a comma
+	// is one, since an element never begins so; any assignment operator after an element is
+	// another, `b.Capacity = 2` or `x += 1`. A parenthesized assignment, `(x = 1)`, is an
+	// expression like any other.
+	//
+	// Only once something stands after the operator, and read rather than looked at, so that
+	// a text that ends there wants more: `{ true, x =` may yet go on as `x == 1` or `x => x`.
+	Assigned = NameOnly & '=' & any & when @(context.Assigns(parserSpan))
 
-	Assigned = ?=(NameOnly & '=') & when @(context.Assigns(parserSpan))
+	Written = AssignOperator & any & when @(context.Assigns(parserSpan))
+
+	AssignOperator
+		= '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
 
 	// An element is what one call to `Add` takes, which is usually one expression and for
 	// a dictionary is two. C# writes the second in braces of its own, and the API has a
 	// node for it — `ElementInit` — because a collection whose `Add` takes two arguments
 	// cannot be described by a list of values.
+	//
+	// The one expression is no assignment, which is C#'s rule for an element: a `Conditional`,
+	// and never `Name =`, which begins a member initializer's braces instead.
 	Element : @Element
 		= '{' & first: Expression & (',' & rest: Expression)* & '}'
 		  => @(new Element(ExpressionParser.Listed(first, rest)))
-		| ?!(NameOnly & '=') & only: Expression => @(ExpressionParser.Only(only))
+		| ?!(NameOnly & '=') & only: Conditional => @(ExpressionParser.Only(only))
 
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
@@ -3657,14 +3671,14 @@ public static partial class ExpressionParser
 			return false;
 		}
 
-		/// <summary>`Name =` after the elements of a collection initializer: refused, saying so.</summary>
+		/// <summary>An assignment among the elements of a collection initializer: refused, saying so.</summary>
 		/// <remarks>
 		/// The mirror of <see cref="Strays"/>: braces that begin with an element add elements, and C#
 		/// refuses a member initializer among them (CS0747). Never true, for the same reason.
 		/// </remarks>
 		internal bool Assigns(SourceSpan at)
 		{
-			Refuse(at.Start, "An initializer that adds elements cannot set members as well; 'Name = ...' cannot follow an element.");
+			Refuse(at.Start, "An element of a collection initializer cannot be an assignment, and members cannot be set among elements.");
 
 			return false;
 		}

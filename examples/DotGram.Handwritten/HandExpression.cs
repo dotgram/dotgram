@@ -4384,19 +4384,21 @@ public static class HandExpression
 			{
 				var more = Binding(at + 1, out var next);
 
-				if (more < 0)
-					break;
+				if (more >= 0)
+				{
+					read?.Add(next);
+					at = more;
 
-				read?.Add(next);
-				at = more;
-			}
+					continue;
+				}
 
-			if (Kind(at) == Comma)
-			{
 				Stray(at + 1);
 
 				// A comma after the last member, as C# allows.
-				at++;
+				if (Peek(at + 1) == RightBrace)
+					at++;
+
+				break;
 			}
 
 			if (Kind(at) != RightBrace)
@@ -4415,7 +4417,7 @@ public static class HandExpression
 		/// </remarks>
 		void Stray(int i)
 		{
-			if (Peek(i) == Identifier && Peek(i + 1) == Assign || Peek(i) == RightBrace)
+			if (Peek(i) == Identifier && Peek(i + 1) == Assign || Peek(i) is RightBrace or Comma)
 				return;
 
 			var seen = Kind(i) == Identifier ? Kind(i + 1) != End : Kind(i) != End;
@@ -4484,25 +4486,39 @@ public static class HandExpression
 
 			read?.Add(first);
 
+			// An assignment among elements, which C# refuses as well (CS0747), is said to be once
+			// something stands after its operator: `Name =` after a comma, since no element begins
+			// so, or any assignment operator after an element. Read, not looked at, so that a text
+			// that ends at the operator wants more.
 			while (Kind(at) == Comma)
 			{
 				var more = Element(at + 1, out ExpressionParser.Element next);
 
-				if (more < 0)
-					break;
+				if (more >= 0)
+				{
+					read?.Add(next);
+					at = more;
 
-				read?.Add(next);
-				at = more;
-			}
+					continue;
+				}
 
-			if (Kind(at) == Comma)
-			{
-				// `Name =` after elements, which C# refuses as well (CS0747): said why.
-				if (Peek(at + 1) == Identifier && Peek(at + 2) == Assign)
+				if (Kind(at + 1) == Identifier && Kind(at + 2) == Assign && Kind(at + 3) != End)
+				{
 					_context.Assigns(Span(at + 1, 1));
+					Refuse(at + 4);
+				}
 
 				// A comma after the last element, as C# allows.
-				at++;
+				if (Peek(at + 1) == RightBrace)
+					at++;
+
+				break;
+			}
+
+			if (IsAssignment(Kind(at)) && Kind(at + 1) != End)
+			{
+				_context.Assigns(Span(at, 1));
+				Refuse(at + 2);
 			}
 
 			if (Kind(at) != RightBrace)
@@ -4532,12 +4548,12 @@ public static class HandExpression
 				return at + 1;
 			}
 
-			// An element is no assignment to a name: braces that begin with one are members, and
-			// one after elements is refused by the list.
+			// An element is an expression that is no assignment, as in C#: braces that begin
+			// `Name =` are members, and an assignment after elements is refused by the list.
 			if (Peek(i) == Identifier && Peek(i + 1) == Assign)
 				return -1;
 
-			var only = Assignment(i, out var value);
+			var only = Conditional(i, out var value);
 
 			if (only < 0)
 				return -1;

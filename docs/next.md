@@ -25595,4 +25595,17 @@ added it. An element now never begins `Name =` (a parenthesized assignment is st
 
 Third, a comma after the last entry: `Stray` read `{ Next = null, }` as an element after
 members. C# accepts that comma in an object, collection and array initializer, and so does
-this language now; `Stray` does not fire on a closing brace.
+this language now; the refusal does not fire on a closing brace, nor on a second comma, which
+the parser alone refuses as it always did ("Expected a name.").
+
+A second review went further. An element is now read as `Conditional`, which is C#'s
+non-assignment expression (a lambda included), so `{ b.Capacity = 2 }` and `{ x += 1 }` are
+refused as `{ 1, x = 2 }` is: any assignment operator after an element is. Both refusals read
+the operator and one token after it rather than looking ahead, so `{ true, x =` cut short is
+starved, as it was before any of this — it may still become `x == 1` or `x => x`. The comma
+after the last entry is written inside the repetition, `(',' & (rest: X | refusal | ?='}'))*`,
+rather than as `','?` after it, which the generator had noted (GRAM5002, GRAM5009) as a comma
+the repetition could also begin with; the notes are back to what they were.
+
+A correction to the entry above: `Elements` does not carry its braces, as it did for one
+commit. The commit is made by `Element`, which never begins `Name =`.

@@ -44,6 +44,7 @@ public sealed class MemberInitializerTests
 	[InlineData("a member's own members, unclosed", "new Box { Next = ", "{ Last = Next, Next = ",                            "Next",        "",   "",   false)]
 	[InlineData("elements, then a member",          "",                  "new List<object> { Next, ",                         "Next = null", " }", "",   false)]
 	[InlineData("elements, then a member, unclosed", "",                 "new List<object> { Next, ",                         "Next = null", "",   "",   false)]
+	[InlineData("an element assigned to",            "",                 "new List<object> { Next, ",                         "Next.Next = null", " }", "", false)]
 	public void Nested_member_initializers_are_read_once_a_level(
 		string what, string head, string opener, string middle, string closer, string tail, bool accepted)
 	{
@@ -121,7 +122,7 @@ public sealed class MemberInitializerTests
 
 	/// <summary>
 	/// A comma after the last member adds no element, so it is not refused as one: C# accepts
-	/// <c>new Box { Next = null, }</c>, and what refuses it here must not say an element was added.
+	/// <c>new Box { Next = null, }</c>, and so does this language.
 	/// </summary>
 	[Theory]
 	[InlineData(Text + "new Box { Next = null, }")]
@@ -130,9 +131,7 @@ public sealed class MemberInitializerTests
 	{
 		var match = Both.TryParse(text, typeof(Box).Assembly);
 
-		Assert.NotEqual(
-			"An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...'.",
-			match.Error);
+		Assert.True(match.IsSuccess, match.Error);
 	}
 
 	/// <summary>
@@ -161,7 +160,13 @@ public sealed class MemberInitializerTests
 	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x, x = 2 }",                           "x = 2")]
 	[InlineData("using DotGram.Tests.ExpressionLanguage; (int x) => new Holder { Items = { 1, x = 2 } }",           "x = 2")]
 	[InlineData("using System.Collections.Generic; (int x) => new Dictionary<int, int> { { 1, 2 }, x = 3 }",       "x = 3")]
-	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x =",                              "x =")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x = }",                            "x = }")]
+	// Any other assignment is no element either, first or after others: its operator is where.
+	[InlineData("using System.Collections.Generic; using System.Text; (StringBuilder b) => new List<int> { 1, b.Capacity = 2 }", "= 2")]
+	[InlineData("using System.Collections.Generic; using System.Text; (StringBuilder b) => new List<int> { b.Capacity = 2 }",    "= 2")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x += 1 }",                          "+= 1")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x += 1 }",                             "+= 1")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x, x <<= 1, 2 }",                      "<<= 1")]
 	public void A_member_initializer_after_elements_is_refused(string text, string member)
 	{
 		var match = Both.TryParse(text, typeof(Box).Assembly);
@@ -169,8 +174,30 @@ public sealed class MemberInitializerTests
 		Assert.Equal(ExpressionParser.Outcome.NoMatch, match.Outcome);
 		Assert.Equal(text.LastIndexOf(member, StringComparison.Ordinal), match.Position);
 		Assert.Equal(
-			"An initializer that adds elements cannot set members as well; 'Name = ...' cannot follow an element.",
+			"An element of a collection initializer cannot be an assignment, and members cannot be set among elements.",
 			match.Error);
+	}
+
+	/// <summary>Cut short after the operator, an element may still be a comparison or a lambda.</summary>
+	[Theory]
+	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { true, x =")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { true, x += ")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { x =")]
+	public void But_not_before_the_assignment_is_one(string text)
+	{
+		Assert.Equal(ExpressionParser.Outcome.Starved, Both.TryParse(text, typeof(Box).Assembly).Outcome);
+	}
+
+	/// <summary>A comma after a comma is no entry, and is refused as the parser refuses it.</summary>
+	[Theory]
+	[InlineData(Text + "new Box { Next = null,, }")]
+	[InlineData(Text + "new Box { Next = null, , Last = null }")]
+	public void A_doubled_comma_is_no_element_after_members(string text)
+	{
+		var match = Both.TryParse(text, typeof(Box).Assembly);
+
+		Assert.False(match.IsSuccess);
+		Assert.Equal("Expected a name.", match.Error);
 	}
 
 	/// <summary>An assignment in parentheses is an element, and one after a member's `=` is its value.</summary>
@@ -181,6 +208,14 @@ public sealed class MemberInitializerTests
 			[1, 2],
 			Both.Compile<Func<int, System.Collections.Generic.List<int>>>(
 				"using System.Collections.Generic; (int x) => new List<int> { (x = 1), 2 }")(0));
+		Assert.Equal(
+			[true, false],
+			Both.Compile<Func<int, System.Collections.Generic.List<bool>>>(
+				"using System.Collections.Generic; (int x) => new List<bool> { x == 0, x != 0 }")(0));
+		Assert.Equal(
+			1,
+			Both.Compile<Func<System.Collections.Generic.List<Func<int, int>>>>(
+				"using System; using System.Collections.Generic; () => new List<Func<int, int>> { z => z + 1 }")()[0](0));
 		Assert.Equal(
 			3,
 			Both.Compile<Func<int, Counter>>(
