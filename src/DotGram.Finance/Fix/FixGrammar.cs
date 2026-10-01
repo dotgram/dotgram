@@ -35,7 +35,18 @@ namespace DotGram.Finance.Fix;
 	SpanCaptures  = true,
 	BufferedInput = true,
 	MaxRetained   = 16 * 1024 * 1024,
-	Portable      = false)]
+	Portable      = false,
+	// Field's switch selector (context.Kind(tag)) reads the state the previous field's own
+	// => wrote (FixReading._expected/Size, a length-and-data pair's binding). A selector
+	// always runs immediately, while => runs immediately only under this carrier; on the
+	// tape every => is deferred and replayed after the parse is accepted, so the next
+	// field's selector would read that state before it was written. Pinned rather than left
+	// to Auto so a change to the generator's own follow analysis cannot move this grammar
+	// onto the tape and silently misread every RawDataLength/RawData pair
+	// (FixBinaryPairCarrierTests, DotGram.Tests, is this grammar's shape held to both
+	// carriers). Auto already chooses Immediate for it today, so this does not change what
+	// is generated.
+	Carrier = GramCarrier.Immediate)]
 sealed partial class FixGrammar
 {
 	// The data of a pair: as many as the length before it said, separators included.
