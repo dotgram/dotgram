@@ -388,7 +388,7 @@ sealed class SqlScriptReader
 				case "on":
 					// `:on error`, written so: one blank between the words, and whatever follows
 					// `error` is its argument. `:on` and anything else is text.
-					if (word < end && IsBlank(text[word]) && Word(text, word + 1, end, "error") is var afterError and > 0)
+					if (word < end && IsBlank(text[word]) && Word(text, word + 1, end, "error") > 0)
 						return Directive(line, name, word);
 
 					return false;
@@ -416,7 +416,7 @@ sealed class SqlScriptReader
 		if (at + 1 < end && text[at] == '!' && text[at + 1] == '!')
 			return Directive(line, "!!", at + 2);
 
-		// Four commands may be written without the colon.
+		// Four commands may be written without the colon, besides `!!` above.
 		foreach (var bare in Bare)
 		{
 			var afterBare = Word(text, at, end, bare);
@@ -666,10 +666,10 @@ sealed class SqlScriptReader
 	/// </summary>
 	void SetVariable(Line line, int after)
 	{
-		var text  = line.Text;
-		var at    = Skip(text, after, line.End);
-		var name  = Name(text, at, line.End);
-		var end   = line.End;
+		var text = line.Text;
+		var at   = Skip(text, after, line.End);
+		var name = Name(text, at, line.End);
+		var end  = line.End;
 
 		while (end > at && IsSpace(text[end - 1]))
 			end--;
@@ -680,67 +680,81 @@ sealed class SqlScriptReader
 			return;
 		}
 
+		var start   = Skip(text, name, end);
+		var problem = default(string);
+		var value   = start == end ? "" : Value(text, start, end, out problem);
+
+		if (value is null)
+		{
+			Fatal(problem!, line);
+			return;
+		}
+
 		var variable = text.Substring(at, name - at);
-		var start    = Skip(text, name, end);
 
 		Directives.Add(new ScriptDirective("setvar", line.Rest(after), line.Location, Batches.Count));
 
 		if (start == end)
-		{
 			_variables.Remove(variable);
-			return;
-		}
+		else
+			_variables[variable] = value;
+	}
+
+	/// <summary>
+	/// A <c>:setvar</c> value: one word, or one in double quotes with <c>""</c> for a quote inside,
+	/// and nothing after either; null, with why, where sqlcmd refuses it.
+	/// </summary>
+	static string? Value(string text, int start, int end, out string? problem)
+	{
+		problem = null;
 
 		if (text[start] != '"')
 		{
-			// One word: a blank inside, or a quote, and sqlcmd refuses the line.
 			for (var i = start; i < end; i++)
 			{
 				if (IsSpace(text[i]) || text[i] == '"')
 				{
-					Fatal("Syntax error near command ':setvar'.", line);
-					return;
+					problem = "Syntax error near command ':setvar'.";
+					return null;
 				}
 			}
 
-			_variables[variable] = text.Substring(start, end - start);
-			return;
+			return text.Substring(start, end - start);
 		}
 
-		// A quoted value, with `""` for a quote inside.
 		var value = new StringBuilder();
-		var at2   = start + 1;
+		var inner = start + 1;
 
 		while (true)
 		{
-			var quote = text.IndexOf('"', at2, end - at2);
+			var quote = text.IndexOf('"', inner, end - inner);
 
 			if (quote < 0)
 			{
-				Fatal("Unexpected end of script near command ':setvar'.", line);
-				return;
+				problem = "Unexpected end of script near command ':setvar'.";
+				return null;
 			}
 
-			value.Append(text, at2, quote - at2);
+			value.Append(text, inner, quote - inner);
+			inner = quote + 1;
 
-			if (quote + 1 < end && text[quote + 1] == '"')
+			if (inner < end && text[inner] == '"')
 			{
 				value.Append('"');
-				at2 = quote + 2;
+				inner++;
 				continue;
 			}
 
-			at2 = quote + 1;
 			break;
 		}
 
-		if (at2 < end)
+		if (inner < end)
 		{
-			Fatal("Syntax error near command ':setvar'.", line);
-			return;
+			problem = "Syntax error near command ':setvar'.";
+			return null;
 		}
 
-		_variables[variable] = value.ToString();
+		return value.ToString();
 	}
 
 	/// <summary>
@@ -749,14 +763,12 @@ sealed class SqlScriptReader
 	/// </summary>
 	void Include(Line line, int after)
 	{
-		var written = line.Rest(after);
-
-		Directives.Add(new ScriptDirective("r", written, line.Location, Batches.Count));
-
 		var path = Path(line, after);
 
 		if (path is null)
 			return;
+
+		Directives.Add(new ScriptDirective("r", line.Rest(after), line.Location, Batches.Count));
 
 		var source = _options.ResolveInclude?.Invoke(new ScriptInclude(path, line.Location));
 
