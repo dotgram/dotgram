@@ -2159,7 +2159,9 @@ public static class FirstSets
 		return node switch
 		{
 			Node.Literal { IgnoreCase: false } literal => literal.Text.Length == 1,
-			Node.Element(_, _, _, var references) => references.Count == 0,
+			// A class of ranges alone: a Unicode category is as exact as the generator's tables, and is
+			// left out rather than leaned on here.
+			Node.Element(_, _, var categories, var references) => categories.Count == 0 && references.Count == 0,
 			Node.Choice(var alternatives) { Selection: null } => alternatives.Count > 0 && alternatives.All(one => Decided(one, graph, seen)),
 			Node.Capture(_, var held) => Decided(held, graph, seen),
 			Node.Marked(var kept, _) => Decided(kept, graph, seen),

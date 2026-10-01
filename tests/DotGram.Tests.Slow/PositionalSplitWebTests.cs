@@ -66,7 +66,8 @@ public sealed class PositionalSplitWebTests
 		{
 			var follow = Variant(direct, split: false).GetType("DotGram.Web." + grammar)!;
 			var split  = Variant(direct, split: true).GetType("DotGram.Web." + grammar)!;
-			var random = new Random(grammar.GetHashCode(StringComparison.Ordinal) ^ (direct ? 1 : 0));
+			// A seed that is the same in every process, so that a failure can be run again.
+			var random = new Random(grammar.Sum(static letter => (int)letter) * 2 + (direct ? 1 : 0));
 
 			foreach (var name in Publications(follow))
 			{

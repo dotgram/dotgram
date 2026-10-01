@@ -763,12 +763,23 @@ public static class FollowSets
 				return next;
 			}
 
-			case Node.Choice(var alternatives):
+			case Node.Choice(var alternatives) choice:
 			{
 				var merged = Continuation.None;
 
 				foreach (var alternative in alternatives)
 					merged = merged.Or(Precedes(alternative, after, graph, seam));
+
+				// A selector picks one case and does not try the others: where the case it picks
+				// refuses, the choice fails, though another case would have read nothing and
+				// stopped. So a positional stop carried through one of its cases is anything
+				// (FirstSets.Past), as it is past every other node that can refuse reading nothing.
+				if (choice.Selection is not null)
+					merged = merged with
+					{
+						Plain     = merged.Plain.Stops ? FirstSets.First.All : merged.Plain,
+						AfterSeam = merged.AfterSeam.Stops ? FirstSets.First.All : merged.AfterSeam,
+					};
 
 				return merged;
 			}

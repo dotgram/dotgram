@@ -377,10 +377,16 @@ public sealed class PositionalFollowTests
 	static readonly string[] Taught = ["NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "SettledText"];
 
 	/// <summary>
-	/// Every read of the view feeds one of <see cref="Taught"/>, written in the statement that
-	/// reads it, and nothing but the continuation itself touches the view: a new reader of it, or
-	/// one handed through a variable to some other question, fails here until it is classified.
+	/// Every read of the view is an argument of a call to one of <see cref="Taught"/>, itself or its
+	/// <c>.Plain</c>, and nothing but the continuation itself names the view: a new reader of it, one
+	/// handed through a variable or to another call beside a listed one, or a continuation rebuilt
+	/// without it, fails here until it is classified.
 	/// </summary>
+	/// <remarks>
+	/// Read as C# rather than as text, so that what is checked is where the value goes. Which of a
+	/// listed proof's calls may read it is not something a name can say — the settled optional's
+	/// entry asks <c>NeverGivesBack</c> too, of the halves — and that is held by the shapes above.
+	/// </remarks>
 	[Fact]
 	public void Only_the_listed_proofs_read_the_view()
 	{
@@ -391,34 +397,124 @@ public sealed class PositionalFollowTests
 		foreach (var file in System.IO.Directory.GetFiles(source, "*.cs", System.IO.SearchOption.AllDirectories)
 			.Where(one => !one.Contains(System.IO.Path.DirectorySeparatorChar + "obj" + System.IO.Path.DirectorySeparatorChar)))
 		{
-			// The code without its comments, so that a remark naming the view is not a read of it.
-			var code = System.Text.RegularExpressions.Regex.Replace(System.IO.File.ReadAllText(file), @"//[^\n]*", "");
 			var name = System.IO.Path.GetFileName(file);
 
 			if (name == "FollowSets.cs")
 				continue;
 
-			if (System.Text.RegularExpressions.Regex.IsMatch(code, @"\.View\b"))
-				found.Add($"{name}: reads Continuation.View directly");
+			var root = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(System.IO.File.ReadAllText(file), cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken);
 
-			foreach (System.Text.RegularExpressions.Match read in System.Text.RegularExpressions.Regex.Matches(code, @"\.Taught\b"))
+			// Documentation comments are trivia and not walked: a <see cref> to the view is not a use of it.
+			foreach (var identifier in root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax>())
 			{
+				var text = identifier.Identifier.ValueText;
+
+				if (text == "View")
+					found.Add($"{name}:{Line(identifier)}: names Continuation.View");
+
+				if (text != "Taught")
+					continue;
+
 				reads++;
 
-				// The statement the read stands in, up to it: from the last `;`, `{` or `}` before it.
-				var start     = code.LastIndexOfAny([';', '{', '}'], read.Index) + 1;
-				var statement = code.Substring(start, read.Index - start);
-				var callee    = System.Text.RegularExpressions.Regex.Matches(statement, @"(\w+)\s*\(")
-					.Select(one => one.Groups[1].Value)
-					.LastOrDefault(one => Taught.Contains(one) || one == "NeverGivesBackPast");
-
-				if (callee is null || !Taught.Contains(callee))
-					found.Add($"{name}: `{statement.Trim().Replace("\n", " ")}` reads the view for {callee ?? "no listed proof"}");
+				if (Feeds(identifier) is not { } callee || !Taught.Contains(callee))
+					found.Add($"{name}:{Line(identifier)}: `{identifier.Parent}` reads the view for {Feeds(identifier) ?? "no call"}");
 			}
 		}
 
 		Assert.True(reads >= 10, $"Only {reads} reads of the view were found under {source}: has it been renamed?");
 		Assert.True(found.Count == 0, string.Join("\n", found));
+
+		static int Line(Microsoft.CodeAnalysis.SyntaxNode node)
+		{
+			return node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+		}
+
+		// The method a read of the view is handed to, where it is one: `x.Taught` or `x.Taught.Plain`
+		// written as an argument of a call; null where it is anything else.
+		static string? Feeds(Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax taught)
+		{
+			if (taught.Parent is not Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax access || access.Name != taught)
+				return null;
+
+			Microsoft.CodeAnalysis.SyntaxNode value = access;
+
+			if (value.Parent is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax plain &&
+				plain.Expression == value && plain.Name.Identifier.ValueText == "Plain")
+				value = plain;
+
+			if (value.Parent is not Microsoft.CodeAnalysis.CSharp.Syntax.ArgumentSyntax argument ||
+				argument.Parent?.Parent is not Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax call)
+				return null;
+
+			return call.Expression switch
+			{
+				Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax called => called.Identifier.ValueText,
+				Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax called => called.Name.Identifier.ValueText,
+				_ => null,
+			};
+		}
+	}
+
+	/// <summary>
+	/// Tails a selector stands in: a captured repetition, optional or choice of literals before a
+	/// <c>switch</c> one of whose cases reads nothing. A selector picks its case and does not try the
+	/// others, so it can refuse at one place and read nothing at another.
+	/// </summary>
+	static readonly string[] SelectorTails =
+	[
+		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
+		"D = ['0'..'9']\nStart = y: D* & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)? & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)+ & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
+		"D = ['0'..'9']\nStart = (y: D){0,2} & switch @(y) { case \"12\": none default: 'z' }\nparse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"12\": 'z' default: none }\nparse Start\n",
+		"Start = (y: (\"12\" | \"1\")) & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
+		"Start = (y: (\"12\" | \"1\"))? & switch @(y) { case \"12\": 'z' default: none }\nparse Start\n",
+	];
+
+	public static TheoryData<int, bool> SelectorCases()
+	{
+		var cases = new TheoryData<int, bool>();
+
+		for (var index = 0; index < SelectorTails.Length; index++)
+		{
+			cases.Add(index, false);
+			cases.Add(index, true);
+		}
+
+		return cases;
+	}
+
+	/// <summary>
+	/// Split, a selector between a repetition and the end reads as the option alone reads it — held to
+	/// the option and not to the reference interpreter, which does not run C#.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(SelectorCases))]
+	public void Split_a_selector_at_the_end_reads_as_the_option_alone(int index, bool direct)
+	{
+		var grammar = SelectorTails[index];
+		var follow  = Compiled(grammar, direct, positionalFollow: true);
+		var split   = Compiled(grammar, direct, positionalFollow: true, split: true);
+		var wrong   = new List<string>();
+
+		foreach (var text in Inputs(['1', '2', 'z', 'x'], 4))
+		{
+			for (var from = 0; from <= text.Length; from++)
+			{
+				var expected = EmittedCode.Answered(follow, "Grammar", "TryParseStart", text, from);
+				var answer   = EmittedCode.Answered(split, "Grammar", "TryParseStart", text, from);
+
+				if (expected.Read != answer.Read || expected.At != answer.At)
+					wrong.Add($"'{text}' from {from}: follow {(expected.Read, expected.At)}, split {(answer.Read, answer.At)}");
+			}
+
+			if (EmittedCode.Match(follow, "Grammar", "TryParseStart", text).IsSuccess != EmittedCode.Match(split, "Grammar", "TryParseStart", text).IsSuccess)
+				wrong.Add($"whole '{text}'");
+		}
+
+		Assert.True(wrong.Count == 0, $"{wrong.Count} cells differ:\n" + string.Join("\n", wrong.Take(15)));
 	}
 
 	/// <summary>The option is off unless asked for.</summary>
