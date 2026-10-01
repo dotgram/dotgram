@@ -47,6 +47,27 @@ const string DefaultFilter = "status = active";
 Only the immediate literal receiver or initializer is classified. Values are not
 propagated through variables, and later assignments to an annotated field are ignored.
 
+## A grammar that includes others
+
+A standalone `.gram` file whose class writes `[GramInclude(typeof(…))]`, or derives from a class
+with a grammar, is read the way the generator compiles it: the included grammars are spliced on
+after it, and the host's `Lexical` applies. The included grammars are found through the project,
+so the editor follows the project as it changes: when the host's declaration, an included
+`.gram` file (open and being edited, or saved), the project's references or the solution change,
+the host is looked for again and the grammar is analysed again if what it is compiled with
+changed. Changes in projects that neither hold the grammar nor declare what it includes are
+ignored. Until the host is first found, names that depend on an include are not reported as
+missing; after a while without a host the grammar is reported as it stands, and is reported
+again the moment the host appears.
+
+Go To Definition on a name from an included grammar — one brought in by `using`, qualified
+(`Sql92.Word`) or qualified more deeply (`Sql92.Lexical.Digits`) — opens the included file at
+the rule. A grammar included from a referenced assembly has no file, only the text its class
+carries; that text opens as a read-only copy under the temporary directory. Find All References
+lists the uses in the included grammars beside those in the open file. Rename is not offered for
+a rule an included grammar declares or uses, since the edit would have to reach a file the
+buffer does not own.
+
 ## Build the VSIX
 
 From the repository root:

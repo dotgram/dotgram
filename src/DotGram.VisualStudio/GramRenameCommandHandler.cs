@@ -63,11 +63,15 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 		var position = args.TextView.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 
-		return args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
+		var found = args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
 			? GramFindReferencesTarget.Standalone(snapshot, position, GramBufferAnalysis.For(args.SubjectBuffer))
 			: GramFindReferencesTarget.Embedded(
 				snapshot,
 				position,
 				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents));
+
+		// A rule an included grammar declares or uses is renamed there too, which this
+		// buffer cannot do; renaming half of it is worse than not renaming it.
+		return found is { Renamable: true } ? found : null;
 	}
 }

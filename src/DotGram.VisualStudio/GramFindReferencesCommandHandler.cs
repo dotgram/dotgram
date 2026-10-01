@@ -86,9 +86,34 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		if (found is null || !Documents.TryGetTextDocument(args.SubjectBuffer, out var document))
 			return false;
 
-		Show(found, document.FilePath, args.TextView.TextSnapshot);
+		if (found.Elsewhere.Count == 0)
+			Show(found, document.FilePath, args.TextView.TextSnapshot);
+		else
+			Show(Across(found, document.FilePath, args.TextView.TextSnapshot), Services, Buffers, ContentTypes, "DotGram rule references");
 
 		return true;
+	}
+
+	/// <summary>
+	/// The references in this buffer and in the grammars its host includes, as one list over
+	/// several files.
+	/// </summary>
+	static CSharpFindReferences Across(GramFindReferencesTarget found, string filePath, ITextSnapshot snapshot)
+	{
+		var text       = snapshot.GetText();
+		var references = new List<CSharpFindReference>(found.Positions.Length + found.Elsewhere.Count);
+
+		foreach (var position in found.Positions)
+			references.Add(new CSharpFindReference(filePath, text, position, found.Name.Length));
+
+		foreach (var reference in found.Elsewhere)
+			references.Add(new CSharpFindReference(
+				IncludedGrammarView.PathOf(reference.Location.Grammar),
+				reference.Location.Grammar.Text,
+				reference.Location.Offset,
+				reference.Length));
+
+		return new CSharpFindReferences(found.Name, references);
 	}
 
 	GramFindReferencesTarget? Target(FindReferencesCommandArgs args)
@@ -144,7 +169,8 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		CSharpFindReferences found,
 		System.IServiceProvider services,
 		ITextBufferFactoryService buffers,
-		IContentTypeRegistryService contentTypes)
+		IContentTypeRegistryService contentTypes,
+		string description = "C# and DotGram references")
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (services.GetService(typeof(SVsFindResults)) is not IFindResultsService findResults)
@@ -152,7 +178,7 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 
 		var window = (IFindResultsWindow2)findResults.StartSearch(
 			$"{found.Name} references ({found.References.Count})",
-			"C# and DotGram references",
+			description,
 			"DotGram.CSharpFindReferences");
 		window.Summary = $"{found.References.Count} references in {found.References.Select(static item => item.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()} files";
 

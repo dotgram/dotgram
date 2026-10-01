@@ -81,11 +81,14 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
 			GramBufferAnalysis.For(args.SubjectBuffer).ExternalDefinition(snapshot, position) is { } external)
-			return Navigate(new GeneratedApiSource(external.FilePath, external.Line, external.Column));
+			return Navigate(new GeneratedApiSource(
+				IncludedGrammarView.PathOf(external.Target.Grammar),
+				external.Target.Line,
+				external.Target.Column));
 
 		var found = Target(args);
 
-		if (found is null)
+		if (found is null || found.DefinedElsewhere)
 			return false;
 
 		var point = new SnapshotPoint(args.TextView.TextSnapshot, found.DefinitionPosition);

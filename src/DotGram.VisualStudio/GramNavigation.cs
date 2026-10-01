@@ -82,18 +82,22 @@ sealed class GramNavigableSymbolSource(
 			return Task.FromResult<INavigableSymbol?>(new FileNavigableSymbol(
 				new SnapshotSpan(snapshot, external.Position, external.Length),
 				services,
-				external.FilePath,
-				external.Line,
-				external.Column));
+				IncludedGrammarView.PathOf(external.Target.Grammar),
+				external.Target.Line,
+				external.Target.Column));
 
+		// A definition past the end of the buffer is in an included grammar that could not be
+		// placed; there is nowhere in this buffer to go.
 		foreach (var item in analysis.Document(snapshot).Symbols)
 			if (item.Position <= position && position < item.Position + item.Length)
-				return Task.FromResult<INavigableSymbol?>(Create(
-					view,
-					snapshot,
-					item.Position,
-					item.Length,
-					item.DefinitionPosition));
+				return Task.FromResult<INavigableSymbol?>(item.DefinitionPosition > snapshot.Length
+					? null
+					: Create(
+						view,
+						snapshot,
+						item.Position,
+						item.Length,
+						item.DefinitionPosition));
 
 		return Task.FromResult<INavigableSymbol?>(null);
 	}
