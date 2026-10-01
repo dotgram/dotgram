@@ -198,7 +198,7 @@ public static class GramLanguageService
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
 		var (rules, rulesByPosition) = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
-		var resolved = model is null ? new Dictionary<int, int>() : ResolvedReferences(model, text.Length);
+		var resolved = Resolution.Of(model, text.Length, options?.Own);
 		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules, resolved);
 		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
 		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
@@ -223,7 +223,8 @@ public static class GramLanguageService
 						symbolKind: symbol.Kind));
 				else if (symbolsByPosition.TryGetValue(token.Position, out symbol) &&
 					rulesByPosition.TryGetValue(symbol.DefinitionPosition, out var rule) ||
-					token.Value is not null && rules.TryGetValue(token.Value, out rule))
+					token.Value is not null && rules.TryGetValue(token.Value, out rule) &&
+					resolved.SameGrammar(token.Position, rule.Position))
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
 						token.Length,
@@ -641,43 +642,97 @@ public static class GramLanguageService
 		}).ToArray();
 	}
 
-	/// <summary>
-	/// Where the binder sent each rule reference: the position a name starts at, to the
-	/// position of the rule it names.
-	/// </summary>
+	/// <summary>Where the binder sent each name, by the position the name is written at.</summary>
 	/// <remarks>
-	/// Only rules declared inside <paramref name="length"/>: the standard library is spliced
-	/// on past the end of the text, and a definition there is a place nobody can be taken to.
+	/// Only rules declared inside the text: the standard library is spliced on past its end,
+	/// and a definition there is a place nobody can be taken to.
 	/// </remarks>
-	static Dictionary<int, int> ResolvedReferences(GrammarModel model, int length)
+	sealed class Resolution
 	{
-		var result = new Dictionary<int, int>();
+		/// <summary>A rule reference's position, to the position of the rule it names.</summary>
+		public readonly Dictionary<int, int> References = [];
 
-		foreach (var binding in model.Bindings)
+		/// <summary>A <c>parse</c>/<c>find</c> directive's position, to the rule it publishes.</summary>
+		public readonly Dictionary<int, int> Publications = [];
+
+		/// <summary>An <c>A = B</c> entry's position, to the rules its two sides name.</summary>
+		public readonly Dictionary<int, (int? Left, int? Right)> Rebindings = [];
+
+		/// <summary>How much of the text is the document's own, where the rest is included.</summary>
+		public int? Own { get; private set; }
+
+		public static Resolution Of(GrammarModel? model, int length, int? own)
 		{
-			if (binding.Value is not RuleSymbol { Declaration: { } declaration } ||
-				declaration.At.Position >= length)
-				continue;
+			var result = new Resolution { Own = own };
 
-			var reference = binding.Key switch
+			if (model is null)
+				return result;
+
+			foreach (var binding in model.Bindings)
 			{
-				Expr.Reference direct => direct,
-				Expr.Call call        => call.Target,
-				_                     => null,
-			};
+				var reference = binding.Key switch
+				{
+					Expr.Reference direct => direct,
+					Expr.Call call        => call.Target,
+					_                     => null,
+				};
 
-			if (reference is not null)
-				result[reference.At.Position] = declaration.At.Position;
+				if (reference is not null && Declared(binding.Value as RuleSymbol, length) is int declared)
+					result.References[reference.At.Position] = declared;
+			}
+
+			foreach (var publication in model.Publications)
+				if (Declared(publication.Rule, length) is int declared)
+					result.Publications[publication.At.Position] = declared;
+
+			foreach (var rebindings in model.WithOwnRebindings.Values)
+				result.Add(rebindings, length);
+
+			foreach (var publication in model.Publications)
+				result.Add(publication.OwnRebindings, length);
+
+			result.AddNamespaces(model.Root, length);
+
+			return result;
 		}
 
-		return result;
+		/// <summary>
+		/// Whether a name looked up by its spelling may go to a rule declared at <paramref name="rule"/>:
+		/// not across the seam between the document's own text and what was spliced on after it,
+		/// which the binder never crosses either.
+		/// </summary>
+		public bool SameGrammar(int name, int rule)
+		{
+			return Own is not int own || (name < own) == (rule < own);
+		}
+
+		void Add(IReadOnlyList<ResolvedRebinding> rebindings, int length)
+		{
+			foreach (var rebinding in rebindings)
+				Rebindings[rebinding.At.Position] = (Declared(rebinding.Left, length), Declared(rebinding.Right, length));
+		}
+
+		void AddNamespaces(GrammarNamespace scope, int length)
+		{
+			Add(scope.OwnRebindings, length);
+
+			foreach (var nested in scope.Nested)
+				AddNamespaces(nested, length);
+		}
+
+		static int? Declared(RuleSymbol? rule, int length)
+		{
+			return rule?.Declaration is { } declaration && declaration.At.Position < length
+				? declaration.At.Position
+				: null;
+		}
 	}
 
 	static IReadOnlyList<GramSymbolOccurrence> SymbolOccurrences(
 		IReadOnlyList<Decl> declarations,
 		IReadOnlyList<Token> tokens,
 		IReadOnlyDictionary<string, RuleInfo> rules,
-		IReadOnlyDictionary<int, int> resolved)
+		Resolution resolved)
 	{
 		var result = new List<GramSymbolOccurrence>();
 		var positions = new HashSet<int>();
@@ -724,27 +779,43 @@ public static class GramLanguageService
 			// Where the binder sent it, and the name is the last part of what is written:
 			// `Sql92.Lexical.Digits` is a use of `Digits`, and that word is what is underlined,
 			// renamed and found.
-			if (resolved.TryGetValue(at.Position, out var definition))
+			if (resolved.References.TryGetValue(at.Position, out var definition))
 			{
-				var simple = name.Substring(name.LastIndexOf('.') + 1);
-				var last   = (Token?)null;
-
-				for (var index = FirstTokenAtOrAfter(tokens, at.Position);
-					index < tokens.Count && tokens[index].Position < at.End;
-					index++)
-					if (tokens[index].Kind == TokenKind.Identifier && tokens[index].Value == simple)
-						last = tokens[index];
-
-				if (last is { } token)
-					AddOccurrence(simple, new Location(token.Position, token.Length), definition, false, GramSymbolKind.Rule);
-
+				AddResolved(name, at.Position, at.End, definition);
 				return;
 			}
 
-			if (!rules.TryGetValue(name, out var rule))
-				return;
+			AddByName(name, at);
+		}
 
-			AddOccurrence(name, at, rule.Position, isDefinition, GramSymbolKind.Rule);
+		/// <summary>
+		/// A use the binder resolved, as the last part of what is written between
+		/// <paramref name="start"/> and <paramref name="end"/>: `Sql92.Lexical.Digits` is a use
+		/// of `Digits`, and that word is what is underlined, renamed and found.
+		/// </summary>
+		void AddResolved(string name, int start, int end, int definition)
+		{
+			var simple = name.Substring(name.LastIndexOf('.') + 1);
+			var last   = (Token?)null;
+
+			for (var index = FirstTokenAtOrAfter(tokens, start);
+				index < tokens.Count && tokens[index].Position < end;
+				index++)
+				if (tokens[index].Kind == TokenKind.Identifier && tokens[index].Value == simple)
+					last = tokens[index];
+
+			if (last is { } token)
+				AddOccurrence(simple, new Location(token.Position, token.Length), definition, false, GramSymbolKind.Rule);
+		}
+
+		/// <summary>
+		/// A use the binder did not resolve, looked up by its spelling, on the same side of the
+		/// seam between the document and what it includes.
+		/// </summary>
+		void AddByName(string name, Location at)
+		{
+			if (rules.TryGetValue(name, out var rule) && resolved.SameGrammar(at.Position, rule.Position))
+				AddOccurrence(name, at, rule.Position, false, GramSymbolKind.Rule);
 		}
 
 		void VisitDeclarations(IReadOnlyList<Decl> items)
@@ -760,12 +831,17 @@ public static class GramLanguageService
 						VisitDeclarations(@namespace.Decls);
 						break;
 					case Decl.Publish publish:
-						var token = tokens.FirstOrDefault(candidate =>
-							candidate.Position >= publish.At.Position &&
-							candidate.Position < publish.At.End &&
-							candidate.Value == publish.RuleName);
-						if (token.Length > 0)
-							AddRule(publish.RuleName, new Location(token.Position, token.Length), false);
+						if (resolved.Publications.TryGetValue(publish.At.Position, out var published))
+							AddResolved(publish.RuleName, publish.At.Position, publish.At.End, published);
+						else
+						{
+							var token = tokens.FirstOrDefault(candidate =>
+								candidate.Position >= publish.At.Position &&
+								candidate.Position < publish.At.End &&
+								candidate.Value == publish.RuleName);
+							if (token.Length > 0)
+								AddRule(publish.RuleName, new Location(token.Position, token.Length), false);
+						}
 						foreach (var rebinding in publish.Rebindings) AddRebinding(rebinding);
 						break;
 				}
@@ -882,16 +958,39 @@ public static class GramLanguageService
 			}
 		}
 
+		/// <summary>
+		/// The two names of an <c>A = B</c> entry, each where the binder sent it. Each side is
+		/// its own span — the `=` divides them — and a name is the last part of what is written
+		/// there, so the <c>Word</c> of <c>Sql92.Word</c> is never taken for a rule <c>Word</c>.
+		/// </summary>
 		void AddRebinding(Rebinding rebinding)
 		{
-			var names = tokens.Where(token =>
-				token.Kind == TokenKind.Identifier &&
-				token.Position >= rebinding.At.Position &&
-				token.Position < rebinding.At.End);
+			var equals = rebinding.At.End;
 
-			foreach (var token in names)
-				if (token.Value == rebinding.Left || token.Value == rebinding.Right)
-					AddRule(token.Value, new Location(token.Position, token.Length), false);
+			for (var index = FirstTokenAtOrAfter(tokens, rebinding.At.Position);
+				index < tokens.Count && tokens[index].Position < rebinding.At.End;
+				index++)
+				if (tokens[index].Kind == TokenKind.Equals)
+				{
+					equals = tokens[index].Position;
+					break;
+				}
+
+			resolved.Rebindings.TryGetValue(rebinding.At.Position, out var sides);
+
+			AddSide(rebinding.Left, rebinding.At.Position, equals, sides.Left);
+			AddSide(rebinding.Right, equals, rebinding.At.End, sides.Right);
+		}
+
+		/// <remarks>
+		/// A side the binder could not resolve is left without a symbol: it is reported as
+		/// unknown, and a guess by spelling is how the tail of a qualified name came to be
+		/// renamed with a rule of the same name.
+		/// </remarks>
+		void AddSide(string name, int start, int end, int? definition)
+		{
+			if (definition is int resolvedTo)
+				AddResolved(name, start, end, resolvedTo);
 		}
 
 		void Visit(Expr item)

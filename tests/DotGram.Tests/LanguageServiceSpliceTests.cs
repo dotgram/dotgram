@@ -23,9 +23,12 @@ public sealed class LanguageServiceSpliceTests
 
 	static string Joined(string own, string included)
 	{
-		return own + GrammarSplice.Join(
-			new GrammarSplice.Part("", null, null),
-			[new GrammarSplice.Part(included, "Sql92", null)]).Text;
+		return Joined(own, new GrammarSplice.Part(included, "Sql92", null));
+	}
+
+	static string Joined(string own, params GrammarSplice.Part[] included)
+	{
+		return own + GrammarSplice.Join(new GrammarSplice.Part("", null, null), included).Text;
 	}
 
 	static int Declared(string text, string declaration)
@@ -37,12 +40,18 @@ public sealed class LanguageServiceSpliceTests
 		return at;
 	}
 
-	/// <summary>A name a <c>using</c> brings in goes to the included grammar's rule.</summary>
+	/// <summary>
+	/// A name a <c>using</c> brings in goes to the rule of the grammar it names, and not to
+	/// the first rule of that name in the text: another included grammar comes first here.
+	/// </summary>
 	[Fact]
 	public void An_imported_name_resolves_into_the_included_grammar()
 	{
 		const string own = "using Sql92;\nStart = Word\nparse Start\n";
-		var text = Joined(own, Included);
+		var text = Joined(
+			own,
+			new GrammarSplice.Part("Word = 'x'\n", "Other", null),
+			new GrammarSplice.Part(Included, "Sql92", null));
 
 		var word = Assert.Single(
 			GramLanguageService.Analyze(text).Symbols,
@@ -100,6 +109,69 @@ public sealed class LanguageServiceSpliceTests
 		Assert.All(
 			document.Symbols.Where(symbol => symbol.Name == "Word" && symbol.IsDefinition),
 			symbol => Assert.Equal(symbol.Position, symbol.DefinitionPosition));
+	}
+
+	/// <summary>
+	/// The sides of a rebinding are resolved by the binder too: the <c>Word</c> of
+	/// <c>Sql92.Word</c> is the included rule and never the document's own <c>Word</c>, so
+	/// renaming the own one cannot reach into a qualified name.
+	/// </summary>
+	[Fact]
+	public void A_rebinding_side_resolves_where_it_is_qualified_to()
+	{
+		const string own = "Word = 'w'\nStart = Sql92.Word\nparse Start with (Word = Sql92.Word)\n";
+		var text = Joined(own, Included);
+
+		var symbols  = GramLanguageService.Analyze(text, new GramAnalysisOptions { Own = own.Length }).Symbols;
+		var included = Declared(text, "Word");
+		var qualified = symbols
+			.Where(symbol => symbol.Position < own.Length && symbol.DefinitionPosition == included)
+			.Select(symbol => symbol.Position)
+			.ToArray();
+		var mine = symbols
+			.Where(symbol => symbol.Position < own.Length && symbol.DefinitionPosition == 0)
+			.Select(symbol => symbol.Position)
+			.ToArray();
+
+		var first  = own.IndexOf("Sql92.Word", StringComparison.Ordinal) + "Sql92.".Length;
+		var second = own.LastIndexOf("Sql92.Word", StringComparison.Ordinal) + "Sql92.".Length;
+
+		Assert.Equal(new[] { first, second }, qualified);
+		Assert.Equal(new[] { 0, own.IndexOf("(Word", StringComparison.Ordinal) + 1 }, mine);
+	}
+
+	/// <summary>A <c>parse</c> of a qualified name is a use of its last part.</summary>
+	[Fact]
+	public void A_qualified_publication_is_a_use_of_its_last_part()
+	{
+		const string own = "parse Sql92.Word\n";
+		var text = Joined(own, Included);
+
+		var word = Assert.Single(
+			GramLanguageService.Analyze(text, new GramAnalysisOptions { Own = own.Length }).Symbols,
+			symbol => symbol.Position < own.Length);
+
+		Assert.Equal(own.IndexOf("Word", StringComparison.Ordinal), word.Position);
+		Assert.Equal(Declared(text, "Word"), word.DefinitionPosition);
+	}
+
+	/// <summary>
+	/// A name the binder left unresolved is not looked up by spelling across the seam: an
+	/// undefined name in the document does not lead into an included grammar.
+	/// </summary>
+	[Fact]
+	public void An_unresolved_name_does_not_cross_into_what_is_included()
+	{
+		const string own = "Start = Word\nparse Start\n";
+		var text = Joined(own, Included);
+
+		var document = GramLanguageService.Analyze(text, new GramAnalysisOptions { Own = own.Length });
+
+		Assert.Contains(document.Diagnostics, diagnostic => diagnostic.Id == "GRAM3002");
+		Assert.DoesNotContain(document.Symbols, symbol =>
+			symbol.Position < own.Length && symbol.DefinitionPosition >= own.Length);
+		Assert.DoesNotContain(document.Classifications, span =>
+			span.Position < own.Length && span.DefinitionPosition >= own.Length);
 	}
 
 	/// <summary>
