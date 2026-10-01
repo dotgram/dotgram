@@ -69,7 +69,7 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables,
-		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed)
+		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
@@ -101,7 +101,8 @@ public static partial class CSharpEmitter
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
 					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
 				{
-					Reporting = reporting,
+					Reporting   = reporting,
+					CountsRules = countRules,
 				};
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
@@ -158,7 +159,8 @@ public static partial class CSharpEmitter
 					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
 				{
 					InPlace   = true,
-					Reporting = reporting,
+					Reporting   = reporting,
+					CountsRules = countRules,
 				};
 
 				if (memory.CanDirect([publication]) && !memory.Probes)
@@ -203,7 +205,8 @@ public static partial class CSharpEmitter
 				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
 				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
 			{
-				Reporting = reporting,
+				Reporting   = reporting,
+				CountsRules = countRules,
 			};
 			added[host] = owner with { Machine = shared, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)

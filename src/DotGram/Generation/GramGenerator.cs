@@ -124,8 +124,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 					? Asked(asked)
 					: Reporting.None);
 
-		var compiled = answered.Combine(reporting)
-			.Select(static (input, _) => CompileSafely(input.Left, input.Right))
+		// A compilation that defines DOTGRAM_COUNTS — one of the repository's own count tests, never a
+		// shipped package — gets a counter of entries in every rule method as well (D144). Asked of the
+		// parse options, which change when the symbols do and not on an edit.
+		var counting = context.ParseOptionsProvider.Select(static (options, _) =>
+			options.PreprocessorSymbolNames.Contains(CountsSymbol));
+
+		var compiled = answered.Combine(reporting).Combine(counting)
+			.Select(static (input, _) => CompileSafely(input.Left.Left, input.Left.Right, input.Right))
 			.WithTrackingName(CompiledStage);
 
 		// Each parser beside where its host is written. The lookup runs for every parser whenever
@@ -231,11 +237,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 		};
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting)
+	/// <summary>The symbol under which emitted code carries the counters of the repository's tests.</summary>
+	const string CountsSymbol = "DOTGRAM_COUNTS";
+
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, bool counting)
 	{
 		try
 		{
-			return Compile(grammar, reporting);
+			return Compile(grammar, reporting, counting);
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -612,7 +621,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting)
+	static Parser Compile(Grammar grammar, Reporting reporting, bool counting)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -685,6 +694,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
 			// Only the full one — this is analysis nobody pays for who is not reading it.
 			ReportCarriers = reporting == Reporting.Full,
+			CountRules     = counting,
 		});
 
 		timer?.Stop();

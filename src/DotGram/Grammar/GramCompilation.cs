@@ -201,6 +201,17 @@ public sealed class GramCompilerOptions
 	public bool ReportCarriers { get; set; }
 
 	/// <summary>
+	/// Whether each rule a reader reads by a method of its own counts its entries, in a field of
+	/// that reader written inside <c>#if DOTGRAM_COUNTS</c>. For a test that asks how often a rule
+	/// was entered; not a supported setting.
+	/// </summary>
+	/// <remarks>
+	/// The generator sets it where the compilation defines <c>DOTGRAM_COUNTS</c>, and nowhere else:
+	/// a field a rule is bytes in every parser, so a parser built without the symbol carries none.
+	/// </remarks>
+	public bool CountRules { get; set; }
+
+	/// <summary>
 	/// Typed value storage for all direct tape readers in this compilation. Other
 	/// carriers and the non-direct engine do not use these tables. Auto chooses at
 	/// generation time; explicit strategies override both dense and paged heuristics.

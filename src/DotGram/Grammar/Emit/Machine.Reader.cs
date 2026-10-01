@@ -195,6 +195,24 @@ sealed partial class Machine
 	/// </remarks>
 	int _readerPart;
 
+	/// <summary>
+	/// Whether every rule method counts its entries, for a test that asks how often a rule was
+	/// entered rather than how long a reading took.
+	/// </summary>
+	/// <remarks>
+	/// Set only where the compilation defines <c>DOTGRAM_COUNTS</c> (<c>GramGenerator</c>), and
+	/// written inside an <c>#if</c> of that symbol all the same. A field a rule is bytes in every
+	/// parser, where the counters every parser carries are a handful a machine, so a parser built
+	/// without the symbol is written exactly as it was.
+	/// </remarks>
+	internal bool CountsRules;
+
+	/// <summary>The counter of entries to a rule's method (<see cref="CountsRules"/>).</summary>
+	static string EnteredOf(RuleSymbol rule)
+	{
+		return "CountEntered_" + CSharpEmitter.IdentifierOf(rule);
+	}
+
 	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
 	public string RenderReader(IReadOnlyList<Publication> publications)
 	{
@@ -297,6 +315,16 @@ sealed partial class Machine
 					// not at the call: one line a rule instead of one at every place that calls it.
 					if (!tape && Deepens(rule))
 						Probe(file, rule);
+
+					// After the probe: a reading carried onto a stack of its own enters the rule
+					// again there, and that is the one entry.
+					if (CountsRules)
+					{
+						file.Line("#if DOTGRAM_COUNTS");
+						file.Line($"{EnteredOf(rule)}++;");
+						file.Line("#endif");
+						file.Line();
+					}
 
 					reader.Render(file, _graph.Bodies[rule], FollowOf(rule));
 				}
@@ -863,6 +891,20 @@ sealed partial class Machine
 			}
 
 			header.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
+
+			if (CountsRules && _directRules is not null)
+			{
+				header.Line();
+				header.Line("#if DOTGRAM_COUNTS");
+				header.Line("// Entries to each rule's method, for a test that counts them; compiled only under");
+				header.Line("// DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
+
+				foreach (var rule in _directRules)
+					header.Line($"internal static long {EnteredOf(rule)};");
+
+				header.Line("#endif");
+				header.Line();
+			}
 
 			if (Probes)
 			{

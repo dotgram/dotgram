@@ -188,7 +188,8 @@ public static partial class CSharpEmitter
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
-		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null)
+		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
+		bool countRules = false)
 	{
 		statics ??= [];
 
@@ -255,7 +256,8 @@ public static partial class CSharpEmitter
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
 				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets)
 			{
-				Reporting = carriers is not null,
+				Reporting   = carriers is not null,
+				CountsRules = countRules,
 			};
 
 			// Every publication of this rule needs none of the three things the arena is
@@ -317,6 +319,7 @@ public static partial class CSharpEmitter
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
+			made.CountsRules = countRules;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
@@ -343,7 +346,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed);
+			carrier, replay, carriers is not null, directAllowed, countRules);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds

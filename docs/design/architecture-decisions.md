@@ -9620,6 +9620,15 @@ machinery needs a field in emitted code, and a consumer must not carry one for o
   counted variant cannot rot; the shipped packages never see it.
 - Hand-written code (the expression language's `State.Places`) carries its counter always, as a
   chosen cost written beside it: 8 bytes a reading (ae2045d8).
+- **A counter a rule, where the compilation asks (2026-10-01).** A grammar defect of the kind
+  "this rule is entered n^3 times" has no count among the handful above. So the generator asks the
+  compilation's parse options whether `DOTGRAM_COUNTS` is defined, and only there writes a counter
+  of entries in every rule method of the direct reader (`CountEntered_<rule>`, static, on the reader
+  struct), still inside `#if DOTGRAM_COUNTS`. A field a rule is bytes in every parser, which the
+  handful a machine is not, so a build without the symbol — every shipped one — is written to the
+  byte as before. Rules on the engine or the flat path are not counted. A gate runs the generator
+  over the shipped grammar with the symbol set, as `FixSeparatorCountTests` does, and sums the
+  fields: `BracketNestingCountTests` holds T-SQL's bracket nests that way.
 
 ## D145 — A pipeline value is equatable across compilations; a Location is made where it is reported (architect)
 
