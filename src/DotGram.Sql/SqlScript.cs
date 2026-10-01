@@ -71,7 +71,9 @@ public sealed class SqlScript
 	/// </summary>
 	/// <remarks>
 	/// The question to ask of text whose origin is not known. Where this is false, the one batch
-	/// is the text and reading it in one call answers the same. Where it is true, a reading of the
+	/// is the text, or as near it as makes no difference to a reading — a leading byte order mark
+	/// is dropped, and a line break is added where the text ends inside a string or a comment — so
+	/// reading it in one call answers alike. Where it is true, a reading of the
 	/// whole text in one call — <c>ParseSql</c> — reads something the tool would never have sent:
 	/// a script of one batch ended by <c>GO</c> counts, which is why this is not
 	/// <c>Batches.Count &gt; 1</c>.
@@ -83,6 +85,12 @@ public sealed class SqlScript
 	/// </summary>
 	/// <param name="text">The script.</param>
 	/// <param name="options">The tool and what it is given; sqlcmd with nothing else when null.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+	/// <exception cref="ArgumentException">
+	/// <paramref name="options"/> holds no profile, a null variable name or value, or a negative
+	/// <see cref="ScriptOptions.MaximumIncludes"/>; or <see cref="ScriptOptions.ResolveInclude"/>
+	/// handed back a source with no text.
+	/// </exception>
 	/// <remarks>
 	/// Never throws for what the text says: a line the tool would refuse ends the reading with a
 	/// <see cref="ScriptSeverity.Fatal"/> diagnostic, and the batches before it are kept, as the tool
@@ -97,7 +105,9 @@ public sealed class SqlScript
 
 		reader.Read(text);
 
-		return new SqlScript(reader.Batches, reader.Directives, reader.Diagnostics, reader.SawClientSyntax);
+		return new SqlScript(
+			reader.Batches.AsReadOnly(), reader.Directives.AsReadOnly(), reader.Diagnostics.AsReadOnly(),
+			reader.SawClientSyntax);
 	}
 }
 
@@ -328,10 +338,17 @@ public sealed class ScriptBatch
 	/// without one was written nowhere: it maps to the empty range at the end of that file.
 	/// </para>
 	/// </remarks>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// The range is not inside the batch: <paramref name="at"/> before <see cref="At"/>, or
+	/// <c>at + length</c> past <c>At + Length</c>.
+	/// </exception>
 	public ScriptLocation Locate(int at, int length)
 	{
-		if (length < 0)
-			throw new ArgumentOutOfRangeException(nameof(length));
+		if (at < At || at > At + Length)
+			throw new ArgumentOutOfRangeException(nameof(at), at, $"A position in the batch is from {At} to {At + Length}.");
+
+		if (length < 0 || length > At + Length - at)
+			throw new ArgumentOutOfRangeException(nameof(length), length, $"The range from {at} runs past the batch's end at {At + Length}.");
 
 		var first = PieceAt(at);
 		var piece = _pieces[first];
@@ -392,10 +409,10 @@ public readonly record struct ScriptLocation(string? Source, SqlSpan Span);
 /// </summary>
 /// <param name="Name">
 /// What to call it: every location in it carries this, and a file that includes a file of the same
-/// name that is still being read is a cycle.
+/// name that is still being read is a cycle. Null names nothing, and is never a cycle.
 /// </param>
 /// <param name="Text">The file's text.</param>
-public sealed record ScriptSource(string Name, string Text);
+public sealed record ScriptSource(string? Name, string Text);
 
 /// <summary>
 /// A file a <c>:r</c> asks for.
@@ -413,7 +430,10 @@ public sealed record ScriptInclude(string Path, ScriptLocation Location);
 /// </param>
 /// <param name="Arguments">The rest of its line, as written, without the spacing around it.</param>
 /// <param name="Location">The line, without its line break.</param>
-/// <param name="Batch">The index in <see cref="SqlScript.Batches"/> of the first batch after it.</param>
+/// <param name="Batch">
+/// The index in <see cref="SqlScript.Batches"/> of the first batch after it, which is
+/// <c>Batches.Count</c> where no batch follows.
+/// </param>
 /// <remarks>
 /// None of them is run. Two of them would change what the tool sends, and do not here: <c>:reset</c>
 /// would discard the batch so far, and <c>exit</c> and <c>quit</c> would end the reading, the

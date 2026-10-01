@@ -14698,6 +14698,34 @@ public sealed class TransactSqlTests
 		return Path.GetDirectoryName(here)!;
 	}
 
+	/// <summary>
+	/// A batch is read in the package's three forms: answering, answering only whether, and
+	/// throwing — at every level, plain and located — and the three agree.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1; SELECT 2", true)]
+	[InlineData("-- nothing\n", true)]
+	[InlineData("SELECT FROM t", false)]
+	[InlineData("SELECT 1 ` x", false)]
+	public void A_batch_is_read_in_three_forms(string text, bool read)
+	{
+		var batch = SqlScript.Read(text).Batches.Single();
+
+		Assert.Equal(read, TransactSqlParser.TryParseSql(batch).IsSuccess);
+		Assert.Equal(read, TransactSqlParser.TryParseSql(batch, out var statements));
+		Assert.Equal(read, TransactSqlParser.Located.TryParseSql160(batch, out _));
+
+		if (read)
+		{
+			Assert.Equal(TransactSqlParser.ParseSql(batch).Length, statements.Length);
+			Assert.Equal(statements.Length, TransactSqlParser.Located.ParseSql170(batch).Length);
+		}
+		else
+		{
+			Assert.Throws<FormatException>(() => TransactSqlParser.ParseSql150(batch));
+		}
+	}
+
 	[Fact]
 	public void A_text_of_statements_is_one_batch_of_a_script()
 	{

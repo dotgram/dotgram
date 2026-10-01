@@ -455,9 +455,10 @@ sealed class SqlScriptReader
 					Include(line, word);
 					return true;
 				case "on":
-					// `:on error`, written so: one blank between the words, and whatever follows
+					// `:on error`, written so: one space between the words — a tab makes it text — and
+					// whatever follows
 					// `error` is its argument. `:on` and anything else is text.
-					if (word < end && IsBlank(text[word]) && Word(text, word + 1, end, "error") > 0)
+					if (word < end && text[word] == ' ' && Word(text, word + 1, end, "error") > 0)
 						return Directive(line, name, word);
 
 					return false;
@@ -499,25 +500,74 @@ sealed class SqlScriptReader
 		var text = line.Text;
 		var at   = Skip(text, after, line.End);
 
-		if (at < line.End && text[at] == '(' && text.IndexOf(')', at, line.End - at) < 0)
+		if (at >= line.End || text[at] != '(')
+			return Directive(line, "exit", after);
+
+		var close = Closing(text, at);
+
+		if (close < 0)
 		{
-			var close = text.IndexOf(')', line.End);
+			SawClientSyntax = true;
+			Fatal("Unexpected end of script near command 'exit'.", line);
+			next = text.Length;
+			return true;
+		}
 
-			if (close < 0)
-			{
-				SawClientSyntax = true;
-				Fatal("Unexpected end of script near command 'exit'.", line);
-				next = text.Length;
-				return true;
-			}
-
+		if (close >= line.End)
+		{
 			var newline = text.IndexOf('\n', close);
 
 			line = new Line(line.Origin, line.At, newline < 0 ? text.Length : newline);
 			next = newline < 0 ? text.Length : newline + 1;
 		}
 
-		return Directive(line, "exit", after);
+		// A comment may follow the query, and is no part of it.
+		return Directive(line, "exit", after, close + 1);
+	}
+
+	/// <summary>
+	/// The bracket that closes the one at <paramref name="open"/>, over line breaks and past any in a
+	/// string or a quoted name — `exit(SELECT ')')` closes at the last — or -1 where none does.
+	/// </summary>
+	/// <remarks>
+	/// That a quoted bracket does not close is sqlcmd's answer; that a bracket inside the query opens
+	/// one that must close first, as in <c>exit(SELECT COUNT(*) FROM t)</c>, is this reading's.
+	/// </remarks>
+	static int Closing(string text, int open)
+	{
+		var depth = 0;
+		var quote = '\0';
+
+		for (var at = open; at < text.Length; at++)
+		{
+			var character = text[at];
+
+			if (quote != '\0')
+			{
+				if (character == quote)
+					quote = '\0';
+
+				continue;
+			}
+
+			switch (character)
+			{
+				case '\'':
+				case '"':
+					quote = character;
+					break;
+				case '(':
+					depth++;
+					break;
+				case ')':
+					if (--depth == 0)
+						return at;
+
+					break;
+			}
+		}
+
+		return -1;
 	}
 
 	/// <summary>
@@ -590,10 +640,12 @@ sealed class SqlScriptReader
 	/// <summary>
 	/// A command that is reported and not run, once its line is one sqlcmd would read.
 	/// </summary>
-	bool Directive(Line line, string name, int after)
+	bool Directive(Line line, string name, int after, int comment = -1)
 	{
-		if (name is not ("exit" or "!!"))
-			line = line.Uncommented(after);
+		// A comment ends a command's line — after `exit`'s query, where it has one — except a shell
+		// command's, which is the shell's to read.
+		if (name != "!!")
+			line = line.Uncommented(comment < 0 ? after : comment);
 
 		var arguments = line.Rest(after);
 
@@ -623,7 +675,7 @@ sealed class SqlScriptReader
 				// `:on error exit` or `:on error ignore`: one word after `error`, and no more.
 				var words = arguments.Substring(5).Trim(' ', '\t', '\r');
 
-				return words.IndexOfAny([' ', '\t', '\r']) < 0 ? null : "Syntax error near command ':on error'.";
+				return words.Length > 0 && words.IndexOfAny([' ', '\t', '\r']) < 0 ? null : "Syntax error near command ':on error'.";
 			case "quit":
 			case "reset":
 			case "ed":

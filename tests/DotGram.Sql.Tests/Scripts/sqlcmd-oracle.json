@@ -561,5 +561,16 @@
 	{"name": "edge inc string open noeol", "text": "PRINT 1\n:r i.sql\nb'\nGO\nPRINT 3\n", "files": {"i.sql": "PRINT 'a"}, "sqlcmd": ["PRINT 1\nPRINT 'a\nb'\n", "PRINT 3\n"]},
 	{"name": "edge inc block close go", "text": "PRINT 1\n:r i.sql\n*/ GO\nPRINT 3\n", "files": {"i.sql": "/* x"}, "sqlcmd": ["PRINT 1\n/* x\n*/", "PRINT 3\n"]},
 	{"name": "edge inc then comment go", "text": "PRINT 1\n:r i.sql\n/* c */ GO\nPRINT 3\n", "files": {"i.sql": "PRINT 2"}, "sqlcmd": ["PRINT 1\nPRINT 2/* c */", "PRINT 3\n"]},
-	{"name": "edge inc self", "text": "PRINT 1\n:r probe.sql\nPRINT 2\n", "files": {"probe.sql": "PRINT 1\n:r probe.sql\nPRINT 2\n"}, "sqlcmd": ["PRINT 1\nPRINT 1\nPRINT 2\nPRINT 2\n"]}
+	{"name": "edge inc self", "text": "PRINT 1\n:r probe.sql\nPRINT 2\n", "files": {"probe.sql": "PRINT 1\n:r probe.sql\nPRINT 2\n"}, "sqlcmd": ["PRINT 1\nPRINT 1\nPRINT 2\nPRINT 2\n"]},
+	{"name": "review exit comment", "text": "PRINT 1\nGO\nPRINT 2\nexit -- c\nPRINT 3\n", "sqlcmd": ["PRINT 1\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 2\nPRINT 3\n"]},
+	{"name": "review exit tab comment", "text": "PRINT 1\nGO\nPRINT 2\nexit\t-- c\nPRINT 3\n", "sqlcmd": ["PRINT 1\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 2\nPRINT 3\n"]},
+	{"name": "review exit comment tight", "text": "PRINT 1\nGO\nPRINT 2\nexit --c\nPRINT 3\n", "sqlcmd": ["PRINT 1\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 2\nPRINT 3\n"]},
+	{"name": "review colon exit comment", "text": "PRINT 1\nGO\nPRINT 2\n:exit -- c\nPRINT 3\n", "sqlcmd": ["PRINT 1\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 2\nPRINT 3\n"]},
+	{"name": "review exit query comment", "text": "PRINT 1\nGO\nexit(PRINT 3) -- c\nPRINT 4\n", "sqlcmd": ["PRINT 1\n", "\nPRINT 3"], "runs": true, "expected": ["PRINT 1\n", "PRINT 4\n"]},
+	{"name": "review exit quoted bracket", "text": "PRINT 1\nGO\nexit(PRINT ')'\n)\nPRINT 4\n", "sqlcmd": ["PRINT 1\n", "\nPRINT ')'\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 4\n"]},
+	{"name": "review on error alone", "text": "PRINT 1\nGO\n:on error\nPRINT 2\n", "sqlcmd": ["PRINT 1\n"], "fatal": true},
+	{"name": "review on error comment", "text": "PRINT 1\nGO\n:on error -- c\nPRINT 2\n", "sqlcmd": ["PRINT 1\n"], "fatal": true},
+	{"name": "review on tab error", "text": "PRINT 1\n:on\terror exit\nPRINT 2\n", "sqlcmd": ["PRINT 1\n:on\terror exit\nPRINT 2\n"]},
+	{"name": "review quit comment", "text": "PRINT 1\nGO\nPRINT 2\n:quit -- c\nPRINT 3\n", "sqlcmd": ["PRINT 1\n"], "runs": true, "expected": ["PRINT 1\n", "PRINT 2\nPRINT 3\n"]},
+	{"name": "review listvar comment", "text": "PRINT 1\n:listvar -- c\nPRINT 2\n", "sqlcmd": ["PRINT 1\nPRINT 2\n"]}
 ]

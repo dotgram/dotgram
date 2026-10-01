@@ -207,6 +207,33 @@ public sealed class SqlScriptTests
 		Assert.Equal(new ScriptLocation("outer.sql", new SqlSpan(9, 12)), directive.Location);
 	}
 
+	/// <summary>
+	/// A range outside the batch is a caller's mistake, said as one rather than clamped.
+	/// </summary>
+	[Theory]
+	[InlineData(9, 0)]
+	[InlineData(22, 0)]
+	[InlineData(12, 10)]
+	[InlineData(12, -1)]
+	public void A_range_outside_the_batch_is_refused(int at, int length)
+	{
+		var batch = SqlScript.Read("SELECT 1\nGO\nSELECT 2\nGO\n").Batches[1];
+
+		Assert.Equal((12, 9), (batch.At, batch.Length));
+		Assert.Throws<ArgumentOutOfRangeException>(() => batch.Locate(at, length));
+		Assert.Equal(new SqlSpan(21, 0), batch.Locate(21, 0).Span);
+	}
+
+	[Fact]
+	public void What_a_reading_answers_cannot_be_changed_through_it()
+	{
+		var script = SqlScript.Read("SELECT 1\nGO\n:on error exit\n$(x\n");
+
+		Assert.IsNotType<List<ScriptBatch>>(script.Batches);
+		Assert.IsNotType<List<ScriptDirective>>(script.Directives);
+		Assert.IsNotType<List<ScriptDiagnostic>>(script.Diagnostics);
+	}
+
 	[Fact]
 	public void An_include_with_nothing_to_resolve_it_is_an_error_and_the_reading_goes_on()
 	{

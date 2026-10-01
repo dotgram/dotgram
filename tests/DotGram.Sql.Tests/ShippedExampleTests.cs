@@ -52,7 +52,7 @@ public sealed class ShippedExampleTests
 		{
 			Profile        = ScriptProfile.SqlCmd(),                               // or ScriptProfile.Ssms(): GO lines only
 			Variables      = new Dictionary<string, string> { ["db"] = "Sales" }, // sqlcmd's -v
-			ResolveInclude = include => new ScriptSource(include.Path, File.ReadAllText(include.Path)),
+			ResolveInclude = include => File.Exists(include.Path) ? new ScriptSource(include.Path, File.ReadAllText(include.Path)) : null,
 			SourceName     = "deploy.sql",
 		});
 
