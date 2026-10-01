@@ -14662,6 +14662,42 @@ public sealed class TransactSqlTests
 		Assert.Equal(text.IndexOf("\nGO", StringComparison.Ordinal) + 1, match.Position);
 	}
 
+	/// <summary>
+	/// The reading that only answers whether a script is read takes a quieter path than the one that
+	/// says why not, and the two agree on every file of the corpus, at every level they are asked at.
+	/// </summary>
+	[Fact]
+	public void The_quiet_reading_of_a_script_agrees_with_the_answering_one()
+	{
+		var root  = Path.GetFullPath(Path.Combine(Here(), "..", "Corpus", "ScriptDom"));
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var read  = 0;
+
+		Assert.True(files.Length > 1000, root);
+
+		foreach (var file in files)
+		{
+			var text  = File.ReadAllText(file);
+			var match = TransactSqlParser.TryParseScript(text);
+
+			Assert.Equal(match.IsSuccess, TransactSqlParser.TryParseScript(text, out var batches));
+			Assert.Equal(TransactSqlParser.TryParseScript170(text).IsSuccess, TransactSqlParser.Located.TryParseScript170(text, out _));
+
+			if (!match.IsSuccess)
+				continue;
+
+			read++;
+			Assert.Equal(match.Value.Select(static batch => batch.Statements.Length), batches.Select(static batch => batch.Statements.Length));
+		}
+
+		Assert.True(read > 750, $"{read} files read");
+	}
+
+	static string Here([System.Runtime.CompilerServices.CallerFilePath] string here = "")
+	{
+		return Path.GetDirectoryName(here)!;
+	}
+
 	[Fact]
 	public void A_text_of_statements_is_one_batch_of_a_script()
 	{

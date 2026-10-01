@@ -902,6 +902,17 @@ sealed class SqlScriptReader
 		if (_pending.Count == 0)
 			return;
 
+		if (_pending.Count == 1 && _pending[0].Name is null)
+		{
+			var run = _pending[0];
+
+			_pending.Clear();
+			Batches.Add(new ScriptBatch(
+				run.Origin.Text, run.At, run.Length, count, verbatim: true, separator,
+				[new ScriptPiece(run.At, run.Length, run.Origin, run.At, run.Length, substituted: false)]));
+			return;
+		}
+
 		// An undefined reference stays as written, so it is text like the text around it, and a
 		// batch whose only references are undefined is still one run of its source.
 		var runs = new List<Run>(_pending.Count);

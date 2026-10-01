@@ -26,7 +26,9 @@ namespace DotGram.Benchmarks;
 /// <para>
 /// `GO` is not T-SQL: it is the line a client cuts a script into batches at, and the server
 /// never sees it. So a file is read as a script, by `ParseScript`, which cuts it at those
-/// lines where ScriptDom does, and the statements of all its batches are compared.
+/// lines as sqlcmd does, and the statements of all its batches are compared — each at the
+/// place in the file its batch maps it back to, which for a batch with nothing substituted
+/// is where it already is.
 /// </para>
 /// </remarks>
 static class Split
@@ -137,7 +139,7 @@ static class Split
 		var match = TransactSqlParser.Located.TryParseScript(text);
 
 		return match.IsSuccess
-			? ([.. match.Value.SelectMany(static batch => batch.Statements).Select(static statement => statement.Span.At)], 0)
+			? ([.. match.Value.SelectMany(static batch => batch.Statements.Select(statement => batch.Source!.Locate(statement.Span.At, 0).Span.At))], 0)
 			: (null, (int)match.Position);
 	}
 

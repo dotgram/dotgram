@@ -151,10 +151,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript(string input, out Batch[] value)
 	{
-		var match = TryParseScript(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql, TryParseSql, out value);
 	}
 
 	/// <summary>
@@ -187,10 +184,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript100(string input, out Batch[] value)
 	{
-		var match = TryParseScript100(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql100, TryParseSql100, out value);
 	}
 
 	/// <summary>
@@ -223,10 +217,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript110(string input, out Batch[] value)
 	{
-		var match = TryParseScript110(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql110, TryParseSql110, out value);
 	}
 
 	/// <summary>
@@ -259,10 +250,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript120(string input, out Batch[] value)
 	{
-		var match = TryParseScript120(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql120, TryParseSql120, out value);
 	}
 
 	/// <summary>
@@ -295,10 +283,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript130(string input, out Batch[] value)
 	{
-		var match = TryParseScript130(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql130, TryParseSql130, out value);
 	}
 
 	/// <summary>
@@ -331,10 +316,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript140(string input, out Batch[] value)
 	{
-		var match = TryParseScript140(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql140, TryParseSql140, out value);
 	}
 
 	/// <summary>
@@ -367,10 +349,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript150(string input, out Batch[] value)
 	{
-		var match = TryParseScript150(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql150, TryParseSql150, out value);
 	}
 
 	/// <summary>
@@ -403,10 +382,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript160(string input, out Batch[] value)
 	{
-		var match = TryParseScript160(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql160, TryParseSql160, out value);
 	}
 
 	/// <summary>
@@ -439,10 +415,7 @@ public abstract partial class TransactSqlParser
 	/// <param name="value">The batches, where it is read.</param>
 	public static bool TryParseScript170(string input, out Batch[] value)
 	{
-		var match = TryParseScript170(input);
-
-		value = match.IsSuccess ? match.Value : null!;
-		return match.IsSuccess;
+		return SqlScriptReading.Script(input, TryParseSql170, TryParseSql170, out value);
 	}
 
 	/// <summary>
@@ -536,6 +509,55 @@ public abstract partial class TransactSqlParser
 				return last;
 
 			return Match<Batch[]>.Success(batches, 0, input.Length);
+		}
+
+		public delegate bool WindowReading(string input, ref int at, int length, out Statement[] value);
+
+		public delegate bool WholeReading(string input, out Statement[] value);
+
+		/// <summary>
+		/// Reads a script as <see cref="Script(string, Func{ScriptBatch, Match{Statement[]}})"/> does,
+		/// answering only whether it is read: nothing is spent on saying why not, which on a refusal
+		/// is most of what a refusal costs — the readings' quiet forms are used throughout.
+		/// </summary>
+		public static bool Script(string input, WindowReading window, WholeReading whole, out Batch[] value)
+		{
+			if (input is null)
+				throw new ArgumentNullException(nameof(input));
+
+			var script = SqlScript.Read(input);
+
+			value = null!;
+
+			foreach (var diagnostic in script.Diagnostics)
+			{
+				if (diagnostic.Severity != ScriptSeverity.Warning)
+					return false;
+			}
+
+			var batches = new Batch[script.Batches.Count];
+
+			for (var i = 0; i < batches.Length; i++)
+			{
+				var batch = script.Batches[i];
+				var at    = batch.At;
+				var end   = batch.At + batch.Length;
+
+				if (!window(batch.Text, ref at, batch.Length, out var statements))
+					return false;
+
+				// A reading of nothing leaves no end to go on from.
+				if (at < batch.At)
+					at = batch.At;
+
+				if (Trivia(batch.Text, at, end) < end && !whole(batch.ToString(), out _))
+					return false;
+
+				batches[i] = new Batch(statements, Go(batch)) { Source = batch };
+			}
+
+			value = batches;
+			return true;
 		}
 
 		/// <summary>
@@ -793,10 +815,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript(string input, out Batch[] value)
 		{
-			var match = TryParseScript(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql, TryParseSql, out value);
 		}
 
 		/// <summary>
@@ -829,10 +848,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript100(string input, out Batch[] value)
 		{
-			var match = TryParseScript100(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql100, TryParseSql100, out value);
 		}
 
 		/// <summary>
@@ -865,10 +881,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript110(string input, out Batch[] value)
 		{
-			var match = TryParseScript110(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql110, TryParseSql110, out value);
 		}
 
 		/// <summary>
@@ -901,10 +914,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript120(string input, out Batch[] value)
 		{
-			var match = TryParseScript120(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql120, TryParseSql120, out value);
 		}
 
 		/// <summary>
@@ -937,10 +947,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript130(string input, out Batch[] value)
 		{
-			var match = TryParseScript130(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql130, TryParseSql130, out value);
 		}
 
 		/// <summary>
@@ -973,10 +980,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript140(string input, out Batch[] value)
 		{
-			var match = TryParseScript140(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql140, TryParseSql140, out value);
 		}
 
 		/// <summary>
@@ -1009,10 +1013,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript150(string input, out Batch[] value)
 		{
-			var match = TryParseScript150(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql150, TryParseSql150, out value);
 		}
 
 		/// <summary>
@@ -1045,10 +1046,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript160(string input, out Batch[] value)
 		{
-			var match = TryParseScript160(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql160, TryParseSql160, out value);
 		}
 
 		/// <summary>
@@ -1081,10 +1079,7 @@ public abstract partial class TransactSqlParser
 		/// <param name="value">The batches, where it is read.</param>
 		public static bool TryParseScript170(string input, out Batch[] value)
 		{
-			var match = TryParseScript170(input);
-
-			value = match.IsSuccess ? match.Value : null!;
-			return match.IsSuccess;
+			return SqlScriptReading.Script(input, TryParseSql170, TryParseSql170, out value);
 		}
 	}
 }
