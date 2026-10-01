@@ -761,7 +761,7 @@ static class Fx
 		{
 			"namespace DotGram.Finance.Fix;",
 			"",
-			$"// Written by generate.py from the {titles} repository; not edited by hand.",
+			$"// Written by generate.cs from the {titles} repository; not edited by hand.",
 			Attribution,
 			"",
 			"/// <summary>The number of every field of every FIX version this package reads, as a constant named for the field: <c>FixField.Decimal { Tag: FixTag.OrderQty }</c>.</summary>",
@@ -814,7 +814,7 @@ sealed class Writer
 	/// as the repository's notice asks of anything extracted from the specification.</summary>
 	public string Written(string? source = null)
 	{
-		var made = $"// Written by generate.py from the {_v.Title} repository; not edited by hand.";
+		var made = $"// Written by generate.cs from the {_v.Title} repository; not edited by hand.";
 
 		return made + (source != null ? $" From {source}." : "") + "\n" + Fx.Attribution;
 	}
