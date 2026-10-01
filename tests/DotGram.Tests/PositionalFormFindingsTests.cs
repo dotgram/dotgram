@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -8,8 +9,8 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Four defects met while testing ignore-case literals, none of them about case: each is the
-/// same on the parent commit and over ASCII alone.
+/// Defects met while testing ignore-case literals, none of them about case: each is the same
+/// without ignore-case literals and over ASCII alone.
 /// </summary>
 public sealed class PositionalFormFindingsTests
 {
@@ -118,6 +119,50 @@ public sealed class PositionalFormFindingsTests
 
 		Assert.False(empty.IsSuccess);
 		Assert.Equal(4L, empty.Position);
+	}
+
+	/// <summary>
+	/// An alternative after an optional one can never be taken, and the generated parser says so
+	/// with CS0162 — a warning in the consumer's build, an error under warnings-as-errors, from a
+	/// file they did not write. The generator should either report the grammar or not emit the
+	/// dead branch.
+	/// </summary>
+	[Theory]
+	[InlineData("\"abc\"?")]
+	[InlineData("\"abc\"i?")]
+	[InlineData("'b'?")]
+	[InlineData("\"\u0130\u00B5\u017F\"?")]
+	[InlineData("\"\u0130\u00B5\u017F\"i?")]
+	public void An_alternative_after_an_optional_one_leaves_no_unreachable_code(string optional)
+	{
+		var result = GramCompiler.Compile(
+			$"trivia = {{ ' '* }}\nStart = R1\nR1 = ({optional} | 'a'i)\nparse Start\n",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		if (result.Diagnostics.Any(static one => one.Severity != GramSeverity.Info))
+			return;
+
+		EmittedCode.Compile(result.Sources[0].Text);
+	}
+
+	/// <summary>
+	/// The same dead code by other shapes: an alternative that cannot fail anywhere in a
+	/// choice a scanner reads, the choices of the seam included.
+	/// </summary>
+	[Theory]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('b'* | 'a')\nparse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('d' | 'b'? | 'a' | 'c')\nparse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = (('b' | 'c')? | 'a')\nparse Start\n", false)]
+	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", false)]
+	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", true)]
+	public void An_alternative_that_cannot_fail_ends_a_scanned_choice(string grammar, bool lexical)
+	{
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance });
+
+		EmittedCode.Quiet(result.Diagnostics);
+		EmittedCode.Compile(result.Sources[0].Text);
 	}
 
 	static (bool Read, int At) Answered((bool Read, object? Value, int At) answer)

@@ -935,6 +935,8 @@ sealed partial class Machine
 						loaded = true;
 					}
 
+					var taken = false;
+
 					for (var i = 0; i < alternatives.Count; i++)
 					{
 						if (i == alternatives.Count - 1)
@@ -944,14 +946,30 @@ sealed partial class Machine
 							break;
 						}
 
-						var next = $"L{_labels++}_or";
+						var next   = $"L{_labels++}_or";
+						var buffer = new Writer(0);
 
-						Emit(code, alternatives[i], next, loaded);
+						Emit(buffer, alternatives[i], next, loaded);
+
+						// An alternative that cannot fail — `'b'?`, `X*` — is where the choice ends:
+						// what is written after it is never reached, and C# says so with CS0162 in
+						// a file the consumer did not write, an error under warnings-as-errors.
+						if (!buffer.ToString().Contains($"goto {next};", StringComparison.Ordinal))
+						{
+							code.Write(buffer.ToString());
+
+							break;
+						}
+
+						code.Write(buffer.ToString());
 						code.Line($"goto {took};");
 						code.Line($"{next}: ;");
+
+						taken = true;
 					}
 
-					code.Line($"{took}: ;");
+					if (taken)
+						code.Line($"{took}: ;");
 
 					break;
 				}
