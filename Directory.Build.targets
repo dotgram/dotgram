@@ -11,6 +11,38 @@
 	     installed package — or an agent writing a grammar against it — must not be sent to a main
 	     that has moved past what they have. The tag exists because publish.yml refuses a tag that
 	     is not the version. -->
+	<UsingTask TaskName="_DotGramPinPage" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<Source ParameterType="System.String" Required="true" />
+			<Destination ParameterType="System.String" Required="true" />
+			<Version ParameterType="System.String" Required="true" />
+		</ParameterGroup>
+		<Task>
+			<Using Namespace="System" />
+			<Using Namespace="System.IO" />
+			<Using Namespace="System.Linq" />
+			<Using Namespace="System.Text" />
+			<Code Type="Fragment" Language="cs"><![CDATA[
+				// The links are ASCII and UTF-8 round-trips, so everything else comes back as it was read.
+				var source = File.ReadAllBytes(Source);
+				var bom = source.Length >= 3 && source[0] == 0xEF && source[1] == 0xBB && source[2] == 0xBF;
+				var offset = bom ? 3 : 0;
+				var text = Encoding.UTF8.GetString(source, offset, source.Length - offset)
+					.Replace("/blob/main/", "/blob/v" + Version + "/")
+					.Replace("/tree/main/", "/tree/v" + Version + "/");
+				var body = Encoding.UTF8.GetBytes(text);
+				var pinned = new byte[offset + body.Length];
+				Array.Copy(source, pinned, offset);
+				Array.Copy(body, 0, pinned, offset, body.Length);
+				// Written only when it changes, so that an unchanged page does not make the pack out of date.
+				if (!File.Exists(Destination) || !File.ReadAllBytes(Destination).SequenceEqual(pinned))
+				{
+					File.WriteAllBytes(Destination, pinned);
+				}
+			]]></Code>
+		</Task>
+	</UsingTask>
+
 	<Target Name="_DotGramPinPackedPages" BeforeTargets="_GetPackageFiles">
 		<ItemGroup>
 			<_DotGramPage Include="@(None)" Condition="'%(None.Pack)' == 'true' And ('%(None.Filename)%(None.Extension)' == 'README.md' Or '%(None.Filename)%(None.Extension)' == 'SKILL.md')" />
@@ -26,11 +58,15 @@
 		     the first. -->
 		<MakeDir Directories="@(_DotGramPage->'$(_DotGramPinned)%(RelativeDir)')" Condition="'@(_DotGramPage)' != ''" />
 
-		<!-- Escaped, so that a semicolon in the page is text and not a list separator. -->
-		<WriteLinesToFile Condition="'@(_DotGramPage)' != ''"
-		                  File="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
-		                  Lines="$([MSBuild]::Escape($([System.IO.File]::ReadAllText('%(_DotGramPage.FullPath)').Replace('/blob/main/', '/blob/v$(Version)/').Replace('/tree/main/', '/tree/v$(Version)/'))))"
-		                  Overwrite="true" WriteOnlyWhenDifferent="true" />
+		<!-- The copy is made by a task of its own rather than by WriteLinesToFile over a property
+		     function: MSBuild on Unix takes a backslash in such a value for a path separator and turns it
+		     into a slash, which packed '\u0001' in a code sample as '/u0001'. The task copies the page
+		     byte for byte apart from the links: its line endings, its last line and its byte order mark
+		     stay as they are. -->
+		<_DotGramPinPage Condition="'@(_DotGramPage)' != ''"
+		                 Source="%(_DotGramPage.FullPath)"
+		                 Destination="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
+		                 Version="$(Version)" />
 
 		<ItemGroup>
 			<None Remove="@(_DotGramPage)" />

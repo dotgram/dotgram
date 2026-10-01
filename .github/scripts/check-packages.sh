@@ -13,6 +13,24 @@ set -euo pipefail
 
 cd artifacts
 
+# Every page a package ships is its source in the repository, byte for byte, apart from the one
+# thing the pack does to it: /blob/main/ and /tree/main/ become the version's tag. Anything else the
+# pack changes is a defect in the copy — MSBuild once turned every backslash in a packed page into a
+# slash, '\u0001' in a code sample into '/u0001', and nothing looked at the copy closely enough to see.
+check_pages() {
+  local dir="$1" id="$2" version page source
+  version=$(grep -oP '(?<=<version>)[^<]+' "$dir/$id.nuspec")
+  while IFS= read -r page; do
+    source="../src/$id/${page#"$dir"/}"
+    test -f "$source" || { echo "$id: $page has no source at $source"; exit 1; }
+    if ! sed -E "s#/(blob|tree)/main/#/\1/v$version/#g" "$source" | cmp -s - "$page"; then
+      echo "$id: $page is not its source with the links pinned:"
+      sed -E "s#/(blob|tree)/main/#/\1/v$version/#g" "$source" | diff - "$page" | head -20 || true
+      exit 1
+    fi
+  done < <(find "$dir" -type f \( -name README.md -o -name SKILL.md \) | sort)
+}
+
 # An analyzer package is the opposite shape of a library: the assembly is in analyzers/ and there
 # is no lib/ at all. A lib/ here would have the compiler load the generator as a reference, which
 # is a different failure from not loading it and a quieter one.
@@ -22,6 +40,7 @@ check_analyzer() {
   test -f "$1/README.md"                  || { echo "$2: readme missing";            exit 1; }
   test -f "$1/SKILL.md"                   || { echo "$2: skill missing";             exit 1; }
   if [ -d "$1/lib" ]; then echo "$2 has a lib/ folder:"; find "$1/lib" -type f; exit 1; fi
+  check_pages "$1" "$2"
 }
 
 check_analyzer generator DotGram
@@ -69,6 +88,7 @@ check_library() {
   test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
   if [ -d "$dir/analyzers" ]; then echo "$id carries the generator:"; find "$dir/analyzers" -type f; exit 1; fi
   check_face "$dir"
+  check_pages "$dir" "$id"
 
   local want got
   want=$(printf '%s\n' $standard | sed '/^$/d' | sort -u)
