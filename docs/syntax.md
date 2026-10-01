@@ -2321,7 +2321,7 @@ The property is for a build that needs the positional forms right now and accept
 default stays off until the analysis can tell the two kinds of entry apart.
 
 Set to `split` instead, it is the same switch with the two kinds of entry told apart where that
-changes no answer. After a reading from a position nothing is demanded, so nothing after the rule
+changes no answer: experimental too, and off unless the property names it. After a reading from a position nothing is demanded, so nothing after the rule
 can fail; the proofs that ask only that — whether a repetition may be asked to give back a turn it
 completed, whether a longer literal may be asked to give way to a shorter one — are told so, and
 hold for the whole forms as they did without the switch. A look, a guard (`when`), a selector or a

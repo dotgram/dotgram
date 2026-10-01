@@ -368,6 +368,59 @@ public sealed class PositionalFollowTests
 		Assert.Equal(positionalFollow, split.Syntax.PositionalSplit);
 	}
 
+	/// <summary>
+	/// The proofs that may read a continuation's view (<c>Continuation.Taught</c>): each asks only
+	/// whether what follows can fail after a construct succeeded and then succeed earlier. Whether
+	/// what follows can <em>begin</em> somewhere — the settled optional's entry, a run past its stop
+	/// character (<c>NeverGivesBackPast</c>), the replay of a carrier — is never one of them.
+	/// </summary>
+	static readonly string[] Taught = ["NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "SettledText"];
+
+	/// <summary>
+	/// Every read of the view feeds one of <see cref="Taught"/>, written in the statement that
+	/// reads it, and nothing but the continuation itself touches the view: a new reader of it, or
+	/// one handed through a variable to some other question, fails here until it is classified.
+	/// </summary>
+	[Fact]
+	public void Only_the_listed_proofs_read_the_view()
+	{
+		var source = System.IO.Path.Combine(ReaderCoverageTests.Root(AppContext.BaseDirectory), "src", "DotGram");
+		var found  = new List<string>();
+		var reads  = 0;
+
+		foreach (var file in System.IO.Directory.GetFiles(source, "*.cs", System.IO.SearchOption.AllDirectories)
+			.Where(one => !one.Contains(System.IO.Path.DirectorySeparatorChar + "obj" + System.IO.Path.DirectorySeparatorChar)))
+		{
+			// The code without its comments, so that a remark naming the view is not a read of it.
+			var code = System.Text.RegularExpressions.Regex.Replace(System.IO.File.ReadAllText(file), @"//[^\n]*", "");
+			var name = System.IO.Path.GetFileName(file);
+
+			if (name == "FollowSets.cs")
+				continue;
+
+			if (System.Text.RegularExpressions.Regex.IsMatch(code, @"\.View\b"))
+				found.Add($"{name}: reads Continuation.View directly");
+
+			foreach (System.Text.RegularExpressions.Match read in System.Text.RegularExpressions.Regex.Matches(code, @"\.Taught\b"))
+			{
+				reads++;
+
+				// The statement the read stands in, up to it: from the last `;`, `{` or `}` before it.
+				var start     = code.LastIndexOfAny([';', '{', '}'], read.Index) + 1;
+				var statement = code.Substring(start, read.Index - start);
+				var callee    = System.Text.RegularExpressions.Regex.Matches(statement, @"(\w+)\s*\(")
+					.Select(one => one.Groups[1].Value)
+					.LastOrDefault(one => Taught.Contains(one) || one == "NeverGivesBackPast");
+
+				if (callee is null || !Taught.Contains(callee))
+					found.Add($"{name}: `{statement.Trim().Replace("\n", " ")}` reads the view for {callee ?? "no listed proof"}");
+			}
+		}
+
+		Assert.True(reads >= 10, $"Only {reads} reads of the view were found under {source}: has it been renamed?");
+		Assert.True(found.Count == 0, string.Join("\n", found));
+	}
+
 	/// <summary>The option is off unless asked for.</summary>
 	[Fact]
 	public void The_option_is_off_by_default()

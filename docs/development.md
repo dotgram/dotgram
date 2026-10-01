@@ -53,10 +53,10 @@ every other diagnostic about what an author cannot see. `-v:detailed` prints the
 grammar, which pins `Carrier = Immediate`, reports `GRAM5015`, and `TreatWarningsAsErrors` turns
 that into a failed build: add `-p:WarningsNotAsErrors=NU1900%3BGRAM5015` (the `%3B` is the
 separator; `NU1900` is the one `Directory.Build.props` already lists).
-`-p:DotGramPositionalFollow=split` is the same switch with the positional end told apart where that
-changes no answer (syntax.md §6.8); FIX keeps its carrier and reports nothing under it.
-`PositionalSplitWebTests` and `PositionalSplitFixTests` (DotGram.Tests.Slow) hold `split` to `true`
-on the shipped grammars, in both renderings.
+`-p:DotGramPositionalFollow=split` is the same switch, experimental and off by default like it, with
+the positional end told apart where that changes no answer (syntax.md §6.8); FIX keeps its carrier
+and reports nothing under it. `PositionalSplitWebTests` (DotGram.Tests.Slow) holds `split` to `true`
+on the shipped web grammars, in both renderings.
 
 ## The same build on Linux
 
