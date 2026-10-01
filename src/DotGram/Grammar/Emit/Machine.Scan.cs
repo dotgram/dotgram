@@ -799,17 +799,14 @@ sealed partial class Machine
 
 						for (var i = 0; i < text.Length; i++)
 						{
-							var read = folded
-								? $"global::System.Char.ToUpperInvariant(text[p + {i}])"
-								: $"text[p + {i}]";
-							var want = CSharpEmitter.Char(folded ? char.ToUpperInvariant(text[i]) : text[i]);
+							var test = CSharpEmitter.Differs($"text[p + {i}]", text[i], folded);
 
 							// The offset is known here and no walk is needed: a run refusing
 							// at its fourth character reached its fourth character.
 							code.Line(
 								i == 0 || fail != "Refuse"
-									? $"if ({read} != {want}) goto {fail};"
-									: $"if ({read} != {want}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}");
+									? $"if ({test}) goto {fail};"
+									: $"if ({test}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}");
 						}
 					}
 

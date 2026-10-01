@@ -494,24 +494,26 @@ sealed partial class Machine
 			if (!first.IgnoreCase && !second.IgnoreCase)
 				return PrefixSettled(first.Text, second.Text, following);
 
-			var how = StringComparison.OrdinalIgnoreCase;
+			// Texts that some character tells apart cannot both match: no character is read
+			// by both at that place.
+			var shorter = Math.Min(first.Text.Length, second.Text.Length);
 
-			if (first.Text.Length == second.Text.Length)
-				return !string.Equals(first.Text, second.Text, how);
+			for (var i = 0; i < shorter; i++)
+				if (!Accepted(first, i).Intersect(Accepted(second, i)).Any())
+					return true;
 
-			if (first.Text.Length < second.Text.Length)
-				return !second.Text.StartsWith(first.Text, how);
-
-			if (!first.Text.StartsWith(second.Text, how))
-				return true;
-
-			var carriedOn = first.Text[second.Text.Length];
-			var upper     = char.ToUpperInvariant(carriedOn);
-			var lower     = char.ToLowerInvariant(carriedOn);
+			if (first.Text.Length <= second.Text.Length)
+				return false;
 
 			return following.IsKnown &&
-				!following.Overlaps(FirstSets.First.Chars(FirstSets.First.Normalized(
-					[new CharRange(carriedOn, carriedOn), new CharRange(upper, upper), new CharRange(lower, lower)])));
+				!following.Overlaps(FirstSets.First.Chars(
+					Accepted(first, second.Text.Length).Select(static one => new CharRange(one, one))));
+		}
+
+		// What a text reads at one place: the character, or every case of it (CaseFold).
+		static IReadOnlyList<char> Accepted(Node.Literal literal, int at)
+		{
+			return literal.IgnoreCase ? CaseFold.Of(literal.Text[at]) : [literal.Text[at]];
 		}
 	}
 

@@ -709,30 +709,13 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>Every way a case-insensitive literal may be spelled, or null where too many.</summary>
 	/// <remarks>
-	/// Two to the power of its letters, which is why the same bound applies: a domain is a
-	/// list of short names and this stays small, while `"internationalization"i` is a
-	/// question this refuses rather than answers slowly.
+	/// As many as the product of each character's cases (<see cref="CaseFold"/>), held to what
+	/// twelve letters make: a domain is a list of short names and this stays small, while
+	/// `"internationalization"i` is a question this refuses rather than answers slowly.
 	/// </remarks>
 	static HashSet<string>? Cases(string text)
 	{
-		var letters = text.Count(char.IsLetter);
-
-		if (letters > 12)
-			return null;
-
-		var all = new HashSet<string>(StringComparer.Ordinal) { "" };
-
-		foreach (var one in text)
-		{
-			var lower = char.ToLowerInvariant(one);
-			var upper = char.ToUpperInvariant(one);
-
-			all = lower == upper
-				? [.. all.Select(head => head + one)]
-				: [.. all.SelectMany(head => new[] { head + lower, head + upper })];
-		}
-
-		return all;
+		return CaseFold.Spellings(text, 1 << 12);
 	}
 
 	/// <summary>Where a node was written, as well as the graph can say.</summary>

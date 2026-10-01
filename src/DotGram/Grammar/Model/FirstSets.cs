@@ -2014,48 +2014,13 @@ public static class FirstSets
 	}
 
 	/// <summary>
-	/// The characters the case-folded comparison would accept where <paramref name="first"/>
-	/// is the literal's first character.
+	/// The characters the case-folded comparison accepts where <paramref name="first"/> is the
+	/// literal's first character.
 	/// </summary>
 	static First Folded(char first)
 	{
-		if (_folded[first] is { } cached)
-			return cached;
-
-		var upper  = char.ToUpperInvariant(first);
-		var ranges = new List<CharRange>();
-		var start  = -1;
-
-		for (var c = 0; c <= char.MaxValue; c++)
-		{
-			var inside = char.ToUpperInvariant((char)c) == upper;
-
-			if (inside && start < 0)
-				start = c;
-			else if (!inside && start >= 0)
-			{
-				ranges.Add(new CharRange((char)start, (char)(c - 1)));
-				start = -1;
-			}
-		}
-
-		if (start >= 0)
-			ranges.Add(new CharRange((char)start, char.MaxValue));
-
-		var folded = First.Chars(ranges);
-
-		_folded[first] = folded;
-
-		return folded;
+		return First.Chars(CaseFold.Ranges(first));
 	}
-
-	/// <summary>Each character's answer, by the character.</summary>
-	/// <remarks>
-	/// A slot per character rather than a dictionary behind a lock: asked on every literal of
-	/// every grammar, and the lock was what the asking cost. Two threads missing the same slot
-	/// both work out the same answer, and whichever lands is the one kept.
-	/// </remarks>
-	static readonly First?[] _folded = new First?[char.MaxValue + 1];
 
 	/// <summary>
 	/// What must begin the input where a node begins, given what must begin it where the

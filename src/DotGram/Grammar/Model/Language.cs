@@ -125,9 +125,9 @@ static class Language
 
 			case Node.Literal(var literal) one:
 				return at + literal.Length <= text.Length &&
-					text.AsSpan(at, literal.Length).Equals(
-						literal.AsSpan(),
-						one.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+					(one.IgnoreCase
+						? CaseFold.Matches(literal, text.AsSpan(at, literal.Length))
+						: text.AsSpan(at, literal.Length).SequenceEqual(literal.AsSpan()))
 					? [at + literal.Length]
 					: [];
 

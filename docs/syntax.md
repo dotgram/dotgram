@@ -182,10 +182,31 @@ any                     any single item
 `\p{...}` is the .NET regular-expression spelling, with the same category names
 (`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
 
-A trailing `i` — no space before it — comes from Lark, where the same suffix on a
-quoted literal means the same thing. It compares by `char.ToUpperInvariant`, a
-character at a time: no culture sensitivity, and a character with no case (a digit,
-punctuation) compares exactly as it would without `i`. It attaches to the literal
+A trailing `i` — no space before it — is spelled as in Lark, but it folds less: a
+character at a time, each character of the literal matches itself and its simple upper
+and lower case (`char.ToUpperInvariant` and `char.ToLowerInvariant`), with no culture
+sensitivity, and a partner on the other side of ASCII is not taken. So an ASCII letter
+matches exactly its two ASCII cases and a character with no case (a digit,
+punctuation) compares exactly as it would without `i`:
+
+| literal | matches | does not match |
+| --- | --- | --- |
+| `'s'i` | `s`, `S` | `ſ` (U+017F, whose upper case is `S`) |
+| `'k'i` | `k`, `K` | `K` (U+212A Kelvin sign, whose lower case is `k`) |
+| `'i'i` | `i`, `I` | `ı` (U+0131), `İ` (U+0130) |
+| `"привет"i` | `привет`, `ПРИВЕТ`, `ПрИвЕт` | |
+| `'μ'i` | `μ`, `Μ` | `µ` (U+00B5 micro sign, whose upper case is `Μ`) |
+| `'σ'i` | `σ`, `Σ` | `ς` |
+| `'ς'i` | `ς`, `Σ` | `σ` |
+| `'ß'i` | `ß` | `ẞ` (`ß` has no simple upper case) |
+| `'ẞ'i` | `ẞ`, `ß` | |
+
+The relation is the literal's and is not symmetric: `'ς'i` reads `Σ`, and `'Σ'i`
+does not read `ς`. It is not Unicode case folding (Lark's, through Python's `re`,
+reads `ſ` as `s` and the Kelvin sign as `k`), and the keywords of the formats this
+is written for — RFC 5234's ABNF and SQL — are ASCII-only in exactly this way. The
+generated parser tests the characters named here; it does not fold at run time, so
+what it accepts does not depend on the runtime it runs on. It attaches to the literal
 alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input

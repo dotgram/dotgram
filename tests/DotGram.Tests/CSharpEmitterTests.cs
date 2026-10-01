@@ -2056,19 +2056,21 @@ public sealed class CSharpEmitterTests
 			"global::System.StringComparison.OrdinalIgnoreCase)",
 			source, StringComparison.Ordinal);
 
-		// And the per-character work is on the failing branch, folded there too.
-		Assert.Contains(
-			"global::System.Char.ToUpperInvariant(text[p]) == 'H'", source, StringComparison.Ordinal);
+		// And the per-character work is on the failing branch, folded there too: the two
+		// cases of an ASCII letter in one test.
+		Assert.Contains("(text[p] | 0x20) == 'h'", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ToUpperInvariant", source, StringComparison.Ordinal);
 	}
 
 	/// <summary>
-	/// Beyond ASCII it keeps the chain, because that is where the two foldings part.
+	/// Beyond ASCII it keeps the chain, because that is where ordinal folding stops being the
+	/// literal's.
 	/// </summary>
 	/// <remarks>
-	/// Ordinal case folding and per-character <c>ToUpperInvariant</c> agree on ASCII and
-	/// not everywhere: a surrogate pair has no per-<c>char</c> answer at all. A literal in
-	/// somebody's own alphabet keeps the comparison it always had rather than quietly
-	/// changing what it accepts.
+	/// Ordinal folding agrees with the literal's (docs/syntax.md) on an ASCII literal and not
+	/// beyond: it ties the micro sign to <c>μ</c>, which <c>"μ"i</c> does not read. A literal in
+	/// somebody's own alphabet is tested a character at a time, against the characters each
+	/// one reads, and folds nothing at run time.
 	/// </remarks>
 	[Fact]
 	public void A_case_insensitive_literal_beyond_ascii_keeps_the_chain()
@@ -2076,7 +2078,8 @@ public sealed class CSharpEmitterTests
 		var source = Emit("""Start = "привет"i""");
 
 		Assert.DoesNotContain("OrdinalIgnoreCase", source, StringComparison.Ordinal);
-		Assert.Contains("global::System.Char.ToUpperInvariant(text[p]) !=", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ToUpperInvariant", source, StringComparison.Ordinal);
+		Assert.Contains("(text[p] != '\\u041F' && text[p] != '\\u043F')", source, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -2839,13 +2842,13 @@ public sealed class CSharpEmitterTests
 	}
 
 	/// <summary>
-	/// A case-insensitive one switches on both cases, and on whatever else folds to them.
+	/// A case-insensitive one switches on both cases, and on nothing else.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// U+017F LATIN SMALL LETTER LONG S is the one that surprises: ordinal case folding puts
-	/// it with <c>S</c>, so it is in the first set and has to be in the switch. Missing it
-	/// would refuse a word the comparison beneath would have accepted.
+	/// U+017F LATIN SMALL LETTER LONG S upper-cases to <c>S</c>, and it used to be in the
+	/// switch for that; an ASCII letter folds only within ASCII (docs/syntax.md), so it is not
+	/// in the first set and the switch leaves it to the default.
 	/// </para>
 	/// <para>
 	/// The recursion is there to get the engine rendering. A choice of case-insensitive
@@ -2864,7 +2867,8 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.Contains("case 'S': case 's': case '\\u017F':", source, StringComparison.Ordinal);
+		Assert.Contains("case 'S': case 's':", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("\\u017F", source, StringComparison.Ordinal);
 	}
 
 	/// <summary>

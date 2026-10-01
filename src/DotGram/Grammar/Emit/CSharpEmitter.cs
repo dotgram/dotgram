@@ -4583,6 +4583,48 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
+	/// The test that <paramref name="read"/> is not a character a literal's
+	/// <paramref name="value"/> reads: itself, or where the literal ignores case, the characters
+	/// <see cref="CaseFold"/> names.
+	/// </summary>
+	/// <remarks>
+	/// Written as the characters themselves rather than folded at run time, so that what a
+	/// parser accepts is decided here, once, and not by the casing tables of whatever runtime
+	/// it runs on. An ASCII letter is one test: its two cases differ in the one bit that
+	/// <c>| 0x20</c> sets, and no other character sets it to the same value.
+	/// </remarks>
+	internal static string Differs(string read, char value, bool ignoreCase)
+	{
+		if (!ignoreCase)
+			return $"{read} != {Char(value)}";
+
+		if (CaseFold.AsciiLetter(value) is { } letter)
+			return $"({read} | 0x20) != {Char(letter)}";
+
+		var cases = CaseFold.Of(value);
+
+		return cases.Count == 1
+			? $"{read} != {Char(value)}"
+			: $"({string.Join(" && ", cases.Select(one => $"{read} != {Char(one)}"))})";
+	}
+
+	/// <summary>The test that <paramref name="read"/> is one; <see cref="Differs"/> turned round.</summary>
+	internal static string Agrees(string read, char value, bool ignoreCase)
+	{
+		if (!ignoreCase)
+			return $"{read} == {Char(value)}";
+
+		if (CaseFold.AsciiLetter(value) is { } letter)
+			return $"({read} | 0x20) == {Char(letter)}";
+
+		var cases = CaseFold.Of(value);
+
+		return cases.Count == 1
+			? $"{read} == {Char(value)}"
+			: $"({string.Join(" || ", cases.Select(one => $"{read} == {Char(one)}"))})";
+	}
+
+	/// <summary>
 	/// A char as a C# character literal.
 	/// </summary>
 	/// <remarks>

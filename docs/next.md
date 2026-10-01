@@ -25609,3 +25609,31 @@ the repetition could also begin with; the notes are back to what they were.
 
 A correction to the entry above: `Elements` does not carry its braces, as it did for one
 commit. The commit is made by `Element`, which never begins `Name =`.
+
+## One case fold for an ignore-case literal
+
+What `'x'i` matches was answered three ways. The single-character matcher and `FirstSets` folded
+by `char.ToUpperInvariant`, so `'s'i` read U+017F and `'μ'i` the micro sign; a keyword of two or
+more ASCII characters was one `OrdinalIgnoreCase` call, which refuses U+017F but would tie the
+micro sign to `μ`; and the lexical automaton took the upper and lower pair, so a grammar with
+`Lexical = true` refused what the same grammar without it accepted.
+
+The rule is now `CaseFold` (`Grammar/Model/CaseFold.cs`), stated in `syntax.md` with a table:
+each character matches itself and its simple upper and lower case, a partner on the other side
+of ASCII not taken. Every analysis takes its sets — first sets, the automaton, the spellings the
+overlap check enumerates, the reader's settled-text check, `Language` — and the emitter writes
+the characters it names rather than folding at run time: an ASCII letter is `(c | 0x20) != 's'`,
+anything else a comparison per case. That also takes the runtime's casing tables out of what a
+parser accepts. `OrdinalIgnoreCase` stays for an ASCII keyword; `CaseFoldTests` checks it against
+the rule for every ASCII character and every UTF-16 code unit, and the reader, which used it for
+any folded literal, now keeps it to ASCII like the engine. `CaseFoldTests` puts one table (s/ſ,
+k/Kelvin, i/ı/İ, μ/µ, σ/ς, ß/ẞ, привет, ASCII keywords) to every site and every rendering.
+
+Generated code, every grammar in the solution against the parent: SQL keywords' failure ladders
+and single-character markers lose their `ToUpperInvariant` calls for `| 0x20` (SqlStandard
+9,434,854 bytes to 9,367,410); the reader's shared `Agreeing` helper changes its one line in every
+reader; and U+017F leaves the first sets, so switches lose a `case '\u017F'` arm and expectation
+lists lose it — in SqlStandard that moves one state across a method split, in Rfc5646 it drops an
+arm and the bit table beyond 255 it needed, in the SqlReadOnly example the keyword `SET` becomes an
+ordinary arm instead of the default. TransactSql and SQL-92, read over the automaton, are
+unchanged.

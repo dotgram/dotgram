@@ -81,13 +81,16 @@ public sealed class PaddedRunProofTests
 
 	/// <summary>
 	/// A stop read without regard to case begins with every character its matcher folds to it:
-	/// <c>'s'i</c> with U+017F, <c>'μ'i</c> with U+00B5. A delimiter whose stop leaves one out does
-	/// not refuse it, and the run may have to give back to it.
+	/// <c>'s'i</c> with <c>S</c>, <c>'μ'i</c> with <c>Μ</c> — and nothing more, not U+017F or
+	/// U+00B5 (docs/syntax.md). A delimiter whose stop leaves one out does not refuse it, and the
+	/// run may have to give back to it.
 	/// </summary>
 	[Theory]
-	[InlineData("['s' | 'S']",                       "'s'i", false)]
+	[InlineData("['s']",                             "'s'i", false)]
+	[InlineData("['s' | 'S']",                       "'s'i", true)]
 	[InlineData("['s' | 'S' | '\u017F']",           "'s'i", true)]
-	[InlineData("['\u03BC' | '\u039C']",           "'\u03BC'i", false)]
+	[InlineData("['\u03BC']",                       "'\u03BC'i", false)]
+	[InlineData("['\u03BC' | '\u039C']",           "'\u03BC'i", true)]
 	[InlineData("['\u03BC' | '\u039C' | '\u00B5']", "'\u03BC'i", true)]
 	public void A_stop_read_without_regard_to_case_is_every_character_it_folds_to(string stop, string literal, bool settles)
 	{

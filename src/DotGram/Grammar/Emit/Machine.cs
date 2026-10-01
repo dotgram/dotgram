@@ -2207,12 +2207,14 @@ sealed partial class Machine
 				// exactly it, is vectorized, and is on the netstandard2.0 floor through
 				// System.Memory, which the emitted code already needs for the span itself.
 				//
-				// ASCII, because that is where the two agree. Ordinal case folding and
-				// per-character `ToUpperInvariant` part company outside it — surrogate
-				// pairs have no per-`char` answer at all — so a literal that reaches beyond
-				// ASCII keeps the chain rather than quietly changing what it accepts. Every
-				// keyword of every language this is likely to meet is ASCII; what is not is
-				// a literal in someone's own alphabet, and it stays as it was.
+				// Only where the literal is ASCII, because only there is ordinal folding the
+				// literal's own (`CaseFold`): it pairs an ASCII letter with its other case and
+				// with nothing beyond ASCII — not U+017F with `s`, not the Kelvin sign with
+				// `k` — which a test pins against every character. Beyond ASCII the two part
+				// company (ordinal folding ties the micro sign to `μ`, final sigma to `σ`),
+				// so a literal that reaches there keeps the chain, which tests the
+				// characters `CaseFold` names. Every keyword of every language this is likely
+				// to meet is ASCII; what is not is a literal in someone's own alphabet.
 				//
 				// What it saves is the shape a keyword list is made of. Standard SQL writes
 				// 192 case-insensitive literals averaging seven characters, and each was
@@ -2314,13 +2316,7 @@ sealed partial class Machine
 
 				for (var i = 0; i < value.Length; i++)
 				{
-					// ToUpperInvariant on an uncased character (a digit, punctuation) returns
-					// it unchanged, so one comparison shape covers cased and uncased
-					// characters alike — no per-character branching needed.
-					var test = ignoreCase
-						? $"global::System.Char.ToUpperInvariant({At(i)}) != " +
-						  $"{CSharpEmitter.Char(char.ToUpperInvariant(value[i]))}"
-						: $"{At(i)} != {CSharpEmitter.Char(value[i])}";
+					var test = CSharpEmitter.Differs(At(i), value[i], ignoreCase);
 
 					writer.Line($"if ({(i == 0 && room is not null ? room + " || " : "")}{test})");
 					using (writer.Block(""))
@@ -5396,7 +5392,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether every character is ASCII, which is where ordinal folding agrees
-	/// with per-character `ToUpperInvariant`.</summary>
+	/// with <see cref="CaseFold"/>.</summary>
 	static bool Ascii(string value)
 	{
 		foreach (var character in value)
@@ -5408,7 +5404,7 @@ sealed partial class Machine
 
 	void Sharpen(Writer writer, string value, bool ignoreCase = false)
 	{
-		writer.Line($"if ({Folded(At(0), ignoreCase)} == {Folded(value[0], ignoreCase)})");
+		writer.Line($"if ({CSharpEmitter.Agrees(At(0), value[0], ignoreCase)})");
 
 		if (value.Length == 2)
 		{
@@ -5423,7 +5419,7 @@ sealed partial class Machine
 			{
 				writer.Line(
 					$"{(i == 1 ? "if" : "else if")} " +
-					$"({Folded(At(i), ignoreCase)} != {Folded(value[i], ignoreCase)})");
+					$"({CSharpEmitter.Differs(At(i), value[i], ignoreCase)})");
 				writer.Then($"p += {i};");
 			}
 
@@ -5447,19 +5443,21 @@ sealed partial class Machine
 		_agreeing = $"Recognize_DotGram{_tag}_Agreeing";
 
 		var helper = new Writer(0);
-		// A byte is widened to the character it spells: `char.ToUpperInvariant` takes nothing else.
-		var read   = BufferedBytes ? $"(char){ReadAt("p + i")}" : ReadAt("p + i");
+		var read   = ReadAt("p + i");
 
 		helper.Line($"static int {_agreeing}({InputType} text, int p, string value, bool fold)");
 
+		// Folded only for an ASCII literal (the reader writes the ladder out for any other), and
+		// then as `CaseFold` folds it: an ASCII letter's two cases, which differ in the bit
+		// `| 0x20` sets, and nothing beyond ASCII.
 		using (helper.Block(""))
 		{
 			helper.Line("var i = 0;");
 			helper.Line();
 			helper.Line(
-				"while (i < value.Length - 1 && (fold " +
-				$"? global::System.Char.ToUpperInvariant({read}) == global::System.Char.ToUpperInvariant(value[i]) " +
-				$": {read} == value[i]))");
+				$"while (i < value.Length - 1 && ({read} == value[i] || fold && " +
+				"(uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && " +
+				$"({read} | 0x20) == (value[i] | 0x20)))");
 			helper.Then("i++;");
 			helper.Line();
 			helper.Line("return p + i;");
@@ -5468,18 +5466,6 @@ sealed partial class Machine
 		_extra.Add(helper.ToString());
 
 		return _agreeing;
-	}
-
-	/// <summary>A character read, folded where the literal ignores case.</summary>
-	static string Folded(string read, bool ignoreCase)
-	{
-		return ignoreCase ? $"global::System.Char.ToUpperInvariant({read})" : read;
-	}
-
-	/// <summary>And the constant it is compared against, folded the same way.</summary>
-	static string Folded(char value, bool ignoreCase)
-	{
-		return CSharpEmitter.Char(ignoreCase ? char.ToUpperInvariant(value) : value);
 	}
 
 	int Reserve(out Writer writer)

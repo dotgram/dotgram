@@ -1853,16 +1853,13 @@ sealed partial class Machine
 					return;
 				}
 
-				var read = loaded
-					? folded ? "global::System.Char.ToUpperInvariant(c)" : "c"
-					: folded ? $"global::System.Char.ToUpperInvariant({machine.ReadAt("p")})" : machine.ReadAt("p");
-				var want = CSharpEmitter.Char(folded ? char.ToUpperInvariant(text[0]) : text[0]);
+				var test = CSharpEmitter.Differs(loaded ? "c" : machine.ReadAt("p"), text[0], folded);
 				var room = loaded ? "" : $"{machine.Past("p")} || ";
 
 				if (loaded)
 					_character = true;
 
-				using (code.Block($"if ({room}{read} != {want})"))
+				using (code.Block($"if ({room}{test})"))
 					Refused(code, name);
 
 				code.Line($"p += {text.Length};");
@@ -1873,9 +1870,13 @@ sealed partial class Machine
 			// Bytes compare with a literal written in characters one by one, which the buffer does
 			// where it holds them (byte literals are case-sensitive values below 256).
 			// A span made and dropped inside the one comparison: nothing fills between (the span
-			// contract at Machine.Cut).
+			// contract at Machine.Cut). Ordinal folding only for an ASCII literal, as the engine
+			// (Machine.CompileUnguarded): beyond ASCII it is not the literal's own, and each
+			// character is tested for what it accepts.
 			var comparison = machine.BufferedBytes
 				? $"!text.Matches(p, {Quoted(text)})"
+				: folded && !Ascii(text)
+				? string.Join(" || ", text.Select((one, i) => CSharpEmitter.Differs(machine.ReadAt(i == 0 ? "p" : $"p + {i}"), one, true)))
 				: folded
 				? $"!global::System.MemoryExtensions.Equals(text.Slice(p, {text.Length}), " +
 					$"{Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase)"
@@ -1982,6 +1983,23 @@ sealed partial class Machine
 		/// </summary>
 		void Sharpened(Writer code, string text, bool folded)
 		{
+			// The helper folds as ordinal folding does for an ASCII literal; one beyond ASCII is
+			// rare enough to have its ladder written out, testing what each character accepts.
+			if (folded && !Ascii(text))
+			{
+				if (machine.Quiets)
+				{
+					using (code.Block("if (!failure.Quiet)"))
+						machine.Sharpen(code, text, true);
+				}
+				else
+				{
+					machine.Sharpen(code, text, true);
+				}
+
+				return;
+			}
+
 			if (machine.Quiets)
 				code.Line("if (!failure.Quiet)");
 

@@ -13,30 +13,31 @@ namespace DotGram.Tests;
 
 public sealed class DelimiterScanTests
 {
-	public static TheoryData<string, string, CarrierKind, bool, bool> IgnoreCaseStops
+	public static TheoryData<string, string, string, CarrierKind, bool, bool> IgnoreCaseStops
 	{
 		get
 		{
-			var rows = new TheoryData<string, string, CarrierKind, bool, bool>();
+			var rows = new TheoryData<string, string, string, CarrierKind, bool, bool>();
 
-			foreach (var (literal, folds) in new[] { ("s", "sSſ"), ("k", "kK"), ("μ", "μΜµ") })
+			foreach (var (literal, folds, kept) in new[] { ("s", "sS", "\u017F"), ("k", "kK", "\u212A"), ("μ", "μΜ", "\u00B5") })
 				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
 					foreach (var direct in new[] { false, true })
 						foreach (var find in new[] { false, true })
-							rows.Add(literal, folds, carrier, direct, find);
+							rows.Add(literal, folds, kept, carrier, direct, find);
 
 			return rows;
 		}
 	}
 
 	/// <summary>
-	/// A stop literal refuses every character its matcher accepts, including Unicode folds
-	/// beyond the ordinary lower and upper case pair. Finding may leave a suffix; parsing may not.
+	/// A stop literal refuses every character its matcher accepts, and only those: a character
+	/// that merely upper- or lower-cases to one of them (U+017F, the Kelvin sign, the micro
+	/// sign) is text to keep. Finding may leave a suffix; parsing may not.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(IgnoreCaseStops))]
 	public void Ignore_case_stops_keep_the_matchers_folds(
-		string literal, string folds, CarrierKind carrier, bool direct, bool find)
+		string literal, string folds, string kept, CarrierKind carrier, bool direct, bool find)
 	{
 		// Recursion keeps this out of the flat rendering. Find always uses the engine,
 		// even when direct reading is enabled; parse must exercise the reader as well.
@@ -77,13 +78,10 @@ public sealed class DelimiterScanTests
 		Check("", null);
 		Check("abc", null);
 
-		// The matcher and FirstSets use invariant uppercase: Kelvin sign stays distinct
-		// from k/K. It is text to keep, rather than another stop to search for.
-		if (literal == "k")
-		{
-			Check("aK", null);
-			Check("aKk", "aK");
-		}
+		// A character beyond ASCII that only cases to the literal's is text to keep, rather than
+		// another stop to search for.
+		Check("a" + kept, null);
+		Check("a" + kept + literal, "a" + kept);
 
 		foreach (var fold in folds)
 		{

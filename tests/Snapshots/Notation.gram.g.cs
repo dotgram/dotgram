@@ -4329,7 +4329,7 @@ namespace DotGram.Snapshots
 		{
 			var i = 0;
 
-			while (i < value.Length - 1 && (fold ? global::System.Char.ToUpperInvariant(text[p + i]) == global::System.Char.ToUpperInvariant(value[i]) : text[p + i] == value[i]))
+			while (i < value.Length - 1 && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
 				i++;
 
 			return p + i;

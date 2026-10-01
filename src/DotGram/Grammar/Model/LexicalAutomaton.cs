@@ -261,19 +261,11 @@ public sealed class LexicalAutomaton
 			}
 		}
 
-		/// <summary>What an ignore-case character accepts.</summary>
-		/// <remarks>
-		/// Both cases and nothing more. Ordinal folding also ties U+017F to <c>S</c>, and
-		/// leaving that out narrows a pattern by one character that no grammar here writes;
-		/// what it could cost is an overlap gone unnoticed, and an overlap between two
-		/// patterns that differ only in the long s is not one either of them meant.
-		/// </remarks>
+		/// <summary>What a character of a literal accepts: <see cref="CaseFold"/> where it ignores case.</summary>
 		static FirstSets.First Folded(char c, bool ignoreCase)
 		{
 			return ignoreCase
-				? FirstSets.First.Chars(
-					[new CharRange(Char.ToUpperInvariant(c), Char.ToUpperInvariant(c)),
-					 new CharRange(Char.ToLowerInvariant(c), Char.ToLowerInvariant(c))])
+				? FirstSets.First.Chars(CaseFold.Ranges(c))
 				: FirstSets.First.Chars([new CharRange(c, c)]);
 		}
 

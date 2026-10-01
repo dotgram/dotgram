@@ -72,13 +72,8 @@ public static class ReferenceInterpreter
 					break;
 
 				for (var i = 0; i < value.Length; i++)
-				{
-					var have = folded ? char.ToUpperInvariant(text[at + i]) : text[at + i];
-					var want = folded ? char.ToUpperInvariant(value[i])     : value[i];
-
-					if (have != want)
+					if (folded ? !CaseFold.Matches(value[i], text[at + i]) : text[at + i] != value[i])
 						yield break;
-				}
 
 				yield return at + value.Length;
 

@@ -4593,7 +4593,7 @@ namespace DotGram.Snapshots
 				}
 				if (!global::System.MemoryExtensions.Equals(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("go"), global::System.StringComparison.OrdinalIgnoreCase))
 				{
-					if (global::System.Char.ToUpperInvariant(text[p]) == 'G')
+					if ((text[p] | 0x20) == 'g')
 						p += 1;
 					expected = Recognize_DotGram_Ci_Expected0;
 					goto Fail;
