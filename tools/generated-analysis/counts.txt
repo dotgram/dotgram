@@ -12,11 +12,11 @@ Examples	IDE0051	281
 Examples	IDE0052	19
 Examples	IDE0004	40
 ExpressionLanguage	IDE0035	0
-ExpressionLanguage	IDE0059	1162
-ExpressionLanguage	IDE0060	1060
-ExpressionLanguage	IDE0051	305
-ExpressionLanguage	IDE0052	2
-ExpressionLanguage	IDE0004	426
+ExpressionLanguage	IDE0059	1226
+ExpressionLanguage	IDE0060	1164
+ExpressionLanguage	IDE0051	330
+ExpressionLanguage	IDE0052	4
+ExpressionLanguage	IDE0004	438
 Finance	IDE0035	0
 Finance	IDE0059	213
 Finance	IDE0060	56

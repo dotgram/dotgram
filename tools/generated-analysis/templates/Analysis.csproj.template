@@ -42,8 +42,12 @@
 
 	<ItemGroup>
 		<!-- The package's own hand-written sources, in place, not copied, so a line number in
-		     a finding is the same line number a reader sees in the repository. -->
-		<Compile Include="{{SRC_ROOT}}/**/*.cs" Exclude="{{SRC_ROOT}}/**/obj/**/*.cs;{{SRC_ROOT}}/**/bin/**/*.cs" />
+		     a finding is the same line number a reader sees in the repository. "generate.cs"
+		     (DotGram.Finance/Fix) is a file-based app with its own top-level statements, which
+		     the real package's own csproj excludes from its library compile for the same
+		     reason this one must: top-level statements need OutputType=Exe (CS8805), which an
+		     analysis project, like the library it stands in for, is not. -->
+		<Compile Include="{{SRC_ROOT}}/**/*.cs" Exclude="{{SRC_ROOT}}/**/obj/**/*.cs;{{SRC_ROOT}}/**/bin/**/*.cs;{{SRC_ROOT}}/**/generate.cs" />
 
 		<!-- The emitted .g.cs, copied and header-stripped by prepare-analysis.sh so the
 		     generated-code heuristics (filename pattern and header comment) do not skip them;
