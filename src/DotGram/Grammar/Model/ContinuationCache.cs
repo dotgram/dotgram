@@ -63,7 +63,7 @@ sealed class ContinuationCache
 		{
 			unchecked
 			{
-				var hash = (value.Anything ? 1 : 0) | (value.Nothing ? 2 : 0) | (value.Ends ? 4 : 0);
+				var hash = (value.Anything ? 1 : 0) | (value.Nothing ? 2 : 0) | (value.Ends ? 4 : 0) | (value.Stops ? 8 : 0);
 				foreach (var range in value.Ranges)
 					hash = (hash * 31 + range.From) * 31 + range.To;
 				return hash;

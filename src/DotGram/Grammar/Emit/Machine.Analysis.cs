@@ -125,7 +125,7 @@ sealed partial class Machine
 														  LiteralRun(
 															  alternatives,
 															  alternatives.Count - 1,
-															  following.Plain) == alternatives.Count ||
+															  following.Taught.Plain) == alternatives.Count ||
 														  CheckpointSilent(alternatives, following),
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
@@ -223,8 +223,10 @@ sealed partial class Machine
 		// chooses between two shapes that both mean the repetition, and the proofs are what
 		// say the silent one is available at all. Too heavy to unroll answers no here and
 		// the general machinery stays, which is the safe direction for a guess to fail in.
+		// Possessive asks whether what follows can fail after a turn and want one back, so it
+		// reads the view (Continuation.Taught); the body's own nodes are asked under their own.
 		return Unrolls(repeat) &&
-		Possessive(repeat.Body, following) &&
+		Possessive(repeat.Body, following.Taught) &&
 		SilentWithin(
 			repeat.Body,
 			following.Or(new FollowSets.Continuation(
@@ -576,7 +578,7 @@ sealed partial class Machine
 
 				return Determinism.NeverGivesBack(
 					repeat,
-					_follows.TryGetValue(seam, out var after) ? after : FollowSets.Continuation.All,
+					(_follows.TryGetValue(seam, out var after) ? after : FollowSets.Continuation.All).Taught,
 					_graph, FollowSets.SeamOf(seam, _graph));
 
 			default:

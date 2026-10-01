@@ -234,6 +234,22 @@ public sealed class GramCompilerOptions
 	public bool PositionalFollow { get; set; }
 
 	/// <summary>
+	/// With <see cref="PositionalFollow"/>, whether the positional end is told apart from anything
+	/// where that changes no answer: experimental, off by default, and meaningless without it.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="PositionalFollow"/> says that after a positional reading anything may follow, and
+	/// every proof that rested on the end of input gives way. Some of those proofs ask only whether
+	/// what follows can <em>fail</em> after the construct succeeded — whether a repetition may be
+	/// asked to give a turn back — and from a position, where nothing after the rule is demanded,
+	/// it cannot, unless something that reads nothing and can refuse stands between. Set, those
+	/// proofs are told that, and hold for the whole forms as they did without the switch; every
+	/// other question is answered as <see cref="PositionalFollow"/> answers it. The generator sets
+	/// it where the build sets <c>DotGramPositionalFollow</c> to <c>split</c>.
+	/// </remarks>
+	public bool PositionalFollowSplit { get; set; }
+
+	/// <summary>
 	/// Typed value storage for all direct tape readers in this compilation. Other
 	/// carriers and the non-direct engine do not use these tables. Auto chooses at
 	/// generation time; explicit strategies override both dense and paged heuristics.

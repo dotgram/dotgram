@@ -69,15 +69,83 @@ public static class FollowSets
 		public static readonly Continuation None = new(FirstSets.First.None, FirstSets.First.None, Lead.Nothing);
 		public static readonly Continuation End  = new(FirstSets.First.End, FirstSets.First.End, Lead.Ending);
 
+		/// <summary>
+		/// A reading from a position stops here and nothing else follows: the view a positional
+		/// entry is given where the split was asked for (<see cref="Taught"/>).
+		/// </summary>
+		internal static readonly Continuation Stop = new(FirstSets.First.Stop, FirstSets.First.Stop, Lead.Nothing);
+
+		/// <summary>
+		/// What the proofs that ask only whether what follows can <em>fail</em> may read instead of
+		/// this, or null where they read this.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A <c>parse</c> read from a position demands nothing after the rule, so what follows it is
+		/// anything — and that is what the three halves above say where the build asks for the
+		/// positional follow: whatever reads them is told the truth for every question. One question
+		/// is answered better by a stop than by anything. A repetition keeps its ways back for a
+		/// continuation that fails after it and would succeed at an earlier turn; a continuation
+		/// that is nothing but the stop never fails, so nothing is ever asked back for it. The view
+		/// says that: the stop as <see cref="FirstSets.First.Stops"/> beside what the other ways
+		/// begin with, so that a proof which held against the end of input holds against it.
+		/// </para>
+		/// <para>
+		/// Only where nothing that can refuse stands between: past a look or a guard the stop is
+		/// anything (<see cref="FirstSets.Past"/>). And only for that question: whether what follows
+		/// can <em>begin</em> somewhere — a skip not kept because the continuation could not have
+		/// started where the body did — is answered by the halves above, where the stop is anything.
+		/// So nothing reads this unless it was written to, and built anywhere else a continuation
+		/// has none: what was not thought about sees what the positional follow says.
+		/// </para>
+		/// </remarks>
+		internal Split? View { get; init; }
+
+		/// <summary>The view where there is one, and this where there is not (<see cref="View"/>).</summary>
+		internal Continuation Taught => View?.Value ?? this;
+
+		/// <summary>The three halves alone, without a view.</summary>
+		internal Continuation Surface => View is null ? this : this with { View = null };
+
 		public Continuation Or(Continuation other)
 		{
-			return new(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam), Lead.Or(other.Lead));
+			var joined = new Continuation(Plain.Or(other.Plain), AfterSeam.Or(other.AfterSeam), Lead.Or(other.Lead));
+
+			return View is null && other.View is null
+				? joined
+				: joined with { View = new Split(Taught.Or(other.Taught)) };
 		}
 
 		public bool Covers(Continuation other)
 		{
-			return Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam) && Lead.Covers(other.Lead);
+			return Plain.Covers(other.Plain) && AfterSeam.Covers(other.AfterSeam) && Lead.Covers(other.Lead) &&
+				(View is null && other.View is null || Taught.Covers(other.Taught));
 		}
+
+		/// <summary>
+		/// The same shape given to the halves and to the view: what a turn is followed by, built
+		/// from what the repetition is followed by, keeps the stop the repetition's follow had.
+		/// </summary>
+		internal Continuation Map(Func<Continuation, Continuation> shape)
+		{
+			var surface = shape(Surface);
+
+			return View is null ? surface : surface with { View = new Split(shape(View.Value)) };
+		}
+
+		/// <summary>This continuation, told to a rule that peels a different seam: past it, anything.</summary>
+		internal Continuation Unseamed()
+		{
+			var plain = new Continuation(Plain, FirstSets.First.All);
+
+			return View is null ? plain : plain with { View = new Split(new Continuation(View.Value.Plain, FirstSets.First.All)) };
+		}
+	}
+
+	/// <summary>A continuation held by reference, where another one keeps it as its view.</summary>
+	internal sealed class Split(Continuation value)
+	{
+		public Continuation Value { get; } = value;
 	}
 
 	/// <summary>
@@ -340,6 +408,13 @@ public static class FollowSets
 			// immediate carrier of several grammars.
 			var positional = graph.PositionalFollow && publication.Kind == PublishKind.Parse;
 
+			// Split, the positional entry is still anything to everything that reads the follow,
+			// and a stop to the proofs that ask only whether what follows can fail
+			// (Continuation.View): from a position nothing after the rule can.
+			var stopped = graph.PositionalSplit
+				? Continuation.All with { View = new Split(Continuation.Stop) }
+				: Continuation.All;
+
 			if (graph.Trivia.TryGetValue(publication.Rule, out var around))
 			{
 				entries.Add((
@@ -350,7 +425,7 @@ public static class FollowSets
 				if (positional)
 					entries.Add((
 						new Node.Sequence([around, new Node.Call(publication.Rule, [])]),
-						Continuation.All,
+						stopped,
 						SeamOf(publication.Rule, graph)));
 			}
 			else
@@ -358,7 +433,7 @@ public static class FollowSets
 				follow[publication.Rule] = follow[publication.Rule].Or(after);
 
 				if (positional)
-					follow[publication.Rule] = follow[publication.Rule].Or(Continuation.All);
+					follow[publication.Rule] = follow[publication.Rule].Or(stopped);
 			}
 		}
 
@@ -391,7 +466,7 @@ public static class FollowSets
 					// travels regardless.
 					var told = ReferenceEquals(SeamOf(called, graph), seam)
 						? after
-						: new Continuation(after.Plain, FirstSets.First.All);
+						: after.Unseamed();
 
 					if (!follow.TryGetValue(called, out var held) || held.Covers(told))
 						return;
@@ -478,6 +553,15 @@ public static class FollowSets
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
+		// A view is composed as the halves are, on its own: the halves never see the stop it holds.
+		if (after.View is { } view)
+		{
+			var surface = Precedes(node, after.Surface, graph, seam);
+			var taught  = Precedes(node, view.Value, graph, seam);
+
+			return surface with { View = new Split(taught) };
+		}
+
 		var cache = graph.Continuations;
 		if (cache is null)
 			return ComputePrecedes(node, after, graph, seam);
@@ -514,6 +598,10 @@ public static class FollowSets
 		if (AtEnd(node, graph))
 			return Lead.Ending;
 
+		// A positional stop behind something that can refuse is a way in that may begin anywhere
+		// (FirstSets.Past): no node is every way in there.
+		var stops = after.Plain.Stops || after.AfterSeam.Stops;
+
 		switch (node)
 		{
 			// A call of a rule that must read something is the way in, and the rule is the key.
@@ -530,7 +618,10 @@ public static class FollowSets
 				return after.Lead;
 
 			case Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
-				return after.Lead.Stilled();
+				return stops ? Lead.Unknown : after.Lead.Stilled();
+
+			case Node.Choice { Selection: not null } when stops:
+				return Lead.Unknown;
 
 			case Node.Capture(_, var captured):  return LeadOf(captured, after, graph);
 			case Node.Construct(var built, _):   return LeadOf(built,    after, graph);
@@ -599,7 +690,7 @@ public static class FollowSets
 					return Carried(LeadOf(part, after, graph));
 				}
 
-				return Carried(after.Lead);
+				return still && stops ? Lead.Unknown : Carried(after.Lead);
 			}
 
 			default:
@@ -645,7 +736,7 @@ public static class FollowSets
 			// The seam itself, standing first: what follows once it has been read is the
 			// old continuation as it plainly was. That is the definition of the other half.
 			case Node.Call(var called, _) when seam is not null && ReferenceEquals(called, seam):
-				return new Continuation(Plainly(node, after.Plain, graph), after.Plain);
+				return new Continuation(Plainly(node, after.Plain, graph), FirstSets.Past(node, after.Plain, graph));
 
 			// A rule of the same namespace that begins by reading the seam: past it, what the
 			// rest of the rule begins with. A publication's rule is entered after the seam and
@@ -700,7 +791,7 @@ public static class FollowSets
 
 				var past = read.Overlaps(seamFirst) ? FirstSets.First.All : read;
 
-				return new Continuation(plain, past.Or(after.AfterSeam));
+				return new Continuation(plain, past.Or(FirstSets.Past(node, after.AfterSeam, graph)));
 			}
 
 			case Node.Capture(_, var captured):  return Precedes(captured, after, graph, seam);
@@ -730,7 +821,7 @@ public static class FollowSets
 				var first = FirstSets.Of(node, graph);
 
 				if (first.Nothing)
-					return after with { Plain = plain };
+					return after with { Plain = plain, AfterSeam = FirstSets.Past(node, after.AfterSeam, graph) };
 
 				// A leaf that does not lead with the seam. A turn's seam may still have
 				// consumed input where this continuation would have to begin, so its first
@@ -745,7 +836,7 @@ public static class FollowSets
 
 				return new Continuation(
 					plain,
-					FirstSets.Nullable(node, graph) ? past.Or(after.AfterSeam) : past);
+					FirstSets.Nullable(node, graph) ? past.Or(FirstSets.Past(node, after.AfterSeam, graph)) : past);
 			}
 		}
 	}
@@ -768,11 +859,7 @@ public static class FollowSets
 			return after;
 		}
 
-		var first = FirstSets.Of(node, graph);
-
-		return first.Nothing                 ? after :
-			FirstSets.Nullable(node, graph) ? first.Or(after) :
-			first;
+		return FirstSets.Precedes(node, after, graph);
 	}
 
 	/// <summary>A rule's body as it reads, past what builds and names it.</summary>

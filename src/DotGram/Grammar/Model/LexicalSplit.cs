@@ -283,6 +283,7 @@ public sealed class LexicalSplit
 				// What follows a published rule is the same question over kinds as over
 				// characters, and the syntactic half is asked it.
 				PositionalFollow = graph.PositionalFollow,
+				PositionalSplit  = graph.PositionalSplit,
 
 				// A rule that is told where it was written goes on being told: the split
 				// changes what the syntactic machine reads, not what its values are.

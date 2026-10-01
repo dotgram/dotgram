@@ -75,7 +75,8 @@ public static class GramCompiler
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.Normalize(
-			model, options.SymbolResolver, options.CSharpScanner, options.LocationType, options.PositionalFollow);
+			model, options.SymbolResolver, options.CSharpScanner, options.LocationType, options.PositionalFollow,
+			options.PositionalFollowSplit);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than

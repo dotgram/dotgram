@@ -2418,7 +2418,7 @@ sealed partial class Machine
 				// the two cannot disagree — a run of literals that never comes back is
 				// compiled below as it always was, and only a choice that does need
 				// coming back to is given its doors.
-				if (LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
+				if (LiteralRun(alternatives, alternatives.Count - 1, following.Taught.Plain) != alternatives.Count &&
 					CheckpointSilent(alternatives, following))
 					return CompileCheckpointChoice(alternatives, next, following);
 
@@ -4008,7 +4008,7 @@ sealed partial class Machine
 		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var last   = alternatives.Count - 1;
-		var run    = LiteralGroup(alternatives, last, following.Plain);
+		var run    = LiteralGroup(alternatives, last, following.Taught.Plain);
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 			: Compile(alternatives[last], next, following);
@@ -4022,7 +4022,7 @@ sealed partial class Machine
 			// matched, so where they differ is where the next is tried — which is
 			// what a common prefix is worth, and it is worth it whether or not there
 			// is one.
-			if (LiteralGroup(alternatives, i, following.Plain) is var here and > 0)
+			if (LiteralGroup(alternatives, i, following.Taught.Plain) is var here and > 0)
 			{
 				var from = i - here + 1;
 
@@ -4622,8 +4622,8 @@ sealed partial class Machine
 	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
 		var (body, min, max) = repeatNode;
-		var inside = new FollowSets.Continuation(
-			FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All);
+		var inside = following.Map(one => new FollowSets.Continuation(
+			FirstSets.Of(body, _graph).Or(one.Plain), FirstSets.First.All));
 		var target = next;
 
 		// A turn's failure leaves by the loop's door, and one set of site locals holds
@@ -4718,7 +4718,10 @@ sealed partial class Machine
 		// three of them in a row are eight readings of the same failure. The mechanism
 		// already handles a bounded loop — the count-exit marks the standing exit spent —
 		// so nothing excludes them.
-		var settled = Determinism.NeverGivesBack(repeatNode, following, _graph, _seam);
+		//
+		// Asked of the view (Continuation.Taught): a turn given back is wanted only where what
+		// follows failed, and a positional stop with nothing that can refuse before it does not.
+		var settled = Determinism.NeverGivesBack(repeatNode, following.Taught, _graph, _seam);
 
 		// A settled optional whose body one character decides needs no arena at all. The
 		// character says whether the body is entered; entered, it must finish, because
@@ -4726,7 +4729,12 @@ sealed partial class Machine
 		// let through — which is what settled rules out. What was a Repeat entry, a
 		// standing exit, a count and their unwinding per optional becomes one comparison,
 		// and the grammar of the notation carries several optionals per operand.
-		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins)
+		//
+		// That is another question: not whether what follows can fail, but whether it can
+		// begin where a body that failed began. A positional stop can begin anywhere, so it
+		// is asked of the halves, where the stop is anything.
+		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins &&
+			Determinism.NeverGivesBack(repeatNode, following.Surface, _graph, _seam))
 		{
 			_usesChar = true;
 
@@ -4789,9 +4797,9 @@ sealed partial class Machine
 			body, after,
 			max == 1
 				? following
-				: new FollowSets.Continuation(
-					FirstSets.Of(body, _graph).Or(following.Plain),
-					FirstSets.Of(body, _graph).Or(following.Plain)));
+				: following.Map(one => new FollowSets.Continuation(
+					FirstSets.Of(body, _graph).Or(one.Plain),
+					FirstSets.Of(body, _graph).Or(one.Plain))));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");

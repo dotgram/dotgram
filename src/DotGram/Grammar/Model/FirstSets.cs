@@ -63,14 +63,42 @@ public static class FirstSets
 	/// the end of a whole parse that nothing is waiting for the input it took — and it
 	/// overlaps nothing, because no character is the end of the text.
 	/// </param>
+	/// <param name="Stops">
+	/// A reading from a position may stop here, and what follows it can then neither fail nor be
+	/// asked for anything: the positional end of a <c>parse</c>, reached through nothing that can
+	/// refuse (<see cref="FollowSets.Continuation.Taught"/>). Like <see cref="Ends"/> it is not a
+	/// character and overlaps nothing, and it is never set on what a construct begins with, nor on
+	/// any continuation but the view only the proofs that ask whether what follows can fail read.
+	/// Composed past something that may read nothing and can refuse, it is anything
+	/// (<see cref="Past"/>): from there what follows can fail at one place and stop at another.
+	/// </param>
 	public sealed record First(
-		bool Anything, bool Nothing, IReadOnlyList<CharRange> Ranges, bool Ends = false)
+		bool Anything, bool Nothing, IReadOnlyList<CharRange> Ranges, bool Ends = false, bool Stops = false)
 	{
 		public static readonly First All  = new(true,  false, []);
 		public static readonly First None = new(false, true,  []);
 
 		/// <summary>Nothing follows but the end of the input.</summary>
 		public static readonly First End = new(false, false, [], Ends: true);
+
+		/// <summary>A reading from a position stops here, and nothing else follows (<see cref="Stops"/>).</summary>
+		public static readonly First Stop = new(false, false, [], Stops: true);
+
+		/// <summary>The same set without the positional stop; <see cref="None"/> where that was all it held.</summary>
+		First Unstopped()
+		{
+			return !Stops ? this :
+				Ranges.Count == 0 && !Ends ? None :
+				this with { Stops = false };
+		}
+
+		/// <summary>The same set with the positional stop.</summary>
+		First Stopped()
+		{
+			return Anything || Stops ? this :
+				Nothing ? Stop :
+				this with { Stops = true };
+		}
 
 		/// <summary>
 		/// A known set, its ranges sorted and merged.
@@ -163,6 +191,11 @@ public static class FirstSets
 		public First Or(First other)
 		{
 			if (Anything || other.Anything) return All;
+
+			// The stop rides beside the characters and the end, joined as they are.
+			if (Stops || other.Stops)
+				return Unstopped().Or(other.Unstopped()).Stopped();
+
 			if (Nothing)                    return other.Ends || !Ends ? other : Chars(other.Ranges, true);
 			if (other.Nothing)              return this;
 
@@ -243,6 +276,13 @@ public static class FirstSets
 			if (Anything)                 return other;
 			if (Nothing || other.Nothing) return None;
 
+			if (Stops || other.Stops)
+			{
+				var both = Unstopped().And(other.Unstopped());
+
+				return Stops && other.Stops ? both.Stopped() : both;
+			}
+
 			var shared = new List<CharRange>();
 			var mine   = 0;
 			var theirs = 0;
@@ -271,7 +311,7 @@ public static class FirstSets
 			if (Anything)
 				return true;
 
-			if (other.Anything || other.Ends && !Ends)
+			if (other.Anything || other.Ends && !Ends || other.Stops && !Stops)
 				return false;
 
 			// Both lists sorted and maximal, so containment is one walk: each of theirs must
@@ -1790,7 +1830,8 @@ public static class FirstSets
 	/// </remarks>
 	public static bool Same(First one, First other)
 	{
-		if (one.Anything != other.Anything || one.Nothing != other.Nothing || one.Ends != other.Ends)
+		if (one.Anything != other.Anything || one.Nothing != other.Nothing || one.Ends != other.Ends ||
+			one.Stops != other.Stops)
 			return false;
 
 		if (one.Ranges.Count != other.Ranges.Count)
@@ -2036,9 +2077,105 @@ public static class FirstSets
 	{
 		var first = Of(node, graph);
 
-		return first.Nothing      ? after :
-			Nullable(node, graph) ? first.Or(after) :
+		return first.Nothing      ? Past(node, after, graph) :
+			Nullable(node, graph) ? first.Or(Past(node, after, graph)) :
 			first;
+	}
+
+	/// <summary>
+	/// What follows a node that may read nothing, as seen from where the node begins: the same
+	/// set, except that a positional stop (<see cref="First.Stops"/>) behind something that can
+	/// refuse is anything.
+	/// </summary>
+	/// <remarks>
+	/// The stop is worth something only while what follows cannot fail: then nothing is ever asked
+	/// back for it. Behind a look, a guard, a selector, a recognizer the host writes — anything that
+	/// may read nothing and still refuse — what follows can fail at one place and stop at another,
+	/// and from there it may begin with any character at all. Only a node that matches wherever it
+	/// stands (<see cref="Unfailing"/>) carries the stop past it.
+	/// </remarks>
+	public static First Past(Node node, First after, RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		return after.Stops && !Unfailing(node, graph) ? First.All : after;
+	}
+
+	/// <summary>
+	/// Whether a node matches wherever it stands, reading nothing where it can read nothing else:
+	/// an empty node, a repetition that may take no turn, and what is built only of those, of
+	/// sequences of them and of choices with one of them among the alternatives.
+	/// </summary>
+	/// <remarks>
+	/// Conservative: a look, a guard, a selector, an external recognizer, anything that reads a
+	/// character, and a rule that reaches itself before this is settled all answer no.
+	/// </remarks>
+	public static bool Unfailing(Node node, RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var rules = _unfailing.GetValue(graph, static _ => new Dictionary<RuleSymbol, bool>());
+
+		return Unfailing(node, graph, rules);
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, Dictionary<RuleSymbol, bool>> _unfailing = new();
+
+	static bool Unfailing(Node node, RecognitionGraph graph, Dictionary<RuleSymbol, bool> rules)
+	{
+		switch (node)
+		{
+			case Node.Empty:
+				return true;
+
+			case Node.Literal(var text):
+				return text.Length == 0;
+
+			case Node.Repeat(var body, var min, _):
+				return min == 0 || Unfailing(body, graph, rules);
+
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+					if (!Unfailing(part, graph, rules))
+						return false;
+
+				return true;
+
+			case Node.Choice { Selection: not null }:
+				return false;
+
+			case Node.Choice(var alternatives):
+				foreach (var alternative in alternatives)
+					if (Unfailing(alternative, graph, rules))
+						return true;
+
+				return false;
+
+			case Node.Capture(_, var captured): return Unfailing(captured, graph, rules);
+			case Node.Construct(var built, _):  return Unfailing(built,    graph, rules);
+			case Node.Atomic(var kept):         return Unfailing(kept,     graph, rules);
+			case Node.Marked(var kept, _):      return Unfailing(kept,     graph, rules);
+
+			case Node.Call(var called, { Count: 0 }):
+			{
+				if (rules.TryGetValue(called, out var known))
+					return known;
+
+				// Assumed no while it is asked, so a rule that reaches itself answers no.
+				rules[called] = false;
+
+				var answer = graph.Bodies.TryGetValue(called, out var body) && Unfailing(body, graph, rules);
+
+				rules[called] = answer;
+
+				return answer;
+			}
+
+			default:
+				return false;
+		}
 	}
 
 	/// <summary>Whether a node can match without consuming anything.</summary>

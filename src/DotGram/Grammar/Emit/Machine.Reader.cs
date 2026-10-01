@@ -1919,7 +1919,7 @@ sealed partial class Machine
 		/// </summary>
 		List<string>? Closing(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 		{
-			var run = LiteralRun(alternatives, alternatives.Count - 1, following.Plain);
+			var run = LiteralRun(alternatives, alternatives.Count - 1, following.Taught.Plain);
 
 			if (run == 0)
 				return null;
@@ -2651,8 +2651,8 @@ sealed partial class Machine
 			// `(eol | ?=eof)`, whose lookahead cannot hold where `eol` read a character. And a
 			// run of text the engine's run does not take (SettledText): texts built from, and
 			// texts that ignore case.
-			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Plain) != alternatives.Count &&
-				!machine.Exclusive(alternatives) && !machine.SettledText(alternatives, following.Plain))
+			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Taught.Plain) != alternatives.Count &&
+				!machine.Exclusive(alternatives) && !machine.SettledText(alternatives, following.Taught.Plain))
 			{
 				if (analyzing)
 					machine.OpeningChoice(owner, alternatives, following);
@@ -3273,9 +3273,9 @@ sealed partial class Machine
 
 			// What a turn is followed by is another turn, or what follows the loop where
 			// this was the last.
-			var inside = new FollowSets.Continuation(
-				FirstSets.Of(body, _graph).Or(following.Plain),
-				following.AfterSeam);
+			var inside = following.Map(one => new FollowSets.Continuation(
+				FirstSets.Of(body, _graph).Or(one.Plain),
+				one.AfterSeam));
 
 			// `(?!Separator & any)*` before a stop between runs of padding is a scan to the first
 			// stop, as the engine's is (Machine.CompilePaddedScan): EmitScan.
@@ -3287,8 +3287,12 @@ sealed partial class Machine
 				// on the tape: what ends it is not a failure and there is no turn owed. The
 				// rendering this replaces asked the same question in the same words; this
 				// one had stopped asking, and wrote a way for every run in every grammar.
+				//
+				// NeverGivesBack asks whether what follows can fail and want a turn back, so it reads
+				// the view (Continuation.Taught). NeverGivesBackPast asks whether what follows the
+				// stop can begin with a character, which a positional stop can: the halves.
 				var settled = max == min ||
-					Determinism.NeverGivesBack(repeat, following, _graph, machine._seam) ||
+					Determinism.NeverGivesBack(repeat, following.Taught, _graph, machine._seam) ||
 					_stopAfter is var (stopped, stop, beyond) && ReferenceEquals(stopped, repeat) &&
 					Determinism.NeverGivesBackPast(repeat, stop, beyond, _graph);
 
@@ -3677,7 +3681,7 @@ sealed partial class Machine
 		{
 			var (body, min, _) = repeat;
 			var plan   = read.Plan;
-			var inside = new FollowSets.Continuation(FirstSets.Of(body, _graph).Or(following.Plain), following.AfterSeam);
+			var inside = following.Map(one => new FollowSets.Continuation(FirstSets.Of(body, _graph).Or(one.Plain), one.AfterSeam));
 			var turn   = $"t{_turns++}";
 			var slot   = plan.Slot - machine._captureOffsets[owner];
 			var began  = $"m{_ways++}";

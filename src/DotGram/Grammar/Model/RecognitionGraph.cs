@@ -644,6 +644,15 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public bool PositionalFollow { get; init; }
 
+	/// <summary>
+	/// Whether, with <see cref="PositionalFollow"/>, the positional end is also told apart from
+	/// anything for the proofs that ask only whether what follows can fail
+	/// (<see cref="FollowSets.Continuation.View"/>). Experimental, and off unless asked for
+	/// (<see cref="GramCompilerOptions.PositionalFollowSplit"/>); without
+	/// <see cref="PositionalFollow"/> it says nothing.
+	/// </summary>
+	public bool PositionalSplit { get; init; }
+
 	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
 	/// <remarks>
 	/// Held here because it is a fact about this graph that costs a fixed point to find, and

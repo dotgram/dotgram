@@ -127,9 +127,12 @@ public sealed partial class GrammarNormalizer
 	/// What <see cref="RecognitionGraph.PositionalFollow"/> says: whether a <c>parse</c> is
 	/// analysed as also read from a position. Normalization itself does not read it.
 	/// </param>
+	/// <param name="positionalSplit">
+	/// What <see cref="RecognitionGraph.PositionalSplit"/> says. Normalization does not read it either.
+	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
-		string? locationType = null, bool positionalFollow = false)
+		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -276,6 +279,7 @@ public sealed partial class GrammarNormalizer
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
+			PositionalSplit  = positionalFollow && positionalSplit,
 		};
 	}
 
