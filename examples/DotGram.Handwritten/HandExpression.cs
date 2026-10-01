@@ -4298,6 +4298,10 @@ public static class HandExpression
 				var from = _values;
 				var read = Expressions(at + 1);
 
+				// A comma after the last element, as C# allows.
+				if (read > at + 1 && Kind(read) == Comma)
+					read++;
+
 				if (Kind(read) != RightBrace)
 					return Dropped(from);
 
@@ -4388,7 +4392,12 @@ public static class HandExpression
 			}
 
 			if (Kind(at) == Comma)
+			{
 				Stray(at + 1);
+
+				// A comma after the last member, as C# allows.
+				at++;
+			}
 
 			if (Kind(at) != RightBrace)
 				return -1;
@@ -4401,11 +4410,12 @@ public static class HandExpression
 		/// <summary>An entry after member initializers that is not one, which C# refuses too (CS0747): said why.</summary>
 		/// <remarks>
 		/// Only once the entry can be seen. A name at the end of the text may still be followed by
-		/// its `=`, and a text that stops there is short rather than wrong.
+		/// its `=`, and a text that stops there is short rather than wrong. A closing brace is no
+		/// entry: the comma before it was a trailing one.
 		/// </remarks>
 		void Stray(int i)
 		{
-			if (Peek(i) == Identifier && Peek(i + 1) == Assign)
+			if (Peek(i) == Identifier && Peek(i + 1) == Assign || Peek(i) == RightBrace)
 				return;
 
 			var seen = Kind(i) == Identifier ? Kind(i + 1) != End : Kind(i) != End;
@@ -4463,7 +4473,7 @@ public static class HandExpression
 		{
 			elements = null;
 
-			if (Kind(i) != LeftBrace || Peek(i + 1) == Identifier && Peek(i + 2) == Assign)
+			if (Kind(i) != LeftBrace)
 				return -1;
 
 			var read = _build ? new List<ExpressionParser.Element>() : null;
@@ -4483,6 +4493,16 @@ public static class HandExpression
 
 				read?.Add(next);
 				at = more;
+			}
+
+			if (Kind(at) == Comma)
+			{
+				// `Name =` after elements, which C# refuses as well (CS0747): said why.
+				if (Peek(at + 1) == Identifier && Peek(at + 2) == Assign)
+					_context.Assigns(Span(at + 1, 1));
+
+				// A comma after the last element, as C# allows.
+				at++;
 			}
 
 			if (Kind(at) != RightBrace)
@@ -4511,6 +4531,11 @@ public static class HandExpression
 
 				return at + 1;
 			}
+
+			// An element is no assignment to a name: braces that begin with one are members, and
+			// one after elements is refused by the list.
+			if (Peek(i) == Identifier && Peek(i + 1) == Assign)
+				return -1;
 
 			var only = Assignment(i, out var value);
 

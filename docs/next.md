@@ -25579,3 +25579,20 @@ name lookups both readers share are what the second reading repeated. Three corp
 cover the form, the refusal record gained their 36 rows and changed none, and every other
 grammar's generated code is byte-identical to the parent's: 977 of 979 emitted files, the
 other two being this grammar's tape and immediate parsers.
+
+## The mirror, a trailing comma, and what a missing value says
+
+Three things a review of the commit above found. First, a text cut short after a member's `=`
+said "Expected an expression." only by accident: the elements' reading of `Next = …` as an
+assignment failed at the same place and tied its `on fail` into the answer. With that reading
+gone the answer was every token kind an expression may begin with. What stands after the `=`
+is now a rule of its own, `Initial`, with that `on fail`, so the message is said where it is meant.
+
+Second, the mirror of CS0747: `new List<int> { 1, x = 2 }` read `x = 2` as an assignment and
+added it. An element now never begins `Name =` (a parenthesized assignment is still one), and
+`Name =` after elements is refused with a reason of its own by `Assigning`, the counterpart of
+`Stray`. Counted as the nesting is, it is linear on both readers.
+
+Third, a comma after the last entry: `Stray` read `{ Next = null, }` as an element after
+members. C# accepts that comma in an object, collection and array initializer, and so does
+this language now; `Stray` does not fire on a closing brace.

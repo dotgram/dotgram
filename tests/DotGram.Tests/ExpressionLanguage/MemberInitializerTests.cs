@@ -38,22 +38,24 @@ public sealed class MemberInitializerTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("a new object's members",           "",                  "new Box { Next = new Box { Last = Next }, Next = ", " }", "")]
-	[InlineData("a new object's members, unclosed", "",                  "new Box { Next = new Box { Last = Next }, Next = ", "",   "")]
-	[InlineData("a member's own members",           "new Box { Next = ", "{ Last = Next, Next = ",                            " }", " }")]
-	[InlineData("a member's own members, unclosed", "new Box { Next = ", "{ Last = Next, Next = ",                            "",   "")]
+	[InlineData("a new object's members",           "",                  "new Box { Next = new Box { Last = Next }, Next = ", "Next",        " }", "",   true)]
+	[InlineData("a new object's members, unclosed", "",                  "new Box { Next = new Box { Last = Next }, Next = ", "Next",        "",   "",   false)]
+	[InlineData("a member's own members",           "new Box { Next = ", "{ Last = Next, Next = ",                            "Next",        " }", " }", true)]
+	[InlineData("a member's own members, unclosed", "new Box { Next = ", "{ Last = Next, Next = ",                            "Next",        "",   "",   false)]
+	[InlineData("elements, then a member",          "",                  "new List<object> { Next, ",                         "Next = null", " }", "",   false)]
+	[InlineData("elements, then a member, unclosed", "",                 "new List<object> { Next, ",                         "Next = null", "",   "",   false)]
 	public void Nested_member_initializers_are_read_once_a_level(
-		string what, string head, string opener, string closer, string tail)
+		string what, string head, string opener, string middle, string closer, string tail, bool accepted)
 	{
 		var generated = new long[Depths.Length];
 		var hand      = new long[Depths.Length];
 
 		for (var at = 0; at < Depths.Length; at++)
 		{
-			var text = Text + head + Repeated(opener, Depths[at]) + "Next" + Repeated(closer, Depths[at]) + tail;
+			var text = Text + head + Repeated(opener, Depths[at]) + middle + Repeated(closer, Depths[at]) + tail;
 
-			generated[at] = Places(text, ExpressionParser.TryParseLambda, closer.Length > 0);
-			hand[at]      = Places(text, HandExpression.TryParseLambda,   closer.Length > 0);
+			generated[at] = Places(text, ExpressionParser.TryParseLambda, accepted);
+			hand[at]      = Places(text, HandExpression.TryParseLambda,   accepted);
 		}
 
 		Assert.True(
@@ -95,6 +97,45 @@ public sealed class MemberInitializerTests
 	}
 
 	/// <summary>
+	/// A text cut short after a member's <c>=</c> wants an expression, and says so as it did
+	/// before the braces were settled on their first two tokens.
+	/// </summary>
+	/// <remarks>
+	/// What stands after the <c>=</c> may be a value, a member initializer or a collection one, and
+	/// all three begin with what an expression or a brace begins with. The parser's own list of
+	/// what could have stood there names the lexer's token kinds one by one (<c>RawInterpolated3</c>,
+	/// <c>Decimals</c>, ...), which says nothing to whoever wrote the text.
+	/// </remarks>
+	[Theory]
+	[InlineData(Text + "new Box { Next =")]
+	[InlineData(Text + "new Box() { Next = ")]
+	[InlineData(Text + "new Box { Next = null, Last =")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x =")]
+	public void A_value_cut_short_after_a_member_wants_an_expression(string text)
+	{
+		var match = Both.TryParse(text, typeof(Box).Assembly);
+
+		Assert.Equal(ExpressionParser.Outcome.Starved, match.Outcome);
+		Assert.Equal("Expected an expression.", match.Error);
+	}
+
+	/// <summary>
+	/// A comma after the last member adds no element, so it is not refused as one: C# accepts
+	/// <c>new Box { Next = null, }</c>, and what refuses it here must not say an element was added.
+	/// </summary>
+	[Theory]
+	[InlineData(Text + "new Box { Next = null, }")]
+	[InlineData(Text + "new Box { Next = null, Last = null, }")]
+	public void A_trailing_comma_after_members_is_no_element(string text)
+	{
+		var match = Both.TryParse(text, typeof(Box).Assembly);
+
+		Assert.NotEqual(
+			"An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...'.",
+			match.Error);
+	}
+
+	/// <summary>
 	/// Braces that begin with an element are elements, as they always were — a comparison among
 	/// them too, whose `==` is no `=`.
 	/// </summary>
@@ -109,6 +150,73 @@ public sealed class MemberInitializerTests
 			[true, false],
 			Both.Compile<Func<int, System.Collections.Generic.List<bool>>>(
 				"using System.Collections.Generic; (int x) => new List<bool> { x == 1, x == 2 }")(1));
+	}
+
+	/// <summary>
+	/// A member initializer after elements is refused, and said to be: the mirror of the above, and
+	/// CS0747 in C# as well. Wherever the elements are, and whatever their form.
+	/// </summary>
+	[Theory]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x = 2 }",                           "x = 2")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x, x = 2 }",                           "x = 2")]
+	[InlineData("using DotGram.Tests.ExpressionLanguage; (int x) => new Holder { Items = { 1, x = 2 } }",           "x = 2")]
+	[InlineData("using System.Collections.Generic; (int x) => new Dictionary<int, int> { { 1, 2 }, x = 3 }",       "x = 3")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x =",                              "x =")]
+	public void A_member_initializer_after_elements_is_refused(string text, string member)
+	{
+		var match = Both.TryParse(text, typeof(Box).Assembly);
+
+		Assert.Equal(ExpressionParser.Outcome.NoMatch, match.Outcome);
+		Assert.Equal(text.LastIndexOf(member, StringComparison.Ordinal), match.Position);
+		Assert.Equal(
+			"An initializer that adds elements cannot set members as well; 'Name = ...' cannot follow an element.",
+			match.Error);
+	}
+
+	/// <summary>An assignment in parentheses is an element, and one after a member's `=` is its value.</summary>
+	[Fact]
+	public void An_assignment_that_is_no_member_initializer_still_reads()
+	{
+		Assert.Equal(
+			[1, 2],
+			Both.Compile<Func<int, System.Collections.Generic.List<int>>>(
+				"using System.Collections.Generic; (int x) => new List<int> { (x = 1), 2 }")(0));
+		Assert.Equal(
+			3,
+			Both.Compile<Func<int, Counter>>(
+				"using DotGram.Tests.ExpressionLanguage; (int x) => new Counter { Count = x = 3 }")(0).Count);
+	}
+
+	/// <summary>A comma after the last entry of any initializer, which C# allows.</summary>
+	[Fact]
+	public void A_trailing_comma_is_accepted_in_every_initializer()
+	{
+		Assert.Null(Both.Compile<Func<Box?, Box>>(Text + "new Box { Next = null, }")(null).Next);
+		Assert.NotNull(Both.Compile<Func<Box?, Box>>(Text + "new Box { Next = null, Last = new Box { Next = null, }, }")(null).Last);
+		Assert.Equal(
+			[1, 2],
+			Both.Compile<Func<System.Collections.Generic.List<int>>>(
+				"using System.Collections.Generic; () => new List<int> { 1, 2, }")());
+		Assert.Equal(
+			[3, 4],
+			Both.Compile<Func<Holder>>(
+				"using DotGram.Tests.ExpressionLanguage; () => new Holder { Items = { 3, 4, }, }")().Items);
+		Assert.Equal(
+			2,
+			Both.Compile<Func<System.Collections.Generic.Dictionary<int, int>>>(
+				"using System.Collections.Generic; () => new Dictionary<int, int> { { 1, 2 }, }")()[1]);
+		Assert.Equal([1, 2], Both.Compile<Func<int[]>>("() => new int[] { 1, 2, }")());
+	}
+
+	/// <summary>A comma alone is no initializer, as in C#.</summary>
+	[Theory]
+	[InlineData("using System.Collections.Generic; () => new List<int> { , }")]
+	[InlineData("() => new int[] { , }")]
+	[InlineData(Text + "new Box { Next = null,, }")]
+	[InlineData("using System.Collections.Generic; () => new List<int> { 1,, }")]
+	public void A_comma_alone_is_refused(string text)
+	{
+		Assert.False(Both.TryParse(text, typeof(Box).Assembly).IsSuccess);
 	}
 
 	const string Text = "using DotGram.Tests.ExpressionLanguage; (Box Next) => ";

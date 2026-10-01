@@ -199,6 +199,12 @@ public static class ExpressionCorpus
 		"(int x) => new System.Text.StringBuilder { Capacity = x }",
 		"(int x) => new System.Text.StringBuilder { Capacity = x, Length = 0 }",
 		"(int x) => new System.Collections.Generic.List<int> { x = 1, 2 }",
+		// The mirror, refused at `x` for the same reason; and a comma after the last entry of each
+		// kind of initializer, which C# allows.
+		"(int x) => new System.Collections.Generic.List<int> { 1, x = 2 }",
+		"(int x) => new System.Text.StringBuilder { Capacity = x, }",
+		"(int x) => new System.Collections.Generic.List<int> { x, 1, }",
+		"(int x) => new int[] { x, 1, }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 

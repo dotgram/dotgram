@@ -696,11 +696,12 @@ namespace DotGram.ExpressionLanguage;
 	//
 	// Braces that begin `Name =` hold these and nothing else, which is C#'s rule: it decides
 	// on those two tokens, and an entry after them that is not `Name =` is an error there
-	// (CS0747) rather than a reason to read the braces again as elements. `Elements` refuses
-	// such braces outright, so a text these refuse is not read a second time — and the second
+	// (CS0747) rather than a reason to read the braces again as elements. An `Element` never
+	// begins `Name =`, so a text these refuse is not read a second time — and the second
 	// reading was the costly one: `Next = …` is an assignment where a variable of that name is
 	// in scope, so nested and never closed, each level read twice what the level inside it did.
-	Bindings : @Setting[] = '{' & first: Binding & (',' & rest: Binding)* & Stray? & '}'
+	// A comma may follow the last of them, as in C#.
+	Bindings : @Setting[] = '{' & first: Binding & (',' & rest: Binding)* & Stray? & ','? & '}'
 		    => @(ExpressionParser.Set(first, rest))
 
 	// An entry after a member initializer that is not one, refused with the reason: what the
@@ -710,28 +711,39 @@ namespace DotGram.ExpressionLanguage;
 	//
 	// Only where the entry is there to be seen. A name at the end of the text may yet be
 	// followed by its `=`, and a text cut short there is starved, not wrong; so a name has to
-	// have a token after it, and anything else has to be a token at all.
+	// have a token after it, and anything else has to be a token at all — other than the
+	// closing brace, after which the comma was a trailing one.
 	Stray = ',' & Unbound
 
-	Unbound = ?!(NameOnly & '=') & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
+	Unbound = ?!(NameOnly & '=') & ?!'}' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
 
-	// Three things one syntax says, told apart by what stands after the `=` — a value, a
-	// nested initializer of members, or a nested one of elements. One route rather than
-	// three alternatives, for the reason `Primary`'s `new` gives: three would read the
-	// name and the `=` three times over, and the third reading holds a whole expression.
+	// The name and the `=` are read once, and what follows is `Initial`'s to tell apart.
+	Binding : @Setting = name: Identifier & '=' & set: Initial => @(set with { Name = name })
+
+	// Three things one syntax says after a member's `=`, told apart by what stands there — a
+	// value, a nested initializer of members, or a nested one of elements. The braces are one
+	// or the other by their first two tokens, so at most one of `Bindings` and `Elements`
+	// reads past the first entry, and an expression never begins with a brace.
 	//
-	// The braces are one or the other by their first two tokens, so at most one of
-	// `Bindings` and `Elements` reads past the brace.
-	Binding : @Setting
-		= name: Identifier & '='
-		& (nested: Bindings | items: Elements | value: Expression)
-		=> @(new Setting(name, value, nested, items))
+	// A rule of its own for the `on fail`: a value missing here says so, where the list of
+	// every token that could have stood there would name the lexer's kinds one by one.
+	Initial : @Setting on fail "Expected an expression."
+		= nested: Bindings              => @(new Setting("", null, nested, null))
+		| '{' & items: Elements & '}'   => @(new Setting("", null, null, items))
+		| value: Expression             => @(new Setting("", value, null, null))
 
-	// A collection initializer, in its braces. Not where they begin `Name =`: those are a
-	// member initializer's (`Bindings`), whatever stands after the `=`.
+	// A collection initializer's elements, and a comma after the last, as C# allows.
 	Elements : @Element[]
-		= '{' & ?!(NameOnly & '=') & first: Element & (',' & rest: Element)* & '}'
+		= first: Element & (',' & rest: Element)* & Assigning? & ','?
 		=> @(ExpressionParser.Listed(first, rest))
+
+	// `Name =` after elements, which C# refuses as it refuses an element after members
+	// (CS0747), and refused here with the reason, as `Stray` is. An element is no
+	// assignment to a name, so it is not read as one; a parenthesized one is an
+	// expression like any other, `(x = 1)`. Never a match, as `Stray` is none.
+	Assigning = ',' & Assigned
+
+	Assigned = ?=(NameOnly & '=') & when @(context.Assigns(parserSpan))
 
 	// An element is what one call to `Add` takes, which is usually one expression and for
 	// a dictionary is two. C# writes the second in braces of its own, and the API has a
@@ -740,7 +752,7 @@ namespace DotGram.ExpressionLanguage;
 	Element : @Element
 		= '{' & first: Expression & (',' & rest: Expression)* & '}'
 		  => @(new Element(ExpressionParser.Listed(first, rest)))
-		| only: Expression => @(ExpressionParser.Only(only))
+		| ?!(NameOnly & '=') & only: Expression => @(ExpressionParser.Only(only))
 
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
@@ -1329,7 +1341,7 @@ namespace DotGram.ExpressionLanguage;
 		// constructor. Over kinds a rule's answer stands (§4), so `Type` is not asked to give
 		// the `[]` back for a `"[]"` written here; the guard asks for an array type instead.
 		| "new" & type: Type & when @(type is { IsArray: true })
-		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
+		  & '{' & (first: Expression & (',' & rest: Expression)* & ','?)? & '}'
 		  => @(Expression.NewArrayInit(
 		       type.GetElementType()!,
 		       ExpressionParser.Converted(ExpressionParser.Listed(first, rest), type.GetElementType()!)))
@@ -1340,7 +1352,7 @@ namespace DotGram.ExpressionLanguage;
 		// the arguments three times before finding out which they are, and the arguments
 		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
-		  & (fields: Bindings | items: Elements)?
+		  & (fields: Bindings | '{' & items: Elements & '}')?
 		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Reach))
 		// The parentheses may be left out when an initializer follows, which is C#'s rule:
 		// `new List<int> { 448 }` is `new List<int>() { 448 }`. Not on their own — `new T` with
@@ -1360,7 +1372,7 @@ namespace DotGram.ExpressionLanguage;
 		// level, so `new object[] { new object[] { … x` never closed doubled with every `new`.
 		// Nothing was lost by it: a collection initializer of an array type constructs an array
 		// with `new`, which there is no such thing as.
-		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | items: Elements)
+		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | '{' & items: Elements & '}')
 		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
@@ -3641,6 +3653,18 @@ public static partial class ExpressionParser
 		internal bool Strays(SourceSpan at)
 		{
 			Refuse(at.Start, "An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...'.");
+
+			return false;
+		}
+
+		/// <summary>`Name =` after the elements of a collection initializer: refused, saying so.</summary>
+		/// <remarks>
+		/// The mirror of <see cref="Strays"/>: braces that begin with an element add elements, and C#
+		/// refuses a member initializer among them (CS0747). Never true, for the same reason.
+		/// </remarks>
+		internal bool Assigns(SourceSpan at)
+		{
+			Refuse(at.Start, "An initializer that adds elements cannot set members as well; 'Name = ...' cannot follow an element.");
 
 			return false;
 		}
