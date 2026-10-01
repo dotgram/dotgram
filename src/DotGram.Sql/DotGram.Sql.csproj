@@ -68,6 +68,14 @@ Fixed: SqlStandardParser and TransactSqlParser.Located could throw IndexOutOfRan
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(DotGramAnalyzeGenerated)' == 'true'">
+		<!-- The generator's own output, analysed for dead or redundant emitted code
+		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under this
+		     property (docs/development.md). -->
+		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<!-- What a consumer on this framework needs: the generated parser's own methods
 		     take `ReadOnlySpan<char>`, which is not in the framework there. It is the one

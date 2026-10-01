@@ -105,4 +105,12 @@
 			<Build Project="false" />
 		</Project>
 	</Folder>
+	<Folder Name="/tools/">
+		<Project Path="tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tools/DotGram.GeneratedAnalyzers.Tests/DotGram.GeneratedAnalyzers.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+	</Folder>
 </Solution>

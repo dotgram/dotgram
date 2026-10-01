@@ -64,6 +64,14 @@
 		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
 		<DefineConstants Condition="'$(DotGramChecks)' == 'true'">$(DefineConstants);DOTGRAM_CHECKS</DefineConstants>
 
+		<!-- Off everywhere unless a caller sets it: the generator's own generated code analysed
+		     for dead or redundant emitter output (tools/DotGram.GeneratedAnalyzers), which each
+		     shipped package and the examples reference as an analyzer only under this property
+		     (their own .csproj). An ordinary build and the IDE never load it; the CI job that
+		     does turns it on explicitly (`-p:DotGramAnalyzeGenerated=true`, tools/generated-analysis/
+		     emit.sh). See docs/development.md. -->
+		<DotGramAnalyzeGenerated Condition="'$(DotGramAnalyzeGenerated)' == ''">false</DotGramAnalyzeGenerated>
+
 		<!-- A field either of them adds needs an INITIALISER, not merely a declaration. A grammar whose
 		     walk never reaches one — no marks, nothing that materialises — leaves it unassigned, and
 		     CS0649 is an ERROR wherever a consumer treats warnings as errors: DotGram.Compatibility does,

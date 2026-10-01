@@ -35,6 +35,14 @@ Since 0.1.0. Lambdas whose parameters say no types, read where the types are kno
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(DotGramAnalyzeGenerated)' == 'true'">
+		<!-- The generator's own output, analysed for dead or redundant emitted code
+		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under this
+		     property (docs/development.md). -->
+		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<!-- For the consumer: the generated parser takes `ReadOnlySpan<char>`. The one
 		     dependency this package has, and only here. -->

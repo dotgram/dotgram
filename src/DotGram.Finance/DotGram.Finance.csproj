@@ -29,6 +29,13 @@
 
 		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
+		<!-- The generator's own output, analysed for dead or redundant emitted code
+		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under
+		     DotGramAnalyzeGenerated=true (docs/development.md). -->
+		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false"
+		                  Condition="'$(DotGramAnalyzeGenerated)' == 'true'" />
+
 		<!-- A dictionary loaded at run time is turned into the same straight-line checks the package
 		     compiles in, written as text and compiled by the expression language: one lambda a
 		     slot, typed on the class it checks. -->
