@@ -3245,8 +3245,15 @@ sealed partial class Machine
 
 					var entered = Reserve(out var atEnter);
 
+					// Declared wherever it is written, and not only where a door reads it: an
+					// alternative after one that cannot fail is never tried, so its door is never
+					// written, and the local this line sets went undeclared (CS0103).
 					if (doors)
+					{
 						atEnter.Line($"turn{mine} = p;");
+
+						_turns.Add((mine, entered));
+					}
 					atEnter.Line($"goto {Label(atEnter, target)};");
 
 					_depth = mine;
