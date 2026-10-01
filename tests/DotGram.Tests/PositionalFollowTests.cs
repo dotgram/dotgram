@@ -133,6 +133,150 @@ public sealed class PositionalFollowTests
 	}
 
 	/// <summary>
+	/// Split (<see cref="GramCompilerOptions.PositionalFollowSplit"/>), every shape is read as the
+	/// option alone reads it: the proofs that learned to tell a positional stop from anything
+	/// were taught only where that changes no answer, and these are the shapes where it would.
+	/// </summary>
+	[Theory]
+	[InlineData("Optional", false)]
+	[InlineData("Optional", true)]
+	[InlineData("Star", false)]
+	[InlineData("Star", true)]
+	[InlineData("StarShort", false)]
+	[InlineData("StarShort", true)]
+	[InlineData("OptionalBeforeLook", false)]
+	[InlineData("OptionalBeforeLook", true)]
+	[InlineData("Quoted", false)]
+	[InlineData("Quoted", true)]
+	[InlineData("Fragment", false)]
+	[InlineData("Fragment", true)]
+	public void Split_a_reading_from_a_position_is_the_first_reading(string shape, bool direct)
+	{
+		var (grammar, input, at) = Shapes[shape];
+		var graph    = Graph(grammar);
+		var start    = graph.Rules.First(static rule => rule.Name == "Start");
+		var assembly = Compiled(grammar, direct, positionalFollow: true, split: true);
+
+		Assert.Equal(Expected(graph, start, input, at), Answer(assembly, input, at));
+
+		foreach (var text in Inputs(input.Distinct().ToArray(), 4))
+		{
+			for (var from = 0; from <= text.Length; from++)
+				Assert.True(
+					Expected(graph, start, text, from) == Answer(assembly, text, from),
+					$"'{text}' from {from}: expected {Expected(graph, start, text, from)}, answered {Answer(assembly, text, from)}");
+
+			Assert.True(
+				ReferenceInterpreter.Parses(graph, start, text) == EmittedCode.Match(assembly, "Grammar", "TryParseStart", text).IsSuccess,
+				$"whole '{text}'");
+		}
+	}
+
+	/// <summary>
+	/// Bodies a repetition or an optional at the end of a published rule is written with: turns
+	/// that share a first character and fail after it, turns of one length or two, a doubled
+	/// quote, one character, a turn that ends in an optional.
+	/// </summary>
+	static readonly string[] TailBodies =
+	[
+		"('a' & 'b' | 'a' & 'c')",
+		"('a' | 'a' & 'c')",
+		"(\"\\\"\\\"\" | [^ '\"'])",
+		"['a'..'b']",
+		"('a' & 'b'?)",
+	];
+
+	/// <summary>
+	/// What stands between that repetition and the end of the rule: nothing, a look of either sign,
+	/// a refusal of one class or of a rule that is one, the end of input, something that cannot
+	/// fail, and things that can refuse while reading nothing.
+	/// </summary>
+	static readonly string[] Tails =
+	[
+		"",
+		" & ?!'c'",
+		" & ?='a'",
+		" & ?!'a'",
+		" & ?!['a'..'c']",
+		" & Halt",
+		" & 'c'?",
+		" & 'c'* & ?!'a'",
+		" & ('c' | ?!'b')",
+		" & (?!'b' & 'c')?",
+		" & eof",
+		" & '\"'",
+		" & Sub",
+	];
+
+	/// <summary>Every body under every repetition before every tail, each its own published rule.</summary>
+	static string TailShapes(out int count)
+	{
+		var text  = new System.Text.StringBuilder("Halt = ?!['a'..'c']\nSub = ('a' | 'c')?\n");
+		var index = 0;
+
+		foreach (var body in TailBodies)
+			foreach (var repeat in new[] { "?", "*", "+", "{0,2}" })
+				foreach (var tail in Tails)
+				{
+					text.Append($"S{index} = {body}{repeat}{tail}\nparse S{index}\n");
+					index++;
+				}
+
+		count = index;
+
+		return text.ToString();
+	}
+
+	/// <summary>
+	/// Split, every generated tail shape reads from every position of every short input what the
+	/// reference interpreter reads there, in both backends, and the whole form accepts what the
+	/// interpreter accepts.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Split_every_tail_shape_reads_the_first_reading_from_every_position(bool direct)
+	{
+		var grammar  = TailShapes(out var count);
+		var graph    = Graph(grammar);
+		var assembly = Compiled(grammar, direct, positionalFollow: true, split: true);
+		var wrong    = new List<string>();
+		var flat     = 0;
+
+		for (var index = 0; index < count; index++)
+		{
+			var start = graph.Rules.First(rule => rule.Name == $"S{index}");
+
+			// A publication on the flat path is offered no form that reads from a position (§6.3).
+			if (!assembly.GetType("Grammar")!.GetMethods().Any(one =>
+				one.Name == $"TryParseS{index}" && one.GetParameters() is { Length: 3 } taken && taken[1].ParameterType.IsByRef))
+			{
+				flat++;
+
+				continue;
+			}
+
+			foreach (var text in Inputs(['a', 'b', 'c', '"'], 4))
+			{
+				for (var from = 0; from <= text.Length; from++)
+				{
+					var expected = Expected(graph, start, text, from);
+					var answer   = EmittedCode.Answered(assembly, "Grammar", $"TryParseS{index}", text, from);
+
+					if (expected != (answer.Read, answer.At))
+						wrong.Add($"S{index} '{text}' from {from}: expected {expected}, answered {(answer.Read, answer.At)}");
+				}
+
+				if (ReferenceInterpreter.Parses(graph, start, text) != EmittedCode.Match(assembly, "Grammar", $"TryParseS{index}", text).IsSuccess)
+					wrong.Add($"S{index} whole '{text}'");
+			}
+		}
+
+		Assert.True(flat < count / 2, $"{flat} of {count} shapes have no positional form.");
+		Assert.True(wrong.Count == 0, $"{wrong.Count} cells differ, the first: " + string.Join("\n", wrong.Take(20)) + "\n" + grammar);
+	}
+
+	/// <summary>
 	/// Without the option: the cells the default answers rightly run, and those it answers
 	/// wrongly — refused, or cut short — are kept, skipped, for the day it answers them too.
 	/// </summary>
@@ -248,7 +392,7 @@ public sealed class PositionalFollowTests
 		return end >= 0 ? (true, end) : (false, at);
 	}
 
-	static Assembly Compiled(string grammar, bool direct, bool positionalFollow)
+	static Assembly Compiled(string grammar, bool direct, bool positionalFollow, bool split = false)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
@@ -257,6 +401,7 @@ public sealed class PositionalFollowTests
 				ClassName        = "Grammar",
 				Direct           = direct,
 				PositionalFollow = positionalFollow,
+				PositionalFollowSplit = split,
 				CSharpScanner    = RoslynCSharpScanner.Instance,
 			});
 
