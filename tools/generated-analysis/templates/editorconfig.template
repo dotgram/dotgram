@@ -1,0 +1,33 @@
+# The CI job's own analysis project. Not nested under the repository, so the repository's own
+# .editorconfig and Directory.Build.props do not reach here -- this file is the whole story.
+root = true
+
+[*]
+# Every style rule off by default...
+dotnet_analyzer_diagnostic.category-Style.severity = none
+
+# ...except the rules this job asks the generator's own output to answer for, as warnings
+# (never errors here: TreatWarningsAsErrors is false in the csproj, so a run always finishes
+# and every hit lands in the SARIF gate reads).
+dotnet_diagnostic.IDE0059.severity = warning
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_diagnostic.IDE0035.severity = warning
+dotnet_diagnostic.IDE0004.severity = warning
+
+# Formatting stays off explicitly, though the category blanket above already turns it off.
+dotnet_diagnostic.IDE0055.severity = none
+
+# The copied, header-stripped .g.cs files: force analyzers to treat them as ordinary code
+# rather than skip them the way GeneratedCodeAnalysisFlags.None does by default.
+#
+# The glob is a single directory level (gen/*.g.cs), not gen/**/*.g.cs: EditorConfig's "**"
+# requires at least one intervening path segment, so it does NOT match a file directly inside
+# gen/ -- every file this job copies is exactly that, one level down. The double-star form
+# silently matched nothing here and let every one of these rules skip the copied files as
+# "generated" regardless of this section, which is why a first attempt at this measured zero
+# findings on all four shipped packages: the override was never applied, not the rules
+# genuinely finding nothing.
+[gen/*.g.cs]
+generated_code = false

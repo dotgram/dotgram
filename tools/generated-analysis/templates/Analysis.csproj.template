@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+	  The CI job's own analysis project, one per shipped package (or the examples), generated
+	  by prepare-analysis.sh into a scratch directory. Compiles the package's own hand-written
+	  sources beside its emitted .g.cs (copied into gen/, auto-generated header stripped,
+	  .editorconfig override beside it) WITHOUT a reference to the DotGram analyzer: nothing is
+	  generated twice, and the .g.cs files already on disk are partials of the same host
+	  classes, so the whole thing compiles as ordinary C#.
+
+	  EnforceCodeStyleInBuild turns on the IDE-prefixed rules the .editorconfig here enables;
+	  TreatWarningsAsErrors is off so a run always finishes and every diagnostic lands in the
+	  SARIF log for the gate to read, rather than stopping the build at the first one.
+	-->
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IsPackable>false</IsPackable>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<!-- The SDK's own default glob would otherwise also pick up gen/*.g.cs (it is inside
+		     the project directory), duplicating the explicit <Compile> below. -->
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<AssemblyName>GeneratedAnalysis.{{PKG}}</AssemblyName>
+		<RootNamespace>GeneratedAnalysis.{{PKG}}</RootNamespace>
+
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+		<RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+		<!-- The SDK's own net analyzers (CAxxxx) are a separate package from the compiler's
+		     built-in IDE-prefixed style analyzers EnforceCodeStyleInBuild turns on, are not in
+		     this job's rule list, and would otherwise drown the SARIF in unrelated findings. -->
+		<EnableNETAnalyzers>false</EnableNETAnalyzers>
+		<ErrorLog>{{SARIF}},version=2.1</ErrorLog>
+
+		<!-- The package sources use whatever C# version the repository builds with; match it
+		     so nothing that is fine in the product is flagged here only because the language
+		     version differs. -->
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The package's own hand-written sources, in place, not copied, so a line number in
+		     a finding is the same line number a reader sees in the repository. -->
+		<Compile Include="{{SRC_ROOT}}/**/*.cs" Exclude="{{SRC_ROOT}}/**/obj/**/*.cs;{{SRC_ROOT}}/**/bin/**/*.cs" />
+
+		<!-- The emitted .g.cs, copied and header-stripped by prepare-analysis.sh so the
+		     generated-code heuristics (filename pattern and header comment) do not skip them;
+		     .editorconfig below also says so explicitly with generated_code = false. -->
+		<Compile Include="gen/**/*.g.cs" />
+	</ItemGroup>
+
+	{{EXTRA_REFS}}
+
+</Project>

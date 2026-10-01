@@ -136,6 +136,68 @@ jobs:
       - name: Test with the invariant compiled in
         run: dotnet test DotGram.slnx --no-build --configuration Linux
 
+  # The generator's own output, analysed permanently for dead or redundant emitted code
+  # (docs/development.md, "Analysing the generator's own output"). Two halves:
+  #
+  # - tools/DotGram.GeneratedAnalyzers, our own single-walk analyzer (DGA001 a local copied
+  #   into another and never read again, DGA003 a table spelled as code, DGA004 a report-only
+  #   allocation inventory), loaded as an ordinary analyzer reference under
+  #   DotGramAnalyzeGenerated=true. run-all.sh's own emit.sh step builds with that property AND
+  #   -warnaserror, so DGA001 fails this job the same way any other build error does -- no
+  #   separate "ordinary build with the property on" step, since the five projects it rebuilds
+  #   to emit their generated files are the only ones that reference the analyzer at all.
+  # - the stock IDE-prefixed style rules (IDE0059, IDE0060, IDE0051, IDE0052, IDE0004,
+  #   IDE0035), which skip generated trees by design (GeneratedCodeAnalysisFlags) and so cannot
+  #   be turned on in an ordinary build at all: run-all.sh emits the generated files, compiles
+  #   them as an ad-hoc project under their own .editorconfig (which turns the generated-code
+  #   skip off for them), and reads the resulting SARIF. The compiler's own CS0168/CS0219/
+  #   CS0162 are NOT generated-code-specific and are not part of this: an ordinary
+  #   -warnaserror build already enforces them in generated code exactly as it does anywhere
+  #   else. SarifGate then gates every one of the six IDE rules the same way, as a count
+  #   ratchet against the checked-in ceiling in tools/generated-analysis/counts.txt (one line
+  #   per package x rule) rather than a fixed enforced/report-only split: it fails on ANY
+  #   difference from that file, in either direction -- an increase is the regression this
+  #   exists to catch, and an unrecorded decrease would only leave the ceiling looser than
+  #   reality. A `#pragma`-suppressed finding, and one in the grammar author's own file rather
+  #   than the copied emitted text, are both excluded from the count; SarifGate also fails
+  #   first, before trusting any count, on a "level":"error" result (the analysis project
+  #   itself did not compile).
+  #
+  # A new job rather than a step of `build`: this is the whole reason DotGramAnalyzeGenerated
+  # exists rather than turning the property on everywhere -- an ordinary build and the IDE
+  # never pay for this, only this one required job does, on every push. Not in publish.yml.
+  generated-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+
+      - run: dotnet restore DotGram.slnx
+
+      - name: Emit the generated files and analyse each package's own output under the stock rules
+        run: tools/generated-analysis/run-all.sh . /tmp/generated-analysis
+
+      - name: The pragma inventory -- fails on a new #pragma the generator did not have before
+        run: tools/generated-analysis/pragma-inventory.sh check /tmp/generated-analysis/emit tools/generated-analysis/pragma-inventory.txt
+
+      - name: The count ratchet -- fails if any (package, rule) total differs from the checked-in ceiling
+        run: |
+          dotnet build tools/generated-analysis/SarifGate/SarifGate.csproj --configuration Release -nodeReuse:false
+          dotnet tools/generated-analysis/SarifGate/bin/Release/net10.0/SarifGate.dll \
+            check tools/generated-analysis/counts.txt \
+            /tmp/generated-analysis/sarif/Sql.sarif /tmp/generated-analysis/sarif/Web.sarif \
+            /tmp/generated-analysis/sarif/Finance.sarif /tmp/generated-analysis/sarif/ExpressionLanguage.sarif \
+            /tmp/generated-analysis/sarif/Examples.sarif
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-analysis-sarif
+          path: /tmp/generated-analysis/sarif/*.sarif
+          if-no-files-found: warn
+
   # The development machine is Linux (it was Windows until 2026-09), and a repository
   # built on one system hides a path separator or a line ending until somebody clones it
   # on the other. This does not prove what the job above proves. It is the only one that builds the

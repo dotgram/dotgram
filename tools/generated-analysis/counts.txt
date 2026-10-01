@@ -1,0 +1,37 @@
+# The generated-code count ratchet (docs/development.md). One line per (package, rule):
+# the ceiling SarifGate's 'check' mode holds that pair to. Written by:
+#   dotnet run --project tools/generated-analysis/SarifGate -- update tools/generated-analysis/counts.txt <sarif...>
+# Numbers may only go down across commits -- 'update' itself refuses to write an increase
+# without --allow-increase, and a decrease should be committed as soon as it is measured,
+# or the ratchet only protects against regressing to a number looser than reality.
+# package	rule	count
+Examples	IDE0035	0
+Examples	IDE0059	1259
+Examples	IDE0060	135
+Examples	IDE0051	281
+Examples	IDE0052	19
+Examples	IDE0004	40
+ExpressionLanguage	IDE0035	0
+ExpressionLanguage	IDE0059	1162
+ExpressionLanguage	IDE0060	1060
+ExpressionLanguage	IDE0051	305
+ExpressionLanguage	IDE0052	2
+ExpressionLanguage	IDE0004	426
+Finance	IDE0035	0
+Finance	IDE0059	213
+Finance	IDE0060	56
+Finance	IDE0051	174
+Finance	IDE0052	0
+Finance	IDE0004	10
+Sql	IDE0035	0
+Sql	IDE0059	13162
+Sql	IDE0060	7935
+Sql	IDE0051	3362
+Sql	IDE0052	38
+Sql	IDE0004	2331
+Web	IDE0035	0
+Web	IDE0059	1555
+Web	IDE0060	45
+Web	IDE0051	226
+Web	IDE0052	37
+Web	IDE0004	26
