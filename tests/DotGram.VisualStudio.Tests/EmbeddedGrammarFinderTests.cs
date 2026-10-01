@@ -222,7 +222,53 @@ public sealed class EmbeddedGrammarFinderTests
 			grammars.Select(grammar => grammar.Text));
 	}
 
-	static EmbeddedGrammar[] Find(string source)
+	/// <summary>
+	/// An included grammar that is a <c>.gram</c> file is read from the project, and one whose
+	/// file is not there from what its class carries, as the generator reads them.
+	/// </summary>
+	[Fact]
+	public void SplicesIncludedFilesAndWhatAClassCarries()
+	{
+		var source = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string source) : System.Attribute
+				{
+					public string IncludedAs { get; set; } = "";
+					public bool Lexical { get; set; }
+				}
+
+				sealed class GramSourceAttribute(string text) : System.Attribute;
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
+				{
+					public string As { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("Standard.gram", IncludedAs = "Sql92")]
+			abstract class Standard;
+
+			[DotGram.Gram("Remote.gram")]
+			[DotGram.GramSource("Carried = 'c'")]
+			abstract class Remote;
+
+			[DotGram.Gram("using Sql92;\nStart = Word & Remote.Carried\nparse Start", Lexical = true)]
+			[DotGram.GramInclude(typeof(Standard))]
+			[DotGram.GramInclude(typeof(Remote))]
+			class Dialect;
+			""";
+
+		var grammar = Assert.Single(Find(source, name => name == "Standard.gram" ? "Word = ['a'..'z']+" : null));
+
+		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", grammar.AnalysisText, StringComparison.Ordinal);
+		Assert.Contains("namespace Remote\n{\nCarried = 'c'", grammar.AnalysisText, StringComparison.Ordinal);
+		Assert.Equal(grammar.Text.Length, grammar.Options?.Own);
+		Assert.True(grammar.Options?.Lexical);
+	}
+
+	static EmbeddedGrammar[] Find(string source, Func<string, string?>? includedFile = null)
 	{
 		var tree = CSharpSyntaxTree.ParseText(source);
 		var compilation = CSharpCompilation.Create(
@@ -231,6 +277,6 @@ public sealed class EmbeddedGrammarFinderTests
 			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]);
 		var model = compilation.GetSemanticModel(tree);
 
-		return EmbeddedGrammarFinder.Find(model, tree.GetRoot()).ToArray();
+		return EmbeddedGrammarFinder.Find(model, tree.GetRoot(), default, includedFile).ToArray();
 	}
 }

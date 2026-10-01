@@ -111,9 +111,12 @@ public static class EmbeddedGrammarService
 	}
 
 	public static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
-		SemanticModel model, SyntaxNode root, CancellationToken cancellationToken = default)
+		SemanticModel model,
+		SyntaxNode root,
+		CancellationToken cancellationToken = default,
+		Func<string, string?>? includedFile = null)
 	{
-		return Analyze(EmbeddedGrammarFinder.Find(model, root, cancellationToken), cancellationToken);
+		return Analyze(EmbeddedGrammarFinder.Find(model, root, cancellationToken, includedFile), cancellationToken);
 	}
 
 	static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
@@ -125,7 +128,7 @@ public static class EmbeddedGrammarService
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var document        = GramLanguageService.Analyze(grammar.AnalysisText);
+			var document        = GramLanguageService.Analyze(grammar.AnalysisText, grammar.Options);
 			var classifications = new List<HostClassification>(document.Classifications.Count);
 			var diagnostics     = new List<HostDiagnostic>(document.Diagnostics.Count);
 			var symbols         = new List<HostSymbolOccurrence>(document.Symbols.Count);

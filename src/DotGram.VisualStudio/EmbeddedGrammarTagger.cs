@@ -547,7 +547,8 @@ sealed class EmbeddedGrammarBufferAnalysis
 			if (model is null)
 				return;
 
-			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken);
+			var includedFile   = await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken).ConfigureAwait(false);
+			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken, includedFile);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
 				document,

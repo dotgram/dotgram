@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -17,25 +18,36 @@ public sealed class EmbeddedGrammar(
 	string text,
 	SyntaxToken token,
 	CSharpStringMap sourceMap,
-	string? analysisText = null)
+	string? analysisText = null,
+	GramAnalysisOptions? options = null)
 {
 	public string          Text      { get; } = text;
 	public SyntaxToken     Token     { get; } = token;
 	public CSharpStringMap SourceMap { get; } = sourceMap;
 	public string AnalysisText { get; } = analysisText ?? text;
+
+	/// <summary>What the host's attribute says about compiling it, or null where nothing is known.</summary>
+	public GramAnalysisOptions? Options { get; } = options;
 }
 
 /// <summary>Finds embedded grammars by attribute identity rather than source spelling.</summary>
 public static class EmbeddedGrammarFinder
 {
 	const string GramAttribute = "DotGram.GramAttribute";
-	const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 	const string DotGramSyntax = "DotGram";
 	const string DotGramExtensionSyntax = ".gram";
 
+	/// <param name="includedFile">
+	/// The text of a <c>.gram</c> file in the host's project by the name an included grammar's
+	/// <c>[Gram]</c> gives it, or null where it is not there. Without it, an included grammar
+	/// that is a file is read from what its class carries, as across an assembly reference.
+	/// </param>
 	public static IReadOnlyList<EmbeddedGrammar> Find(
-		SemanticModel model, SyntaxNode root, CancellationToken cancellationToken = default)
+		SemanticModel model,
+		SyntaxNode root,
+		CancellationToken cancellationToken = default,
+		Func<string, string?>? includedFile = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -62,12 +74,17 @@ public static class EmbeddedGrammarFinder
 			if (IsFile(own))
 				continue;
 
-			var included = IncludedGrammars(model, attribute, cancellationToken);
+			var (included, lexical) = Host(model, attribute, includedFile, cancellationToken);
 			var analysisText = included.Count == 0
 				? own
 				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included).Text;
+			var options = new GramAnalysisOptions
+			{
+				Own     = included.Count == 0 ? null : own.Length,
+				Lexical = lexical,
+			};
 
-			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText));
+			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText, options));
 			seen.Add(literal.Token.Span);
 		}
 
@@ -147,59 +164,45 @@ public static class EmbeddedGrammarFinder
 		return actual?.ToDisplayString() == GramAttribute && IsAttribute(actual);
 	}
 
-	static IReadOnlyList<GrammarSplice.Part> IncludedGrammars(
+	/// <summary>
+	/// What the class an attribute is written on includes, read the way a standalone grammar's
+	/// host is read, and whether the attribute asks for the grammar to be read as tokens.
+	/// </summary>
+	static (IReadOnlyList<GrammarSplice.Part> Included, bool Lexical) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
+		Func<string, string?>? includedFile,
 		CancellationToken cancellationToken)
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
 			model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
-			return Array.Empty<GrammarSplice.Part>();
+			return (Array.Empty<GrammarSplice.Part>(), false);
 
 		var included = new List<GrammarSplice.Part>();
-		var seen = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
-		var pending = new Queue<(INamedTypeSymbol Type, string? As)>(NamedIncludes(type));
-		while (pending.Count > 0)
+
+		// The file first, from the host's own project, which is where the generator looks; what
+		// the class carries is what there is across an assembly reference.
+		foreach (var include in StandaloneGrammarInheritance.Includes(type))
 		{
-			var (current, called) = pending.Dequeue();
-			if (!seen.Add(current.ToDisplayString()))
-				continue;
+			var text = IsFile(include.Source) ? includedFile?.Invoke(include.Source) : include.Source;
 
-			foreach (var nested in NamedIncludes(current))
-				pending.Enqueue(nested);
+			text ??= include.Carried;
 
-			var grammar = current.GetAttributes().FirstOrDefault(static candidate =>
-				candidate.AttributeClass?.ToDisplayString() == GramAttribute);
-			if (grammar?.ConstructorArguments is not [{ Value: string source }] || IsFile(source))
-				continue;
-
-			var name = called ?? grammar.NamedArguments
-				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
-				.Value.Value as string ?? current.Name;
-			included.Add(new GrammarSplice.Part(source, name, null));
+			if (text is not null)
+				included.Add(new GrammarSplice.Part(text, include.Name, null));
 		}
 
-		return included;
-	}
+		var lexical = type.GetAttributes()
+			.FirstOrDefault(candidate => candidate.ApplicationSyntaxReference?.Span == attribute.Span)?
+			.NamedArguments.FirstOrDefault(static argument => argument.Key == "Lexical")
+			.Value.Value as bool? ?? false;
 
-	static IEnumerable<(INamedTypeSymbol Type, string? As)> NamedIncludes(INamedTypeSymbol type)
-	{
-		foreach (var attribute in type.GetAttributes())
-			if (attribute.AttributeClass?.ToDisplayString() == GramIncludeAttribute &&
-				attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
-			{
-				yield return (
-					grammar,
-					attribute.NamedArguments
-						.FirstOrDefault(static argument => argument.Key == "As")
-						.Value.Value as string);
-			}
+		return (included, lexical);
 	}
 
 	static bool IsFile(string source)
 	{
-		return source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
-		source.IndexOf('\r') < 0 && source.IndexOf('\n') < 0;
+		return StandaloneGrammarInheritance.IsFile(source);
 	}
 
 	static bool IsAttribute(ITypeSymbol type)
