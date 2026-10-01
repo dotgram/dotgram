@@ -25549,3 +25549,33 @@ exclude an ignore-case literal the same way this one now does.
 
 Generated code: every grammar in the solution is byte-identical to the parent's (946 files); no
 shipped grammar uses a single-character ignore-case stop.
+
+## A member initializer commits on `Name =`, as C#'s does
+
+The expression language read the braces after `new T` as member initializers first and, where
+that failed, as a collection's elements. An element is an expression and `Next = …` is an
+assignment wherever a variable of that name is in scope, so a refused text was read twice a
+level: `(Box Next) => new Box { Next = new Box { Next = …` never closed looked up names at
+148, 712, 11,992 and 3,080,152 places at 2, 4, 8 and 16 levels, and seventeen levels took
+three quarters of a second. The hand-written parser had the same second reading, and a third
+cost of its own: it read accepted members quietly and then again building, nested inside
+itself, so its count on accepted nesting went 66, 161, 459, 1,487.
+
+C# decides on the first two tokens: braces that begin with a name and `=` are an object
+initializer, and anything else among them is CS0747. So does this language now. `Elements`
+carries its braces and refuses `{ Name =` at once, which is the commit; `Bindings` reads an
+entry that is not a member as `Stray`, a guard that never answers yes and records why — the
+parser alone would say "Expected a name." at the `2` of `new List<int> { x = 1, 2 }`, which
+says nothing about the braces having been settled. It fires only once the entry can be seen:
+a name at the end of the text may still be followed by `=`, and a text cut short there stays
+starved. The hand-written parser reads members once, building, since a failure no longer
+falls back to elements.
+
+That text is the one change on accepted input: it used to assign 1 to `x` and add 1 and 2.
+Counted by `State.Places` (`MemberInitializerTests`), every row is linear on both readers now:
+the refused nesting 38, 66, 122, 234 generated and 23, 39, 71, 135 by hand. The emitted
+counters of `DOTGRAM_COUNTS` count materializing walks, which neither defect touched; the
+name lookups both readers share are what the second reading repeated. Three corpus shapes
+cover the form, the refusal record gained their 36 rows and changed none, and every other
+grammar's generated code is byte-identical to the parent's: 977 of 979 emitted files, the
+other two being this grammar's tape and immediate parsers.

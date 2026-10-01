@@ -4335,11 +4335,11 @@ public static class HandExpression
 			var after    = arguments;
 
 			// One tail rather than three alternatives: what stands inside the braces is what
-			// says which of the two it is, and `Name =` is the narrower — asked first, and
-			// without building, because it is the other one where it fails further in.
+			// says which of the two it is. Braces that begin `Name =` are members and nothing
+			// else, as in C#, so a reading of them that fails is not followed by one as elements.
 			if (Kind(after) == LeftBrace)
 			{
-				var bound = Bound(after, out fields);
+				var bound = Bindings(after, out fields);
 
 				if (bound >= 0)
 				{
@@ -4347,12 +4347,10 @@ public static class HandExpression
 				}
 				else
 				{
-					var listed = Elements(after + 1, out elements);
+					var listed = Elements(after, out elements);
 
-					if (listed >= 0 && Kind(listed) == RightBrace)
-						after = listed + 1;
-					else
-						elements = null;
+					if (listed >= 0)
+						after = listed;
 				}
 			}
 
@@ -4362,23 +4360,7 @@ public static class HandExpression
 			return after;
 		}
 
-		/// <summary>Member initializers, read first without building, since braces that fail as these are elements.</summary>
-		int Bound(int i, out ExpressionParser.Setting[]? settings)
-		{
-			settings = null;
-
-			Quiet(out var was);
-
-			var bound = Bindings(i, out _);
-
-			_build = was;
-
-			if (bound >= 0 && _build)
-				Bindings(i, out settings);
-
-			return bound;
-		}
-
+		/// <summary>Member initializers, in their braces: the braces' first entry is one, or they are elements.</summary>
 		int Bindings(int i, out ExpressionParser.Setting[]? settings)
 		{
 			settings = null;
@@ -4405,12 +4387,31 @@ public static class HandExpression
 				at = more;
 			}
 
+			if (Kind(at) == Comma)
+				Stray(at + 1);
+
 			if (Kind(at) != RightBrace)
 				return -1;
 
 			settings = read?.ToArray();
 
 			return at + 1;
+		}
+
+		/// <summary>An entry after member initializers that is not one, which C# refuses too (CS0747): said why.</summary>
+		/// <remarks>
+		/// Only once the entry can be seen. A name at the end of the text may still be followed by
+		/// its `=`, and a text that stops there is short rather than wrong.
+		/// </remarks>
+		void Stray(int i)
+		{
+			if (Peek(i) == Identifier && Peek(i + 1) == Assign)
+				return;
+
+			var seen = Kind(i) == Identifier ? Kind(i + 1) != End : Kind(i) != End;
+
+			if (seen)
+				_context.Strays(Span(i, 1));
 		}
 
 		/// <summary>What stands after one member's `=`: a value, a nested initializer of members, or one of elements.</summary>
@@ -4425,7 +4426,7 @@ public static class HandExpression
 
 			if (Kind(i + 2) == LeftBrace)
 			{
-				var nested = Bound(i + 2, out var inside);
+				var nested = Bindings(i + 2, out var inside);
 
 				if (nested >= 0)
 				{
@@ -4435,14 +4436,14 @@ public static class HandExpression
 					return nested;
 				}
 
-				var listed = Elements(i + 3, out var items);
+				var listed = Elements(i + 2, out var items);
 
-				if (listed >= 0 && Kind(listed) == RightBrace)
+				if (listed >= 0)
 				{
 					if (_build)
 						setting = new ExpressionParser.Setting(name, null, null, items);
 
-					return listed + 1;
+					return listed;
 				}
 			}
 
@@ -4457,12 +4458,16 @@ public static class HandExpression
 			return value;
 		}
 
+		/// <summary>A collection initializer, in its braces: never where they begin `Name =`, which are members.</summary>
 		int Elements(int i, out ExpressionParser.Element[]? elements)
 		{
 			elements = null;
 
+			if (Kind(i) != LeftBrace || Peek(i + 1) == Identifier && Peek(i + 2) == Assign)
+				return -1;
+
 			var read = _build ? new List<ExpressionParser.Element>() : null;
-			var at   = Element(i, out ExpressionParser.Element first);
+			var at   = Element(i + 1, out ExpressionParser.Element first);
 
 			if (at < 0)
 				return -1;
@@ -4480,9 +4485,12 @@ public static class HandExpression
 				at = more;
 			}
 
+			if (Kind(at) != RightBrace)
+				return -1;
+
 			elements = read?.ToArray();
 
-			return at;
+			return at + 1;
 		}
 
 		/// <summary>What one call to `Add` takes: one expression, or for a dictionary two, in braces of their own.</summary>

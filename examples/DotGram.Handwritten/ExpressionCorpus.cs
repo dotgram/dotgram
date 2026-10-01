@@ -194,6 +194,11 @@ public static class ExpressionCorpus
 		"(int x) => new System.Collections.Generic.List<int>()",
 		"(int x) => new System.Collections.Generic.List<int> { x, 1 }",
 		"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }",
+		// Braces that begin `Name =` are members and nothing else, as in C#: the last of these is
+		// refused at its `2`, not read as two elements, the first an assignment to `x`.
+		"(int x) => new System.Text.StringBuilder { Capacity = x }",
+		"(int x) => new System.Text.StringBuilder { Capacity = x, Length = 0 }",
+		"(int x) => new System.Collections.Generic.List<int> { x = 1, 2 }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 
