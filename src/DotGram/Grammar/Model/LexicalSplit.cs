@@ -216,6 +216,11 @@ public sealed class LexicalSplit
 						bodies[rule] = Testing(inventory.KindsOf(inventory.PatternOf(rule)!));
 						valued.Add(rule);
 					}
+					else if (graph.Bodies.ContainsKey(rule) && graph.Publications.Any(one => one.Rule == rule))
+					{
+						rules.Add(rule);
+						bodies[rule] = Published(rule, blocked);
+					}
 
 					continue;
 				}
@@ -278,6 +283,31 @@ public sealed class LexicalSplit
 				valued,
 				inventory,
 				blocked);
+		}
+
+		/// <summary>
+		/// What a published rule the lexer holds still reads on this side: its kinds.
+		/// </summary>
+		/// <remarks>
+		/// A rule that turned out to be a set of terminals, or a terminal of its own, leaves the
+		/// syntactic machine, which only ever met it as a range at a call site. Its publication
+		/// does not leave with it: <c>Start = ("on" | "off")</c> published as <c>parse Start</c>
+		/// is still entered by name, and a machine with no body for it threw rather than
+		/// generated. So it stays, as the one token it is. A rule the seam is made of has no
+		/// kind at all — the lexer skips it rather than reads it — and a publication of one is
+		/// refused here and read over characters instead.
+		/// </remarks>
+		Node Published(RuleSymbol rule, List<string> blocked)
+		{
+			if (inventory.PatternOf(rule) is { } pattern)
+				return Testing(inventory.KindsOf(pattern));
+
+			if (_sets.Contains(rule.Name) && inventory.SetOf(rule.Name) is { } set)
+				return Testing(set.Ranges);
+
+			blocked.Add($"{rule.Name} is published, and the lexer skips it as the space between tokens");
+
+			return Node.Empty.Instance;
 		}
 
 		static Dictionary<RuleSymbol, T> Kept<T>(
