@@ -691,6 +691,24 @@ class a version beside it, over `FixRepositoryAgreementTests` — which hold eve
 repository read afresh, and the load tests, which write the same checks from a dictionary at
 run time.
 
+## The script that writes the case-fold tables
+
+What an ignore-case literal reads (`syntax.md`) comes from the generator's own table of simple
+case mappings, `src/DotGram/Grammar/Model/CaseFold.Table.cs`, never from the runtime the generator
+is hosted on. `CaseFold.generate.cs` beside it writes the table from the Unicode Character
+Database's `UnicodeData.txt` at the version pinned in the script (`Version`, now 16.0.0, which the
+table's header and `CaseFold.UnicodeVersion` repeat). Like `Fix/generate.cs` it is a file-based app
+that the DotGram project excludes from compilation, and the build does not run it.
+
+```
+dotnet run src/DotGram/Grammar/Model/CaseFold.generate.cs [path/to/UnicodeData.txt]
+```
+
+Without a path it downloads `UnicodeData.txt` of the pinned version from unicode.org. For a new
+Unicode version, change `Version`, run it, and read the table's diff: a new pair changes what
+literals beyond ASCII read, so it belongs in the release notes. `CaseFoldTests` pins the version
+and a few mappings, and the full generated-code comparison (above) shows what the change reaches.
+
 ## The FIX package's reading, for its maintainers
 
 The package's own page (`src/DotGram.Finance/Fix/README.md`) says what a consumer writes; this is

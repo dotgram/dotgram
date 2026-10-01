@@ -207,9 +207,12 @@ reads `ſ` as `s` and the Kelvin sign as `k`), and the keywords of the formats t
 is written for — RFC 5234's ABNF and SQL — are ASCII-only in exactly this way. The
 generator carries its own table of those mappings rather than asking the runtime it is
 hosted on (whose answer depends on its ICU, on invariant globalization mode, and on
-.NET Framework's NLS in an editor), and the generated parser tests the characters named
-here rather than folding at run time, so what a parser accepts depends neither on the
-machine it was built on nor on the one it runs on. It attaches to the literal
+.NET Framework's NLS in an editor), so the parser it writes does not depend on the build
+machine. The generated parser tests the characters named here rather than folding at run
+time, with one exception: a literal of two or more ASCII characters is one call to the
+runtime's ordinal ignore-case comparison, which on .NET 5 and later never pairs a
+character beyond ASCII with an ASCII one and so is exactly this rule; on an older
+runtime (.NET Framework, Mono) that comparison is the runtime's own. It attaches to the literal
 alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input

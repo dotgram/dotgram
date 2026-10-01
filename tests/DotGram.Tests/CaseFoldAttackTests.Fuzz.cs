@@ -26,21 +26,21 @@ public sealed partial class CaseFoldAttackTests
 	/// s/S/ſ, k/K/Kelvin, σ/ς/Σ, the titlecase triple, ß/ẞ, i/I/ı/İ, μ/Μ/micro, and one
 	/// letter with an ordinary pair.
 	/// </summary>
-	static string Alphabet = Unpaired;
-
 	const string Unpaired = "sS\u017FkK\u212A\u03C3\u03C2\u03A3\u01C5\u01C6\u01C4\u00DF\u1E9EiI\u0131\u0130\u00B5\u03BC\u039Ca";
 
 	static void Fuzz(int seed, string alphabet)
 	{
-		Alphabet = alphabet;
-
 		var random   = new Random(seed * 104729);
+		// Inputs draw from a stream of their own, so the grammars a seed makes do not depend on how
+		// many draws its inputs took.
+		var drawing  = new Random(seed * 7919 + 1);
 		var compiled = 0;
 		var failures = new List<string>();
 
 		while (compiled < 25 && failures.Count < 20)
 		{
-			var grammar = Generate(random);
+			var literals = new List<string>();
+			var grammar  = Generate(random, alphabet, literals);
 			var modes   = new List<(string Name, Assembly Assembly, bool Buffered)>();
 
 			foreach (var (name, options) in Modes())
@@ -88,7 +88,7 @@ public sealed partial class CaseFoldAttackTests
 
 			for (var round = 0; round < 40; round++)
 			{
-				var input  = Input(random);
+				var input  = Input(drawing, alphabet, literals);
 				var oracle = ReferenceInterpreter.Parses(graph, start, input);
 
 				foreach (var (name, assembly, buffered) in modes)
@@ -229,7 +229,8 @@ public sealed partial class CaseFoldAttackTests
 
 	// ── The generator ────────────────────────────────────────────────────────────
 
-	static string Generate(Random random)
+	/// <summary>A grammar of up to three rules; every literal it writes is added to <paramref name="literals"/>.</summary>
+	static string Generate(Random random, string alphabet, List<string> literals)
 	{
 		var rules = random.Next(1, 4);
 		var text  = new StringBuilder();
@@ -239,7 +240,7 @@ public sealed partial class CaseFoldAttackTests
 		for (var i = 0; i < rules; i++)
 		{
 			text.Append(i == 0 ? "Start = " : $"R{i} = ");
-			text.AppendLine(Body(random, 0, i + 1, rules));
+			text.AppendLine(Body(random, alphabet, literals, 0, i + 1, rules));
 		}
 
 		text.AppendLine("parse Start");
@@ -247,7 +248,7 @@ public sealed partial class CaseFoldAttackTests
 		return text.ToString();
 	}
 
-	static string Body(Random random, int depth, int callableFrom, int ruleCount)
+	static string Body(Random random, string alphabet, List<string> literals, int depth, int callableFrom, int ruleCount)
 	{
 		var pick = depth >= 3 ? random.Next(3) : random.Next(9);
 
@@ -257,8 +258,10 @@ public sealed partial class CaseFoldAttackTests
 			case 1:
 			{
 				var length  = random.Next(1, 4);
-				var literal = new string(Enumerable.Range(0, length).Select(_ => Alphabet[random.Next(Alphabet.Length)]).ToArray());
+				var literal = new string(Enumerable.Range(0, length).Select(_ => alphabet[random.Next(alphabet.Length)]).ToArray());
 				var folded  = random.Next(4) != 0 ? "i" : "";
+
+				literals.Add(literal);
 
 				return (literal.Length == 1 ? $"'{literal}'" : $"\"{literal}\"") + folded;
 			}
@@ -272,7 +275,7 @@ public sealed partial class CaseFoldAttackTests
 				var parts = new string[random.Next(2, 4)];
 
 				for (var i = 0; i < parts.Length; i++)
-					parts[i] = Body(random, depth + 1, callableFrom, ruleCount);
+					parts[i] = Body(random, alphabet, literals, depth + 1, callableFrom, ruleCount);
 
 				return "(" + string.Join(" & ", parts) + ")";
 			}
@@ -283,13 +286,13 @@ public sealed partial class CaseFoldAttackTests
 				var alternatives = new string[random.Next(2, 5)];
 
 				for (var i = 0; i < alternatives.Length; i++)
-					alternatives[i] = Body(random, depth + 1, callableFrom, ruleCount);
+					alternatives[i] = Body(random, alphabet, literals, depth + 1, callableFrom, ruleCount);
 
 				return "(" + string.Join(" | ", alternatives) + ")";
 			}
 
 			case 7:
-				return Body(random, depth + 1, callableFrom, ruleCount) + random.Next(4) switch
+				return Body(random, alphabet, literals, depth + 1, callableFrom, ruleCount) + random.Next(4) switch
 				{
 					0 => "?",
 					1 => "*",
@@ -298,17 +301,48 @@ public sealed partial class CaseFoldAttackTests
 				};
 
 			default:
-				return (random.Next(2) == 0 ? "?= " : "?! ") + Body(random, depth + 1, callableFrom, ruleCount);
+				return (random.Next(2) == 0 ? "?= " : "?! ") + Body(random, alphabet, literals, depth + 1, callableFrom, ruleCount);
 		}
 	}
 
-	static string Input(Random random)
+	/// <summary>
+	/// An input: half the time characters of the alphabet at random, which a grammar mostly
+	/// refuses; otherwise one to three of the grammar's own literals, each character of them
+	/// spelled as itself, as its upper or lower case, or now and then as any letter of the
+	/// alphabet — so that the fuzz asks what a literal accepts, and what only nearly matches it.
+	/// </summary>
+	static string Input(Random random, string alphabet, List<string> literals)
 	{
-		var length = random.Next(0, 6);
-		var text   = new StringBuilder(length);
+		var text = new StringBuilder();
 
-		for (var i = 0; i < length; i++)
-			text.Append(random.Next(8) == 0 ? ' ' : Alphabet[random.Next(Alphabet.Length)]);
+		if (literals.Count == 0 || random.Next(2) == 0)
+		{
+			var length = random.Next(0, 6);
+
+			for (var i = 0; i < length; i++)
+				text.Append(random.Next(8) == 0 ? ' ' : alphabet[random.Next(alphabet.Length)]);
+
+			return text.ToString();
+		}
+
+		var count = random.Next(1, 4);
+
+		for (var i = 0; i < count; i++)
+		{
+			foreach (var one in literals[random.Next(literals.Count)])
+			{
+				text.Append(random.Next(8) switch
+				{
+					0 or 1 => CaseFold.Upper(one),
+					2 or 3 => CaseFold.Lower(one),
+					4      => alphabet[random.Next(alphabet.Length)],
+					_      => one,
+				});
+			}
+
+			if (random.Next(4) == 0)
+				text.Append(' ');
+		}
 
 		return text.ToString();
 	}

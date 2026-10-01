@@ -137,7 +137,9 @@ Linear on both, with the same answers.
   marked `Still` and the proof declines. `P` and `S` must be apart. A stop read without regard
   to case begins with every character the matcher folds to it (`'s'i` with U+017F, `'μ'i` with
   U+00B5), and `S` must hold them all. `PaddedRunProofTests` has a row for each, and for each
-  form the proof accepts; bounded padding (`' '{0,2}`) is padding too.
+  form the proof accepts; bounded padding (`' '{0,2}`) is padding too. (Correction, 0.3.0: an
+  ignore-case literal now folds by `CaseFold`, so `'s'i` reads only `s`/`S` and `'μ'i` only
+  `μ`/`Μ`; `syntax.md` has the rule.)
 - **The observers of the second case are asked of the whole grammar**, which holds every
   publication's rules: any `when` guard (a `switch` selector is one), any captured look, any
   recognizer the host writes. Narrowing it to what stands after the run would need a proof of
