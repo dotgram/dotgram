@@ -305,10 +305,14 @@ public static class CookieDate
 
 	// set-cookie-string: the name-value-pair up to the first `;`, then each cookie-av after one.
 	SetCookieString : @SetCookie
-		= pair: NameValuePair & attributes: CookieAvs & when @(Rfc6265.IsNameValuePair(pair!))
+		= pair: NameValuePair & attributes: CookieAvs
 		=> @(Rfc6265.Cookie(pair, attributes))
 
-	NameValuePair = [^ ';']*
+	// §5.2 steps 2 and 5, written as a shape rather than a check after the fact: no prefix of an
+	// invalid pair is valid, since the first `=` decides it regardless of what follows, so the rule
+	// is leading OWS, a name of at least one non-OWS character, the first `=`, then anything up to
+	// the next `;`.
+	NameValuePair = [' ' | '\t']* & [^';' | '=' | ' ' | '\t'] & [^';' | '=']* & '=' & [^';']*
 
 	CookieAvs : @SetCookie.Attribute[] = items: CookieAv* => @(items)
 
@@ -496,14 +500,6 @@ static partial class Rfc6265
 	}
 
 	// ── What the grammar calls ───────────────────────────────────────────────────
-
-	/// <summary>§5.2 steps 2 and 5: a pair has an <c>=</c>, and a name before it once whitespace is trimmed.</summary>
-	internal static bool IsNameValuePair(string pair)
-	{
-		var equals = pair.IndexOf('=');
-
-		return equals >= 0 && Trimmed(pair.Substring(0, equals)).Length > 0;
-	}
 
 	internal static SetCookie Cookie(string pair, SetCookie.Attribute[] attributes)
 	{
