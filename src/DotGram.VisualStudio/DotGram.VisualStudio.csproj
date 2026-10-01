@@ -78,7 +78,9 @@
 
 	<ItemGroup>
 		<Compile Include="*.cs" />
-		<Compile Include="..\DotGram\Grammar\**\*.cs"
+		<!-- CaseFold.generate.cs is a file-based app that rebuilds the case table; it is no
+		     part of any library, here as in DotGram.csproj. -->
+		<Compile Include="..\DotGram\Grammar\**\*.cs" Exclude="..\DotGram\Grammar\**\*.generate.cs"
 		         Link="Grammar\%(RecursiveDir)%(Filename)%(Extension)" />
 		<!-- The standard library goes wherever Grammar/ goes: StandardLibrary.cs reads it
 		     out of the assembly it was compiled into, under this name. -->
