@@ -896,10 +896,41 @@ application of this one. Which is to say `=>` is a fold, and both `=>` in the ru
 above are used: the base builds the first value, the recursive alternative applies once
 per operator.
 
-A fold is no exception to §7.2: nothing is built while matching. What the match records
-is which alternative it came through and, for a chain, which step followed which; the
-`=>` of each is applied once the whole match has succeeded, in that order. So a step
-tried and given back never ran at all.
+A fold follows §7.2 like any other rule: `=>` is ordinarily deferred until the accepted
+derivation is known. What the match records is which alternative it came through and,
+for a chain, which step followed which; a step's `=>` not needed earlier is applied
+once the whole match has succeeded, in that order.
+
+**A guard on a left-recursive step may name the accumulator**, the same way any guard
+names a capture (§3.6): `l: F & ',' & y: D & when @(l.Length < 4) => @(l + y)` reads
+`l`, the value so far, from inside the guard. Doing so is asking for that value early,
+and §7.2's rule for a value a guard asks for applies here exactly as it does to an
+ordinary capture: the construction that builds the accumulator runs during
+recognition rather than after acceptance, is cached, and is reused if the step is kept.
+Ordered choice may still retry the step or give it up entirely, and a construction that
+already ran is not undone by that. So a step's `=>` may run more than once, or for a
+step that ends up no part of the result. A pure construction cannot tell the
+difference; one with a side effect — a counter, a cache, a write — can, and that is the
+cost of naming the accumulator from a guard: write such a construction as safe to run
+speculatively, the same as a guard or an external recognizer already has to be (§7.2),
+unless it is pure. Nothing here is refused — the generator does not tell a value built
+early, for a guard, from one built at acceptance — so the choice and its cost are the
+grammar author's alone.
+
+Several steps of one fold may give the accumulator different names; each sees the
+value so far under its own. A step written without the leading capture has no
+accumulator at all, and a guard there naming what another step calls its own reads
+that spelling however it is already bound outside the fold — a host member, a
+parameter — not the value so far: there is no implicit accumulator to fall back to,
+and nothing is refused for it. Where a step does have its own name, a guard that
+instead spells a *different* step's name — one that is neither its own name nor a
+capture this step made before the guard — is refused (`GRAM4031`): give every step
+that shares the head the same name, or capture this step's leading call under the name
+the guard reads.
+
+Each application of a fold is a derivation of its own, so `parserText` and `parserSpan`
+(§3.7) see this step's extent — from where the fold began to where this step ends —
+the same whether they were built at acceptance or early, for a guard.
 
 Three things are rejected when the grammar is built:
 
