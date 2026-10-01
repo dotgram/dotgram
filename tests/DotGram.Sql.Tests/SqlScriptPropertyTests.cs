@@ -28,8 +28,8 @@ public sealed class SqlScriptPropertyTests
 		"PRINT 1", "SELECT 'a", "b'", "'", "\"", "[", "]", "]]", "''", "/*", "*/", "/* c */", "--", "-- c", "-", "/",
 		"GO", "go", "Go 2", "GO 0", "GO 3", "GO -1", "GO x", "GO;", " ", "\t", "\r", "\n", "\n", "\n", "\r\n", "\r\n",
 		"$(x)", "$(y)", "$(e)", "$(nope)", "$(", "$", ":setvar x 1", ":setvar y \"a b\"", ":setvar x", ":setvar x $(y)",
-		":setvar e \"\"", "/* c */ GO", " GO", "x", "SELECT 1", ";", ":on error exit", "exit", "exit(SELECT 1)",
-		":r i.sql", ":r nope.sql", "GO $(n)", ":setvar n 2", "﻿", "é", "GOTO", "GO--c", "*", ":", "(", ")",
+		":setvar e \"\"", "/* c */ GO", "\u00A0GO", "x", "SELECT 1", ";", ":on error exit", "exit", "exit(SELECT 1)",
+		":r i.sql", ":r nope.sql", "GO $(n)", ":setvar n 2", "\uFEFF", "\u00E9", "GOTO", "GO--c", "*", ":", "(", ")",
 	];
 
 	static readonly Dictionary<string, string> Files = new(StringComparer.Ordinal)
