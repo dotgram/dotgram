@@ -530,7 +530,8 @@ public static partial class CSharpEmitter
 					compiled.Machine.UsesContext && graph.ContextRewinds,
 					// Whether a reading that begins where it is told writes down where the value began:
 					// over characters it reads the trivia at the position and says where it ended.
-					graph.Trivia.ContainsKey(publication.Rule) && !overKinds);
+					graph.Trivia.ContainsKey(publication.Rule) && !overKinds,
+					lexical is not null && lexical.Bare.Contains(publication.Rule));
 
 				file.Line();
 			}
@@ -1518,7 +1519,7 @@ public static partial class CSharpEmitter
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false)
+		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1577,6 +1578,15 @@ public static partial class CSharpEmitter
 			return overKinds
 				? windowed ? "count > 0 ? starts[0] : at" : "starts[from]"
 				: leads ? "failure.Began" : "at";
+		}
+
+		// Where a publication of a rule without trivia meets trivia the lexer skipped (see
+		// LexicalSplit.Bare): before the first token, or after the last where the end is asked for.
+		static string BareEdge(bool positional, bool windowed)
+		{
+			return !positional ? "count > 0 && (starts[0] != 0 || starts[count - 1] + lengths[count - 1] != source.Length)"
+				: windowed ? "starts[0] != at"
+				: "starts[from] != at";
 		}
 
 		string Recognized(string from, string to)
@@ -1812,6 +1822,19 @@ public static partial class CSharpEmitter
 						file.Line();
 					}
 
+					if (bare)
+					{
+						using (file.Block($"if ({BareEdge(positional, windowed)})"))
+						{
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line("value = default!;");
+							file.Line("return false;");
+						}
+
+						file.Line();
+					}
+
 					file.Line("var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);");
 				}
 				else
@@ -1992,6 +2015,24 @@ public static partial class CSharpEmitter
 							file.Line(
 								$"return {match}.Failed({OutcomeType}.Starved, " +
 								"\"Expected more input.\", source.Length, null, null);");
+						}
+
+						file.Line();
+					}
+
+					// A publication of a rule whose namespace has no trivia, where the lexer skipped
+					// some before its first token or after its last: over characters it is refused
+					// there, and so it is here.
+					if (bare)
+					{
+						using (file.Block($"if ({BareEdge(positional, windowed)})"))
+						{
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line(
+								$"return {match}.Failed({OutcomeType}.NoMatch, \"Input does not match '{name}'.\", " +
+								(positional ? "at" : "starts[0] != 0 ? 0 : starts[count - 1] + lengths[count - 1]") +
+								", null, null);");
 						}
 
 						file.Line();

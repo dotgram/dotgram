@@ -49,14 +49,14 @@ public sealed class PositionalFormFindingsTests
 	}
 
 	/// <summary>
-	/// A published rule that is no token of its own over kinds, or one whose namespace has no
-	/// trivia, is not read over kinds: the grammar is read over characters and says so,
-	/// rather than throwing or accepting trivia the rule does not.
+	/// A published rule that is no token of its own over kinds — a rule of the seam, a helper
+	/// a terminal calls — is not read over kinds: the grammar is read over characters and says
+	/// so, rather than throwing.
 	/// </summary>
 	[Theory]
 	[InlineData("trivia = { Sp }\nSp = ' '*\nStart = \"a\" & \"bb\"\nparse Start\nparse Sp\n", "TryParseSp", "  ", true)]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9'] & ['0'..'9']*\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", "12", true)]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9'] & ['0'..'9']*\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", " 12", false)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\nparse Start\nparse Lex.Digit\n", "TryParseDigit", "1", true)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\nparse Start\nparse Lex.Digit\n", "TryParseDigit", " 1", false)]
 	public void A_published_rule_that_is_no_token_of_its_own_is_read_over_characters(string grammar, string method, string input, bool read)
 	{
 		var result = GramCompiler.Compile(
@@ -125,26 +125,87 @@ public sealed class PositionalFormFindingsTests
 	}
 
 	/// <summary>
-	/// An alternative after an optional one can never be taken, and the generated parser says so
-	/// with CS0162 — a warning in the consumer's build, an error under warnings-as-errors, from a
-	/// file they did not write. The generator should either report the grammar or not emit the
-	/// dead branch.
+	/// A published rule of a namespace without trivia, beside <c>parse Start</c>, reads over tokens
+	/// as it does over characters: one token and no trivia around it — and the grammar is still
+	/// cut into tokens for it.
 	/// </summary>
+	/// <remarks>
+	/// Over tokens such a publication is one token test, compiled as a plain method, so it has
+	/// only the whole forms; over characters it has them too, and those are compared.
+	/// </remarks>
 	[Theory]
-	[InlineData("\"abc\"?")]
-	[InlineData("\"abc\"i?")]
-	[InlineData("'b'?")]
-	[InlineData("\"\u0130\u00B5\u017F\"?")]
-	[InlineData("\"\u0130\u00B5\u017F\"i?")]
-	public void An_alternative_after_an_optional_one_leaves_no_unreachable_code(string optional)
+	[InlineData("1.5")]
+	[InlineData(" 1.5")]
+	[InlineData("1.5 ")]
+	[InlineData(" 1.5 ")]
+	[InlineData("1 .5")]
+	[InlineData("1. 5")]
+	[InlineData("12")]
+	[InlineData("")]
+	public void A_published_rule_of_a_lexical_namespace_reads_as_over_characters(string input)
+	{
+		const string grammar = """
+			trivia = { ' '* }
+			namespace Lex
+			{
+				trivia = none
+				Digits = ['0'..'9'] & ['0'..'9']*
+				Number = Digits & ('.' & Digits)?
+			}
+			Start = Lex.Number & (',' & Lex.Number)*
+			parse Start
+			parse Lex.Number
+			""";
+
+		var characters = Whole(grammar, lexical: false, direct: true, input);
+
+		foreach (var direct in new[] { false, true })
+			Assert.Equal(characters, Whole(grammar, lexical: true, direct: direct, input));
+	}
+
+	static string Whole(string grammar, bool lexical, bool direct, string input)
 	{
 		var result = GramCompiler.Compile(
-			$"trivia = {{ ' '* }}\nStart = R1\nR1 = ({optional} | 'a'i)\nparse Start\n",
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", Lexical = lexical, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance });
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+		var match    = EmittedCode.Match(assembly, "Grammar", "TryParseNumber", input);
+		var start    = EmittedCode.Match(assembly, "Grammar", "TryParseStart", " 1.5 , 2 ");
+		var type     = assembly.GetType("Grammar")!;
+		var only     = type.GetMethods().Single(one =>
+			one.Name == "TryParseNumber" && one.GetParameters() is { Length: 2 } taken && taken[1].IsOut);
+		var answered = new object?[] { input, null };
+		var read     = (bool)only.Invoke(null, answered)!;
+
+		return $"{match.IsSuccess} {(match.IsSuccess ? match.Value : null)}; {read} {answered[1]}; start {start.IsSuccess}";
+	}
+
+	/// <summary>
+	/// An alternative after an optional one can never be taken, and the generated parser said so
+	/// with CS0162 — a warning in the consumer's build, an error under warnings-as-errors, from a
+	/// file they did not write. In braces the choice is scanned, and the scanner ends it there;
+	/// without them it is not scanned at all, and the later alternative is still reached by
+	/// giving back.
+	/// </summary>
+	[Theory]
+	[InlineData("\"abc\"?", true)]
+	[InlineData("\"abc\"i?", true)]
+	[InlineData("'b'?", true)]
+	[InlineData("\"\u0130\u00B5\u017F\"?", true)]
+	[InlineData("\"\u0130\u00B5\u017F\"i?", true)]
+	[InlineData("'b'?", false)]
+	[InlineData("\"\u0130\u00B5\u017F\"i?", false)]
+	public void An_alternative_after_an_optional_one_leaves_no_unreachable_code(string optional, bool braced)
+	{
+		var choice = $"({optional} | 'a'i)";
+		var result = GramCompiler.Compile(
+			$"trivia = {{ ' '* }}\nStart = R1\nR1 = {(braced ? "{ " + choice + " }" : choice)}\nparse Start\n",
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		if (result.Diagnostics.Any(static one => one.Severity != GramSeverity.Info))
-			return;
-
+		EmittedCode.Quiet(result.Diagnostics);
 		EmittedCode.Compile(result.Sources[0].Text);
 	}
 
@@ -153,9 +214,9 @@ public sealed class PositionalFormFindingsTests
 	/// choice a scanner reads, the choices of the seam included.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('b'* | 'a')\nparse Start\n", false)]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('d' | 'b'? | 'a' | 'c')\nparse Start\n", false)]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = (('b' | 'c')? | 'a')\nparse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('b'* | 'a') }\nparse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('d' | 'b'? | 'a' | 'c') }\nparse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { (('b' | 'c')? | 'a') }\nparse Start\n", false)]
 	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", false)]
 	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", true)]
 	public void An_alternative_that_cannot_fail_ends_a_scanned_choice(string grammar, bool lexical)

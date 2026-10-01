@@ -632,7 +632,8 @@ nothing but `@M` has no beginning to stop on, so the lexer asks `M` at every tok
 **Where the cut cannot be made, the grammar is compiled over characters and told why**
 (`GRAM5004`, a warning, since the author asked for something else): a `find` publication,
 which hunts through characters for a place to begin; a terminal that is not a regular
-language; no rule carrying trivia; or trivia that is not a scanner. Over kinds,
+language; no rule carrying trivia; trivia that is not a scanner; a published rule that is
+no token of its own over tokens; or a published terminal that builds a value. Over kinds,
 `FirstSets.Committed` asks the soundness question again, since an overlap there is settled
 by the reading that fits rather than by backtracking; and a machine the reader refuses is
 reported as `GRAM5005`, because the engine it falls back on backtracks into a rule the

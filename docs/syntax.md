@@ -1954,7 +1954,12 @@ this grammar calls trivia — is the lexer's to skip and not the caller's to kno
 host reading a script a statement at a time hands in the position after the last
 statement, which is one of those as often as not. `Position` then says where the reading
 began, which is where the value begins and not where the caller was looking, and where
-nothing is left but trivia the answer is `Starved`. A character no token begins with ends
+nothing is left but trivia the answer is `Starved`. So it is where what is left — after the
+position, or in the window — holds only characters no token begins with: over tokens there
+is nothing there to read, where over characters a rule that can read nothing reads it there.
+A published rule of a namespace without trivia reads none over tokens either: trivia before
+its first token, or after its last where the end is asked for, refuses it as it does over
+characters. A character no token begins with ends
 the tokens rather than refusing the reading — in all of these forms, since none of them is
 required to reach the end of the input, and a reading must not be refused by what it never
 read: one character the language does not know in the last line of a script leaves the

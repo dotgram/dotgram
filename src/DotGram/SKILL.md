@@ -427,7 +427,9 @@ the result.
 a lexical half makes them, and the half above decides each choice by the token in front of
 it and does not revisit it. It needs `trivia` in braces and a lexical namespace whose own
 `trivia` is `none`; where the grammar cannot be cut in two, `GRAM5004` says so and the
-parser is the one it would have been. **A token parse reads from memory only** — there are
+parser is the one it would have been. Publishing a rule of that lexical namespace is fine —
+it reads one token and, like over characters, no trivia around it — except one that builds
+a value, or a helper that is only part of a token: those keep the grammar over characters. **A token parse reads from memory only** — there are
 no reader overloads over kinds.
 
 **A terminal of the lexical half is not a bare `@M`** (`GRAM5011`): the lexer has no

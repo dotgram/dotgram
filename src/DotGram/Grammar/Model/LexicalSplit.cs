@@ -49,7 +49,8 @@ public sealed class LexicalSplit
 		IReadOnlyList<RuleSymbol> trivia,
 		IReadOnlyList<RuleSymbol> valued,
 		TerminalInventory inventory,
-		IReadOnlyList<string> blocked)
+		IReadOnlyList<string> blocked,
+		IReadOnlyList<RuleSymbol> bare)
 	{
 		Syntax    = syntax;
 		Source    = source;
@@ -57,6 +58,7 @@ public sealed class LexicalSplit
 		Valued    = valued;
 		Inventory = inventory;
 		Blocked   = blocked;
+		Bare      = bare;
 	}
 
 	/// <summary>The syntactic machine, over kinds.</summary>
@@ -100,6 +102,14 @@ public sealed class LexicalSplit
 	/// </para>
 	/// </remarks>
 	public IReadOnlyList<RuleSymbol> Valued { get; }
+
+	/// <summary>The published rules whose namespace has no trivia.</summary>
+	/// <remarks>
+	/// Over tokens the trivia around every token is skipped, so such a publication read as
+	/// one token would accept ` if` where the reading over characters refuses it. Its
+	/// published forms refuse where trivia stands before its first token or after its last.
+	/// </remarks>
+	public IReadOnlyList<RuleSymbol> Bare { get; }
 
 	/// <summary>What the split could not do, empty where it did all of it.</summary>
 	public IReadOnlyList<string> Blocked { get; }
@@ -199,6 +209,7 @@ public sealed class LexicalSplit
 			var bodies  = new Dictionary<RuleSymbol, Node>();
 			var blocked = new List<string>();
 			var valued  = new List<RuleSymbol>();
+			var bare    = new List<RuleSymbol>();
 
 			foreach (var rule in graph.Rules)
 			{
@@ -212,12 +223,16 @@ public sealed class LexicalSplit
 					// build it, and its value is read again from the text (see `Valued`).
 					var published = graph.Bodies.ContainsKey(rule) && graph.Publications.Any(one => one.Rule == rule);
 
-					// Over tokens the trivia around every token is skipped, so a publication
-					// of a rule whose namespace has none would accept text the same publication
-					// over characters refuses (` if` for `Kw = ("if" | "do")`). Read over
-					// characters instead.
+					// Over tokens the trivia around every token is skipped, and a publication of
+					// a rule whose namespace has none refuses it at the edges instead (`Bare`).
 					if (published && !graph.Trivia.ContainsKey(rule))
-						blocked.Add($"{rule.Name} is published from a namespace without trivia, and over tokens the trivia around a token is always skipped");
+						bare.Add(rule);
+
+					// The value of a terminal that builds is read again from its token's text
+					// where the syntactic machine calls it, and its own publication has no such
+					// second read: what it wrote did not compile (CS1501).
+					if (published && _valued.Contains(rule))
+						blocked.Add($"{rule.Name} is published and builds a value, which over tokens only its callers read");
 
 					if (_valued.Contains(rule))
 					{
@@ -291,7 +306,8 @@ public sealed class LexicalSplit
 				[.. graph.Trivia.Values.OfType<Node.Call>().Select(call => call.Rule).Distinct()],
 				valued,
 				inventory,
-				blocked);
+				blocked,
+				bare);
 		}
 
 		/// <summary>

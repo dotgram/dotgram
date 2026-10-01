@@ -55,16 +55,9 @@ public sealed class TokenReadingFindingsTests
 
 	/// <summary>
 	/// A rule of a namespace with no trivia reads none around itself: published, it refuses a
-	/// space before or after it over characters. Over tokens the lexer skips that space before
-	/// the published rule's one token test ever runs, so the same publication accepts it.
+	/// space before or after it over characters, and over tokens — where the lexer skips that
+	/// space — its publication refuses trivia before its first token or after its last.
 	/// </summary>
-	/// <remarks>
-	/// Red: over tokens <c>" if"</c> and <c>"12 "</c> are read. The split keeps the rule as a
-	/// test of its kinds and does not keep its namespace's trivia, so `Lexical` changes which
-	/// texts the publication accepts — which §6.8 allows only where a rule's answer stands.
-	/// Either the whole reading over kinds refuses trivia around such a publication, or the
-	/// split refuses the grammar (GRAM5004).
-	/// </remarks>
 	[Theory]
 	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\nparse Start\nparse Lex.Kw\n", "TryParseKw", " if")]
 	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\nparse Start\nparse Lex.Kw\n", "TryParseKw", "if ")]
@@ -79,16 +72,16 @@ public sealed class TokenReadingFindingsTests
 	}
 
 	/// <summary>
-	/// A published terminal that builds a value, over tokens.
+	/// A published terminal that builds a value keeps the grammar over characters (GRAM5004),
+	/// where the parser compiles and reads the value.
 	/// </summary>
 	/// <remarks>
-	/// Such a terminal is a rule of a namespace without trivia, and the split now refuses a
-	/// publication of one (GRAM5004): over kinds the trivia around it would be skipped. The
-	/// grammar is read over characters, where the parser it writes compiles and reads the
-	/// value — it used to write one that did not compile (CS1501).
+	/// Over tokens the value of such a terminal is read again from its token where a rule calls
+	/// it, and its own publication has no such read: the parser written for it did not compile
+	/// (CS1501).
 	/// </remarks>
 	[Fact]
-	public void A_published_terminal_that_builds_a_value_compiles_over_tokens()
+	public void A_published_terminal_that_builds_a_value_is_read_over_characters()
 	{
 		var result = GramCompiler.Compile(
 			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tNum : @int = ['0'..'9']+ => @int.Parse(parserText)\n}\n" +
@@ -245,12 +238,9 @@ public sealed class TokenReadingFindingsTests
 	/// <c>a</c>, and when what follows fails the choice is reopened and <c>'a'</c> is taken.
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: the rule is compiled as a scanner, which commits the first reading of
-	/// each choice. Scanning an unbraced rule is licensed by its alternatives being exclusive
-	/// (Machine.Scan.cs, <c>Exclusive</c>), and exclusive first sets are not enough where an
-	/// earlier alternative reads nothing at all: it matches in front of every later one. The
-	/// CS0162 this shape used to raise was the compiler pointing at exactly that dead
-	/// alternative; ending the choice there silenced the warning and kept the wrong reading.
+	/// A scanner commits the first reading of each choice, and exclusive first sets do not
+	/// license that where an earlier alternative reads nothing at all: it matches in front of
+	/// every later one. Such a rule is not scanned.
 	/// </remarks>
 	[Theory]
 	[InlineData("Start = R1\nR1 = ('b'? | 'a'i)\nparse Start\n", "a")]
@@ -271,9 +261,9 @@ public sealed class TokenReadingFindingsTests
 	/// the characters it read before the next alternative is tried.
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: on <c>xby</c> <c>'b'{2}</c> reads one <c>b</c>, fails, and the scanner
-	/// goes on to <c>'a'</c> and then out of the optional without putting the position back,
-	/// so <c>R1</c> answers having read the <c>b</c> and <c>'y'</c> matches.
+	/// On <c>xby</c> <c>'b'{2}</c> reads one <c>b</c> and fails; the scanner has to put the
+	/// position back before it tries <c>'a'</c> and leaves the optional, or <c>R1</c> answers
+	/// having read the <c>b</c> and <c>'y'</c> matches.
 	/// </remarks>
 	[Theory]
 	[InlineData(false)]
@@ -290,8 +280,8 @@ public sealed class TokenReadingFindingsTests
 	/// A choice in a rule compiled flat, after an alternative that reads nothing.
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: the flat recognizer assigns a <c>turn</c> local it never declared
-	/// (CS0103) — the same dead alternative as the scanner's CS0162, met on the flat path.
+	/// The flat recognizer assigned a <c>turn</c> local it never declared (CS0103) — the same
+	/// dead alternative as the scanner's CS0162, met on the flat path.
 	/// </remarks>
 	[Theory]
 	[InlineData("{ (\"ab\"? | 'a' | \"abc\") }")]

@@ -1401,8 +1401,10 @@ It is a request. Where the grammar cannot be cut it is compiled over characters,
 would have been without the request, and `GRAM5004` says which reason applies: no trivia
 at all, so nothing tells a token from a character; terminals that cannot all be read by one
 automaton; a `find`, which hunts through characters for a place to begin, so a grammar
-publishing one is never cut; or `trivia` not written in braces, whose seam is skipped by
-the scanner braces ask for. A warning, because the two readings are not always the same
+publishing one is never cut; `trivia` not written in braces, whose seam is skipped by
+the scanner braces ask for; a published rule that is no token of its own over tokens (part
+of the seam, or a helper a terminal calls); or a published terminal that builds a value,
+which over tokens only its callers read. A warning, because the two readings are not always the same
 parser.
 
 What is different over kinds is said too. `GRAM5005`: a rule of the syntactic half that the
