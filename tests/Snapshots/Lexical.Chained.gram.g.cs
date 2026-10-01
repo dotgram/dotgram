@@ -168,7 +168,7 @@ namespace DotGram.Snapshots
 				}
 
 				var whole = recognized;
-				var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];
+				var over  = end == from ? began : starts[end - 1] + lengths[end - 1];
 
 
 				return Match<string[]>.Success(whole, began, over - began);
@@ -216,7 +216,7 @@ namespace DotGram.Snapshots
 				var began = starts[from];
 
 				value = recognized;
-				at = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];
+				at = end == from ? began : starts[end - 1] + lengths[end - 1];
 
 
 				return true;
@@ -243,6 +243,13 @@ namespace DotGram.Snapshots
 				var starts  = tokens.Starts;
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
+
+				if (count == 0)
+				{
+					Recycle_DotGram(tokens);
+
+					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", at + length, null, null);
+				}
 
 				var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 				var failure = new Failure { Quiet = true };
@@ -273,7 +280,7 @@ namespace DotGram.Snapshots
 				}
 
 				var whole = recognized;
-				var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];
+				var over  = end == 0 ? began : starts[end - 1] + lengths[end - 1];
 
 				Recycle_DotGram(tokens);
 
@@ -298,6 +305,14 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
+				if (count == 0)
+				{
+					Recycle_DotGram(tokens);
+
+					value = default!;
+					return false;
+				}
+
 				var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 				var failure = new Failure { Quiet = true };
 
@@ -314,7 +329,7 @@ namespace DotGram.Snapshots
 				var began = count > 0 ? starts[0] : at;
 
 				value = recognized;
-				at = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];
+				at = end == 0 ? began : starts[end - 1] + lengths[end - 1];
 
 				Recycle_DotGram(tokens);
 

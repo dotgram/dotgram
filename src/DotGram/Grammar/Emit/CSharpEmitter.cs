@@ -1782,8 +1782,21 @@ public static partial class CSharpEmitter
 						file.Line();
 					}
 
-					// Out here a position is an offset into the text; in there it is a token.
-					if (positional && !windowed)
+					// Out here a position is an offset into the text; in there it is a token. A
+					// window cut into no token at all is refused the same way: nothing is there.
+					if (positional && windowed)
+					{
+						using (file.Block("if (count == 0)"))
+						{
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line("value = default!;");
+							file.Line("return false;");
+						}
+
+						file.Line();
+					}
+					else if (positional)
 					{
 						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
@@ -1853,9 +1866,11 @@ public static partial class CSharpEmitter
 
 				// Where the reading stopped, said as the caller says positions: an offset into
 				// the input, which over kinds is the end of the last token it read.
+				// A reading of nothing ends where it began, which over kinds is the first token
+				// at or after `at` and not the start of the text.
 				if (positional)
 					file.Line(overKinds
-						? "at = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];"
+						? $"at = end == {begins} ? began : starts[end - 1] + lengths[end - 1];"
 						: "at = end;");
 
 				if (overKinds)
@@ -1945,7 +1960,23 @@ public static partial class CSharpEmitter
 					// Out here a position is an offset into the text; in there it is a token.
 					// A reading has to begin where one begins, and where none does the caller
 					// named a place inside a token or past the end.
-					if (positional && !windowed)
+					if (positional && windowed)
+					{
+						// A window cut into no token at all holds nothing to read either: trivia,
+						// or a character no token begins with, or nothing. The same refusal as
+						// from a position, said at the window's end.
+						using (file.Block("if (count == 0)"))
+						{
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line(
+								$"return {match}.Failed({OutcomeType}.Starved, " +
+								"\"Expected more input.\", at + length, null, null);");
+						}
+
+						file.Line();
+					}
+					else if (positional)
 					{
 						// Named with this machine's tag, as everything it writes is: two machines
 						// in one class must not collide (Machine.Provenance).
@@ -2094,7 +2125,10 @@ public static partial class CSharpEmitter
 				{
 					// Both read the arrays, so both are worked out before the set goes back.
 					file.Line($"var whole = {Recognized(begins, begins == "0" ? "end" : $"end - {begins}")};");
-					file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
+					// Where the reading stopped: the end of the last token it read, or where it
+					// began where it read none — not the start of the text, and not the end of a
+					// token before the one it began at.
+					file.Line($"var over  = end == {begins} ? {position} : starts[end - 1] + lengths[end - 1];");
 					file.Line();
 					if (!kept) file.Line("Recycle_DotGram(tokens);");
 					file.Line();
