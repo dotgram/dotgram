@@ -34,7 +34,9 @@ scan() {
 				printf '%s\t%s\t%s\n' "$pkg" "$name" "$(echo "$rest" | sed -E 's/^[[:space:]]*#pragma warning disable[[:space:]]*//')"
 			done || true
 		done
-	done | sort -u
+	# "LC_ALL=C": a locale-aware sort ignores the dots in file names, so a developer's
+	# en_US order and CI's C order differ and the check fails on order alone.
+	done | LC_ALL=C sort -u
 }
 
 case "${1:-}" in
