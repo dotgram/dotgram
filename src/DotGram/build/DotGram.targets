@@ -19,6 +19,10 @@
 	<ItemGroup>
 		<CompilerVisibleProperty Include="DotGramReportGeneration" />
 		<CompilerVisibleProperty Include="DesignTimeBuild" />
+		<!-- Experimental, off unless `true`: compile every `parse` knowing that it is also read from a
+		     position, which makes its positional forms answer the rule's first reading and costs the
+		     whole forms some of their proofs (docs/syntax.md, §6.8). -->
+		<CompilerVisibleProperty Include="DotGramPositionalFollow" />
 		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(_DotGramReport)' != 'none'" />
 	</ItemGroup>
 

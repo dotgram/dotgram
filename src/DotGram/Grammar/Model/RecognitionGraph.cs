@@ -632,6 +632,18 @@ public sealed class RecognitionGraph(
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 
+	/// <summary>
+	/// Whether <see cref="FollowSets"/> says that a <c>parse</c> is also read from a position,
+	/// with anything after it, and not only to the end of input.
+	/// </summary>
+	/// <remarks>
+	/// Experimental, and off unless asked for (<see cref="GramCompilerOptions.PositionalFollow"/>).
+	/// Off, the rule is compiled against the end of input that only the whole forms demand, and a
+	/// positional form can miss a reading the rule has; on, it gives the rule's first reading, at
+	/// the price of the proofs the whole forms rest on.
+	/// </remarks>
+	public bool PositionalFollow { get; init; }
+
 	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
 	/// <remarks>
 	/// Held here because it is a fact about this graph that costs a fixed point to find, and

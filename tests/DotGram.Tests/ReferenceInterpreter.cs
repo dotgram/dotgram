@@ -54,6 +54,31 @@ public static class ReferenceInterpreter
 	}
 
 	/// <summary>
+	/// Where a reading of <paramref name="rule"/> begun at <paramref name="at"/> ends, or -1
+	/// where there is none (§6.3: no end of input is demanded, so the first reading is the one).
+	/// </summary>
+	/// <remarks>
+	/// The trivia before the rule is read and the trivia after it is not: what a reading from a
+	/// position leaves after the value is the leading trivia of the next one.
+	/// </remarks>
+	public static int Reads(RecognitionGraph graph, RuleSymbol rule, string text, int at)
+	{
+		if (graph is null) throw new ArgumentNullException(nameof(graph));
+		if (rule is null)  throw new ArgumentNullException(nameof(rule));
+		if (text is null)  throw new ArgumentNullException(nameof(text));
+
+		var body = graph.Bodies[rule];
+
+		if (graph.Trivia.TryGetValue(rule, out var trivia))
+			body = new Node.Sequence([trivia, body]);
+
+		foreach (var end in Ends(body, text, at, graph))
+			return end;
+
+		return -1;
+	}
+
+	/// <summary>
 	/// Every position the node can end at from <paramref name="at"/>, lazily, most
 	/// preferred first.
 	/// </summary>

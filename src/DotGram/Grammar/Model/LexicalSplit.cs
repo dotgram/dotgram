@@ -250,6 +250,7 @@ public sealed class LexicalSplit
 				Context    = graph.Context,
 				ContextRewinds = graph.ContextRewinds,
 				State      = graph.State,
+				PositionalFollow = graph.PositionalFollow,
 
 				// A rule that is told where it was written goes on being told: the split
 				// changes what the syntactic machine reads, not what its values are.

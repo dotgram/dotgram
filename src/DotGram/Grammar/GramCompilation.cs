@@ -212,6 +212,28 @@ public sealed class GramCompilerOptions
 	public bool CountRules { get; set; }
 
 	/// <summary>
+	/// Whether a <c>parse</c> is compiled knowing that it is also read from a position, where
+	/// anything may follow it, and not only to the end of input. Experimental, and off by default.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A <c>parse</c> has whole forms, which demand the end of input, and positional and window
+	/// forms, which begin where they are told and demand nothing after the rule (§6.3). The rule
+	/// is compiled once for both. Off, it is compiled against the end of input, and a decision
+	/// taken on the strength of that end — a way back not kept because what it would reach could
+	/// not have been followed by the end — can make a positional form miss the rule's first
+	/// reading: <c>Start = (R1 | R1)?</c> with <c>R1 = 'a' &amp; 'k'</c>, read from 0 in
+	/// <c>ab</c>, answers no reading where the rule reads nothing.
+	/// </para>
+	/// <para>
+	/// On, every positional reading is the rule's first reading, and the whole forms lose the
+	/// proofs they rest on: larger readers, and several grammars move from the immediate carrier
+	/// to the tape. The generator sets it where the build sets <c>DotGramPositionalFollow</c>.
+	/// </para>
+	/// </remarks>
+	public bool PositionalFollow { get; set; }
+
+	/// <summary>
 	/// Typed value storage for all direct tape readers in this compilation. Other
 	/// carriers and the non-direct engine do not use these tables. Auto chooses at
 	/// generation time; explicit strategies override both dense and paged heuristics.

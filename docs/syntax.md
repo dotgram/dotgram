@@ -2244,6 +2244,37 @@ seen.
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
 Being an option, it may be given to one reading of a grammar and not to another (§6.6).
 
+#### `DotGramPositionalFollow` (experimental)
+
+An MSBuild property rather than an attribute option: it applies to every grammar the build
+compiles, and is off unless set to `true`.
+
+```xml
+<PropertyGroup>
+  <DotGramPositionalFollow>true</DotGramPositionalFollow>
+</PropertyGroup>
+```
+
+A `parse` has whole forms, which demand the end of the input, and the forms that begin at a
+position or read a window (§6.3), which demand nothing after the rule. The rule is compiled
+once for both, and by default against the end of the input. Some decisions taken on the
+strength of that end hold for the whole forms only: a way back to an optional's skip is not
+kept, a repetition's turn is taken as final because the end could not begin where it stopped.
+From a position such a decision can refuse or cut short the rule's first reading, which is
+what §4 says a reading from a position is. `Start = (R1 | R1)?` with `R1 = 'a' & 'k'`, read
+from 0 in `ab`, answers no reading where the rule reads nothing; `'"' & ("\"\"" | [^'"'])* & '"'`
+from 0 in `"a""x` can refuse where it reads `"a"`. The whole forms are right either way.
+
+Set, every `parse` is compiled knowing that it is also read from a position, and those forms
+give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
+rested on, and that is the cost: in this repository's own packages the JSON, JSON Pointer and
+URI Template readers and the `Set-Cookie` reader leave the immediate carrier for the tape and
+grow by 6 to 24 per cent, and several refusals that were linear in the input's length become
+quadratic. A grammar that states `Carrier = Immediate` keeps it, and is told (`GRAM5015`)
+where the generator would now have chosen the tape: the FIX grammar is one. A token grammar (`Lexical`) changes only the order of its expected-token tables. The
+property is for a build that needs the positional forms right now and accepts that cost; the
+default stays off until the analysis can tell the two kinds of entry apart.
+
 #### Attributes for tooling
 
 These describe the language to editors. An editor reads them rather than executing them, and

@@ -130,8 +130,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var counting = context.ParseOptionsProvider.Select(static (options, _) =>
 			options.PreprocessorSymbolNames.Contains(CountsSymbol));
 
-		var compiled = answered.Combine(reporting).Combine(counting)
-			.Select(static (input, _) => CompileSafely(input.Left.Left, input.Left.Right, input.Right))
+		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
+		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
+		// unless the property says `true`.
+		var positional = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+			options.GlobalOptions.TryGetValue("build_property.DotGramPositionalFollow", out var value) &&
+			string.Equals(value.Trim(), "true", StringComparison.OrdinalIgnoreCase));
+
+		var compiled = answered.Combine(reporting).Combine(counting).Combine(positional)
+			.Select(static (input, _) => CompileSafely(
+				input.Left.Left.Left, input.Left.Left.Right, input.Left.Right, input.Right))
 			.WithTrackingName(CompiledStage);
 
 		// Each parser beside where its host is written. The lookup runs for every parser whenever
@@ -240,11 +248,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which emitted code carries the counters of the repository's tests.</summary>
 	const string CountsSymbol = "DOTGRAM_COUNTS";
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, bool counting)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, bool counting, bool positional)
 	{
 		try
 		{
-			return Compile(grammar, reporting, counting);
+			return Compile(grammar, reporting, counting, positional);
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -621,7 +629,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, bool counting)
+	static Parser Compile(Grammar grammar, Reporting reporting, bool counting, bool positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -695,6 +703,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Only the full one — this is analysis nobody pays for who is not reading it.
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting,
+			PositionalFollow = positional,
 		});
 
 		timer?.Stop();

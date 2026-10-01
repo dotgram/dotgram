@@ -123,9 +123,13 @@ public sealed partial class GrammarNormalizer
 	/// the emitter falls back to searching the spelling — which is what it used to do
 	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
 	/// </param>
+	/// <param name="positionalFollow">
+	/// What <see cref="RecognitionGraph.PositionalFollow"/> says: whether a <c>parse</c> is
+	/// analysed as also read from a position. Normalization itself does not read it.
+	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
-		string? locationType = null)
+		string? locationType = null, bool positionalFollow = false)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -269,6 +273,7 @@ public sealed partial class GrammarNormalizer
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
+			PositionalFollow = positionalFollow,
 		};
 	}
 

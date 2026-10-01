@@ -329,13 +329,37 @@ public static class FollowSets
 				_                 => Continuation.All,
 			};
 
+			// A `parse` is also read from a position (§6.3): the same rule, entered where the
+			// caller says and demanding no end, so after it anything may stand and nothing is
+			// read. Said as a second entry, the trivia before the rule and not after it, for
+			// the same reason the whole one is: what the end of input proves about a reading
+			// does not hold for that one. A decision taken on the strength of the end — a
+			// choice not kept because what it skips could not have reached it — refuses there
+			// a reading the rule has. Only where the graph was asked to say so: it gives up,
+			// for every parse, the proofs the whole forms rest on, and with them the
+			// immediate carrier of several grammars.
+			var positional = graph.PositionalFollow && publication.Kind == PublishKind.Parse;
+
 			if (graph.Trivia.TryGetValue(publication.Rule, out var around))
+			{
 				entries.Add((
 					new Node.Sequence([around, new Node.Call(publication.Rule, []), around]),
 					after,
 					SeamOf(publication.Rule, graph)));
+
+				if (positional)
+					entries.Add((
+						new Node.Sequence([around, new Node.Call(publication.Rule, [])]),
+						Continuation.All,
+						SeamOf(publication.Rule, graph)));
+			}
 			else
+			{
 				follow[publication.Rule] = follow[publication.Rule].Or(after);
+
+				if (positional)
+					follow[publication.Rule] = follow[publication.Rule].Or(Continuation.All);
+			}
 		}
 
 		// Every body contributes once, even with an empty FOLLOW: its internal call
