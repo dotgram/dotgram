@@ -703,6 +703,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Only the full one — this is analysis nobody pays for who is not reading it.
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting,
+
+			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional,
 		});
 

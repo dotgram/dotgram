@@ -273,6 +273,8 @@ public sealed partial class GrammarNormalizer
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
+
+			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
 		};
 	}

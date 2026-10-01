@@ -176,6 +176,50 @@ public sealed class PositionalFollowTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ab").IsSuccess);
 	}
 
+	/// <summary>
+	/// The forms that answer with a match, from a position and in a window, give the same
+	/// readings as the form that moves the position: where the value began and how long it is.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void The_match_forms_from_a_position_and_in_a_window_keep_the_skip(bool direct)
+	{
+		var assembly = Compiled(Shapes["Optional"].Grammar, direct, positionalFollow: true);
+
+		Assert.Equal((true, (string?)null, 0L, 0L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "ab", 0));
+		Assert.Equal((true, (string?)null, 1L, 0L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "xab", 1));
+		Assert.Equal((true, (string?)null, 0L, 2L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "akb", 0));
+
+		// A window that ends inside `ak` leaves the optional nothing to read but its skip.
+		Assert.Equal((true, (string?)null, 0L, 0L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "akb", 0, 1));
+		Assert.Equal((true, (string?)null, 0L, 2L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "akb", 0, 2));
+		Assert.Equal((true, (string?)null, 1L, 0L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "xab", 1, 2));
+
+		Assert.Equal((true, 0), Answer(assembly, "akb", 0, 1));
+		Assert.Equal((true, 3), Answer(assembly, "xakb", 1, 2));
+	}
+
+	/// <summary>
+	/// A grammar cut into tokens carries the option onto its syntactic half, which is the graph
+	/// the parser is compiled from.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void The_lexical_split_carries_the_option(bool positionalFollow)
+	{
+		var graph = GrammarNormalizer.Normalize(
+			GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(
+				"trivia = { ' '* }\nStart = \"ab\" & (\"c\" | \"d\")?\nparse Start\n", RoslynCSharpScanner.Instance)).File),
+			positionalFollow: positionalFollow);
+
+		var split = LexicalSplit.Of(graph);
+
+		Assert.NotNull(split);
+		Assert.Equal(positionalFollow, split.Syntax.PositionalFollow);
+	}
+
 	/// <summary>The option is off unless asked for.</summary>
 	[Fact]
 	public void The_option_is_off_by_default()
@@ -221,9 +265,9 @@ public sealed class PositionalFollowTests
 		return EmittedCode.Compile(result.Sources[0].Text);
 	}
 
-	static (bool Read, int At) Answer(Assembly assembly, string input, int at)
+	static (bool Read, int At) Answer(Assembly assembly, string input, int at, int? length = null)
 	{
-		var answer = EmittedCode.Answered(assembly, "Grammar", "TryParseStart", input, at);
+		var answer = EmittedCode.Answered(assembly, "Grammar", "TryParseStart", input, at, length);
 
 		return (answer.Read, answer.At);
 	}

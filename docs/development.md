@@ -1,4 +1,4 @@
-# Working on this
+﻿# Working on this
 
 How the project is built, checked and measured. Standing process rather than plans —
 [`next.md`](next.md) says what to do next, this says what to do every time.
@@ -47,6 +47,12 @@ A build prints the generator's warnings and errors and not its information: `GRA
 says a grammar cut into kinds reads something other than it is written, is information, and so is
 every other diagnostic about what an author cannot see. `-v:detailed` prints them —
 `dotnet build src/DotGram.Sql -t:Rebuild -v:detailed | grep GRAM` is the list for one project.
+
+`-p:DotGramPositionalFollow=true` builds every grammar with the experimental switch of syntax.md
+§6.8, under which a `parse` is compiled knowing it is also read from a position. Under it the FIX
+grammar, which pins `Carrier = Immediate`, reports `GRAM5015`, and `TreatWarningsAsErrors` turns
+that into a failed build: add `-p:WarningsNotAsErrors=NU1900%3BGRAM5015` (the `%3B` is the
+separator; `NU1900` is the one `Directory.Build.props` already lists).
 
 ## The same build on Linux
 

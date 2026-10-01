@@ -2186,7 +2186,9 @@ grammar means. Under every setting a grammar accepts the same texts and builds t
 values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
 rule's answer stands (§4); `Carrier` decides whether a construction may run for a reading that is abandoned or
 refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
-it allows.
+it allows. The build property `DotGramPositionalFollow`, below, is one more: it changes what a
+reading from a position answers, and, under `Carrier = Auto`, which carrier the generator
+chooses.
 
 `Lexical` and `Carrier` are requests rather than settings. Where a grammar cannot
 be compiled the way one asks, the parser is compiled the way it would have been without the
@@ -2261,9 +2263,12 @@ once for both, and by default against the end of the input. Some decisions taken
 strength of that end hold for the whole forms only: a way back to an optional's skip is not
 kept, a repetition's turn is taken as final because the end could not begin where it stopped.
 From a position such a decision can refuse or cut short the rule's first reading, which is
-what §4 says a reading from a position is. `Start = (R1 | R1)?` with `R1 = 'a' & 'k'`, read
-from 0 in `ab`, answers no reading where the rule reads nothing; `'"' & ("\"\"" | [^'"'])* & '"'`
-from 0 in `"a""x` can refuse where it reads `"a"`. The whole forms are right either way.
+what §4 says a reading from a position is. Which reader goes wrong depends on the shape:
+`Start = (R1 | R1)?` with `R1 = 'a' & 'k'`, read from 0 in `ab`, answers no reading where the
+rule reads nothing, in the shared automaton only; `'"' & ("\"\"" | [^'"'])* & '"'` from 0 in
+`"a""x` refuses where it reads `"a"`, in a publication read by methods only; and
+`('a' & 'b' | 'a' & 'c')* & ?!'x'` from 0 in `abacx` refuses where it reads `ab` in both. The
+whole forms are right either way.
 
 Set, every `parse` is compiled knowing that it is also read from a position, and those forms
 give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
@@ -2271,8 +2276,12 @@ rested on, and that is the cost: in this repository's own packages the JSON, JSO
 URI Template readers and the `Set-Cookie` reader leave the immediate carrier for the tape and
 grow by 6 to 24 per cent, and several refusals that were linear in the input's length become
 quadratic. A grammar that states `Carrier = Immediate` keeps it, and is told (`GRAM5015`)
-where the generator would now have chosen the tape: the FIX grammar is one. A token grammar (`Lexical`) changes only the order of its expected-token tables. The
-property is for a build that needs the positional forms right now and accepts that cost; the
+where the generator would now have chosen the tape: the FIX grammar is one. That is a warning,
+and under warnings as errors — this repository's `Directory.Build.props` sets
+`TreatWarningsAsErrors` — it stops the build of such a grammar while the property is set; build
+with `-p:WarningsNotAsErrors=GRAM5015` (keeping any the project already lists) or suppress it
+with `NoWarn`. A token grammar (`Lexical`) changes only the order of its expected-token tables.
+The property is for a build that needs the positional forms right now and accepts that cost; the
 default stays off until the analysis can tell the two kinds of entry apart.
 
 #### Attributes for tooling
