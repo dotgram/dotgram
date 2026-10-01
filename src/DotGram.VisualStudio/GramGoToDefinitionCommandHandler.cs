@@ -81,10 +81,8 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
 			GramBufferAnalysis.For(args.SubjectBuffer).ExternalDefinition(snapshot, position) is { } external)
-			return Navigate(new GeneratedApiSource(
-				IncludedGrammarView.PathOf(external.Target.Grammar),
-				external.Target.Line,
-				external.Target.Column));
+			return IncludedGrammarView.PathOf(external.Target.Grammar) is { } path &&
+				Navigate(new GeneratedApiSource(path, external.Target.Line, external.Target.Column));
 
 		var found = Target(args);
 

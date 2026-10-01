@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using DotGram.Generation;
 using DotGram.Grammar;
 
 using Microsoft.CodeAnalysis;
@@ -96,28 +97,28 @@ readonly record struct StandaloneGrammarResolution(
 	public static StandaloneGrammarResolution NotReady { get; } = new(
 		StandaloneGrammarState.NotReady, null, Array.Empty<ProjectId>(), Array.Empty<DocumentId>());
 
-	public static StandaloneGrammarResolution NoHost(ProjectId? project)
+	/// <summary>Not settled, in a project that is known: the one that holds the grammar.</summary>
+	public static StandaloneGrammarResolution NotReadyIn(ProjectId project)
 	{
 		return new StandaloneGrammarResolution(
-			StandaloneGrammarState.NoHost,
-			null,
-			project is null ? Array.Empty<ProjectId>() : [project],
-			Array.Empty<DocumentId>());
+			StandaloneGrammarState.NotReady, null, [project], Array.Empty<DocumentId>());
+	}
+
+	public static StandaloneGrammarResolution NoHost(ProjectId project)
+	{
+		return new StandaloneGrammarResolution(
+			StandaloneGrammarState.NoHost, null, [project], Array.Empty<DocumentId>());
 	}
 }
 
-/// <summary>One grammar a host includes, as its attributes say, before any of it is read.</summary>
-/// <param name="Source">The <c>[Gram]</c> argument: a <c>.gram</c> file's name, or the grammar's text.</param>
-/// <param name="Carried">What the class carries in <c>[GramSource]</c>, which crosses an assembly reference.</param>
-readonly record struct IncludedGrammarHost(INamedTypeSymbol Type, string Name, string Source, string? Carried);
-
 /// <summary>Builds the included tail used to analyze a standalone grammar in its C# host context.</summary>
+/// <remarks>
+/// Which grammars are included, under which names and from which attribute is
+/// <see cref="GramIncludes"/>, the generator's own walk; what is added here is reading them
+/// out of a workspace rather than out of a compilation's additional files.
+/// </remarks>
 static class StandaloneGrammarInheritance
 {
-	const string GramAttribute = "DotGram.GramAttribute";
-	const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
-	const string GramSourceAttribute = "DotGram.GramSourceAttribute";
-
 	public static async Task<StandaloneGrammarResolution> ResolveAsync(
 		Solution solution,
 		string filePath,
@@ -131,45 +132,52 @@ static class StandaloneGrammarInheritance
 			return StandaloneGrammarResolution.NotReady;
 
 		var project = grammar.Project;
-		var (host, hostDocument, named) = await HostAsync(project, filePath, cancellationToken).ConfigureAwait(false);
+		var (host, hostDocument, reading, named) = await HostAsync(project, filePath, cancellationToken).ConfigureAwait(false);
 		if (host is null)
-			return named ? StandaloneGrammarResolution.NotReady : StandaloneGrammarResolution.NoHost(project.Id);
+			return named ? StandaloneGrammarResolution.NotReadyIn(project.Id) : StandaloneGrammarResolution.NoHost(project.Id);
 
 		var projects  = new HashSet<ProjectId> { project.Id };
 		var documents = new HashSet<DocumentId> { hostDocument!.Id };
 		var included  = new List<StandaloneIncludedGrammar>();
 
-		foreach (var include in Includes(host))
+		// Every class the walk passes is watched, a base without a grammar too: it may be
+		// given one, or a [GramInclude], and then what is included changes.
+		void Watch(INamedTypeSymbol type)
 		{
-			foreach (var declaration in include.Type.DeclaringSyntaxReferences)
+			foreach (var declaration in type.DeclaringSyntaxReferences)
 				if (solution.GetDocumentId(declaration.SyntaxTree) is { } declared)
 				{
 					documents.Add(declared);
 					projects.Add(declared.ProjectId);
 				}
+		}
 
+		foreach (var include in GramIncludes.Walk(host, Watch))
+		{
 			// The file first, from the host's own project, which is where the generator looks;
-			// what the class carries is what there is across an assembly reference.
+			// what the class carries is what there is across an assembly reference, and what
+			// the generator falls back on where the file is missing or ambiguous.
 			string? text = null;
 			string? path = null;
 
-			if (IsFile(include.Source))
+			if (include.Source is { } written && !GramIncludes.IsPath(written))
+				text = written;
+			else
 			{
-				var file = FileDocument(project, include.Source);
+				var wanted = GramIncludes.Wanted(include);
+				var file   = FileDocument(project, wanted);
+
 				if (file is not null)
 				{
 					text = (await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
 					path = file.FilePath;
 					documents.Add(file.Id);
 				}
-			}
-			else
-				text = include.Source;
-
-			if (text is null && include.Carried is not null)
-			{
-				text = include.Carried;
-				path = await CarriedFileAsync(solution, include, cancellationToken).ConfigureAwait(false);
+				else if (include.Portable is not null)
+				{
+					text = include.Portable;
+					path = await CarriedFileAsync(solution, include.Type, wanted, include.Portable, cancellationToken).ConfigureAwait(false);
+				}
 			}
 
 			if (text is not null)
@@ -185,9 +193,9 @@ static class StandaloneGrammarInheritance
 		for (var index = 0; index < included.Count; index++)
 			included[index] = included[index] with { Start = map.Segments[index + 1].Start };
 
-		var lexical = PrimaryGram(host.GetAttributes())?.NamedArguments
-			.FirstOrDefault(static argument => argument.Key == "Lexical")
-			.Value.Value as bool? ?? false;
+		// The reading that names this file, and what it does not say it takes from the
+		// class's own, as the generator reads a suffixed one.
+		var lexical = Lexical(reading!) ?? (GramIncludes.Primary(host) is { } primary ? Lexical(primary) : null) ?? false;
 
 		return new StandaloneGrammarResolution(
 			StandaloneGrammarState.Resolved,
@@ -196,113 +204,64 @@ static class StandaloneGrammarInheritance
 			documents);
 	}
 
-	/// <summary>Every grammar a host includes, nearest first, as the generator walks them.</summary>
-	/// <remarks>
-	/// Base classes and <c>[GramInclude]</c> both, each walked in turn, and a class already
-	/// gathered is not gathered again. A class with no <c>[Gram]</c> of its own is walked past.
-	/// What the included grammar is called is the includer's <c>As</c>, else its own
-	/// <c>IncludedAs</c>, else its class name.
-	/// </remarks>
-	public static IReadOnlyList<IncludedGrammarHost> Includes(INamedTypeSymbol host)
-	{
-		var included = new List<IncludedGrammarHost>();
-		var seen     = new HashSet<string>(StringComparer.Ordinal) { host.ToDisplayString() };
-		var pending  = new Queue<(INamedTypeSymbol Type, string? As)>();
-
-		for (var above = host.BaseType; above is not null; above = above.BaseType)
-			pending.Enqueue((above, null));
-
-		foreach (var named in NamedIncludes(host))
-			pending.Enqueue(named);
-
-		while (pending.Count > 0)
-		{
-			var (current, called) = pending.Dequeue();
-			if (!seen.Add(current.ToDisplayString()))
-				continue;
-
-			foreach (var nested in NamedIncludes(current))
-				pending.Enqueue(nested);
-
-			var attribute = PrimaryGram(current.GetAttributes());
-			if (attribute is null)
-				continue;
-
-			var source = attribute.ConstructorArguments.Length == 0
-				? current.Name + ".gram"
-				: attribute.ConstructorArguments[0].Value as string;
-			if (source is null)
-				continue;
-
-			var carried = current.GetAttributes().FirstOrDefault(static candidate =>
-				candidate.AttributeClass?.ToDisplayString() == GramSourceAttribute)?
-				.ConstructorArguments.FirstOrDefault().Value as string;
-			var name = called ?? attribute.NamedArguments
-				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
-				.Value.Value as string ?? current.Name;
-
-			included.Add(new IncludedGrammarHost(current, name, source, carried));
-		}
-
-		return included;
-	}
-
-	public static bool IsFile(string source)
-	{
-		return source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) &&
-		source.IndexOf('\r') < 0 && source.IndexOf('\n') < 0;
-	}
-
 	/// <summary>
 	/// A lookup of the project's <c>.gram</c> files by a <c>[Gram("….gram")]</c> argument, for
 	/// code that cannot wait on Roslyn: the texts are fetched now, and made strings only when
-	/// one is asked for.
+	/// one is asked for. A name two files answer to is answered by neither, as the generator
+	/// refuses it.
 	/// </summary>
 	public static async Task<Func<string, string?>> GramFilesAsync(Project project, CancellationToken cancellationToken)
 	{
 		var files = new List<(string Path, SourceText Text)>();
 
 		foreach (var document in project.AdditionalDocuments)
-			if (document.FilePath is { } path && path.EndsWith(".gram", StringComparison.OrdinalIgnoreCase))
+			if (document.FilePath is { } path && path.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
 				files.Add((path, await document.GetTextAsync(cancellationToken).ConfigureAwait(false)));
 
 		return source =>
 		{
-			foreach (var (path, text) in files)
-				if (Matches(path, source))
-					return text.ToString();
+			var found = files.Where(file => GramIncludes.Matches(file.Path, source)).ToArray();
 
-			return null;
+			return found.Length == 1 ? found[0].Text.ToString() : null;
 		};
 	}
 
-	/// <summary>The additional file of a project that a <c>[Gram("….gram")]</c> argument names.</summary>
+	/// <summary>
+	/// The additional file of a project that a <c>[Gram("….gram")]</c> argument names, or null
+	/// where none does or more than one does.
+	/// </summary>
 	public static TextDocument? FileDocument(Project project, string source)
 	{
-		return project.AdditionalDocuments.FirstOrDefault(candidate =>
-			candidate.FilePath is not null && Matches(candidate.FilePath, source));
-	}
+		var found = project.AdditionalDocuments
+			.Where(candidate => candidate.FilePath is not null && GramIncludes.Matches(candidate.FilePath, source))
+			.Take(2)
+			.ToArray();
 
-	static IEnumerable<(INamedTypeSymbol Type, string? As)> NamedIncludes(INamedTypeSymbol type)
-	{
-		foreach (var attribute in type.GetAttributes())
-			if (attribute.AttributeClass?.ToDisplayString() == GramIncludeAttribute &&
-				attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
-			{
-				yield return (
-					grammar,
-					attribute.NamedArguments
-						.FirstOrDefault(static argument => argument.Key == "As")
-						.Value.Value as string);
-			}
+		return found.Length == 1 ? found[0] : null;
 	}
 
 	/// <summary>
-	/// The class whose attribute names this file, with the document declaring it; or none, and
-	/// whether some declaration spelled as one was found that the compilation cannot yet bind —
-	/// the attribute comes from the generator, which may not have run.
+	/// Whether a document declares a type spelled as this file's host: an attribute named like
+	/// <c>Gram</c> whose argument names the file, or which has none and the class is named for it.
+	/// Syntax only, so it is cheap enough to ask of every document an edit touches.
 	/// </summary>
-	static async Task<(INamedTypeSymbol? Host, Document? Document, bool Named)> HostAsync(
+	public static bool MayHost(SyntaxNode root, string grammarPath)
+	{
+		// Down through namespaces and types only: a host is a type, and a type is never
+		// inside a member.
+		return root.DescendantNodes(static node =>
+				node is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax or TypeDeclarationSyntax)
+			.OfType<TypeDeclarationSyntax>()
+			.Any(declaration => MayHost(declaration, grammarPath));
+	}
+
+	/// <summary>
+	/// The class whose attribute names this file, with the document declaring it and the
+	/// reading that names it; or none, and whether some declaration spelled as one was found
+	/// that the compilation cannot yet bind — the attribute comes from the generator, which
+	/// may not have run.
+	/// </summary>
+	static async Task<(INamedTypeSymbol? Host, Document? Document, AttributeData? Reading, bool Named)> HostAsync(
 		Project project,
 		string grammarPath,
 		CancellationToken cancellationToken)
@@ -315,9 +274,8 @@ static class StandaloneGrammarInheritance
 			if (root is null)
 				continue;
 
-			// Down through namespaces and types only: a host is a type, and a type is never
-			// inside a member. This runs again whenever the project changes while the grammar
-			// has no host, so walking every statement of every file would be paid on each edit.
+			// This runs again whenever the project changes while the grammar has no host, so
+			// walking every statement of every file would be paid on each edit.
 			var candidates = root.DescendantNodes(static node =>
 					node is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax or TypeDeclarationSyntax)
 				.OfType<TypeDeclarationSyntax>()
@@ -337,25 +295,32 @@ static class StandaloneGrammarInheritance
 
 			foreach (var declaration in candidates)
 			{
-				var type = model.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol;
-				var attribute = type is null ? null : PrimaryGram(type.GetAttributes());
-				if (type is null || attribute is null)
+				if (model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
 					continue;
 
-				var source = attribute.ConstructorArguments.Length == 0
-					? type.Name + ".gram"
-					: attribute.ConstructorArguments[0].Value as string;
-				if (source is not null && IsFile(source) && Matches(grammarPath, source))
-					return (type, document, true);
+				// Every reading, the suffixed ones too: `[Gram("B.gram", Suffix = "B")]` hosts
+				// B.gram. One without an argument reads the class's own grammar.
+				var primary = GramIncludes.Primary(type);
+
+				foreach (var reading in GramIncludes.Grams(type))
+				{
+					var source = GramIncludes.Source(reading) ??
+						(primary is not null && reading != primary ? GramIncludes.Source(primary) : null) ??
+						type.Name + GramIncludes.GramFileExtension;
+
+					if (GramIncludes.IsPath(source) && GramIncludes.Matches(grammarPath, source))
+						return (type, document, reading, true);
+				}
 			}
 		}
 
-		return (null, null, named);
+		return (null, null, null, named);
 	}
 
 	static bool MayHost(TypeDeclarationSyntax declaration, string grammarPath)
 	{
-		var defaultSource = declaration.Identifier.ValueText + ".gram";
+		var defaultSource = declaration.Identifier.ValueText + GramIncludes.GramFileExtension;
+
 		foreach (var attribute in declaration.AttributeLists.SelectMany(static list => list.Attributes))
 		{
 			var name = attribute.Name.ToString();
@@ -364,29 +329,25 @@ static class StandaloneGrammarInheritance
 				!name.EndsWith(".GramAttribute", StringComparison.Ordinal))
 				continue;
 
-			var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
-			if (argument?.Expression is LiteralExpressionSyntax literal &&
-				literal.Token.Value is string source)
-				return IsFile(source) && Matches(grammarPath, source);
+			var argument = attribute.ArgumentList?.Arguments.FirstOrDefault(
+				static candidate => candidate.NameEquals is null);
 
-			return Matches(grammarPath, defaultSource);
+			// A constant or an expression may name anything; the semantic model will tell.
+			if (argument is null
+				? GramIncludes.Matches(grammarPath, defaultSource)
+				: argument.Expression is not LiteralExpressionSyntax { Token.Value: string source } ||
+					GramIncludes.IsPath(source) && GramIncludes.Matches(grammarPath, source))
+				return true;
 		}
 
 		return false;
 	}
 
-	/// <summary>
-	/// The class's own <c>[Gram]</c>, where it has several readings: the one without a
-	/// <c>Suffix</c>, which is the class's own compilation, as the generator chooses it.
-	/// </summary>
-	static AttributeData? PrimaryGram(IEnumerable<AttributeData> attributes)
+	static bool? Lexical(AttributeData reading)
 	{
-		var grams = attributes
-			.Where(static attribute => attribute.AttributeClass?.ToDisplayString() == GramAttribute)
-			.ToArray();
-
-		return grams.FirstOrDefault(static attribute =>
-			attribute.NamedArguments.All(static named => named.Key != "Suffix")) ?? grams.FirstOrDefault();
+		return reading.NamedArguments
+			.FirstOrDefault(static argument => argument.Key == "Lexical")
+			.Value.Value as bool?;
 	}
 
 	/// <summary>
@@ -396,34 +357,22 @@ static class StandaloneGrammarInheritance
 	/// </summary>
 	static async Task<string?> CarriedFileAsync(
 		Solution solution,
-		IncludedGrammarHost include,
+		INamedTypeSymbol type,
+		string wanted,
+		string carried,
 		CancellationToken cancellationToken)
 	{
-		if (!IsFile(include.Source))
-			return null;
-
-		foreach (var declaration in include.Type.DeclaringSyntaxReferences)
+		foreach (var declaration in type.DeclaringSyntaxReferences)
 		{
 			var declared = solution.GetDocumentId(declaration.SyntaxTree);
 			var project  = declared is null ? null : solution.GetProject(declared.ProjectId);
-			var file     = project is null ? null : FileDocument(project, include.Source);
+			var file     = project is null ? null : FileDocument(project, wanted);
 
 			if (file?.FilePath is not null &&
-				(await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString() == include.Carried)
+				(await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString() == carried)
 				return file.FilePath;
 		}
 
 		return null;
-	}
-
-	static bool Matches(string filePath, string wanted)
-	{
-		var path = filePath.Replace('/', '\\');
-		var suffix = wanted.Replace('/', '\\');
-		if (!path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-			return false;
-
-		var boundary = path.Length - suffix.Length - 1;
-		return boundary < 0 || path[boundary] == '\\';
 	}
 }

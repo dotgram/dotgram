@@ -86,6 +86,9 @@
 		                  Link="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
 		<Compile Include="..\DotGram\Generation\RoslynCSharpScanner.cs"
 		         Link="Generation\RoslynCSharpScanner.cs" />
+		<!-- Which grammars a host includes is the generator's walk, read here as it is there. -->
+		<Compile Include="..\DotGram\Generation\GramIncludes.cs"
+		         Link="Generation\GramIncludes.cs" />
 		<Compile Include="..\DotGram\Language\**\*.cs"
 		         Link="Language\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>

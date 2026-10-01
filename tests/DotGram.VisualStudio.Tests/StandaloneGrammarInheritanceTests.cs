@@ -18,11 +18,15 @@ public sealed class StandaloneGrammarInheritanceTests
 	const string Attributes = """
 		namespace DotGram
 		{
+			[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 			sealed class GramAttribute(string source) : System.Attribute
 			{
 				public string IncludedAs { get; set; } = "";
 				public bool Lexical { get; set; }
+				public string Suffix { get; set; } = "";
 			}
+
+			sealed class GramSourceAttribute(string text) : System.Attribute;
 
 			[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 			sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
@@ -46,7 +50,7 @@ public sealed class StandaloneGrammarInheritanceTests
 	const string StandardPath = @"P:\Parsers\SqlStandard92.gram";
 	const string DialectPath  = @"P:\Parsers\TransactSql.gram";
 
-	static Project Parsers(AdhocWorkspace workspace, string declarations, string dialect = "Start = 'a'")
+	static Project Parsers(AdhocWorkspace workspace, string declarations, string dialect = "Start = 'a'", params (string Path, string Text)[] more)
 	{
 		var project = workspace.AddProject(ProjectInfo.Create(
 			ProjectId.CreateNewId(),
@@ -59,6 +63,9 @@ public sealed class StandaloneGrammarInheritanceTests
 		project = project.AddDocument("Parsers.cs", SourceText.From(declarations), filePath: @"P:\Parsers\Parsers.cs").Project;
 		project = project.AddAdditionalDocument("SqlStandard92.gram", SourceText.From(Standard), filePath: StandardPath).Project;
 		project = project.AddAdditionalDocument("TransactSql.gram", SourceText.From(dialect), filePath: DialectPath).Project;
+
+		foreach (var (path, text) in more)
+			project = project.AddAdditionalDocument(System.IO.Path.GetFileName(path), SourceText.From(text), filePath: path).Project;
 
 		Assert.True(workspace.TryApplyChanges(project.Solution));
 
@@ -126,6 +133,65 @@ public sealed class StandaloneGrammarInheritanceTests
 		Assert.Equal(StandaloneGrammarState.NotReady, notReady.State);
 		Assert.Equal(StandaloneGrammarState.NoHost, noHost.State);
 		Assert.Null(noHost.Context);
+	}
+
+	/// <summary>
+	/// A suffixed reading hosts the file it names, and its <c>Lexical</c> is its own; the
+	/// class's own reading is still the one an includer gets.
+	/// </summary>
+	[Fact]
+	public async Task FindsTheHostThroughASuffixedReading()
+	{
+		const string hosts = """
+			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+			abstract class SqlStandard92;
+
+			[DotGram.Gram("Other.gram")]
+			[DotGram.Gram("TransactSql.gram", Suffix = "Dialect", Lexical = true)]
+			[DotGram.GramInclude(typeof(SqlStandard92))]
+			abstract class TransactSql;
+			""";
+
+		using var workspace = new AdhocWorkspace();
+		var project = Parsers(workspace, Attributes + hosts);
+
+		var resolution = await StandaloneGrammarInheritance.ResolveAsync(
+			project.Solution, DialectPath, TestContext.Current.CancellationToken);
+
+		Assert.Equal(StandaloneGrammarState.Resolved, resolution.State);
+		Assert.True(resolution.Context?.Lexical);
+		Assert.Equal("Sql92", Assert.Single(resolution.Context!.Value.Included).Name);
+	}
+
+	/// <summary>
+	/// A file name two files answer to is not guessed at: the generator refuses it and reads
+	/// what the class carries, and so does the editor. A base class in between, with no
+	/// grammar of its own, is watched all the same.
+	/// </summary>
+	[Fact]
+	public async Task AnAmbiguousIncludedFileFallsBackOnWhatTheClassCarries()
+	{
+		const string hosts = """
+			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+			[DotGram.GramSource("Carried = 'c'")]
+			abstract class SqlStandard92;
+
+			abstract class Between : SqlStandard92;
+
+			[DotGram.Gram("TransactSql.gram")]
+			abstract class TransactSql : Between;
+			""";
+
+		using var workspace = new AdhocWorkspace();
+		var project = Parsers(workspace, Attributes + hosts, more: (@"P:\Parsers\Old\SqlStandard92.gram", "Old = 'o'"));
+
+		var resolution = await StandaloneGrammarInheritance.ResolveAsync(
+			project.Solution, DialectPath, TestContext.Current.CancellationToken);
+
+		var included = Assert.Single(resolution.Context!.Value.Included);
+		Assert.Equal("Carried = 'c'", included.Text);
+		Assert.Null(included.FilePath);
+		Assert.Contains(project.Documents.Single().Id, resolution.Documents);
 	}
 
 	[Fact]
@@ -221,7 +287,7 @@ public sealed class StandaloneGrammarInheritanceTests
 		var standard = project.AdditionalDocuments.Single(document => document.FilePath == StandardPath);
 		var own      = project.AdditionalDocuments.Single(document => document.FilePath == DialectPath);
 
-		bool Concerns(WorkspaceChangeKind kind, ProjectId? changedProject, DocumentId? changedDocument, StandaloneGrammarResolution? state = null)
+		StandaloneGrammarConcern Concerns(WorkspaceChangeKind kind, ProjectId? changedProject, DocumentId? changedDocument, StandaloneGrammarResolution? state = null)
 		{
 			return GramBufferAnalysis.Concerns(
 				new WorkspaceChangeEventArgs(kind, before, before, changedProject, changedDocument),
@@ -229,18 +295,32 @@ public sealed class StandaloneGrammarInheritanceTests
 				DialectPath);
 		}
 
-		Assert.True(Concerns(WorkspaceChangeKind.SolutionReloaded, null, null));
-		Assert.True(Concerns(WorkspaceChangeKind.DocumentChanged, project.Id, host.Id));
-		Assert.True(Concerns(WorkspaceChangeKind.AdditionalDocumentChanged, project.Id, standard.Id));
-		Assert.True(Concerns(WorkspaceChangeKind.ProjectChanged, project.Id, null));
+		const StandaloneGrammarConcern full = StandaloneGrammarConcern.Full;
+		const StandaloneGrammarConcern none = StandaloneGrammarConcern.None;
 
-		Assert.False(Concerns(WorkspaceChangeKind.AdditionalDocumentChanged, project.Id, own.Id));
-		Assert.False(Concerns(WorkspaceChangeKind.DocumentChanged, other.Id, stray.Id));
-		Assert.False(Concerns(WorkspaceChangeKind.ProjectChanged, other.Id, null));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.SolutionReloaded, null, null));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.DocumentChanged, project.Id, host.Id));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.AdditionalDocumentChanged, project.Id, standard.Id));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.ProjectChanged, project.Id, null));
 
-		// Until the host is found, any change to the grammar's own project may be the one
-		// that makes it findable — and still nothing in another project.
-		Assert.True(Concerns(WorkspaceChangeKind.DocumentChanged, project.Id, host.Id, StandaloneGrammarResolution.NotReady));
-		Assert.False(Concerns(WorkspaceChangeKind.DocumentChanged, other.Id, stray.Id, StandaloneGrammarResolution.NotReady));
+		Assert.Equal(none, Concerns(WorkspaceChangeKind.AdditionalDocumentChanged, project.Id, own.Id));
+		Assert.Equal(none, Concerns(WorkspaceChangeKind.DocumentChanged, other.Id, stray.Id));
+		Assert.Equal(none, Concerns(WorkspaceChangeKind.ProjectChanged, other.Id, null));
+
+		// Until the host is found, an edit in the grammar's own project is looked at, one
+		// document at a time; a document added there, or the grammar itself added to a
+		// project, sends the host to be looked for; nothing in another project does.
+		var noHost = StandaloneGrammarResolution.NoHost(project.Id);
+
+		Assert.Equal(StandaloneGrammarConcern.Document, Concerns(WorkspaceChangeKind.DocumentChanged, project.Id, host.Id, noHost));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.DocumentAdded, project.Id, host.Id, noHost));
+		Assert.Equal(none, Concerns(WorkspaceChangeKind.DocumentChanged, other.Id, stray.Id, noHost));
+		Assert.Equal(full, Concerns(WorkspaceChangeKind.AdditionalDocumentAdded, project.Id, own.Id, StandaloneGrammarResolution.NotReady));
+		Assert.Equal(none, Concerns(WorkspaceChangeKind.DocumentChanged, project.Id, host.Id, StandaloneGrammarResolution.NotReady));
+
+		// And a document is looked at for a class spelled as the host, by syntax alone.
+		var root = await host.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
+		Assert.True(StandaloneGrammarInheritance.MayHost(root!, DialectPath));
+		Assert.False(StandaloneGrammarInheritance.MayHost(root!, @"P:\Parsers\Unknown.gram"));
 	}
 }

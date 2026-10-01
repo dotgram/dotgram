@@ -79,18 +79,16 @@ sealed class GramNavigableSymbolSource(
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
 		if (analysis.ExternalDefinition(snapshot, position) is { } external)
-			return Task.FromResult<INavigableSymbol?>(new FileNavigableSymbol(
+			return Task.FromResult<INavigableSymbol?>(new IncludedGrammarNavigableSymbol(
 				new SnapshotSpan(snapshot, external.Position, external.Length),
 				services,
-				IncludedGrammarView.PathOf(external.Target.Grammar),
-				external.Target.Line,
-				external.Target.Column));
+				external.Target));
 
 		// A definition past the end of the buffer is in an included grammar that could not be
 		// placed; there is nowhere in this buffer to go.
 		foreach (var item in analysis.Document(snapshot).Symbols)
 			if (item.Position <= position && position < item.Position + item.Length)
-				return Task.FromResult<INavigableSymbol?>(item.DefinitionPosition > snapshot.Length
+				return Task.FromResult<INavigableSymbol?>(item.DefinitionPosition >= snapshot.Length
 					? null
 					: Create(
 						view,
@@ -200,6 +198,12 @@ sealed class FileNavigableSymbol(
 		if (relationship != PredefinedNavigableRelationships.Definition)
 			return;
 
+		Open(services, filePath, line, column);
+	}
+
+	internal static void Open(IServiceProvider services, string filePath, int line, int column)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
 		VsShellUtilities.OpenDocument(
 			services,
 			filePath,
@@ -211,6 +215,34 @@ sealed class FileNavigableSymbol(
 		frame.Show();
 		textView.SetCaretPos(line, column);
 		textView.CenterLines(line, 1);
+	}
+}
+
+/// <summary>
+/// A name whose definition is in an included grammar. Where that grammar is only carried by an
+/// assembly, its read-only copy is written when the navigation happens, not when the name is
+/// hovered.
+/// </summary>
+sealed class IncludedGrammarNavigableSymbol(
+	SnapshotSpan symbolSpan,
+	IServiceProvider services,
+	StandaloneLocation target) : INavigableSymbol
+{
+	static readonly IReadOnlyCollection<INavigableRelationship> Definition =
+		new[] { PredefinedNavigableRelationships.Definition };
+
+	public SnapshotSpan SymbolSpan => symbolSpan;
+
+	public IEnumerable<INavigableRelationship> Relationships => Definition;
+
+	public void Navigate(INavigableRelationship relationship)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (relationship != PredefinedNavigableRelationships.Definition)
+			return;
+
+		if (IncludedGrammarView.PathOf(target.Grammar) is { } path)
+			FileNavigableSymbol.Open(services, path, target.Line, target.Column);
 	}
 }
 

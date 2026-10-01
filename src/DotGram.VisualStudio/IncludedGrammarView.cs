@@ -16,22 +16,78 @@ namespace DotGram.VisualStudio;
 /// </remarks>
 static class IncludedGrammarView
 {
-	public static string PathOf(StandaloneIncludedGrammar grammar)
+	static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
+
+	static string CopyDirectory { get; } = Path.Combine(Path.GetTempPath(), "DotGram", "Included");
+
+	/// <summary>The file to open, or null where a copy could not be written.</summary>
+	public static string? PathOf(StandaloneIncludedGrammar grammar)
 	{
 		if (grammar.FilePath is not null)
 			return grammar.FilePath;
 
-		var directory = Path.Combine(Path.GetTempPath(), "DotGram", "Included");
-		var path      = Path.Combine(directory, $"{FileName(grammar.Name)}.{Hash(grammar.Text)}.gram");
+		var name = FileName(grammar.Name);
+		var path = Path.Combine(CopyDirectory, $"{name}.{Hash(grammar.Text)}.gram");
 
-		if (!File.Exists(path))
+		try
 		{
-			Directory.CreateDirectory(directory);
-			File.WriteAllText(path, grammar.Text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-			File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
-		}
+			if (File.Exists(path) && File.ReadAllText(path, Utf8) == grammar.Text)
+				return path;
 
-		return path;
+			Directory.CreateDirectory(CopyDirectory);
+
+			// Written whole under a name of its own and then moved into place, so that a copy
+			// is never seen half written; one that is there and differs is replaced.
+			var written = Path.Combine(CopyDirectory, $"{name}.{Guid.NewGuid():N}.tmp");
+
+			File.WriteAllText(written, grammar.Text, Utf8);
+
+			if (File.Exists(path))
+			{
+				File.SetAttributes(path, FileAttributes.Normal);
+				File.Delete(path);
+			}
+
+			File.Move(written, path);
+			File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+
+			RemoveOlder(name, path);
+
+			return path;
+		}
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+		{
+			return null;
+		}
+	}
+
+	/// <summary>Whether a file is one of these copies, which is read as it stands and not as part of a project.</summary>
+	public static bool IsCopy(string filePath)
+	{
+		return string.Equals(
+			Path.GetDirectoryName(Path.GetFullPath(filePath)),
+			Path.GetFullPath(CopyDirectory),
+			StringComparison.OrdinalIgnoreCase);
+	}
+
+	/// <summary>The copies of earlier texts of the same grammar, which a changed reference left behind.</summary>
+	static void RemoveOlder(string name, string current)
+	{
+		foreach (var older in Directory.EnumerateFiles(CopyDirectory, name + ".*.gram"))
+		{
+			if (string.Equals(older, current, StringComparison.OrdinalIgnoreCase))
+				continue;
+
+			try
+			{
+				File.SetAttributes(older, FileAttributes.Normal);
+				File.Delete(older);
+			}
+			catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+			{
+				// Open in an editor, most likely; it goes the next time.
+			}
+		}
 	}
 
 	static string FileName(string name)
@@ -48,7 +104,7 @@ static class IncludedGrammarView
 	static string Hash(string text)
 	{
 		using var sha = SHA256.Create();
-		var bytes     = sha.ComputeHash(Encoding.UTF8.GetBytes(text));
+		var bytes     = sha.ComputeHash(Utf8.GetBytes(text));
 		var result    = new StringBuilder(16);
 
 		for (var index = 0; index < 8; index++)

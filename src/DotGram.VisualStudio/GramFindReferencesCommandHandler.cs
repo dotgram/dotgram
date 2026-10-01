@@ -106,12 +106,14 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		foreach (var position in found.Positions)
 			references.Add(new CSharpFindReference(filePath, text, position, found.Name.Length));
 
+		// A carried grammar whose copy could not be written has nowhere to be listed at.
 		foreach (var reference in found.Elsewhere)
-			references.Add(new CSharpFindReference(
-				IncludedGrammarView.PathOf(reference.Location.Grammar),
-				reference.Location.Grammar.Text,
-				reference.Location.Offset,
-				reference.Length));
+			if (IncludedGrammarView.PathOf(reference.Location.Grammar) is { } path)
+				references.Add(new CSharpFindReference(
+					path,
+					reference.Location.Grammar.Text,
+					reference.Location.Offset,
+					reference.Length));
 
 		return new CSharpFindReferences(found.Name, references);
 	}

@@ -910,9 +910,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 	static bool IsPath(string source)
 	{
-		return source.EndsWith(GramFileExtension, StringComparison.OrdinalIgnoreCase) &&
-		source.IndexOf('\n') < 0 &&
-		source.IndexOf('\r') < 0;
+		return GramIncludes.IsPath(source);
 	}
 
 	/// <summary>
@@ -921,14 +919,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	static bool Matches(string filePath, string wanted)
 	{
-		var normalized = wanted.Replace('/', '\\');
-
-		if (!filePath.Replace('/', '\\').EndsWith(normalized, StringComparison.OrdinalIgnoreCase))
-			return false;
-
-		var boundary = filePath.Length - normalized.Length - 1;
-
-		return boundary < 0 || filePath[boundary] is '\\' or '/';
+		return GramIncludes.Matches(filePath, wanted);
 	}
 
 	// ── What the shell carries between stages ────────────────────────────────────
@@ -1354,66 +1345,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>Every grammar this one is built on, nearest first.</summary>
 		/// <remarks>
-		/// <para>
-		/// By display name and not by symbol: the attribute is emitted into every assembly
-		/// separately and on purpose, so a base compiled elsewhere carries *its* assembly's
-		/// <c>DotGram.GramAttribute</c> and the two types are not the same type. What they
-		/// share is what they are called.
-		/// </para>
-		/// <para>
-		/// A base with no grammar is walked past rather than stopping the walk: a class may
-		/// sit between two that have one for reasons of its own.
-		/// </para>
-		/// <para>
-		/// Two spellings, and both are walked. A base class is the older one and says less: a
-		/// class has one base and as many attributes as it likes, and a base carries meaning
-		/// of its own that a grammar has no use for. <c>[GramInclude(typeof(X))]</c> is the
-		/// other, it may be written many times, and what it names is walked in turn — a
-		/// grammar built on a standard built on a library gets all three.
-		/// </para>
-		/// <para>
-		/// Named rather than inherited, cycles become possible, and they are ended rather
-		/// than reported: a grammar already gathered is not gathered twice, so
-		/// <c>A</c> naming <c>B</c> naming <c>A</c> splices each of them once, which is what
-		/// anybody writing it meant. Nothing is lost by not saying so.
-		/// </para>
+		/// The walk is <see cref="GramIncludes.Walk"/>, which the editor reads too, so that what
+		/// it analyses a grammar with is what this compiles it with. What is added here is
+		/// where each one's attribute is written, for a report to point at.
 		/// </remarks>
 		static ImmutableArray<(Included Included, Site.Base Site)> Inherited(INamedTypeSymbol type)
 		{
 			var included = ImmutableArray.CreateBuilder<(Included, Site.Base)>();
-			var seen     = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
-			var pending  = new Queue<(INamedTypeSymbol Type, string? As)>();
 
-			for (var above = type.BaseType; above is not null; above = above.BaseType)
-				pending.Enqueue((above, null));
-
-			foreach (var named in Named(type))
-				pending.Enqueue(named);
-
-			while (pending.Count > 0)
+			foreach (var include in GramIncludes.Walk(type))
 			{
-				var (above, called) = pending.Dequeue();
-
-				if (!seen.Add(above.ToDisplayString()))
-					continue;
-
-				foreach (var named in Named(above))
-					pending.Enqueue(named);
-
-				// The one compiled into the base class itself where there are several: a
-				// grammar including another names a class, and what that class publishes
-				// under a scope of its own is that scope's, not the class's.
-				var grammars = above
-					.GetAttributes()
-					.Where(static candidate =>
-						candidate.AttributeClass?.ToDisplayString() == GramAttribute)
-					.ToList();
-
-				var attribute = grammars.Find(static candidate =>
-					candidate.NamedArguments.All(static named => named.Key != nameof(Host.Suffix)));
-
-				if (attribute is null)
-					continue;
+				var attribute = include.Attribute;
 
 				var spelled = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
 					syntax.ArgumentList?.Arguments.FirstOrDefault(
@@ -1421,12 +1363,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 							{ Expression: LiteralExpressionSyntax literal }
 						? literal.Token
 						: default;
-
-				// What the includer calls it wins over what the includee calls itself: the
-				// name a grammar is reached under inside yours is your business.
-				var under = called ?? attribute.NamedArguments
-					.FirstOrDefault(static argument => argument.Key == nameof(Host.IncludedAs))
-					.Value.Value as string;
 
 				// Null where the base is in a referenced assembly, which is what makes
 				// a diagnostic in its grammar have nowhere to point (docs/next.md).
@@ -1436,40 +1372,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 				included.Add((
 					new Included(
-						Name:      under ?? above.Name,
-						ClassName: above.ToDisplayString(),
-						Source:    attribute.ConstructorArguments.Length == 1
-							? attribute.ConstructorArguments[0].Value as string
-							: null,
+						Name:      include.Name,
+						ClassName: include.Type.ToDisplayString(),
+						Source:    include.Source,
 						Literal:   spelled == default ? null : spelled.Text,
 						Placed:    at is not null,
-
-						// What the class itself says its grammar is, which travels with the
-						// assembly when the file does not.
-						Portable:  above
-							.GetAttributes()
-							.FirstOrDefault(static candidate =>
-								candidate.AttributeClass?.ToDisplayString() == "DotGram.GramSourceAttribute")
-							?.ConstructorArguments.FirstOrDefault().Value as string),
+						Portable:  include.Portable),
 					new Site.Base(at, spelled == default ? 0 : spelled.SpanStart)));
 			}
 
 			return included.ToImmutable();
-
-			// What a class names with `[GramInclude]`, in the order it wrote them.
-			static IEnumerable<(INamedTypeSymbol Type, string? As)> Named(INamedTypeSymbol of)
-			{
-				foreach (var attribute in of.GetAttributes())
-					if (attribute.AttributeClass?.ToDisplayString() == "DotGram.GramIncludeAttribute" &&
-						attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
-					{
-						yield return (
-							grammar,
-							attribute.NamedArguments
-								.FirstOrDefault(static argument => argument.Key == "As")
-								.Value.Value as string);
-					}
-			}
 		}
 	}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Language;
 
@@ -182,11 +183,13 @@ public static class EmbeddedGrammarFinder
 
 		// The file first, from the host's own project, which is where the generator looks; what
 		// the class carries is what there is across an assembly reference.
-		foreach (var include in StandaloneGrammarInheritance.Includes(type))
+		foreach (var include in GramIncludes.Walk(type))
 		{
-			var text = IsFile(include.Source) ? includedFile?.Invoke(include.Source) : include.Source;
+			var text = include.Source is { } written && !IsFile(written)
+				? written
+				: includedFile?.Invoke(GramIncludes.Wanted(include));
 
-			text ??= include.Carried;
+			text ??= include.Portable;
 
 			if (text is not null)
 				included.Add(new GrammarSplice.Part(text, include.Name, null));
@@ -202,7 +205,7 @@ public static class EmbeddedGrammarFinder
 
 	static bool IsFile(string source)
 	{
-		return StandaloneGrammarInheritance.IsFile(source);
+		return GramIncludes.IsPath(source);
 	}
 
 	static bool IsAttribute(ITypeSymbol type)

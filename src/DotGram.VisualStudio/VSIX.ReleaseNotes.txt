@@ -1,5 +1,20 @@
 DotGram language support
 
+0.3.0
+
+- A standalone .gram file follows its host as the solution changes: a project that finishes
+  loading, an edited host class or an edited included grammar is picked up without reopening
+  the file.
+- Go To Definition and Find All References reach into the grammars a file includes, through a
+  `using`, a qualified name or a deeper one; a grammar carried only by a referenced assembly
+  ([GramSource]) opens as a read-only copy.
+- Rename is refused, with a word in the status bar, for a rule an included grammar declares or
+  uses.
+- A grammar is analysed with its host's `Lexical` and with what it includes kept apart from its
+  own text, as the generator compiles it.
+- A grammar embedded in an attribute reads includes that are .gram files or carried by a
+  referenced assembly.
+
 0.2.0
 
 - The `stream` and `bytes` keywords of a publication are highlighted.

@@ -162,9 +162,7 @@ sealed class GramRenameCommandFilter(
 		var position = view.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 
-		// A rule an included grammar declares or uses is renamed there too, which this
-		// buffer cannot do; renaming half of it is worse than not renaming it.
-		return target(snapshot, position) is { Renamable: true } found ? found : null;
+		return target(snapshot, position);
 	}
 
 	static bool IsRename(Guid group, uint commandId)

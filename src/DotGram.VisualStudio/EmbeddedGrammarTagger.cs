@@ -547,7 +547,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 			if (model is null)
 				return;
 
-			var includedFile   = await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken).ConfigureAwait(false);
+			// The project's .gram files only where this document has a grammar in an attribute,
+			// the one place an include is read; most C# documents have none.
+			var includedFile   = provisional.Count == 0
+				? null
+				: await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken).ConfigureAwait(false);
 			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken, includedFile);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
