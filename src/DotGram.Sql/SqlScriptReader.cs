@@ -63,6 +63,12 @@ sealed class SqlScriptReader
 	/// </summary>
 	const int Deepest = 32;
 
+	/// <summary>
+	/// The line break sqlcmd adds where a file ends in a string, a quoted name or a comment without
+	/// one: `PRINT 'a` at the end of a file sends `PRINT 'a` and a line feed.
+	/// </summary>
+	const string Added = "\n";
+
 	readonly ScriptOptions _options;
 	readonly string        _separator;
 	readonly bool          _commands;
@@ -73,8 +79,9 @@ sealed class SqlScriptReader
 	readonly List<ScriptOrigin>         _open      = [];
 
 	State _state;
+	bool  _leading;
 	bool  _stopped;
-	bool  _joined;
+	int   _includes;
 
 	public readonly List<ScriptBatch>      Batches     = [];
 	public readonly List<ScriptDirective>  Directives  = [];
@@ -84,6 +91,12 @@ sealed class SqlScriptReader
 
 	public SqlScriptReader(ScriptOptions options)
 	{
+		if (options.Profile is null)
+			throw new ArgumentException("ScriptOptions.Profile is null; it is a tool, sqlcmd unless said.", nameof(options));
+
+		if (options.MaximumIncludes < 0)
+			throw new ArgumentException("ScriptOptions.MaximumIncludes is negative.", nameof(options));
+
 		_options    = options;
 		_separator  = options.Profile.Separator;
 		_commands   = options.Profile.Commands;
@@ -92,32 +105,54 @@ sealed class SqlScriptReader
 		if (options.Variables is not null)
 		{
 			foreach (var variable in options.Variables)
+			{
+				if (variable.Key is null || variable.Value is null)
+					throw new ArgumentException($"ScriptOptions.Variables holds a null name or value ('{variable.Key}').", nameof(options));
+
 				_variables[variable.Key] = variable.Value;
+			}
 		}
 	}
 
 	/// <summary>
-	/// A run of text waiting to be sent: a stretch of one source, or a reference to substitute
-	/// when the batch is sent.
+	/// A run of text waiting to be sent: a stretch of one source, a reference to substitute when the
+	/// batch is sent, or text the tool adds, standing at <see cref="At"/> of its source.
 	/// </summary>
-	readonly struct Run(ScriptOrigin origin, int at, int length, string? name)
+	readonly struct Run(ScriptOrigin origin, int at, int length, string? name, string? added = null)
 	{
 		public readonly ScriptOrigin Origin = origin;
 		public readonly int          At     = at;
 		public readonly int          Length = length;
 		public readonly string?      Name   = name;
+		public readonly string?      Added  = added;
 	}
 
 	public void Read(string text)
 	{
+		// The script itself is not among the files a :r may not open again: sqlcmd includes the
+		// script by its own name once more before it calls that recursion.
 		var origin = new ScriptOrigin(_options.SourceName, text);
 
-		_open.Add(origin);
-		ReadSource(origin, Start(text), lineStart: true);
-		_open.RemoveAt(_open.Count - 1);
+		ReadSource(origin, Start(text));
+		Ended(origin);
 
 		if (!_stopped)
 			Send(1, separator: null);
+	}
+
+	/// <summary>
+	/// Where a source ends without a line break inside a string, a quoted name or a comment, sqlcmd
+	/// adds one: to the last batch at the end of the script, and before the next line of the file
+	/// that included it.
+	/// </summary>
+	void Ended(ScriptOrigin origin)
+	{
+		var text = origin.Text;
+
+		if (_stopped || _state == State.Text || text.Length == 0 || text[text.Length - 1] == '\n')
+			return;
+
+		_pending.Add(new Run(origin, text.Length, 0, null, Added));
 	}
 
 	/// <summary>
@@ -130,53 +165,73 @@ sealed class SqlScriptReader
 	}
 
 	/// <summary>
-	/// Reads one source from <paramref name="at"/>, answering whether its end left the reading at
-	/// the start of a line.
+	/// Reads one source from <paramref name="at"/>.
 	/// </summary>
-	bool ReadSource(ScriptOrigin origin, int at, bool lineStart)
+	/// <remarks>
+	/// A file a <c>:r</c> reads that ends without a line break leaves its last line in the batch
+	/// with nothing after it, and the includer's next line is still a line of its own — a separator
+	/// or a command there is read as one — whose text joins straight on: `PRINT 2` and then `PRINT 3`
+	/// sends `PRINT 2PRINT 3`.
+	/// </remarks>
+	void ReadSource(ScriptOrigin origin, int at)
 	{
-		var text = origin.Text;
-		var end  = text.Length;
+		var text      = origin.Text;
+		var end       = text.Length;
+		var lineStart = true;
 
 		while (at < end && !_stopped)
 		{
-			if (lineStart && _state == State.Text)
+			if (lineStart)
 			{
-				// A block comment that opens a line is passed over first, and the rest of the line it
-				// closes on starts a line again: `/* c */ GO` ends a batch at the `*/`. Only at the very
-				// start — after a space it is text, and so is a second comment after the first.
-				if (at + 1 < end && text[at] == '/' && text[at + 1] == '*')
+				// A block comment that opens a line is passed over first, wherever it closes — in a
+				// later line, or in the file after the include it opened in — and the rest of the
+				// line it closes on starts a line again: `/* c */ GO` ends a batch at the `*/`. Only
+				// at the very start: after a space it is text, and so is a second comment after the
+				// first.
+				if (_state == State.Text && at + 1 < end && text[at] == '/' && text[at + 1] == '*')
 				{
-					var close = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
-					var stop  = close < 0 ? end : close + 2;
+					Append(origin, at, 2);
 
-					Append(origin, at, stop - at);
+					_state   = State.Comment;
+					_leading = true;
+					at      += 2;
+				}
+
+				if (_state == State.Comment && _leading)
+				{
+					var close = text.IndexOf("*/", at, StringComparison.Ordinal);
 
 					if (close < 0)
 					{
-						_state = State.Comment;
-						return false;
+						Append(origin, at, end - at);
+						return;
 					}
 
-					at = stop;
+					Append(origin, at, close + 2 - at);
+
+					_state   = State.Text;
+					_leading = false;
+					at       = close + 2;
 				}
 
-				// Carriage returns before anything else on a line are sent, and leave the line where
-				// it was: sqlcmd reads `\rGO` as a separator and sends the `\r` with the batch before.
-				var returns = at;
-
-				while (returns < end && text[returns] == '\r')
-					returns++;
-
-				Append(origin, at, returns - at);
-				at = returns;
-
-				if (Command(origin, at, out var next))
+				if (_state == State.Text)
 				{
-					at        = next;
-					lineStart = !_joined;
-					_joined   = false;
-					continue;
+					// Carriage returns before anything else on a line are sent, and leave the line
+					// where it was: sqlcmd reads `\rGO` as a separator and sends the `\r` with the
+					// batch before.
+					var returns = at;
+
+					while (returns < end && text[returns] == '\r')
+						returns++;
+
+					Append(origin, at, returns - at);
+					at = returns;
+
+					if (Command(origin, at, out var next))
+					{
+						at = next;
+						continue;
+					}
 				}
 			}
 
@@ -186,8 +241,6 @@ sealed class SqlScriptReader
 			at        = Scan(origin, at, stopAt);
 			lineStart = newline >= 0;
 		}
-
-		return lineStart;
 	}
 
 	/// <summary>
@@ -255,8 +308,9 @@ sealed class SqlScriptReader
 				case '/':
 					if (following == '*')
 					{
-						_state = State.Comment;
-						at    += 2;
+						_state   = State.Comment;
+						_leading = false;
+						at      += 2;
 					}
 					else
 					{
@@ -287,13 +341,13 @@ sealed class SqlScriptReader
 					// reference it cannot read, wherever outside a comment it stands.
 					var name = Name(text, at + 2, stop);
 
+					SawClientSyntax = true;
+
 					if (name < 0 || name >= stop || text[name] != ')')
 					{
 						Fatal("Syntax error in a variable reference.", origin, at, stop - at);
 						return stop;
 					}
-
-					SawClientSyntax = true;
 
 					Append(origin, run, at - run);
 					_pending.Add(new Run(origin, at, name + 1 - at, text.Substring(at + 2, name - at - 2)));
@@ -346,6 +400,21 @@ sealed class SqlScriptReader
 			return false;
 
 		var line = new Line(origin, at, end);
+
+		// Four commands may be written without the colon, besides `!!` below; one of them given as
+		// the separator word (`-c reset`) is still the command.
+		if (_commands)
+		{
+			foreach (var bare in Bare)
+			{
+				var afterBare = Word(text, at, end, bare);
+
+				if (afterBare < 0 || !Bounded(text, afterBare, end))
+					continue;
+
+				return bare == "exit" ? Exit(line, afterBare, ref next) : Directive(line, bare, afterBare);
+			}
+		}
 
 		if (Word(text, at, end, _separator) is var afterSeparator and > 0)
 		{
@@ -416,17 +485,6 @@ sealed class SqlScriptReader
 		if (at + 1 < end && text[at] == '!' && text[at + 1] == '!')
 			return Directive(line, "!!", at + 2);
 
-		// Four commands may be written without the colon, besides `!!` above.
-		foreach (var bare in Bare)
-		{
-			var afterBare = Word(text, at, end, bare);
-
-			if (afterBare < 0 || !Bounded(text, afterBare, end))
-				continue;
-
-			return bare == "exit" ? Exit(line, afterBare, ref next) : Directive(line, bare, afterBare);
-		}
-
 		return false;
 	}
 
@@ -493,6 +551,27 @@ sealed class SqlScriptReader
 		}
 
 		/// <summary>
+		/// The line without a comment that ends it: <c>--</c> after a blank, outside double quotes,
+		/// which sqlcmd reads as the end of a command's line — <c>:setvar x 1 -- c</c> sets 1, where
+		/// <c>:setvar x 1--c</c> sets <c>1--c</c>.
+		/// </summary>
+		public Line Uncommented(int from)
+		{
+			var text   = Origin.Text;
+			var quoted = false;
+
+			for (var i = from; i + 1 < End; i++)
+			{
+				if (text[i] == '"')
+					quoted = !quoted;
+				else if (!quoted && text[i] == '-' && text[i + 1] == '-' && i > from && IsSpace(text[i - 1]))
+					return new Line(Origin, At, i);
+			}
+
+			return this;
+		}
+
+		/// <summary>
 		/// The rest of the line from <paramref name="from"/>, without the spacing around it.
 		/// </summary>
 		public string Rest(int from)
@@ -513,6 +592,9 @@ sealed class SqlScriptReader
 	/// </summary>
 	bool Directive(Line line, string name, int after)
 	{
+		if (name is not ("exit" or "!!"))
+			line = line.Uncommented(after);
+
 		var arguments = line.Rest(after);
 
 		SawClientSyntax = true;
@@ -598,8 +680,7 @@ sealed class SqlScriptReader
 					return;
 				}
 
-				// A variable with no value, or with one that is not a count: sqlcmd drops the batch
-				// and goes on, saying so only for the first.
+				// A variable with no value: sqlcmd says so, drops the batch and goes on.
 				if (!_variables.TryGetValue(variable, out var value))
 				{
 					Diagnostics.Add(new ScriptDiagnostic(
@@ -608,17 +689,10 @@ sealed class SqlScriptReader
 					return;
 				}
 
-				digits = value.Trim(' ', '\t');
-
-				if (digits.Length == 0 || !AllDigits(digits))
-				{
-					Diagnostics.Add(new ScriptDiagnostic(
-						ScriptSeverity.Warning, $"'{value}' is not a count, so the batch is not sent.", line.Location));
-					_pending.Clear();
-					return;
-				}
-
-				tail = name + 1;
+				// The value is read as C's atoi reads it: spacing, a sign, digits, and the rest let be —
+				// `2x`, `+2` and `2 -- c` send twice, `1 2` once, and `-1`, `x` or `0` not at all.
+				Send(Leading(value), line.Location);
+				return;
 			}
 			else
 			{
@@ -645,6 +719,29 @@ sealed class SqlScriptReader
 		Send(count, line.Location);
 	}
 
+	/// <summary>
+	/// A count as C's <c>atoi</c> reads one, held at 0 below and saturated above.
+	/// </summary>
+	static long Leading(string value)
+	{
+		var at = 0;
+
+		while (at < value.Length && value[at] is ' ' or '\t' or '\r' or '\n' or '\v' or '\f')
+			at++;
+
+		var negative = at < value.Length && value[at] == '-';
+
+		if (at < value.Length && value[at] is '+' or '-')
+			at++;
+
+		var end = at;
+
+		while (end < value.Length && IsDigit(value[end]))
+			end++;
+
+		return negative || end == at ? 0 : Count(value.Substring(at, end - at));
+	}
+
 	static long Count(string digits)
 	{
 		var count = 0L;
@@ -666,6 +763,8 @@ sealed class SqlScriptReader
 	/// </summary>
 	void SetVariable(Line line, int after)
 	{
+		line = line.Uncommented(after);
+
 		var text = line.Text;
 		var at   = Skip(text, after, line.End);
 		var name = Name(text, at, line.End);
@@ -763,6 +862,8 @@ sealed class SqlScriptReader
 	/// </summary>
 	void Include(Line line, int after)
 	{
+		line = line.Uncommented(after);
+
 		var path = Path(line, after);
 
 		if (path is null)
@@ -778,9 +879,13 @@ sealed class SqlScriptReader
 			return;
 		}
 
+		if (source.Text is null)
+			throw new ArgumentException($"ScriptOptions.ResolveInclude gave '{path}' a ScriptSource with no Text.", "options");
+
+		// A file is known by its name, so one without a name is never a cycle; the depth bounds it.
 		foreach (var open in _open)
 		{
-			if (string.Equals(open.Name, source.Name, StringComparison.Ordinal))
+			if (source.Name is not null && string.Equals(open.Name, source.Name, StringComparison.Ordinal))
 			{
 				Diagnostics.Add(new ScriptDiagnostic(
 					ScriptSeverity.Error, $"File '{source.Name}' recursively included.", line.Location));
@@ -788,21 +893,26 @@ sealed class SqlScriptReader
 			}
 		}
 
-		if (_open.Count > Deepest)
+		if (_open.Count >= Deepest)
 		{
 			Diagnostics.Add(new ScriptDiagnostic(
 				ScriptSeverity.Error, $"'{path}': included more than {Deepest} deep.", line.Location));
 			return;
 		}
 
+		if (++_includes > _options.MaximumIncludes)
+		{
+			Fatal($"'{path}': more than {_options.MaximumIncludes} files included (ScriptOptions.MaximumIncludes).", line);
+			return;
+		}
+
 		var origin = new ScriptOrigin(source.Name, source.Text);
 
 		_open.Add(origin);
-
-		// A file whose last line has no line break runs on into the line after the :r.
-		_joined = !ReadSource(origin, Start(source.Text), lineStart: true);
-
+		ReadSource(origin, Start(source.Text));
 		_open.RemoveAt(_open.Count - 1);
+
+		Ended(origin);
 	}
 
 	/// <summary>
@@ -842,10 +952,18 @@ sealed class SqlScriptReader
 
 			while (end < line.End && !IsSpace(text[end]))
 			{
-				if (text[end] != '$' || !_substitute)
+				if (text[end] != '$')
 				{
 					result.Append(text[end++]);
 					continue;
+				}
+
+				// Without substitution (sqlcmd's -x) a reference in a file name is refused, not taken
+				// as part of the name.
+				if (!_substitute)
+				{
+					Fatal("Syntax error near command ':r'.", line);
+					return null;
 				}
 
 				var name = end + 1 < line.End && text[end + 1] == '(' ? Name(text, end + 2, line.End) : -1;
@@ -914,7 +1032,7 @@ sealed class SqlScriptReader
 		if (_pending.Count == 0)
 			return;
 
-		if (_pending.Count == 1 && _pending[0].Name is null)
+		if (_pending.Count == 1 && _pending[0].Name is null && _pending[0].Added is null)
 		{
 			var run = _pending[0];
 
@@ -926,12 +1044,15 @@ sealed class SqlScriptReader
 		}
 
 		// An undefined reference stays as written, so it is text like the text around it, and a
-		// batch whose only references are undefined is still one run of its source.
-		var runs = new List<Run>(_pending.Count);
+		// batch whose only references are undefined is still one run of its source. Each run is
+		// resolved to its text: null for a stretch of a source, else a value or what the tool added.
+		var runs = new List<(Run Run, string? Value)>(_pending.Count);
 
 		foreach (var run in _pending)
 		{
-			if (run.Name is not null && !_variables.ContainsKey(run.Name))
+			var value = run.Added;
+
+			if (run.Name is not null && !_variables.TryGetValue(run.Name, out value))
 			{
 				Diagnostics.Add(new ScriptDiagnostic(
 					ScriptSeverity.Warning,
@@ -939,28 +1060,25 @@ sealed class SqlScriptReader
 					new ScriptLocation(run.Origin.Name, new SqlSpan(run.At, run.Length))));
 			}
 
-			var plain = run.Name is null || !_variables.ContainsKey(run.Name);
-
-			if (plain && runs.Count > 0)
+			if (value is null && runs.Count > 0)
 			{
-				var last = runs[runs.Count - 1];
-				var same = last.Name is null || !_variables.ContainsKey(last.Name);
+				var (last, lastValue) = runs[runs.Count - 1];
 
-				if (same && ReferenceEquals(last.Origin, run.Origin) && last.At + last.Length == run.At)
+				if (lastValue is null && ReferenceEquals(last.Origin, run.Origin) && last.At + last.Length == run.At)
 				{
-					runs[runs.Count - 1] = new Run(run.Origin, last.At, last.Length + run.Length, null);
+					runs[runs.Count - 1] = (new Run(run.Origin, last.At, last.Length + run.Length, null), null);
 					continue;
 				}
 			}
 
-			runs.Add(plain ? new Run(run.Origin, run.At, run.Length, null) : run);
+			runs.Add((run, value));
 		}
 
 		_pending.Clear();
 
-		if (runs.Count == 1 && runs[0].Name is null)
+		if (runs.Count == 1 && runs[0].Value is null)
 		{
-			var only = runs[0];
+			var only = runs[0].Run;
 
 			Batches.Add(new ScriptBatch(
 				only.Origin.Text, only.At, only.Length, count, verbatim: true, separator,
@@ -973,18 +1091,16 @@ sealed class SqlScriptReader
 
 		for (var i = 0; i < runs.Count; i++)
 		{
-			var run = runs[i];
-			var at  = text.Length;
+			var (run, value) = runs[i];
+			var at           = text.Length;
 
-			if (run.Name is null)
+			if (value is null)
 			{
 				text.Append(run.Origin.Text, run.At, run.Length);
 				pieces[i] = new ScriptPiece(at, run.Length, run.Origin, run.At, run.Length, substituted: false);
 			}
 			else
 			{
-				var value = _variables[run.Name];
-
 				text.Append(value);
 				pieces[i] = new ScriptPiece(at, value.Length, run.Origin, run.At, run.Length, substituted: true);
 			}

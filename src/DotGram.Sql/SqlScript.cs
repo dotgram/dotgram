@@ -136,10 +136,17 @@ public sealed class ScriptProfile
 	/// sqlcmd, and SQL Server Management Studio or Azure Data Studio in SQLCMD mode: separator
 	/// lines, <c>GO n</c>, the commands and <c>$(name)</c>.
 	/// </summary>
-	/// <param name="separator">The separator word, as sqlcmd's <c>-c</c> sets it.</param>
-	/// <exception cref="ArgumentException">The separator is not a word.</exception>
+	/// <param name="separator">
+	/// The separator word, as sqlcmd's <c>-c</c> sets it. A command's own word — <c>reset</c>,
+	/// <c>quit</c> — is taken, and a line of it is still read as the command, as sqlcmd reads it.
+	/// </param>
+	/// <exception cref="ArgumentException">The separator is not a word, or is <c>exit</c>.</exception>
 	public static ScriptProfile SqlCmd(string separator = "GO")
 	{
+		// sqlcmd refuses `-c exit`: "Invalid batch terminator 'exit' - reserved keyword".
+		if (string.Equals(separator, "exit", StringComparison.OrdinalIgnoreCase))
+			throw new ArgumentException("sqlcmd reserves 'exit', and refuses it as a batch separator.", nameof(separator));
+
 		return new ScriptProfile("sqlcmd", Checked(separator), commands: true);
 	}
 
@@ -216,7 +223,23 @@ public sealed class ScriptOptions
 	/// <summary>
 	/// What the script is called, carried by every <see cref="ScriptLocation"/> in it.
 	/// </summary>
+	/// <remarks>
+	/// Not a name a <c>:r</c> is checked against for a cycle: sqlcmd reads the script once more when
+	/// it includes itself, and refuses only the include after that.
+	/// </remarks>
 	public string? SourceName { get; init; }
+
+	/// <summary>
+	/// How many files <c>:r</c> may read in all before the reading stops, with a
+	/// <see cref="ScriptSeverity.Fatal"/> diagnostic; 10,000 unless said.
+	/// </summary>
+	/// <remarks>
+	/// sqlcmd sets no such limit. This is a guard for a script that is not trusted: a cycle is caught
+	/// by name and a chain by its depth (32), but a file that includes two others that each include
+	/// two more is read 2^n times, and twenty levels of that is a million files. The default is far
+	/// beyond any deployment script; <see cref="int.MaxValue"/> lifts it.
+	/// </remarks>
+	public int MaximumIncludes { get; init; } = 10_000;
 }
 
 /// <summary>
@@ -299,6 +322,10 @@ public sealed class ScriptBatch
 	/// <para>
 	/// A range is one range in one text, so one that runs from one file into another — across the
 	/// edge of an included file — ends where its first file's part of the batch ends.
+	/// </para>
+	/// <para>
+	/// The line break sqlcmd adds where a file ends inside a string, a quoted name or a comment
+	/// without one was written nowhere: it maps to the empty range at the end of that file.
 	/// </para>
 	/// </remarks>
 	public ScriptLocation Locate(int at, int length)

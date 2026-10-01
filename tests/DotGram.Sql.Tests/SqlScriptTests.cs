@@ -249,6 +249,57 @@ public sealed class SqlScriptTests
 		Assert.Equal(32, Assert.Single(script.Batches).ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
 	}
 
+	/// <summary>
+	/// A file that includes two that each include two more is read 2^n times; the limit on files
+	/// read in all stops it, where the depth alone would let a million through.
+	/// </summary>
+	[Fact]
+	public void Includes_past_the_limit_end_the_reading()
+	{
+		var calls  = 0;
+		var script = SqlScript.Read(":r 0\n", new ScriptOptions
+		{
+			MaximumIncludes = 100,
+			ResolveInclude  = include =>
+			{
+				calls++;
+
+				var depth = include.Path.Length;
+
+				return new ScriptSource(include.Path, depth < 20 ? $":r {include.Path}0\n:r {include.Path}1\n" : "SELECT 1\n");
+			},
+		});
+
+		Assert.Equal(101, calls);
+		Assert.Equal(ScriptSeverity.Fatal, Assert.Single(script.Diagnostics).Severity);
+		Assert.Empty(script.Batches);
+		Assert.Throws<ArgumentException>(() => SqlScript.Read("", new ScriptOptions { MaximumIncludes = -1 }));
+	}
+
+	/// <summary>
+	/// A file is known by its name, so files without one are never a cycle, and neither is the
+	/// script itself when it has none.
+	/// </summary>
+	[Fact]
+	public void An_include_without_a_name_is_no_cycle()
+	{
+		var script = SqlScript.Read("SELECT 1\n:r a\n", new ScriptOptions
+		{
+			ResolveInclude = static include => include.Path == "a" ? new ScriptSource(null!, ":r b\nSELECT 2\n") : new ScriptSource(null!, "SELECT 3\n"),
+		});
+
+		Assert.Empty(script.Diagnostics);
+		Assert.Equal("SELECT 1\nSELECT 3\nSELECT 2\n", Assert.Single(script.Batches).ToString());
+	}
+
+	[Fact]
+	public void What_is_missing_from_the_options_is_an_argument_error()
+	{
+		Assert.Throws<ArgumentException>(() => SqlScript.Read("", new ScriptOptions { Profile = null! }));
+		Assert.Throws<ArgumentException>(() => SqlScript.Read("", new ScriptOptions { Variables = new Dictionary<string, string> { ["x"] = null! } }));
+		Assert.Throws<ArgumentException>(() => SqlScript.Read(":r a\n", new ScriptOptions { ResolveInclude = static include => new ScriptSource("a", null!) }));
+	}
+
 	// ── Variables ────────────────────────────────────────────────────────────
 
 	[Fact]

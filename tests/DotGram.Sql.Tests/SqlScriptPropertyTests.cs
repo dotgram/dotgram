@@ -159,7 +159,11 @@ public sealed class SqlScriptPropertyTests
 
 				var written = source.Substring(location.Span.At, location.Span.Length);
 
-				if (written != batch.Text.Substring(at, 1) && !Reference.IsMatch(written))
+				// A line break the tool adds where a file ends in a string or a comment was written
+				// nowhere, and stands at the end of that file.
+				var added = written.Length == 0 && batch.Text[at] == '\n' && location.Span.At == source.Length;
+
+				if (written != batch.Text.Substring(at, 1) && !Reference.IsMatch(written) && !added)
 					return $"Locate({at}, 1) maps '{batch.Text[at]}' to '{written}'";
 
 				if (location.Source == previousSource && location.Span.At < previous)
