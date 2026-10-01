@@ -325,4 +325,11 @@ public sealed class GramCompilerOptions
 	/// </para>
 	/// </remarks>
 	public int? Own { get; set; }
+
+	/// <summary>
+	/// Handed the bound grammar once names are resolved, for a caller that asks where each
+	/// name went — the editor, which navigates by it. Null for the generator, which keeps
+	/// nothing of the model past the compile.
+	/// </summary>
+	internal Action<Binding.GrammarModel>? Bound { get; set; }
 }

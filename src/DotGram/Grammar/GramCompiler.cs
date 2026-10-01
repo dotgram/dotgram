@@ -71,6 +71,9 @@ public static class GramCompiler
 		// that the standard library, which Read put there. Each is a root of its own.
 		var model = GrammarBinder.Bind(
 			parsed.File, options.SymbolResolver, Math.Min(options.Own ?? int.MaxValue, grammarText.Length));
+
+		options.Bound?.Invoke(model);
+
 		var graph = GrammarNormalizer.Normalize(
 			model, options.SymbolResolver, options.CSharpScanner, options.LocationType);
 

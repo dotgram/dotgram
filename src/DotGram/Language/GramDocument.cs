@@ -133,6 +133,20 @@ public sealed class GramDocument(
 	public IReadOnlyList<GramPublishedApi> PublishedApis { get; } = publishedApis;
 }
 
+/// <summary>What a grammar's host says about compiling it, which the editor reads the same way.</summary>
+public sealed class GramAnalysisOptions
+{
+	/// <summary>
+	/// How much of the text is the document's own, where the rest was spliced on from what
+	/// its host includes. Null when all of it is. A <c>parse</c> past this point belongs to
+	/// the included grammar, which publishes it itself, as the generator has it.
+	/// </summary>
+	public int? Own { get; set; }
+
+	/// <summary>Whether the host asks for the grammar to be read as tokens: <c>[Gram(Lexical = true)]</c>.</summary>
+	public bool Lexical { get; set; }
+}
+
 /// <summary>
 /// Adapts the existing compiler front-end to editor operations without reproducing
 /// grammar recognition in an editor integration.
@@ -154,14 +168,38 @@ public static class GramLanguageService
 	/// <summary>Analyzes a complete snapshot of a standalone <c>.gram</c> document.</summary>
 	public static GramDocument Analyze(string text)
 	{
+		return Analyze(text, null);
+	}
+
+	/// <summary>
+	/// Analyzes a complete snapshot of a <c>.gram</c> document compiled the way its host
+	/// compiles it.
+	/// </summary>
+	/// <param name="text">The document, with whatever its host includes already spliced on after it.</param>
+	/// <param name="options">What the host's attribute says, or null for a grammar with no host.</param>
+	public static GramDocument Analyze(string text, GramAnalysisOptions? options)
+	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
+
+		// Compiled first, because where a name resolves is the binder's to say: a rule named
+		// in an included grammar, through a `using` or a qualified name, is found by the same
+		// lookup the generator makes, and not by the first rule anywhere that has its name.
+		GrammarModel? model = null;
+		var compilation = GramCompiler.Compile(text, new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Own           = options?.Own,
+			Lexical       = options?.Lexical ?? false,
+			Bound         = bound => model = bound,
+		});
 
 		var tokens = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance);
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
-		var rules = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
-		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules);
+		var (rules, rulesByPosition) = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
+		var resolved = model is null ? new Dictionary<int, int>() : ResolvedReferences(model, text.Length);
+		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules, resolved);
 		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
 		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
 		var contextualKeywords = ConditionKeywordPositions(parsed.File.Decls, tokens.Tokens);
@@ -183,7 +221,9 @@ public static class GramLanguageService
 						symbol.DefinitionPosition,
 						symbol.Name,
 						symbolKind: symbol.Kind));
-				else if (token.Value is not null && rules.TryGetValue(token.Value, out var rule))
+				else if (symbolsByPosition.TryGetValue(token.Position, out symbol) &&
+					rulesByPosition.TryGetValue(symbol.DefinitionPosition, out var rule) ||
+					token.Value is not null && rules.TryGetValue(token.Value, out rule))
 					classifications.Add(new GramClassifiedSpan(
 						token.Position,
 						token.Length,
@@ -212,11 +252,6 @@ public static class GramLanguageService
 		}
 
 		classifications.Sort(static (left, right) => left.Position.CompareTo(right.Position));
-
-		var compilation = GramCompiler.Compile(text, new GramCompilerOptions
-		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
-		});
 
 		var (braces, foldingRanges) = Structure(text, tokens.Tokens, rules, classifications);
 		var documentSymbols = DocumentSymbols(parsed.File.Decls, tokens.Tokens);
@@ -260,7 +295,7 @@ public static class GramLanguageService
 			{
 				var operands = Test.Operands(test).Concat(Test.Guards(test)).ToArray();
 
-				for (var index = FirstTokenAtOrAfter(expression.At.Position);
+				for (var index = FirstTokenAtOrAfter(tokens, expression.At.Position);
 					index < tokens.Count && tokens[index].Position < expression.At.End;
 					index++)
 				{
@@ -282,23 +317,23 @@ public static class GramLanguageService
 			foreach (var child in Dump.Children(expression))
 				Visit(child);
 		}
+	}
 
-		int FirstTokenAtOrAfter(int position)
+	static int FirstTokenAtOrAfter(IReadOnlyList<Token> tokens, int position)
+	{
+		var low = 0;
+		var high = tokens.Count;
+
+		while (low < high)
 		{
-			var low = 0;
-			var high = tokens.Count;
-
-			while (low < high)
-			{
-				var middle = low + (high - low) / 2;
-				if (tokens[middle].Position < position)
-					low = middle + 1;
-				else
-					high = middle;
-			}
-
-			return low;
+			var middle = low + (high - low) / 2;
+			if (tokens[middle].Position < position)
+				low = middle + 1;
+			else
+				high = middle;
 		}
+
+		return low;
 	}
 
 	static HashSet<int> OnFailKeywordPositions(
@@ -606,10 +641,43 @@ public static class GramLanguageService
 		}).ToArray();
 	}
 
+	/// <summary>
+	/// Where the binder sent each rule reference: the position a name starts at, to the
+	/// position of the rule it names.
+	/// </summary>
+	/// <remarks>
+	/// Only rules declared inside <paramref name="length"/>: the standard library is spliced
+	/// on past the end of the text, and a definition there is a place nobody can be taken to.
+	/// </remarks>
+	static Dictionary<int, int> ResolvedReferences(GrammarModel model, int length)
+	{
+		var result = new Dictionary<int, int>();
+
+		foreach (var binding in model.Bindings)
+		{
+			if (binding.Value is not RuleSymbol { Declaration: { } declaration } ||
+				declaration.At.Position >= length)
+				continue;
+
+			var reference = binding.Key switch
+			{
+				Expr.Reference direct => direct,
+				Expr.Call call        => call.Target,
+				_                     => null,
+			};
+
+			if (reference is not null)
+				result[reference.At.Position] = declaration.At.Position;
+		}
+
+		return result;
+	}
+
 	static IReadOnlyList<GramSymbolOccurrence> SymbolOccurrences(
 		IReadOnlyList<Decl> declarations,
 		IReadOnlyList<Token> tokens,
-		IReadOnlyDictionary<string, RuleInfo> rules)
+		IReadOnlyDictionary<string, RuleInfo> rules,
+		IReadOnlyDictionary<int, int> resolved)
 	{
 		var result = new List<GramSymbolOccurrence>();
 		var positions = new HashSet<int>();
@@ -645,6 +713,34 @@ public static class GramLanguageService
 
 		void AddRule(string name, Location at, bool isDefinition)
 		{
+			// A declaration is its own definition: two grammars spliced together may each
+			// declare a rule of one name, and neither is the other's.
+			if (isDefinition)
+			{
+				AddOccurrence(name, at, at.Position, true, GramSymbolKind.Rule);
+				return;
+			}
+
+			// Where the binder sent it, and the name is the last part of what is written:
+			// `Sql92.Lexical.Digits` is a use of `Digits`, and that word is what is underlined,
+			// renamed and found.
+			if (resolved.TryGetValue(at.Position, out var definition))
+			{
+				var simple = name.Substring(name.LastIndexOf('.') + 1);
+				var last   = (Token?)null;
+
+				for (var index = FirstTokenAtOrAfter(tokens, at.Position);
+					index < tokens.Count && tokens[index].Position < at.End;
+					index++)
+					if (tokens[index].Kind == TokenKind.Identifier && tokens[index].Value == simple)
+						last = tokens[index];
+
+				if (last is { } token)
+					AddOccurrence(simple, new Location(token.Position, token.Length), definition, false, GramSymbolKind.Rule);
+
+				return;
+			}
+
 			if (!rules.TryGetValue(name, out var rule))
 				return;
 
@@ -904,19 +1000,26 @@ public static class GramLanguageService
 		}
 	}
 
-	static Dictionary<string, RuleInfo> RuleDefinitions(
+	/// <summary>Every rule: by name, the first of each, and by where it is declared, all of them.</summary>
+	/// <remarks>
+	/// By position because a grammar and what it includes may each declare one name; a use
+	/// the binder resolved is told about the rule it resolved to, and only a name the binder
+	/// did not see falls back on the first.
+	/// </remarks>
+	static (Dictionary<string, RuleInfo> ByName, Dictionary<int, RuleInfo> ByPosition) RuleDefinitions(
 		string text,
 		IReadOnlyList<Decl> declarations,
 		IReadOnlyList<Token> tokens)
 	{
-		var result = new Dictionary<string, RuleInfo>(StringComparer.Ordinal);
+		var result     = new Dictionary<string, RuleInfo>(StringComparer.Ordinal);
+		var byPosition = new Dictionary<int, RuleInfo>();
 
 		Collect(declarations);
 
-		foreach (var pair in result)
-			pair.Value.ExpandedDefinition = Expand(pair.Key, result);
+		foreach (var rule in byPosition.Values)
+			rule.ExpandedDefinition = Expand(rule, result);
 
-		return result;
+		return (result, byPosition);
 
 		void Collect(IReadOnlyList<Decl> items)
 		{
@@ -931,12 +1034,20 @@ public static class GramLanguageService
 							.Max();
 						var length = Math.Min(end - rule.At.Position, text.Length - rule.At.Position);
 
-						if (length > 0 && !result.ContainsKey(rule.Name))
-							result.Add(rule.Name, new RuleInfo(
+						if (length > 0 && !byPosition.ContainsKey(rule.At.Position))
+						{
+							var info = new RuleInfo(
+								rule.Name,
 								text.Substring(rule.At.Position, length).TrimEnd(),
 								rule.At.Position,
 								References(rule.Body),
-								rule.Params.Count));
+								rule.Params.Count);
+
+							byPosition.Add(rule.At.Position, info);
+
+							if (!result.ContainsKey(rule.Name))
+								result.Add(rule.Name, info);
+						}
 
 						break;
 					case Decl.Namespace @namespace:
@@ -946,13 +1057,13 @@ public static class GramLanguageService
 		}
 	}
 
-	static string Expand(string name, IReadOnlyDictionary<string, RuleInfo> rules)
+	static string Expand(RuleInfo start, IReadOnlyDictionary<string, RuleInfo> rules)
 	{
-		var text    = new StringBuilder(rules[name].Definition);
-		var emitted = new HashSet<string>(StringComparer.Ordinal) { name };
-		var stack   = new HashSet<string>(StringComparer.Ordinal) { name };
+		var text    = new StringBuilder(start.Definition);
+		var emitted = new HashSet<string>(StringComparer.Ordinal) { start.Name };
+		var stack   = new HashSet<string>(StringComparer.Ordinal) { start.Name };
 
-		AppendDependencies(rules[name]);
+		AppendDependencies(start);
 
 		return text.ToString();
 
@@ -1078,11 +1189,13 @@ public static class GramLanguageService
 	}
 
 	sealed class RuleInfo(
+		string name,
 		string definition,
 		int position,
 		IReadOnlyList<string> references,
 		int parameterCount)
 	{
+		public string Name { get; } = name;
 		public string Definition { get; } = definition;
 		public int Position { get; } = position;
 		public IReadOnlyList<string> References { get; } = references;
