@@ -180,7 +180,7 @@ line and the rest sorted. The two frameworks agree but for a record's clone, whi
 type on net10.0 and the base type on netstandard2.0, having no covariant returns: what only one
 framework has is in `PublicAPI/<framework>/`, beside the shared files, and read by that
 framework's build alone. The generated FIX versions are most of the surface, so a change to
-`generate.py` or a template that changes a version's members changes these files too.
+`generate.cs` or a template that changes a version's members changes these files too.
 
 The lines are written by the analyzer, not by hand. The editor's fix for RS0016 adds one, and a
 build that lets the analyzer warn rather than fail prints every missing one, each RS0016 naming
@@ -526,7 +526,7 @@ what it says about the pass.
 
 ## The script that writes the FIX versions
 
-`src/DotGram.Finance/Fix/generate.py` reads `tests/Corpus/FixRepository` — the FIX repository's
+`src/DotGram.Finance/Fix/generate.cs` reads `tests/Corpus/FixRepository` — the FIX repository's
 machine-readable form of each version — and writes everything that is a version's own into its
 directory, `Fix/Fix44` for FIX 4.4: `FixMessage.Types.cs`, the class of each message type with the
 switch that reads its fields; `FixMessage.Header.cs`, the standard header and trailer;
@@ -537,13 +537,16 @@ its parser, message base, context and header check — is written from `Fix/Temp
 version's names and the tables the repository gives (the message types, the length/data pairs, the
 header's fields) put in. One more file goes into what every version shares: `Fix/FixTag.cs`, every
 tag of every version, named as the newest version that has it names it.
-**The build does not run it.** Its output is checked in and read as ordinary source, so
-nobody needs Python to build, test or ship this repository; it is needed only by whoever changes the
-script, a template or the repository under it. A change to a version's code is made in a template or
-in the script, never in the version's directory.
+
+`generate.cs` is a file-based app — no project file, run straight from the `.cs` file by the SDK
+already needed to build the repository — and is not itself part of the solution build: the Finance
+project's `.csproj` excludes it from compilation so it is only ever run on purpose.
+**The build does not run it.** Its output is checked in and read as ordinary source; it is needed
+only by whoever changes the script, a template or the repository under it. A change to a version's
+code is made in a template or in the script, never in the version's directory.
 
 ```
-python src/DotGram.Finance/Fix/generate.py
+dotnet run src/DotGram.Finance/Fix/generate.cs
 ```
 
 Names are the data dictionaries', so that a dictionary loaded at run time is written into checks
@@ -653,7 +656,7 @@ parsing costs.
 
 Paths are under `src/DotGram.Finance/` unless they say otherwise.
 
-A version's field types, message classes, components and checks are written by `Fix/generate.py`
+A version's field types, message classes, components and checks are written by `Fix/generate.cs`
 from the FIX repository and are not edited by hand: a change is made in the script or a template
 and the versions are written again. The FIX 4.4 field grammar the tests hold the package against,
 and the test fixtures, are maintained by hand beside them.
@@ -667,8 +670,8 @@ What every version shares is in `Fix/`:
 - `Fix/FixValidator.cs`, `Fix/FixValidator.Load.cs`: what every check says a finding with, and the
   application of a dictionary to a version's checks, compiled in the background after it.
 - `Fix/FixTag.cs`: the number of every tag of every version as a constant named for it.
-- `Fix/generate.py`, `Fix/Templates/`: the script that writes every version's directory and
-  `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.
+- `Fix/generate.cs`, `Fix/Templates/`: the file-based app that writes every version's directory
+  and `FixTag.cs` from the FIX repository; nothing in a version's directory is edited by hand.
 
 FIX 4.4's own is in `Fix/Fix44/`:
 

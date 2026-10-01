@@ -42,6 +42,10 @@
 
 		<AdditionalFiles Include="Fix/**/*.gram" />
 
+		<!-- The generator is a file-based app (top-level statements, run with `dotnet run`), not part
+		     of this package: the default globbing above would otherwise compile it into the project. -->
+		<Compile Remove="Fix/generate.cs" />
+
 		<None Include="README.md" Pack="true" PackagePath="/" />
 
 		<!-- The skill beside it, so that an agent working in a project that has restored

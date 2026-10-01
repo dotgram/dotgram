@@ -58,7 +58,7 @@ src/
 	                      version. README.md and SKILL.md ship on NuGet
 		Fix/              what every version of FIX shares, in DotGram.Finance.Fix: the
 		                  fields, FixTag, FixConvert, FixDictionary, the context every version's
-		                  derives from; generate.py and Templates/, which write every version
+		                  derives from; generate.cs and Templates/, which write every version
 			Fix42/, Fix44/, Fix50/  each version's own, in DotGram.Finance.Fix.Fix42 and so on:
 			              FixParser, the messages, the checks, its context. Generated from the
 			              FIX repository, not edited by hand
