@@ -1744,10 +1744,65 @@ sealed partial class Machine
 						member, machine.Carrier.FirstRecord(member.Slots, member.Member.Rule!)),
 				});
 
-			Carried(code, machine.Carrier.End("rb"));
+			var built = machine.Carrier.End("rb");
 
-			if (_folds)
-				Carried(code, machine.Carrier.Accumulated(owner));
+			if (!_folds)
+			{
+				Carried(code, built);
+				return;
+			}
+
+			var accumulated = machine.Carrier.Accumulated(owner);
+			var merged      = MergeIntoAccumulated(built, accumulated);
+
+			if (merged is not null)
+			{
+				Carried(code, merged);
+				return;
+			}
+
+			Carried(code, built);
+			Carried(code, accumulated);
+		}
+
+		/// <summary>
+		/// Where a fold step's own record ends in a plain "<c>into = expr;</c>" and the carrier's
+		/// <see cref="ValueCarrier.Accumulated"/> would only copy that same local into
+		/// <c>fold</c> right after ("<c>fold = into;</c>"), the two are written as one chained
+		/// assignment instead ("<c>fold = into = expr;</c>"): <c>into</c> — the type's shared
+		/// "last" register (Machine.Carrier.cs, <c>Register</c>) — still ends the turn holding
+		/// what it read, current for whatever else reads it, and <c>fold</c> still gets the same
+		/// value, but the emitter no longer writes the value into a local Roslyn compiles, only
+		/// to copy it nowhere else the very next line.
+		/// </summary>
+		/// <remarks>
+		/// A record wrapped for <c>Unbuilding</c> ("<c>if (unbuilt == 0) into = expr; else { … }</c>")
+		/// keeps its own two lines: merging inside a conditional's single statement risks
+		/// misreading the wrapper for a shape it is not, and the two-line form there was never
+		/// the copy this exists to remove (Accumulated only ever runs when the record was built,
+		/// so the "then" branch is the only one asking, and the plain shape below already covers
+		/// every grammar measured so far).
+		/// </remarks>
+		static string? MergeIntoAccumulated(string built, string accumulated)
+		{
+			if (accumulated.Length == 0 || !built.EndsWith(";", StringComparison.Ordinal) || built.Contains("if (unbuilt"))
+				return null;
+
+			var eq = built.IndexOf(" = ", StringComparison.Ordinal);
+			if (eq < 0)
+				return null;
+
+			var target = built.Substring(0, eq);
+
+			// The exact shape base Carrier.Accumulated produces (Machine.Carrier.cs) for this
+			// same target; a carrier override with different text (Tape's own, which reads a
+			// log rather than a bare local) is left with its own two lines, unmerged.
+			if (accumulated != $"fold = {target};")
+				return null;
+
+			var expr = built.Substring(eq + 3, built.Length - eq - 3 - 1);
+
+			return $"fold = {target} = {expr};";
 		}
 
 		readonly HashSet<int> _kept = [];
