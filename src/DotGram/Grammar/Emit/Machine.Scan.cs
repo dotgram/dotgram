@@ -414,6 +414,25 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
+				// An alternative that can read nothing matches at every position, so where it is
+				// not the last, what stands after it is never tried however the first sets part:
+				// `('b'? | 'a')` reads nothing on `a`, and where what follows then fails, the choice
+				// has to be reopened for `'a'`. As the last it is the way out when an earlier one
+				// read and what follows refused, and committing to the earlier one loses nothing
+				// only where what follows cannot begin where it began — `Word & ('=' & Word)?`
+				// before `,` — the settledness argument again. Where nothing follows inside the
+				// group, the first reading is the answer either way.
+				if (!after.Nothing && alternatives.Count > 1)
+				{
+					for (var i = 0; i < alternatives.Count; i++)
+						if (FirstSets.Nullable(alternatives[i], _graph) &&
+							(i < alternatives.Count - 1 ||
+							alternatives.Take(i).Any(one => FirstSets.Of(one, _graph).Overlaps(after))))
+						{
+							return false;
+						}
+				}
+
 				for (var i = 0; i < alternatives.Count; i++)
 					for (var j = i + 1; j < alternatives.Count; j++)
 						if (!Exclusive(alternatives[i], alternatives[j]))
