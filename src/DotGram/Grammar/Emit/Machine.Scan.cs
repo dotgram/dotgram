@@ -671,6 +671,16 @@ sealed partial class Machine
 
 		/// <summary>The failure labels that put the position back where a sequence began.</summary>
 		readonly HashSet<string> _restores = [];
+
+		/// <summary>
+		/// Whether a run that fails into <paramref name="fail"/> has to put the position back
+		/// itself: not into a sequence's own way back, which puts it further back still, and not
+		/// into the scanner's refusal, which reports how far it got and not where it stands.
+		/// </summary>
+		bool GivesBackTo(string fail)
+		{
+			return fail != "Refuse" && !_restores.Contains(fail);
+		}
 		bool _character;
 		bool _reaches;
 
@@ -875,11 +885,11 @@ sealed partial class Machine
 
 					var mark    = Mark();
 					var restore = $"L{_labels++}_undo";
-
-					_restores.Add(restore);
 					var over    = $"L{_labels++}_on";
 					var buffer  = new Writer(0);
 					var carry   = loaded;
+
+					_restores.Add(restore);
 
 					for (var i = 0; i < parts.Count; i++)
 					{
@@ -1101,7 +1111,7 @@ sealed partial class Machine
 
 				// Short of the least, the run read characters it now gives back: what is tried
 				// next begins where the run did.
-				if (min > 1 && !_restores.Contains(fail))
+				if (min > 1 && GivesBackTo(fail))
 				{
 					code.Line($"if (p - {from} < {min})");
 
@@ -1125,7 +1135,7 @@ sealed partial class Machine
 			// A run that needs two turns or more can fail after reading some: `'b'{2}` on `by`
 			// reads the `b`, and whatever is tried next has to begin where the run began. Where
 			// it fails into a sequence's own way back, that puts the position further back still.
-			var mark = min > 1 && !_restores.Contains(fail) ? Mark() : -1;
+			var mark = min > 1 && GivesBackTo(fail) ? Mark() : -1;
 
 			if (mark >= 0)
 				code.Line($"mark{mark} = p;");
