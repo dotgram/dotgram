@@ -2137,15 +2137,22 @@ public abstract record Statement : ISqlSpan
 
 /// <summary>
 /// What a client sends the server in one call: the statements of one batch of a script, and
-/// the <c>GO</c> line that ended it as it was written — <c>GO</c>, or <c>GO 5</c> for a batch
-/// sent five times — or null where nothing did, which is the last batch of a file.
+/// the <c>GO</c> line that ended it — <c>GO</c>, or <c>GO 5</c> for a batch sent five times —
+/// or null where nothing did, which is the last batch of a file.
 /// </summary>
 /// <remarks>
 /// Not a statement and not a node of the other four kinds: a script is a client's idea, and
 /// the server never sees the line a batch ends at. So it is a record of its own, holding the
 /// statements, and it is what <c>ParseScript</c> hands back a list of.
 /// </remarks>
-public sealed record Batch(Statement[] Statements, string? Go = null);
+public sealed record Batch(Statement[] Statements, string? Go = null)
+{
+	/// <summary>
+	/// The batch as the script was cut: its text, how many times it is sent, and the way back from
+	/// a position in it to where that was written. Null for a batch made by hand.
+	/// </summary>
+	public ScriptBatch? Source { get; init; }
+}
 
 /// <summary>
 /// The groups Microsoft's page of the SET statements puts them in, as flags, so that a
@@ -3864,52 +3871,6 @@ public static class Syntax
 			Statement.Merge merge => merge with { With = with },
 			_ => statement,
 		};
-	}
-
-	/// <summary>
-	/// The batches of a script from what its grammar reads: the text before the first
-	/// <c>GO</c>, and each later text with the <c>GO</c> in front of it — which is moved onto
-	/// the batch before, since a <c>GO</c> ends a batch rather than beginning one.
-	/// </summary>
-	/// <remarks>
-	/// A <c>GO</c> with nothing before it ends a batch with nothing in it, and is kept as one
-	/// so that the line is not lost. The last batch, which nothing ended, is left out when it
-	/// is empty: a file that ends with <c>GO</c> has no batch after it.
-	/// </remarks>
-	public static Batch[] Scripted(Statement[] first, Batch[]? rest, string? last = null)
-	{
-		var batches    = new List<Batch>();
-		var statements = first;
-
-		foreach (var next in rest ?? System.Array.Empty<Batch>())
-		{
-			batches.Add(new Batch(statements, next.Go));
-			statements = next.Statements;
-		}
-
-		if (statements.Length > 0 || last is not null)
-			batches.Add(new Batch(statements, last));
-
-		return [.. batches];
-	}
-
-	/// <summary>
-	/// A <c>GO</c> line as what it says: <c>GO</c>, and the count where one is written. What
-	/// else closed the line — a <c>;</c>, a comment — is trivia, which the tree keeps nowhere.
-	/// </summary>
-	public static string GoLine(string line)
-	{
-		var at = 2;
-
-		while (at < line.Length && (line[at] == ' ' || line[at] == '\t'))
-			at++;
-
-		var digits = at;
-
-		while (digits < line.Length && char.IsDigit(line[digits]))
-			digits++;
-
-		return digits > at ? "GO " + line[at..digits] : "GO";
 	}
 
 	/// <summary>

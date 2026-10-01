@@ -14463,57 +14463,216 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
-	/// A script, cut at its <c>GO</c> lines the way ScriptDom cuts it: the number of batches
-	/// and of statements in them, and the line that ended the first.
+	/// A script, cut into batches the way sqlcmd cuts it: the number of batches and of statements
+	/// in them, and the line that ended the first.
 	/// </summary>
+	/// <remarks>
+	/// A batch with nothing in it is not one sqlcmd sends, so a <c>GO</c> after a <c>GO</c> ends no
+	/// batch; one holding only spacing or a comment is sent, and is read as no statements. A line is
+	/// a separator only where sqlcmd reads it as one: <c>GO;</c> and a <c>GO</c> after a lone carriage
+	/// return are text, and the server reads them as words.
+	/// </remarks>
 	[Theory]
 	[InlineData("SELECT 1\nGO\nSELECT 2", 2, 2, "GO")]
 	[InlineData("SELECT 1\r\nGO\r\nSELECT 2", 2, 2, "GO")]
 	[InlineData("SELECT 1 GO SELECT 2", 1, 2, null)]
 	[InlineData("SELECT 1\n  go  -- c\nSELECT 2", 2, 2, "GO")]
-	[InlineData("SELECT 1\nGO;\nSELECT 2", 2, 2, "GO")]
-	[InlineData("SELECT 1\nGO /* c */\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1\nGO;\nSELECT 2", 1, 2, null)]
 	[InlineData("SELECT 1 -- x\nGO\nSELECT 2", 2, 2, "GO")]
 	[InlineData("SELECT 1\n/*\nGO\n*/\nSELECT 2", 1, 2, null)]
+	[InlineData("SELECT 1\n/* c */ GO\nSELECT 2", 2, 2, "GO")]
 	[InlineData("SELECT 'a\nGO\nb'", 1, 1, null)]
 	[InlineData("SELECT go FROM t", 1, 1, null)]
 	[InlineData("SELECT 1\nGOTO x", 1, 2, null)]
 	[InlineData("SELECT 1\nGO\n", 1, 1, "GO")]
+	[InlineData("SELECT 1\nGO\n\n", 2, 1, "GO")]
 	[InlineData("CREATE TABLE t (a INT)\nGO", 1, 1, "GO")]
 	[InlineData("SELECT 1;\ngo 2", 1, 1, "GO 2")]
-	[InlineData("SELECT 1\nGO\nGO\nSELECT 2", 3, 2, "GO")]
+	[InlineData("SELECT 1\nGO\nGO\nSELECT 2", 2, 2, "GO")]
 	[InlineData("CREATE PROCEDURE p AS SELECT 1\nGO\nEXEC p", 2, 2, "GO")]
 	[InlineData("SELECT 1\nGO 5\nSELECT 2", 2, 2, "GO 5")]
-	[InlineData("GO\nSELECT 1", 2, 1, "GO")]
-	[InlineData("SELECT 1\nGO\nGO", 2, 1, "GO")]
+	[InlineData("GO\nSELECT 1", 1, 1, null)]
+	[InlineData("SELECT 1\nGO\nGO", 1, 1, "GO")]
+	[InlineData("SELECT 1\rGO\rSELECT 2", 1, 2, null)]
 	[InlineData("p 1\nGO", 1, 1, "GO")]
-	public void A_script_is_cut_where_ScriptDom_cuts_it(string input, int batches, int statements, string? first)
+	[InlineData(":setvar t x\nSELECT 1 FROM $(t)\nGO", 1, 1, "GO")]
+	[InlineData("SELECT 1\n:on error exit\nSELECT 2", 1, 2, null)]
+	[InlineData("", 0, 0, null)]
+	public void A_script_is_cut_where_sqlcmd_cuts_it(string input, int batches, int statements, string? first)
 	{
 		var match = TransactSqlParser.TryParseScript(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 		Assert.Equal(batches, match.Value.Length);
 		Assert.Equal(statements, match.Value.Sum(static batch => batch.Statements.Length));
-		Assert.Equal(first, match.Value[0].Go);
+
+		if (batches > 0)
+			Assert.Equal(first, match.Value[0].Go);
+
+		Assert.All(match.Value, static batch => Assert.NotNull(batch.Source));
 	}
 
 	/// <summary>
-	/// A <c>GO</c> first on a line ends a batch wherever it stands, as ScriptDom has it, so a
-	/// statement it falls in the middle of is cut; and a text of statements is one batch,
-	/// with no <c>GO</c> in it.
+	/// A <c>GO</c> first on a line ends a batch wherever it stands, so a statement it falls in the
+	/// middle of is cut; a line sqlcmd cannot read stops the script there; a text the server would
+	/// refuse is refused, a <c>GO</c> in it a word like any other; and a file to include is one
+	/// <c>ParseScript</c> has no way to read.
 	/// </summary>
 	[Theory]
-	[InlineData("SELECT a,\ngo\nFROM t")]
-	[InlineData("SELECT 1\nGO\nFROM T")]
-	public void A_GO_line_ends_a_batch_wherever_it_stands(string input)
+	[InlineData("SELECT a,\ngo\nFROM t", 10)]
+	[InlineData("SELECT 1\nGO\nFROM T", 12)]
+	[InlineData("SELECT 1\nGO /* c */\nSELECT 2", 9)]
+	[InlineData("SELECT 1\nGO 2;\nSELECT 2", 9)]
+	[InlineData("SELECT 1\nGO x\nSELECT 2", 9)]
+	[InlineData("PRINT 1 GO\nPRINT 2", 11)]
+	[InlineData("/* /* x */\nGO\n*/ SELECT 1", 0)]
+	[InlineData("SELECT 1\n:r other.sql\nSELECT 2", 9)]
+	[InlineData("SELECT 1\nGO\nSELECT '$(x'", 20)]
+	public void A_script_is_refused_where_sqlcmd_or_the_server_would_refuse_it(string input, int at)
 	{
-		Assert.False(TransactSqlParser.TryParseScript(input).IsSuccess, input);
+		var match = TransactSqlParser.TryParseScript(input);
+
+		Assert.False(match.IsSuccess, input);
+		Assert.Equal(at, match.Position);
+		Assert.Throws<FormatException>(() => TransactSqlParser.ParseScript(input));
+		Assert.False(TransactSqlParser.Located.TryParseScript170(input, out _));
+	}
+
+	/// <summary>
+	/// Text sent in one call has no <c>GO</c> lines in it: a <c>GO</c> there is a word, which the
+	/// server reads as a name — a column's, or a procedure's — and refuses where a name cannot
+	/// stand. Each row was put to SQL Server 2025 in one call under <c>SET PARSEONLY ON</c>.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1\nGO\n", true)]
+	[InlineData("SELECT 1\nGO\nSELECT 2", true)]
+	[InlineData("GO", true)]
+	[InlineData("EXEC\nGO 5", true)]
+	[InlineData("SELECT 1\nGO;\nSELECT 2", true)]
+	[InlineData("SELECT GO\n, 1", true)]
+	[InlineData("/* c */ GO", true)]
+	[InlineData("SELECT 1 AS\nGO\n", true)]
+	[InlineData("EXEC\nGO\n", true)]
+	[InlineData("SELECT 1\rGO\rSELECT 2", true)]
+	[InlineData("-- c\r\t\t go\r\nSELECT 1", true)]
+	[InlineData("PRINT 1 GO\nPRINT 2\n", false)]
+	public void In_one_call_GO_is_a_word(string input, bool read)
+	{
+		var match = TransactSqlParser.TryParseSql(input);
+
+		Assert.True(read == match.IsSuccess, input + "  ||  " + match.Error);
 	}
 
 	[Fact]
-	public void A_text_of_statements_has_no_GO_in_it()
+	public void A_GO_line_read_in_one_call_names_the_column_before_it()
 	{
-		Assert.False(TransactSqlParser.TryParseSql("SELECT 1\nGO\nSELECT 2").IsSuccess);
+		var statements = TransactSqlParser.ParseSql("SELECT 1\nGO\nSELECT 2");
+
+		Assert.Equal(2, statements.Length);
+		Assert.True(SqlScript.Read("SELECT 1\nGO\nSELECT 2").HasClientSyntax);
+	}
+
+	/// <summary>
+	/// A batch is read whole: a reading that stops short of the batch's end is refused, where and
+	/// as the same text read on its own is refused — even where nothing after that point could
+	/// begin a token, which a reading of a window passes over.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1\nGO\nSELECT 2 ` x", 21)]
+	[InlineData("SELECT 1\nGO\nSELECT 2 FROM", 25)]
+	[InlineData("SELECT 1 /*", 10)]
+	public void A_batch_is_read_to_its_end(string input, int at)
+	{
+		var script = SqlScript.Read(input);
+		var batch  = script.Batches[script.Batches.Count - 1];
+		var match  = TransactSqlParser.TryParseSql(batch);
+		var alone  = TransactSqlParser.TryParseSql(batch.ToString());
+
+		Assert.False(match.IsSuccess, input);
+		Assert.Equal(at, match.Position);
+		Assert.Equal(alone.Position + batch.At, match.Position);
+		Assert.Equal(alone.Error, match.Error);
+		Assert.False(TransactSqlParser.Located.TryParseSql150(batch).IsSuccess);
+	}
+
+	[Theory]
+	[InlineData("SELECT 1\nGO\nSELECT 2 -- c\n/* d /* e */ */ \u00a0\u200b\n")]
+	[InlineData("SELECT 1;;\n")]
+	[InlineData("-- only a comment\n")]
+	[InlineData("   ")]
+	public void What_follows_the_last_statement_may_be_spacing_and_comments(string input)
+	{
+		foreach (var batch in SqlScript.Read(input).Batches)
+			Assert.True(TransactSqlParser.TryParseSql(batch).IsSuccess, batch.ToString());
+	}
+
+	/// <summary>
+	/// A batch written as one run is a window of the script, so the located reading's spans are
+	/// positions in the script, with nothing to map.
+	/// </summary>
+	[Fact]
+	public void A_verbatim_batchs_spans_are_positions_in_the_script()
+	{
+		var text    = "SELECT 1\r\nGO\r\n  SELECT a FROM t\r\nGO 2\r\nPRINT 'x'";
+		var batches = TransactSqlParser.Located.ParseScript(text);
+
+		Assert.Equal(3, batches.Length);
+		Assert.Equal(["GO", "GO 2", null], batches.Select(static batch => batch.Go));
+		Assert.Equal(2L, batches[1].Source!.Count);
+
+		var select = batches[1].Statements.Single();
+
+		Assert.Equal("SELECT a FROM t", text.Substring(select.Span.At, select.Span.Length));
+
+		var print = batches[2].Statements.Single();
+
+		Assert.Equal("PRINT 'x'", text.Substring(print.Span.At, print.Span.Length));
+	}
+
+	/// <summary>
+	/// In a batch where a variable was substituted, a span is a position in the batch's own text, and
+	/// its <see cref="ScriptBatch.Locate"/> takes it back to the script.
+	/// </summary>
+	[Fact]
+	public void A_substituted_batchs_spans_map_back_through_it()
+	{
+		var text   = ":setvar t Orders\nSELECT a FROM $(t)\nGO\n";
+		var batch  = TransactSqlParser.Located.ParseScript(text).Single();
+		var select = batch.Statements.Single();
+		var source = batch.Source!;
+
+		Assert.False(source.IsVerbatim);
+		Assert.Equal("SELECT a FROM Orders", source.Text.Substring(select.Span.At, select.Span.Length));
+
+		var there = source.Locate(select.Span.At, select.Span.Length).Span;
+
+		Assert.Equal("SELECT a FROM $(t)", text.Substring(there.At, there.Length));
+	}
+
+	/// <summary>
+	/// A refusal in a batch where a variable was substituted is reported where it was written.
+	/// </summary>
+	[Fact]
+	public void A_refusal_in_a_substituted_batch_is_a_position_in_the_script()
+	{
+		var text  = ":setvar t Orders\nSELECT a FROM $(t) WHERE\nGO\n";
+		var match = TransactSqlParser.TryParseScript(text);
+
+		Assert.False(match.IsSuccess);
+		Assert.Equal(text.IndexOf("\nGO", StringComparison.Ordinal) + 1, match.Position);
+	}
+
+	[Fact]
+	public void A_text_of_statements_is_one_batch_of_a_script()
+	{
+		var text  = "SELECT 1; SELECT 2";
+		var batch = SqlScript.Read(text).Batches.Single();
+		var match = TransactSqlParser.TryParseSql170(batch);
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(
+			TransactSqlParser.ParseSql170(text).Select(static statement => statement.GetType()),
+			match.Value.Select(static statement => statement.GetType()));
 	}
 
 	/// <summary>A text of several statements, as one call to the server carries them.</summary>
