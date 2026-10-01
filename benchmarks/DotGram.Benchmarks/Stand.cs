@@ -867,9 +867,12 @@ static partial class Stand
 				? Load("DotGram.Benchmarks", "DotGram.Benchmarks.Config")
 				: null;
 
-			// Only a side that was given DotGram.Examples has a stock count to read.
+			// Only a side that was given DotGram.Examples has a stock count to read, and the file alone does
+			// not say so: v0.1.0 has DotGram.Examples.dll without DotGram.Examples.Feeds.StockCountReader (added
+			// later), so the type is looked up with `Find`, not the throwing `Load`, the same optionality FIX
+			// and Web already have above.
 			_stock = File.Exists(Path.Combine(directory, "DotGram.Examples.dll"))
-				? Load("DotGram.Examples", "DotGram.Examples.Feeds.StockCountReader")
+				? Find("DotGram.Examples", "DotGram.Examples.Feeds.StockCountReader")
 				: null;
 		}
 
