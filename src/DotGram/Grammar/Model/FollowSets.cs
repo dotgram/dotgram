@@ -780,10 +780,16 @@ public static class FollowSets
 			// instead. Either way the answer is the same union, and leaving it out is what
 			// let a run before a look be called settled when the look was about to want a
 			// character the run had taken.
-			case Node.Lookahead(_, var watched):
+			case Node.Lookahead(var positive, var watched):
 			{
 				var read  = FirstSets.Of(watched, graph);
-				var plain = read.Or(Plainly(node, after.Plain, graph));
+
+				// Past a refusal of one character, a positional stop is where that character is not
+				// (FirstSets.Past), and a give-back that wants what follows to succeed on a character
+				// the refusal refused wants nothing: its own characters are not added there.
+				var plain = !positive && after.Plain.Stops && FirstSets.Refused(node, graph) is not null
+					? Plainly(node, after.Plain, graph)
+					: read.Or(Plainly(node, after.Plain, graph));
 
 				var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var body)
 					? FirstSets.Of(body, graph)

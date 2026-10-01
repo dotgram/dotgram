@@ -85,7 +85,7 @@ public static class FirstSets
 		public static readonly First Stop = new(false, false, [], Stops: true);
 
 		/// <summary>The same set without the positional stop; <see cref="None"/> where that was all it held.</summary>
-		First Unstopped()
+		internal First Unstopped()
 		{
 			return !Stops ? this :
 				Ranges.Count == 0 && !Ends ? None :
@@ -2088,18 +2088,87 @@ public static class FirstSets
 	/// refuse is anything.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The stop is worth something only while what follows cannot fail: then nothing is ever asked
 	/// back for it. Behind a look, a guard, a selector, a recognizer the host writes — anything that
 	/// may read nothing and still refuse — what follows can fail at one place and stop at another,
 	/// and from there it may begin with any character at all. Only a node that matches wherever it
 	/// stands (<see cref="Unfailing"/>) carries the stop past it.
+	/// </para>
+	/// <para>
+	/// One refusal is known exactly: a negative look over what one character decides,
+	/// <c>?![a-z]</c> or a rule that is only that. Past it the stop is where that character is not:
+	/// the complement of the class, and the end of the input. That is a set with no stop in it,
+	/// since the look can fail; and it is all a give-back asks, which is whether what follows could
+	/// succeed where a turn began, on a character the turn read.
+	/// </para>
 	/// </remarks>
 	public static First Past(Node node, First after, RecognitionGraph graph)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		return after.Stops && !Unfailing(node, graph) ? First.All : after;
+		if (!after.Stops || Unfailing(node, graph))
+			return after;
+
+		return Refused(node, graph) is { } refused
+			? after.Unstopped().Or(First.Chars(Complement(refused.Ranges), ends: true))
+			: First.All;
+	}
+
+	/// <summary>
+	/// What a negative look refuses, where it is one over something one character decides —
+	/// written in place, or a rule that is nothing else; null for anything more.
+	/// </summary>
+	internal static First? Refused(Node node, RecognitionGraph graph)
+	{
+		var seen = new HashSet<RuleSymbol>();
+
+		while (true)
+		{
+			switch (node)
+			{
+				case Node.Call(var rule, { Count: 0 }) when seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var body):
+					node = body;
+					continue;
+
+				case Node.Capture(_, var held):
+					node = held;
+					continue;
+
+				case Node.Marked(var kept, _):
+					node = kept;
+					continue;
+
+				case Node.Lookahead(false, var watched) when Decided(watched, graph, seen):
+				{
+					var first = Of(watched, graph);
+
+					return first.IsKnown && !first.Ends ? first : null;
+				}
+
+				default:
+					return null;
+			}
+		}
+	}
+
+	/// <summary>Whether a node matches exactly where its first set admits the character in hand.</summary>
+	static bool Decided(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		return node switch
+		{
+			Node.Literal { IgnoreCase: false } literal => literal.Text.Length == 1,
+			Node.Element(_, _, _, var references) => references.Count == 0,
+			Node.Choice(var alternatives) { Selection: null } => alternatives.Count > 0 && alternatives.All(one => Decided(one, graph, seen)),
+			Node.Capture(_, var held) => Decided(held, graph, seen),
+			Node.Marked(var kept, _) => Decided(kept, graph, seen),
+			Node.Atomic(var kept) => Decided(kept, graph, seen),
+			Node.Call(var called, { Count: 0 }) => seen.Add(called) &&
+				graph.Bodies.TryGetValue(called, out var body) &&
+				Decided(body, graph, seen),
+			_ => false,
+		};
 	}
 
 	/// <summary>
