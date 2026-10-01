@@ -262,4 +262,50 @@ public sealed class FixConvertFastPathTests
 		for (var i = 0; i < length; i++)
 			Assert.Equal((char)bytes[i], text[i]);
 	}
+
+	/// <summary>
+	/// Data read from characters is each character as the octet of the same code, the upper half
+	/// included, and a character past U+00FF anywhere refuses the whole value: lengths on either
+	/// side of the vector widths, and the refused character first, inside and last.
+	/// </summary>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(15)]
+	[InlineData(16)]
+	[InlineData(17)]
+	[InlineData(31)]
+	[InlineData(32)]
+	[InlineData(33)]
+	[InlineData(64)]
+	[InlineData(255)]
+	[InlineData(256)]
+	[InlineData(4096)]
+	public void Data_from_characters_keeps_every_octet_and_refuses_a_wider_character(int length)
+	{
+		var chars = new char[length];
+
+		for (var i = 0; i < length; i++)
+			chars[i] = (char)((i * 7 + 3) & 0xFF);
+
+		Assert.True(FixConvert.ToData(chars, out var data));
+		Assert.Equal(length, data.Length);
+
+		for (var i = 0; i < length; i++)
+			Assert.Equal((byte)chars[i], data.Span[i]);
+
+		if (length == 0)
+			return;
+
+		foreach (var at in new[] { 0, length / 2, length - 1 })
+		{
+			var wide = (char[])chars.Clone();
+
+			wide[at] = '\u0100';
+
+			Assert.False(FixConvert.ToData(wide, out var refused));
+			Assert.True(refused.IsEmpty);
+			Assert.False(FixConvert.ToData(wide.AsSpan()).Valid);
+		}
+	}
 }

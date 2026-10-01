@@ -573,6 +573,7 @@ public static class FixConvert
 	/// <returns>Whether it is valid.</returns>
 	public static bool ToData(this ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)
 	{
+#if NETSTANDARD2_0
 		var bytes = new byte[raw.Length];
 
 		for (var i = 0; i < raw.Length; i++)
@@ -585,6 +586,19 @@ public static class FixConvert
 
 			bytes[i] = (byte)raw[i];
 		}
+#else
+		// The check and the narrowing are both vectorized: a character at a time, they were most
+		// of what reading a long data field from text cost.
+		if (raw.ContainsAnyExceptInRange('\u0000', '\u00FF'))
+		{
+			value = default;
+			return false;
+		}
+
+		var bytes = new byte[raw.Length];
+
+		Encoding.Latin1.GetBytes(raw, bytes);
+#endif
 
 		value = bytes;
 
