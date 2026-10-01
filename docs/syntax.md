@@ -184,8 +184,8 @@ any                     any single item
 
 A trailing `i` — no space before it — is spelled as in Lark, but it folds less: a
 character at a time, each character of the literal matches itself and its simple upper
-and lower case (`char.ToUpperInvariant` and `char.ToLowerInvariant`), with no culture
-sensitivity, and a partner on the other side of ASCII is not taken. So an ASCII letter
+and lower case — the simple mappings of Unicode 16.0 (`UnicodeData.txt`), with no culture
+sensitivity — and a partner on the other side of ASCII is not taken. So an ASCII letter
 matches exactly its two ASCII cases and a character with no case (a digit,
 punctuation) compares exactly as it would without `i`:
 
@@ -205,8 +205,11 @@ The relation is the literal's and is not symmetric: `'ς'i` reads `Σ`, and `'Σ
 does not read `ς`. It is not Unicode case folding (Lark's, through Python's `re`,
 reads `ſ` as `s` and the Kelvin sign as `k`), and the keywords of the formats this
 is written for — RFC 5234's ABNF and SQL — are ASCII-only in exactly this way. The
-generated parser tests the characters named here; it does not fold at run time, so
-what it accepts does not depend on the runtime it runs on. It attaches to the literal
+generator carries its own table of those mappings rather than asking the runtime it is
+hosted on (whose answer depends on its ICU, on invariant globalization mode, and on
+.NET Framework's NLS in an editor), and the generated parser tests the characters named
+here rather than folding at run time, so what a parser accepts depends neither on the
+machine it was built on nor on the one it runs on. It attaches to the literal
 alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input

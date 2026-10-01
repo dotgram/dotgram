@@ -11,7 +11,7 @@
 		<Description>Source generator that compiles .gram grammars into C# parsers.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;parser-generator;grammar;source-generator;roslyn;analyzer;codegen;dsl;csharp</PackageTags>
-		<PackageReleaseNotes>Since 0.2.0. A literal that ignores case ('x'i, "text"i) now means one thing wherever the generator asks — the match itself, first sets, the lexical automaton of a grammar with Lexical = true and the analysis of overlapping literals: each character matches itself and its simple upper and lower case (char.ToUpperInvariant and char.ToLowerInvariant), and a case partner on the other side of ASCII is not taken. An ASCII letter matches exactly its two ASCII cases; "привет"i reads ПРИВЕТ; 'μ'i reads Μ but not the micro sign U+00B5; 'σ'i reads Σ but not ς. The generated parser tests those characters rather than folding at run time, so what it accepts no longer depends on the runtime it runs on. Behaviour change, after generating the parser again: an ignore-case literal no longer accepts a character that only upper-cases to one of its own — a one-character literal such as 's'i used to accept U+017F ſ, a literal beyond ASCII such as 'μ'i or "μs"i the micro sign, and 'σ'i final sigma; a literal of two or more ASCII characters ("select"i) already refused them and reads as before. A refusal no longer lists ſ among the characters such a literal expects. Before, the three places disagreed, so the same literal could read differently with and without Lexical = true. docs/syntax.md has the rule and a table of examples.</PackageReleaseNotes>
+		<PackageReleaseNotes>Since 0.2.0. A literal that ignores case ('x'i, "text"i) now means one thing wherever the generator asks — the match itself, first sets, the lexical automaton of a grammar with Lexical = true and the analysis of overlapping literals: each character matches itself and its simple upper and lower case as Unicode 16.0 gives them, and a case partner on the other side of ASCII is not taken. An ASCII letter matches exactly its two ASCII cases; "привет"i reads ПРИВЕТ; 'μ'i reads Μ but not the micro sign U+00B5; 'σ'i reads Σ but not ς. The generator carries its own table of those mappings and the generated parser tests those characters rather than folding at run time, so what a parser accepts no longer depends on the casing tables of the machine that built it (its ICU, invariant globalization mode, or .NET Framework in an editor) or of the one it runs on. Behaviour change, after generating the parser again: an ignore-case literal no longer accepts a character that only upper-cases to one of its own — a one-character literal such as 's'i used to accept U+017F ſ, a literal beyond ASCII such as 'μ'i or "μs"i the micro sign, and 'σ'i final sigma; a literal of two or more ASCII characters ("select"i) already refused them and reads as before. A refusal no longer lists ſ among the characters such a literal expects. Before, the three places disagreed, so the same literal could read differently with and without Lexical = true. docs/syntax.md has the rule and a table of examples.</PackageReleaseNotes>
 
 		<!-- The symbols inside the assembly rather than beside it. When the generator fails
 		     in somebody else's build — GRAM0001, with the exception in the message — the
@@ -83,6 +83,10 @@
 		     grammar that writes `using Std;` gets it spliced on, and there is no other
 		     file for it to come from. -->
 		<EmbeddedResource Include="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
+
+		<!-- The writer of the case-fold tables is a file-based app (top-level statements, run with
+		     `dotnet run`), not part of the generator: the default globbing would compile it in. -->
+		<Compile Remove="Grammar/Model/CaseFold.generate.cs" />
 
 		<!-- The package's own README, not the repository's. The two answer different
 		     questions: the front page argues for the project and the package tells

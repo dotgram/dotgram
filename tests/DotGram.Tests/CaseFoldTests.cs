@@ -76,7 +76,7 @@ public sealed class CaseFoldTests
 		return rows;
 	}
 
-	/// <summary>The rule itself, for every character there is.</summary>
+	/// <summary>The rule itself, for every character there is, over the generator's own table.</summary>
 	[Fact]
 	public void Every_character_folds_to_itself_and_its_cases_on_its_own_side_of_ascii()
 	{
@@ -90,19 +90,45 @@ public sealed class CaseFoldTests
 
 			foreach (var one in cases)
 			{
-				if (one != value && one != char.ToUpperInvariant(value) && one != char.ToLowerInvariant(value) ||
+				if (one != value && one != CaseFold.Upper(value) && one != CaseFold.Lower(value) ||
 					one <= 0x7F != value <= 0x7F)
 				{
 					Assert.Fail($"U+{c:X4} folds to U+{(int)one:X4}");
 				}
 			}
 
-			var partners = new[] { char.ToUpperInvariant(value), char.ToLowerInvariant(value) };
+			var partners = new[] { CaseFold.Upper(value), CaseFold.Lower(value) };
 
 			foreach (var one in partners)
 				if (one <= 0x7F == value <= 0x7F)
 					Assert.Contains(one, cases);
 		}
+	}
+
+	/// <summary>
+	/// The mappings are Unicode 16's simple ones as UnicodeData.txt gives them, before the rule
+	/// drops a partner across ASCII: U+0131 does upper-case to <c>I</c> there, and the Kelvin sign
+	/// lower-cases to <c>k</c>.
+	/// </summary>
+	[Fact]
+	public void The_case_tables_are_unicode_16s_simple_mappings()
+	{
+		Assert.Equal("16.0.0", CaseFold.UnicodeVersion);
+
+		Assert.Equal('A',      CaseFold.Upper('a'));
+		Assert.Equal('a',      CaseFold.Lower('A'));
+		Assert.Equal('I',      CaseFold.Upper('\u0131'));
+		Assert.Equal('i',      CaseFold.Lower('\u0130'));
+		Assert.Equal('S',      CaseFold.Upper('\u017F'));
+		Assert.Equal('k',      CaseFold.Lower('\u212A'));
+		Assert.Equal('\u039C', CaseFold.Upper('\u00B5'));
+		Assert.Equal('\u01C4', CaseFold.Upper('\u01C5'));
+		Assert.Equal('\u01C6', CaseFold.Lower('\u01C5'));
+		Assert.Equal('\u00DF', CaseFold.Lower('\u1E9E'));
+		Assert.Equal('\u00DF', CaseFold.Upper('\u00DF'));
+		Assert.Equal('\uA7CB', CaseFold.Upper('\u0264'));
+		Assert.Equal('\uA7CE', CaseFold.Upper('\uA7CE'));
+		Assert.Equal('1',      CaseFold.Upper('1'));
 	}
 
 	/// <summary>

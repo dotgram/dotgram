@@ -25637,3 +25637,12 @@ lists lose it — in SqlStandard that moves one state across a method split, in 
 arm and the bit table beyond 255 it needed, in the SqlReadOnly example the keyword `SET` becomes an
 ordinary arm instead of the default. TransactSql and SQL-92, read over the automaton, are
 unchanged.
+
+The first cut asked `char.ToUpperInvariant`/`ToLowerInvariant` for a character beyond ASCII, in
+the generator's process, so the parser depended on the build machine: .NET 10 over ICU 78 pairs
+U+A7CE with U+A7CF and the same .NET 10 in invariant mode does not; .NET 8 and 9 lack pairs .NET 10
+has (U+0264/U+A7CB); an editor runs the generator on .NET Framework and NLS. `CaseFold` now reads
+`CaseFold.Table.cs`, the simple mappings of Unicode 16.0 as runs of from, to, step and delta (194
+upper and 176 lower), written by `CaseFold.generate.cs` from `UnicodeData.txt`. Checked
+against .NET 10's invariant tables, it differs on U+0130, U+0131 and U+017F only, the three whose
+partner is ASCII and which the rule drops anyway, so no generated file changes.

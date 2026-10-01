@@ -8,9 +8,8 @@ namespace DotGram.Grammar.Model;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each character matches itself and its simple upper and lower case
-/// (<see cref="char.ToUpperInvariant"/>, <see cref="char.ToLowerInvariant"/>), and a partner is
-/// taken only on the character's own side of ASCII. So <c>'s'i</c> is <c>s</c> or <c>S</c> and
+/// Each character matches itself and its simple upper and lower case (<see cref="Upper"/>,
+/// <see cref="Lower"/>), and a partner is taken only on the character's own side of ASCII. So <c>'s'i</c> is <c>s</c> or <c>S</c> and
 /// never U+017F, whose upper case is <c>S</c>; <c>'k'i</c> is never the Kelvin sign, whose lower
 /// case is <c>k</c>; <c>"привет"i</c> reads <c>ПРИВЕТ</c>; and <c>'μ'i</c> reads <c>Μ</c> but not
 /// the micro sign U+00B5, which is a character of its own that only upper-cases to <c>Μ</c>.
@@ -20,14 +19,20 @@ namespace DotGram.Grammar.Model;
 /// <para>
 /// Every place that decides what such a literal matches asks here — the first sets, the
 /// lexical automaton, the overlap analysis and the comparisons the emitter writes — so that
-/// none of them can accept what another refuses. ASCII is answered without the casing tables,
-/// which is what keeps every keyword of every shipped grammar the same on any runtime that
-/// hosts the generator; and the generated code tests the characters this names rather than
-/// folding at run time, so the parser does not depend on the casing tables of the runtime it
-/// is run on either.
+/// none of them can accept what another refuses.
+/// </para>
+/// <para>
+/// The case mappings are the generator's own, written from the Unicode Character Database at
+/// <see cref="UnicodeVersion"/> into <c>CaseFold.Table.cs</c> by <c>CaseFold.generate.cs</c>,
+/// and never the runtime's: <see cref="char.ToUpperInvariant"/> answers from the ICU a machine
+/// has, from the runtime's own tables in invariant globalization mode, and from NLS under .NET
+/// Framework, where an editor may host the generator — so the same grammar would generate a
+/// different parser on another build machine. The generated code tests the characters this
+/// names rather than folding at run time, so the parser does not depend on the casing tables
+/// of the runtime it is run on either.
 /// </para>
 /// </remarks>
-public static class CaseFold
+public static partial class CaseFold
 {
 	/// <summary>
 	/// The characters an ignore-case <paramref name="value"/> matches, ascending and distinct;
@@ -44,8 +49,8 @@ public static class CaseFold
 
 		var all = new List<char>(3) { value };
 
-		Add(all, char.ToUpperInvariant(value));
-		Add(all, char.ToLowerInvariant(value));
+		Add(all, Upper(value));
+		Add(all, Lower(value));
 
 		all.Sort();
 
@@ -134,6 +139,46 @@ public static class CaseFold
 		}
 
 		return all;
+	}
+
+	/// <summary>
+	/// The simple upper case of <paramref name="value"/> at <see cref="UnicodeVersion"/>, or
+	/// <paramref name="value"/> where it has none in the Basic Multilingual Plane.
+	/// </summary>
+	public static char Upper(char value)
+	{
+		return Mapped(Uppers, value);
+	}
+
+	/// <summary>
+	/// The simple lower case of <paramref name="value"/> at <see cref="UnicodeVersion"/>, or
+	/// <paramref name="value"/> where it has none in the Basic Multilingual Plane.
+	/// </summary>
+	public static char Lower(char value)
+	{
+		return Mapped(Lowers, value);
+	}
+
+	/// <summary>A character through one of the tables: the run it falls in, if any, by bisection.</summary>
+	static char Mapped(int[] runs, char value)
+	{
+		var low  = 0;
+		var high = runs.Length / 4 - 1;
+
+		while (low <= high)
+		{
+			var middle = (low + high) / 2;
+			var at     = middle * 4;
+
+			if (value < runs[at])
+				high = middle - 1;
+			else if (value > runs[at + 1])
+				low = middle + 1;
+			else
+				return (value - runs[at]) % runs[at + 2] == 0 ? (char)(value + runs[at + 3]) : value;
+		}
+
+		return value;
 	}
 
 	/// <summary>A partner of a character beyond ASCII, unless it is an ASCII one.</summary>
