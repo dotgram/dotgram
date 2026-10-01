@@ -441,12 +441,18 @@ public abstract partial class TransactSqlParser
 			if (batch is null)
 				throw new ArgumentNullException(nameof(batch));
 
+			var end = batch.At + batch.Length;
+
+			// Spacing and comments and nothing else are a text of no statements, as the server reads
+			// them; a window that holds no token at all is not asked, since it would look for one.
+			if (Trivia(batch.Text, batch.At, end) == end)
+				return Match<Statement[]>.Success([], batch.At, 0);
+
 			var match = window(batch.Text, batch.At, batch.Length);
 
 			if (!match.IsSuccess)
 				return match;
 
-			var end  = batch.At + batch.Length;
 			var over = match.Length > 0 ? (int)match.Position + match.Length : batch.At;
 
 			if (Trivia(batch.Text, over, end) == end)
@@ -542,6 +548,12 @@ public abstract partial class TransactSqlParser
 				var batch = script.Batches[i];
 				var at    = batch.At;
 				var end   = batch.At + batch.Length;
+
+				if (Trivia(batch.Text, at, end) == end)
+				{
+					batches[i] = new Batch([], Go(batch)) { Source = batch };
+					continue;
+				}
 
 				if (!window(batch.Text, ref at, batch.Length, out var statements))
 					return false;
