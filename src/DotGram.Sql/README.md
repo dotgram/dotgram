@@ -70,12 +70,62 @@ of them — what a client sends the server in one call — and gives back a `Sta
 by a `;` or by nothing, except before a `WITH`, which needs the statement before it ended, as the
 server does. `ParseSql100` to `ParseSql170` are its levels.
 
-`GO` is not T-SQL: it is the line a client cuts a script at, and the server never sees it.
-`TransactSqlParser.ParseScript` reads a script — batches cut apart at the lines that say `GO`, the
-way ScriptDom and the management tools cut them — and gives back a `Batch[]`, each with its
-statements and the `GO` line that ended it. `GO 5`, a batch sent five times, is read too.
-`ParseScript100` to `ParseScript170` are its levels. `ParseSql` is one batch, and a `GO` in it is
-refused.
+### Scripts
+
+`GO` is not T-SQL: it is the line a client tool cuts a script at, and the server never sees it.
+Nor are sqlcmd's `:setvar`, `:r` and `$(name)`. So which method to call is a question of where the
+text came from: **text from a file or an editor is a script — read it with `ParseScript` or
+`SqlScript.Read`; text a program sends the server in one command is not — read it with
+`ParseSql`.** Read in one call, `SELECT 1` and then a line `GO` is a column called `GO`, because that
+is what the server makes of it, and `ParseSql` does not guess otherwise.
+
+`TransactSqlParser.ParseScript` cuts a script into batches as sqlcmd cuts it and reads each batch as
+the one call it is, giving back a `Batch[]`: each with its statements, the `GO` line that ended it
+(`GO 5`, a batch sent five times, too) and its `Source`, the batch as it was cut. The variables the
+script sets with `:setvar` are substituted, a `:r` is refused — there is no file to read — and every
+other command is the tool's and is passed over. `ParseScript100` to `ParseScript170` are its levels.
+
+The cutting is `SqlScript.Read`, in `DotGram.Sql` and no dialect's: the batches a tool would send, the
+commands it would act on, and what it would have said. It is held byte for byte to what sqlcmd
+sends, and it runs nothing and reads no file itself — an include is a callback.
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
+
+var text   = "CREATE TABLE $(db).dbo.t (a int)\nGO\nSELECT FROM t\n";
+var script = SqlScript.Read(text, new ScriptOptions
+{
+	Profile        = ScriptProfile.SqlCmd(),                               // or ScriptProfile.Ssms(): GO lines only
+	Variables      = new Dictionary<string, string> { ["db"] = "Sales" }, // sqlcmd's -v
+	ResolveInclude = include => new ScriptSource(include.Path, File.ReadAllText(include.Path)),
+	SourceName     = "deploy.sql",
+});
+
+foreach (var batch in script.Batches)
+{
+	var match = TransactSqlParser.Located.TryParseSql150(batch);
+
+	if (!match.IsSuccess)
+	{
+		var where = batch.Locate((int)match.Position, 0);
+
+		Console.WriteLine($"{where.Source}({where.Span.At}): {match.Error}");   // deploy.sql(43): …
+	}
+}
+```
+
+A batch written as one run of the script with nothing substituted is a window of the very string
+given, so every position a reading reports is already a position in the script; in a batch where a
+variable was substituted, `batch.Locate` takes it back to where it was written. `script.Directives`
+lists the commands, none of them run, and `script.Diagnostics` what sqlcmd would have said — an
+undefined variable, a file it could not include, a line it would stop at. And for text whose origin
+is not known, `script.HasClientSyntax` says whether anything in it was the tool's: a script of one
+batch ended by `GO` counts, which is why the question is not how many batches there are.
 
 Where each node was written is there for whoever asks for it. `TransactSqlParser.Located` is the
 same grammar compiled with `LocationType = typeof(ISqlSpan)` —

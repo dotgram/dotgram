@@ -46,9 +46,13 @@ the other half of having no universal base.
 
 **And one record above them that is no node: `Batch`.** A script is a client's idea — the
 lines that say `GO` are where a client cuts a file, and the server never sees them — so
-`ParseScript` hands back a `Batch[]`, each holding the statements of one batch and the `GO`
-line that ended it as it was written. It is not in the tables below because nothing in the
-language produces it; `ParseSql` and `ParseStatement` never build one.
+`ParseScript` hands back a `Batch[]`, each holding the statements of one batch, the `GO`
+line that ended it (`GO`, or `GO 5` with its count) and in `Source` the batch as the script was
+cut (`ScriptBatch`, from `SqlScript.Read`, which does the cutting and knows no grammar). It is
+not in the tables below because nothing in the language produces it; `ParseSql` and
+`ParseStatement` never build one. A node's span in a batch where a variable was substituted is
+a position in that batch's text, which `Source.Locate` maps back to the script; in every other
+batch it is a position in the script already.
 
 **Relations by aggregation, never by inheritance.** A subquery is not a kind of query; it is
 an expression that holds one. A statement that returns rows is not a kind of query; it is a

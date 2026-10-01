@@ -1,6 +1,6 @@
 ---
 name: dotgram-sql
-description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as SQL Server reads it (statements, whole texts, scripts cut at GO, a database's compatibility level, source locations), ISO SQL:2023 as the standard writes it, and SQL-92. Use when a project references the DotGram.Sql package, or when SQL text has to be read, checked, walked or printed back without a database. Not a database client, a query builder or a formatter: it reads syntax, and a statement it reads may still name tables and columns that do not exist.
+description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as SQL Server reads it (statements, whole texts, scripts cut into batches as sqlcmd cuts them, a database's compatibility level, source locations), ISO SQL:2023 as the standard writes it, and SQL-92. Use when a project references the DotGram.Sql package, or when SQL text has to be read, checked, walked or printed back without a database. Not a database client, a query builder or a formatter: it reads syntax, and a statement it reads may still name tables and columns that do not exist.
 ---
 
 # DotGram.Sql
@@ -73,9 +73,22 @@ value from outside still goes in as a parameter.
 - `ParseStatement` reads exactly one statement. `SELECT 1; SELECT 2` is refused there.
 - `ParseSql` reads a text of statements — what a client sends the server in one call — and
   gives back a `Statement[]`.
-- `GO` is not T-SQL. It is the line a client cuts a script at, and `ParseSql` refuses it.
-  `ParseScript` reads a script and gives back a `Batch[]`, one for each batch between the `GO`
-  lines.
+- `GO` is not T-SQL. It is the line a client tool cuts a script at, and the server never sees
+  it — so in `ParseSql` it is a word: `SELECT 1` and then a line `GO` reads as `SELECT 1 AS GO`,
+  because that is what the server does with that text in one call. **Text from a file or an
+  editor is a script: `ParseScript`. Text a program sends in one command: `ParseSql`.** Pasting
+  a script into `ParseSql` is the mistake to avoid; nothing in `ParseSql` guesses.
+- `ParseScript` cuts a script as sqlcmd cuts it and gives back a `Batch[]`, one for each batch
+  sqlcmd would send: a `GO` with nothing before it sends nothing, a batch of only spacing or a
+  comment is sent and reads as no statements, `GO;` is text. `:setvar` and `$(name)` are
+  substituted, a `:r` is refused, other commands are passed over.
+- `SqlScript.Read(text, options)` is the cutting on its own, for the batches one at a time, the
+  commands (`Directives`), what sqlcmd would have said (`Diagnostics`), variables from outside
+  and includes through a callback; `TransactSqlParser.TryParseSql(batch)` reads one of its
+  batches. `SqlScript.Read(text).HasClientSyntax` says whether text of unknown origin holds
+  anything of the tool's.
+- In a batch where a variable was substituted, positions are in that batch's own text
+  (`batch.Source.Locate` maps them back); everywhere else they are positions in the script.
 
 **The compatibility level.** `ParseStatement`, `ParseSql` and `ParseScript` name no level and
 read everything any level reads. A database at level 150 refuses a `WINDOW` clause that

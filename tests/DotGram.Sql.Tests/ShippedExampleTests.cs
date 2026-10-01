@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
@@ -35,6 +36,41 @@ public sealed class ShippedExampleTests
 		var from = (TableReference.Named)query.From[0];   // from.Table is "Users"
 
 		Assert.Equal("Users", from.Table);
+	}
+
+	/// <summary>
+	/// The README's script example: the reading, the batches read one at a time, and where the one
+	/// that is refused was written.
+	/// </summary>
+	[Fact]
+	public void The_readme_script_example_runs()
+	{
+		var said = new List<string>();
+
+		var text   = "CREATE TABLE $(db).dbo.t (a int)\nGO\nSELECT FROM t\n";
+		var script = SqlScript.Read(text, new ScriptOptions
+		{
+			Profile        = ScriptProfile.SqlCmd(),                               // or ScriptProfile.Ssms(): GO lines only
+			Variables      = new Dictionary<string, string> { ["db"] = "Sales" }, // sqlcmd's -v
+			ResolveInclude = include => new ScriptSource(include.Path, File.ReadAllText(include.Path)),
+			SourceName     = "deploy.sql",
+		});
+
+		foreach (var batch in script.Batches)
+		{
+			var match = TransactSqlParser.Located.TryParseSql150(batch);
+
+			if (!match.IsSuccess)
+			{
+				var where = batch.Locate((int)match.Position, 0);
+
+				said.Add($"{where.Source}({where.Span.At})");   // deploy.sql(43): …
+			}
+		}
+
+		Assert.Equal(2, script.Batches.Count);
+		Assert.Equal("CREATE TABLE Sales.dbo.t (a int)\n", script.Batches[0].ToString());
+		Assert.Equal(["deploy.sql(43)"], said);
 	}
 
 	/// <summary>The SKILL's first example: the match, the writer, and the walk that collects tables.</summary>
