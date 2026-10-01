@@ -2091,6 +2091,15 @@ grammar with no cycle in it never probes.
 One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
 another stack, so a streamed parse that runs low fails.
 
+A rule a cycle re-enters is also where a reading over tokens remembers what failed. A bracket
+may be read as a condition, then as a value, then as a subquery, and each attempt reads all
+that is inside it again: left to itself a nest of brackets costs a power of its depth. So such
+a rule, entered again at a token where it has already failed in the same reading, fails at once
+— one bit a rule and a token, forgotten when the reading ends. A success is read again. A rule
+is not remembered where its answer could depend on more than where it begins: one that reaches
+a hook naming `context` or the reading's state (§7.2), one that gives back (`?`), every rule of
+a reading that recovers (§8.2) or reads a buffered input, and every rule read over characters.
+
 ### 6.6 `[GramOptions]`, a second reading of the same grammar
 
 `[Gram]` is written once: it says *which* grammar, which is a thing a class has one of.
@@ -2524,6 +2533,12 @@ ordinary C# rules.
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects
   that require rollback.
+- The answer of a `when` guard, a `switch` selector and an external recognizer depends only
+  on its arguments and the text — not merely "no side effects": it may not read state that
+  changes while the input is read. A reader over tokens remembers where a recursive rule
+  failed and answers the next entry there without reading it again (§6.5), which holds only
+  if asking again could not have answered otherwise. A hook may still read `context`, which
+  the generator can see: a rule that reaches one is read again every time.
 - A `=>` construction is deferred until the accepted derivation is known unless a `when`
   guard explicitly inspects its value. Captures normally record what matched and the
   chosen factory builds only the accepted path. A value requested by a guard is built

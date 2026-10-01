@@ -254,6 +254,9 @@ sealed partial class Machine
 		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
 		Choose(rules, _opens, own);
 
+		// Which rules remember where they failed, knowing which of them give back (Machine.Memo.cs).
+		ChooseMemo(rules);
+
 		// Render again with the selected carrier and known open rules. Append each rule
 		// and its parts immediately so completed method strings need not all stay alive.
 		var entries = new Writer(0);
@@ -309,8 +312,19 @@ sealed partial class Machine
 						"[global::System.Runtime.CompilerServices.MethodImpl(" +
 						"global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
 
+				// A remembered rule's body is written whole first: every failure in it is sent through
+				// the one place that remembers it, and one that never fails has nothing to remember.
+				var slot = !tape && _memo.TryGetValue(rule, out var bit) ? bit : -1;
+				var body = slot >= 0 ? reader.Render(_graph.Bodies[rule], FollowOf(rule)) : null;
+
+				if (body is not null && !body.Contains("return -1;", StringComparison.Ordinal))
+					slot = -1;
+
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
 				{
+					if (slot >= 0)
+						MemoAsked(file, rule, slot);
+
 					// The rule the way back into itself goes through, so the probe stands here and
 					// not at the call: one line a rule instead of one at every place that calls it.
 					if (!tape && Deepens(rule))
@@ -326,7 +340,10 @@ sealed partial class Machine
 						file.Line();
 					}
 
-					reader.Render(file, _graph.Bodies[rule], FollowOf(rule));
+					if (body is null)
+						reader.Render(file, _graph.Bodies[rule], FollowOf(rule));
+					else if (slot < 0 || !MemoBody(file, rule, slot, body))
+						file.Write(body);
 				}
 
 				file.Line();
@@ -376,7 +393,7 @@ sealed partial class Machine
 
 			// Include entry trivia under both whole-input and positional continuations.
 			// A body or wrapper can use replay state even without opening a new way.
-			_readerWays = Carrier is not ImmediateCarrier ||
+			_readerWays = Carrier is not ImmediateCarrier || Memoises ||
 				file.ToString().Contains("ways.", StringComparison.Ordinal);
 		}
 
@@ -892,6 +909,9 @@ sealed partial class Machine
 
 			header.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
 
+			if (Memoises)
+				MemoFields(header);
+
 			if (CountsRules && _directRules is not null)
 			{
 				header.Line();
@@ -944,7 +964,13 @@ sealed partial class Machine
 
 				if (Probes)
 					header.Line("this.whole   = parserWhole;");
+
+				if (Memoises)
+					MemoTaken(header);
 			}
+
+			if (Memoises)
+				MemoFailedMethod(header, file.Contains("failure.Looking++", 0));
 
 			if (Probes)
 				RenderDeepening(header, state, registers);
@@ -1025,6 +1051,9 @@ sealed partial class Machine
 
 			using (cleanup ? file.Block("try") : null)
 			{
+				if (Memoises)
+					MemoBegun(file);
+
 				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");

@@ -127,8 +127,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// A compilation that defines DOTGRAM_COUNTS — one of the repository's own count tests, never a
 		// shipped package — gets a counter of entries in every rule method as well (D144). Asked of the
 		// parse options, which change when the symbols do and not on an edit.
+		// And one that defines DOTGRAM_NO_MEMO is compiled without the memo of failures, so that a
+		// test can hold the parser with it to the parser without it (GramCompilerOptions.MemoiseFailures).
 		var counting = context.ParseOptionsProvider.Select(static (options, _) =>
-			options.PreprocessorSymbolNames.Contains(CountsSymbol));
+			(Counts: options.PreprocessorSymbolNames.Contains(CountsSymbol),
+			Memoises: !options.PreprocessorSymbolNames.Contains(NoMemoSymbol)));
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -253,6 +256,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which emitted code carries the counters of the repository's tests.</summary>
 	const string CountsSymbol = "DOTGRAM_COUNTS";
 
+	/// <summary>The symbol under which a test compiles a parser without the memo of failures.</summary>
+	const string NoMemoSymbol = "DOTGRAM_NO_MEMO";
+
 	/// <summary>What <c>DotGramPositionalFollow</c> asks for: nothing, <c>true</c> or <c>split</c>.</summary>
 	enum Positional
 	{
@@ -261,7 +267,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, bool counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
 	{
 		try
 		{
@@ -642,7 +648,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, bool counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -715,7 +721,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
 			// Only the full one — this is analysis nobody pays for who is not reading it.
 			ReportCarriers = reporting == Reporting.Full,
-			CountRules     = counting,
+			CountRules     = counting.Counts,
+			MemoiseFailures = counting.Memoises,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,

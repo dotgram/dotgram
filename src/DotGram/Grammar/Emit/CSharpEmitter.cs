@@ -189,7 +189,7 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false)
+		bool countRules = false, bool memoise = false)
 	{
 		statics ??= [];
 
@@ -258,6 +258,9 @@ public static partial class CSharpEmitter
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
+
+				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
+				MemoisesFailures = memoise,
 			};
 
 			// Every publication of this rule needs none of the three things the arena is
@@ -320,6 +323,7 @@ public static partial class CSharpEmitter
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
 			made.CountsRules = countRules;
+			made.MemoisesFailures = memoise;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
@@ -782,8 +786,13 @@ public static partial class CSharpEmitter
 		// by where it sits in this list, so they must all be looking at the same list.
 		if (machines.Exists(static compiled => compiled.Direct))
 		{
-			file.Write(Region(DirectSupport, "marks", graph.State is not null)
+			// The memo of failures is on the tape too, and counts in its bound where a machine keeps one.
+			var memoises = machines.Exists(static compiled => compiled.Direct && compiled.Machine.Memoises);
+
+			file.Write(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
+				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
+				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" : "")
 				.Replace(
 					"/*REACH*/",
 					readsRecovery
@@ -3841,6 +3850,22 @@ file.Line("return spare;");
 				$"; building: {held?.Building.Count ?? 0}; replayed: {replaying}; " +
 				$"read again: {reading}; refused: {(refusal is null ? 0 : 1)}" +
 				Points(points, wanted, machine.Reads));
+		}
+
+		// Which rules each machine's reader remembers the failures of, and why not the others it
+		// probes the stack in (Machine.Memo.cs).
+		foreach (var one in direct)
+		{
+			var machine    = one.Machine;
+			var remembered = machine.Memoised.Select(static rule => Name(rule)).ToList();
+			var unasked    = machine.MemoRefused.Select(static pair => $"{Name(pair.Rule)} ({pair.Why})").ToList();
+
+			if (remembered.Count + unasked.Count > 0)
+				lines.Add(
+					$"memo {Read(one)}: remembered {remembered.Count}" +
+					(remembered.Count > 0 ? ": " + string.Join(", ", remembered) : "") +
+					$"; not {unasked.Count}" +
+					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : ""));
 		}
 
 		foreach (var one in refused)

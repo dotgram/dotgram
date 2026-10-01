@@ -2138,6 +2138,44 @@ public static partial class CSharpEmitter
 			internal int MarkLogCount;
 
 			// </marks>
+			// <memo>
+			/// <summary>
+			/// Where each rule a reader remembers has failed in the reading under way: a bit a rule and a
+			/// word a token, counted from where the reading began (Machine.Memo.cs).
+			/// </summary>
+			/// <remarks>
+			/// Here rather than in the reader because a reading carried onto another stack takes the tape
+			/// with it, and the memo has to go too; and because the tape is pooled, so a reading of the
+			/// size of the last allocates nothing. Its room counts in <see cref="Return"/>'s bound with the
+			/// rest, two integers a word.
+			/// </remarks>
+			internal ulong[] Memo = new ulong[0];
+
+			/// <summary>The token the first word stands for.</summary>
+			internal int MemoAt;
+
+			/// <summary>How many words from the start have been written since the memo was last cleared.</summary>
+			internal int MemoUsed;
+
+			/// <summary>Begins a reading at <paramref name="at"/> that may need <paramref name="words"/> words: nothing failed yet.</summary>
+			/// <remarks>
+			/// Cleared over what the last reading wrote and no further, so that a short reading of a long
+			/// input clears what it used and not the whole of its room.
+			/// </remarks>
+			internal void Memoise(int at, int words)
+			{
+				if (MemoUsed > 0)
+				{
+					global::System.Array.Clear(Memo, 0, MemoUsed);
+					MemoUsed = 0;
+				}
+
+				if (Memo.Length < words)
+					Memo = new ulong[global::System.Math.Max(words, Memo.Length * 2)];
+
+				MemoAt = at;
+			}
+			// </memo>
 
 			#if DOTGRAM_CHECKS
 
@@ -2297,15 +2335,15 @@ public static partial class CSharpEmitter
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
 				// "drop it" in more words.
-				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/ > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
-					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
-						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
@@ -2327,8 +2365,8 @@ public static partial class CSharpEmitter
 				// release's counts are the same quantity twice. Four times and not twice because a
 				// table grows to at least double: one doubling is the slack a steady workload leaves,
 				// and two is a workload that has shrunk.
-				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
-					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/
+					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{

@@ -212,6 +212,28 @@ public sealed class GramCompilerOptions
 	public bool CountRules { get; set; }
 
 	/// <summary>
+	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
+	/// answers a second entry there at once. On by default; off is for a test that holds the
+	/// parser with the memo to the parser without it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One bit a rule and a token: the rule entered there failed. Nothing else is kept — a
+	/// success is read again — and only for the rules that already probe the stack, the entries
+	/// of the grammar's recursion, where a failure read again and again is what makes a nest of
+	/// brackets cost the cube of its depth. A rule whose reading may depend on more than where it
+	/// begins is not remembered: one that reaches a hook naming <c>context</c> or the reading's
+	/// state, a machine that recovers, a rule that can give back. A machine over characters, or
+	/// one reading a buffered input, remembers nothing.
+	/// </para>
+	/// <para>
+	/// The generator sets it off where the compilation defines <c>DOTGRAM_NO_MEMO</c>, and
+	/// nowhere else.
+	/// </para>
+	/// </remarks>
+	public bool MemoiseFailures { get; set; } = true;
+
+	/// <summary>
 	/// Whether a <c>parse</c> is compiled knowing that it is also read from a position, where
 	/// anything may follow it, and not only to the end of input. Experimental, and off by default.
 	/// </summary>
