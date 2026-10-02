@@ -998,7 +998,10 @@ public static partial class CSharpEmitter
 		}
 
 		if (carriers is not null && carrier != CarrierKind.Auto)
+		{
 			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}, the author's" + Points(graph, null));
+			Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
+		}
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
@@ -3796,6 +3799,27 @@ file.Line("return spare;");
 	/// Lines, not a table: `--carriers` in DotGram.Benchmarks gathers them into docs/carriers.md.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Which rules each machine's reader remembers the failures of, and why not the others it probes
+	/// the stack in (<c>Machine.Memo.cs</c>): a line a machine that has any.
+	/// </summary>
+	static void Memoised(ICollection<string> lines, List<Compiled> direct)
+	{
+		foreach (var one in direct)
+		{
+			var machine    = one.Machine;
+			var remembered = machine.Memoised.Select(static rule => rule.Declaration?.Name ?? rule.Name).ToList();
+			var unasked    = machine.MemoRefused.Select(static pair => $"{pair.Rule.Declaration?.Name ?? pair.Rule.Name} ({pair.Why})").ToList();
+
+			if (remembered.Count + unasked.Count > 0)
+				lines.Add(
+					$"memo {Read(one)}: remembered {remembered.Count}" +
+					(remembered.Count > 0 ? ": " + string.Join(", ", remembered) : "") +
+					$"; not {unasked.Count}" +
+					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : ""));
+		}
+	}
+
 	static void Carriers(ICollection<string> lines, List<Compiled> machines, Replay.Report? replay, RecognitionGraph graph)
 	{
 		var direct    = machines.Where(static one => one.Direct).ToList();
@@ -3852,21 +3876,7 @@ file.Line("return spare;");
 				Points(points, wanted, machine.Reads));
 		}
 
-		// Which rules each machine's reader remembers the failures of, and why not the others it
-		// probes the stack in (Machine.Memo.cs).
-		foreach (var one in direct)
-		{
-			var machine    = one.Machine;
-			var remembered = machine.Memoised.Select(static rule => Name(rule)).ToList();
-			var unasked    = machine.MemoRefused.Select(static pair => $"{Name(pair.Rule)} ({pair.Why})").ToList();
-
-			if (remembered.Count + unasked.Count > 0)
-				lines.Add(
-					$"memo {Read(one)}: remembered {remembered.Count}" +
-					(remembered.Count > 0 ? ": " + string.Join(", ", remembered) : "") +
-					$"; not {unasked.Count}" +
-					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : ""));
-		}
+		Memoised(lines, direct);
 
 		foreach (var one in refused)
 			lines.Add(
