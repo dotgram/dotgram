@@ -1745,6 +1745,10 @@ static partial class Stand
 			PairedSql("conditions100", "TryParseSearchCondition", SqlConditions(100), before, after),
 			PairedSql("conditions1000", "TryParseSearchCondition", SqlConditions(1000), before, after),
 			PairedTsql("comment", SqlWithComments, before, after),
+
+			// The ordinary statements the stand reads against ScriptDom, side against side.
+			.. TsqlRows.Select(row => PairedTsql(row.Name, row.Text, before, after)),
+
 			PairedSql("column", "TryParseColumnReference", "a.b.c", before, after),
 			PairedSql("arithmetic", "TryParseValueExpression", "(a + b) * c - d / 5", before, after),
 			PairedSql("nest8", "TryParseValueExpression", "((((((((a))))))))", before, after),
