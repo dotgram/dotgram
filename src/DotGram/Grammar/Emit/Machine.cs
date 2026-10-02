@@ -783,6 +783,9 @@ sealed partial class Machine
 		if (OverKinds)
 			kept.Add(Provenance());
 
+		if (Offers() is { Length: > 0 } offers)
+			kept.Add(offers);
+
 		foreach (var (name, declaration) in _expected)
 			if (_expectedUsed.Contains(name) && (writtenExpected is null || writtenExpected.Add(name)))
 				kept.Add(declaration);
@@ -1293,6 +1296,111 @@ sealed partial class Machine
 
 	bool _spans;
 
+	/// <summary>
+	/// A construction's call, offered the range it was read from where locations are decided per
+	/// call and its value is located; the call as it stands otherwise.
+	/// </summary>
+	/// <remarks>
+	/// The construction is the one an unlocated grammar compiles, so a reading that does not ask
+	/// calls exactly that and tests one number around it. A reading that asks offers the range the
+	/// way a located construction offers it itself — after the value is made, and only for the
+	/// author's own C#, since that is where a located construction offers one.
+	/// </remarks>
+	string Offered(Factory factory, string call, string from, string length)
+	{
+		if (!UsesLocating || !factory.Located ||
+			factory.Of is not Node.Construct { How: Construction.Expression })
+			return call;
+
+		var type = TypeOf(factory);
+
+		_offered.Add(type);
+
+		return OverKinds
+			? $"Offer_DotGram{_tag}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
+			: $"Offer_DotGram{_tag}({call}, parserLocating, {from}, {length})";
+	}
+
+	/// <summary>The type a construction is declared to return, which its rule's is.</summary>
+	string TypeOf(Factory factory)
+	{
+		foreach (var entry in _factories)
+			foreach (var one in entry.Value)
+				if (ReferenceEquals(one, factory) || one.Method == factory.Method)
+					return _graph.Types[entry.Key];
+
+		throw new InvalidOperationException($"'{factory.Method}' belongs to no rule.");
+	}
+
+	/// <summary>The types <see cref="Offered"/> wrapped a call of, each needing its own offer.</summary>
+	readonly SortedSet<string> _offered = new(StringComparer.Ordinal);
+
+	/// <summary>The offers <see cref="Offered"/> called, one per type, and what they share.</summary>
+	string Offers()
+	{
+		var helper = new Writer(1);
+
+		if (_offered.Count == 0 || _graph.PerCall is not { } perCall)
+			return "";
+
+		var located = "global::" + perCall.Type;
+		var tokens  = OverKinds ? ", int[] starts, int[] lengths" : "";
+		var handed  = OverKinds ? ", starts, lengths" : "";
+
+		foreach (var type in _offered)
+		{
+			helper.Line("/// <summary>A located value told where it was written, where the reading asked.</summary>");
+
+			using (helper.Block(
+				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
+			{
+				helper.Line("if (locating >= 0)");
+				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
+				helper.Line();
+				helper.Line("return made;");
+			}
+
+			helper.Line();
+		}
+
+		helper.Line("/// <summary>");
+		helper.Line("/// Where a run of tokens stood, and where the text between it and the token before it");
+		helper.Line("/// began: the end of that token, or where the reading began where it is the first.");
+		helper.Line("/// </summary>");
+
+		using (helper.Block(
+			$"static void Locate_DotGram{_tag}({located} made, int floor{tokens}, int from, int length)"))
+		{
+			if (!OverKinds)
+			{
+				// Over characters the trivia is not set apart from what it stands between, so
+				// nothing says where the gap began: it is said to be empty.
+				helper.Line("made.Locate(from, length, from);");
+			}
+			else
+			{
+				helper.Line("var gap = from > 0 ? starts[from - 1] + lengths[from - 1] : floor;");
+				helper.Line();
+
+				// As Span_DotGram: a run of none stands where the next token begins.
+				using (helper.Block("if (length <= 0)"))
+				{
+					helper.Line("made.Locate(from < starts.Length ? starts[from] : 0, 0, gap);");
+					helper.Line();
+					helper.Line("return;");
+				}
+
+				helper.Line();
+				helper.Line("var began = starts[from];");
+				helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+				helper.Line();
+				helper.Line("made.Locate(began, ended - began, gap);");
+			}
+		}
+
+		return helper.ToString();
+	}
+
 	string ExternalCall(Node.External external, string position, string? value = null)
 	{
 		var input   = external.UsesInputView ? $"new ParserInput<{(BufferedBytes ? "byte" : "char")}>(text)" : "text";
@@ -1322,9 +1430,18 @@ sealed partial class Machine
 	/// </summary>
 	public bool UsesReading { get; private set; }
 
-	string ReadingParameter => UsesReading ? ", int parserReading" : "";
+	/// <summary>
+	/// Whether this machine's located constructions are told where they were written only when
+	/// the call asks (<see cref="RecognitionGraph.PerCall"/>) — which every method that can reach
+	/// one learns from <c>parserLocating</c>, handed on beside the reading.
+	/// </summary>
+	public bool UsesLocating => _graph.PerCall is not null && _graph.Located.Count > 0;
 
-	string ReadingArgument  => UsesReading ? ", parserReading" : "";
+	string ReadingParameter =>
+		(UsesReading ? ", int parserReading" : "") + (UsesLocating ? ", int parserLocating" : "");
+
+	string ReadingArgument  =>
+		(UsesReading ? ", parserReading" : "") + (UsesLocating ? ", parserLocating" : "");
 
 	/// <summary>
 	/// Every <c>with state</c> site this machine compiled, in the order it reached them —

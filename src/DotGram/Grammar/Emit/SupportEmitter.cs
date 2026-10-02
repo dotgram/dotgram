@@ -227,6 +227,23 @@ public static class SupportEmitter
 				public global::System.Type? LocationType { get; set; }
 
 				/// <summary>
+				/// Whether this reading is the class's own parser called with locations on, rather
+				/// than a second compilation of the grammar.
+				/// </summary>
+				/// <remarks>
+				/// Written on a <c>[GramOptions]</c> that names a <see cref="LocationType"/> and a
+				/// <see cref="Suffix"/>: the grammar is compiled once, its constructions are told
+				/// where they were written only when a call asks, and the nested class named by the
+				/// suffix holds the same published methods, each of them asking. A call that does
+				/// not ask pays a test per construction and nothing else.
+				///
+				/// The interface then offers <c>Locate(int at, int length, int gapStart)</c>, where
+				/// the gap start is where the text between the value and the token before it
+				/// begins: the end of that token, or where the reading began.
+				/// </remarks>
+				public bool PerCall { get; set; }
+
+				/// <summary>
 				/// Whether the grammar travels with the assembly, so that another project can
 				/// include it.
 				/// </summary>

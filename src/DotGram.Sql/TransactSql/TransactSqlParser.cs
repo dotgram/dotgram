@@ -17,16 +17,17 @@ namespace DotGram.Sql.TransactSql;
 /// <see cref="SqlScript.Read"/> and read each batch with <c>TryParseSql(ScriptBatch)</c>.
 /// <see cref="SqlScript.HasClientSyntax"/> says whether text of unknown origin is a script.
 /// </remarks>
-// Two parsers of one grammar: the reading below, and the same reading told where every
-// value was written. Locations cost fourteen per cent of the parse and nothing in memory,
-// which is cheap for a tool and not free for a recognizer — so whoever needs them asks for
-// them by name, `TransactSqlParser.Located.TryParseStatement`, and everybody else does not pay.
+// One parser, read through two doors: the methods below, and the same methods in `Located`,
+// which ask the same reading to tell every value where it was written and where the text in
+// front of it began. Locations are not free for a recognizer, so whoever needs them asks for
+// them by name, `TransactSqlParser.Located.TryParseStatement`; a reading that does not ask
+// pays a test per value built, and the grammar is compiled once rather than twice.
 // The standard this dialect is written on top of, named rather than inherited: a class has
 // one base and as many attributes as it likes, and what a grammar is called inside this one
 // — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.
 [GramInclude(typeof(Sql92Parser), As = "Sql92")]
 [Gram("TransactSql.gram", Lexical = true)]
-[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]
+[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
 public abstract partial class TransactSqlParser
 {
 }

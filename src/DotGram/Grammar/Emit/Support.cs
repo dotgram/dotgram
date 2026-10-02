@@ -462,6 +462,50 @@ public static partial class CSharpEmitter
 		}
 		""";
 
+	/// <summary>
+	/// <see cref="MatchStruct"/>, and where the grammar decides locations per call, where each
+	/// reading stopped looking: what a located reading needs to say what follows its last token.
+	/// </summary>
+	internal static string MatchStructOf(Model.RecognitionGraph graph)
+	{
+		if (graph.PerCall is null)
+			return MatchStruct;
+
+		var text = MatchStruct.Replace("\r\n", "\n");
+
+		text = text.Replace(
+			"\t\t_otherwise = otherwise;\n",
+			"\t\t_otherwise = otherwise;\n\t\t_readingEnd = position + length;\n");
+
+		return text.Replace("\tinternal static Match<T> Failed(", MatchReadingEnd.Replace("\r\n", "\n") + "\tinternal static Match<T> Failed(");
+	}
+
+	/// <summary>What <see cref="MatchStructOf"/> adds to a match.</summary>
+	const string MatchReadingEnd = """
+			/// <summary>
+			/// Where the reading stopped looking: the end of the input for a whole reading, the
+			/// end of the window for a reading inside one, and the end of what was read for a
+			/// reading from a position, which looks no further. What lies between the end of the
+			/// value and this is the reading's own trailing text — trivia, and nothing else.
+			/// </summary>
+			public long ReadingEnd { get { return _readingEnd; } }
+
+			private readonly long _readingEnd;
+
+			private Match(T value, long position, int length, long readingEnd)
+				: this(Outcome.Success, value, position, length, null, null, null)
+			{
+				_readingEnd = readingEnd;
+			}
+
+			internal static Match<T> Success(T value, long position, int length, long readingEnd)
+			{
+				return new Match<T>(value, position, length, readingEnd);
+			}
+
+
+		""";
+
 	internal const string MatchStruct = """
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>

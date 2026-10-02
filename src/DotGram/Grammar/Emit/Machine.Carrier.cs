@@ -890,6 +890,9 @@ sealed partial class Machine
 
 				if (machine.UsesReading)
 					yield return ("int", "parserReading");
+
+				if (machine.UsesLocating)
+					yield return ("int", "parserLocating");
 			}
 		}
 

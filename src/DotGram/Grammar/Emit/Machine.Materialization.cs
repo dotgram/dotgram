@@ -528,8 +528,9 @@ sealed partial class Machine
 
 			file.Line($"var completed = entries[{at}];");
 			file.Line($"var captured0 = {Cut("completed.Position", "completed.Value - completed.Position")};");
-			file.Line($"{target} = {factory.Method}(" +
-				$"{string.Join(", ", FactoryArguments(file, factory, _graph.Results[rule], at))});");
+			file.Line($"{target} = " + Offered(factory,
+				$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, _graph.Results[rule], at))})",
+				"completed.Position", "completed.Value - completed.Position") + ";");
 			file.Line($"guardBuilt[{at}] = true;");
 		}
 	}
@@ -550,8 +551,9 @@ sealed partial class Machine
 			{
 				file.Line($"var captured0 = {Cut("completed.Position", "completed.Value - completed.Position")};");
 				file.Line(
-					$"{ValueInto(type, "completedAt")} = " +
-					$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
+					$"{ValueInto(type, "completedAt")} = " + Offered(factories[0],
+					$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))})",
+					"completed.Position", "completed.Value - completed.Position") + ";");
 				file.Line("break;");
 			}
 			return;
@@ -923,8 +925,9 @@ sealed partial class Machine
 			// all return the same typed capture: their factories differ only in source
 			// location, and running one still applies Locate exactly once.
 			file.Line(
-				$"{ValueInto(type, "completedAt")} = " +
-				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
+				$"{ValueInto(type, "completedAt")} = " + Offered(factories[0],
+				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))})",
+				"completed.Position", "completed.Value - completed.Position") + ";");
 		}
 		else
 		{
@@ -944,8 +947,9 @@ sealed partial class Machine
 					using (file.Indent())
 					{
 						file.Line(
-							$"{ValueInto(type, "completedAt")} = " +
-							$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))});");
+							$"{ValueInto(type, "completedAt")} = " + Offered(factory,
+							$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))})",
+							"completed.Position", "completed.Value - completed.Position") + ";");
 						file.Line("break;");
 					}
 				}
@@ -1264,7 +1268,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(Cut("entries[completedAt].Position", "construct.Position - entries[completedAt].Position"));
 
-		if (CSharpEmitter.WantsSpan(_graph, factory))
+		if (CSharpEmitter.TakesSpan(_graph, factory))
 			arguments.Add(Span("entries[completedAt].Position", "construct.Position - entries[completedAt].Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
@@ -1305,7 +1309,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
-		if (CSharpEmitter.WantsSpan(_graph, factory))
+		if (CSharpEmitter.TakesSpan(_graph, factory))
 			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
@@ -1468,7 +1472,8 @@ sealed partial class Machine
 						}
 
 						file.Line(
-							$"accumulated = {factory.Method}({string.Join(", ", arguments)});");
+							"accumulated = " + Offered(factory, $"{factory.Method}({string.Join(", ", arguments)})",
+								"entries[completedAt].Position", "construct.Position - entries[completedAt].Position") + ";");
 						file.Line("hasAccumulated = true;");
 
 						if (keeps)

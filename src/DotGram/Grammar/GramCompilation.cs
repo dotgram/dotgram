@@ -170,6 +170,16 @@ public sealed class GramCompilerOptions
 	public string? LocationType { get; set; }
 
 	/// <summary>
+	/// The nested class whose published methods call this parser with locations on, where
+	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
+	/// (<c>[GramOptions(PerCall = true)]</c>). Null compiles locations in, as before.
+	/// </summary>
+	public string? LocatedFacade { get; set; }
+
+	/// <summary>Whether the host declares <see cref="LocatedFacade"/> itself.</summary>
+	public bool LocatedFacadeDeclared { get; set; }
+
+	/// <summary>
 	/// The classes whose static members the generated code may name, by qualified name.
 	/// </summary>
 	/// <remarks>

@@ -86,15 +86,34 @@ public enum StatementCategory
 }
 
 /// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
-public abstract record Statement : ISqlSpan
+public abstract record Statement : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected Statement()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected Statement(Statement original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>
@@ -2196,15 +2215,34 @@ public enum SetCategory
 /// values, or a variable among either. A switch is one setting to a node, so a list of them
 /// may hold several groups, and the writer puts the one <c>ON</c> after them all again.
 /// </remarks>
-public abstract record SetExpression : ISqlSpan
+public abstract record SetExpression : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected SetExpression()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected SetExpression(SetExpression original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>The group Microsoft's page of the SET statements puts the setting in.</summary>
@@ -2373,15 +2411,34 @@ public abstract record SetExpression : ISqlSpan
 /// §7 the table level: what produces rows. A statement holds one, an expression holds one,
 /// and a <c>FROM</c> clause holds the <see cref="TableReference"/>s it is read over.
 /// </summary>
-public abstract record Query : ISqlSpan
+public abstract record Query : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected Query()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected Query(Query original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>§7.12 <c>SELECT</c>, and the clauses under it.</summary>
@@ -2478,15 +2535,34 @@ public abstract record Query : ISqlSpan
 }
 
 /// <summary>§6 the value level, and §8 the predicates: what stands where a value does.</summary>
-public abstract record Expression : ISqlSpan
+public abstract record Expression : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected Expression()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected Expression(Expression original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	// ---- §6.39 the boolean tower ---------------------------------------------------------------
@@ -2838,15 +2914,34 @@ public abstract record Expression : ISqlSpan
 /// §7.6 what a <c>FROM</c> clause is read over: a table by name, a query standing where one
 /// does, and the joins between them.
 /// </summary>
-public abstract record TableReference : ISqlSpan
+public abstract record TableReference : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected TableReference()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected TableReference(TableReference original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>
@@ -2937,15 +3032,34 @@ public abstract record TableReference : ISqlSpan
 /// The pieces a statement, a query or an expression is made of that are none of the three —
 /// what the standard writes as a clause, a specification or a definition of one element.
 /// </summary>
-public abstract record Clause : ISqlSpan
+public abstract record Clause : ISqlSpan, ISqlLocatable
 {
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
+	SqlLocation _location;
+
+	/// <summary>A node not yet read from anywhere.</summary>
+	protected Clause()
+	{
+	}
+
+	/// <summary>A copy, which keeps where the original was written and says it is stale.</summary>
+	protected Clause(Clause original)
+	{
+		_location = original._location.Copied();
+	}
+
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; private set; }
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>

@@ -699,6 +699,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
 			LocationType   = host.LocationType,
+			LocatedFacade  = host.LocatedFacade,
+			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
 
 			// The host of every grammar this one is built on: what a rule from there calls
 			// lives beside it, and `using static` is what puts it in reach without the
@@ -1047,7 +1049,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Repeated   = false,
 		bool?     Shared     = null,
 		string?   LocationType = null,
-		bool      Portable   = false)
+		bool      Portable   = false,
+		bool      PerCall    = false,
+		string?   LocatedFacade = null,
+		bool      LocatedFacadeDeclared = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1136,6 +1141,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var hosts = ImmutableArray.CreateBuilder<(Host Host, Site Site)>(readings.Count);
 			var taken = new HashSet<string>(StringComparer.Ordinal);
 
+			// A reading that differs from the first only in being told where its values were
+			// written, decided per call: not a compilation of its own but a nested class of
+			// published methods over the first's parser, which is compiled with the location
+			// type and told the class's name.
+			string? facade         = null;
+			string? facadeLocation = null;
+			var     facadeDeclared = false;
+
+			for (var index = 1; index < readings.Count; index++)
+			{
+				var (perCall, _) = From(candidate, readings[index], index);
+
+				if (!perCall.PerCall || perCall.LocationType is null || perCall.Suffix is not { Length: > 0 } || facade is not null)
+					continue;
+
+				facade         = perCall.Suffix;
+				facadeLocation = perCall.LocationType;
+				facadeDeclared = perCall.SuffixDeclared;
+				readings.RemoveAt(index);
+				index--;
+			}
+
 			foreach (var attribute in readings)
 			{
 				// Everything a reading does not say, it takes from the grammar's own: which
@@ -1143,6 +1170,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 				// `[GramOptions]` means — the same parser, compiled differently — and what it
 				// does say is the difference. The first has nothing to take from.
 				var (host, site) = From(candidate, attribute, hosts.Count, hosts.Count > 0 ? hosts[0] : null);
+
+				if (hosts.Count == 0 && facade is not null)
+					host = host with
+					{
+						LocationType          = facadeLocation,
+						LocatedFacade         = facade,
+						LocatedFacadeDeclared = facadeDeclared,
+					};
 
 				hosts.Add((
 					host with
@@ -1333,7 +1368,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Suffix:     suffix,
 				SuffixDeclared: suffixDeclared,
 				LocationType: locationType,
-				Portable:   portable);
+				Portable:   portable,
+				PerCall:    attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.PerCall)).Value.Value as bool? ?? false);
 
 			return (host, site);
 		}

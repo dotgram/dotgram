@@ -235,6 +235,9 @@ sealed partial class Machine
 
 				if (machine.UsesReading)
 					yield return ("int", "parserReading");
+
+				if (machine.UsesLocating)
+					yield return ("int", "parserLocating");
 			}
 		}
 
@@ -592,7 +595,9 @@ sealed partial class Machine
 				rule, made, machine.DirectMembers(rule, _factory), Text, Span,
 				() => accumulated ? "fold" : "default!", Value);
 
-			return $"{into} = {made.Method}({string.Join(", ", arguments)});";
+			var call = $"{made.Method}({string.Join(", ", arguments)})";
+
+			return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}"))};";
 
 			string Value(DirectMember member)
 			{

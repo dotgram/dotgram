@@ -478,7 +478,7 @@ public static partial class CSharpEmitter
 			file.Line();
 			file.Write(OutcomeEnum);
 			file.Line();
-			file.Write(MatchStruct);
+			file.Write(MatchStructOf(graph));
 			file.Line();
 			file.Write(ParserInputTypes);
 			file.Line();
@@ -504,41 +504,64 @@ public static partial class CSharpEmitter
 				return true;
 			};
 
-		foreach (var compiled in machines)
-			foreach (var publication in compiled.Publications)
-			{
-				if (compiled.Machine.BufferedInput)
+		void Publish(bool? locating)
+		{
+			foreach (var compiled in machines)
+				foreach (var publication in compiled.Publications)
 				{
-					EmitBufferedPublication(file, graph, results, compiled, publication);
-					continue;
+					if (compiled.Machine.BufferedInput)
+					{
+						if (locating != true)
+							EmitBufferedPublication(file, graph, results, compiled, publication);
+						continue;
+					}
+
+					EmitPublication(
+						file,
+						publication,
+						results,
+						graph.Climbing.ContainsKey(publication.Rule),
+						Streams(graph, publication, overKinds) &&
+							!bufferedInput && !publication.BufferedInput,
+						compiled.Flat,
+						compiled.Machine.Ties,
+						compiled.Machine.UsesInput,
+						compiled.Machine.UsesContext ? graph.Context : null,
+						overKinds,
+						compiled.Direct && compiled.Machine.Probes,
+						compiled.Machine.UsesReading ? publication.Reading : null,
+						compiled.Direct,
+						diagnostics,
+						compiled.Tag,
+						ReadsQuietlyFirst(graph),
+						compiled.Machine.UsesContext && graph.ContextRewinds,
+						// Whether a reading that begins where it is told writes down where the value began:
+						// over characters it reads the trivia at the position and says where it ended.
+						graph.Trivia.ContainsKey(publication.Rule) && !overKinds,
+						lexical is not null && lexical.Bare.Contains(publication.Rule),
+						compiled.Machine.UsesLocating ? locating : null);
+
+					file.Line();
 				}
+		}
 
-				EmitPublication(
-					file,
-					publication,
-					results,
-					graph.Climbing.ContainsKey(publication.Rule),
-					Streams(graph, publication, overKinds) &&
-						!bufferedInput && !publication.BufferedInput,
-					compiled.Flat,
-					compiled.Machine.Ties,
-					compiled.Machine.UsesInput,
-					compiled.Machine.UsesContext ? graph.Context : null,
-					overKinds,
-					compiled.Direct && compiled.Machine.Probes,
-					compiled.Machine.UsesReading ? publication.Reading : null,
-					compiled.Direct,
-					diagnostics,
-					compiled.Tag,
-					ReadsQuietlyFirst(graph),
-					compiled.Machine.UsesContext && graph.ContextRewinds,
-					// Whether a reading that begins where it is told writes down where the value began:
-					// over characters it reads the trivia at the position and says where it ended.
-					graph.Trivia.ContainsKey(publication.Rule) && !overKinds,
-					lexical is not null && lexical.Bare.Contains(publication.Rule));
+		// Where locations are decided per call, the class's own methods do not ask, and the
+		// nested class named for them holds the same methods asking: one parser, two doors.
+		if (graph.PerCall is { } perCall)
+		{
+			Publish(false);
 
-				file.Line();
-			}
+			using (file.Block(perCall.Declared
+				? $"static partial class {perCall.Facade}"
+				: $"public static partial class {perCall.Facade}"))
+				Publish(true);
+
+			file.Line();
+		}
+		else
+		{
+			Publish(null);
+		}
 
 		foreach (var rule in results.Built)
 		{
@@ -690,7 +713,7 @@ public static partial class CSharpEmitter
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
-			file.Write(MatchStruct);
+			file.Write(MatchStructOf(graph));
 			file.Line();
 		}
 
@@ -1221,8 +1244,8 @@ public static partial class CSharpEmitter
 				var core   = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
 				var type   = results.QualifiedOf(publication.Rule);
 				var climbs = graph.Climbing.ContainsKey(publication.Rule);
-				var reads  = machine.UsesReading ? ", int parserReading" : "";
-				var passes = machine.UsesReading ? ", parserReading" : "";
+				var reads  = (machine.UsesReading ? ", int parserReading" : "") + (machine.UsesLocating ? ", int parserLocating" : "");
+				var passes = (machine.UsesReading ? ", parserReading" : "") + (machine.UsesLocating ? ", parserLocating" : "");
 				var context = machine.UsesContext ? $", {graph.Context} context" : "";
 
 				file.Line();
@@ -1527,11 +1550,18 @@ public static partial class CSharpEmitter
 	/// Where a remark about this publication goes. Null where the caller wants none; an
 	/// overload that is not offered says so here, as §6.3's reader overload does.
 	/// </param>
+	/// <summary>
+	/// What stands for <c>parserLocating</c>'s value in a publication's arguments until the form
+	/// being written says what it is.
+	/// </summary>
+	const string LocatingFloor = "\u0001locating\u0001";
+
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false)
+		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
+		bool? locating = null)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1542,7 +1572,7 @@ public static partial class CSharpEmitter
 		// Which reading of the grammar this publication is (`when … is …`), where the machine it
 		// shares with the others asks. A number and not an argument the caller writes: the
 		// parser is the reading, and nothing about it is chosen while it runs.
-		var numbered = reading is { } number ? $", {number}" : "";
+		var numbered = (reading is { } number ? $", {number}" : "") + (locating is null ? "" : ", " + LocatingFloor);
 
 		var method = publication.MethodName;
 		// What the author called it, which is not always what the rule is called by now: a
@@ -1557,10 +1587,16 @@ public static partial class CSharpEmitter
 		// A rule that builds hands its value back through the recognizer; one that does
 		// not leaves the extent it matched, and the text is cut from the input.
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
-		var hands = (climbs ? ", 0" : "") +
+		var handing = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
 			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives + numbered +
 			(probes ? ", parserWhole" : "");
+
+		// Where locations are decided per call, what the reading is handed says whether this one
+		// asks, and where it began: the window's start inside a window, the start of the input
+		// otherwise, and below nought where the call does not ask. Reassigned before the window's
+		// forms, which the local functions below read it after.
+		var hands = handing.Replace(LocatingFloor, locating == true ? "0" : "-1");
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -1572,7 +1608,7 @@ public static partial class CSharpEmitter
 		// out was a recognizer called with one argument short, in generated code.
 		var streamedHands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", null!" : "") + gives + numbered +
+			(input ? ", null!" : "") + gives + numbered.Replace(LocatingFloor, locating == true ? "0" : "-1") +
 			(probes ? ", default" : "");
 
 		// Over kinds a position is a token, so what a publication hands back has to be cut
@@ -1722,6 +1758,7 @@ public static partial class CSharpEmitter
 			begins   = overKinds ? "0" : "at";
 			position = begun;
 			extent   = overKinds ? $"over - {begun}" : $"end - {begun}";
+			hands    = handing.Replace(LocatingFloor, locating == true ? "at" : "-1");
 
 			Asking("string input, int at, int length", positional: true, windowed: true);
 
@@ -1917,6 +1954,17 @@ public static partial class CSharpEmitter
 				file.Line();
 				file.Line("return true;");
 			}
+		}
+
+		// Where the reading stopped looking, said on a match where the grammar decides locations
+		// per call: the input's end, the window's end, or — from a position, where the reading is
+		// not required to reach anything — the end of what it read.
+		string ReadingEnd(bool positional, bool windowed)
+		{
+			if (locating is null)
+				return "";
+
+			return windowed ? ", at + length" : positional ? overKinds ? ", over" : ", end" : ", input.Length";
 		}
 
 		void Asking(string parameters, bool positional, bool windowed = false)
@@ -2185,13 +2233,13 @@ public static partial class CSharpEmitter
 					file.Line();
 					if (!kept) file.Line("Recycle_DotGram(tokens);");
 					file.Line();
-					file.Line($"return {match}.Success(whole, {position}, {extent});");
+					file.Line($"return {match}.Success(whole, {position}, {extent}{ReadingEnd(positional, windowed)});");
 				}
 				else
 				{
 					// Cut from where the value began and not from the position the caller named: the
 					// trivia before it is the reading's to skip and nobody's to carry (§6.3).
-					file.Line($"return {match}.Success({Recognized(positional ? begun : begins, extent)}, {position}, {extent});");
+					file.Line($"return {match}.Success({Recognized(positional ? begun : begins, extent)}, {position}, {extent}{ReadingEnd(positional, windowed)});");
 				}
 			}
 		}
@@ -3188,7 +3236,7 @@ file.Line("return spare;");
 		if (WantsText(graph, factory))
 			parameters.Add(captureType + " parserText");
 
-		if (WantsSpan(graph, factory))
+		if (TakesSpan(graph, factory))
 			parameters.Add("SourceSpan parserSpan");
 
 		// The whole input, for a construction that wants to keep where it matched and cut
@@ -3243,7 +3291,7 @@ file.Line("return spare;");
 		switch (((Node.Construct)factory.Of).How)
 		{
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).
-			case Construction.Expression when factory.Located:
+			case Construction.Expression when factory.Located && graph.PerCall is null:
 
 				// Offered the range it was read over, which is a statement and not an
 				// expression. Offered rather than written: a rule may hand back a value another
@@ -3507,6 +3555,20 @@ file.Line("return spare;");
 	internal static bool WantsSpan(RecognitionGraph graph, Machine.Factory factory)
 	{
 		return factory.Located || Asks(graph, factory, "parserSpan");
+	}
+
+	/// <summary>
+	/// Whether a construction's own parameters include the range it was read from.
+	/// </summary>
+	/// <remarks>
+	/// As <see cref="WantsSpan"/>, but where locations are decided per call a located value is
+	/// offered its range by the call around the construction (Machine.Offered), which stays the
+	/// construction an unlocated grammar would have. The reading still keeps the range — that is
+	/// what <see cref="WantsSpan"/> answers.
+	/// </remarks>
+	internal static bool TakesSpan(RecognitionGraph graph, Machine.Factory factory)
+	{
+		return factory.Located && graph.PerCall is null || Asks(graph, factory, "parserSpan");
 	}
 
 	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name)

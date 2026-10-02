@@ -1529,7 +1529,7 @@ sealed partial class Machine
 
 			file.Line(
 				$"{DirectInto(type, "slot")} = " +
-				$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
+				Offered(made, $"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))})", "start", "end - start") + ";");
 		}
 
 		if (DirectMark(type, "slot") is { Length: > 0 } mark)
@@ -1830,7 +1830,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(text());
 
-		if (CSharpEmitter.WantsSpan(_graph, factory))
+		if (CSharpEmitter.TakesSpan(_graph, factory))
 			arguments.Add(span());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))

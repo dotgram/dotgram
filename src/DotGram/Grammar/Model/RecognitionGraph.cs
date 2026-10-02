@@ -629,6 +629,19 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
 
+	/// <summary>
+	/// Where <see cref="Located"/> is decided per call: the nested class whose published
+	/// methods ask for locations, and the interface that is told them. Null where locations
+	/// are compiled in, or not asked for at all.
+	/// </summary>
+	/// <remarks>
+	/// The constructions are then compiled as an unlocated grammar's are, and every call of
+	/// one whose value is located is wrapped in an offer that tests the reading's
+	/// <c>parserLocating</c> — the position the reading began at, or below nought where the
+	/// call did not ask.
+	/// </remarks>
+	public (string Facade, string Type, bool Declared)? PerCall { get; set; }
+
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 

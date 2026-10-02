@@ -273,7 +273,8 @@ public static partial class CSharpEmitter
 		var hands = (graph.Climbing.ContainsKey(publication.Rule) ? ", 0" : "") +
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
-			(machine.UsesReading ? $", {publication.Reading}" : "");
+			(machine.UsesReading ? $", {publication.Reading}" : "") +
+			(machine.UsesLocating ? ", -1" : "");
 
 		if (!buffered)
 		{
