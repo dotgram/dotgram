@@ -3348,7 +3348,7 @@ file.Line("return spare;");
 					var only = ResultTypes.ParameterOf(factory.Members[0]);
 
 					file.Line(head + " =>");
-					file.Line($"	{only} ?? new {element}[0];");
+					file.Line($"	{only} ?? {NewArray(element, "0")};");
 
 					break;
 				}
@@ -3370,7 +3370,7 @@ file.Line("return spare;");
 					}
 
 					file.Line();
-					file.Line($"var items = new {element}[count];");
+					file.Line($"var items = {NewArray(element, "count")};");
 					file.Line("var at    = 0;");
 					file.Line();
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -135,15 +135,11 @@ sealed partial class Machine
 				return;
 
 			// `new T[8]` where the element type is itself an array is written `new E[8][]`,
-			// not `new E[][8]`: the size goes in the first rank, whatever the element is.
-			// A rule whose value is a sequence gathered across turns is exactly that type.
-			var rank = type.IndexOf('[');
-			var core = rank < 0 ? type : type.Substring(0, rank);
-			var rest = rank < 0 ? ""   : type.Substring(rank);
-
+			// not `new E[][8]` (CSharpEmitter.NewArray). A rule whose value is a sequence
+			// gathered across turns is exactly that type.
 			string Made(string count)
 			{
-				return "new " + core + "[" + count + "]" + rest;
+				return CSharpEmitter.NewArray(type, count);
 			}
 
 			text.Append("\tinternal ").Append(type).Append("[] Stack").Append(tag).Append(" = ").Append(Made("8")).Append(";\n");

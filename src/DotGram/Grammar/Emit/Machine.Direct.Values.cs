@@ -1773,12 +1773,7 @@ sealed partial class Machine
 				var valueType = _results.ValueOf(member.Member.Rule);
 
 				file.Line($"var count{i} = log[read++];");
-				var bracket = valueType.IndexOf('[');
-				var created = bracket < 0
-					? $"new {valueType}[count{i}]"
-					: $"new {valueType.Substring(0, bracket)}[count{i}]{valueType.Substring(bracket)}";
-
-				file.Line($"var captured{i} = {created};");
+				file.Line($"var captured{i} = {CSharpEmitter.NewArray(valueType, $"count{i}")};");
 				file.Line();
 				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
 				{
