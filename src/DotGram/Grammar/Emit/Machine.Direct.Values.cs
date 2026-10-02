@@ -1563,7 +1563,7 @@ sealed partial class Machine
 
 			file.Line(
 				$"{DirectInto(type, "slot")} = " +
-				Offered(made, $"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))})", "start", "end - start") + ";");
+				Offered(made, $"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))})", "start", "end - start", walk: true) + ";");
 		}
 
 		if (DirectMark(type, "slot") is { Length: > 0 } mark)

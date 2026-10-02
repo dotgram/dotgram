@@ -704,7 +704,7 @@ public static partial class CSharpEmitter
 			}
 
 		// Where locations are decided per call, what depends on whether a reading locates — the walk
-		// that builds the values, and the offers it makes — is written once inside a generic class
+		// that builds the values — is written once inside a generic class
 		// and compiled by the runtime once for each argument: the IL is one parser, the native code
 		// a reading that locates and one that does not. The readers stay outside it, so the bulk of
 		// the machine is compiled once and as cheaply as any other class's; the generic one is
@@ -720,11 +720,6 @@ public static partial class CSharpEmitter
 					if (compiled.Machine.PerCallBuilder is { Length: > 0 } builder)
 						file.Methods(builder);
 
-					if (compiled.Machine.Offers() is { Length: > 0 } offers)
-					{
-						file.Write(offers);
-						file.Line();
-					}
 				}
 
 			// What the readers call from outside, which is all of the generic class that has to be
@@ -2034,7 +2029,7 @@ public static partial class CSharpEmitter
 			if (!overKinds)
 				return ", end";
 
-			return windowed ? ", end == count ? at + length : over" : ", over";
+			return windowed ? ", readTo" : ", over";
 		}
 
 		void Asking(string parameters, bool positional, bool windowed = false)
@@ -2300,6 +2295,13 @@ public static partial class CSharpEmitter
 					// began where it read none — not the start of the text, and not the end of a
 					// token before the one it began at.
 					file.Line($"var over  = end == {begins} ? {position} : starts[end - 1] + lengths[end - 1];");
+
+					// Read to the window's end only where every token of it was read and the lexer
+					// found nothing it could not cut before the end: a character no token begins with
+					// ends the tokens there, and the reading never looked past it.
+					if (locating is not null && positional && windowed)
+						file.Line("var readTo = end == count && tokens.Stopped < 0 ? at + length : over;");
+
 					file.Line();
 					if (!kept) file.Line("Recycle_DotGram(tokens);");
 					file.Line();

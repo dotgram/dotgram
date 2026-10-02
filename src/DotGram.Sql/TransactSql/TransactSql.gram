@@ -606,7 +606,12 @@ TSqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is S
 // `w2 AS (w1)` reads — so the refusal is this rule's and not the specification's.
 Over : @Clause.Window
 	= "OVER"i & '(' & ?!(WindowName & ')') & w: WindowSpecification & ')' => @(w)
-	| "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
+	| "OVER"i & w: NamedWindow => @(w)
+
+// A window named and nothing else: a rule of its own, so that the window it builds is told the
+// name's place and not the `OVER` in front of it, as a window written out in brackets is.
+NamedWindow : @Clause.Window
+	= only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
 
 // SQL:2003's <window specification>: the window it is built on, the partition, the order,
 // the frame — each optional, in that order. What `OVER (…)` holds, and what a `WINDOW`

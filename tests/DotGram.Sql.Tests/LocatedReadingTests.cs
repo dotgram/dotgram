@@ -204,6 +204,84 @@ public sealed class LocatedReadingTests
 		Assert.Equal(17, one.Span.At);
 	}
 
+	/// <summary>A window, named or written out, is spanned without the <c>OVER</c> in front of it.</summary>
+	[Theory]
+	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "w", "OVER")]
+	[InlineData("SELECT SUM(x) OVER (ORDER BY x) FROM t", "ORDER BY x", "OVER (")]
+	public void A_window_is_spanned_without_its_over(string text, string window, string before)
+	{
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var gap       = text.IndexOf(before, StringComparison.Ordinal) + before.Length;
+		var spanned   = Nodes(statement).OfType<Clause.Window>().First(node => node.Span.GapStart == gap);
+
+		Assert.Equal(window, text.Substring(spanned.Span.At, spanned.Span.Length));
+		Assert.DoesNotContain(Nodes(statement).OfType<Clause.Window>(), node => text.Substring(node.Span.At, node.Span.Length).StartsWith("OVER", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// A window the lexer stopped short in was not read to its end, and a match says so: through
+	/// either door, the reading stopped looking where the tokens stopped.
+	/// </summary>
+	[Fact]
+	public void A_window_cut_short_by_the_lexer_says_where_it_stopped()
+	{
+		var text    = "SELECT 1 \uFFFF and more";
+		var plain   = TransactSqlParser.TryParseSql(text, 0, text.Length);
+		var located = TransactSqlParser.Located.TryParseSql(text, 0, text.Length);
+
+		Assert.True(located.IsSuccess);
+		Assert.Equal("SELECT 1".Length, located.ReadingEnd);
+		Assert.Equal(located.ReadingEnd, plain.ReadingEnd);
+
+		var whole = TransactSqlParser.Located.TryParseSql(text, 0, "SELECT 1 ".Length);
+
+		Assert.Equal("SELECT 1 ".Length, whole.ReadingEnd);
+	}
+
+	/// <summary>
+	/// A batch in which a variable was substituted is read in its own text: spans, gaps and where the
+	/// reading stopped are positions in <see cref="ScriptBatch.Text"/>, which holds the substitution.
+	/// </summary>
+	[Fact]
+	public void A_substituted_batch_is_located_in_its_own_text()
+	{
+		var script = ":setvar table Orders\nSELECT a FROM $(table) /* t */ WHERE b = 1 -- end\nGO\n";
+		var batch  = SqlScript.Read(script).Batches.First(static one => !one.IsVerbatim);
+		var match  = TransactSqlParser.Located.TryParseSql(batch);
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(batch.At + batch.Length, match.ReadingEnd);
+
+		var text      = batch.Text;
+		var statement = Assert.Single(match.Value);
+		var table     = Nodes(statement).OfType<TableReference.Named>().Single();
+		var condition = Nodes(statement).OfType<Expression.Comparison>().Single();
+
+		Assert.Equal("Orders", text.Substring(table.Span.At, table.Span.Length));
+		Assert.Equal("b = 1", text.Substring(condition.Span.At, condition.Span.Length));
+		Assert.Equal(" ", text.Substring(condition.Span.GapStart, condition.Span.At - condition.Span.GapStart));
+		Assert.Equal(" /* t */ ", text.Substring(table.Span.End, text.IndexOf("WHERE", table.Span.End, StringComparison.Ordinal) - table.Span.End));
+		Assert.Contains("-- end", text.Substring(statement.Span.End, (int)match.ReadingEnd - statement.Span.End), StringComparison.Ordinal);
+		Assert.True(Trivia(text.Substring(statement.Span.End, (int)match.ReadingEnd - statement.Span.End)));
+	}
+
+	/// <summary>
+	/// A span is written as it was when it was a positional record: named arguments, an object
+	/// initializer, <c>with</c> and deconstruction all still compile and mean what they meant.
+	/// </summary>
+	[Fact]
+	public void A_span_is_written_as_it_always_was()
+	{
+		var span = new SqlSpan(At: 1, Length: 2);
+		var (at, length) = span;
+
+		Assert.Equal((1, 2), (at, length));
+		Assert.Equal(1, span.GapStart);
+		Assert.Equal(new SqlSpan(1, 3), span with { Length = 3 });
+		Assert.Equal(7, new SqlSpan { At = 3, Length = 4 }.End);
+		Assert.Equal(5, new SqlSpan(At: 6, Length: 1, GapStart: 5).GapStart);
+	}
+
 	/// <summary>A backup's tail is put on the statement with <c>with</c>, and the statement keeps its span.</summary>
 	[Theory]
 	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH INIT")]

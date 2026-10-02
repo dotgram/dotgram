@@ -783,6 +783,11 @@ sealed partial class Machine
 		if (OverKinds)
 			kept.Add(Provenance());
 
+		// The offers stand beside the reader, which an immediate reader and an engine's walk call
+		// them from; the generic walk reaches them from inside its class.
+		if (Offers() is { Length: > 0 } offers)
+			kept.Add(offers);
+
 
 		foreach (var (name, declaration) in _expected)
 			if (_expectedUsed.Contains(name) && (writtenExpected is null || writtenExpected.Add(name)))
@@ -1295,16 +1300,6 @@ sealed partial class Machine
 	bool _spans;
 
 	/// <summary>
-	/// A construction's call, offered the range it was read from where locations are decided per
-	/// call and its value is located; the call as it stands otherwise.
-	/// </summary>
-	/// <remarks>
-	/// The construction is the one an unlocated grammar compiles, so a reading that does not ask
-	/// calls exactly that and tests one number around it. A reading that asks offers the range the
-	/// way a located construction offers it itself — after the value is made, and only for the
-	/// author's own C#, since that is where a located construction offers one.
-	/// </remarks>
-	/// <summary>
 	/// Where locations are decided per call, the walk that builds a reading's values: written into
 	/// the generic class (<c>Reading_DotGram</c>) rather than beside the reader.
 	/// </summary>
@@ -1326,7 +1321,18 @@ sealed partial class Machine
 			$"else {CSharpEmitter.ReadingClass}<{CSharpEmitter.LocatingOff}>.{call}";
 	}
 
-	string Offered(Factory factory, string call, string from, string length)
+	/// <summary>
+	/// A construction's call, offered the range it was read from where locations are decided per
+	/// call and its value is located; the call as it stands otherwise.
+	/// </summary>
+	/// <remarks>
+	/// The construction is the one an unlocated grammar compiles, so a reading that does not ask
+	/// calls exactly that and tests one number around it — or, in the walk that builds the values,
+	/// which is generic over whether the reading locates, a type the runtime answers while it compiles. A reading that asks offers the range the
+	/// way a located construction offers it itself — after the value is made, and only for the
+	/// author's own C#, since that is where a located construction offers one.
+	/// </remarks>
+	string Offered(Factory factory, string call, string from, string length, bool walk = false)
 	{
 		if (!UsesLocating || !factory.Located ||
 			factory.Of is not Node.Construct { How: Construction.Expression { Text: var text } })
@@ -1344,9 +1350,14 @@ sealed partial class Machine
 
 		_offered.Add(type);
 
-		return OverKinds
+		var offer = OverKinds
 			? $"Offer_DotGram{_tag}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
 			: $"Offer_DotGram{_tag}({call}, parserLocating, {from}, {length})";
+
+		// In the generic walk the reading that does not ask calls the construction and nothing
+		// else; a reader, an engine's walk or an immediate reader is not generic, and the offer
+		// asks the reading's own number.
+		return walk ? $"({LocatingTest} ? {offer} : {call})" : offer;
 	}
 
 	/// <summary>The type a construction is declared to return, which its rule's is.</summary>
@@ -1382,9 +1393,9 @@ sealed partial class Machine
 			using (helper.Block(
 				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
 			{
-				// A type test the runtime answers while it compiles: the machine is a generic class
-				// over whether the reading locates, and each argument has native code of its own.
-				helper.Line($"if (typeof(TLocating) == typeof({CSharpEmitter.LocatingOn}))");
+				// Below nought where the reading did not ask. The walk that is generic over it does not
+				// call this where it does not ask, and so never asks here (Offered).
+				helper.Line("if (locating >= 0)");
 				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");

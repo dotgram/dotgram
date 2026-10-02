@@ -1171,14 +1171,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 				// does say is the difference. The first has nothing to take from.
 				var (host, site) = From(candidate, attribute, hosts.Count, hosts.Count > 0 ? hosts[0] : null);
 
-				if (hosts.Count == 0 && facade is not null)
-					host = host with
-					{
-						LocationType          = facadeLocation,
-						LocatedFacade         = facade,
-						LocatedFacadeDeclared = facadeDeclared,
-					};
-
 				hosts.Add((
 					host with
 					{
@@ -1190,6 +1182,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 					},
 					site));
 			}
+
+			// Given to the first only once every reading has taken what it inherits from it: the
+			// location type is the per-call facade's, and another reading compiled into a class of its
+			// own would otherwise inherit it and locate on every call.
+			if (facade is not null)
+				hosts[0] = (
+					hosts[0].Host with
+					{
+						LocationType          = facadeLocation,
+						LocatedFacade         = facade,
+						LocatedFacadeDeclared = facadeDeclared,
+					},
+					hosts[0].Site);
 
 			return hosts.ToImmutable();
 		}

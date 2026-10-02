@@ -31,23 +31,26 @@ public readonly record struct SqlSpan
 	/// </summary>
 	readonly int _length;
 
-	/// <summary>A span of <paramref name="length"/> characters at <paramref name="at"/>, with nothing in front of it.</summary>
-	public SqlSpan(int at, int length)
+	// The parameters are named as the positional record of 0.2 named them, so that a
+	// call written with named arguments — `new SqlSpan(At: 1, Length: 2)` — still compiles.
+
+	/// <summary>A span of <paramref name="Length"/> characters at <paramref name="At"/>, with nothing in front of it.</summary>
+	public SqlSpan(int At, int Length)
 	{
-		At       = at;
-		_length  = length;
-		GapStart = at;
+		this.At  = At;
+		_length  = Length;
+		GapStart = At;
 	}
 
 	/// <summary>
-	/// A span of <paramref name="length"/> characters at <paramref name="at"/>, the text in front of
-	/// which begins at <paramref name="gapStart"/>.
+	/// A span of <paramref name="Length"/> characters at <paramref name="At"/>, the text in front of
+	/// which begins at <paramref name="GapStart"/>.
 	/// </summary>
-	public SqlSpan(int at, int length, int gapStart)
+	public SqlSpan(int At, int Length, int GapStart)
 	{
-		At       = at;
-		_length  = length;
-		GapStart = gapStart;
+		this.At       = At;
+		_length       = Length;
+		this.GapStart = GapStart;
 	}
 
 	SqlSpan(int at, int length, int gapStart, bool stale)
@@ -58,16 +61,32 @@ public readonly record struct SqlSpan
 	}
 
 	/// <summary>The first character.</summary>
-	public int At { get; }
+	public int At { get; init; }
 
 	/// <summary>How many characters.</summary>
-	public int Length => _length < 0 ? ~_length : _length;
+	/// <remarks>Setting it, in an object initializer or a <c>with</c>, makes a span that is not stale.</remarks>
+	public int Length
+	{
+		get
+		{
+			return _length < 0 ? ~_length : _length;
+		}
+
+		init
+		{
+			_length = value;
+		}
+	}
 
 	/// <summary>
 	/// Where the text in front of the node begins: the end of the token before it, or where the
 	/// reading began. <see cref="At"/> where nothing was said, which is an empty gap.
 	/// </summary>
-	public int GapStart { get; }
+	/// <remarks>
+	/// Nought in a span made with an object initializer that does not set it, where the two-number
+	/// constructor sets it to <see cref="At"/>.
+	/// </remarks>
+	public int GapStart { get; init; }
 
 	/// <summary>
 	/// Whether the node was copied with <c>with</c> since it was read. The span is still where its
@@ -88,10 +107,10 @@ public readonly record struct SqlSpan
 	}
 
 	/// <summary>Where and how much, as the span was once written as a pair.</summary>
-	public void Deconstruct(out int at, out int length)
+	public void Deconstruct(out int At, out int Length)
 	{
-		at     = At;
-		length = Length;
+		At     = this.At;
+		Length = this.Length;
 	}
 }
 
