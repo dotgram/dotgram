@@ -689,7 +689,7 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutElements(IReadOnlyList<TableElement> elements)
+		void PutElements(SqlList<TableElement> elements)
 		{
 			Open();
 			Each(elements, PutElement);
@@ -1185,7 +1185,7 @@ public static partial class Sql2023Writer
 
 		// ── §12 Privileges ─────────────────────────────────────────────────────────
 
-		void PutPrivileges(IReadOnlyList<Privilege> privileges, PrivilegeObject? on)
+		void PutPrivileges(SqlList<Privilege> privileges, PrivilegeObject? on)
 		{
 			Each(privileges, privilege =>
 			{
@@ -1267,12 +1267,12 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// T-SQL's column list on the SECURABLE, <c>ON t (a, b)</c>, which is not a permission's.
 		/// </summary>
-		void PutSecurableColumns(IReadOnlyList<Identifier>? columns)
+		void PutSecurableColumns(SqlList<Identifier>? columns)
 		{
-			if (columns is { Count: > 0 })
+			if (columns is { Count: > 0 } list)
 			{
 				Open();
-				Each(columns, PutIdentifier);
+				Each(list, PutIdentifier);
 				Close();
 			}
 		}
@@ -1448,7 +1448,7 @@ public static partial class Sql2023Writer
 				Word(one switch { MethodModifier.Instance => "INSTANCE", MethodModifier.Static => "STATIC", MethodModifier.Constructor => "CONSTRUCTOR", _ => throw NoText(one) });
 		}
 
-		void PutParameters(IReadOnlyList<ParameterDefinition> parameters)
+		void PutParameters(SqlList<ParameterDefinition> parameters)
 		{
 			Open();
 			Each(parameters, parameter =>
@@ -1515,7 +1515,7 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutCharacteristics(IReadOnlyList<RoutineCharacteristic> characteristics)
+		void PutCharacteristics(SqlList<RoutineCharacteristic> characteristics)
 		{
 			foreach (var characteristic in characteristics)
 				PutCharacteristic(characteristic);

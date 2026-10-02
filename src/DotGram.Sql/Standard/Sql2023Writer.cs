@@ -109,7 +109,7 @@ public static partial class Sql2023Writer
 			Tight(")");
 		}
 
-		void Each<T>(IReadOnlyList<T> items, Action<T> put)
+		void Each<T>(SqlList<T> items, Action<T> put)
 		{
 			for (var at = 0; at < items.Count; at++)
 			{
@@ -1496,7 +1496,7 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutEnumeration(IReadOnlyList<Expression> items, bool trigraphs)
+		void PutEnumeration(SqlList<Expression> items, bool trigraphs)
 		{
 			Tight(trigraphs ? "??(" : "[");
 			Hold();
@@ -1589,7 +1589,7 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutArguments(IReadOnlyList<Argument> arguments)
+		void PutArguments(SqlList<Argument> arguments)
 		{
 			Call();
 			Each(arguments, PutArgument);

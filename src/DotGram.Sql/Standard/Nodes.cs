@@ -40,7 +40,7 @@ static class Nodes
 		parts[0] = new Identifier(word);
 		Array.Copy(rest, 0, parts, 1, rest.Length);
 
-		return new QualifiedName(parts);
+		return new QualifiedName(SqlList.Own(parts));
 	}
 
 	/// <summary>A name and the parts after it, as many as were read.</summary>
@@ -54,7 +54,7 @@ static class Nodes
 		parts[0] = first;
 		Array.Copy(rest, 0, parts, 1, rest.Length);
 
-		return new QualifiedName(parts);
+		return new QualifiedName(SqlList.Own(parts));
 	}
 
 	/// <summary>A name and one optional part after it.</summary>
@@ -65,7 +65,7 @@ static class Nodes
 
 	/// <summary>A character set's name: its qualifiers, and the SQL language identifier after them.</summary>
 	/// <summary>What follows a set target's column: an element of it, or the methods that mutate it.</summary>
-	public sealed record TargetTail(Expression? Index, IReadOnlyList<Identifier>? MutationPath, bool Trigraphs);
+	public sealed record TargetTail(Expression? Index, SqlList<Identifier>? MutationPath, bool Trigraphs);
 
 	public static AssignmentTarget Assigned(Identifier column, TargetTail tail)
 	{
@@ -79,7 +79,7 @@ static class Nodes
 		qualifiers?.CopyTo(parts, 0);
 		parts[parts.Length - 1] = new Identifier(name);
 
-		return new CharacterSetName(new QualifiedName(parts));
+		return new CharacterSetName(new QualifiedName(SqlList.Own(parts)));
 	}
 
 	// ── §6.3 Value expression primary ──────────────────────────────────────────
@@ -161,7 +161,7 @@ static class Nodes
 		if (second is not null)
 			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(second))));
 
-		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), arguments);
+		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), SqlList.From(arguments));
 	}
 
 	/// <summary>A host parameter, `:a INDICATOR :i`, and whether the key word stood before its indicator.</summary>
@@ -197,13 +197,13 @@ static class Nodes
 		for (var at = 1; at < arguments.Length; at++)
 			arguments[at] = new Argument(rest![at - 1]);
 
-		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), arguments);
+		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), SqlList.Own(arguments));
 	}
 
 	/// <summary>An array or a multiset by enumeration, empty where nothing was written, and whether its brackets were trigraphs.</summary>
 	public static Expression Collection(string word, string bracket, Expression? first, Expression[]? rest)
 	{
-		IReadOnlyList<Expression> items = first is null ? [] : List(first, rest);
+		SqlList<Expression> items = first is null ? [] : List(first, rest);
 		var trigraphs = bracket == "??(";
 
 		return (word[0] | 0x20) == 'a' ? new Expression.Array(items, trigraphs) : new Expression.Multiset(items, trigraphs);
@@ -220,13 +220,13 @@ static class Nodes
 	}
 
 	/// <summary>An SQL argument list: nothing, or the first argument and the rest.</summary>
-	public static IReadOnlyList<Argument> Arguments(Argument? first, Argument[]? rest)
+	public static SqlList<Argument> Arguments(Argument? first, Argument[]? rest)
 	{
 		return first is null ? [] : List(first, rest);
 	}
 
 	/// <summary>Values read with their towers, as the nodes alone.</summary>
-	public static IReadOnlyList<Expression> Values(Towers.Typed first, Towers.Typed[]? rest)
+	public static SqlList<Expression> Values(Towers.Typed first, Towers.Typed[]? rest)
 	{
 		var all = new Expression[(rest?.Length ?? 0) + 1];
 
@@ -235,7 +235,7 @@ static class Nodes
 		for (var at = 1; at < all.Length; at++)
 			all[at] = rest![at - 1].Node;
 
-		return all;
+		return SqlList.Own(all);
 	}
 
 	// ── §6.28 Operators ────────────────────────────────────────────────────────
@@ -454,7 +454,7 @@ static class Nodes
 			if (argument is not null)
 				written.Add(new Argument(argument));
 
-		return new Expression.Invocation(Name(word), written);
+		return new Expression.Invocation(Name(word), SqlList.From(written));
 	}
 
 	/// <summary>What a regular expression function searches: a pattern, its flags, the string, where to start, and the units.</summary>
@@ -661,7 +661,7 @@ static class Nodes
 	// ── JSON ───────────────────────────────────────────────────────────────────
 
 	/// <summary>A list whose first element may not have been written, and then none was.</summary>
-	public static IReadOnlyList<T> ListOrEmpty<T>(T? first, T[]? rest) where T : class
+	public static SqlList<T> ListOrEmpty<T>(T? first, T[]? rest) where T : class
 	{
 		return first is null ? [] : List(first, rest);
 	}
@@ -818,7 +818,7 @@ static class Nodes
 	// ── §7.6 Row pattern recognition, §7.11 Windows, §10.10 Sort specifications ─
 
 	/// <summary>`MATCH_RECOGNIZE`: what its common syntax said, with its partitioning, order, measures and rows per match.</summary>
-	public static RowPatternClause Recognized(IReadOnlyList<Expression>? partition, OrderByClause? order, IReadOnlyList<RowPatternMeasure>? measures, RowsPerMatch? rows, RowPatternClause common)
+	public static RowPatternClause Recognized(SqlList<Expression>? partition, OrderByClause? order, SqlList<RowPatternMeasure>? measures, RowsPerMatch? rows, RowPatternClause common)
 	{
 		return common with { PartitionBy = partition ?? [], OrderBy = order, Measures = measures ?? [], RowsPerMatch = rows };
 	}
@@ -834,7 +834,7 @@ static class Nodes
 	}
 
 	/// <summary>The common syntax of a row pattern: the skip, `INITIAL` or `SEEK`, the pattern, its subsets and its definitions.</summary>
-	public static RowPatternClause Common(RowPatternSkip? skip, string? initial, RowPattern pattern, IReadOnlyList<RowPatternSubset>? subsets, RowPatternDefinition first, RowPatternDefinition[]? rest)
+	public static RowPatternClause Common(RowPatternSkip? skip, string? initial, RowPattern pattern, SqlList<RowPatternSubset>? subsets, RowPatternDefinition first, RowPatternDefinition[]? rest)
 	{
 		return new([], null, [], null, skip, initial is null ? null : (initial[0] | 0x20) == 'i' ? RowPatternInitial.Initial : RowPatternInitial.Seek, pattern, subsets ?? [], List(first, rest));
 	}
@@ -850,7 +850,7 @@ static class Nodes
 	}
 
 	/// <summary>A window frame: the measures before it, its units, extent and exclusion, and the row pattern after it.</summary>
-	public static WindowFrame Framed(IReadOnlyList<RowPatternMeasure>? measures, string units, WindowFrameExtent extent, WindowFrameExclusion? exclusion, RowPatternClause? common)
+	public static WindowFrame Framed(SqlList<RowPatternMeasure>? measures, string units, WindowFrameExtent extent, WindowFrameExclusion? exclusion, RowPatternClause? common)
 	{
 		var unit = (units[0] | 0x20) switch
 		{
@@ -885,7 +885,7 @@ static class Nodes
 	// ── §11 Triggers and SQL-invoked routines ──────────────────────────────────
 
 	/// <summary>A triggered SQL statement: the statements, and whether they were a `BEGIN ATOMIC` block.</summary>
-	public sealed record Triggered(IReadOnlyList<Statement> Statements, bool Atomic);
+	public sealed record Triggered(SqlList<Statement> Statements, bool Atomic);
 
 	/// <summary>`FOR EACH ROW` or `FOR EACH STATEMENT`.</summary>
 	public static TriggerGranularity? GranularityOf(string? word)
@@ -985,13 +985,13 @@ static class Nodes
 	public sealed record UsingDescriptor(bool SqlKeyword, DescriptorReference Descriptor);
 
 	/// <summary>What a copy descriptor statement says after its source: the item's index and what it takes, where an item is copied, and the target.</summary>
-	public sealed record CopyTail(Expression? SourceIndex, IReadOnlyList<DescriptorCopyOption>? Options, DescriptorReference Target, Expression? TargetIndex);
+	public sealed record CopyTail(Expression? SourceIndex, SqlList<DescriptorCopyOption>? Options, DescriptorReference Target, Expression? TargetIndex);
 
 	public static DescriptorCopy Copy(DescriptorReference source, CopyTail tail)
 	{
 		return tail.SourceIndex is null
 			? new DescriptorCopy.Whole(source, tail.Target)
-			: new DescriptorCopy.Item(source, tail.SourceIndex, tail.Options!, tail.Target, tail.TargetIndex!);
+			: new DescriptorCopy.Item(source, tail.SourceIndex, tail.Options.GetValueOrDefault(), tail.Target, tail.TargetIndex!);
 	}
 
 	// ── §11 Schema definition and manipulation ─────────────────────────────────
@@ -1003,7 +1003,7 @@ static class Nodes
 	}
 
 	/// <summary>The kinds of transform a group drops, one or both.</summary>
-	public static IReadOnlyList<TransformDirection> Directions(TransformDirection first, TransformDirection? second)
+	public static SqlList<TransformDirection> Directions(TransformDirection first, TransformDirection? second)
 	{
 		return second is { } other ? [first, other] : [first];
 	}
@@ -1023,7 +1023,7 @@ static class Nodes
 			DefaultCharacterSet = defaults?.CharacterSet,
 			Path = defaults?.Path,
 			PathFirst = defaults?.PathFirst ?? false,
-			Elements = elements ?? [],
+			Elements = SqlList.Own(elements ?? []),
 		};
 	}
 
@@ -1091,7 +1091,7 @@ static class Nodes
 	}
 
 	/// <summary>The privileges granted or revoked, and the object they are on.</summary>
-	public sealed record PrivilegesOn(IReadOnlyList<Privilege> Items, PrivilegeObject Object);
+	public sealed record PrivilegesOn(SqlList<Privilege> Items, PrivilegeObject Object);
 
 	public static PrivilegeKind PrivilegeKindOf(string word)
 	{
@@ -1124,7 +1124,7 @@ static class Nodes
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
 	/// <summary>What an insert statement says after its table: the columns, the override, and the source.</summary>
-	public sealed record InsertBody(IReadOnlyList<Identifier> Columns, OverrideKind? Override, InsertSource Source);
+	public sealed record InsertBody(SqlList<Identifier> Columns, OverrideKind? Override, InsertSource Source);
 
 	public static IdentityRestart? RestartOf(string? word)
 	{
@@ -1137,7 +1137,7 @@ static class Nodes
 	public sealed record TableExpression(FromClause From, Expression? Where, GroupByClause? GroupBy, Expression? Having, WindowClause? Window);
 
 	/// <summary>`SELECT`, its quantifier, its list, and its table expression.</summary>
-	public static Statement.Select Specified(string? quantifier, IReadOnlyList<SelectItem> items, TableExpression table)
+	public static Statement.Select Specified(string? quantifier, SqlList<SelectItem> items, TableExpression table)
 	{
 		return new()
 		{
@@ -1151,13 +1151,13 @@ static class Nodes
 		};
 	}
 
-	public static IReadOnlyList<SelectItem> Everything()
+	public static SqlList<SelectItem> Everything()
 	{
 		return [new SelectItem.All()];
 	}
 
 	/// <summary>What follows a select sublist's expression: a name and whether `AS` stood before it, or `AS` and the fields' names.</summary>
-	public sealed record Fields(Identifier? Alias, bool AsKeyword, IReadOnlyList<Identifier>? Columns);
+	public sealed record Fields(Identifier? Alias, bool AsKeyword, SqlList<Identifier>? Columns);
 
 	public static bool RenamesFields(Fields? fields)
 	{
@@ -1174,7 +1174,7 @@ static class Nodes
 	}
 
 	/// <summary>A value of a table value constructor as the row it is: an explicit row's values, or a value alone.</summary>
-	public static IReadOnlyList<RowValue> Rows(Expression first, Expression[]? rest)
+	public static SqlList<RowValue> Rows(Expression first, Expression[]? rest)
 	{
 		var rows = new RowValue[(rest?.Length ?? 0) + 1];
 
@@ -1185,7 +1185,7 @@ static class Nodes
 			rows[at] = value is Expression.Row row ? new RowValue(row.Items, row.RowKeyword) : new RowValue([value]);
 		}
 
-		return rows;
+		return SqlList.Own(rows);
 	}
 
 	/// <summary>
@@ -1219,9 +1219,9 @@ static class Nodes
 			return first;
 
 		if (first.SetOperations.Count == 0 && first.Parentheses == 0 && first.With is null && first.OrderBy is null && first.Offset is null && first.Fetch is null)
-			return first with { SetOperations = rest };
+			return first with { SetOperations = SqlList.Own(rest) };
 
-		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = rest };
+		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = SqlList.Own(rest) };
 	}
 
 	/// <summary>One `UNION`, `EXCEPT` or `INTERSECT`, its quantifier and correspondence, and the operand after it.</summary>
@@ -1299,13 +1299,13 @@ static class Nodes
 	}
 
 	/// <summary>The joins read after a factor, and the partitioning of the factor before the first.</summary>
-	public sealed record Joins(IReadOnlyList<Expression>? Partition, IReadOnlyList<JoinStep>? Steps);
+	public sealed record Joins(SqlList<Expression>? Partition, SqlList<JoinStep>? Steps);
 
 	/// <summary>One join: its type as written, whether it is natural, the table on its right with that table's partitioning, and its specification.</summary>
-	public sealed record JoinStep(JoinKind? Kind, bool Natural, bool Outer, TableSource Right, JoinSpecification? Specification, IReadOnlyList<Expression>? RightPartition);
+	public sealed record JoinStep(JoinKind? Kind, bool Natural, bool Outer, TableSource Right, JoinSpecification? Specification, SqlList<Expression>? RightPartition);
 
 	/// <summary>A qualified or natural join from its join type's words.</summary>
-	public static JoinStep Step(string? type, bool natural, TableSource right, JoinSpecification? specification, IReadOnlyList<Expression>? partition)
+	public static JoinStep Step(string? type, bool natural, TableSource right, JoinSpecification? specification, SqlList<Expression>? partition)
 	{
 		JoinKind? kind = type is null ? null : (type.TrimStart()[0] | 0x20) switch
 		{
@@ -1347,7 +1347,7 @@ static class Nodes
 	}
 
 	/// <summary>A qualified join's right side: a table and its partitioning, or the joins it goes on into.</summary>
-	public sealed record JoinOperand(TableSource Source, IReadOnlyList<Expression>? Partition);
+	public sealed record JoinOperand(TableSource Source, SqlList<Expression>? Partition);
 
 	public static JoinOperand Operand(TableSource factor, Joins tail)
 	{
@@ -1448,7 +1448,7 @@ static class Nodes
 	// ── Lists ──────────────────────────────────────────────────────────────────
 
 	/// <summary>The first of a list and the rest of it, as one list in the order written.</summary>
-	public static IReadOnlyList<T> List<T>(T first, T[]? rest)
+	public static SqlList<T> List<T>(T first, T[]? rest)
 	{
 		if (rest is not { Length: > 0 })
 			return [first];
@@ -1458,7 +1458,7 @@ static class Nodes
 		all[0] = first;
 		Array.Copy(rest, 0, all, 1, rest.Length);
 
-		return all;
+		return SqlList.Own(all);
 	}
 
 	// ── §5.3 Literals ──────────────────────────────────────────────────────────
@@ -1572,7 +1572,7 @@ static class Nodes
 		for (var at = 0; at < parts.Length; at++)
 			names[at] = new Identifier(parts[at], parts[at].Length > 0 && parts[at][0] == '"' ? IdentifierStyle.Delimited : IdentifierStyle.Regular);
 
-		return new CharacterSetName(new QualifiedName(names));
+		return new CharacterSetName(new QualifiedName(SqlList.Own(names)));
 	}
 
 	// ── Numbers inside a production ────────────────────────────────────────────

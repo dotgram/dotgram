@@ -414,7 +414,7 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutMeasures(IReadOnlyList<RowPatternMeasure> measures)
+		void PutMeasures(SqlList<RowPatternMeasure> measures)
 		{
 			if (measures.Count == 0)
 				return;
@@ -804,14 +804,14 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutPartition(IReadOnlyList<Expression>? partition)
+		void PutPartition(SqlList<Expression>? partition)
 		{
-			if (partition is null)
+			if (partition is not { } list)
 				return;
 
 			Word("PARTITION BY");
 			Open();
-			Each(partition, PutExpression);
+			Each(list, PutExpression);
 			Close();
 		}
 

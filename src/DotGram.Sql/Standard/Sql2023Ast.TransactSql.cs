@@ -14,10 +14,10 @@ namespace DotGram.Sql.Ast;
 // decides them, not before it.
 
 /// <summary>T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target.</summary>
-public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, bool WithTies) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, bool WithTies) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -25,35 +25,36 @@ public sealed record TopClause(Expression Value, bool Parentheses, bool Percent,
 /// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t</c>, which makes a table. Not the
 /// standard's <see cref="IntoClause"/>, whose targets are variables.
 /// </summary>
-public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
 /// <summary>T-SQL: OPENJSON, OPENXML, OPENROWSET BULK (Transact-SQL). A column of a rowset function's <c>WITH (…)</c> schema.</summary>
-public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
 /// <summary>T-SQL: FOR Clause (Transact-SQL). What a query returns instead of rows.</summary>
 public abstract record ForClause : ISqlNode
 {
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary><c>FOR XML RAW</c>, <c>AUTO</c>, <c>EXPLICIT</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Xml(Identifier Mode, IReadOnlyList<Option> Options) : ForClause;
+	public sealed record Xml(Identifier Mode, SqlList<Option> Options) : ForClause;
 	/// <summary><c>FOR JSON AUTO</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Json(Identifier Mode, IReadOnlyList<Option> Options) : ForClause;
+	public sealed record Json(Identifier Mode, SqlList<Option> Options) : ForClause;
 	/// <summary><c>FOR BROWSE</c>, which takes nothing.</summary>
 	public sealed record Browse : ForClause;
 }
@@ -67,29 +68,31 @@ public abstract record ForClause : ISqlNode
 /// </remarks>
 public abstract record TableHint : ISqlNode
 {
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary>A hint the grammar reads by name, with whatever it was given in brackets.</summary>
-	public sealed record Named(Identifier Name, IReadOnlyList<Expression> Arguments) : TableHint;
+	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : TableHint;
 }
 
 /// <summary>T-SQL: Query Hints (Transact-SQL). A hint in a statement's <c>OPTION (…)</c>.</summary>
 public abstract record QueryHint : ISqlNode
 {
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary>A hint the grammar reads by name, with whatever it was given in brackets.</summary>
-	public sealed record Named(Identifier Name, IReadOnlyList<Expression> Arguments) : QueryHint;
+	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : QueryHint;
 }
 
 /// <summary>T-SQL: Join hints (Transact-SQL). How a join is to be performed.</summary>
@@ -102,18 +105,18 @@ public enum JoinHint { Loop, Hash, Merge, Remote }
 /// option, with a value or options of its own. One record for the whole catalogue (proposal 20):
 /// it is a name and a value, not a tail of text, so a round trip has something typed to print.
 /// </remarks>
-public sealed record Option(Identifier Name, Expression? Value, IReadOnlyList<Option> Options) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). Where a table, its large values or its filestream data are put.</summary>
-public sealed record Placement(PlacementKind Kind, Identifier Target, IReadOnlyList<Identifier>? Columns) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Identifier>? Columns) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -127,18 +130,18 @@ public enum PlacementKind { On, TextImageOn, FilestreamOn }
 /// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
 /// <c>OUTPUT</c> to the caller.
 /// </remarks>
-public sealed record OutputClause(IReadOnlyList<SelectItem> Items, TableSource? Into, IReadOnlyList<Identifier>? Columns, OutputClause? Next) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record OutputClause(SqlList<SelectItem> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Whom a module or a statement runs as.</summary>
-public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -146,18 +149,18 @@ public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name
 public enum ExecutionContextKind { Caller, Self, Owner, User, Login }
 
 /// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). A partition, or a range of them.</summary>
-public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). An edge constraint of a graph table: which node table connects to which.</summary>
-public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -170,12 +173,13 @@ public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISql
 public abstract record SetOption : ISqlNode
 {
 	/// <summary>Where in the text this option was written.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this option was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary>An option that is only turned on or off, such as <c>SET ANSI_NULLS ON</c>.</summary>
@@ -258,12 +262,13 @@ public abstract partial record Expression
 public abstract record AlterDatabaseAction : ISqlNode
 {
 	/// <summary>Where in the text this action was written.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary><c>COLLATE collation_name</c>.</summary>
@@ -273,7 +278,7 @@ public abstract record AlterDatabaseAction : ISqlNode
 	public sealed record ModifyName(Identifier Name) : AlterDatabaseAction;
 
 	/// <summary>T-SQL: ALTER DATABASE (Transact-SQL), the Azure syntax. <c>MODIFY (edition options) [WITH MANUAL_CUTOVER]</c>.</summary>
-	public sealed record Modify(IReadOnlyList<Option> Options, bool ManualCutover) : AlterDatabaseAction;
+	public sealed record Modify(SqlList<Option> Options, bool ManualCutover) : AlterDatabaseAction;
 
 	/// <summary><c>MODIFY BACKUP_STORAGE_REDUNDANCY =</c> one of three quoted words.</summary>
 	/// <remarks>
@@ -294,10 +299,10 @@ public abstract record AlterDatabaseAction : ISqlNode
 	public sealed record RebuildLog : AlterDatabaseAction;
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD FILE ... [TO FILEGROUP g]</c>.</summary>
-	public sealed record AddFile(IReadOnlyList<DatabaseFile> Files, Identifier? ToFileGroup) : AlterDatabaseAction;
+	public sealed record AddFile(SqlList<DatabaseFile> Files, Identifier? ToFileGroup) : AlterDatabaseAction;
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD LOG FILE ...</c>.</summary>
-	public sealed record AddLogFile(IReadOnlyList<DatabaseFile> Files) : AlterDatabaseAction;
+	public sealed record AddLogFile(SqlList<DatabaseFile> Files) : AlterDatabaseAction;
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>MODIFY FILE (...)</c>.</summary>
 	public sealed record ModifyFile(DatabaseFile File) : AlterDatabaseAction;
@@ -321,11 +326,11 @@ public abstract record AlterDatabaseAction : ISqlNode
 /// <c>MAXSIZE = UNLIMITED</c> a name as one, and <c>SIZE = 10 MB</c> an
 /// <see cref="Expression.Measured"/>. So no part of it is a tail of text (P2).
 /// </remarks>
-public sealed record DatabaseFile(IReadOnlyList<Option> Options) : ISqlNode { public SqlSpan Span { get; private set; }
+public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
 	/// <summary>Records where this file was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -336,12 +341,13 @@ public enum FileGroupContents { Filestream, MemoryOptimizedData }
 public abstract record FileGroupChange : ISqlNode
 {
 	/// <summary>Where in the text this change was written.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary>Whether the filegroup may be written to.</summary>
@@ -389,19 +395,19 @@ public abstract partial record Statement
 	/// </remarks>
 	public sealed record DropObject(
 		DropObjectKind Kind,
-		IReadOnlyList<QualifiedName> Names,
+		SqlList<QualifiedName> Names,
 		bool IfExists = false,
 		bool RemoveProviderKey = false) : Statement;
 
 	/// <summary>T-SQL: DROP ASSEMBLY (Transact-SQL). <c>DROP ASSEMBLY [IF EXISTS] a [,…n] [WITH NO DEPENDENTS]</c>.</summary>
-	public sealed record DropAssembly(IReadOnlyList<QualifiedName> Names, bool IfExists, bool NoDependents) : Statement;
+	public sealed record DropAssembly(SqlList<QualifiedName> Names, bool IfExists, bool NoDependents) : Statement;
 
 	/// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). <c>DROP EVENT SESSION s ON { SERVER | DATABASE }</c>.</summary>
 	/// <remarks>The scope is required on the page, so it is a property and not an option.</remarks>
 	public sealed record DropEventSession(Identifier Name, EventScope On) : Statement;
 
 	/// <summary>T-SQL: DROP EVENT NOTIFICATION (Transact-SQL). <c>DROP EVENT NOTIFICATION n [,…n] ON …</c>.</summary>
-	public sealed record DropEventNotification(IReadOnlyList<Identifier> Names, NotificationScope On) : Statement;
+	public sealed record DropEventNotification(SqlList<Identifier> Names, NotificationScope On) : Statement;
 
 	/// <summary>T-SQL: DROP EXTERNAL LIBRARY (Transact-SQL). <c>DROP EXTERNAL LIBRARY l [AUTHORIZATION owner]</c>.</summary>
 	public sealed record DropExternalLibrary(Identifier Name, Identifier? Authorization) : Statement;
@@ -411,7 +417,7 @@ public abstract partial record Statement
 	public sealed record DropFulltextIndex(QualifiedName Table) : Statement;
 
 	/// <summary>T-SQL: DROP SENSITIVITY CLASSIFICATION (Transact-SQL). <c>DROP SENSITIVITY CLASSIFICATION FROM c [,…n]</c>.</summary>
-	public sealed record DropSensitivityClassification(IReadOnlyList<QualifiedName> Objects) : Statement;
+	public sealed record DropSensitivityClassification(SqlList<QualifiedName> Objects) : Statement;
 
 	/// <summary>T-SQL: DROP MASTER KEY (Transact-SQL). <c>DROP MASTER KEY</c>, which names nothing.</summary>
 	public sealed record DropMasterKey : Statement;
@@ -425,10 +431,10 @@ public abstract partial record Statement
 	/// That lets the tree hold a mixture the grammar will not read, which is the ordinary price of a
 	/// family in a list; the alternative is two statements for one statement.
 	/// </remarks>
-	public sealed record DropIndex(IReadOnlyList<DroppedIndex> Indexes, bool IfExists) : Statement;
+	public sealed record DropIndex(SqlList<DroppedIndex> Indexes, bool IfExists) : Statement;
 
 	/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL). <c>DROP [COUNTER] SIGNATURE FROM m BY …</c>.</summary>
-	public sealed record DropSignature(bool Counter, QualifiedName Module, IReadOnlyList<SignedBy> By) : Statement;
+	public sealed record DropSignature(bool Counter, QualifiedName Module, SqlList<SignedBy> By) : Statement;
 
 	// ---- cursors and transactions ---------------------------------------------------------------
 	//
@@ -489,8 +495,8 @@ public abstract partial record Statement
 	/// </para>
 	/// </remarks>
 	public sealed record Deny(
-		IReadOnlyList<Privilege> Items,
-		IReadOnlyList<Grantee> Grantees,
+		SqlList<Privilege> Items,
+		SqlList<Grantee> Grantees,
 		PrivilegeObject? Object = null,
 		bool Cascade = false,
 		Identifier? AsPrincipal = null) : Statement;
@@ -518,12 +524,13 @@ public abstract partial record Statement
 public sealed record TransactionName(Identifier? Name, Expression? Variable = null) : ISqlNode
 {
 	/// <inheritdoc/>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -534,12 +541,13 @@ public sealed record TransactionName(Identifier? Name, Expression? Variable = nu
 public sealed record TransactionMark(Expression? Description = null) : ISqlNode
 {
 	/// <inheritdoc/>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
@@ -590,12 +598,13 @@ public enum CursorConcurrency { ReadOnly, ScrollLocks, Optimistic }
 public abstract record DroppedIndex : ISqlNode
 {
 	/// <summary>Where in the text this index was named.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this index was named.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary>
@@ -606,7 +615,7 @@ public abstract record DroppedIndex : ISqlNode
 	/// names and values, so <see cref="Option"/> holds them: <c>MOVE TO scheme (column)</c> is a name
 	/// with an invocation for its value and <c>"default"</c> is a name with a literal.
 	/// </remarks>
-	public sealed record Named(Identifier Name, QualifiedName On, IReadOnlyList<Option> Options) : DroppedIndex;
+	public sealed record Named(Identifier Name, QualifiedName On, SqlList<Option> Options) : DroppedIndex;
 
 	/// <summary><c>[ owner. ] table_or_view.index_name</c>: the backward compatible form, which writes no <c>ON</c>.</summary>
 	public sealed record Qualified(QualifiedName Name) : DroppedIndex;
@@ -616,12 +625,13 @@ public abstract record DroppedIndex : ISqlNode
 public abstract record SignedBy : ISqlNode
 {
 	/// <summary>Where in the text this was written.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary><c>CERTIFICATE cert_name</c>.</summary>
@@ -645,12 +655,13 @@ public enum TriggerScope { Database, AllServer }
 public abstract record NotificationScope : ISqlNode
 {
 	/// <summary>Where in the text this scope was written.</summary>
-	public SqlSpan Span { get; private set; }
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this scope was written.</summary>
 	public void Locate(int at, int length)
 	{
-		Span = new SqlSpan(at, length);
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
 	/// <summary><c>ON SERVER</c>.</summary>

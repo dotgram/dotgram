@@ -21,8 +21,8 @@ namespace DotGram.Sql;
 /// A node is anything the five roots derive from, which is <see cref="ISqlSpan"/>: a
 /// <see cref="Statement"/>, a <see cref="Query"/>, an <see cref="Expression"/>, a
 /// <see cref="TableReference"/> or a <see cref="Clause"/> — and every node of the SQL:2023 tree,
-/// whose <c>ISqlNode</c> is one too. What a node holds of them — one, an array, or a list, of nodes
-/// or of lists of them — is found from its type once and kept, so a record added to either tree is
+/// whose <c>ISqlNode</c> is one too. What a node holds of them — one, or a list of nodes or of lists
+/// of them, which may be absent — is found from its type once and kept, so a record added to either tree is
 /// walked without this file hearing of it. Everything else a record holds is its own words and not
 /// a node.
 /// </para>
@@ -68,7 +68,7 @@ public static class SqlWalker
 		return true;
 	}
 
-	/// <summary>The nodes a value is or holds: a node, or a list or an array of them — or of lists of them, as a session's transaction modes are.</summary>
+	/// <summary>The nodes a value is or holds: a node, or a list of them — or of lists of them, as a session's transaction modes are.</summary>
 	static void Gather(object? value, List<ISqlSpan> held)
 	{
 		switch (value)
@@ -100,9 +100,12 @@ public static class SqlWalker
 		]);
 	}
 
-	// A node, or anything enumerable whose elements can hold one: an array, an IReadOnlyList.
+	// A node, or anything enumerable whose elements can hold one: a SqlList, an array, an
+	// IReadOnlyList — or a list a record may leave out, which is a SqlList<T>? and so a Nullable.
 	static bool Holds(Type type)
 	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+
 		return typeof(ISqlSpan).IsAssignableFrom(type) ||
 		type != typeof(string) && ElementOf(type) is { } element && Holds(element);
 	}
