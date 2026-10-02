@@ -703,8 +703,12 @@ namespace DotGram.ExpressionLanguage;
 	// A comma may follow the last of them, as in C#: after a comma, a member, an entry that
 	// is not one, or the closing brace. Written inside the repetition rather than as `','?`
 	// after it, where the comma would be one the repetition could also have begun with.
+	//
+	// Braces with nothing in them are these too, as in C#, where `{ }` is an object initializer
+	// that sets nothing: `new List<int> { }` constructs, and `Items = { }` touches nothing.
 	Bindings : @Setting[]
-		= '{' & first: Binding & (',' & (rest: Binding | Unbound | ?='}'))* & '}'
+		= '{' & '}' => @(ExpressionParser.Unset())
+		| '{' & first: Binding & (',' & (rest: Binding | Unbound | ?='}'))* & '}'
 		=> @(ExpressionParser.Set(first, rest))
 
 	// An entry after a member initializer that is not one, refused with the reason: what the
@@ -717,10 +721,16 @@ namespace DotGram.ExpressionLanguage;
 	// have a token after it, and anything else has to be a token at all — other than the
 	// closing brace, after which the comma was a trailing one, and another comma, which is
 	// no entry either.
-	Unbound = ?!(NameOnly & '=') & ?!'}' & ?!',' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
+	// A bracket is no entry here either: it begins an indexer's, and one that goes wrong is
+	// refused where it does.
+	Unbound = ?!(NameOnly & '=') & ?!'}' & ?!',' & ?!'[' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
 
-	// The name and the `=` are read once, and what follows is `Initial`'s to tell apart.
-	Binding : @Setting = name: Identifier & '=' & set: Initial => @(set with { Name = name })
+	// The name and the `=` are read once, and what follows is `Initial`'s to tell apart. An
+	// indexer is set the same way, `[1] = value`, as C# allows among a member initializer's
+	// entries; its arguments stand where the name would.
+	Binding : @Setting
+		= name: Identifier & '=' & set: Initial => @(set with { Name = name })
+		| index: Indices & '=' & set: Initial   => @(set with { Index = index })
 
 	// Three things one syntax says after a member's `=`, told apart by what stands there — a
 	// value, a nested initializer of members, or a nested one of elements. The braces are one
@@ -749,7 +759,9 @@ namespace DotGram.ExpressionLanguage;
 	//
 	// Only once something stands after the operator, and read rather than looked at, so that
 	// a text that ends there wants more: `{ true, x =` may yet go on as `x == 1` or `x => x`.
-	Assigned = NameOnly & '=' & any & when @(context.Assigns(parserSpan))
+	//
+	// An indexer's `[1] =` is one too, since no element begins with a bracket.
+	Assigned = (NameOnly | Indices) & '=' & any & when @(context.Assigns(parserSpan))
 
 	Written = AssignOperator & any & when @(context.Assigns(parserSpan))
 
@@ -2291,12 +2303,13 @@ public static partial class ExpressionParser
 	/// is what the text said and nothing more. A tuple would have said the same, and the
 	/// notation has no place to write one — a rule's type is a name.
 	/// </remarks>
-	/// <param name="Name">What the member is called.</param>
+	/// <param name="Name">What the member is called, or empty where an indexer is set.</param>
 	/// <param name="Value">What the member is assigned, or null where it is initialized.</param>
 	/// <param name="Fields">A nested member initializer's own settings, or null.</param>
 	/// <param name="Items">A nested collection initializer's own elements, or null.</param>
+	/// <param name="Index">An indexer's arguments, `[1] = …`, or null where a member is named.</param>
 	internal readonly record struct Setting(
-		string Name, Expression? Value, Setting[]? Fields, Element[]? Items);
+		string Name, Expression? Value, Setting[]? Fields, Element[]? Items, Expression[]? Index = null);
 
 	/// <summary>What one call to a collection's `Add` takes.</summary>
 	/// <remarks>
@@ -2326,6 +2339,12 @@ public static partial class ExpressionParser
 		return set;
 	}
 
+	/// <summary>An initializer that sets nothing: `{ }`, which C# reads as an object initializer.</summary>
+	internal static Setting[] Unset()
+	{
+		return [];
+	}
+
 	/// <summary>Those settings against the type that has the members.</summary>
 	/// <remarks>
 	/// The grammar reads `Name = value` and stops there, because which member a name is
@@ -2341,24 +2360,163 @@ public static partial class ExpressionParser
 		if (settings is null)
 			throw new ArgumentNullException(nameof(settings));
 
-		var bound = new MemberBinding[settings.Length];
+		var bound = new List<MemberBinding>(settings.Length);
 
 		for (var at = 0; at < settings.Length; at++)
 		{
 			var setting = settings[at];
-			var member  = InstanceMember(type, setting.Name, scope) ?? throw new FormatException(
-				$"'{type.Name}' has no property or field named '{setting.Name}'.");
+			var member  = Initialized(type, settings, at, scope);
+
+			// Nested braces with nothing in them touch nothing, as in C#: not even the member's
+			// getter, which a binding with no bindings of its own would still call.
+			if (setting.Fields is { Length: 0 })
+				continue;
 
 			// Which of the three the text wrote, answered here rather than where it was
 			// read: a nested initializer needs the *member's* type to go on, and that is
 			// known one step further in than the name was.
-			bound[at] =
+			bound.Add(
 				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields, scope)) :
 				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items, scope)) :
-				Expression.Bind(member, Converted(setting.Value!, MemberType(member)));
+				Expression.Bind(member, Converted(setting.Value!, MemberType(member))));
 		}
 
-		return bound;
+		return [.. bound];
+	}
+
+	/// <summary>The member one setting names, refused where C# refuses it.</summary>
+	/// <remarks>
+	/// A member set twice in one initializer is refused, as C# refuses it (CS1912); an indexer
+	/// may be set as often as it is written. A property of a value type cannot have an
+	/// initializer of its own, since what it would set is a copy (CS1918); a field can.
+	/// </remarks>
+	static MemberInfo Initialized(Type type, Setting[] settings, int at, ResolutionScope scope)
+	{
+		var setting = settings[at];
+		var member  = InstanceMember(type, setting.Name, scope) ?? throw new FormatException(
+			$"'{type.Name}' has no property or field named '{setting.Name}'.");
+
+		for (var before = 0; before < at; before++)
+			if (settings[before].Index is null && settings[before].Name == setting.Name)
+				throw new InvalidOperationException($"Duplicate initialization of member '{setting.Name}'.");
+
+		if (setting.Value is null)
+			Unboxed(type, member);
+
+		return member;
+	}
+
+	/// <summary>Refuses a nested initializer of a property whose type is a value type (CS1918).</summary>
+	static void Unboxed(Type type, MemberInfo member)
+	{
+		if (member is PropertyInfo { PropertyType.IsValueType: true } property)
+			throw new InvalidOperationException(
+				$"Members of property '{type.Name}.{property.Name}' of type '{property.PropertyType.Name}' cannot be " +
+				"assigned with an object initializer because it is of a value type.");
+	}
+
+	/// <summary>Whether an initializer sets an indexer anywhere, nested ones included.</summary>
+	static bool SetsIndexer(Setting[] settings)
+	{
+		foreach (var setting in settings)
+			if (setting.Index is not null || setting.Fields is { } fields && SetsIndexer(fields))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>A construction and its initializer as the statements C# runs for them, in a block.</summary>
+	/// <remarks>
+	/// <para>
+	/// The API has no binding for an indexer — <c>MemberInit</c> sets fields and properties and
+	/// nothing else — so an initializer that sets one anywhere is written out instead: the
+	/// object into a variable, each entry an assignment to it, a nested initializer's entries
+	/// assignments to what its member or indexer reads, and the variable last, as its value.
+	/// </para>
+	/// <para>
+	/// In the order C# runs them, and as often: a nested initializer's member or indexer is read
+	/// again for every entry inside it, and an indexer's arguments are worked out once, where its
+	/// entry is and before anything that holds it is read — even where the braces after it are
+	/// empty and nothing is read at all.
+	/// </para>
+	/// </remarks>
+	static Expression Unrolled(NewExpression made, Setting[] settings, ResolutionScope scope)
+	{
+		var held  = Expression.Variable(made.Type, "made");
+		var temps = new List<ParameterExpression> { held };
+		var steps = new List<Expression> { Expression.Assign(held, made) };
+
+		Unrolled(held, settings, scope, temps, steps);
+
+		steps.Add(held);
+
+		return Expression.Block(made.Type, temps, steps);
+	}
+
+	static void Unrolled(
+		Expression target, Setting[] settings, ResolutionScope scope, List<ParameterExpression> temps, List<Expression> steps)
+	{
+		for (var at = 0; at < settings.Length; at++)
+		{
+			var setting = settings[at];
+			Expression place;
+
+			if (setting.Index is { } index)
+			{
+				var element = Slot(target, index, scope);
+
+				if (setting.Value is null && element.Indexer is { } indexer)
+					Unboxed(target.Type, indexer);
+
+				// The arguments are worked out where the entry is, before what holds the indexer
+				// is read, as C# works them out: held in variables of their own, so that a nested
+				// initializer, which reads the place again for each entry inside it, does not work
+				// them out again. Only the object itself, a variable, needs no holding before them.
+				if (setting.Value is null || target is not ParameterExpression)
+				{
+					var arguments = new Expression[element.Arguments.Count];
+
+					for (var one = 0; one < arguments.Length; one++)
+					{
+						var argument = Expression.Variable(element.Arguments[one].Type, "index");
+
+						temps.Add(argument);
+						steps.Add(Expression.Assign(argument, element.Arguments[one]));
+						arguments[one] = argument;
+					}
+
+					element = element.Update(element.Object!, arguments);
+				}
+
+				place = element;
+			}
+			else
+			{
+				place = Expression.MakeMemberAccess(target, Initialized(target.Type, settings, at, scope));
+			}
+
+			if (setting.Fields is { } fields)
+			{
+				Unrolled(place, fields, scope, temps, steps);
+			}
+			else if (setting.Items is { } items)
+			{
+				foreach (var added in Added(place.Type, items, scope))
+					steps.Add(Expression.Call(place, added.AddMethod, added.Arguments));
+			}
+			else
+			{
+				steps.Add(Expression.Assign(place, Converted(setting.Value!, place.Type)));
+			}
+		}
+	}
+
+	/// <summary>The element `[…]` names, as a place to write: an indexer's, or an array's own.</summary>
+	static IndexExpression Slot(Expression target, Expression[] index, ResolutionScope scope)
+	{
+		return target.Type.IsArray
+			? Expression.ArrayAccess(target, Converted(index, typeof(int)))
+			: (IndexExpression)Indexed(target, index, scope);
 	}
 
 	/// <summary>What a field or property holds, which a nested initializer is written in.</summary>
@@ -2407,6 +2565,9 @@ public static partial class ExpressionParser
 	internal static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items, ResolutionScope scope)
 	{
 		var made = Constructed(type, args, scope);
+
+		if (fields is not null && SetsIndexer(fields))
+			return Unrolled(made, fields, scope);
 
 		return fields is not null ? Expression.MemberInit(made, Bound(type, fields, scope))
 			: items is not null   ? Expression.ListInit(made, Added(type, items, scope))
@@ -3666,7 +3827,7 @@ public static partial class ExpressionParser
 		/// </remarks>
 		internal bool Strays(SourceSpan at)
 		{
-			Refuse(at.Start, "An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...'.");
+			Refuse(at.Start, "An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...' or '[index] = ...'.");
 
 			return false;
 		}

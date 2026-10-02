@@ -205,6 +205,16 @@ public static class ExpressionCorpus
 		"(int x) => new System.Text.StringBuilder { Capacity = x, }",
 		"(int x) => new System.Collections.Generic.List<int> { x, 1, }",
 		"(int x) => new int[] { x, 1, }",
+		// Empty braces, which C# reads as an object initializer that sets nothing; an indexer set
+		// among members, at the top and nested, which is written out as a block; and the
+		// refusals: an indexer after an element, an element after an indexer, a member set twice.
+		"(int x) => new System.Text.StringBuilder { }",
+		"(int x) => new System.Collections.Generic.List<int>() { }",
+		"(int x) => new System.Collections.Generic.Dictionary<int, int> { [x] = 1, [2] = x, }",
+		"(int x) => new System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> { [x] = { } }",
+		"(int x) => new System.Collections.Generic.List<int> { 1, [0] = x }",
+		"(int x) => new System.Collections.Generic.Dictionary<int, int> { [0] = x, 1 }",
+		"(int x) => new System.Text.StringBuilder { Capacity = x, Capacity = 1 }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 

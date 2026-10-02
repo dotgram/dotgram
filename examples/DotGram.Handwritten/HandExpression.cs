@@ -4372,6 +4372,15 @@ public static class HandExpression
 			if (Kind(i) != LeftBrace)
 				return -1;
 
+			// Nothing in them is an object initializer that sets nothing, as in C#.
+			if (Kind(i + 1) == RightBrace)
+			{
+				if (_build)
+					settings = ExpressionParser.Unset();
+
+				return i + 2;
+			}
+
 			var read = _build ? new List<ExpressionParser.Setting>() : null;
 			var at   = Binding(i + 1, out var first);
 
@@ -4417,7 +4426,7 @@ public static class HandExpression
 		/// </remarks>
 		void Stray(int i)
 		{
-			if (Peek(i) == Identifier && Peek(i + 1) == Assign || Peek(i) is RightBrace or Comma)
+			if (Peek(i) == Identifier && Peek(i + 1) == Assign || Peek(i) is RightBrace or Comma or LeftBracket)
 				return;
 
 			var seen = Kind(i) == Identifier ? Kind(i + 1) != End : Kind(i) != End;
@@ -4426,46 +4435,73 @@ public static class HandExpression
 				_context.Strays(Span(i, 1));
 		}
 
-		/// <summary>What stands after one member's `=`: a value, a nested initializer of members, or one of elements.</summary>
+		/// <summary>One member's or one indexer's `=` and what stands after it.</summary>
 		int Binding(int i, out ExpressionParser.Setting setting)
 		{
 			setting = default;
 
+			// An indexer, `[1] = …`, which C# allows among member initializers.
+			if (Kind(i) == LeftBracket)
+			{
+				var index = Indices(i, out var arguments);
+
+				if (index < 0 || Kind(index) != Assign)
+					return -1;
+
+				var set = Initial(index + 1, out setting);
+
+				if (set >= 0 && _build)
+					setting = setting with { Index = arguments };
+
+				return set;
+			}
+
 			if (Kind(i) != Identifier || Kind(i + 1) != Assign)
 				return -1;
 
-			var name = Cut(i);
+			var initial = Initial(i + 2, out setting);
 
-			if (Kind(i + 2) == LeftBrace)
+			if (initial >= 0 && _build)
+				setting = setting with { Name = Cut(i) };
+
+			return initial;
+		}
+
+		/// <summary>What stands after the `=`: a value, a nested initializer of members, or one of elements.</summary>
+		int Initial(int i, out ExpressionParser.Setting setting)
+		{
+			setting = default;
+
+			if (Kind(i) == LeftBrace)
 			{
-				var nested = Bindings(i + 2, out var inside);
+				var nested = Bindings(i, out var inside);
 
 				if (nested >= 0)
 				{
 					if (_build)
-						setting = new ExpressionParser.Setting(name, null, inside, null);
+						setting = new ExpressionParser.Setting("", null, inside, null);
 
 					return nested;
 				}
 
-				var listed = Elements(i + 2, out var items);
+				var listed = Elements(i, out var items);
 
 				if (listed >= 0)
 				{
 					if (_build)
-						setting = new ExpressionParser.Setting(name, null, null, items);
+						setting = new ExpressionParser.Setting("", null, null, items);
 
 					return listed;
 				}
 			}
 
-			var value = Assignment(i + 2, out var read);
+			var value = Assignment(i, out var read);
 
 			if (value < 0)
 				return -1;
 
 			if (_build)
-				setting = new ExpressionParser.Setting(name, read, null, null);
+				setting = new ExpressionParser.Setting("", read, null, null);
 
 			return value;
 		}
@@ -4506,6 +4542,22 @@ public static class HandExpression
 				{
 					_context.Assigns(Span(at + 1, 1));
 					Refuse(at + 4);
+				}
+
+				// An indexer's `[1] =` is one too: no element begins with a bracket.
+				if (Kind(at + 1) == LeftBracket)
+				{
+					Quiet(out var was);
+
+					var index = Indices(at + 1, out _);
+
+					_build = was;
+
+					if (index >= 0 && Kind(index) == Assign && Kind(index + 1) != End)
+					{
+						_context.Assigns(Span(at + 1, 1));
+						Refuse(index + 2);
+					}
 				}
 
 				// A comma after the last element, as C# allows.

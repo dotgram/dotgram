@@ -169,8 +169,9 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   the type of the place it stands in — the delegate's return, an argument, a variable of a
   declared type — as C# does. Without `_`, an unmatched value throws.
 - **Expressions:** members, calls, indexers, `new` with object, collection and array
-  initializers, generic types, casts, `is`, `as`, `?.`, `??`, `?:`, `checked(…)` and
-  `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.
+  initializers (an indexer set among members, `new Dictionary<int, int> { [1] = 2 }`, and empty
+  braces, `new List<int> { }`, as in C#), generic types, casts, `is`, `as`, `?.`, `??`, `?:`,
+  `checked(…)` and `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.
 - **Tuples:** `(a, b)`, of any number of elements and nested, which is a `ValueTuple` as it
   is in C#. Read back by position: `(a, b).Item1`.
 - **Literals:** every number form (`0x`, `0b`, `_`, suffixes), strings and characters with
@@ -193,6 +194,9 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
 - `new` may leave its parentheses out before an initializer, as C# may: `new List<int> { 1, 2 }`
   and `new List<int>() { 1, 2 }` both read. `new T` with neither tail is refused. An array is
   `new int[3]` or `new int[] { 1, 2 }`, never `new[] { 1, 2 }`.
+- An initializer that sets an indexer anywhere, `{ [1] = 2 }` or `Map = { [1] = 2 }`, is built as
+  a block of assignments rather than a `MemberInit`, which has no binding for an indexer. It runs
+  as C# runs it; a visitor that looks for `MemberInit` finds statements there.
 - `default` needs its type: `default(int)`, never a bare `default`.
 - `nameof` answers with the name as written and checks nothing.
 - A tuple element cannot be named: write `(true, x)`, not `(Valid: true, Value: x)`. In C# a

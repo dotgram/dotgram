@@ -25646,3 +25646,47 @@ has (U+0264/U+A7CB); an editor runs the generator on .NET Framework and NLS. `Ca
 upper and 176 lower), written by `CaseFold.generate.cs` from `UnicodeData.txt`. Checked
 against .NET 10's invariant tables, it differs on U+0130, U+0131 and U+017F only, the three whose
 partner is ASCII and which the rule drops anyway, so no generated file changes.
+
+## Empty braces, an indexer among members, and a member set twice
+
+The expression language's initializers against C#'s, in the three places they still differed.
+
+Empty braces were refused: `Elements` wanted one element and `Bindings` one member. C# reads `{ }`
+as an object initializer that sets nothing, after any type, so `new List<int> { }` constructs and
+`Items = { }` nested reads nothing at all, not even the getter (asked of Roslyn: a counting getter
+is not called). `Bindings` has a first alternative for `'{' & '}'` now, so empty braces are always
+members, as in C#. Built, a top-level one is a `MemberInit` with no bindings, which is what C#'s
+own expression tree for `() => new Box { }` is; a nested one is left out of its parent's bindings,
+since a `MemberBind` with none would still call the getter when compiled.
+
+An indexer among members, `new Dictionary<int, int> { [1] = 2 }` and `Map = { [1] = 2 }`, is an
+entry of an object initializer in C#'s grammar, beside `Name =`, nested or not. `Binding` reads
+`Indices & '=' & Initial` as its second alternative, and the braces are still settled on their
+first entry: `{ [0] = 1, 2 }` is refused at the `2` (CS0747), with the message now naming both
+forms, and `{ 1, [0] = 2 }` by `Assigned`, which reads `Indices` where it read a name.
+
+The tree is the harder part. `MemberInit` takes `MemberBinding`s, and there is none for an
+indexer. So an initializer that sets one anywhere is written out: the object into a variable, an
+assignment per entry, a nested initializer's entries as assignments through the member or indexer
+that holds them, and the variable as the block's value. The order is C#'s, which Roslyn showed
+is not the obvious one: an indexer's arguments are worked out where its entry is and before what
+holds the indexer is read (`[A(1)] = { [A(2)] = { [A(3)] = M(4) } }` runs arg 1, arg 2, arg 3,
+get [1], get [2], made 4, set [3]), each once, held in variables; a nested initializer's member or
+indexer is read again for every entry inside it; and an empty nested one after an indexer still
+works out the arguments and reads nothing. `InitializerOracleTests` holds these against Roslyn
+compiling the same text, value and order, on the tape, the immediate carrier and by hand. An
+initializer without an indexer is built as before, `MemberInit` and `ListInit`, so no accepted
+tree changed shape. That a nested `MemberInit` reads its member once, where C# reads it for every
+entry, is older than this and left alone: it is what an expression tree does in C# as well.
+
+A member set twice, `new Box { Next = null, Next = null }`, is CS1912 and is refused now in C#'s
+words; an indexer may be set as often as it is written, as in C#. The duplicate in the blow-up
+test's own text (`new Box { Next = new Box { … }, Next = … }`) was such a text, and its second
+entry sets `Last` now. Found on the way: an initializer of the members of a property of a value
+type, `Place = { X = 1 }`, read and then failed when compiled ("Cannot auto initialize members of
+value type through property"); C# refuses it as CS1918, and so does this language now, where it
+reads, for a member's braces and an indexer's alike. A field of a value type may still have them,
+as in C#.
+
+The refusal record gains the rows of the new corpus shapes and changes three: the message after
+members, and `{ x = 1,` cut short now expects a name or `[`.

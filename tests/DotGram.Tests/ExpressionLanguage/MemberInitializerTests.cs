@@ -30,7 +30,8 @@ public sealed class MemberInitializerTests
 	/// Counted by the places a name is looked up at (<c>State.Places</c>), which both readers share,
 	/// and which every level here adds one to by reading <c>Last = Next</c>. The first entry of a
 	/// level is a member that an element would read as well, an assignment to the parameter, so
-	/// that the elements' reading goes on into the next level rather than stopping at a name. Four depths a doubling
+	/// that the elements' reading goes on into the next level rather than stopping at a name; the
+	/// level inside is the second entry's, <c>Last</c>, since a member set twice is refused (CS1912). Four depths a doubling
 	/// apart, and judged as <see cref="ExpressionBlowUpTests"/> judges a nesting: by how the
 	/// increments grow, so that what every reading costs whatever its depth cannot read as a slope.
 	/// Linear is 1; the reading twice a level reads 8 at the last doubling, and the quiet reading
@@ -38,13 +39,14 @@ public sealed class MemberInitializerTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("a new object's members",           "",                  "new Box { Next = new Box { Last = Next }, Next = ", "Next",        " }", "",   true)]
-	[InlineData("a new object's members, unclosed", "",                  "new Box { Next = new Box { Last = Next }, Next = ", "Next",        "",   "",   false)]
+	[InlineData("a new object's members",           "",                  "new Box { Next = new Box { Last = Next }, Last = ", "Next",        " }", "",   true)]
+	[InlineData("a new object's members, unclosed", "",                  "new Box { Next = new Box { Last = Next }, Last = ", "Next",        "",   "",   false)]
 	[InlineData("a member's own members",           "new Box { Next = ", "{ Last = Next, Next = ",                            "Next",        " }", " }", true)]
 	[InlineData("a member's own members, unclosed", "new Box { Next = ", "{ Last = Next, Next = ",                            "Next",        "",   "",   false)]
 	[InlineData("elements, then a member",          "",                  "new List<object> { Next, ",                         "Next = null", " }", "",   false)]
 	[InlineData("elements, then a member, unclosed", "",                 "new List<object> { Next, ",                         "Next = null", "",   "",   false)]
 	[InlineData("an element assigned to",            "",                 "new List<object> { Next, ",                         "Next.Next = null", " }", "", false)]
+	[InlineData("an indexer's own members, unclosed", "",                "new Box { [Next] = { Last = Next, [Next] = ",       "Next",        "",   "",   false)]
 	public void Nested_member_initializers_are_read_once_a_level(
 		string what, string head, string opener, string middle, string closer, string tail, bool accepted)
 	{
@@ -75,6 +77,9 @@ public sealed class MemberInitializerTests
 	[InlineData("using System.Collections.Generic; (int x) => new List<int>() { x = 1, x }", "x }")]
 	[InlineData(Text + "new Box { Next = null, Next }",                                     "Next }")]
 	[InlineData(Text + "new Box { Next = { Next = null, Next } }",                          "Next } }")]
+	// An indexer's entry settles the braces as members too.
+	[InlineData("using System.Collections.Generic; (int x) => new Dictionary<int, int> { [0] = 1, x }", "x }")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { [0] = 1, 2 }",            "2 }")]
 	public void An_element_after_a_member_initializer_is_refused(string text, string element)
 	{
 		var match = Both.TryParse(text, typeof(Box).Assembly);
@@ -82,7 +87,7 @@ public sealed class MemberInitializerTests
 		Assert.Equal(ExpressionParser.Outcome.NoMatch, match.Outcome);
 		Assert.Equal(text.LastIndexOf(element, StringComparison.Ordinal), match.Position);
 		Assert.Equal(
-			"An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...'.",
+			"An initializer that sets members cannot add elements as well; every entry in it has to be 'Name = ...' or '[index] = ...'.",
 			match.Error);
 	}
 
@@ -90,6 +95,8 @@ public sealed class MemberInitializerTests
 	[Theory]
 	[InlineData(Text + "new Box { Next = null, Next")]
 	[InlineData(Text + "new Box { Next = null, ")]
+	[InlineData(Text + "new Box { Next = null, [")]
+	[InlineData(Text + "new Box { [Next] = ")]
 	public void But_not_before_the_element_is_one(string text)
 	{
 		var match = Both.TryParse(text, typeof(Box).Assembly);
@@ -167,6 +174,9 @@ public sealed class MemberInitializerTests
 	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, x += 1 }",                          "+= 1")]
 	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x += 1 }",                             "+= 1")]
 	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x, x <<= 1, 2 }",                      "<<= 1")]
+	// An indexer's `[0] =`, which no element begins with.
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { 1, [0] = 2 }",                         "[0] = 2")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<int> { x, [x] = 2, 3 }",                      "[x] = 2")]
 	public void A_member_initializer_after_elements_is_refused(string text, string member)
 	{
 		var match = Both.TryParse(text, typeof(Box).Assembly);
@@ -183,6 +193,7 @@ public sealed class MemberInitializerTests
 	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { true, x =")]
 	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { true, x += ")]
 	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { x =")]
+	[InlineData("using System.Collections.Generic; (int x) => new List<bool> { true, [0] =")]
 	public void But_not_before_the_assignment_is_one(string text)
 	{
 		Assert.Equal(ExpressionParser.Outcome.Starved, Both.TryParse(text, typeof(Box).Assembly).Outcome);

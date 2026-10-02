@@ -40,6 +40,10 @@ public sealed class NewFormsTests
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>(); t.Add(448); return t.Count; }")]
 	[InlineData("(int x) => { int[] t = new int[] { 448, 447 }; return t.Length; }")]
 	[InlineData("(int x) => { int[] t = new int[2]; return t.Length; }")]
+	// Empty braces, with or without parentheses, which C# reads as an object initializer that
+	// sets nothing: refused until 0.3.0, when `Elements` wanted at least one.
+	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int> { }; return t.Count; }")]
+	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>() { }; return t.Count; }")]
 	public void These_forms_of_new_read(string text)
 	{
 		Assert.True(ExpressionParser.TryParse(text).IsSuccess, text);
@@ -50,9 +54,6 @@ public sealed class NewFormsTests
 	// which is C#'s rule too. Leaving them out on their own would be an extension nobody asked
 	// for, and the guard on the rule is what keeps it out.
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>; return t.Count; }")]
-	// An empty initializer is refused, with or without parentheses: `Elements` wants at least
-	// one. That predates the change and is left alone — one edit, one change of language.
-	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int> { }; return t.Count; }")]
 	// An implicitly typed array: the element type has to be written.
 	[InlineData("(int x) => { var t = new[] { 448, 447 }; return t.Length; }")]
 	[InlineData("(int x) => { int[] t = new[] { 448, 447 }; return t.Length; }")]
