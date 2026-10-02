@@ -124,11 +124,12 @@ of the token before it, or where the reading began), so the comments in front of
 that gap and nowhere else. It allocates nothing beyond the span itself. The span is kept out
 of the records' equality, so the
 located tree of a text equals the plain one; a copy made with `with` afterwards keeps the span
-and is marked stale (`SqlSpan.IsStale`). The two readings are one generic machine
-(`Reading_DotGram<TLocating>`), which the runtime compiles once for each, so the plain reading
-neither tests for locations nor keeps the positions only a located reading needs; each reading
-pays its own compilation on its first call, and a generic machine's first compilation costs
-about twice a plain class's.
+and is marked stale (`SqlSpan.IsStale`). The two readings share one reader, which asks once a
+record whether to keep where it stands, and differ in the walk that builds the values, which is
+generic over whether the reading locates (`Reading_DotGram<TLocating>`) and compiled by the
+runtime once for each: the plain walk reads the short records and offers nothing. Only that walk
+is generic because a generic class's methods cost the JIT about twice as much to compile as a
+plain class's, and the reader is most of the machine.
 
 **But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,

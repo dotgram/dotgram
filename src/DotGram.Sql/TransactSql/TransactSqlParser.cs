@@ -20,9 +20,9 @@ namespace DotGram.Sql.TransactSql;
 // One parser, read through two doors: the methods below, and the same methods in `Located`,
 // which ask the same reading to tell every value where it was written and where the text in
 // front of it began. Locations are not free for a recognizer, so whoever needs them asks for
-// them by name, `TransactSqlParser.Located.TryParseStatement`. The grammar is compiled once,
-// into a machine generic over whether the reading locates, and the runtime compiles it once for
-// each door: a reading that does not ask neither keeps positions nor tests for them.
+// them by name, `TransactSqlParser.Located.TryParseStatement`. The grammar is compiled once: one
+// reader, which asks once a record whether to keep where the record stands, and a walk that builds
+// the values generic over whether the reading locates, which the runtime compiles once for each.
 // The standard this dialect is written on top of, named rather than inherited: a class has
 // one base and as many attributes as it likes, and what a grammar is called inside this one
 // — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.
