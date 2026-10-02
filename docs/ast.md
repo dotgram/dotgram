@@ -121,13 +121,14 @@ package completes with `with` while reading — a predicate from its left operan
 — is offered the whole range it ends up standing on, so a fresh reading has no stale node.
 Each offer also says where the text in front of the value begins (`SqlSpan.GapStart`: the end
 of the token before it, or where the reading began), so the comments in front of a node are in
-that gap and nowhere else. It allocates nothing beyond the span itself; a call that does not
-ask still keeps where each value was read on the reader's tape and tests whether to offer it,
-a few per cent of a parse. The span is kept out of the records' equality, so the
+that gap and nowhere else. It allocates nothing beyond the span itself. The span is kept out
+of the records' equality, so the
 located tree of a text equals the plain one; a copy made with `with` afterwards keeps the span
 and is marked stale (`SqlSpan.IsStale`). The two readings are one generic machine
 (`Reading_DotGram<TLocating>`), which the runtime compiles once for each, so the plain reading
-neither tests for locations nor keeps the positions only a located reading needs.
+neither tests for locations nor keeps the positions only a located reading needs; each reading
+pays its own compilation on its first call, and a generic machine's first compilation costs
+about twice a plain class's.
 
 **But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,
