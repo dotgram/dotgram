@@ -28,7 +28,7 @@ then a feed, then an expression language, then one of the larger ones.
 
 ## Feeds
 
-Record-oriented input, four ways, over one line-oriented format.
+Record-oriented input: four ways over one line-oriented format, then files that people write by hand.
 
 | | |
 | --- | --- |
@@ -36,6 +36,9 @@ Record-oriented input, four ways, over one line-oriented format.
 | [`RecoveringFeedExample.cs`](DotGram.Examples/Feeds/RecoveringFeedExample.cs) | the same feed read past a malformed record — `recover`, and rejections arriving beside the records |
 | [`LoggingFeedExample.cs`](DotGram.Examples/Feeds/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and a `partial void` that vanishes when nobody implements it |
 | [`StreamingFeedExample.cs`](DotGram.Examples/Feeds/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result in parts, a window reused, and a trailer checked against records nobody held |
+| [`PriceListExample.cs`](DotGram.Examples/Feeds/PriceListExample.cs) | a price list kept by hand, read lazily from a `TextReader` — `stream yield`, and a typo arriving in its place with its line and offset |
+| [`OrderSheetExample.cs`](DotGram.Examples/Feeds/OrderSheetExample.cs) | an order sheet — header lines, items and free-form remarks in one typed sequence, and a line that is none of them |
+| [`LogbookExample.cs`](DotGram.Examples/Feeds/LogbookExample.cs) | a maintenance logbook — entries as themselves, and a bad line reported through `OnRecovered` when it is read |
 
 ## Expressions
 

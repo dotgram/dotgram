@@ -21,7 +21,7 @@
 [![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](LICENSE)
 
 .Gram is a source generator that compiles grammars into strongly typed C# parsers, from
-single-character rules to the SQL standard.
+single-character rules and hand-written feeds to the SQL standard.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret.
@@ -32,7 +32,8 @@ From a grammar, .Gram can generate:
 * strongly typed results from named captures;
 * parsers for [different versions of the same grammar](#versions-of-one-language);
 * streaming parsers for `TextReader`;
-* error recovery for record-oriented input;
+* error recovery for record-oriented input, so that a [feed written by hand](#feeds-written-by-people)
+  reports a mistyped record where it is and reads on;
 * compile-time diagnostics that point back into the grammar.
 
 Anything with a grammar: data formats and feeds, configuration files, wire protocols,
@@ -50,6 +51,221 @@ A grammar lives in the `[Gram]` attribute of the class the parser is generated i
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. Inline grammars are raw
 string literals and so need C# 11; a `.gram` file needs nothing more than the project
 already has. [Compatibility](#compatibility) has the rest.
+
+## Feeds written by people
+
+A file somebody keeps by hand — a price list, an order sheet, a logbook, an export tidied up
+in a text editor — is right nearly everywhere and wrong somewhere. .Gram reads such a file as
+a sequence of typed records, from a `TextReader`, one record at a time while the file is still
+being read. A mistyped record does not cost the file: `recover` marks the repetition of
+records, a bad one is reported with where it is and why, and reading goes on at the next line.
+
+A price list, `prices.txt`:
+
+```text
+Espresso       2.40
+Cappuccino     3.10
+Flat white     3,20
+Croissant      2.1O
+Muffin         2.80
+```
+
+```csharp
+using System;
+using System.Globalization;
+using System.IO;
+
+using DotGram;
+
+public abstract record PriceLine;
+public sealed record Price(string Item, decimal Amount) : PriceLine;
+public sealed record Typo(int Line, string Text, string Message) : PriceLine;
+
+[Gram("""
+	PriceList : @PriceLine[] = Entry* recover eol => @(new Typo(parserLine, parserText, parserMessage))
+
+	Entry : @PriceLine = item: Item & amount: Amount & ' '* & eol
+	                  => @(new Price(item.Trim(), ToDecimal(amount)))
+
+	Item   = [^ '0'..'9' | '\r' | '\n']+
+	Amount = ['0'..'9']+ & '.' & ['0'..'9']{2}
+
+	parse PriceList as Read stream yield
+	""")]
+public static partial class PriceList
+{
+	static decimal ToDecimal(string text)
+	{
+		return decimal.Parse(text, CultureInfo.InvariantCulture);
+	}
+}
+```
+
+```csharp
+using var prices = File.OpenText("prices.txt");
+
+foreach (var line in PriceList.Read(prices))
+{
+	switch (line)
+	{
+		case Price price:
+			Console.WriteLine($"{price.Item}: {price.Amount}");
+			break;
+
+		case Typo typo:
+			Console.WriteLine($"line {typo.Line}: {typo.Message} ({typo.Text})");
+			break;
+	}
+}
+```
+
+```text
+Espresso: 2.40
+Cappuccino: 3.10
+line 3: Input does not match 'Entry' at 56. (Flat white     3,20)
+line 4: Input does not match 'Entry' at 78. (Croissant      2.1O)
+Muffin: 2.80
+```
+
+`stream` asks for the `TextReader` overload and `yield` for a lazy result: `Read` returns an
+`IEnumerable<PriceLine>` that reads a line when the loop asks for the next one, and the bad
+lines arrive in their place among the good ones. The `=>` after `recover` says what a bad line
+becomes, and the names it uses are filled in by the parser: `parserLine` is the line a person
+opens the file at, and the offset in `parserMessage` is where in the file reading stopped — the
+comma, and the letter O typed for a zero.
+
+An order sheet, `order.txt` — two header lines, then items and remarks in any order:
+
+```text
+Order for: Hill Street Cafe
+Deliver: Monday, before 8
+12 x milk 1l
+3 x oat milk, the barista one
+# the croissants were stale last week, ask
+x2 sugar
+4 x butter
+```
+
+```csharp
+public abstract record SheetLine;
+public sealed record Customer(string Name) : SheetLine;
+public sealed record Delivery(string When) : SheetLine;
+public sealed record Ordered(int Quantity, string Product) : SheetLine;
+public sealed record Remark(string Text) : SheetLine;
+public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
+
+[Gram("""
+	Sheet : @SheetLine[] = Customer & Delivery
+	                     & Line* recover eol => @(new Unclear(parserLine, parserText, parserMessage))
+	                     & eof
+
+	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eol => @(new Customer(name))
+	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
+
+	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
+	Item   : @SheetLine = quantity: Digit+ & ' '* & 'x' & ' '+ & product: Rest & eol
+	                   => @(new Ordered(Number(quantity), product))
+	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
+
+	Rest  = [^ '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	parse Sheet
+	""")]
+public static partial class OrderSheet
+{
+	static int Number(string digits)
+	{
+		return int.Parse(digits, CultureInfo.InvariantCulture);
+	}
+}
+```
+
+```csharp
+using var sheet = File.OpenText("order.txt");
+
+foreach (var line in OrderSheet.ParseSheet(sheet))
+	Console.WriteLine(line);
+```
+
+```text
+Customer { Name = Hill Street Cafe }
+Delivery { When = Monday, before 8 }
+Ordered { Quantity = 12, Product = milk 1l }
+Ordered { Quantity = 3, Product = oat milk, the barista one }
+Remark { Text = the croissants were stale last week, ask }
+Unclear { Line = 6, Text = x2 sugar, Message = Input does not match 'Line' at 140. }
+Ordered { Quantity = 4, Product = butter }
+```
+
+The header lines are part of the same sequence, in the order they were read. They are also
+required: a sheet without them is refused with a `FormatException`, thrown by the loop at the
+first record, because nothing is read before the loop asks. Recovery is for the lines that
+repeat; the frame around them still has to be there.
+
+A logbook, `log.txt`, where the third entry has a day of one digit:
+
+```text
+2026-10-01 07:55 press-4 oil topped up
+2026-10-01 09:10 press-2 belt replaced
+2026-10-1 11:30 press-4 noise from the bearing
+2026-10-01 14:05 lathe-1 calibrated
+```
+
+```csharp
+public sealed record LogEntry(DateTime At, string Machine, string Note);
+
+[Gram("""
+	Log   : @LogEntry[] = Entry* recover eol
+
+	Entry : @LogEntry = at: Stamp & ' '+ & machine: Name & ' '+ & note: Rest & eol
+	                 => @(new LogEntry(ToTime(at), machine, note))
+
+	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
+	Name  = [^ ' ' | '\r' | '\n']+
+	Rest  = [^ '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	parse Log as Read stream yield
+	""")]
+public static partial class Logbook
+{
+	static DateTime ToTime(string text)
+	{
+		return DateTime.ParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+	}
+
+	static partial void OnRecovered(
+		string rule, string text, long position, int line, int column, int ordinal, string message)
+	{
+		Console.Error.WriteLine($"line {line}: {message} ({text})");
+	}
+}
+```
+
+```csharp
+using var log = File.OpenText("log.txt");
+
+foreach (var entry in Logbook.Read(log))
+	Console.WriteLine($"{entry.At.TimeOfDay} {entry.Machine}: {entry.Note}");
+```
+
+```text
+07:55:00 press-4: oil topped up
+09:10:00 press-2: belt replaced
+line 3: Input does not match 'Entry' at 87. (2026-10-1 11:30 press-4 noise from the bearing)
+14:05:00 lathe-1: calibrated
+```
+
+Here the `recover` has no `=>`, so a bad line is dropped and the records come back as
+themselves, `IEnumerable<LogEntry>`, with nothing to filter out. What was dropped goes to
+`OnRecovered`, a `partial void` the generated class declares; left unimplemented, the compiler
+removes every call to it and the parse pays nothing for it. The report lands between the
+second entry and the fourth because that is when the third line was read.
+
+[`docs/syntax.md`](docs/syntax.md) §8.2 has what `recover` promises and every name it fills
+in, and §8.3 the ways a rejection can be handed back. The three examples are also in
+[`examples/DotGram.Examples/Feeds`](examples/DotGram.Examples/Feeds/).
 
 ## One grammar, three parsers
 
@@ -665,7 +881,7 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 | [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
 | [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists all thirty-one, grouped by what they
+[`examples/README.md`](examples/README.md) lists all thirty-five, grouped by what they
 read: formats, feeds, expressions, languages.
 
 ## Documentation

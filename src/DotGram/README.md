@@ -15,7 +15,7 @@
 [![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](https://github.com/dotgram/dotgram/blob/main/LICENSE)
 
 .Gram is a source generator that compiles grammars into strongly typed C# parsers, from
-single-character rules to the SQL standard.
+single-character rules and hand-written feeds to the SQL standard.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret, and

@@ -5,6 +5,8 @@ Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	0649
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Feeds.FeedReader.g.cs	CS0649 // a table nothing writes still declares the field
+Examples	DotGram.Examples.Feeds.Logbook.g.cs	0649
+Examples	DotGram.Examples.Feeds.PriceList.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.Located.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.Config.g.cs	0649

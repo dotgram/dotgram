@@ -567,6 +567,110 @@ public sealed class ExampleTests
 		Assert.Equal(StockCountReader.Read(Text).Lines, StockCountReader.Read(new StringReader(Text), bufferSize: 4).Lines);
 	}
 
+	// ── Feeds written by people ──────────────────────────────────────────────────
+
+	const string Prices =
+		"Espresso       2.40\n" +
+		"Cappuccino     3.10\n" +
+		"Flat white     3,20\n" +
+		"Croissant      2.1O\n" +
+		"Muffin         2.80\n";
+
+	[Fact]
+	public void A_price_list_reads_its_prices_and_keeps_its_typos_in_their_place()
+	{
+		using var reader = new StringReader(Prices);
+
+		Assert.Equal(
+			[
+				new Price("Espresso",   2.40m),
+				new Price("Cappuccino", 3.10m),
+				new Typo(3, "Flat white     3,20", "Input does not match 'Entry' at 56."),
+				new Typo(4, "Croissant      2.1O", "Input does not match 'Entry' at 78."),
+				new Price("Muffin",     2.80m),
+			],
+			PriceList.Read(reader));
+	}
+
+	[Fact]
+	public void And_hands_over_a_line_before_it_has_read_the_rest()
+	{
+		using var reader = new StringReader(Prices);
+		using var lines  = PriceList.Read(reader, bufferSize: 8).GetEnumerator();
+
+		Assert.True(lines.MoveNext());
+		Assert.Equal(new Price("Espresso", 2.40m), lines.Current);
+
+		// The muffin is still in the reader: the list is read as it is walked.
+		Assert.Contains("Muffin", reader.ReadToEnd(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void An_order_sheet_reads_its_header_and_its_lines_in_order()
+	{
+		const string Text =
+			"Order for: Hill Street Cafe\n" +
+			"Deliver: Monday, before 8\n" +
+			"12 x milk 1l\n" +
+			"# ask about the croissants\n" +
+			"x2 sugar\n" +
+			"4 x butter\n";
+
+		Assert.Equal(
+			[
+				new Customer("Hill Street Cafe"),
+				new Delivery("Monday, before 8"),
+				new Ordered(12, "milk 1l"),
+				new Remark("ask about the croissants"),
+				new Unclear(5, "x2 sugar", "Input does not match 'Line' at 94."),
+				new Ordered(4, "butter"),
+			],
+			OrderSheet.ParseSheet(new StringReader(Text)));
+	}
+
+	[Fact]
+	public void But_a_sheet_without_its_header_is_refused_where_it_is_walked()
+	{
+		// Asking for the sequence reads nothing; walking it reads the first line and refuses it.
+		var lines = OrderSheet.ParseSheet(new StringReader("12 x milk 1l\n"));
+
+		Assert.Throws<FormatException>(() => lines.ToArray());
+	}
+
+	[Fact]
+	public void A_logbook_reads_its_entries_and_reports_a_bad_line_when_it_reaches_it()
+	{
+		const string Text =
+			"2026-10-01 07:55 press-4 oil topped up\n" +
+			"2026-10-1 11:30 press-4 noise from the bearing\n" +
+			"2026-10-01 14:05 lathe-1 calibrated\n";
+
+		using var rejected = new StringWriter();
+
+		Logbook.Rejected = rejected;
+
+		try
+		{
+			using var entries = Logbook.Read(new StringReader(Text)).GetEnumerator();
+
+			Assert.True(entries.MoveNext());
+			Assert.Equal(new LogEntry(new DateTime(2026, 10, 1, 7, 55, 0), "press-4", "oil topped up"), entries.Current);
+			Assert.Equal("", rejected.ToString());
+
+			Assert.True(entries.MoveNext());
+			Assert.Equal(new LogEntry(new DateTime(2026, 10, 1, 14, 5, 0), "lathe-1", "calibrated"), entries.Current);
+			Assert.Equal(
+				"line 2: Input does not match 'Entry' at 48. (2026-10-1 11:30 press-4 noise from the bearing)",
+				rejected.ToString().TrimEnd());
+
+			Assert.False(entries.MoveNext());
+		}
+		finally
+		{
+			Logbook.Rejected = null;
+		}
+	}
+
 	// ── The feed that logs its rejections instead ────────────────────────────────
 
 	[Fact]

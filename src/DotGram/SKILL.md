@@ -428,6 +428,17 @@ the result. `parserLine` and `parserColumn` are where the bad record begins;
 `parserExpected` is what would have fit there (`'.'`, `Amount or '#'`). `parserMessage`
 says both: `Expected '.' at 3:17.`
 
+**Reach for this whenever the records were written by a person** — a price list, an order
+sheet, a logbook, a CSV somebody edited by hand: a file that is right nearly everywhere and
+wrong somewhere. Do not split it into lines and parse each one, and do not let one bad line
+fail the file. Write the record rule, mark its repetition `recover eol`, and publish it
+`stream yield` for a lazy `IEnumerable<T>` over a `TextReader` — or a plain `parse` of the
+sequence rule when header lines are to arrive in the same sequence. Then either give the
+`recover` a `=>` that builds a rejection of the same element type from `parserLine`,
+`parserText` and `parserMessage`, or leave it off and implement `OnRecovered`. The
+repository README's [Feeds written by people](https://github.com/dotgram/dotgram#feeds-written-by-people)
+has three complete examples.
+
 `Lexical = true` on the attribute compiles the grammar over tokens instead of characters:
 a lexical half makes them, and the half above decides each choice by the token in front of
 it and does not revisit it. It needs `trivia` in braces and a lexical namespace whose own
