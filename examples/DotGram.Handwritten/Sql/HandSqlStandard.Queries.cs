@@ -599,7 +599,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var sublist = new List<SelectItem>();
 
-		items = Sql.SqlList.From(sublist);
+		items = default;
 
 		while (true)
 		{
@@ -615,6 +615,8 @@ partial class HandSqlStandard
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
+
+		items = Sql.SqlList.From(sublist);
 
 		return true;
 	}
@@ -937,7 +939,7 @@ partial class HandSqlStandard
 		var save  = cursor;
 		var names = new List<Identifier>();
 
-		columns = Sql.SqlList.From(names);
+		columns = default;
 
 		if (!Identifier(ref cursor, out var first))
 			return false;
@@ -959,6 +961,8 @@ partial class HandSqlStandard
 
 			names.Add(name);
 		}
+
+		columns = Sql.SqlList.From(names);
 
 		return true;
 	}

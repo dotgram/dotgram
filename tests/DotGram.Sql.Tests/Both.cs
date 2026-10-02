@@ -546,6 +546,10 @@ static class Both
 		var actual   = Dump(handTree);
 
 		Assert.True(expected == actual, "The two parsers built different trees for: " + input + "\n  generated: " + expected + "\n  by hand:   " + actual);
+
+		// Two trees built apart, by two parsers, are equal as records too: the tree compares by content.
+		Assert.Equal(tree, handTree);
+		Assert.Equal(tree!.GetHashCode(), handTree!.GetHashCode());
 	}
 
 	static FormatException Refused(string input, string production)

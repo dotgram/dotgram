@@ -1333,7 +1333,7 @@ partial class HandSqlStandard
 		var save = cursor;
 		var read = new List<JsonTableColumn>();
 
-		columns = Sql.SqlList.From(read);
+		columns = default;
 
 		if (!cursor.TakeWord("COLUMNS") || !cursor.Take(SqlTokenKind.LeftParen))
 		{
@@ -1354,7 +1354,11 @@ partial class HandSqlStandard
 		}
 
 		if (read.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
+		{
+			columns = Sql.SqlList.From(read);
+
 			return true;
+		}
 
 		cursor = save;
 

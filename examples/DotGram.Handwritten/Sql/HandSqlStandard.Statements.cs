@@ -617,7 +617,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<Expression>();
 
-		targets = Sql.SqlList.From(written);
+		targets = default;
 
 		while (true)
 		{
@@ -633,6 +633,8 @@ partial class HandSqlStandard
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
+
+		targets = Sql.SqlList.From(written);
 
 		return true;
 	}

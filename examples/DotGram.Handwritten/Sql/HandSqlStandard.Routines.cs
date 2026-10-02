@@ -970,13 +970,17 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<ParameterDefinition>();
 
-		parameters = Sql.SqlList.From(written);
+		parameters = default;
 
 		if (!cursor.Take(SqlTokenKind.LeftParen))
 			return false;
 
 		if (cursor.Take(SqlTokenKind.RightParen))
+		{
+			parameters = Sql.SqlList.From(written);
+
 			return true;
+		}
 
 		while (true)
 		{
@@ -994,7 +998,11 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
+		{
+			parameters = Sql.SqlList.From(written);
+
 			return true;
+		}
 
 		cursor = save;
 
@@ -3653,7 +3661,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<Grantee>();
 
-		grantees = Sql.SqlList.From(written);
+		grantees = default;
 
 		while (true)
 		{
@@ -3675,6 +3683,8 @@ partial class HandSqlStandard
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
+
+		grantees = Sql.SqlList.From(written);
 
 		return true;
 	}

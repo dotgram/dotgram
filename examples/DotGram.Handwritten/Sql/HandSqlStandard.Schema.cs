@@ -497,7 +497,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<TableElement>();
 
-		elements = Sql.SqlList.From(written);
+		elements = default;
 
 		if (!cursor.Take(SqlTokenKind.LeftParen))
 			return false;
@@ -518,7 +518,11 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
+		{
+			elements = Sql.SqlList.From(written);
+
 			return true;
+		}
 
 		cursor = save;
 

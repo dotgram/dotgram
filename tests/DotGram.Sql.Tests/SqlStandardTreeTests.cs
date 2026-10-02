@@ -703,7 +703,7 @@ public sealed class SqlStandardTreeTests
 			// `PadCharacteristic.NoPad` are all zero and all written, so hiding a zero enum here took ten
 			// rows' words away. Which is why an absent enum in this tree is a NULLABLE one, and why nothing
 			// carries a `None` member for the same job.
-			if (value is null or false || value is int and 0 || value is System.Collections.ICollection { Count: 0 })
+			if (value is null or false || value is int and 0 || value is System.Collections.IEnumerable list and not string && !list.GetEnumerator().MoveNext())
 				continue;
 
 			parts.Add(property.Name + ": " + Show(value));

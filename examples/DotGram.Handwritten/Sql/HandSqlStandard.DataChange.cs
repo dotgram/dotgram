@@ -437,7 +437,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<RowValue>();
 
-		rows = Sql.SqlList.From(written);
+		rows = default;
 
 		if (!cursor.Take(SqlWord.Values))
 			return false;
@@ -456,6 +456,8 @@ partial class HandSqlStandard
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
+
+		rows = Sql.SqlList.From(written);
 
 		return true;
 	}
@@ -787,7 +789,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var written = new List<Assignment>();
 
-		assignments = Sql.SqlList.From(written);
+		assignments = default;
 
 		while (true)
 		{
@@ -803,6 +805,8 @@ partial class HandSqlStandard
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
+
+		assignments = Sql.SqlList.From(written);
 
 		return true;
 	}
