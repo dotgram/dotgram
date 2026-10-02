@@ -484,9 +484,10 @@ public static partial class CSharpEmitter
 	const string MatchReadingEnd = """
 			/// <summary>
 			/// Where the reading stopped looking: the end of the input for a whole reading, the
-			/// end of the window for a reading inside one, and the end of what was read for a
-			/// reading from a position, which looks no further. What lies between the end of the
-			/// value and this is the reading's own trailing text — trivia, and nothing else.
+			/// end of the window for a reading inside one that read all of it, and the end of what
+			/// was read for a reading from a position or one that stopped short in its window,
+			/// neither of which looks further. What lies between the end of the value and this is
+			/// the reading's own trailing text — trivia, and nothing else.
 			/// </summary>
 			public long ReadingEnd { get { return _readingEnd; } }
 

@@ -680,7 +680,7 @@ public abstract partial class TransactSqlParser
 			// Spacing and comments and nothing else are a text of no statements, as the server reads
 			// them; a window that holds no token at all is not asked, since it would look for one.
 			if (Trivia(batch.Text, batch.At, end) == end)
-				return Match<Statement[]>.Success([], batch.At, 0);
+				return Match<Statement[]>.Success([], batch.At, 0, end);
 
 			var match = window(batch.Text, batch.At, batch.Length);
 

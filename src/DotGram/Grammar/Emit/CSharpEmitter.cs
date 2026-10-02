@@ -1957,14 +1957,21 @@ public static partial class CSharpEmitter
 		}
 
 		// Where the reading stopped looking, said on a match where the grammar decides locations
-		// per call: the input's end, the window's end, or — from a position, where the reading is
-		// not required to reach anything — the end of what it read.
+		// per call: the input's end, the window's end where the reading read every token in it, or
+		// — from a position, or a window it stopped short in, where the reading is not required to
+		// reach anything — the end of what it read.
 		string ReadingEnd(bool positional, bool windowed)
 		{
 			if (locating is null)
 				return "";
 
-			return windowed ? ", at + length" : positional ? overKinds ? ", over" : ", end" : ", input.Length";
+			if (!positional)
+				return ", input.Length";
+
+			if (!overKinds)
+				return ", end";
+
+			return windowed ? ", end == count ? at + length : over" : ", over";
 		}
 
 		void Asking(string parameters, bool positional, bool windowed = false)
