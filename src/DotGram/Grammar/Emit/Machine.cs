@@ -1348,16 +1348,16 @@ sealed partial class Machine
 
 		var type = TypeOf(factory);
 
-		_offered.Add(type);
+		(walk ? _offeredInWalk : _offered).Add(type);
 
 		var offer = OverKinds
 			? $"Offer_DotGram{_tag}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
 			: $"Offer_DotGram{_tag}({call}, parserLocating, {from}, {length})";
 
-		// In the generic walk the reading that does not ask calls the construction and nothing
-		// else; a reader, an engine's walk or an immediate reader is not generic, and the offer
-		// asks the reading's own number.
-		return walk ? $"({LocatingTest} ? {offer} : {call})" : offer;
+		// In the generic walk the offer of that name is the walk's own, which asks the type the
+		// runtime answers while it compiles; a reader, an engine's walk or an immediate reader is
+		// not generic, and the offer beside it asks the reading's own number (Offers).
+		return offer;
 	}
 
 	/// <summary>The type a construction is declared to return, which its rule's is.</summary>
@@ -1375,11 +1375,48 @@ sealed partial class Machine
 	readonly SortedSet<string> _offered = new(StringComparer.Ordinal);
 
 	/// <summary>The offers <see cref="Offered"/> called, one per type, and what they share.</summary>
+	/// <summary>The types the generic walk offered a value of, which has offers of its own.</summary>
+	readonly SortedSet<string> _offeredInWalk = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// The offers the generic walk calls: the same names as those beside the reader, which they
+	/// hide inside its class, testing the type argument rather than a number.
+	/// </summary>
+	public string WalkOffers()
+	{
+		var helper = new Writer(1);
+
+		if (_offeredInWalk.Count == 0 || _graph.PerCall is null)
+			return "";
+
+		var tokens = OverKinds ? ", int[] starts, int[] lengths" : "";
+		var handed = OverKinds ? ", starts, lengths" : "";
+
+		foreach (var type in _offeredInWalk)
+		{
+			helper.Line("/// <summary>A located value told where it was written, where this reading locates.</summary>");
+
+			using (helper.Block(
+				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
+			{
+				// A type test the runtime answers while it compiles each reading of the walk.
+				helper.Line($"if ({LocatingTest})");
+				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
+				helper.Line();
+				helper.Line("return made;");
+			}
+
+			helper.Line();
+		}
+
+		return helper.ToString();
+	}
+
 	public string Offers()
 	{
 		var helper = new Writer(1);
 
-		if (_offered.Count == 0 || _graph.PerCall is not { } perCall)
+		if (_offered.Count + _offeredInWalk.Count == 0 || _graph.PerCall is not { } perCall)
 			return "";
 
 		var located = "global::" + perCall.Type;
@@ -1393,8 +1430,7 @@ sealed partial class Machine
 			using (helper.Block(
 				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
 			{
-				// Below nought where the reading did not ask. The walk that is generic over it does not
-				// call this where it does not ask, and so never asks here (Offered).
+				// Below nought where the reading did not ask.
 				helper.Line("if (locating >= 0)");
 				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
 				helper.Line();

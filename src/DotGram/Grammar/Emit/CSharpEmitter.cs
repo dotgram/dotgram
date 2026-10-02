@@ -720,6 +720,12 @@ public static partial class CSharpEmitter
 					if (compiled.Machine.PerCallBuilder is { Length: > 0 } builder)
 						file.Methods(builder);
 
+					if (compiled.Machine.WalkOffers() is { Length: > 0 } offers)
+					{
+						file.Write(offers);
+						file.Line();
+					}
+
 				}
 
 			// What the readers call from outside, which is all of the generic class that has to be
