@@ -96,6 +96,32 @@ public sealed class InitializerOracleTests
 	}
 
 	[Theory]
+	// `with`: a record class copied by its clone, a struct by being a value, and the members set
+	// on the copy in the order written; the runtime type of a record is kept through a base.
+	[InlineData("new Pair(1, \"a\") with { A = 2 }")]
+	[InlineData("new Pair(1, \"a\") with { }")]
+	[InlineData("new Pair(1, \"a\") with { A = 2, } with { B = \"c\" }")]
+	[InlineData("new Pair(1, \"a\") with { F = 5, B = null }")]
+	[InlineData("new Triple(1, \"a\", 3) with { C = 4, A = 0 }")]
+	[InlineData("((Pair)new Triple(1, \"a\", 3)) with { A = 9 }")]
+	[InlineData("new Spot { X = 1 } with { Y = 2 }")]
+	[InlineData("(new Pair(1, \"a\") with { A = 2 }).A + 1")]
+	[InlineData("new Pair(Journal.Arg(1), \"a\") with { A = Journal.Arg(2), F = Journal.Arg(3) }")]
+	[InlineData("1 switch { _ => new Pair(1, \"a\") } with { A = 7 }")]
+	public void A_copy_with_members_set_is_made_as_CSharp_makes_it(string expression)
+	{
+		What_CSharp_accepts_reads_and_runs_alike(expression);
+	}
+
+	/// <summary>`with` is no keyword, as it is none in C#: a variable may still be called so.</summary>
+	[Fact]
+	public void With_is_still_a_name()
+	{
+		Assert.Equal(4, Both.Compile<Func<int, int>>("(int with) => with + 1", typeof(Box).Assembly)(3));
+		Assert.Equal(3, Both.Compile<Func<int, int>>("(int with) => { int w = with; return w; }", typeof(Box).Assembly)(3));
+	}
+
+	[Theory]
 	// A member set twice in one initializer (CS1912), plainly, nested, and where an indexer
 	// writes the initializer out; an indexer may be set as often as it is written.
 	[InlineData("new Box { Next = null, Next = null }",          "CS1912")]
@@ -117,6 +143,16 @@ public sealed class InitializerOracleTests
 	[InlineData("new[] { 1u, 1 }",                              "CS0826")]
 	[InlineData("new[] { 1, \"a\" }",                           "CS0826")]
 	[InlineData("new[] { 1, null }",                            "CS0037")]
+	// A copy of what is neither a record nor a struct (CS8858), of a member set twice, of one that
+	// cannot be written or is not there, and with what a copy does not take.
+	[InlineData("new Box() with { }",                           "CS8858")]
+	[InlineData("((object)new Pair(1, \"a\")) with { }",         "CS8858")]
+	[InlineData("new Pair(1, \"a\") with { A = 2, A = 3 }",      "CS1912")]
+	[InlineData("new Pair(1, \"a\") with { G = 1 }",             "CS0191")]
+	[InlineData("new Pair(1, \"a\") with { Nope = 1 }",          "CS0117")]
+	[InlineData("new Pair(1, \"a\") with { [0] = 1 }",           "CS0131")]
+	[InlineData("new Pair(1, \"a\") with { L = { 1 } }",         "CS1525")]
+	[InlineData("new Pair(1, \"a\") with { L = { } }",           "CS1525")]
 	public void What_CSharp_refuses_is_refused(string expression, string diagnostic)
 	{
 		var text = Usings + "() => Shown.Of(" + expression + ")";
@@ -411,6 +447,19 @@ public sealed class Journal
 		return taken;
 	}
 }
+
+/// <summary>A record class, which `with` copies through the clone the compiler writes for it.</summary>
+public record Pair(int A, string? B)
+{
+	public int F;
+
+	public readonly int G;
+
+	public List<int> L { get; init; } = [];
+}
+
+/// <summary>One derived from it, whose clone is the one a copy through the base still calls.</summary>
+public record Triple(int A, string? B, int C) : Pair(A, B);
 
 /// <summary>A value type with an indexer, which an initializer sets on its own copy.</summary>
 public struct Spot

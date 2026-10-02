@@ -780,6 +780,17 @@ namespace DotGram.ExpressionLanguage;
 		  => @(new Element(ExpressionParser.Listed(first, rest)))
 		| ?!(NameOnly & '=') & only: Conditional => @(ExpressionParser.Only(only))
 
+	// `with { … }`: the members a copy is to differ in. `with` is no keyword, as it is none in
+	// C#: a word, held to its spelling by a guard, so that a variable may still be called so.
+	// Its braces are an object initializer's, read by `Bindings`; that a copy takes only
+	// `Name = value` from them is the construction's to say.
+	//
+	// Asked only where a word and a brace follow the operand, which is looked at and not read:
+	// a guard that refuses has read its word, and a word after an operand is what most texts
+	// that go wrong there have — `a + b  c` would be refused past the `c` rather than at it.
+	// Where a brace does follow, another word is refused past itself, as a misspelled `_` arm is.
+	Change : @Setting[] = ?=(Word & '{') & w: Word & when @(w == "with") & set: Bindings => @(set)
+
 	// `new[] { … }`: an array of the one type its elements' types all convert to, which is C#'s
 	// best common type and the fixing a generic method's inference already does. The `[]` is one
 	// token, as it is after a type. Braces with nothing typed in them — none, or only `null`s and
@@ -1243,8 +1254,12 @@ namespace DotGram.ExpressionLanguage;
 		// so `a * b switch { … }` switches on `b` and `-x switch { … }` on `-x`. The tail is
 		// optional on the operand rather than a level of its own, for the reason the ladder
 		// gives: a level is a call for every operand, and nearly none of them is a switch.
-		| u: Unary & ("switch" & '{' & first: Arm & (',' & rest: Arm)* & ','? & '}')?
-		  => @(first is { } head ? ExpressionParser.Matched(u, head, rest, context) : u)
+		//
+		// `x with { … }` stands at the same level in C#, after the switch, and may follow
+		// itself: `r with { A = 1 } with { B = 2 }`. Another optional tail for the same reason.
+		| u: Unary & ("switch" & '{' & first: Arm & (',' & rest: Arm)* & ','? & '}')? & changes: Change*
+		  => @(ExpressionParser.Copied(
+		       first is { } head ? ExpressionParser.Matched(u, head, rest, context) : u, changes, context.Here(parserSpan).Reach))
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.
@@ -2859,6 +2874,73 @@ public static partial class ExpressionParser
 		var type = Fixed(bounds) ?? throw new InvalidOperationException("No best type found for implicitly-typed array.");
 
 		return Expression.NewArrayInit(type, Converted(elements, type));
+	}
+
+	/// <summary>`x with { … }`, once for each `with` written: a copy, with those members set on it.</summary>
+	/// <remarks>
+	/// <para>
+	/// C#'s rule: a struct is copied by being a value, and a record class by its <c>&lt;Clone&gt;$</c>
+	/// method, which the compiler writes into every record and calls for this — which is how this
+	/// tells a record from any other class, as C# does (CS8858). Then each member is assigned in
+	/// the order written, and the copy is what the expression is worth. A block, since there is
+	/// no node for it: the copy into a variable, an assignment per member, the variable last.
+	/// </para>
+	/// <para>
+	/// The braces are `Bindings`', which reads more than a copy takes: only `Name = value` is an
+	/// entry here, so a nested initializer and an indexer are refused, as C# refuses them. A member
+	/// set twice is refused as it is in any initializer (CS1912), and one that cannot be written,
+	/// a read-only field or a property with no setter, by the API that will not assign it. An
+	/// <c>init</c> accessor is a setter to the API, and is what a record's positional property has.
+	/// </para>
+	/// </remarks>
+	internal static Expression Copied(Expression value, Setting[][] changes, ResolutionScope scope)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value));
+
+		if (changes is null)
+			throw new ArgumentNullException(nameof(changes));
+
+		foreach (var settings in changes)
+			value = Copied(value, settings, scope);
+
+		return value;
+	}
+
+	static Expression Copied(Expression value, Setting[] settings, ResolutionScope scope)
+	{
+		var type  = Typed(value) ? value.Type : null;
+		var clone = type is { IsValueType: false }
+			? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null)
+			: null;
+
+		if (type is null || !type.IsValueType && clone is null)
+			throw new InvalidOperationException(
+				$"The receiver type '{(type is null ? Shown(value) : type.Name)}' is not a valid record type and is not a struct type.");
+
+		// A record's clone is declared to return the record it is written in; a derived one
+		// overrides it, and is asked here through the type the value has.
+		var copy  = clone is null ? value : Expression.Call(value, clone);
+		var held  = Expression.Variable(type, "copy");
+		var steps = new List<Expression>(settings.Length + 2)
+		{
+			Expression.Assign(held, copy.Type == type ? copy : Expression.Convert(copy, type)),
+		};
+
+		for (var at = 0; at < settings.Length; at++)
+		{
+			if (settings[at] is not { Index: null, Value: { } assigned })
+				throw new InvalidOperationException(
+					"Invalid initializer member declarator: a 'with' expression sets members to values, and nothing else.");
+
+			var member = Initialized(type, settings, at, scope);
+
+			steps.Add(Expression.Assign(Expression.MakeMemberAccess(held, member), Converted(assigned, MemberType(member))));
+		}
+
+		steps.Add(held);
+
+		return Expression.Block(type, [held], steps);
 	}
 
 	internal static Expression[] Converted(Expression[] values, Type to)

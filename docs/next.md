@@ -25707,3 +25707,33 @@ its two captures took `Primary` past the sixty slots a rule read by methods may 
 grammar fell back to the shared engine (GRAM5005). Placed after the other forms of `new`, it
 moves `"new"` in the expected lists that name every token an expression may begin with, which
 is all the refusal record's thirty-seven changed rows say.
+
+## `x with { … }`
+
+The copy-and-set expression reads now, as in C#. The receiver is a struct, copied by being a
+value, or a record class, copied by the `<Clone>$` method the compiler writes into every record
+and which C# calls for this; that method is also how this tells a record from any other class
+(CS8858 otherwise, asked of Roslyn, as are the other refusals here). The members are then
+assigned in the order written and the copy is the value: a block, the copy into a variable, an
+assignment per member, the variable last. A derived record copied through a base keeps its
+runtime type, since the clone is virtual. Only `Name = value` is an entry: the braces are read by
+`Bindings`, and a nested initializer or an indexer there is refused by the construction; a member
+set twice is CS1912 as in any initializer, and one that cannot be written (a read-only field, a
+property with no setter) is refused by the API. An `init` accessor is a setter to the API, which
+is what a positional record's properties have. Anonymous types, which C# also copies with `with`,
+cannot be made in this language and are not read.
+
+`with` stands where C# puts it, at the level of `x switch { … }`, as a second optional tail of
+the operand, and may follow itself. It is no keyword, as it is none in C#: a word held to its
+spelling by a guard, so `(int with) => with + 1` still reads. The tail is asked only where a word
+and a brace follow the operand, and that is looked at with `?=(Word & '{')` rather than read: a
+guard that refuses has read its word, and a word after an operand is what most texts that go
+wrong there have, so a guard asked of every word moved the refusal of `a + b  c` past the `c` and
+lost what was expected there — thirty-five rows of the record changed that way in the first cut.
+Now one does, `n witch { … }`, a word and a brace that are neither `switch` nor `with`, refused
+past the word as a misspelled `_` arm is. A text cut short after `with` is refused at the word
+rather than starved: the brace the lookahead wants is not there to be looked at.
+
+Written first as `?!(Word & ?!'{')`, the lookahead never let `with` through on the generated
+parser, while the hand-written one, peeking at the same two tokens, read it. Not looked into
+further: the positive form says the same thing and reads alike on both.

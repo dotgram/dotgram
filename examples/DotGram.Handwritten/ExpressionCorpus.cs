@@ -218,6 +218,9 @@ public static class ExpressionCorpus
 		// An implicitly typed array, of its elements' best common type, and one with none.
 		"(int x) => new[] { x, 2L, }",
 		"(int x) => new[] { x, \"a\" }",
+		// A copy with members set, of a struct, chained; and of what is neither a record nor a struct.
+		"(int x) => new System.ValueTuple<int, int>(x, 1) with { Item2 = x, } with { }",
+		"(int x) => \"a\" with { Length = x }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 

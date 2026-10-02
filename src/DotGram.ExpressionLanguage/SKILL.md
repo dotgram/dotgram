@@ -172,6 +172,8 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   initializers (an indexer set among members, `new Dictionary<int, int> { [1] = 2 }`, and empty
   braces, `new List<int> { }`, as in C#), generic types, casts, `is`, `as`, `?.`, `??`, `?:`,
   `checked(…)` and `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.
+- **`x with { A = 1 }`:** a copy of a record or a struct with those members set, as in C#;
+  `with` stays a name everywhere else.
 - **Tuples:** `(a, b)`, of any number of elements and nested, which is a `ValueTuple` as it
   is in C#. Read back by position: `(a, b).Item1`.
 - **Literals:** every number form (`0x`, `0b`, `_`, suffixes), strings and characters with

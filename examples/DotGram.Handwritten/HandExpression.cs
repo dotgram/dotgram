@@ -3560,6 +3560,29 @@ public static class HandExpression
 				}
 			}
 
+			// `x with { … }`, as many as are written. `with` is a word held to its spelling, as the
+			// grammar's guard holds it, so another word here is a guard refusing — asked only where
+			// a brace follows the word, which is looked at and not read.
+			while (IsWord(Peek(read)) && Peek(read + 1) == LeftBrace)
+			{
+				if (Kind(read) != Identifier || Cut(read) != "with")
+				{
+					Refuse(read + 1);
+
+					break;
+				}
+
+				var copied = Bindings(read + 1, out var settings);
+
+				if (copied < 0)
+					break;
+
+				if (_build)
+					node = ExpressionParser.Copied(node!, [settings!], _context.Reach);
+
+				read = copied;
+			}
+
 			while (true)
 			{
 				var level = Level(read, out var width);
