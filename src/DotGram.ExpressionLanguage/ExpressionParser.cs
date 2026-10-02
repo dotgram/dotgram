@@ -2852,7 +2852,6 @@ public static partial class ExpressionParser
 		return Implicitly(value, to) ?? value;
 	}
 
-	/// <summary>Each of those values converted to that type.</summary>
 	/// <summary>`new[] { … }`: an array of its elements' best common type, each converted to it.</summary>
 	/// <remarks>
 	/// C#'s rule (§12.6.3.15) is the fixing of an inferred type argument with the elements'
@@ -2943,6 +2942,7 @@ public static partial class ExpressionParser
 		return Expression.Block(type, [held], steps);
 	}
 
+	/// <summary>Each of those values converted to that type.</summary>
 	internal static Expression[] Converted(Expression[] values, Type to)
 	{
 		if (values is null)
