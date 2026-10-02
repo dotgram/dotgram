@@ -115,8 +115,8 @@ public sealed class LocatedReadingTests
 	/// they were read from: the predicate completed from its left operand, and the negated forms.
 	/// </summary>
 	/// <remarks>
-	/// The predicate is offered the range of the rule that hands it back, which begins at
-	/// <c>WHERE</c>; its operand keeps its own.
+	/// A span is the range of the rule that built the value: the rule that hands the condition
+	/// back adds its <c>WHERE</c> to nothing, so the condition begins at its operand.
 	/// </remarks>
 	[Theory]
 	[InlineData("SELECT 1 WHERE a = 1", typeof(Expression.Comparison))]
@@ -133,10 +133,48 @@ public sealed class LocatedReadingTests
 		var node      = Nodes(statement).Single(node => node.GetType() == predicate);
 		var operand   = Nodes(node).OfType<Expression.ColumnReference>().First();
 
+		var at        = where + "WHERE ".Length;
+
 		Assert.False(node.Span.IsStale);
-		Assert.Equal(new SqlSpan(where, text.Length - where, where - 1), node.Span);
+		Assert.Equal(new SqlSpan(at, text.Length - at, where + "WHERE".Length), node.Span);
 		Assert.False(operand.Span.IsStale);
-		Assert.Equal(new SqlSpan(where + "WHERE ".Length, 1, where + "WHERE".Length), operand.Span);
+		Assert.Equal(new SqlSpan(at, 1, where + "WHERE".Length), operand.Span);
+	}
+
+	/// <summary>Every clause that hands back what it reads leaves its keyword outside the value's span.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t WHERE a = 1", "a = 1")]
+	[InlineData("SELECT a FROM t GROUP BY a HAVING COUNT(*) > 1", "COUNT(*) > 1")]
+	[InlineData("UPDATE t SET a = 1 WHERE b = 2", "b = 2")]
+	[InlineData("DELETE FROM t WHERE b = 2", "b = 2")]
+	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a", "t.a = u.a")]
+	[InlineData("IF 1 = 1 SELECT 1 ELSE SELECT 2", "SELECT 2")]
+	public void A_condition_is_spanned_without_its_keyword(string text, string condition)
+	{
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var at        = text.LastIndexOf(condition, StringComparison.Ordinal);
+
+		Assert.Contains(Nodes(statement), node => node.Span.At == at && node.Span.Length == condition.Length);
+		Assert.DoesNotContain(Nodes(statement), node => node is Expression or Statement && node.Span.End == text.Length && node.Span.At < at && node.Span.At > 0);
+	}
+
+	/// <summary>
+	/// A member chain and a zone, which the package closes with <c>with</c> while reading, are told the
+	/// whole range they stand on and are not left stale.
+	/// </summary>
+	[Fact]
+	public void A_chain_closed_while_reading_spans_all_of_it_and_is_fresh()
+	{
+		var text      = "SELECT (c1).P1.P2, d AT TIME ZONE 'UTC'";
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var chain     = text.IndexOf("(c1)", StringComparison.Ordinal);
+		var members   = Nodes(statement).OfType<Expression.Member>().ToList();
+
+		Assert.DoesNotContain(Nodes(statement), static node => node.Span.IsStale);
+		Assert.Equal(2, members.Count);
+		Assert.Contains(members, node => node.Span.At == chain && node.Span.Length == "(c1).P1".Length);
+		Assert.Contains(members, node => node.Span.At == chain && node.Span.Length == "(c1).P1.P2".Length);
+		Assert.Contains(Nodes(statement).OfType<Expression.RoutineInvocation>(), node => text.Substring(node.Span.At, node.Span.Length) == "d AT TIME ZONE 'UTC'");
 	}
 
 	/// <summary>A backup's tail is put on the statement with <c>with</c>, and the statement keeps its span.</summary>
@@ -196,7 +234,7 @@ public sealed class LocatedReadingTests
 	/// Over the corpus the located reading answers as the plain one does at every form — the whole
 	/// text, from a position, in a window and through the script reader — and builds the same trees;
 	/// every node's gap holds only trivia, and after the last statement of a reading there is only
-	/// trivia and <c>;</c> up to where the reading stopped looking.
+	/// trivia and <c>;</c> up to where the reading stopped looking. No node of a fresh reading is stale.
 	/// </summary>
 	[Fact]
 	public void The_located_reading_agrees_with_the_plain_one_over_the_corpus()
@@ -289,6 +327,7 @@ public sealed class LocatedReadingTests
 				return true;
 
 			Assert.InRange(span.GapStart, floor, span.At);
+			Assert.False(span.IsStale, $"{node.GetType().Name} at {span.At} is stale in a fresh reading");
 			Assert.True(Trivia(text.Substring(span.GapStart, span.At - span.GapStart)), $"gap of {node.GetType().Name} at {span.At}");
 			count++;
 

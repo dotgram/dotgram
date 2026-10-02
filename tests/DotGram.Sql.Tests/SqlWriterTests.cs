@@ -297,10 +297,10 @@ public sealed class SqlWriterTests
 		Assert.Equal("a + 1", Cut(input, column.Value.Span));
 		Assert.Equal("t",     Cut(input, Assert.Single(query.From).Span));
 
-		// A rule that hands back a value another rule made lends it its own range, and
-		// `WhereClause` is `"WHERE"i & c: SearchCondition => @(c)`. The keyword is in the
-		// condition's span, which is the safe direction — see `ISqlSpan`.
-		Assert.Equal("WHERE b = 2", Cut(input, query.Where!.Span));
+		// A rule that only hands back a value another rule made offers it nothing, and
+		// `WhereClause` is `"WHERE"i & c: SearchCondition => @(c)`: the keyword stays outside
+		// the condition's span — see `ISqlSpan`.
+		Assert.Equal("b = 2", Cut(input, query.Where!.Span));
 	}
 
 	/// <summary>And a span is where it says, in the text it was measured against.</summary>

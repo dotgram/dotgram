@@ -113,16 +113,21 @@ missing.
 `[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]`: one
 parser, whose methods in `TransactSqlParser.Located` call it with locations on, and the six
 roots implement `ISqlSpan` (and the internal `ISqlLocatable` the reader offers to): the reader
-offers each value the range of every rule it came out of, innermost first, and the last offer
-is kept. That is a little wide where a rule hands back a value another rule made —
-`WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
+offers each value the range of every rule that built it, innermost first, and the last offer
+is kept. A rule that only hands back a value another rule made offers nothing, so a clause's
+keyword is never inside the value it introduces: the condition after `WHERE`, `HAVING` or
+`ON`, the statement after `ELSE`, the window after `OVER` each span their own text. A value the
+package completes with `with` while reading — a predicate from its left operand, a member chain
+— is offered the whole range it ends up standing on, so a fresh reading has no stale node.
 Each offer also says where the text in front of the value begins (`SqlSpan.GapStart`: the end
 of the token before it, or where the reading began), so the comments in front of a node are in
 that gap and nowhere else. It allocates nothing beyond the span itself; a call that does not
 ask still keeps where each value was read on the reader's tape and tests whether to offer it,
 a few per cent of a parse. The span is kept out of the records' equality, so the
-located tree of a text equals the plain one; a copy made with `with` keeps the span and is
-marked stale (`SqlSpan.IsStale`).
+located tree of a text equals the plain one; a copy made with `with` afterwards keeps the span
+and is marked stale (`SqlSpan.IsStale`). The two readings are one generic machine
+(`Reading_DotGram<TLocating>`), which the runtime compiles once for each, so the plain reading
+neither tests for locations nor keeps the positions only a located reading needs.
 
 **But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,

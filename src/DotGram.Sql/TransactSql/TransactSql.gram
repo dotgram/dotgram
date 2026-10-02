@@ -4307,7 +4307,7 @@ TableIndex : @Clause
 	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: TableIndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
+		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
 			 with { Bracketed = o is not { Bare: true } })
 
 // ── What a table is created with, and set to ────────────────────────────────
@@ -4716,7 +4716,7 @@ CreateIndexStatement : @Statement
 	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
 			 with { Bracketed = o is not { Bare: true } }))
 	| "CREATE"i & k: IndexOrder? & s: "COLUMNSTORE"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?

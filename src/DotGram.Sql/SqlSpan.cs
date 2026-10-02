@@ -166,13 +166,13 @@ internal interface ISqlLocatable : ISqlSpan
 /// the offer is decided here.
 /// </para>
 /// <para>
-/// <b>The last offer wins, so a span is the outermost rule that handed the value back.</b>
-/// Where a rule hands back a value another rule made — <c>WhereClause = "WHERE"i &amp;
-/// c: SearchCondition =&gt; @(c)</c> gives back the condition — the range covers the
-/// keyword the value itself is not. That is a little wide and it is the safe direction:
-/// keeping the first offer instead is a little wide nowhere and badly wrong somewhere,
-/// because a value completed from a tail — <c>Syntax.Predicated</c> copies one with
-/// <c>with</c> — would inherit the tail's range and claim <c>= 2</c> for <c>b = 2</c>.
+/// <b>The last offer wins, so a span is the outermost rule that built the value.</b> A
+/// value completed from a tail — <c>Syntax.Predicated</c> copies one with <c>with</c> — is
+/// offered again by the rule that completed it, and claims <c>b = 2</c> rather than the
+/// tail's <c>= 2</c>. A rule that only hands back a value another rule made —
+/// <c>WhereClause = "WHERE"i &amp; c: SearchCondition =&gt; @(c)</c> — offers nothing in
+/// T-SQL's located reading, so the condition does not claim the <c>WHERE</c> in front of it:
+/// every clause's keyword stays outside the value it introduces.
 /// </para>
 /// <para>
 /// It mutates, once, on a node the reader has just made and nothing has yet seen. An

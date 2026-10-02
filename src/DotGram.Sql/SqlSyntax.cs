@@ -3490,6 +3490,27 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 /// </remarks>
 public static class Syntax
 {
+	/// <summary>
+	/// A node a reading rebuilt with <c>with</c> out of nodes it had already located, told the
+	/// range from the first of them to the last: a copy made while reading is not an edit, and
+	/// is not left saying it is stale.
+	/// </summary>
+	/// <remarks>
+	/// Where nothing was located — a plain reading — the copy is handed back as it is.
+	/// </remarks>
+	internal static T Joined<T>(T made, ISqlSpan first, ISqlSpan last) where T : ISqlLocatable
+	{
+		if (!first.Span.Known && !last.Span.Known)
+			return made;
+
+		var from = first.Span.Known ? first.Span : last.Span;
+		var to   = last.Span.Known ? last.Span : first.Span;
+
+		made.Locate(from.At, to.End - from.At, from.GapStart);
+
+		return made;
+	}
+
 	/// <summary>What a call with no names is handed, once rather than per call.</summary>
 	public static readonly string[] NoNames = [];
 
@@ -4124,15 +4145,15 @@ public static class Syntax
 	{
 		if (members is not null)
 			foreach (var member in members)
-				primary = member with { Of = primary };
+				primary = Syntax.Joined(member with { Of = primary }, primary, member);
 
 		if (zones is not null)
 			foreach (var zone in zones)
 			{
 				var at = (Expression.RoutineInvocation)zone;
-				var of = at.Arguments[0] is Expression.Collated how ? how with { Value = primary } : primary;
+				var of = at.Arguments[0] is Expression.Collated how ? Syntax.Joined(how with { Value = primary }, primary, how) : primary;
 
-				primary = at with { Arguments = [of, at.Arguments[1]] };
+				primary = Syntax.Joined(at with { Arguments = [of, at.Arguments[1]] }, primary, at);
 			}
 
 		return primary;
