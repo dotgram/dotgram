@@ -405,8 +405,15 @@ sealed partial class Machine
 
 		if (rules.Any(Valued))
 		{
-			file.Write(Carrier.RenderBuilder(rules));
-			file.Line();
+			if (UsesLocating)
+			{
+				PerCallBuilder = Carrier.RenderBuilder(rules);
+			}
+			else
+			{
+				file.Write(Carrier.RenderBuilder(rules));
+				file.Line();
+			}
 		}
 
 		return file.ToString();

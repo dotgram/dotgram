@@ -783,8 +783,6 @@ sealed partial class Machine
 		if (OverKinds)
 			kept.Add(Provenance());
 
-		if (Offers() is { Length: > 0 } offers)
-			kept.Add(offers);
 
 		foreach (var (name, declaration) in _expected)
 			if (_expectedUsed.Contains(name) && (writtenExpected is null || writtenExpected.Add(name)))
@@ -1306,6 +1304,28 @@ sealed partial class Machine
 	/// way a located construction offers it itself — after the value is made, and only for the
 	/// author's own C#, since that is where a located construction offers one.
 	/// </remarks>
+	/// <summary>
+	/// Where locations are decided per call, the walk that builds a reading's values: written into
+	/// the generic class (<c>Reading_DotGram</c>) rather than beside the reader.
+	/// </summary>
+	public string? PerCallBuilder { get; private set; }
+
+	/// <summary>
+	/// A call of the walk that builds the values, from a reader: where locations are decided per
+	/// call, the walk is generic over whether the reading locates, and the reader, which is not,
+	/// picks the one its reading is.
+	/// </summary>
+	string Materializing(string call)
+	{
+		if (!UsesLocating)
+			return call;
+
+		// No braces: what is carried is formatted again further on, and an `if` before it binds its
+		// `else` to this test, which is the one it belongs to.
+		return $"if (parserLocating >= 0) {CSharpEmitter.ReadingClass}<{CSharpEmitter.LocatingOn}>.{call} " +
+			$"else {CSharpEmitter.ReadingClass}<{CSharpEmitter.LocatingOff}>.{call}";
+	}
+
 	string Offered(Factory factory, string call, string from, string length)
 	{
 		if (!UsesLocating || !factory.Located ||
@@ -1344,7 +1364,7 @@ sealed partial class Machine
 	readonly SortedSet<string> _offered = new(StringComparer.Ordinal);
 
 	/// <summary>The offers <see cref="Offered"/> called, one per type, and what they share.</summary>
-	string Offers()
+	public string Offers()
 	{
 		var helper = new Writer(1);
 

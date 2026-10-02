@@ -1037,9 +1037,10 @@ sealed partial class Machine
 				return $"ways.Begin({machine.DirectArm(rule, factory)});";
 
 			// Where only a located reading needs where the record stands, the other one writes
-			// the record a plain parser writes.
+			// the record a plain parser writes. The reader is not generic, so it asks its reading's
+			// own number, once a record; the walk that reads the record back is, and asks nothing.
 			if (machine.PositionsPerCall(machine._directRules))
-				return $"if ({LocatingTest}) ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end}); " +
+				return $"if (parserLocating >= 0) ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end}); " +
 					$"else ways.Begin({machine.DirectArm(rule, factory)});";
 
 			return $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
@@ -1112,8 +1113,9 @@ sealed partial class Machine
 
 		public override string Materialize(string record, string sinceMark)
 		{
-			return $"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
-			$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
+			return machine.Materializing(
+				$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
+				$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
 		}
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
@@ -1154,7 +1156,8 @@ sealed partial class Machine
 			{
 				var whole = string.Format(build, "-1");
 
-				code.Line($"if ({handed}.Length > 0) " + whole.Substring(0, whole.Length - 2) + $", roots: {from}, rootSlots: {bits}L);");
+				// Every call in it, where the reading picks one of two (Machine.Materializing).
+				code.Line($"if ({handed}.Length > 0) " + whole.Replace(");", $", roots: {from}, rootSlots: {bits}L);"));
 			}
 
 			using (code.Block($"for (var at = {from}; at < ways.RefsCount; at += 3)"))
@@ -1180,9 +1183,9 @@ sealed partial class Machine
 		/// </remarks>
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
-			yield return
+			yield return machine.Materializing(
 				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0, 0" +
-				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
+				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
 
 			yield return
 				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : ValueOfType(type, "ways.Last"))};";

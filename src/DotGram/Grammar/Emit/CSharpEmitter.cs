@@ -504,8 +504,6 @@ public static partial class CSharpEmitter
 				return true;
 			};
 
-		var publishedAt = file.Length;
-
 		void Publish(bool? locating)
 		{
 			foreach (var compiled in machines)
@@ -565,14 +563,6 @@ public static partial class CSharpEmitter
 			Publish(null);
 		}
 
-		// What the published methods call inside the generic machine, which is all of it that has to
-		// be more than private (Writer.Expose).
-		var called = new HashSet<string>(StringComparer.Ordinal);
-
-		if (graph.PerCall is not null)
-			foreach (System.Text.RegularExpressions.Match one in System.Text.RegularExpressions.Regex.Matches(
-				file.ToString().Substring(publishedAt), ReadingClass + @"<\w+>\.(\w+)\("))
-				called.Add(one.Groups[1].Value);
 
 		foreach (var rule in results.Built)
 		{
@@ -631,20 +621,10 @@ public static partial class CSharpEmitter
 		var streamedParts = new Dictionary<(RuleSymbol Rule, int Stage), (string Name, int Entry)>();
 		var streamedSyncs = new Dictionary<RuleSymbol, (string Name, int Entry)>();
 
-		// Where locations are decided per call, every machine is written once inside a generic
-		// class and compiled by the runtime twice, once for each argument: the IL is one parser,
-		// the native code a reading that locates and one that does not.
-		var recognizersAt = file.Length;
-		var machineDepth  = file.Depth + 1;
-
-		using (graph.PerCall is null ? null : file.Block(PerCallClass))
-			foreach (var compiled in machines)
-				EmitRecognizers(
-					file, graph, results, compiled,
-					continuationProbes, streamedParts, streamedSyncs, overKinds);
-
-		if (graph.PerCall is not null)
-			file.Expose(recognizersAt, machineDepth, called);
+		foreach (var compiled in machines)
+			EmitRecognizers(
+				file, graph, results, compiled,
+				continuationProbes, streamedParts, streamedSyncs, overKinds);
 
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -716,21 +696,47 @@ public static partial class CSharpEmitter
 		// arrays have shared names and are emitted once, by the first machine that uses them.
 		var writtenExpected = expectedTables is null ? null : new HashSet<string>(StringComparer.Ordinal);
 
-		var extrasAt = file.Length;
+		foreach (var compiled in machines)
+			foreach (var extra in compiled.Machine.Extras(writtenExpected))
+			{
+				file.Write(extra);
+				file.Line();
+			}
 
-		using (graph.PerCall is null ? null : file.Block(PerCallClass))
-			foreach (var compiled in machines)
-				foreach (var extra in compiled.Machine.Extras(writtenExpected))
-				{
-					file.Write(extra);
-					file.Line();
-				}
-
-		// The extras arrive laid out from a depth of their own, one or none.
+		// Where locations are decided per call, what depends on whether a reading locates — the walk
+		// that builds the values, and the offers it makes — is written once inside a generic class
+		// and compiled by the runtime once for each argument: the IL is one parser, the native code
+		// a reading that locates and one that does not. The readers stay outside it, so the bulk of
+		// the machine is compiled once and as cheaply as any other class's; the generic one is
+		// entered once a reading, to build what was read.
 		if (graph.PerCall is not null)
 		{
-			file.Expose(extrasAt, machineDepth, called);
-			file.Expose(extrasAt, machineDepth + 1, called);
+			var genericAt    = file.Length;
+			var genericDepth = file.Depth + 1;
+
+			using (file.Block(PerCallClass))
+				foreach (var compiled in machines)
+				{
+					if (compiled.Machine.PerCallBuilder is { Length: > 0 } builder)
+						file.Methods(builder);
+
+					if (compiled.Machine.Offers() is { Length: > 0 } offers)
+					{
+						file.Write(offers);
+						file.Line();
+					}
+				}
+
+			// What the readers call from outside, which is all of the generic class that has to be
+			// more than private (Writer.Expose).
+			var called = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (System.Text.RegularExpressions.Match one in System.Text.RegularExpressions.Regex.Matches(
+				file.ToString(), ReadingClass + @"<\w+>\.(\w+)\("))
+				called.Add(one.Groups[1].Value);
+
+			file.Expose(genericAt, genericDepth, called);
+			file.Expose(genericAt, genericDepth + 1, called);
 		}
 
 		if (graph.PerCall is not null)
@@ -1620,11 +1626,6 @@ public static partial class CSharpEmitter
 		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
 		bool? locating = null)
 	{
-		// Where locations are decided per call, the machine is a generic class whose argument says
-		// whether this reading locates, so that the runtime compiles each reading on its own and a
-		// reading that does not ask tests nothing (Reading_DotGram).
-		var machine = locating is null ? "" : $"{ReadingClass}<{(locating == true ? LocatingOn : LocatingOff)}>.";
-
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
 		// and never names it, is published exactly as it was before the name existed.
@@ -1702,7 +1703,7 @@ public static partial class CSharpEmitter
 		string Recognized(string from, string to)
 		{
 			return built is not null ? "recognized" :
-			overKinds ? $"{machine}Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
+			overKinds ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 		}
 
@@ -1711,7 +1712,7 @@ public static partial class CSharpEmitter
 		// the form that begins where it was told: there the position is the caller's, the
 		// recognizer is the one that demands no end, and the extent is measured from it.
 		var begins   = "0";
-		var reader   = machine + WholeOf(publication.Rule);
+		var reader   = WholeOf(publication.Rule);
 		var position = "0";
 		var extent   = overKinds ? "over" : "end";
 
@@ -1783,7 +1784,7 @@ public static partial class CSharpEmitter
 			file.Line("/// </remarks>");
 
 			begins   = overKinds ? "from" : "at";
-			reader   = machine + MethodOf(publication.Rule);
+			reader   = MethodOf(publication.Rule);
 			// The reading may have begun past the position it was handed: over kinds the trivia
 			// between two tokens is the lexer's to skip, and over characters the entry reads the
 			// trivia at the position and says where it ended (§6.3).
@@ -1919,7 +1920,7 @@ public static partial class CSharpEmitter
 					}
 					else if (positional)
 					{
-						file.Line($"var from = {machine}TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
 
 						using (file.Block("if (from < 0)"))
@@ -1967,7 +1968,7 @@ public static partial class CSharpEmitter
 					? $"var failure = new {FailureType} {{ Quiet = true }};"
 					: $"var failure = new {FailureType}();");
 				file.Line();
-				file.Line($"var end = {(positional ? reader : machine + WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands});");
+				file.Line($"var end = {(positional ? reader : WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands});");
 				file.Line();
 
 				using (file.Block("if (end < 0)"))
@@ -2132,7 +2133,7 @@ public static partial class CSharpEmitter
 					{
 						// Named with this machine's tag, as everything it writes is: two machines
 						// in one class must not collide (Machine.Provenance).
-						file.Line($"var from = {machine}TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
 
 						// Nothing at or after it is a token, so there is nothing there to read: the
