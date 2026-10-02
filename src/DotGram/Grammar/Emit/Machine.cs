@@ -1309,8 +1309,16 @@ sealed partial class Machine
 	string Offered(Factory factory, string call, string from, string length)
 	{
 		if (!UsesLocating || !factory.Located ||
-			factory.Of is not Node.Construct { How: Construction.Expression })
+			factory.Of is not Node.Construct { How: Construction.Expression { Text: var text } })
 			return call;
+
+		// A construction that hands back a value another rule made offers nothing: that value
+		// was told where it was written by the rule that made it, and a span is the range of the
+		// rule that built the value — `WHERE` is not part of the condition after it.
+		foreach (var member in factory.Members)
+			if (member is { Rule: not null, IsSequence: false } &&
+				(Bare(text) == member.Name || Bare(text) == "@" + member.Name))
+				return call;
 
 		var type = TypeOf(factory);
 
@@ -1354,7 +1362,9 @@ sealed partial class Machine
 			using (helper.Block(
 				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
 			{
-				helper.Line("if (locating >= 0)");
+				// A type test the runtime answers while it compiles: the machine is a generic class
+				// over whether the reading locates, and each argument has native code of its own.
+				helper.Line($"if (typeof(TLocating) == typeof({CSharpEmitter.LocatingOn}))");
 				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");

@@ -487,7 +487,36 @@ sealed partial class Machine
 	IReadOnlyList<RuleSymbol>? _positionsAskedOf;
 	bool                       _positionsAnswer;
 
-	bool Positions(IReadOnlyList<RuleSymbol> rules)
+	/// <summary>
+	/// Whether the records carry where they stand only so that a located reading can say so: where
+	/// locations are decided per call, the reading that does not ask then writes and reads the
+	/// shorter record a plain parser does, the choice made by the machine's type argument
+	/// (<see cref="LocatingTest"/>), which the runtime answers while it compiles each reading.
+	/// </summary>
+	public bool PositionsPerCall(IReadOnlyList<RuleSymbol> rules)
+	{
+		return UsesLocating && _recoveryPlans.Count == 0 && DirectPositions(rules) && !Positions(rules, located: false);
+	}
+
+	/// <summary>The test a per-call located machine asks whether its reading locates.</summary>
+	internal static string LocatingTest => $"typeof(TLocating) == typeof({CSharpEmitter.LocatingOn})";
+
+	/// <summary>Reads a record's start or end, where the record carries one in this reading.</summary>
+	string PositionRead(IReadOnlyList<RuleSymbol> rules, string at)
+	{
+		return PositionsPerCall(rules) ? $"{LocatingTest} ? log[{at}] : 0" : $"log[{at}]";
+	}
+
+	/// <summary>How long a record's head is, in this reading.</summary>
+	string HeadLength(IReadOnlyList<RuleSymbol> rules, bool placed)
+	{
+		if (!placed)
+			return "2";
+
+		return PositionsPerCall(rules) ? $"({LocatingTest} ? 4 : 2)" : "4";
+	}
+
+	bool Positions(IReadOnlyList<RuleSymbol> rules, bool located = true)
 	{
 		foreach (var rule in rules)
 		{
@@ -504,7 +533,7 @@ sealed partial class Machine
 
 			foreach (var factory in _factories[rule])
 				if (CSharpEmitter.WantsText(_graph, factory) ||
-					CSharpEmitter.WantsSpan(_graph, factory))
+					(located ? CSharpEmitter.WantsSpan(_graph, factory) : CSharpEmitter.TakesSpan(_graph, factory)))
 				{
 					return true;
 				}
@@ -943,10 +972,10 @@ sealed partial class Machine
 						file.Line("var slot  = root;");
 						if (placed)
 						{
-							file.Line("var start = log[at + 2];");
-							file.Line("var end   = log[at + 3];");
+							file.Line($"var start = {PositionRead(rules, "at + 2")};");
+							file.Line($"var end   = {PositionRead(rules, "at + 3")};");
 						}
-						file.Line($"var read  = at + {(placed ? 4 : 2)};");
+						file.Line($"var read  = at + {HeadLength(rules, placed)};");
 						file.Line();
 						file.Line("built[slot] = true;");
 						// Raised only where the proof covers everything below the root: the scan proves
@@ -1026,7 +1055,7 @@ sealed partial class Machine
 					file.Line("if (!live[slot]) continue;");
 					if (selected) file.Line("if (built[slot]) { live[slot] = false; continue; }");
 					file.Line();
-					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
+					file.Line($"var read = at + {HeadLength(rules, DirectPositions(rules))};");
 					file.Line();
 
 					if (parts.Count == 1)
@@ -1161,11 +1190,11 @@ sealed partial class Machine
 
 				if (placed)
 				{
-					file.Line("var start = log[at + 2];");
-					file.Line("var end   = log[at + 3];");
+					file.Line($"var start = {PositionRead(rules, "at + 2")};");
+					file.Line($"var end   = {PositionRead(rules, "at + 3")};");
 				}
 
-				file.Line($"var read  = at + {(placed ? 4 : 2)};");
+				file.Line($"var read  = at + {HeadLength(rules, placed)};");
 				file.Line();
 
 				if (twice)

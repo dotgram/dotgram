@@ -263,6 +263,17 @@ sealed class Writer(int depth)
 			Write(text);
 	}
 
+	/// <summary>
+	/// Makes the static members written since <paramref name="from"/> at <paramref name="depth"/>
+	/// internal: what a generic class's members need for the class around it to call them.
+	/// </summary>
+	public void Expose(int from, int depth)
+	{
+		var member = Lines.Ending + new string('\t', depth) + "static ";
+
+		_text.Replace(member, Lines.Ending + new string('\t', depth) + "internal static ", Math.Max(0, from - Lines.Ending.Length), _text.Length - Math.Max(0, from - Lines.Ending.Length));
+	}
+
 	public override string ToString()
 	{
 		return _text.ToString();

@@ -1033,9 +1033,16 @@ sealed partial class Machine
 		{
 			_rule = rule;
 
-			return start is null
-					? $"ways.Begin({machine.DirectArm(rule, factory)});"
-					: $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
+			if (start is null)
+				return $"ways.Begin({machine.DirectArm(rule, factory)});";
+
+			// Where only a located reading needs where the record stands, the other one writes
+			// the record a plain parser writes.
+			if (machine.PositionsPerCall(machine._directRules))
+				return $"if ({LocatingTest}) ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end}); " +
+					$"else ways.Begin({machine.DirectArm(rule, factory)});";
+
+			return $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
 		}
 
 		/// <summary>The rule whose record is open, for <see cref="End"/> to name it by.</summary>
