@@ -742,7 +742,7 @@ public abstract partial class TransactSqlParser
 					return Match<Batch[]>.Failed(match.Outcome, match.Error ?? "Input does not match 'Sql'.", at, null, null);
 				}
 
-				batches[i] = new Batch(match.Value, Go(batch)) { Source = batch };
+				batches[i] = new Batch(SqlList.Own(match.Value), Go(batch)) { Source = batch };
 			}
 
 			if (refusal is { } last)
@@ -784,7 +784,7 @@ public abstract partial class TransactSqlParser
 				if (!Reads(batch, window, whole, out var statements))
 					return false;
 
-				batches[i] = new Batch(statements, Go(batch)) { Source = batch };
+				batches[i] = new Batch(SqlList.Own(statements), Go(batch)) { Source = batch };
 			}
 
 			value = batches;

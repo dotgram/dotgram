@@ -158,7 +158,7 @@ Quantifier = "ALL"i | "SOME"i | "ANY"i
 InPredicateValue : @Expression
     = q: TableSubquery => @(new Expression.Subquery(q))
     | '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-      => @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+      => @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 
 // ── §7.1 Row value constructor ─────────────────────────────────────────────
 //
@@ -173,7 +173,7 @@ InPredicateValue : @Expression
 
 RowValueConstructor : @Expression
     = e: RowValueConstructorElement => @e
-    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
     | q: TableSubquery => @(new Expression.Subquery(q))
 
 RowValueConstructorElement : @Expression
@@ -244,7 +244,7 @@ SetFunctionSpecification : @Expression
         => @(new Expression.RoutineInvocation(name, Expression.None, "*"))
     | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
-            name, new Expression[] { v }, Syntax.Distinctly(quantifier)))
+            name, [v], Syntax.Distinctly(quantifier)))
 
 SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
 SetQuantifier   = "DISTINCT"i | "ALL"i
@@ -252,30 +252,30 @@ SetQuantifier   = "DISTINCT"i | "ALL"i
 // The functions the standard spells out rather than leaving to <routine invocation>.
 // Each is a keyword and a fixed shape, which is why they are here and not a call.
 ValueFunction : @Expression
-    = name: "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
-    | name: "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, field))
-    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
-    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
-    | name: "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
-    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    = name: "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.RoutineInvocation(name, [a, b]))
+    | name: "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.RoutineInvocation(name, [v], field))
+    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, [v]))
+    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new Expression.RoutineInvocation(name, [v]))
+    | name: "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new Expression.RoutineInvocation(name, [v]))
+    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, [v]))
     | name: "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
                           & ("FOR"i & length: ValueExpression)? & ')'
         => @(new Expression.RoutineInvocation(
             "SUBSTRING",
-            length is null
+            SqlList.Own(length is null
                 ? new Expression[] { v, from }
-                : new Expression[] { v, from, length }))
-    | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
-    | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
-    | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
-    | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
+                : new Expression[] { v, from, length })))
+    | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, [v]))
+    | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, [v]))
+    | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, [v], name))
+    | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, [v], name))
     | name: "TRIM"i      & '(' & { how: TrimSpecification? } & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
             name,
-            what is null ? new Expression[] { v } : new Expression[] { what, v },
+            what is null ? [v] : [what, v],
             how))
-    | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation(name, [v]))
     | name: "CURRENT_DATE"i                                      => @(new Expression.RoutineInvocation(name, Expression.None))
     | name: "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
     | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
@@ -289,16 +289,16 @@ TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 // expression>, not something beside it, and is written here where the standard puts
 // it.
 CaseExpression : @Expression
-    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
-    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new Expression.RoutineInvocation(name, Syntax.Listed(first, rest)))
-    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new Expression.Case(operand, whens, otherwise))
-    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new Expression.Case(null, whens, otherwise))
+    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new Expression.RoutineInvocation(name, [a, b]))
+    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Listed(first, rest))))
+    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new Expression.Case(operand, SqlList.Own<Clause>(whens), otherwise))
+    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new Expression.Case(null, SqlList.Own<Clause>(whens), otherwise))
 
 SimpleWhen   : @Clause.When = "WHEN"i & test: ValueExpression & "THEN"i & result: Result => @(new Clause.When(test, result))
 SearchedWhen : @Clause.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new Clause.When(test, result))
 
 Result            : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
-CastSpecification : @Expression = name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+CastSpecification : @Expression = name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, [v], type))
 CastOperand       : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
 
 // ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
@@ -403,7 +403,7 @@ QueryPrimary : @Query
 // `VALUES 1, 2` two rows of one column rather than one row of two.
 TableValueConstructor : @Query
     = "VALUES"i & first: RowValueConstructor & (',' & rest: RowValueConstructor)*
-        => @(new Query.TableValueConstructor(Syntax.Listed(first, rest)))
+        => @(new Query.TableValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 
 // §7.9 <query specification> with §7.3 <table expression> folded into it: the clauses
 // are optional rather than alternative, so one record holds them and what tells one
@@ -412,7 +412,7 @@ QuerySpecification : @Query
     = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
       & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
         => @(new Query.Specification(
-                 Syntax.Distinctly(quantifier), null, columns, null, from,
+                 Syntax.Distinctly(quantifier), null, SqlList.Own(columns), null, SqlList.Own(from),
                  where, group, having))
 
 // §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
@@ -454,9 +454,9 @@ JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
 // its column list renames what the source produces, so it belongs to the reference.
 TablePrimary : @TableReference
     = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
-        => @(new TableReference.Named(name, null, false, alias, columns, null, Clause.None))
+        => @(new TableReference.Named(name, null, false, alias, SqlList.OwnOrNull(columns), null, Clause.None))
     | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
-        => @(new TableReference.Derived(derived, false, alias, columns))
+        => @(new TableReference.Derived(derived, false, alias, SqlList.OwnOrNull(columns)))
     | '(' & j: TableReference & ')' => @(new TableReference.Parenthesized(j))
 
 // A name as a value of its own, so that a list of them gathers into an array rather
@@ -471,7 +471,7 @@ HavingClause : @Expression = "HAVING"i & c: SearchCondition => @(c)
 // than what it is; `Expression.Collated` holds it either way.
 GroupByClause : @Clause
     = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
-        => @(new Clause.GroupBy(false, Syntax.Listed(first, rest), null))
+        => @(new Clause.GroupBy(false, SqlList.Own(Syntax.Listed(first, rest)), null))
 
 GroupingColumn : @Expression
     = c: ColumnReference & how: Collate? => @(how is null ? c : new Expression.Collated(c, how))

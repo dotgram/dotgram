@@ -1253,7 +1253,7 @@ public static class SqlWriter
 	/// with the one <c>ON</c> after them all, the statistics and the offsets after their word,
 	/// and settings given values each with its own.
 	/// </summary>
-	static void SetItems(StringBuilder text, SetExpression[] items)
+	static void SetItems(StringBuilder text, SqlList<SetExpression> items)
 	{
 		switch (items[0])
 		{
@@ -1336,7 +1336,7 @@ public static class SqlWriter
 		};
 	}
 
-	static void Block(StringBuilder text, Statement[] body)
+	static void Block(StringBuilder text, SqlList<Statement> body)
 	{
 		for (var i = 0; i < body.Length; i++)
 		{
@@ -1349,7 +1349,7 @@ public static class SqlWriter
 	}
 
 	static void Permission(
-		StringBuilder text, string word, string[] privileges, string? on, string way, string[] principals)
+		StringBuilder text, string word, SqlList<string> privileges, string? on, string way, SqlList<string> principals)
 	{
 		text.Append(word).Append(' ').Append(string.Join(", ", privileges));
 
@@ -1360,7 +1360,7 @@ public static class SqlWriter
 	}
 
 	/// <summary>The common table expressions in front of a statement, or nothing.</summary>
-	static void With(StringBuilder text, Clause[]? with)
+	static void With(StringBuilder text, SqlList<Clause>? with)
 	{
 		if (with is not { Length: > 0 })
 			return;
@@ -1391,7 +1391,7 @@ public static class SqlWriter
 	}
 
 	/// <summary>A statement's <c>OPTION (…)</c>, or nothing.</summary>
-	static void Hinted(StringBuilder text, Clause[]? options)
+	static void Hinted(StringBuilder text, SqlList<Clause>? options)
 	{
 		if (options is not { Length: > 0 })
 			return;
@@ -1401,14 +1401,14 @@ public static class SqlWriter
 		text.Append(')');
 	}
 
-	static void Parameters(StringBuilder text, Clause[] parameters)
+	static void Parameters(StringBuilder text, SqlList<Clause> parameters)
 	{
 		text.Append(" (");
 		Each(text, parameters);
 		text.Append(')');
 	}
 
-	static void From(StringBuilder text, TableReference[] from)
+	static void From(StringBuilder text, SqlList<TableReference> from)
 	{
 		if (from.Length == 0)
 			return;
@@ -1520,7 +1520,7 @@ public static class SqlWriter
 			default:
 				// A `DROP` names several; everything else names one, and a few name none.
 				if (statement.GetType().GetProperty("Names") is { } many &&
-					many.GetValue(statement) is Expression[] names)
+					many.GetValue(statement) is SqlList<Expression> names)
 				{
 					for (var i = 0; i < names.Length; i++)
 					{
@@ -1737,7 +1737,7 @@ public static class SqlWriter
 	/// one column — and the tree keeps the value rather than a row around it. T-SQL wants the
 	/// brackets, so they are written here, which is the dialect this prints.
 	/// </remarks>
-	static void Rows(StringBuilder text, Expression[] rows)
+	static void Rows(StringBuilder text, SqlList<Expression> rows)
 	{
 		for (var i = 0; i < rows.Length; i++)
 		{
@@ -1918,7 +1918,7 @@ public static class SqlWriter
 		}
 	}
 
-	static void Hints(StringBuilder text, Clause[] hints)
+	static void Hints(StringBuilder text, SqlList<Clause> hints)
 	{
 		if (hints.Length == 0)
 			return;
@@ -1928,7 +1928,7 @@ public static class SqlWriter
 		text.Append(')');
 	}
 
-	static void Alias(StringBuilder text, string? name, string[]? columns)
+	static void Alias(StringBuilder text, string? name, SqlList<string>? columns)
 	{
 		if (name is not null)
 			text.Append(" AS ").Append(name);
@@ -1936,14 +1936,14 @@ public static class SqlWriter
 		Names(text, columns);
 	}
 
-	static void Names(StringBuilder text, string[]? columns)
+	static void Names(StringBuilder text, SqlList<string>? columns)
 	{
 		if (columns is not null)
 			text.Append(" (").Append(string.Join(", ", columns)).Append(')');
 	}
 
 	/// <summary>Sort specifications in brackets, or nothing where there are none.</summary>
-	static void Columns(StringBuilder text, Clause[]? columns)
+	static void Columns(StringBuilder text, SqlList<Clause>? columns)
 	{
 		if (columns is not { Length: > 0 })
 			return;
@@ -1954,7 +1954,7 @@ public static class SqlWriter
 	}
 
 	/// <summary>A word and sort specifications in brackets, or nothing where there are none.</summary>
-	static void Columns(StringBuilder text, Clause[]? columns, string word)
+	static void Columns(StringBuilder text, SqlList<Clause>? columns, string word)
 	{
 		if (columns is not { Length: > 0 })
 			return;
@@ -1972,26 +1972,26 @@ public static class SqlWriter
 	/// printed the other way round at one time or another, and the round trip said so each
 	/// time: six indexes the first way, two keys the second.
 	/// </remarks>
-	static void Optioned(StringBuilder text, Clause[]? options, bool bracketed = true, bool listed = true)
+	static void Optioned(StringBuilder text, SqlList<Clause>? options, bool bracketed = true, bool listed = true)
 	{
-		if (options is not { Length: > 0 })
+		if (options is not { Length: > 0 } list)
 			return;
 
 		text.Append(bracketed ? " WITH (" : " WITH ");
 
 		if (bracketed)
 		{
-			Each(text, options);
+			Each(text, list);
 			text.Append(')');
 			return;
 		}
 
-		for (var i = 0; i < options.Length; i++)
+		for (var i = 0; i < list.Length; i++)
 		{
 			if (i > 0)
 				text.Append(listed ? ", " : " ");
 
-			Put(text, options[i]);
+			Put(text, list[i]);
 		}
 	}
 
@@ -2014,7 +2014,7 @@ public static class SqlWriter
 	}
 
 	/// <summary>Placements one after another, each with its word.</summary>
-	static void Placed(StringBuilder text, Clause[]? placements)
+	static void Placed(StringBuilder text, SqlList<Clause>? placements)
 	{
 		foreach (var one in placements ?? Clause.None)
 		{
@@ -2659,7 +2659,7 @@ public static class SqlWriter
 		if (pairs.Length > 0)
 		{
 			text.Append(" (");
-			Each(text, pairs);
+			Each(text, SqlList.Own<Clause>(pairs));
 			text.Append(')');
 		}
 
@@ -2743,7 +2743,7 @@ public static class SqlWriter
 	}
 
 	/// <summary>A word and names in brackets, or nothing where there are no names.</summary>
-	static void Names(StringBuilder text, string[]? columns, string word)
+	static void Names(StringBuilder text, SqlList<string>? columns, string word)
 	{
 		if (columns is not null)
 		{
@@ -2796,14 +2796,16 @@ public static class SqlWriter
 		}
 	}
 
-	static void Each(StringBuilder text, Clause[] clauses)
+	static void Each(StringBuilder text, SqlList<Clause>? clauses)
 	{
-		for (var i = 0; i < clauses.Length; i++)
+		var list = clauses.GetValueOrDefault();
+
+		for (var i = 0; i < list.Length; i++)
 		{
 			if (i > 0)
 				text.Append(", ");
 
-			Put(text, clauses[i]);
+			Put(text, list[i]);
 		}
 	}
 
@@ -3351,19 +3353,21 @@ public static class SqlWriter
 	}
 
 	/// <summary>A comma list with no brackets around it: the rows of a `VALUES`, a `GROUP BY`.</summary>
-	static void List(StringBuilder text, Expression[] values)
+	static void List(StringBuilder text, SqlList<Expression>? values)
 	{
-		for (var i = 0; i < values.Length; i++)
+		var list = values.GetValueOrDefault();
+
+		for (var i = 0; i < list.Length; i++)
 		{
 			if (i > 0)
 				text.Append(", ");
 
-			Put(text, values[i], 0);
+			Put(text, list[i], 0);
 		}
 	}
 
 	static void Arguments(
-		StringBuilder text, Expression[] arguments, string before, bool opened = false)
+		StringBuilder text, SqlList<Expression> arguments, string before, bool opened = false)
 	{
 		if (!opened)
 		{

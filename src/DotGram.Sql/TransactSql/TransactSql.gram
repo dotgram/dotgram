@@ -301,7 +301,7 @@ TSqlValuePrimary : @Expression
 AtTimeZone : @Expression
 	= how: Collate? & "AT"i & "TIME"i & "ZONE"i & v: TimeZone
 		=> @(new Expression.RoutineInvocation("AT TIME ZONE",
-				 new Expression[] { how is null ? null! : new Expression.Collated(null!, how), v }))
+				 [how is null ? null! : new Expression.Collated(null!, how), v]))
 
 // A zone is a primary with its members, and signs in front of it: `- b`, `~ b`, `b::c`.
 TimeZone : @Expression
@@ -334,7 +334,7 @@ TSqlPrimaryCore : @Expression
 // read, and `dbo.LEFT(1)` and `LEFT('a', 1) OVER ()` are refused.
 LeftRightCall : @Expression
 	= name: ("LEFT"i | "RIGHT"i) & '(' & args: Arguments? & ')'
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 
 // A table's identity and row-GUID columns by the reserved words that name them, under
 // whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`, and
@@ -349,7 +349,7 @@ RowColumnName = (NamePartName & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
 // The tree is the call's, the part a column reference as it was.
 DatePartCall : @Expression
 	= name: DatePartFunction & '(' & part: DatePart & (',' & rest: Arguments)? & ')' & tail: CallTail?
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Listed(part, rest)), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Listed(part, rest))), tail))
 
 DatePartFunction : @string
 	= t: ("DATEPART"i | "DATENAME"i | "DATEADD"i | "DATEDIFF_BIG"i | "DATEDIFF"i | "DATETRUNC"i | "DATE_BUCKET"i)
@@ -389,10 +389,10 @@ OdbcLiteralKind : @string = t: ("TS"i | "D"i | "T"i | "GUID"i) => @(t)
 OdbcFunction : @Expression.OdbcEscape
 	= name: "CONVERT"i & '(' & v: ValueExpression & ',' & t: OdbcType & ')'
 		=> @(new Expression.OdbcEscape(
-				 "", new Expression.RoutineInvocation(name, new Expression[] { v, new Expression.ColumnReference(t) }), true))
+				 "", new Expression.RoutineInvocation(name, [v, new Expression.ColumnReference(t)]), true))
 	| ?!("CONVERT"i & '(') & name: OdbcName & '(' & args: Arguments? & ')'
 		=> @(new Expression.OdbcEscape(
-				 "", new Expression.RoutineInvocation(name, args ?? Expression.None), true))
+				 "", new Expression.RoutineInvocation(name, SqlList.Own(args)), true))
 	| v: ValueExpression => @(new Expression.OdbcEscape("", v))
 
 OdbcName = word
@@ -415,22 +415,22 @@ OdbcType : @string
 Member : @Expression.Member
 	= by: ("::" | '.') & name: Identifier
 	  & call: ('(' & args: Arguments? & ')')?
-		=> @(new Expression.Member(null!, by, name, call is null ? null : args ?? Expression.None))
+		=> @(new Expression.Member(null!, by, name, call is null ? null : SqlList.Own(args)))
 
 // §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
 TSqlCast : @Expression
-	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
-	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, [v], type))
+	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, [v], type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
 	  & (',' & style: ValueExpression)? & ')'
-		=> @(new Expression.RoutineInvocation(name, style is null ? new Expression[] { v } : new Expression[] { v, style }, type))
+		=> @(new Expression.RoutineInvocation(name, style is null ? [v] : [v, style], type))
 	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
 	  & ("USING"i & culture: ValueExpression)? & ')'
 		=> @(new Expression.RoutineInvocation(
 				 name,
-				 culture is null ? new Expression[] { v } : new Expression[] { v, culture },
+				 culture is null ? [v] : [v, culture],
 				 type))
 
 // The T-SQL functions with a syntax of their own rather than an argument list, which
@@ -443,13 +443,13 @@ TSqlCast : @Expression
 // return. All three are from the published syntax of `JSON_OBJECT`.
 TSqlValueFunction : @Expression
 	= name: "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
-		=> @(new Expression.RoutineInvocation(name, new Expression[] { c, a, b }))
+		=> @(new Expression.RoutineInvocation(name, [c, a, b]))
 	| name: "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-		=> @(new Expression.RoutineInvocation(name, Syntax.Listed(at, Syntax.Listed(first, rest))))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Listed(at, Syntax.Listed(first, rest)))))
 	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(body)), tail))
 	| name: "JSON_ARRAY"i & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(body)), tail))
 
 	// `JSON_ARRAYAGG (value [ORDER BY list] [null clause] [RETURNING JSON])`, in that order —
 	// `NULL ON NULL ORDER BY x` and `RETURNING JSON ORDER BY x` are `Msg 156` — and the order
@@ -473,12 +473,12 @@ TSqlValueFunction : @Expression
 	// that order: `WITHOUT`, `WITH WRAPPER`, `CONDITIONAL` and a value after them are 102.
 	| name: "JSON_VALUE"i & '(' & args: Arguments? & returning: JsonValueReturning? & ')' & tail: CallTail?
 	  & when @(returning is null || args is { Length: 2 })
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(args ?? Expression.None, returning)), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Tailed(args ?? [], returning))), tail))
 	| name: "JSON_QUERY"i & '(' & first: ValueExpression & (',' & second: ValueExpression)? & wrapped: JsonWrapper? & ')' & tail: CallTail?
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped)), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped))), tail))
 	| name: "JSON_ARRAYAGG"i & '(' & { items: Arguments? } & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
 	  & tail: CallTail? & when @(Syntax.Aggregated(items, order, nulls, returning, tail))
-		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(items ?? Expression.None, order, nulls, returning)), tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Tailed(items ?? [], order, nulls, returning))), tail))
 
 // **The null clause needs something to be null, and so does the return type.** The published
 // syntax makes the key values and the clauses independently optional — `JSON_OBJECT (
@@ -557,7 +557,7 @@ FunctionCall : @Expression
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
-					 name, Syntax.Tailed(args ?? Expression.None, model), Syntax.Distinctly(quantifier)), tail))
+					 name, SqlList.Own(Syntax.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three are kept,
@@ -622,7 +622,7 @@ WindowSpecification : @Clause.Window
 	  & by: OrderByClause?
 	  & frame: WindowFrame?
 		=> @(new Clause.Window(
-				 name, first is null ? Expression.None : Syntax.Listed(first, rest),
+				 name, first is null ? Expression.None : SqlList.Own(Syntax.Listed(first, rest)),
 				 Clause.Ordered(by, null), frame))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
@@ -795,16 +795,16 @@ XmlContent = "CONTENT"i | "DOCUMENT"i
 // written with the nodes the rowset functions use for the same things.
 FullTextPredicate : @Expression
 	= name: FullTextName & '(' & c: FullTextColumns & ',' & s: FullTextSearch & l: SearchLanguage? & ')'
-		=> @(new Expression.RoutineInvocation(name, l is null ? new[] { c, s } : new[] { c, s, l }))
+		=> @(new Expression.RoutineInvocation(name, l is null ? [c, s] : [c, s, l]))
 
 FullTextName = "CONTAINS"i | "FREETEXT"i
 
 FullTextColumns : @Expression
 	= a: FullTextAll => @(a)
 	| ?=("PROPERTY"i & '(' & QualifiedName & ',' & Quoted & ')') & p: ValueExpression => @(p)
-	| '(' & a: FullTextAll & ')' => @(new Expression.RowValueConstructor(new[] { a }))
+	| '(' & a: FullTextAll & ')' => @(new Expression.RowValueConstructor([a]))
 	| '(' & first: SearchedColumn & (',' & rest: SearchedColumn)* & ')'
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| c: SearchedColumn => @(c)
 
 // Every column, or every column of one table.
@@ -827,12 +827,12 @@ TSqlPredicate : @Expression
 	| f: FullTextPredicate => @(f)
 	| name: ("TSEQUAL"i | "UPDATE"i)
 	  & '(' & args: Arguments? & ')'
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 	// A condition from 170: before it `WHERE REGEXP_LIKE ('abc', '^a')` is `Msg 4145`, a value
 	// where a condition stands, which a call of that name is here too.
 	| name: "REGEXP_LIKE"i & when Version is Since170
 	  & '(' & args: Arguments? & ')'
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 	| m: GraphMatch => @(m)
 	// The row is read once for everything that may follow it, as the standard's predicate is.
 	// Written as two alternatives, the row was read again for `IS DISTINCT FROM` wherever the
@@ -894,8 +894,8 @@ TSqlQuerySpecification : @Query
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & windows: Window?
 		=> @(new Query.Specification(
-				 Syntax.Distinctly(quantifier), top, columns, into,
-				 from ?? TableReference.None, where, group, having, windows))
+				 Syntax.Distinctly(quantifier), top, SqlList.Own(columns), into,
+				 SqlList.Own(from), where, group, having, SqlList.OwnOrNull(windows)))
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,
 // for the reason `CallTail` gives.
@@ -964,7 +964,7 @@ TSqlSelectSublist : @Clause
 // query says here.
 IdentityFunction : @Expression
 	= name: "IDENTITY"i & '(' & type: DataType & (',' & seed: IdentityNumber & ',' & step: IdentityNumber)? & ')'
-		=> @(new Expression.RoutineInvocation(name, seed is null ? Expression.None : new Expression[] { seed, step! }, type))
+		=> @(new Expression.RoutineInvocation(name, seed is null ? Expression.None : [seed, step!], type))
 
 IdentityNumber : @Expression
 	= t: (['+' | '-']? & Sql92.Lexical.UnsignedNumericLiteral)
@@ -991,18 +991,18 @@ TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | ?!Label & t: TSqlAlias =
 // the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
 TSqlGroupByClause : @Clause
 	= "GROUP"i & "BY"i & "ALL"i & first: TSqlGrouping & (',' & rest: TSqlGrouping)*
-		=> @(new Clause.GroupBy(true, Syntax.Listed(first, rest), null))
+		=> @(new Clause.GroupBy(true, SqlList.Own(Syntax.Listed(first, rest)), null))
 	| "GROUP"i & "BY"i & first: TSqlGrouping & (',' & rest: TSqlGrouping)* & with: GroupWith?
-		=> @(new Clause.GroupBy(false, Syntax.Listed(first, rest), with))
+		=> @(new Clause.GroupBy(false, SqlList.Own(Syntax.Listed(first, rest)), with))
 
 GroupWith : @string = "WITH"i & t: ("CUBE"i | "ROLLUP"i) => @(t)
 					| "WITH"i & '(' & t: Identifier & ')' => @(t)
 
 TSqlGrouping : @Expression
-	= "CUBE"i     & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
-	| "ROLLUP"i   & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
+	= "CUBE"i     & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   SqlList.Own(g)))
+	| "ROLLUP"i   & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", SqlList.Own(g)))
 	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
-		=> @(new Expression.RoutineInvocation("GROUPING SETS", Syntax.Listed(first, rest)))
+		=> @(new Expression.RoutineInvocation("GROUPING SETS", SqlList.Own(Syntax.Listed(first, rest))))
 	| e: GroupByItem => @(e)
 
 GroupList : @Expression[]
@@ -1020,7 +1020,7 @@ GroupByExpression : @Expression
 	= '(' & ')' => @(new Expression.RowValueConstructor(Expression.None))
 	| c: TSqlGroupingColumn => @(c)
 	| '(' & first: TSqlGroupingColumn & (',' & rest: TSqlGroupingColumn)* & ')'
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 
 // At the top of a `GROUP BY` there is no bracketed list: `GROUP BY (a, b)` is refused by the
 // server with Msg 102 at the comma, and a list of columns standing as one is read only inside
@@ -1037,15 +1037,15 @@ TSqlGroupingColumn : @Expression
 // One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
 // group-by expression. A grouping set inside a grouping set is not here, deliberately.
 GroupingSet : @Expression
-	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
+	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   SqlList.Own(g)))
+	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", SqlList.Own(g)))
 	| '(' & first: GroupingSetItem & (',' & rest: GroupingSetItem)* & ')'
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| e: GroupByExpression => @(e)
 
 GroupingSetItem : @Expression
-	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
+	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   SqlList.Own(g)))
+	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", SqlList.Own(g)))
 	| e: GroupByExpression => @(e)
 
 // ── §7.5's joined table, widened ────────────────────────────────────────────
@@ -1113,16 +1113,16 @@ TSqlTablePrimary : @TableReference
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
-				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot))
 	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
-		=> @(new TableReference.FunctionCall(f, alias, null, schema))
+		=> @(new TableReference.FunctionCall(f, alias, null, SqlList.Own(schema)))
 	| f: ChunksFunction & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.FunctionCall(f, alias, null, Clause.None), pivot))
 	| f: RowsetFunction & schema: RowsetSchema? & when @(Syntax.Schemas(f, schema))
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
-				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot))
 	| server: AdHocServer & named: AdHocObject & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Named(named, null, false, alias, null, null, Clause.None, server), pivot))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
@@ -1138,7 +1138,7 @@ TSqlTablePrimary : @TableReference
 	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Syntax.Pivoted(Syntax.OfVariable(t, s), pivot))
 	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, columns), pivot))
+		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, SqlList.OwnOrNull(columns)), pivot))
 	// A join in brackets, and never one source alone, nor a join its pivot ends
 	// (`Syntax.Bracketable`). Pivots may follow the brackets; a sample or hints may not (`Msg
 	// 156`, `Msg 319`), and neither may a name (`Msg 102`).
@@ -1157,8 +1157,8 @@ VariableSource : @TableReference
 	= '.' & method: Identifier & '(' & args: Arguments? & ')'
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 		=> @(new TableReference.FunctionCall(
-				 new Expression.RoutineInvocation("." + method, args ?? Expression.None),
-				 alias, columns, Clause.None))
+				 new Expression.RoutineInvocation("." + method, SqlList.Own(args)),
+				 alias, SqlList.OwnOrNull(columns), Clause.None))
 	// The variable itself takes a name and nothing a table does: `FROM @t TABLESAMPLE (10 PERCENT)`
 	// is `Msg 156` and `FROM @t WITH (NOLOCK)` is `Msg 319`, with the variable declared. Undeclared,
 	// the engine stops at its name with `Msg 137` and says nothing of the rest.
@@ -1182,12 +1182,12 @@ PivotOne : @TableReference = p: Pivot => @(p) | u: Unpivot => @(u)
 Pivot : @TableReference
 	= "PIVOT"i & '(' & aggregate: ValueExpression & "FOR"i & column: QualifiedName
 	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
-		=> @(new TableReference.Pivot(null!, aggregate, column, names, alias))
+		=> @(new TableReference.Pivot(null!, aggregate, column, SqlList.Own(names), alias))
 
 Unpivot : @TableReference
 	= "UNPIVOT"i & '(' & value: QualifiedName & "FOR"i & column: QualifiedName
 	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
-		=> @(new TableReference.Unpivot(null!, value, column, names, alias))
+		=> @(new TableReference.Unpivot(null!, value, column, SqlList.Own(names), alias))
 
 PivotNames : @string[]
 	= first: PivotName & (',' & rest: PivotName)* => @(Syntax.Named(first, rest))
@@ -1207,13 +1207,13 @@ SystemTime : @Clause
 
 SystemTimeWhen : @Clause
 	= "AS"i & "OF"i & v: ValueExpression
-		=> @(new Clause.SystemTime("AS OF", new Expression[] { v }))
+		=> @(new Clause.SystemTime("AS OF", [v]))
 	| "FROM"i & from: ValueExpression & "TO"i & to: ValueExpression
-		=> @(new Clause.SystemTime("FROM", new Expression[] { from, to }))
+		=> @(new Clause.SystemTime("FROM", [from, to]))
 	| "BETWEEN"i & from: ValueExpression & "AND"i & to: ValueExpression
-		=> @(new Clause.SystemTime("BETWEEN", new Expression[] { from, to }))
+		=> @(new Clause.SystemTime("BETWEEN", [from, to]))
 	| "CONTAINED"i & "IN"i & '(' & from: ValueExpression & ',' & to: ValueExpression & ')'
-		=> @(new Clause.SystemTime("CONTAINED IN", new Expression[] { from, to }))
+		=> @(new Clause.SystemTime("CONTAINED IN", [from, to]))
 	| "ALL"i => @(new Clause.SystemTime("ALL", Expression.None))
 
 // A correlation name is an identifier, and not one of the words that begin a clause of
@@ -1377,12 +1377,12 @@ TSqlSubquery : @Query
 // as `(1)`, which the standard's rule, reading a row of one without its brackets, refused.
 TSqlTableValueConstructor : @Query
 	= "VALUES"i & first: TSqlRow & (',' & rest: TSqlRow)*
-		=> @(new Query.TableValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Query.TableValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 
 TSqlRow : @Expression
 	= '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)* & ')'
 		=> @(rest is { Length: > 0 }
-				 ? new Expression.RowValueConstructor(Syntax.Listed(first, rest))
+				 ? new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest)))
 				 : new Expression.Parenthesized(first))
 
 // ── §13.1's direct select, widened ──────────────────────────────────────────
@@ -1396,9 +1396,9 @@ TSqlDirectSelect : @Statement
 	  & shape: ForClause? & options: QueryHints?
 	  & when @((by is null || !Syntax.AssignsFromNothing(q)) && !Syntax.AssignsCombined(q))
 		=> @(new Statement.Select(
-				 with ?? Clause.None, q, Clause.Ordered(by, window),
-				 shape is null ? Clause.None : new Clause[] { shape },
-				 options ?? Clause.None))
+				 SqlList.Own(with), q, Clause.Ordered(by, window),
+				 shape is null ? Clause.None : [shape],
+				 SqlList.Own(options)))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
 // that uses it. Kept as one clause per definition — `Clause.CommonTableExpression`, name,
@@ -1425,7 +1425,7 @@ XmlNamespace  = "DEFAULT"i & ValueExpression
 			  | ValueExpression & "AS"i & Identifier
 CteDefinition : @Clause.CommonTableExpression
 	= name: Identifier & ('(' & columns: ColumnList & ')')? & "AS"i & '(' & q: CteBody & ')'
-		=> @(new Clause.CommonTableExpression(name, columns, q))
+		=> @(new Clause.CommonTableExpression(name, SqlList.OwnOrNull(columns), q))
 
 // §13.1 sorts by a column or by its position in the select list; T-SQL sorts by any value —
 // `ORDER BY a + 1`, `LEN(a)`, a `CASE`, a subquery — and a position is a number among them.
@@ -1472,9 +1472,9 @@ RowWord = "ROWS"i | "ROW"i
 ForClause : @Clause
 	= "FOR"i & "BROWSE"i => @(new Clause.For("BROWSE", Syntax.NoNames))
 	| "FOR"i & kind: ForXml & first: XmlMode & (',' & rest: XmlDirective)*
-		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
+		=> @(new Clause.For(kind, SqlList.Own(Syntax.Named(first, rest))))
 	| "FOR"i & kind: ForJson & first: JsonMode & (',' & rest: JsonDirective)*
-		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
+		=> @(new Clause.For(kind, SqlList.Own(Syntax.Named(first, rest))))
 
 ForXml  = "XML"i
 ForJson = "JSON"i
@@ -1701,27 +1701,27 @@ RowsetArgument : @Expression
 	= '*'                                        => @(new Expression.ColumnReference("*"))
 	| n: RowsetOrder                             => @(n)
 	| word: "BULK"i & '(' & first: RowsetValue & (',' & rest: RowsetValue)+ & ')'
-		=> @(new Expression.Prefixed(word, new Expression.RowValueConstructor(Syntax.Listed(first, rest))))
+		=> @(new Expression.Prefixed(word, new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest)))))
 	| word: "BULK"i & v: RowsetValue             => @(new Expression.Prefixed(word, v))
 	| name: Identifier & '=' & v: RowsetValue & alias: DataAlias?
 	  & when @(alias is null || string.Equals(name, "DATA", System.StringComparison.OrdinalIgnoreCase))
 		=> @(new Expression.NamedArgument(name, alias is null ? v : (Expression)(alias with { Value = v })))
 	| word: Identifier & v: RowsetValue          => @(new Expression.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| v: RowsetValue                             => @(v)
 
 // `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
 RowsetOrder : @Expression
 	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
 	  & unique: "UNIQUE"i?
-		=> @(new Expression.RowsetOrder(Syntax.Listed(first, rest), unique is not null))
+		=> @(new Expression.RowsetOrder(SqlList.Own(Syntax.Listed(first, rest)), unique is not null))
 
 // A provider's arguments may be joined by semicolons rather than commas — a connection
 // string written as three pieces, which is `OPENROWSET`'s oldest spelling.
 RowsetValue : @Expression
 	= first: ValueExpression & (';' & rest: ValueExpression)+
-		=> @(new Expression.Pieced(Syntax.Listed(first, rest)))
+		=> @(new Expression.Pieced(SqlList.Own(Syntax.Listed(first, rest))))
 	| "NULL"i    => @(Expression.NullValue)
 	| "DEFAULT"i => @(Expression.DefaultValue)
 	| v: ValueExpression => @(v)
@@ -1733,7 +1733,7 @@ RowsetValue : @Expression
 // a rule of its own because it is also the only rowset a statement writes to (`DmlTarget`).
 OpenQueryCall : @Expression.RoutineInvocation
 	= name: "OPENQUERY"i & '(' & server: Identifier & ',' & query: BrokerString & ')'
-		=> @(new Expression.RoutineInvocation(name, new Expression[] { new Expression.ColumnReference(server), query }))
+		=> @(new Expression.RoutineInvocation(name, [new Expression.ColumnReference(server), query]))
 
 RowsetFunction : @Expression.RoutineInvocation
 	= f: OpenQueryCall => @(f)
@@ -1741,12 +1741,12 @@ RowsetFunction : @Expression.RoutineInvocation
 	// 'pw'` being one — and the third a string or an object's name: `OPENROWSET (something, @v)`
 	// is `Msg 156`, `('p', @v)` and `(@p, 'c', 'q')` 102, where `('p', 'c', db.dbo.t)` reads.
 	| name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Syntax.Provided(name, args))
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
-		=> @(new Expression.RoutineInvocation(name, Syntax.Written(new Expression.ColumnReference(table), c, s, l, n)))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Written(new Expression.ColumnReference(table), c, s, l, n))))
 	| name: SemanticName & '(' & args: SemanticArguments? & ')'
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 
 // The three semantic-search functions, which take every column (`*`) or a list of them from
 // level 110 and one column at every level; `CONTAINSTABLE (t, *, …)`, the same shape, reads
@@ -1760,7 +1760,7 @@ SemanticArguments : @Expression[]
 SemanticArgument : @Expression
 	= '*' & when Version is Since110 => @(new Expression.ColumnReference("*"))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')' & when Version is Since110
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| ?!('*' | '(') & v: RowsetArgument => @(v)
 
 // `OPENJSON` is a rowset function like the others but for one thing: its schema reads from
@@ -1769,7 +1769,7 @@ SemanticArgument : @Expression
 // has a rule of its own, and is not among the names below.
 JsonFunction : @Expression.RoutineInvocation
 	= name: "OPENJSON"i & '(' & args: RowsetArguments? & ')'
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 
 JsonSchema : @Clause[]
 	= "WITH"i & '(' & first: JsonSchemaColumn & (',' & rest: JsonSchemaColumn)* & ')' & when Version is Since130
@@ -1797,7 +1797,7 @@ JsonSchema : @Clause[]
 ChunksFunction : @Expression.RoutineInvocation
 	= name: "AI_GENERATE_CHUNKS"i & '(' & s: ChunksSource & ',' & t: ChunksType & ',' & z: ChunksSize
 	  & (',' & o: ChunksOverlap & (',' & e: ChunksSet)?)? & ')' & when Version is Since170
-		=> @(new Expression.RoutineInvocation(name, Syntax.Written(s, t, z, o, e)))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(Syntax.Written(s, t, z, o, e))))
 
 SourceName
 	= ?!("AI_GENERATE_CHUNKS"i & '(') & QualifiedName
@@ -1829,7 +1829,7 @@ DataAlias : @Expression.Aliased
 // named for it — and the alias after it takes no columns.
 PredictCall : @Expression.RoutineInvocation
 	= name: "PREDICT"i & '(' & args: RowsetArguments & ')' & when @(Syntax.Predicts(args))
-		=> @(new Expression.RoutineInvocation(name, args))
+		=> @(new Expression.RoutineInvocation(name, SqlList.Own(args)))
 
 PredictSchema : @Clause[]
 	= "WITH"i & '(' & first: PredictColumn & (',' & rest: PredictColumn)* & ')' => @(Syntax.Listed(first, rest))
@@ -1846,7 +1846,7 @@ PredictColumn : @Clause
 // takes a correlation name, and no columns, no version, no sample and no hints.
 AdHocServer : @Expression.RoutineInvocation
 	= name: "OPENDATASOURCE"i & '(' & provider: BrokerString & ',' & init: BrokerString & ')'
-		=> @(new Expression.RoutineInvocation(name, new Expression[] { provider, init }))
+		=> @(new Expression.RoutineInvocation(name, [provider, init]))
 
 AdHocObject : @string
 	= '.' & t: Quoted                                       => @(t)
@@ -1862,9 +1862,9 @@ FullTextTableName = "CONTAINSTABLE"i | "FREETEXTTABLE"i
 TableSearchColumns : @Expression
 	= '*' => @(new Expression.ColumnReference("*"))
 	| ?=("PROPERTY"i & '(' & QualifiedName & ',' & Quoted & ')') & p: ValueExpression => @(p)
-	| '(' & '*' & ')' => @(new Expression.RowValueConstructor(new Expression[] { new Expression.ColumnReference("*") }))
+	| '(' & '*' & ')' => @(new Expression.RowValueConstructor([new Expression.ColumnReference("*")]))
 	| '(' & first: TableSearchColumn & (',' & rest: TableSearchColumn)* & ')'
-		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| c: TableSearchColumn => @(c)
 
 TableSearchColumn : @Expression = t: Identifier => @(new Expression.ColumnReference(t))
@@ -1918,8 +1918,8 @@ StatementBody : @Statement
 DmlTarget : @TableReference
 	= server: AdHocServer & named: AdHocObject => @(new TableReference.Named(named, null, false, null, null, null, Clause.None, server))
 	| f: OpenQueryCall                  => @(new TableReference.FunctionCall(f, null, null, Clause.None))
-	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
-	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
+	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, SqlList.Own(hints)))
+	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, SqlList.Own(hints)))
 
 // A table-valued function is a target too, its arguments and nothing after them: the
 // engine reads `UPDATE dbo.f() SET …`, `DELETE FROM dbo.f(1)` and `MERGE dbo.f() USING …`,
@@ -1927,7 +1927,7 @@ DmlTarget : @TableReference
 DmlCall : @TableReference
 	= name: QualifiedName & '(' & args: Arguments? & ')'
 		=> @(new TableReference.FunctionCall(
-				 new Expression.RoutineInvocation(name, args ?? Expression.None), null, null, Clause.None))
+				 new Expression.RoutineInvocation(name, SqlList.Own(args)), null, null, Clause.None))
 
 DmlSubject : @TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 
@@ -1943,11 +1943,11 @@ TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: InsertInto? & target: DmlTarget
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
-		=> @(new Statement.Insert(target, columns, rows, null, top, output, into) { Options = options })
+		=> @(new Statement.Insert(target, SqlList.OwnOrNull(columns), rows, null, top, output, into) { Options = SqlList.OwnOrNull(options) })
 	| "INSERT"i & top: Top? & into: InsertInto? & target: DmlCall & when @(Syntax.Written(target))
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
-		=> @(new Statement.Insert(target, columns, rows, null, top, output, into) { Options = options })
+		=> @(new Statement.Insert(target, SqlList.OwnOrNull(columns), rows, null, top, output, into) { Options = SqlList.OwnOrNull(options) })
 
 // What an `INSERT` names its columns by, which is not the standard's plain identifier: a part
 // may be left out, `INSERT @v1 (..a1)`, as it may wherever a name is written. Reading them as
@@ -1980,11 +1980,11 @@ InsertRows : @Query
 ChangedSource : @Query
 	= "SELECT"i & columns: SelectList & when @(!Syntax.HasIdentity(columns))
 	  & "FROM"i & source: ChangedTable & where: WhereClause?
-		=> @(new Query.Specification(null, null, columns, null, new TableReference[] { source }, where, null, null))
+		=> @(new Query.Specification(null, null, SqlList.Own(columns), null, [source], where, null, null))
 
 ChangedTable : @TableReference
 	= '(' & s: ChangedStatement & ')' & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
-		=> @(new TableReference.Changed(s, alias, columns))
+		=> @(new TableReference.Changed(s, alias, SqlList.OwnOrNull(columns)))
 
 ChangedStatement : @Statement
 	= s: TSqlDelete & when @(Syntax.Returns(s)) => @(s)
@@ -1997,7 +1997,7 @@ TSqlUpdate : @Statement
 	= "UPDATE"i & top: Top? & target: DmlSubject
 	  & "SET"i & sets: Assignments & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
-		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where, null, top, output, options))
+		=> @(new Statement.Update(target, SqlList.Own(sets), SqlList.Own(from), where, null, top, output, SqlList.OwnOrNull(options)))
 
 Assignments : @Clause[]
 	= first: Assignment & (',' & rest: Assignment)* => @(Syntax.Listed(first, rest))
@@ -2016,7 +2016,7 @@ Assignment : @Clause
 
 MethodCallTail : @Clause.Set
 	= '.' & method: Identifier & '(' & args: Arguments? & ')'
-		=> @(new Clause.Set("", "", new Expression.RoutineInvocation("." + method, args ?? Expression.None)))
+		=> @(new Clause.Set("", "", new Expression.RoutineInvocation("." + method, SqlList.Own(args))))
 
 // The name of a column being written to, which is narrower than the name of one being read.
 // A `$` name stands alone there and carries no prefix: `INSERT t1 ($node_id)` and `UPDATE t1
@@ -2079,7 +2079,7 @@ DmlWhere : @Expression
 TSqlDelete : @Statement
 	= "DELETE"i & top: Top? & "FROM"i? & target: DmlSubject & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
-		=> @(new Statement.Delete(target, from ?? TableReference.None, where, null, top, output, options))
+		=> @(new Statement.Delete(target, SqlList.Own(from), where, null, top, output, SqlList.OwnOrNull(options)))
 
 // ── §MERGE ──────────────────────────────────────────────────────────────────
 //
@@ -2090,7 +2090,7 @@ TSqlMerge : @Statement
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & output: OutputClause? & options: QueryHints?
-		=> @(new Statement.Merge(target, source, on, whens, null, top, alias, output, options, into is not null))
+		=> @(new Statement.Merge(target, source, on, SqlList.Own(whens), null, top, alias, output, SqlList.OwnOrNull(options), into is not null))
 
 MergeArm : @Clause
 	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
@@ -2104,7 +2104,7 @@ MergeArm : @Clause
 
 MergeChange : @Statement
 	= "UPDATE"i & "SET"i & sets: Assignments & when @(Syntax.Unchained(sets))
-		=> @(new Statement.Update(null, sets, TableReference.None, null))
+		=> @(new Statement.Update(null, SqlList.Own(sets), TableReference.None, null))
 	| "DELETE"i
 		=> @(new Statement.Delete(null, TableReference.None, null))
 
@@ -2115,7 +2115,7 @@ MergeChange : @Statement
 // `Msg 156` where `[$ACTION]` is read as the ordinary name it is.
 MergeInsert : @Statement
 	= "INSERT"i & ('(' & columns: MergeColumns & ')')? & rows: MergeInsertRows
-		=> @(new Statement.Insert(null, columns, rows))
+		=> @(new Statement.Insert(null, SqlList.OwnOrNull(columns), rows))
 
 MergeColumns : @string[] = first: MergeColumn & (',' & rest: MergeColumn)* => @(Syntax.Named(first, rest))
 
@@ -2131,9 +2131,9 @@ MergeInsertRows : @Query
 // for a merge — all of them ordinary names once `$` is part of one.
 OutputClause : @Clause
 	= "OUTPUT"i & items: OutputList & "INTO"i & into: DmlTarget & ('(' & columns: ColumnList & ')')? & next: OutputClause?
-		=> @(new Clause.Output(items, into, columns, next))
+		=> @(new Clause.Output(SqlList.Own(items), into, SqlList.OwnOrNull(columns), next))
 	| "OUTPUT"i & items: OutputList
-		=> @(new Clause.Output(items))
+		=> @(new Clause.Output(SqlList.Own(items)))
 
 OutputList : @Clause[] = first: OutputItem & (',' & rest: OutputItem)* => @(Syntax.Listed(first, rest))
 
@@ -2247,10 +2247,10 @@ StatementList : @Statement[] = ';'* & { s: SqlPiece+ } => @(s)
 TryCatchStatement : @Statement
 	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
 	  & "BEGIN"i & "CATCH"i & caught: StatementList? & "END"i & "CATCH"i
-		=> @(new Statement.TryCatch(tried, caught ?? System.Array.Empty<Statement>()))
+		=> @(new Statement.TryCatch(SqlList.Own(tried), SqlList.Own(caught)))
 
 StatementBlock : @Statement
-	= "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
+	= "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(SqlList.Own(body)))
 
 // A natively compiled module's body, which is one atomic block and nothing after it: `… AS BEGIN
 // ATOMIC WITH (…) SELECT 1; END; SELECT 2` is `Msg 156`. There is one nowhere else — in a batch,
@@ -2262,7 +2262,7 @@ StatementBlock : @Statement
 // refuse it and left every statement read where its reading is thrown away.
 AtomicBody : @Statement[]
 	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & { ';'* } & ?=eof
-		=> @(new Statement[] { new Statement.Compound(body, atomic) })
+		=> @(new Statement[] { new Statement.Compound(SqlList.Own(body), SqlList.OwnOrNull(atomic)) })
 
 // ── A natively compiled block's options ─────────────────────────────────────
 //
@@ -2361,7 +2361,7 @@ TranName : @string
 DeclareStatement : @Statement
 	= "DECLARE"i & name: Identifier & d: CursorDefinition => @(new Statement.DeclareCursor(name, d))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
-		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
+		=> @(new Statement.Declare(SqlList.Own(Syntax.Listed(first, rest))))
 
 Declaration : @Clause
 	= name: TSql.Variable & said: "AS"i? & d: DeclaredAs
@@ -2373,7 +2373,7 @@ Declaration : @Clause
 // business rather than this rule's.
 DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: DeclaredBody & ')' & when @(Syntax.Declared(body))
-		=> @(new Clause.VariableDeclaration("", "TABLE", null, body))
+		=> @(new Clause.VariableDeclaration("", "TABLE", null, SqlList.OwnOrNull(body)))
 	| "CURSOR"i                                    => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & ('=' & v: SetValue)?        => @(new Clause.VariableDeclaration("", type, v, null))
 
@@ -2515,7 +2515,7 @@ CodeStatement : @Statement
 		=> @(Statement.Defined("AGGREGATE", name, Syntax.Tail(tail)))
 	| "ADD"i & counter: "COUNTER"i? & "SIGNATURE"i & "TO"i & to: SignedModule & "BY"i
 	  & crypto: SignatureCrypto & (',' & cryptos: SignatureCrypto)*
-		=> @(new Statement.AddSignature(Syntax.Listed(crypto, cryptos), to, counter is not null))
+		=> @(new Statement.AddSignature(SqlList.Own(Syntax.Listed(crypto, cryptos)), to, counter is not null))
 
 AssemblyPermission = "SAFE"i | "EXTERNAL_ACCESS"i | "UNSAFE"i
 
@@ -2549,7 +2549,7 @@ LanguageOption : @Clause
 LanguagePlatform : @string = t: ("WINDOWS"i | "LINUX"i) => @(Syntax.Squared(t))
 
 ModelOptions : @Clause[]
-	= '(' & (first: ModelOption & (',' & rest: ModelOption)*)? & ')' => @(first is null ? Clause.None : Syntax.Listed(first, rest))
+	= '(' & (first: ModelOption & (',' & rest: ModelOption)*)? & ')' => @(first is null ? [] : Syntax.Listed(first, rest))
 
 ModelOption : @Clause
 	= "MODEL_TYPE"i & '=' & t: "EMBEDDINGS"i => @(new Clause.Option("MODEL_TYPE", new Expression.ColumnReference(t), Clause.None))
@@ -2587,9 +2587,9 @@ SignatureProof = "WITH"i & ("PASSWORD"i & '=' & Quoted | "SIGNATURE"i & '=' & TS
 // three, with strings for the labels and the types and a word for the rank, each once.
 MaintenanceStatement : @Statement
 	= "TRUNCATE"i & "TABLE"i & name: QualifiedName & p: TruncatePartitions?
-		=> @(new Statement.Truncate(name, p))
+		=> @(new Statement.Truncate(name, SqlList.OwnOrNull(p)))
 	| verb: ("ENABLE"i | "DISABLE"i) & "TRIGGER"i & triggers: TriggerNames & "ON"i & on: TriggerScope
-		=> @(new Statement.TriggerSwitch(Syntax.Squared(verb) == "ENABLE", triggers.Length == 0 ? null : triggers, on))
+		=> @(new Statement.TriggerSwitch(Syntax.Squared(verb) == "ENABLE", SqlList.OwnOrNull(triggers.Length == 0 ? null : triggers), on))
 	| "KILL"i & "QUERY"i & "NOTIFICATION"i & "SUBSCRIPTION"i & t: KillSubscription
 		=> @(new Statement.Kill("QUERY NOTIFICATION SUBSCRIPTION", t))
 	| "KILL"i & "STATS"i & "JOB"i & t: KillNumber
@@ -2599,7 +2599,7 @@ MaintenanceStatement : @Statement
 	| "ADD"i & "SENSITIVITY"i & "CLASSIFICATION"i & "TO"i & first: ClassifiedColumn & (',' & rest: ClassifiedColumn)*
 	  & "WITH"i & '(' & option: ClassificationOption & (',' & options: ClassificationOption)* & ')'
 	  & when @(Syntax.NamedOnce(option, options))
-		=> @(new Statement.Classification(true, Syntax.Named(first, rest), Syntax.Listed(option, options)))
+		=> @(new Statement.Classification(true, SqlList.Own(Syntax.Named(first, rest)), SqlList.Own(Syntax.Listed(option, options))))
 
 TruncatePartitions : @Clause[]
 	= "WITH"i & '(' & "PARTITIONS"i & '(' & first: PartitionSpan & (',' & rest: PartitionSpan)* & ')' & ')'
@@ -2994,12 +2994,12 @@ QueueOption : @Clause
 	= "STATUS"i & '=' & v: OnOff    => @(new Clause.Option("STATUS", new Expression.ColumnReference(v), Clause.None))
 	| "RETENTION"i & '=' & v: OnOff => @(new Clause.Option("RETENTION", new Expression.ColumnReference(v), Clause.None))
 	| "ACTIVATION"i & '(' & "DROP"i & ')'
-		=> @(new Clause.Option("ACTIVATION", null, new Clause[] { new Clause.Option("DROP", null, Clause.None) }, null, true))
+		=> @(new Clause.Option("ACTIVATION", null, [new Clause.Option("DROP", null, Clause.None)], null, true))
 	| "ACTIVATION"i & '(' & first: Activation & (',' & rest: Activation)* & ')' & when @(Syntax.NamedOnce(first, rest))
-		=> @(new Clause.Option("ACTIVATION", null, Syntax.Listed(first, rest), null, true))
+		=> @(new Clause.Option("ACTIVATION", null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 	| "POISON_MESSAGE_HANDLING"i & '(' & "STATUS"i & '=' & v: OnOff & ')'
 		=> @(new Clause.Option("POISON_MESSAGE_HANDLING", null,
-				 new Clause[] { new Clause.Option("STATUS", new Expression.ColumnReference(v), Clause.None) }, null, true))
+				 [new Clause.Option("STATUS", new Expression.ColumnReference(v), Clause.None)], null, true))
 
 Activation : @Clause
 	= "STATUS"i & '=' & o: OnOff
@@ -3075,7 +3075,7 @@ ConversationStatement : @Statement
 	  & "FROM"i & "SERVICE"i & from: QualifiedName & "TO"i & "SERVICE"i & to: BrokerTarget
 	  & (',' & instance: BrokerTarget)? & ("ON"i & "CONTRACT"i & contract: QualifiedName)?
 	  & options: DialogWith? & when @(Syntax.DialogAgrees(options))
-		=> @(new Statement.BeginDialog(handle, said is not null, from, to, instance, contract, options ?? Clause.None))
+		=> @(new Statement.BeginDialog(handle, said is not null, from, to, instance, contract, SqlList.Own(options)))
 	| "BEGIN"i & "CONVERSATION"i & "TIMER"i & '(' & h: ValueExpression & ')' & "TIMEOUT"i & '=' & timeout: ValueExpression
 		=> @(new Statement.ConversationTimer(h, timeout))
 	| "END"i & "CONVERSATION"i & h: ValueExpression & ending: EndConversationWith?
@@ -3111,8 +3111,8 @@ MessageTypeName : @string
 
 SendTargets : @Statement.Send
 	= '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-		=> @(new Statement.Send(Syntax.Listed(first, rest), true))
-	| v: ValueExpression => @(new Statement.Send(new[] { v }, false))
+		=> @(new Statement.Send(SqlList.Own(Syntax.Listed(first, rest)), true))
+	| v: ValueExpression => @(new Statement.Send([v], false))
 
 // `GET CONVERSATION GROUP` and `RECEIVE` stand alone or inside `WAITFOR ( … )`, and only
 // there may a `TIMEOUT` follow, after a comma: a number, negative or not, or a variable.
@@ -3130,7 +3130,7 @@ ReceiveStatement : @Statement
 	= "RECEIVE"i & top: ReceiveTop? & first: ReceiveColumn & (',' & rest: ReceiveColumn)* & "FROM"i & q: QualifiedName
 	  & ("INTO"i & into: TSql.Variable)? & ("WHERE"i & where: ReceiveWhere)?
 	  & when @(Syntax.OneWay(first, rest))
-		=> @(new Statement.Receive(top, Syntax.Listed(first, rest), q, into, where))
+		=> @(new Statement.Receive(top, SqlList.Own(Syntax.Listed(first, rest)), q, into, where))
 
 ReceiveTop : @Clause = "TOP"i & '(' & v: ValueExpression & ')' => @(Clause.Topped(new Expression.Parenthesized(v), null))
 
@@ -3165,7 +3165,7 @@ WaitTimeout : @Expression
 // minutes and `ABORT_AFTER_WAIT` and any word, each named once (`Msg 401`).
 DbccStatement : @Statement
 	= "DBCC"i & name: DbccWord & args: DbccArguments? & options: DbccOptions?
-		=> @(new Statement.Dbcc(name, args, options ?? Clause.None))
+		=> @(new Statement.Dbcc(name, SqlList.OwnOrNull(args), SqlList.Own(options)))
 
 DbccWord : @string = t: Identifier & when @(Syntax.IsBare(t)) => @(t)
 
@@ -3203,7 +3203,7 @@ DbccOption : @Clause
 	= "MAXDOP"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
 		=> @(new Clause.Option("MAXDOP", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
 	| "WAIT_AT_LOW_PRIORITY"i & '(' & first: DbccWait & (',' & rest: DbccWait)* & ')' & when @(Syntax.NamedOnce(first, rest))
-		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Syntax.Listed(first, rest), null, true))
+		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 	| name: DbccWord => @(new Clause.Option(Syntax.Squared(name), null, Clause.None))
 
 DbccWait : @Clause
@@ -3221,17 +3221,17 @@ DbccWait : @Clause
 CursorDefinition : @Clause.CursorDefinition
 	= before: CursorIsoWord+ & "CURSOR"i & "FOR"i & q: CursorQuery
 	  & when @(Syntax.CursorAgrees(before, q?.Access))
-		=> @(q with { Before = before ?? System.Array.Empty<string>() })
+		=> @(q with { Before = SqlList.Own(before) })
 	| "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
 	  & when @(Syntax.CursorAgrees(options, q?.Access))
-		=> @(q with { Options = options ?? System.Array.Empty<string>() })
+		=> @(q with { Options = SqlList.Own(options) })
 
 // The same T-SQL form, where a variable is set to it: `READ_ONLY` and `FOR READ ONLY` are read
 // together here, and refused together in a declaration (`Msg 1058`).
 CursorInPlace : @Clause.CursorDefinition
 	= "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
 	  & when @(Syntax.CursorAgrees(options, q?.Access, false))
-		=> @(q with { Options = options ?? System.Array.Empty<string>() })
+		=> @(q with { Options = SqlList.Own(options) })
 
 CursorIsoWord : @string = t: ("INSENSITIVE"i | "SCROLL"i) => @(Syntax.Squared(t))
 
@@ -3256,7 +3256,7 @@ CursorSelect : @Query
 
 CursorFor : @Clause
 	= "FOR"i & "READ"i & "ONLY"i => @(new Clause.CursorFor(false))
-	| "FOR"i & "UPDATE"i & columns: CursorColumns? => @(new Clause.CursorFor(true, columns))
+	| "FOR"i & "UPDATE"i & columns: CursorColumns? => @(new Clause.CursorFor(true, SqlList.OwnOrNull(columns)))
 
 // A name each, typed: a text rule captured in a repetition is the turns' text joined (§10).
 CursorColumns : @string[] = "OF"i & first: CursorColumn & (',' & rest: CursorColumn)* => @(Syntax.Named(first, rest))
@@ -3274,11 +3274,11 @@ CursorStatement : @Statement
 	| "CLOSE"i & ?!KeyWord & c: CursorName => @(c with { Verb = "CLOSE" })
 	| "DEALLOCATE"i & c: CursorName => @(c with { Verb = "DEALLOCATE" })
 	| "FETCH"i & t: ("NEXT"i | "PRIOR"i | "FIRST"i | "LAST"i) & "FROM"i & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, into))
+		=> @(new Statement.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 	| "FETCH"i & t: ("ABSOLUTE"i | "RELATIVE"i) & n: FetchRow & "FROM"i & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, into))
+		=> @(new Statement.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 	| "FETCH"i & from: "FROM"i? & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(null, null, from is not null, c.Cursor, c.Global, into))
+		=> @(new Statement.Fetch(null, null, from is not null, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 
 // After `OPEN` and `CLOSE` these three begin a key's statement and not a cursor's name: `OPEN
 // master` is refused, `OPEN [master]`, `OPEN GLOBAL master` and `DEALLOCATE master` are read.
@@ -3328,7 +3328,7 @@ SetStatement : @Statement
 		=> @(new Statement.SetVariable(Syntax.Member(name, members), tail.Value, tail.Operator))
 	| "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
-	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(items))
+	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(SqlList.Own(items)))
 
 // A variable's property is assigned, and its method called, the way a column's are in an
 // `UPDATE`: `SET @g.STSrid = 4267`, `SET @x.modify('delete /a')`. A property may be a property's,
@@ -3337,7 +3337,7 @@ SetStatement : @Statement
 MemberName : @string = t: Identifier => @(t)
 
 MemberTail : @Clause.Set
-	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
+	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", SqlList.Own(args))))
 	| s: AssignTail                => @(s)
 
 // The forms with words of their own first, reserved words among them, each of them alone: the
@@ -3487,9 +3487,9 @@ ExecuteBody : @Statement.Execute
 	= '(' & args: Arguments & ')' & context: ExecContext? & source: ExecDataSource? & at: ExecAt?
 	  & when @((source is null || at is null) && (at is not null || source is not null || args is { Length: 1 }))
 	  & with: ExecWith?
-		=> @(new Statement.Execute(null, "(", args, context, at, source, Syntax.Tail(with)))
+		=> @(new Statement.Execute(null, "(", SqlList.Own(args), context, at, source, Syntax.Tail(with)))
 	| into: ExecReturn? & target: ExecTarget & args: ExecArguments? & at: ExecAt? & with: ExecWith?
-		=> @(target with { Into = into, Arguments = args ?? Expression.None, At = at, Tail = Syntax.Tail(with) })
+		=> @(target with { Into = into, Arguments = SqlList.Own(args), At = at, Tail = Syntax.Tail(with) })
 
 // A call without the word, which only a batch's first statement may be (`FirstPiece`): the
 // same call but for `AT`, which the engine refuses there. `GO` alone is such a call, to a
@@ -3499,7 +3499,7 @@ ExecuteBody : @Statement.Execute
 // `Msg 102`, where `EXEC @p` reads.
 BareCall : @Statement.Execute
 	= ?!TSql.Variable & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
-		=> @(target with { Into = into, Arguments = args ?? Expression.None, Tail = Syntax.Tail(with), Bare = true })
+		=> @(target with { Into = into, Arguments = SqlList.Own(args), Tail = Syntax.Tail(with), Bare = true })
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
@@ -3583,14 +3583,14 @@ ExecValue : @Expression
 BulkInsertStatement : @Statement
 	= "BULK"i & "INSERT"i & target: BulkTarget & "FROM"i & file: BulkFile
 	  & options: BulkWith?
-		=> @(new Statement.Insert(target, null, new Query.FromFile(file, options), null, null, null, null))
+		=> @(new Statement.Insert(target, null, new Query.FromFile(file, SqlList.OwnOrNull(options)), null, null, null, null))
 
 	// `INSERT BULK`, which names its columns instead of a file and must name them: every
 	// bare form is `Msg 102`. Its options are its own and fewer — `KEEPNULLS` is refused
 	// here and read above.
 	| "INSERT"i & "BULK"i & target: BulkTarget & '(' & columns: BulkColumns & ')'
 	  & options: BulkStreamWith?
-		=> @(new Statement.Insert(target, null, new Query.FromStream(columns, options), null, null, null, null))
+		=> @(new Statement.Insert(target, null, new Query.FromStream(SqlList.OwnOrNull(columns), SqlList.OwnOrNull(options)), null, null, null, null))
 
 BulkTarget : @TableReference
 	= name: QualifiedName => @(new TableReference.Named(name, null, false, null, null, null, Clause.None))
@@ -3712,9 +3712,9 @@ SimpleCommand : @Statement
 	| "LINENO"i & n: Sql92.Lexical.Digits => @(new Statement.LineNumber(new Expression.Literal(SqlLiteralKind.Number, n)))
 	| "USE"i & name: QualifiedName       => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
-		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
+		=> @(new Statement.RaiseError(SqlList.Own(args), Syntax.Tail(how)))
 	| "RAISERROR"i & args: Arguments & how: RaiseWith?
-		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
+		=> @(new Statement.RaiseError(SqlList.Own(args), Syntax.Tail(how)))
 	| "WAITFOR"i & '(' & waited: WaitedFor & ')' & (',' & "TIMEOUT"i & timeout: WaitTimeout)?
 		=> @(new Statement.WaitForStatement(waited, timeout))
 	| "WAITFOR"i & t: Sql92.Lexical.TimeLiteral
@@ -3748,18 +3748,18 @@ WaitValue : @Expression
 CreateTableStatement : @Statement
 	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
 	  & options: OptionsWith & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, columns, options, q))
+		=> @(new Statement.CreateTableAsSelect(name, SqlList.OwnOrNull(columns), SqlList.Own(options), q))
 
 	// Without its options a table made of a query names its columns, and that is what tells it
 	// from a table declared: `CREATE TABLE t AS SELECT …` and `CREATE TABLE t (a INT) AS SELECT
 	// …` are refused (`Msg 156`), and `CREATE TABLE t (a, b) AS SELECT …` is read.
 	| "CREATE"i & "TABLE"i & name: QualifiedName & '(' & columns: ColumnList & ')' & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, columns, Clause.None, q))
+		=> @(new Statement.CreateTableAsSelect(name, SqlList.OwnOrNull(columns), Clause.None, q))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: DeclaredBody & ','? & ')'
 	  & after: TableAs? & placements: TablePlacement* & options: TableWith?
-		=> @(new Statement.TableDefinition(name, kind ?? after, body, placements ?? Clause.None, options ?? Clause.None))
+		=> @(new Statement.TableDefinition(name, kind ?? after, SqlList.Own(body), SqlList.Own(placements), SqlList.Own(options)))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: TableWith?
-		=> @(new Statement.TableDefinition(name, kind, Clause.None, placements ?? Clause.None, options ?? Clause.None))
+		=> @(new Statement.TableDefinition(name, kind, Clause.None, SqlList.Own(placements), SqlList.Own(options)))
 
 TableAs : @string = "AS"i & t: Identifier => @(t)
 
@@ -3775,9 +3775,9 @@ TablePlacement : @Clause
 // scheme's: `ON 'fg' (a)`, `MOVE TO "default" (a)`.
 PlacementTarget : @Clause.Placement
 	= t: "DEFAULT"i                                => @(new Clause.Placement("", t, null))
-	| t: Sql92.Lexical.CharacterStringLiteral & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
-	| t: Sql92.Lexical.DelimitedIdentifier & ('(' & c: ColumnList & ')')?    => @(new Clause.Placement("", t, c))
-	| t: Identifier & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
+	| t: Sql92.Lexical.CharacterStringLiteral & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, SqlList.OwnOrNull(c)))
+	| t: Sql92.Lexical.DelimitedIdentifier & ('(' & c: ColumnList & ')')?    => @(new Clause.Placement("", t, SqlList.OwnOrNull(c)))
+	| t: Identifier & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, SqlList.OwnOrNull(c)))
 
 OptionsWith : @Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
 
@@ -3785,7 +3785,7 @@ OptionList  : @Clause[] = first: OptionSetting & (',' & rest: OptionSetting)* =>
 
 OptionSetting : @Clause
 	= "DEFAULT"i & '=' & v: OptionValue => @(new Clause.Option("DEFAULT", v, Clause.None))
-	| "MOVE"i & "TO"i & m: PlacementTarget => @(new Clause.Option("MOVE TO", null, new Clause[] { m }))
+	| "MOVE"i & "TO"i & m: PlacementTarget => @(new Clause.Option("MOVE TO", null, [m]))
 
 	// `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
 	// `AFFINITY NUMANODE = (0)` — a value that is itself a name and a value.
@@ -3837,16 +3837,16 @@ OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
 // The list before the value: `CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367)` is a
 // list and not an expression that happens to compare, and only the list reads it as one.
 OptionTail : @Clause.Option
-	= '=' & n: OptionNest & p: OnPartitions?   => @(new Clause.Option("", null, n, p))
-	| '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Clause.Option("", v, n ?? Clause.None, p))
-	| s: OnOff & o: SwitchTail                 => @(new Clause.Option("", new Expression.ColumnReference(s), o, null, true))
-	| '(' & o: OptionList & ')'                => @(new Clause.Option("", null, o, null, true))
+	= '=' & n: OptionNest & p: OnPartitions?   => @(new Clause.Option("", null, SqlList.Own(n), p))
+	| '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Clause.Option("", v, SqlList.Own(n), p))
+	| s: OnOff & o: SwitchTail                 => @(new Clause.Option("", new Expression.ColumnReference(s), SqlList.Own(o), null, true))
+	| '(' & o: OptionList & ')'                => @(new Clause.Option("", null, SqlList.Own(o), null, true))
 
 // Said as a refusal rather than as a demand, because a list without brackets ends at the
 // terminator and a lookahead for a comma would refuse its last option. What a bare switch
 // may not be followed by is a placement: `WITH PAD_INDEX ON ps (a)` is an option and then
 // the filegroup it goes on, and `WITH TRUSTWORTHY ON` is an option set to on.
-SwitchTail : @Clause[] = '(' & o: OptionList & ')' => @(o) | ?!PlacementTarget => @(Clause.None)
+SwitchTail : @Clause[] = '(' & o: OptionList & ')' => @(o) | ?!PlacementTarget => @([])
 
 // The list a value may carry after it: `IGNORE_DUP_KEY = ON (SUPPRESS_MESSAGES = ON)`.
 OptionNest : @Clause[] = '(' & o: OptionList & ')' => @(o)
@@ -3859,7 +3859,7 @@ OptionValue : @Expression
 	| "OFF"i  => @(new Expression.ColumnReference("OFF"))
 	| "ON"i   => @(new Expression.ColumnReference("ON"))
 	| t: ('(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')') => @(new Expression.ColumnReference(t))
-	| '(' & a: Arguments & ')'  => @(new Expression.RoutineInvocation("", a))
+	| '(' & a: Arguments & ')'  => @(new Expression.RoutineInvocation("", SqlList.Own(a)))
 
 	// A run of words, which several protocols spell their settings with:
 	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
@@ -3926,13 +3926,13 @@ TableColumn : @Clause
 TableColumnBody : @Clause.ColumnDefinition
 	= f: ColumnBody => @(f)
 	| tail: ColumnTail* & when @(Syntax.Untyped(tail))
-		=> @(new Clause.ColumnDefinition("", null, null, tail ?? Clause.None))
+		=> @(new Clause.ColumnDefinition("", null, null, SqlList.Own(tail)))
 
 // A column's tail is read as it comes and then asked whether it came in the engine's order
 // (`Syntax.Tailed`): what belongs to the column's storage first, and then a free list.
 ColumnBody : @Clause.ColumnDefinition
 	= "AS"i & v: ValueExpression & tail: ColumnTail* & when @(Syntax.Tailed(null, tail))
-		=> @(new Clause.ColumnDefinition("", null, v, tail ?? Clause.None))
+		=> @(new Clause.ColumnDefinition("", null, v, SqlList.Own(tail)))
 	// The length belongs to the type (`AnyLength`) and not to the column — with one
 	// exception, which is why the exact numerics' length is substituted here: `DECIMAL
 	// (MAX)`, `NUMERIC (MAX)` and `DEC (MAX)` are read where a column is declared or
@@ -3941,7 +3941,7 @@ ColumnBody : @Clause.ColumnDefinition
 	// `CREATE TYPE … FROM`, a parameter and a scalar `RETURNS`.
 	| type: ColumnType & tail: ColumnTail*
 	  & when @(Syntax.Tailed(type, tail) && Syntax.Collated(type, tail))
-		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
+		=> @(new Clause.ColumnDefinition("", type, null, SqlList.Own(tail)))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
 // constraint, or an index, in the order they were written. Not the label of the statement after
@@ -3953,17 +3953,17 @@ ColumnTrait : @Clause
 	| "COLLATE"i & q: QualifiedName   => @(Clause.Optioned("COLLATE", new Expression.ColumnReference(q)))
 	| t: "SPARSE"i                    => @(Clause.Optioned(t))
 	| "MASKED"i & "WITH"i & '(' & o: MaskOption & ')'
-		=> @(new Clause.ColumnOption("MASKED", Expression.None, new Clause[] { o }, null))
+		=> @(new Clause.ColumnOption("MASKED", Expression.None, [o], null))
 	| "IDENTITY"i & ('(' & a: Arguments & ')')?
-		=> @(new Clause.ColumnOption("IDENTITY", a ?? Expression.None, Clause.None, null))
+		=> @(new Clause.ColumnOption("IDENTITY", SqlList.Own(a), Clause.None, null))
 	| t: ("NOT"i & "FOR"i & "REPLICATION"i) => @(Clause.Optioned(t))
 	| s: NullSpec                     => @(Clause.Optioned(s))
 	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: Trailing("HIDDEN"i)?
-		=> @(new Clause.ColumnOption(Syntax.Squared(t), Expression.None, Syntax.Unit(h), null))
+		=> @(new Clause.ColumnOption(Syntax.Squared(t), Expression.None, SqlList.Own(Syntax.Unit(h)), null))
 	| t: "ROWGUIDCOL"i                => @(Clause.Optioned(t))
 	| "ENCRYPTED"i & "WITH"i & '(' & first: EncryptionOption & (',' & rest: EncryptionOption)* & ')'
 	  & when @(Syntax.Encrypts(first, rest))
-		=> @(new Clause.ColumnOption("ENCRYPTED", Expression.None, Syntax.Listed(first, rest), null))
+		=> @(new Clause.ColumnOption("ENCRYPTED", Expression.None, SqlList.Own(Syntax.Listed(first, rest)), null))
 	| t: "PERSISTED"i                 => @(Clause.Optioned(t))
 	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i) => @(Clause.Optioned(t))
 	| "CONSTRAINT"i & name: Identifier & n: NamedConstraint => @(Clause.Named(n, name))
@@ -4008,9 +4008,9 @@ ConstraintBody : @Clause.ConstraintDefinition
 	| r: References & e: Enforced?
 		=> @(Clause.Constrained("REFERENCES", null, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
 	| "CHECK"i & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
-		=> @(Clause.Constrained("CHECK", null, c) with { Options = Syntax.Unit(n) })
+		=> @(Clause.Constrained("CHECK", null, c) with { Options = SqlList.OwnOrNull(Syntax.Unit(n)) })
 	| "CONNECTION"i & '(' & first: EdgePair & (',' & rest: EdgePair)* & ')' & a: ReferenceAction*
-		=> @(Clause.Constrained("CONNECTION", null, null) with { Options = Syntax.Connected(first, rest, a) })
+		=> @(Clause.Constrained("CONNECTION", null, null) with { Options = SqlList.OwnOrNull(Syntax.Connected(first, rest, a)) })
 	| "DEFAULT"i & v: ValueExpression & tail: DefaultTail
 		=> @(Clause.Defaulted(v, tail))
 
@@ -4075,9 +4075,9 @@ IncludeColumns : @string[] = first: IndexName & (',' & rest: IndexName)* => @(Sy
 // it: six of the corpus's indexes stopped being read the afternoon that was tried.
 IndexWith : @Clause.Option
 	= "WITH"i & '(' & first: IndexOption & (',' & rest: IndexOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 	| "WITH"i & first: OldIndexOption & (',' & rest: OldIndexOption)*
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest), null, true))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 
 // ── The index options' catalogue ────────────────────────────────────────────
 //
@@ -4176,7 +4176,7 @@ ColumnstoreOptionSyntax = DropExisting | MaxDop | OnlineOnOff | CompressionDelay
 
 ColumnstoreWith : @Clause.Option
 	= "WITH"i & '(' & first: ColumnstoreOption & (',' & rest: ColumnstoreOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 // An XML index's, selective or not: never built online, never ignoring a duplicate, and
 // compressed only as XML.
@@ -4187,7 +4187,7 @@ XmlIndexOptionSyntax
 
 XmlIndexWith : @Clause.Option
 	= "WITH"i & '(' & first: XmlIndexOption & (',' & rest: XmlIndexOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 // A JSON index's: the five above and no other.
 JsonIndexPath = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
@@ -4198,7 +4198,7 @@ OptimizeForArraySearch = "OPTIMIZE_FOR_ARRAY_SEARCH"i & OnOffValue
 
 JsonIndexWith : @Clause.Option
 	= "WITH"i & '(' & first: JsonIndexOption & (',' & rest: JsonIndexOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 // An index written inside the table, which may be a columnstore and so takes a delay.
 TableIndexOption : @Clause = ?=(TableIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
@@ -4206,7 +4206,7 @@ TableIndexOptionSyntax = ConstraintOptionSyntax | CompressionDelay
 
 TableIndexWith : @Clause.Option
 	= "WITH"i & '(' & first: TableIndexOption & (',' & rest: TableIndexOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 // A primary key or a unique constraint in `CREATE TABLE`, and the one old spelling it keeps:
 // `WITH FILLFACTOR = 80` alone.
@@ -4247,9 +4247,9 @@ BareKeyOptions : @Clause[]
 
 ConstraintWith : @Clause.Option
 	= "WITH"i & '(' & first: ConstraintOption & (',' & rest: ConstraintOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 	| "WITH"i & only: BareKeyOptions
-		=> @(new Clause.Option("WITH", null, only, null, true))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(only), null, true))
 
 // And one `ALTER TABLE` adds, which may be built online and resumed — put in place of the
 // one above by `ALTER TABLE … ADD`, not written twice.
@@ -4259,9 +4259,9 @@ AlterConstraintOptionSyntax
 
 AlterConstraintWith : @Clause.Option
 	= "WITH"i & '(' & first: AlterConstraintOption & (',' & rest: AlterConstraintOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 	| "WITH"i & only: BareKeyOptions
-		=> @(new Clause.Option("WITH", null, only, null, true))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(only), null, true))
 
 // `ALTER INDEX`: a rebuild of every partition, of one, a reorganization, a resumption and
 // the settings an index keeps.
@@ -4273,7 +4273,7 @@ RebuildOptionSyntax
 
 RebuildWith : @Clause.Option
 	= "WITH"i & '(' & first: RebuildOption & (',' & rest: RebuildOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 PartitionRebuildOption : @Clause = ?=(PartitionRebuildOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 PartitionRebuildOptionSyntax
@@ -4281,21 +4281,21 @@ PartitionRebuildOptionSyntax
 
 PartitionRebuildWith : @Clause.Option
 	= "WITH"i & '(' & first: PartitionRebuildOption & (',' & rest: PartitionRebuildOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 ReorganizeOption : @Clause = ?=(ReorganizeOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 ReorganizeOptionSyntax = "LOB_COMPACTION"i & OnOffValue | "COMPRESS_ALL_ROW_GROUPS"i & OnOffValue
 
 ReorganizeWith : @Clause.Option
 	= "WITH"i & '(' & first: ReorganizeOption & (',' & rest: ReorganizeOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 ResumeOption : @Clause = ?=(ResumeOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 ResumeOptionSyntax = MaxDop | MaxDuration | LowPriorityWait
 
 ResumeWith : @Clause.Option
 	= "WITH"i & '(' & first: ResumeOption & (',' & rest: ResumeOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 SetIndexOption : @Clause = ?=(SetIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 SetIndexOptionSyntax = RowLocks | PageLocks | SequentialKey | IgnoreDupKey | NoRecompute | CompressionDelay
@@ -4519,7 +4519,7 @@ DropOption : @Clause
 	| "ONLINE"i & '=' & o: OnOff
 		=> @(new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None))
 	| "MOVE"i & "TO"i & ?!"DEFAULT"i & p: PlacementTarget
-		=> @(new Clause.Option("MOVE TO", null, new Clause[] { p }))
+		=> @(new Clause.Option("MOVE TO", null, [p]))
 	| LowPriorityWait
 		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Clause.None))
 
@@ -4548,14 +4548,14 @@ ProcedureStatement : @Statement
 	  & parameters: RoutineParameters? & options: RoutineOptions? & replication: ("FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
 	  & when @((external is null || Syntax.Externally(options)) && Syntax.Natively(options, atomic is not null))
-		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, atomic ?? body ?? Statement.None, options, replication is not null, external, number))
+		=> @(new Statement.CreateProcedure(name, SqlList.Own(parameters), SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), replication is not null, external, number))
 
 ProcWord = "PROCEDURE"i | "PROC"i
 
 // The parentheses are optional, which is why a parameter list is a rule rather than a
 // bracketed one: `CREATE PROCEDURE p @a INT AS …` is as good as `p (@a INT)`.
 RoutineParameters : @Clause[]
-	= '(' & ')' => @(Clause.None)
+	= '(' & ')' => @([])
 	| '(' & first: RoutineParameter & (',' & rest: RoutineParameter)* & ')'
 		=> @(Syntax.Listed(first, rest))
 	| first: RoutineParameter & (',' & rest: RoutineParameter)*
@@ -4570,9 +4570,9 @@ RoutineParameter : @Clause
 
 ParameterTail : @Clause.ParameterDeclaration
 	= "CURSOR"i & "VARYING"i & way: ("OUTPUT"i | "OUT"i)
-		=> @(new Clause.ParameterDeclaration("", "CURSOR", null, null, true, new[] { Syntax.Squared(way) }))
+		=> @(new Clause.ParameterDeclaration("", "CURSOR", null, null, true, [Syntax.Squared(way)]))
 	| type: DataType & n: NullSpec? & ('=' & v: AssignedValue)? & ways: ParameterWay*
-		=> @(new Clause.ParameterDeclaration("", type, v, n, false, ways))
+		=> @(new Clause.ParameterDeclaration("", type, v, n, false, SqlList.OwnOrNull(ways)))
 
 ParameterWay : @string = t: ("OUTPUT"i | "OUT"i | "READONLY"i) => @(Syntax.Squared(t))
 
@@ -4603,27 +4603,27 @@ ExecuteAsWho : @string
 FunctionStatement : @Statement
 	= "FUNCTION"i & name: QualifiedName & parameters: RoutineParameters?
 	  & "RETURNS"i & r: FunctionReturns & when @(!Syntax.HasCursorParameter(parameters))
-		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
+		=> @(r with { Name = name, Parameters = SqlList.Own(parameters) })
 
 FunctionReturns : @Statement.CreateFunction
 	= "TABLE"i & '(' & columns: TableBody & ')' & when @(Syntax.Returned(columns))
 	  & options: RoutineOptions? & ("ORDER"i & order: IndexColumns)?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & external: QualifiedName
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, SqlList.OwnOrNull(options), SqlList.OwnOrNull(columns), null, SqlList.OwnOrNull(order), external))
 	// `CALLED ON NULL INPUT` and `RETURNS NULL ON NULL INPUT` are `Msg 487` here and read of a
 	// scalar function: what a null argument does is the body's business, and this body is a
 	// query.
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
 	  & when @(Syntax.Inlined(options))
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", SqlList.Own(body), SqlList.OwnOrNull(options)))
 	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Syntax.Declared(columns) && Syntax.Returned(columns))
 	  & options: RoutineOptions? & "AS"i?
 	  & (atomic: AtomicBody | body: StatementList) & when @(Syntax.Natively(options, atomic is not null))
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", atomic ?? body ?? Statement.None, options, columns, name))
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), SqlList.OwnOrNull(columns), name))
 	| type: DataType & options: RoutineOptions? & "AS"i?
 	  & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
 	  & when @(Syntax.Natively(options, atomic is not null))
-		=> @(new Statement.CreateFunction("", Clause.None, type, atomic ?? body ?? Statement.None, options, null, null, null, external))
+		=> @(new Statement.CreateFunction("", Clause.None, type, SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), null, null, null, external))
 
 // The query an inline function returns may open with a `WITH` — a common table expression,
 // `XMLNAMESPACES (…)`, both — in brackets or bare, and carry its order and window: `RETURN
@@ -4634,9 +4634,9 @@ FunctionReturns : @Statement.CreateFunction
 // brackets, and the writer puts the `WITH` and the order back inside them.
 InlineReturn : @Statement[]
 	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
-		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, q, Clause.Ordered(by, window), Clause.None, Clause.None) })
+		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), q, Clause.Ordered(by, window), Clause.None, Clause.None) })
 	| '(' & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
-		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
+		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement
@@ -4645,7 +4645,7 @@ TriggerStatement : @Statement
 	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
 	  & when @(Syntax.Natively(options, atomic is not null))
-		=> @(new Statement.CreateTrigger(name, on, events, atomic ?? body ?? Statement.None, fires, options,
+		=> @(new Statement.CreateTrigger(name, on, SqlList.Own(events), SqlList.Own(atomic ?? body), fires, SqlList.OwnOrNull(options),
 				 append is not null, replication is not null, external))
 
 TriggerOn : @string
@@ -4670,10 +4670,10 @@ TriggerEvent : @string
 ViewStatement : @Statement
 	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & options: OptionsWith?
 	  & "AS"i & q: DirectSelect
-		=> @(new Statement.ViewDefinition(name, null, q, options, false, true))
+		=> @(new Statement.ViewDefinition(name, null, q, SqlList.OwnOrNull(options), false, true))
 	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & options: RoutineOptions?
 	  & "AS"i & q: DirectSelect & check: ("WITH"i & "CHECK"i & "OPTION"i)?
-		=> @(new Statement.ViewDefinition(name, columns, q, options, check is not null))
+		=> @(new Statement.ViewDefinition(name, SqlList.OwnOrNull(columns), q, SqlList.OwnOrNull(options), check is not null))
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 //
@@ -4735,7 +4735,7 @@ CreateIndexStatement : @Statement
 AlterIndexStatement : @Statement
 	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
 	  & ("WITH"i & ns: XmlNamespaces)? & paths: SelectivePaths & o: XmlIndexWith?
-		=> @(new Statement.AlterIndex(name, on, "FOR", null, o?.Options, paths, ns))
+		=> @(new Statement.AlterIndex(name, on, "FOR", null, o?.Options, SqlList.OwnOrNull(paths), ns))
 	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
 		=> @(a with { Name = name, On = on })
 
@@ -4764,7 +4764,7 @@ SpatialColumn : @Clause[]
 
 SpatialWith : @Clause.Option
 	= "WITH"i & '(' & first: SpatialOption & (',' & rest: SpatialOption)* & ')'
-		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 SpatialOption : @Clause
 	= name: word & '=' & o: SpatialSet & when @(Syntax.Spatial(name, o)) => @(o with { Name = name })
@@ -4772,9 +4772,9 @@ SpatialOption : @Clause
 // A bracket by name before one by position, which a word would begin as well.
 SpatialSet : @Clause.Option
 	= '(' & first: SpatialSetting & (',' & rest: SpatialSetting)* & ')'
-		=> @(new Clause.Option("", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("", null, SqlList.Own(Syntax.Listed(first, rest))))
 	| '(' & item: SpatialItem & (',' & items: SpatialItem)* & ')'
-		=> @(new Clause.Option("", new Expression.RoutineInvocation("", Syntax.Listed(item, items)), Clause.None))
+		=> @(new Clause.Option("", new Expression.RoutineInvocation("", SqlList.Own(Syntax.Listed(item, items))), Clause.None))
 	| v: SpatialValue => @(new Clause.Option("", v, Clause.None))
 
 SpatialSetting : @Clause = name: word & '=' & v: SpatialItem => @(new Clause.Option(name, v, Clause.None))
@@ -4831,7 +4831,7 @@ AlterIndexAction : @Statement.AlterIndex
 	| "PAUSE"i   => @(new Statement.AlterIndex("", "", "PAUSE"))
 	| "ABORT"i   => @(new Statement.AlterIndex("", "", "ABORT"))
 	| "RESUME"i & o: ResumeWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o?.Options))
-	| "SET"i & '(' & settings: SetIndexOptions & ')' => @(new Statement.AlterIndex("", "", "SET", null, settings))
+	| "SET"i & '(' & settings: SetIndexOptions & ')' => @(new Statement.AlterIndex("", "", "SET", null, SqlList.OwnOrNull(settings)))
 
 // ── The keys, and what is locked with them ──────────────────────────────────
 //
@@ -4993,9 +4993,9 @@ ServerEncryption = "ENCRYPTION"i & "BY"i & "SERVER"i & ("CERTIFICATE"i | "ASYMME
 // `Options`: the words go to the tail as they were, and a check matches these.
 AsymmetricBody : @Clause[]
 	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & first: ProviderKeySetting & (',' & rest: ProviderKeySetting)*)?
-		=> @(first is null ? Clause.None : Syntax.Listed(first, rest))
-	| "FROM"i & AsymmetricSource => @(Clause.None)
-	| ("WITH"i & only: AlgorithmSetting)? => @(only is null ? Clause.None : new Clause[] { only })
+		=> @(first is null ? [] : Syntax.Listed(first, rest))
+	| "FROM"i & AsymmetricSource => @([])
+	| ("WITH"i & only: AlgorithmSetting)? => @(only is null ? [] : [only])
 
 // Each setting as a node, made from the words the catalogue's line read and nothing more.
 // Not from the builder the index options use: a key's list has no brackets and the clause
@@ -5022,10 +5022,10 @@ ProviderKeyOption
 	| "CREATION_DISPOSITION"i & '=' & Disposition
 
 AsymmetricChange : @Clause[]
-	= "REMOVE"i & "PRIVATE"i & "KEY"i => @(Clause.None)
+	= "REMOVE"i & "PRIVATE"i & "KEY"i => @([])
 	| "WITH"i & "PRIVATE"i & "KEY"i & '(' & first: KeyPasswordSetting & (',' & rest: KeyPasswordSetting)* & ')'
 		=> @(Statement.Holding("PRIVATE KEY", Syntax.Listed(first, rest)))
-	| Attestation => @(Clause.None)
+	| Attestation => @([])
 
 // Who vouches for a key or a certificate. In no published block, and read by the engine at
 // every level, both ways round.
@@ -5043,7 +5043,7 @@ SymmetricKeyName = Identifier | TSql.TemporaryName
 SymmetricBody : @Clause[]
 	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & first: ProviderSetting & (',' & rest: ProviderSetting)*)?
 	  & SymmetricEncryption?
-		=> @(first is null ? Clause.None : Syntax.Listed(first, rest))
+		=> @(first is null ? [] : Syntax.Listed(first, rest))
 	| "WITH"i & first: SymmetricSetting & (',' & rest: SymmetricSetting)* & SymmetricEncryption
 		=> @(Syntax.Listed(first, rest))
 
@@ -5085,7 +5085,7 @@ CertificateOption
 	| "EXPIRY_DATE"i & '=' & Quoted
 
 CertificateSource : @Clause[]
-	= "ASSEMBLY"i & QualifiedName => @(Clause.None)
+	= "ASSEMBLY"i & QualifiedName => @([])
 	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
 	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
 		=> @(Statement.Holding("PRIVATE KEY", k))
@@ -5101,17 +5101,17 @@ PrivateKeyOption
 	| KeyPassword
 
 CertificateChange : @Clause[]
-	= "REMOVE"i & "PRIVATE"i & "KEY"i => @(Clause.None)
+	= "REMOVE"i & "PRIVATE"i & "KEY"i => @([])
 	| "WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Statement.Holding("PRIVATE KEY", k))
-	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @(Clause.None)
-	| Attestation => @(Clause.None)
+	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @([])
+	| Attestation => @([])
 
 // An Always Encrypted key's value: which master key, which algorithm and the value itself,
 // all three and in any order. The algorithm is a literal — `ALGORITHM = RSA_OAEP` unquoted
 // is refused.
 ColumnKeyValue : @Clause
 	= '(' & a: ColumnKeySetting & ',' & b: ColumnKeySetting & ',' & c: ColumnKeySetting & ')'
-		=> @(new Clause.Option("VALUE", null, new Clause[] { a, b, c }))
+		=> @(new Clause.Option("VALUE", null, [a, b, c]))
 
 ColumnKeyPart
 	= ColumnKeyMaster
@@ -5480,10 +5480,10 @@ AuditStatement : @Statement
 	// `Msg 102`.
 	| "CREATE"i & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
 	  & events: EventAdds & targets: TargetAdds? & options: EventSessionWith?
-		=> @(new Statement.EventSessionDefinition(name, "CREATE", on, Syntax.Pieces(events, targets), options, null))
+		=> @(new Statement.EventSessionDefinition(name, "CREATE", on, SqlList.OwnOrNull(Syntax.Pieces(events, targets)), SqlList.OwnOrNull(options), null))
 	| "ALTER"i & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
 	  & (pieces: EventAlterations & options: EventSessionWith? | options: EventSessionWith | "STATE"i & '=' & status: EventSessionState)
-		=> @(new Statement.EventSessionDefinition(name, "ALTER", on, pieces, options, status))
+		=> @(new Statement.EventSessionDefinition(name, "ALTER", on, SqlList.OwnOrNull(pieces), SqlList.OwnOrNull(options), status))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier
 	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
@@ -5600,7 +5600,7 @@ EventDrop : @Clause = "DROP"i & "EVENT"i & name: EventObject => @(new Clause.Eve
 // A target is told its parameters and nothing else, once: `(SET a = 1) (SET b = 2)` is `Msg 156`.
 TargetAdd : @Clause
 	= "ADD"i & "TARGET"i & name: EventObject & ('(' & "SET"i & set: EventSet & ')')?
-		=> @(new Clause.EventPiece("ADD TARGET", name, set))
+		=> @(new Clause.EventPiece("ADD TARGET", name, SqlList.OwnOrNull(set)))
 
 TargetDrop : @Clause = "DROP"i & "TARGET"i & name: EventObject => @(new Clause.EventPiece("DROP TARGET", name))
 
@@ -5633,7 +5633,7 @@ EventSessionSyntax
 // once (`Msg 156` for `ACTION` before `SET`, `102` for a second `ACTION`).
 EventBody : @Clause.EventPiece
 	= ("SET"i & set: EventSet)? & actions: EventActions? & ("WHERE"i & where: EventPredicate)?
-		=> @(new Clause.EventPiece("", "", set, actions, where))
+		=> @(new Clause.EventPiece("", "", SqlList.OwnOrNull(set), SqlList.OwnOrNull(actions), where))
 
 // A setting is a plain name, one part (`[a] = 1`, `a.b = 1` are `Msg 102`), set to a value; the
 // comma between two is required and a name said twice is read.
@@ -5688,9 +5688,9 @@ EventAction  : @string   = t: EventObject => @(t)
 // state, and anything else its list.
 EndpointState : @Clause.Option
 	= "STATE"i & '=' & s: EndpointStateWord & (',' & rest: EndpointSetting)*
-		=> @(new Clause.Option(s, null, rest ?? Clause.None))
+		=> @(new Clause.Option(s, null, SqlList.Own(rest)))
 	| first: EndpointAffinity & (',' & rest: EndpointSetting)*
-		=> @(new Clause.Option("", null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option("", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 EndpointStateWord    = "STARTED"i | "STOPPED"i | "DISABLED"i
 EndpointAffinityWord = "NONE"i | "ADMIN"i
@@ -5705,9 +5705,9 @@ EndpointAffinity : @Clause
 // How it is reached. TCP needs a setting at least; `AS TCP ()` is refused.
 EndpointAs : @Clause.Option
 	= "AS"i & w: EndpointTcp & '(' & first: EndpointTcpOption & (',' & rest: EndpointTcpOption)* & ')'
-		=> @(new Clause.Option(w, null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option(w, null, SqlList.Own(Syntax.Listed(first, rest))))
 	| "AS"i & w: EndpointHttp & '(' & first: EndpointHttpOption & (',' & rest: EndpointHttpOption)* & ')'
-		=> @(new Clause.Option(w, null, Syntax.Listed(first, rest)))
+		=> @(new Clause.Option(w, null, SqlList.Own(Syntax.Listed(first, rest))))
 
 EndpointTcp  = "TCP"i
 EndpointHttp = "HTTP"i
@@ -5746,10 +5746,10 @@ EndpointAddress = '(' & (Sql92.Lexical.UnsignedNumericLiteral | '.' | ':')+ & ')
 
 // What it speaks, and each language its own list; an empty bracket is read for all four.
 EndpointFor : @Clause.Option
-	= "FOR"i & w: EndpointTsql & '(' & o: EndpointTsqlOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
-	| "FOR"i & w: EndpointBroker & '(' & o: EndpointBrokerOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
-	| "FOR"i & w: EndpointMirroring & '(' & o: EndpointMirroringOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
-	| "FOR"i & w: EndpointSoap & '(' & o: EndpointSoapOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+	= "FOR"i & w: EndpointTsql & '(' & o: EndpointTsqlOptions? & ')' => @(new Clause.Option(w, null, SqlList.Own(o)))
+	| "FOR"i & w: EndpointBroker & '(' & o: EndpointBrokerOptions? & ')' => @(new Clause.Option(w, null, SqlList.Own(o)))
+	| "FOR"i & w: EndpointMirroring & '(' & o: EndpointMirroringOptions? & ')' => @(new Clause.Option(w, null, SqlList.Own(o)))
+	| "FOR"i & w: EndpointSoap & '(' & o: EndpointSoapOptions? & ')' => @(new Clause.Option(w, null, SqlList.Own(o)))
 
 EndpointTsql      = "TSQL"i
 EndpointBroker    = "SERVICE_BROKER"i
@@ -5778,13 +5778,13 @@ EndpointSoapOption : @Clause
 	= verb: ("ADD"i | "ALTER"i) & "WEBMETHOD"i & name: WebMethodName
 	  & '(' & method: WebMethodOptions & ')'
 		=> @(new Clause.Option(Syntax.Spaced(verb) + " WEBMETHOD",
-				 new Expression.Literal(SqlLiteralKind.Text, name), method, null, true))
+				 new Expression.Literal(SqlLiteralKind.Text, name), SqlList.Own(method), null, true))
 	| "DROP"i & "WEBMETHOD"i & name: WebMethodName
 		=> @(new Clause.Option("DROP WEBMETHOD",
 				 new Expression.Literal(SqlLiteralKind.Text, name), Clause.None, null, true))
 	| "WEBMETHOD"i & name: WebMethodName & '(' & method: WebMethodOptions & ')'
 		=> @(new Clause.Option("WEBMETHOD",
-				 new Expression.Literal(SqlLiteralKind.Text, name), method, null, true))
+				 new Expression.Literal(SqlLiteralKind.Text, name), SqlList.Own(method), null, true))
 
 	// A setting, from its catalogue: the WSDL `DEFAULT`, `NONE` or a procedure's name as a string;
 	// batches and sessions enabled or disabled; a login `WINDOWS` or `MIXED`; a timeout in whole
@@ -5876,10 +5876,10 @@ ExternalStatement : @Statement
 	// The columns take a comma before the bracket, as a table's do.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ','? & ')'
 	  & options: ExternalTableWith
-		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options, true))
+		=> @(new Statement.TableDefinition(name, null, SqlList.Own(body), Clause.None, SqlList.Own(options), true))
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: ExternalTableWith
 	  & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
+		=> @(new Statement.CreateTableAsSelect(name, null, SqlList.Own(options), q, true))
 
 	| said: "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & Identifier)?
@@ -5997,7 +5997,7 @@ LibraryWith = "WITH"i & '(' & "LANGUAGE"i & '=' & Quoted & ')'
 // (`Msg 46547`, "attempted to set the option multiple times"), and nothing else (`Msg 102`).
 ExternalTableWith : @Clause[]
 	= "WITH"i & '(' & ','* & items: ExternalTableItem* & ')' & when @(Syntax.NamedOnce(null, items))
-		=> @(items ?? Clause.None)
+		=> @(items ?? [])
 
 ExternalTableItem : @Clause = o: ExternalTableOption & ','* => @(o)
 
@@ -6022,7 +6022,7 @@ ExternalName = Identifier & ?!'.'
 // once either way (`Msg 102`). `CONNECTION_OPTIONS` holding what S3 cannot use is read and then
 // objected to (`Msg 12708`, `12709`), which is the value.
 DataSourceBody : @Clause[]
-	= "WITH"i & '(' & ','* & items: DataSourceItem* & ')' => @(items ?? Clause.None)
+	= "WITH"i & '(' & ','* & items: DataSourceItem* & ')' => @(items ?? [])
 	| "SET"i & first: DataSourceChange & (',' & rest: DataSourceChange)* => @(Syntax.Listed(first, rest))
 
 DataSourceItem : @Clause = o: DataSourceOption & ','* => @(o)
@@ -6339,7 +6339,7 @@ DropBody : @Statement
 	// classification off a column.
 	| counter: "COUNTER"i? & "SIGNATURE"i & "FROM"i & module: SignedModule & "BY"i
 	  & first: SignatureCrypto & (',' & rest: SignatureCrypto)*
-		=> @(new Statement.DropSignature(Syntax.Listed(first, rest), module, counter is not null))
+		=> @(new Statement.DropSignature(SqlList.Own(Syntax.Listed(first, rest)), module, counter is not null))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
 		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
 
@@ -6350,7 +6350,7 @@ DropBody : @Statement
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
-		=> @(Statement.Dropped(what, Expression.None))
+		=> @(Statement.Dropped(what, []))
 
 	// Statistics are named by their table and themselves, in a list; one part the engine reads
 	// and objects to (`Msg 1053`, "you must provide both the object name and the statistics name").
@@ -6406,9 +6406,9 @@ DropIndexOption : @Clause
 	| "ONLINE"i & '=' & o: OnOff
 		=> @(new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None))
 	| "MOVE"i & "TO"i & ?!"DEFAULT"i & p: PlacementTarget
-		=> @(new Clause.Option("MOVE TO", null, new Clause[] { p }))
+		=> @(new Clause.Option("MOVE TO", null, [p]))
 	| "FILESTREAM_ON"i & p: PlacementTarget & when @(p is not { Columns: not null })
-		=> @(new Clause.Option("FILESTREAM_ON", null, new Clause[] { p }))
+		=> @(new Clause.Option("FILESTREAM_ON", null, [p]))
 	| "DATA_COMPRESSION"i & '=' & w: (RowCompression | ColumnstoreCompression) & OnPartitions?
 		=> @(new Clause.Option("DATA_COMPRESSION", new Expression.ColumnReference(Syntax.Squared(w)), Clause.None))
 	| LowPriorityWait
@@ -6483,8 +6483,8 @@ DropNamedKind
 CreateDatabaseStatement : @Statement
 	= "CREATE"i & "DATABASE"i & name: Identifier & ("COLLATE"i & collation: QualifiedName)? & options: EditionOptions
 	  & ("WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*)?
-		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: options,
-				 With: first is null ? null : Syntax.Listed(first, rest)) with { Collation = collation })
+		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: SqlList.OwnOrNull(options),
+				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))) with { Collation = collation })
 	| "CREATE"i & "DATABASE"i & name: Identifier & ("CONTAINMENT"i & '=' & containment: ("NONE"i | "PARTIAL"i))?
 	  & files: DatabaseFiles? & ("COLLATE"i & collation: QualifiedName)? & tail: DatabaseTail?
 		=> @((tail ?? new Statement.CreateDatabase("", Clause.None)) with
@@ -6498,7 +6498,7 @@ CreateDatabaseStatement : @Statement
 // `WITH` it may carry.
 DatabaseTail : @Statement.CreateDatabase
 	= "WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*
-		=> @(new Statement.CreateDatabase("", Clause.None, With: Syntax.Listed(first, rest)))
+		=> @(new Statement.CreateDatabase("", Clause.None, With: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 	// A database attached takes its options after `WITH` and nowhere else — `FOR ATTACH
 	// (ENABLE_BROKER)` is `Msg 102`, which this read — and one broker option at most, `WITH
 	// ENABLE_BROKER, NEW_BROKER` being 102 too. With the log rebuilt the list is narrower:
@@ -6509,12 +6509,12 @@ DatabaseTail : @Statement.CreateDatabase
 	  & when @(Syntax.Attached(first, rest))
 		=> @(new Statement.CreateDatabase(
 				 "", Clause.None, Tail: "FOR ATTACH",
-				 With: first is null ? null : Syntax.Listed(first, rest)))
+				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	| "FOR"i & "ATTACH_REBUILD_LOG"i & ("WITH"i & first: RebuildLogOption & (',' & rest: RebuildLogOption)*)?
 	  & when @(Syntax.NamedOnce(first, rest))
 		=> @(new Statement.CreateDatabase(
 				 "", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG",
-				 With: first is null ? null : Syntax.Listed(first, rest)))
+				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 
 	// Undocumented and read: the same as `FOR ATTACH`, `WITH` and all.
 	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i
@@ -6522,20 +6522,20 @@ DatabaseTail : @Statement.CreateDatabase
 	  & when @(Syntax.Attached(first, rest))
 		=> @(new Statement.CreateDatabase(
 				 "", Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG",
-				 With: first is null ? null : Syntax.Listed(first, rest)))
+				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 
 	// A snapshot takes a database's options too, which the block does not say and the engine
 	// reads.
 	| t: ("AS"i & "SNAPSHOT"i & "OF"i & Identifier)
 	  & ("WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*)?
 		=> @(new Statement.CreateDatabase(
-				 "", Clause.None, Tail: Syntax.Spaced(t), With: first is null ? null : Syntax.Listed(first, rest)))
+				 "", Clause.None, Tail: Syntax.Spaced(t), With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	// Azure SQL Database's copy, of a database on this server or another: its service objective in
 	// brackets, and its backups' redundancy in brackets after `WITH`.
 	| t: ("AS"i & "COPY"i & "OF"i & Identifier & ('.' & Identifier)?) & options: EditionOptions?
 	  & ("WITH"i & '(' & first: BackupRedundancy & ')')?
-		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t), Options: options,
-				 With: first is null ? null : new Clause[] { first }))
+		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t), Options: SqlList.OwnOrNull(options),
+				 With: first is null ? null : [first]))
 
 // ── The files ───────────────────────────────────────────────────────────────
 //
@@ -6547,22 +6547,22 @@ DatabaseTail : @Statement.CreateDatabase
 DatabaseFiles : @Statement.CreateDatabase
 	= "ON"i & primary: "PRIMARY"i? & first: FileSpec & (',' & rest: FileGroupSpec)*
 	  & log: DatabaseLogFiles?
-		=> @(new Statement.CreateDatabase("", Syntax.Listed(first, rest), primary is not null, log))
+		=> @(new Statement.CreateDatabase("", SqlList.Own(Syntax.Listed(first, rest)), primary is not null, SqlList.OwnOrNull(log)))
 	| log: DatabaseLogFiles
-		=> @(new Statement.CreateDatabase("", Clause.None, false, log))
+		=> @(new Statement.CreateDatabase("", Clause.None, false, SqlList.OwnOrNull(log)))
 
 DatabaseLogFiles : @Clause[] = "LOG"i & "ON"i & first: FileSpec & (',' & rest: FileSpec)* => @(Syntax.Listed(first, rest))
 
 FileGroupSpec : @Clause
 	= "FILEGROUP"i & name: Identifier & ("CONTAINS"i & contains: FileGroupHolds)? & fallback: "DEFAULT"i?
 	  & first: FileSpec & (',' & rest: FileSpec)*
-		=> @(new Clause.FileGroup(name, contains, fallback is not null, Syntax.Listed(first, rest)))
+		=> @(new Clause.FileGroup(name, contains, fallback is not null, SqlList.Own(Syntax.Listed(first, rest))))
 	| f: FileSpec => @(f)
 
 FileGroupHolds = "FILESTREAM"i | "MEMORY_OPTIMIZED_DATA"i
 
 FileSpec : @Clause
-	= '(' & first: FileOption & (',' & rest: FileOption)* & ')' => @(new Clause.DatabaseFile(Syntax.Listed(first, rest)))
+	= '(' & first: FileOption & (',' & rest: FileOption)* & ')' => @(new Clause.DatabaseFile(SqlList.Own(Syntax.Listed(first, rest))))
 
 // ── What a database is created with ─────────────────────────────────────────
 //
@@ -6606,14 +6606,14 @@ AttachOption : @Clause
 	= name: ("RESTRICTED_USER"i | "ENABLE_BROKER"i | "NEW_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i)
 		=> @(new Clause.Option(name, null, Clause.None))
 	| name: "FILESTREAM"i & '(' & ?=("DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')') & o: OptionSetting & ')'
-		=> @(new Clause.Option(name, null, new Clause[] { o }, null, true))
+		=> @(new Clause.Option(name, null, [o], null, true))
 	| ?!"FILESTREAM"i & o: CreateDatabaseOption => @(o)
 
 // What a database attached with its log rebuilt takes after `WITH`: the settings a created
 // one does, `FILESTREAM (…)` among them, and none of the attaching's own words.
 RebuildLogOption : @Clause
 	= name: "FILESTREAM"i & '(' & ?=("DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')') & o: OptionSetting & ')'
-		=> @(new Clause.Option(name, null, new Clause[] { o }, null, true))
+		=> @(new Clause.Option(name, null, [o], null, true))
 	| ?!"FILESTREAM"i & o: CreateDatabaseOption => @(o)
 
 // A file: named by a name or a string, sized in whole numbers of the four units, grown by
@@ -6650,12 +6650,12 @@ AlterDatabaseStatement : @Statement
 	// The one action that keeps what it read, so the one written before the rest.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
 	  & "SET"i & first: DatabaseSetting & (',' & rest: DatabaseSetting)* & how: DatabaseTermination?
-		=> @(new Statement.AlterDatabaseSet(name, Syntax.Listed(first, rest), how))
+		=> @(new Statement.AlterDatabaseSet(name, SqlList.Own(Syntax.Listed(first, rest)), how))
 
 	// The one action with a body of its own: what is modified, and how the cutover goes.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & "MODIFY"i & options: EditionOptions
 	  & ("WITH"i & with: ManualCutover)? & DatabaseTermination?
-		=> @(new Statement.AlterDatabaseModify(name, options, with))
+		=> @(new Statement.AlterDatabaseModify(name, SqlList.OwnOrNull(options), SqlList.OwnOrNull(with)))
 
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
 	  & how: DatabaseTermination?
@@ -6678,7 +6678,7 @@ PlanHandle : @Expression = t: TSql.BinaryLiteral => @(new Expression.Literal(Sql
 // and the engine agrees: `SET MAXDOP = 4, IDENTITY_CACHE = OFF` is refused.
 ScopedSet : @Statement.AlterDatabaseScopedConfiguration
 	= "SET"i & o: ScopedSetting
-		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", new Clause[] { o }))
+		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", [o]))
 
 // Which action was written, as the words the tree is keyed by. The statement builds the
 // record; this says which record it is, because a rule cannot name a different type per
@@ -6756,7 +6756,7 @@ DatabaseSetting : @Clause
 	= name: DatabaseWords
 		=> @(new Clause.Option(name, null, Clause.None))
 	| name: "AUTO_CREATE_STATISTICS"i & "ON"i & n: IncrementalNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None, null, true))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n), null, true))
 	| name: DatabaseSwitch & s: OnOff
 		=> @(new Clause.Option(name, new Expression.ColumnReference(s), Clause.None, null, true))
 	| name: DatabaseEqualsSwitch & '=' & s: OnOff
@@ -6779,40 +6779,40 @@ DatabaseSetting : @Clause
 	| name: "AUTOMATIC_TUNING"i & '=' & t: ("AUTO"i | "CUSTOM"i)
 		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
 	| name: "AUTOMATIC_TUNING"i & '(' & first: TuningOption & (',' & rest: TuningOption)* & ')'
-		=> @(new Clause.Option(name, null, Syntax.Listed(first, rest), null, true))
+		=> @(new Clause.Option(name, null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 
 	| name: "CHANGE_TRACKING"i & '=' & "OFF"i
 		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
 	| name: "CHANGE_TRACKING"i & '=' & "ON"i & n: TrackingNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n)))
 	| name: "CHANGE_TRACKING"i & n: TrackingNest
-		=> @(new Clause.Option(name, null, n, null, true))
+		=> @(new Clause.Option(name, null, SqlList.Own(n), null, true))
 
 	| name: "QUERY_STORE"i & '=' & "OFF"i & n: ForcedNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), n ?? Clause.None))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), SqlList.Own(n)))
 	| name: "QUERY_STORE"i & '=' & "ON"i & n: StoreNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n)))
 	| name: "QUERY_STORE"i & n: StoreNest
-		=> @(new Clause.Option(name, null, n, null, true))
+		=> @(new Clause.Option(name, null, SqlList.Own(n), null, true))
 
 	| name: "FILESTREAM"i & '(' & first: FilestreamOption & (',' & rest: FilestreamOption)* & ')'
-		=> @(new Clause.Option(name, null, Syntax.Listed(first, rest), null, true))
+		=> @(new Clause.Option(name, null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 
 	| name: "REMOTE_DATA_ARCHIVE"i & '=' & "ON"i & n: ArchiveNest
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n)))
 	| name: "REMOTE_DATA_ARCHIVE"i & '=' & "OFF"i
 		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
 	| name: "REMOTE_DATA_ARCHIVE"i & n: ArchiveNest
-		=> @(new Clause.Option(name, null, n, null, true))
+		=> @(new Clause.Option(name, null, SqlList.Own(n), null, true))
 
 	| name: "PERSISTENT_LOG_BUFFER"i & '=' & "ON"i & n: LogBufferNest
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n)))
 	| name: "SUSPEND_FOR_SNAPSHOT_BACKUP"i & '=' & "ON"i & n: SuspendNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), SqlList.Own(n)))
 	| name: ("PERSISTENT_LOG_BUFFER"i | "SUSPEND_FOR_SNAPSHOT_BACKUP"i) & '=' & "OFF"i
 		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
 	| name: "ACCELERATED_DATABASE_RECOVERY"i & '=' & s: OnOff & n: VersionStoreNest?
-		=> @(new Clause.Option(name, new Expression.ColumnReference(s), n ?? Clause.None))
+		=> @(new Clause.Option(name, new Expression.ColumnReference(s), SqlList.Own(n)))
 
 	// Availability groups and mirroring. Only `OFF` is a switch here: `HADR ON`, `PARTNER
 	// SAFETY ON` and `WITNESS ON` are refused.
@@ -7032,15 +7032,15 @@ PermissionStatement : @Statement
 	= "GRANT"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
 	  & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
-		=> @(new Statement.Grant(what, who, on, option is not null, who2))
+		=> @(new Statement.Grant(SqlList.Own(what), SqlList.Own(who), on, option is not null, who2))
 	| "DENY"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
 	  & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
-		=> @(new Statement.Deny(what, who, on, cascade is not null, who2))
+		=> @(new Statement.Deny(SqlList.Own(what), SqlList.Own(who), on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
 	  & when @(PermissionCatalogue.Allows(what, on))
 	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
-		=> @(new Statement.Revoke(what, who, on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
+		=> @(new Statement.Revoke(SqlList.Own(what), SqlList.Own(who), on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 
 ToOrFrom      : @string = t: ("TO"i | "FROM"i) => @(t)
 PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)

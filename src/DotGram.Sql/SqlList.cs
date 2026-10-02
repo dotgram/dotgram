@@ -66,16 +66,22 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		return length == 0 ? default : new SqlList<T>(AsSpan().Slice(start, length).ToArray());
 	}
 
+	/// <summary>Whether any element matches <paramref name="match"/>, as <see cref="Array.Exists{T}(T[], Predicate{T})"/> asks of an array.</summary>
+	public bool Exists(Predicate<T> match)
+	{
+		return Array.Exists(Items, match);
+	}
+
+	/// <summary>Whether every element matches <paramref name="match"/>, as <see cref="Array.TrueForAll{T}(T[], Predicate{T})"/> asks of an array.</summary>
+	public bool TrueForAll(Predicate<T> match)
+	{
+		return Array.TrueForAll(Items, match);
+	}
+
 	/// <summary>The elements copied into a new array.</summary>
 	public T[] ToArray()
 	{
 		return AsSpan().ToArray();
-	}
-
-	/// <summary>The elements as a span, without a copy.</summary>
-	public static implicit operator ReadOnlySpan<T>(SqlList<T> list)
-	{
-		return list.Items;
 	}
 
 	/// <summary>Whether two lists hold equal elements in the same order.</summary>

@@ -15,8 +15,12 @@ namespace DotGram.Sql;
 // puts a <value expression> where a value belongs, and the two are not interchangeable. So the
 // roots are the standard's own categories, and a field says which one it holds:
 // `Statement.Insert.Rows` is a `Query`, `Expression.Subquery.Query` is a `Query`, and
-// `Query.Specification.From` is a `TableReference[]`. Several things that used to typecheck and
-// were wrong now do not compile.
+// `Query.Specification.From` is a `SqlList<TableReference>`. Several things that used to
+// typecheck and were wrong now do not compile.
+//
+// **Lists compare by what is in them.** Every list a node holds is a `SqlList<T>` and not an
+// array, so the equality the compiler writes for each record compares trees by content: a tree
+// equals its own reparse, located or not.
 //
 // **Relations by aggregation, never by inheritance.** A subquery is not a kind of query; it is
 // an expression that holds one. A statement that returns rows is not a kind of query; it is a
@@ -132,7 +136,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// query's — a <c>UNION</c> of two selects has one <c>ORDER BY</c> between them.
 	/// </remarks>
 	public sealed record Select(
-		Clause[] With, Query Of, Clause? OrderBy, Clause[] For, Clause[] Options) : Statement
+		SqlList<Clause> With, Query Of, Clause? OrderBy, SqlList<Clause> For, SqlList<Clause> Options) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Query;
@@ -160,8 +164,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <c>INSERT OVER t1 DEFAULT VALUES</c>. Null where neither was written.
 	/// </param>
 	public sealed record Insert(
-		TableReference? Target, string[]? Columns, Query Rows,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, string? Into = "INTO") : Statement
+		TableReference? Target, SqlList<string>? Columns, Query Rows,
+		SqlList<Clause>? With = null, Clause? Top = null, Clause? Output = null, string? Into = "INTO") : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -170,7 +174,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		/// T-SQL's <c>OPTION (…)</c> after the rows, where they are a query, a <c>VALUES</c>
 		/// or <c>DEFAULT VALUES</c> — the engine refuses it after an <c>EXEC</c>.
 		/// </summary>
-		public Clause[]? Options { get; init; }
+		public SqlList<Clause>? Options { get; init; }
 	}
 
 	/// <summary>§14.14 rows changed in place: what to change, to what, and which rows.</summary>
@@ -179,8 +183,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// naming the tables the rows to change are found by joining.
 	/// </remarks>
 	public sealed record Update(
-		TableReference? Target, Clause[] Set, TableReference[] From, Expression? Where,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
+		TableReference? Target, SqlList<Clause> Set, SqlList<TableReference> From, Expression? Where,
+		SqlList<Clause>? With = null, Clause? Top = null, Clause? Output = null, SqlList<Clause>? Options = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -188,8 +192,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary>§14.9 rows removed, and the same two ways of saying which.</summary>
 	public sealed record Delete(
-		TableReference? Target, TableReference[] From, Expression? Where,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
+		TableReference? Target, SqlList<TableReference> From, Expression? Where,
+		SqlList<Clause>? With = null, Clause? Top = null, Clause? Output = null, SqlList<Clause>? Options = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -199,8 +203,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// §14.12 one statement that inserts, updates and deletes, according to what a join found.
 	/// </summary>
 	public sealed record Merge(
-		TableReference? Target, TableReference Using, Expression On, Clause[] Whens,
-		Clause[]? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, Clause[]? Options = null,
+		TableReference? Target, TableReference Using, Expression On, SqlList<Clause> Whens,
+		SqlList<Clause>? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, SqlList<Clause>? Options = null,
 		bool Into = true) : Statement
 	{
 		/// <inheritdoc/>
@@ -214,7 +218,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	// has one.
 
 	/// <summary><c>BEGIN … END</c>, and the body of anything that has one.</summary>
-	public sealed record Compound(Statement[] Statements, Clause[]? Atomic = null) : Statement
+	public sealed record Compound(SqlList<Statement> Statements, SqlList<Clause>? Atomic = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -235,14 +239,14 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	}
 
 	/// <summary><c>BEGIN TRY … END TRY BEGIN CATCH … END CATCH</c>.</summary>
-	public sealed record TryCatch(Statement[] Tried, Statement[] Caught) : Statement
+	public sealed record TryCatch(SqlList<Statement> Tried, SqlList<Statement> Caught) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>One <c>DECLARE</c>, which may declare several.</summary>
-	public sealed record Declare(Clause[] Variables) : Statement
+	public sealed record Declare(SqlList<Clause> Variables) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Declaration;
@@ -279,7 +283,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// one — <c>;0</c> is <c>Msg 1005</c> and <c>;1.5</c> is <c>Msg 102</c>.
 	/// </param>
 	public sealed record Execute(
-		string? Into, string Name, Expression[] Arguments,
+		string? Into, string Name, SqlList<Expression> Arguments,
 		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null,
 		Expression.RoutineInvocation? Server = null, bool Bare = false, string? Number = null) : Statement
 	{
@@ -296,7 +300,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// and the options written after it.
 	/// </summary>
 	public sealed record TableDefinition(
-		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement
+		string Name, string? Kind, SqlList<Clause> Elements, SqlList<Clause> Placements, SqlList<Clause> Options, bool External = false) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -308,7 +312,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// the options between the name and the <c>AS</c>, and the query.
 	/// </summary>
 	public sealed record CreateTableAsSelect(
-		string Name, string[]? Columns, Clause[] Options, Statement Body, bool External = false) : Statement
+		string Name, SqlList<string>? Columns, SqlList<Clause> Options, Statement Body, bool External = false) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -349,7 +353,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// a clause of their own — <c>ON SERVER</c> for an event notification, <c>ON t WITH
 	/// (…)</c> for an index.
 	/// </remarks>
-	public abstract record Removal(Expression[] Names) : Statement
+	public abstract record Removal(SqlList<Expression> Names) : Statement
 	{
 		/// <summary>Removing an object is DDL; the few that remove a principal say so themselves.</summary>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -389,7 +393,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		/// nested inside one — a private key's, an Always Encrypted key's value — is an
 		/// option holding it.
 		/// </remarks>
-		public Clause[]? Options { get; init; }
+		public SqlList<Clause>? Options { get; init; }
 
 		/// <summary>
 		/// The word the statement opened with, where the syntax lets it be more than one —
@@ -401,7 +405,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 	public sealed record AlterTable(
-		string Name, string Action, Clause[] Elements, Clause[]? Options = null, string? Tail = null) : Statement
+		string Name, string Action, SqlList<Clause> Elements, SqlList<Clause>? Options = null, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -415,8 +419,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// is for replication.
 	/// </summary>
 	public sealed record CreateProcedure(
-		string Name, Clause[] Parameters, Statement[] Body,
-		Clause[]? Options = null, bool ForReplication = false, string? External = null, string? Number = null,
+		string Name, SqlList<Clause> Parameters, SqlList<Statement> Body,
+		SqlList<Clause>? Options = null, bool ForReplication = false, string? External = null, string? Number = null,
 		string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
@@ -433,9 +437,9 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// function's <c>ORDER (…)</c>.
 	/// </summary>
 	public sealed record CreateFunction(
-		string Name, Clause[] Parameters, string? Returns, Statement[] Body,
-		Clause[]? Options = null, Clause[]? Columns = null, string? Variable = null,
-		Clause[]? Order = null, string? External = null, string Verb = "CREATE") : Statement
+		string Name, SqlList<Clause> Parameters, string? Returns, SqlList<Statement> Body,
+		SqlList<Clause>? Options = null, SqlList<Clause>? Columns = null, string? Variable = null,
+		SqlList<Clause>? Order = null, string? External = null, string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -445,8 +449,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="When"><c>AFTER</c>, <c>FOR</c> or <c>INSTEAD OF</c>, as written.</param>
 	/// <param name="External">The method in an assembly, where that is the body.</param>
 	public sealed record CreateTrigger(
-		string Name, string On, string[] Events, Statement[] Body,
-		string When = "AFTER", Clause[]? Options = null, bool Append = false,
+		string Name, string On, SqlList<string> Events, SqlList<Statement> Body,
+		string When = "AFTER", SqlList<Clause>? Options = null, bool Append = false,
 		bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
@@ -457,8 +461,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="Options">The <c>WITH</c> between the name and the <c>AS</c>: <c>SCHEMABINDING</c>, a materialized view's distribution.</param>
 	/// <param name="CheckOption">The <c>WITH CHECK OPTION</c> after the query.</param>
 	public sealed record ViewDefinition(
-		string Name, string[]? Columns, Statement Body,
-		Clause[]? Options = null, bool CheckOption = false, bool Materialized = false,
+		string Name, SqlList<string>? Columns, Statement Body,
+		SqlList<Clause>? Options = null, bool CheckOption = false, bool Materialized = false,
 		string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
@@ -494,7 +498,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// </summary>
 	public sealed record AlterIndex(
 		string Name, string On, string Action,
-		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement
+		Expression? Partition = null, SqlList<Clause>? Options = null, SqlList<string>? Paths = null, string? Namespaces = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -525,7 +529,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
 	public sealed record BeginDialog(
 		string Handle, bool Conversation, string From, Expression To, Expression? Instance,
-		string? Contract, Clause[] Options) : Statement
+		string? Contract, SqlList<Clause> Options) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -563,7 +567,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="MessageType">The message's type, where one was named.</param>
 	/// <param name="Body">What it says, where it says anything.</param>
 	public sealed record Send(
-		Expression[] Conversations, bool Bracketed, string? MessageType = null, Expression? Body = null) : Statement
+		SqlList<Expression> Conversations, bool Bracketed, string? MessageType = null, Expression? Body = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -578,7 +582,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// Which conversation or group they are from: one comparison, of one of those two columns.
 	/// </param>
 	public sealed record Receive(
-		Clause? Top, Clause[] Columns, string Queue, string? Into = null, Expression? Where = null) : Statement
+		Clause? Top, SqlList<Clause> Columns, string Queue, string? Into = null, Expression? Where = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -612,7 +616,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// What <c>WITH (PARTITIONS (…))</c> named, a <see cref="Clause.PartitionRange"/> each;
 	/// null where it named none.
 	/// </param>
-	public sealed record Truncate(string Table, Clause[]? Partitions = null) : Statement
+	public sealed record Truncate(string Table, SqlList<Clause>? Partitions = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -621,7 +625,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <summary><c>ENABLE TRIGGER</c> or <c>DISABLE TRIGGER</c>.</summary>
 	/// <param name="Triggers">The triggers by name; null for <c>ALL</c>.</param>
 	/// <param name="On">What they are on: an object's name, <c>DATABASE</c> or <c>ALL SERVER</c>.</param>
-	public sealed record TriggerSwitch(bool Enable, string[]? Triggers, string On) : Statement
+	public sealed record TriggerSwitch(bool Enable, SqlList<string>? Triggers, string On) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -644,7 +648,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="Add">Whether the classification is added; its removal is <c>DropSensitivityClassification</c>.</param>
 	/// <param name="Columns">The columns, by two parts or three.</param>
 	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
-	public sealed record Classification(bool Add, string[] Columns, Clause[] Options) : Statement
+	public sealed record Classification(bool Add, SqlList<string> Columns, SqlList<Clause> Options) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -657,7 +661,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// </param>
 	/// <param name="To">The module, with its class where one was said: <c>OBJECT::dbo.p</c>.</param>
 	/// <param name="Counter">Whether it is a counter signature.</param>
-	public sealed record AddSignature(Expression[] By, string To, bool Counter = false) : Statement
+	public sealed record AddSignature(SqlList<Expression> By, string To, bool Counter = false) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -748,7 +752,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// brackets, and empty where they held nothing.
 	/// </param>
 	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
-	public sealed record Dbcc(string Command, Expression[]? Arguments, Clause[] Options) : Statement
+	public sealed record Dbcc(string Command, SqlList<Expression>? Arguments, SqlList<Clause> Options) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Admin;
@@ -806,7 +810,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="Into">The variables the row's columns go into, where it goes into any.</param>
 	public sealed record Fetch(
 		string? Orientation, Expression? Offset, bool From, Expression Cursor, bool Global,
-		Expression[]? Into) : Statement
+		SqlList<Expression>? Into) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -833,7 +837,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	}
 
 	/// <summary>An error raised, or the caught one raised again.</summary>
-	public sealed record Throw(Expression[] Arguments) : Statement
+	public sealed record Throw(SqlList<Expression> Arguments) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -880,7 +884,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	}
 
 	/// <param name="Tail">The <c>WITH LOG, NOWAIT, SETERROR</c> after it, as written.</param>
-	public sealed record RaiseError(Expression[] Arguments, string? Tail = null) : Statement
+	public sealed record RaiseError(SqlList<Expression> Arguments, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -1059,8 +1063,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// it is put in.
 	/// </summary>
 	public sealed record EventSessionDefinition(
-		string Name, string Verb = "CREATE", string On = "SERVER", Clause[]? Pieces = null,
-		Clause[]? Options = null, string? State = null) : Statement
+		string Name, string Verb = "CREATE", string On = "SERVER", SqlList<Clause>? Pieces = null,
+		SqlList<Clause>? Options = null, string? State = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1203,8 +1207,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// </summary>
 	public sealed record EndpointDefinition(
 		string Name, string Verb = "CREATE", string? Owner = null, string? State = null,
-		Clause[]? StateOptions = null, string? Protocol = null, Clause[]? ProtocolOptions = null,
-		string? Payload = null, Clause[]? PayloadOptions = null) : Statement
+		SqlList<Clause>? StateOptions = null, string? Protocol = null, SqlList<Clause>? ProtocolOptions = null,
+		string? Payload = null, SqlList<Clause>? PayloadOptions = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1220,9 +1224,9 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// bracketed list of options an Azure database is written with instead.
 	/// </summary>
 	public sealed record CreateDatabase(
-		string Name, Clause[] Files, bool Primary = false, Clause[]? Log = null,
+		string Name, SqlList<Clause> Files, bool Primary = false, SqlList<Clause>? Log = null,
 		string? Containment = null, string? Collation = null,
-		string? Tail = null, Clause[]? Options = null, Clause[]? With = null) : Statement
+		string? Tail = null, SqlList<Clause>? Options = null, SqlList<Clause>? With = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1233,7 +1237,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// dealt with — <c>WITH ROLLBACK AFTER 10 SECONDS</c>, <c>WITH NO_WAIT</c>.
 	/// </summary>
 	public sealed record AlterDatabaseSet(
-		string Name, Clause[] Settings, string? Termination = null) : Statement
+		string Name, SqlList<Clause> Settings, string? Termination = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1245,7 +1249,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// where it says so.
 	/// </summary>
 	public sealed record AlterDatabaseScopedConfiguration(
-		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement
+		string Name, string Action, SqlList<Clause> Settings, bool Secondary = false, Expression? Argument = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1266,7 +1270,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary><c>ALTER DATABASE … MODIFY</c>.</summary>
 	public sealed record AlterDatabaseModify(
-		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement
+		string Name, SqlList<Clause>? Options = null, SqlList<Clause>? With = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1303,7 +1307,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// or several of one form, <c>SET ANSI_NULLS, NOCOUNT ON</c>, <c>SET DATEFIRST 1, DATEFORMAT dmy</c>.
 	/// A variable assigned is <see cref="SetVariable"/>, the other construction of the word.
 	/// </summary>
-	public sealed record SetStatement(SetExpression[] Items) : Statement
+	public sealed record SetStatement(SqlList<SetExpression> Items) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Session;
@@ -1352,7 +1356,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="On">The securable, class and all, as written after <c>ON</c>.</param>
 	/// <param name="As">The principal the statement is run as.</param>
 	public sealed record Grant(
-		string[] Privileges, string[] Principals,
+		SqlList<string> Privileges, SqlList<string> Principals,
 		string? On = null, bool GrantOption = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
@@ -1361,7 +1365,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary><c>DENY</c>: what is being said about, and to whom.</summary>
 	public sealed record Deny(
-		string[] Privileges, string[] Principals,
+		SqlList<string> Privileges, SqlList<string> Principals,
 		string? On = null, bool Cascade = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
@@ -1370,7 +1374,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary><c>REVOKE</c>: what is being said about, and to whom — or from whom.</summary>
 	public sealed record Revoke(
-		string[] Privileges, string[] Principals,
+		SqlList<string> Privileges, SqlList<string> Principals,
 		string? On = null, bool GrantOptionFor = false, bool From = false, bool Cascade = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
@@ -1601,222 +1605,222 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	// so the catalogue of names is here, in C#, and the grammar still says one thing.
 
 	/// <summary><c>DROP AGGREGATE</c>.</summary>
-	public sealed record DropAggregate(Expression[] Names) : Removal(Names);
+	public sealed record DropAggregate(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP APPLICATION ROLE</c>.</summary>
-	public sealed record DropApplicationRole(Expression[] Names) : Removal(Names)
+	public sealed record DropApplicationRole(SqlList<Expression> Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
-	public sealed record DropAvailabilityGroup(Expression[] Names) : Removal(Names);
+	public sealed record DropAvailabilityGroup(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP BROKER PRIORITY</c>.</summary>
-	public sealed record DropBrokerPriority(Expression[] Names) : Removal(Names);
+	public sealed record DropBrokerPriority(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP CERTIFICATE</c>.</summary>
-	public sealed record DropCertificate(Expression[] Names) : Removal(Names);
+	public sealed record DropCertificate(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP COLUMN ENCRYPTION KEY</c>.</summary>
-	public sealed record DropColumnEncryptionKey(Expression[] Names) : Removal(Names);
+	public sealed record DropColumnEncryptionKey(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP COLUMN MASTER KEY</c>.</summary>
-	public sealed record DropColumnMasterKey(Expression[] Names) : Removal(Names);
+	public sealed record DropColumnMasterKey(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP CONTRACT</c>.</summary>
-	public sealed record DropContract(Expression[] Names) : Removal(Names);
+	public sealed record DropContract(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP CREDENTIAL</c>.</summary>
-	public sealed record DropCredential(Expression[] Names) : Removal(Names);
+	public sealed record DropCredential(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP CRYPTOGRAPHIC PROVIDER</c>.</summary>
-	public sealed record DropCryptographicProvider(Expression[] Names) : Removal(Names);
+	public sealed record DropCryptographicProvider(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE AUDIT SPECIFICATION</c>.</summary>
-	public sealed record DropDatabaseAuditSpecification(Expression[] Names) : Removal(Names);
+	public sealed record DropDatabaseAuditSpecification(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE SCOPED CREDENTIAL</c>.</summary>
-	public sealed record DropDatabaseScopedCredential(Expression[] Names) : Removal(Names);
+	public sealed record DropDatabaseScopedCredential(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE</c>.</summary>
-	public sealed record DropDatabase(Expression[] Names) : Removal(Names);
+	public sealed record DropDatabase(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP DEFAULT</c>.</summary>
-	public sealed record DropDefault(Expression[] Names) : Removal(Names);
+	public sealed record DropDefault(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP ENDPOINT</c>.</summary>
-	public sealed record DropEndpoint(Expression[] Names) : Removal(Names);
+	public sealed record DropEndpoint(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL DATA SOURCE</c>.</summary>
-	public sealed record DropExternalDataSource(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalDataSource(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL FILE FORMAT</c>.</summary>
-	public sealed record DropExternalFileFormat(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalFileFormat(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL LANGUAGE</c>.</summary>
-	public sealed record DropExternalLanguage(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalLanguage(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL MODEL</c>.</summary>
-	public sealed record DropExternalModel(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalModel(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL RESOURCE POOL</c>.</summary>
-	public sealed record DropExternalResourcePool(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalResourcePool(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL TABLE</c>.</summary>
-	public sealed record DropExternalTable(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalTable(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT CATALOG</c>.</summary>
-	public sealed record DropFulltextCatalog(Expression[] Names) : Removal(Names);
+	public sealed record DropFulltextCatalog(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT STOPLIST</c>.</summary>
-	public sealed record DropFulltextStoplist(Expression[] Names) : Removal(Names);
+	public sealed record DropFulltextStoplist(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP FUNCTION</c>.</summary>
-	public sealed record DropFunction(Expression[] Names) : Removal(Names);
+	public sealed record DropFunction(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP LOGIN</c>.</summary>
-	public sealed record DropLogin(Expression[] Names) : Removal(Names)
+	public sealed record DropLogin(SqlList<Expression> Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
-	public sealed record DropMessageType(Expression[] Names) : Removal(Names);
+	public sealed record DropMessageType(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP PARTITION FUNCTION</c>.</summary>
-	public sealed record DropPartitionFunction(Expression[] Names) : Removal(Names);
+	public sealed record DropPartitionFunction(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP PARTITION SCHEME</c>.</summary>
-	public sealed record DropPartitionScheme(Expression[] Names) : Removal(Names);
+	public sealed record DropPartitionScheme(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP PROCEDURE</c>.</summary>
-	public sealed record DropProcedure(Expression[] Names) : Removal(Names);
+	public sealed record DropProcedure(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP QUEUE</c>.</summary>
-	public sealed record DropQueue(Expression[] Names) : Removal(Names);
+	public sealed record DropQueue(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP REMOTE SERVICE BINDING</c>.</summary>
-	public sealed record DropRemoteServiceBinding(Expression[] Names) : Removal(Names);
+	public sealed record DropRemoteServiceBinding(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP RESOURCE POOL</c>.</summary>
-	public sealed record DropResourcePool(Expression[] Names) : Removal(Names);
+	public sealed record DropResourcePool(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP ROLE</c>.</summary>
-	public sealed record DropRole(Expression[] Names) : Removal(Names)
+	public sealed record DropRole(SqlList<Expression> Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP ROUTE</c>.</summary>
-	public sealed record DropRoute(Expression[] Names) : Removal(Names);
+	public sealed record DropRoute(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP RULE</c>.</summary>
-	public sealed record DropRule(Expression[] Names) : Removal(Names);
+	public sealed record DropRule(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SCHEMA</c>.</summary>
-	public sealed record DropSchema(Expression[] Names) : Removal(Names);
+	public sealed record DropSchema(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SEARCH PROPERTY LIST</c>.</summary>
-	public sealed record DropSearchPropertyList(Expression[] Names) : Removal(Names);
+	public sealed record DropSearchPropertyList(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SECURITY POLICY</c>.</summary>
-	public sealed record DropSecurityPolicy(Expression[] Names) : Removal(Names);
+	public sealed record DropSecurityPolicy(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SEQUENCE</c>.</summary>
-	public sealed record DropSequence(Expression[] Names) : Removal(Names);
+	public sealed record DropSequence(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER AUDIT SPECIFICATION</c>.</summary>
-	public sealed record DropServerAuditSpecification(Expression[] Names) : Removal(Names);
+	public sealed record DropServerAuditSpecification(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER AUDIT</c>.</summary>
-	public sealed record DropServerAudit(Expression[] Names) : Removal(Names);
+	public sealed record DropServerAudit(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER ROLE</c>.</summary>
-	public sealed record DropServerRole(Expression[] Names) : Removal(Names)
+	public sealed record DropServerRole(SqlList<Expression> Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP SERVICE</c>.</summary>
-	public sealed record DropService(Expression[] Names) : Removal(Names);
+	public sealed record DropService(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP STATISTICS</c>.</summary>
-	public sealed record DropStatistics(Expression[] Names) : Removal(Names);
+	public sealed record DropStatistics(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SYNONYM</c>.</summary>
-	public sealed record DropSynonym(Expression[] Names) : Removal(Names);
+	public sealed record DropSynonym(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP TABLE</c>.</summary>
-	public sealed record DropTable(Expression[] Names) : Removal(Names);
+	public sealed record DropTable(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP TYPE</c>.</summary>
-	public sealed record DropType(Expression[] Names) : Removal(Names);
+	public sealed record DropType(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP USER</c>.</summary>
-	public sealed record DropUser(Expression[] Names) : Removal(Names)
+	public sealed record DropUser(SqlList<Expression> Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP VIEW</c>.</summary>
-	public sealed record DropView(Expression[] Names) : Removal(Names);
+	public sealed record DropView(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP WORKLOAD CLASSIFIER</c>.</summary>
-	public sealed record DropWorkloadClassifier(Expression[] Names) : Removal(Names);
+	public sealed record DropWorkloadClassifier(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP WORKLOAD GROUP</c>.</summary>
-	public sealed record DropWorkloadGroup(Expression[] Names) : Removal(Names);
+	public sealed record DropWorkloadGroup(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP XML SCHEMA COLLECTION</c>.</summary>
-	public sealed record DropXmlSchemaCollection(Expression[] Names) : Removal(Names);
+	public sealed record DropXmlSchemaCollection(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP ASYMMETRIC KEY</c>.</summary>
-	public sealed record DropAsymmetricKey(Expression[] Names) : Removal(Names);
+	public sealed record DropAsymmetricKey(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SYMMETRIC KEY</c>.</summary>
-	public sealed record DropSymmetricKey(Expression[] Names) : Removal(Names);
+	public sealed record DropSymmetricKey(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP ASSEMBLY</c>.</summary>
-	public sealed record DropAssembly(Expression[] Names) : Removal(Names);
+	public sealed record DropAssembly(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL LIBRARY</c>.</summary>
-	public sealed record DropExternalLibrary(Expression[] Names) : Removal(Names);
+	public sealed record DropExternalLibrary(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EVENT SESSION</c>.</summary>
-	public sealed record DropEventSession(Expression[] Names) : Removal(Names);
+	public sealed record DropEventSession(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP EVENT NOTIFICATION</c>.</summary>
-	public sealed record DropEventNotification(Expression[] Names) : Removal(Names);
+	public sealed record DropEventNotification(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT INDEX</c>.</summary>
-	public sealed record DropFulltextIndex(Expression[] Names) : Removal(Names);
+	public sealed record DropFulltextIndex(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP INDEX</c>.</summary>
-	public sealed record DropIndex(Expression[] Names) : Removal(Names);
+	public sealed record DropIndex(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP SIGNATURE</c>.</summary>
 	/// <param name="From">The module the signature is dropped off.</param>
 	/// <param name="Counter">Whether it is a counter signature.</param>
 	public sealed record DropSignature(
-		Expression[] Names, string? From = null, bool Counter = false) : Removal(Names);
+		SqlList<Expression> Names, string? From = null, bool Counter = false) : Removal(Names);
 
 	/// <summary><c>DROP SENSITIVITY CLASSIFICATION</c>.</summary>
-	public sealed record DropSensitivityClassification(Expression[] Names) : Removal(Names);
+	public sealed record DropSensitivityClassification(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP TRIGGER</c>.</summary>
-	public sealed record DropTrigger(Expression[] Names) : Removal(Names);
+	public sealed record DropTrigger(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP MASTER KEY</c>.</summary>
-	public sealed record DropMasterKey(Expression[] Names) : Removal(Names);
+	public sealed record DropMasterKey(SqlList<Expression> Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE ENCRYPTION KEY</c>.</summary>
-	public sealed record DropDatabaseEncryptionKey(Expression[] Names) : Removal(Names);
+	public sealed record DropDatabaseEncryptionKey(SqlList<Expression> Names) : Removal(Names);
 
 	// ---- how a parser makes these ------------------------------------------------------------
 	//
@@ -1826,7 +1830,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	// the value in a method of your own.
 
 	/// <summary>What a call with no statements is handed, once rather than per call.</summary>
-	public static readonly Statement[] None = [];
+	public static readonly SqlList<Statement> None = [];
 
 	/// <summary>The statement the word names, for the ten that are a word and a value.</summary>
 	public static Statement Commanded(string word, Expression? value)
@@ -1854,13 +1858,13 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		{
 			"PRINT" => new Print(values is { Length: > 0 } some ? some[0] : null!),
 			"RETURN" => new Return(values is { Length: > 0 } some ? some[0] : null),
-			"THROW" => new Throw(values ?? Expression.None),
+			"THROW" => new Throw(SqlList.Own(values)),
 			"GOTO" => new GoTo(values is { Length: > 0 } some ? some[0] : null!),
 			"BREAK" => new Break(),
 			"CONTINUE" => new Continue(),
 			"CHECKPOINT" => new Checkpoint(values is { Length: > 0 } some ? some[0] : null),
 			"USE" => new Use(values is { Length: > 0 } some ? some[0] : null!),
-			"RAISERROR" => new RaiseError(values ?? Expression.None),
+			"RAISERROR" => new RaiseError(SqlList.Own(values)),
 			"WAITFOR" => new WaitFor(values is { Length: > 0 } some ? some[0] : null!),
 			_ => throw Syntax.Unknown(word),
 		};
@@ -1916,13 +1920,13 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	public static Statement Defined(
 		string what, string name, string? tail = null, string? verb = null, Clause[]? options = null)
 	{
-		return Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
+		return Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = SqlList.OwnOrNull(options) };
 	}
 
 	/// <summary>A list held under one name: a private key's settings, an Always Encrypted value's parts.</summary>
 	public static Clause[] Holding(string name, Clause[]? settings)
 	{
-		return settings is null ? Clause.None : [new Clause.Option(name, null, settings)];
+		return settings is null ? [] : [new Clause.Option(name, null, SqlList.Own(settings))];
 	}
 
 	static Definition Named(string what, string name)
@@ -2024,8 +2028,8 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	{
 		return action switch
 		{
-			"CREATE" => new CreateDatabase(name, settings ?? Clause.None),
-			"SET" => new AlterDatabaseSet(name, settings ?? Clause.None),
+			"CREATE" => new CreateDatabase(name, SqlList.Own(settings)),
+			"SET" => new AlterDatabaseSet(name, SqlList.Own(settings)),
 			"COLLATE" => new AlterDatabaseCollate(name),
 			"MODIFY NAME" => new AlterDatabaseModifyName(name),
 			"MODIFY FILEGROUP" => new AlterDatabaseModifyFileGroup(name),
@@ -2048,13 +2052,13 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	public static AlterTable Altered(
 		string action, Clause[]? elements, Clause[]? options = null, string? tail = null)
 	{
-		return new("", action, elements ?? Clause.None, options, Syntax.Tail(tail));
+		return new("", action, SqlList.Own(elements), SqlList.OwnOrNull(options), Syntax.Tail(tail));
 	}
 
 	/// <summary>A column altered by one word — <c>ADD SPARSE</c>, <c>DROP PERSISTED</c>.</summary>
 	public static AlterTable Flagged(string name, string flag, Clause[]? options)
 	{
-		return new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], options);
+		return new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], SqlList.OwnOrNull(options));
 	}
 
 	/// <summary>The <c>DROP</c> the word names, which is what a <c>DROP</c> statement is.</summary>
@@ -2077,7 +2081,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	static Statement Removed(string kind, Expression[]? some)
 	{
-		var names = some ?? Expression.None;
+		var names = SqlList.Own(some);
 
 		return Syntax.Squared(kind) switch
 		{
@@ -2164,7 +2168,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 /// the server never sees the line a batch ends at. So it is a record of its own, holding the
 /// statements, and it is what <c>ParseScript</c> hands back a list of.
 /// </remarks>
-public sealed record Batch(Statement[] Statements, string? Go = null)
+public sealed record Batch(SqlList<Statement> Statements, string? Go = null)
 {
 	/// <summary>
 	/// The batch as the script was cut: its text, how many times it is sent, and the way back from
@@ -2451,16 +2455,16 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 	public sealed record Specification(
 		string? Quantifier,
 		Clause? Top,
-		Clause[] Columns,
+		SqlList<Clause> Columns,
 		Clause? Into,
-		TableReference[] From,
+		SqlList<TableReference> From,
 		Expression? Where,
 		Clause? GroupBy,
 		Expression? Having,
-		Clause[]? Windows = null) : Query;
+		SqlList<Clause>? Windows = null) : Query;
 
 	/// <summary>§7.3 <c>VALUES (…), (…)</c> — a table written out.</summary>
-	public sealed record TableValueConstructor(Expression[] Rows) : Query;
+	public sealed record TableValueConstructor(SqlList<Expression> Rows) : Query;
 
 	/// <summary>§7.13 a query in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
 	public sealed record Parenthesized(Query Query) : Query;
@@ -2492,7 +2496,7 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 	public sealed record DefaultValues : Query;
 
 	/// <summary>T-SQL's <c>BULK INSERT</c>: a file standing where a query does.</summary>
-	public sealed record FromFile(Expression File, Clause[]? Options = null) : Query;
+	public sealed record FromFile(Expression File, SqlList<Clause>? Options = null) : Query;
 
 	/// <summary>T-SQL's <c>INSERT BULK</c>: the rows a client streams, named by the columns.</summary>
 	/// <remarks>
@@ -2504,7 +2508,7 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 	/// list of names: these carry a type, and may carry only a name where the column is the
 	/// engine's own.
 	/// </remarks>
-	public sealed record FromStream(Clause[]? Columns = null, Clause[]? Options = null) : Query;
+	public sealed record FromStream(SqlList<Clause>? Columns = null, SqlList<Clause>? Options = null) : Query;
 
 	/// <summary>
 	/// T-SQL's <c>INSERT … EXEC</c>: a procedure standing where a query stands.
@@ -2700,12 +2704,12 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	/// the type a cast names.
 	/// </summary>
 	public sealed record RoutineInvocation(
-		string Name, Expression[] Arguments, string? Word = null) : Expression;
+		string Name, SqlList<Expression> Arguments, string? Word = null) : Expression;
 
 	/// <summary>
 	/// §6.12 a <c>CASE</c>, simple where it has an operand and searched where it does not.
 	/// </summary>
-	public sealed record Case(Expression? Operand, Clause[] Whens, Expression? Else) : Expression;
+	public sealed record Case(Expression? Operand, SqlList<Clause> Whens, Expression? Else) : Expression;
 
 	/// <summary>§6.7 a column reference, as written, dots and all.</summary>
 	public sealed record ColumnReference(string Text) : Expression;
@@ -2717,13 +2721,13 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	public sealed record Literal(SqlLiteralKind Kind, string Text) : Expression;
 
 	/// <summary>§7.1 a row of several values, <c>(a, b)</c>.</summary>
-	public sealed record RowValueConstructor(Expression[] Values) : Expression;
+	public sealed record RowValueConstructor(SqlList<Expression> Values) : Expression;
 
 	/// <summary>
 	/// The <c>ORDER (c1 ASC, c2 DESC) UNIQUE</c> a bulk rowset is declared to arrive in,
 	/// which is an argument of <c>OPENROWSET</c> and not a clause of the query.
 	/// </summary>
-	public sealed record RowsetOrder(Clause[] By, bool IsUnique) : Expression;
+	public sealed record RowsetOrder(SqlList<Clause> By, bool IsUnique) : Expression;
 
 	/// <summary>
 	/// SQL:2003's <c>&lt;window function&gt;</c>: a call, and the window it is computed over.
@@ -2741,7 +2745,7 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	/// <c>a.f(1)</c>. T-SQL writes both separators and they are not the same text.
 	/// </summary>
 	public sealed record Member(
-		Expression Of, string By, string Name, Expression[]? Arguments) : Expression;
+		Expression Of, string By, string Name, SqlList<Expression>? Arguments) : Expression;
 
 	/// <summary>
 	/// §6.11 a value and the collation it is compared under, which says how it is compared
@@ -2803,7 +2807,7 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	/// ('SQLOLEDB', 'server'; 'user'; 'password', …)</c>, that function's oldest spelling and
 	/// the one place T-SQL joins two values with a semicolon.
 	/// </summary>
-	public sealed record Pieced(Expression[] Parts) : Expression;
+	public sealed record Pieced(SqlList<Expression> Parts) : Expression;
 
 	/// <summary>
 	/// §6.28 <c>&lt;parenthesized value expression&gt;</c>, and §8.1's boolean one: brackets
@@ -2827,7 +2831,7 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	// ---- how a parser makes these -----------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
-	public static readonly Expression[] None = [];
+	public static readonly SqlList<Expression> None = [];
 
 	/// <summary>The two words that stand where a value does.</summary>
 	/// <remarks>
@@ -2959,32 +2963,32 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	/// with <see cref="Table"/> the rest of the name after it.
 	/// </param>
 	public sealed record Named(
-		string Table, Clause? SystemTime, bool ForPath, string? Name, string[]? Columns,
-		Clause? Sample, Clause[] Hints, Expression.RoutineInvocation? Server = null) : TableReference;
+		string Table, Clause? SystemTime, bool ForPath, string? Name, SqlList<string>? Columns,
+		Clause? Sample, SqlList<Clause> Hints, Expression.RoutineInvocation? Server = null) : TableReference;
 
 	/// <summary>
 	/// T-SQL's <c>PIVOT</c>: a source, the aggregate to turn its rows into columns with,
 	/// the column whose values name them, and which of those values to keep.
 	/// </summary>
 	public sealed record Pivot(
-		TableReference Of, Expression Aggregate, string For, string[] In,
+		TableReference Of, Expression Aggregate, string For, SqlList<string> In,
 		string? Name) : TableReference;
 
 	/// <summary>T-SQL's <c>UNPIVOT</c>, which is the same thing said backwards.</summary>
 	public sealed record Unpivot(
-		TableReference Of, string Value, string For, string[] In, string? Name) : TableReference;
+		TableReference Of, string Value, string For, SqlList<string> In, string? Name) : TableReference;
 
 	/// <summary>
 	/// §7.6 a query standing where a table does, T-SQL's <c>FOR PATH</c> after it as after a
 	/// table named.
 	/// </summary>
-	public sealed record Derived(Query Query, bool ForPath, string? Name, string[]? Columns) : TableReference;
+	public sealed record Derived(Query Query, bool ForPath, string? Name, SqlList<string>? Columns) : TableReference;
 
 	/// <summary>
 	/// A statement standing where a table does, its <c>OUTPUT</c> the rows it is read as: <c>INSERT
 	/// … SELECT … FROM (MERGE … OUTPUT …) AS c</c>, which only an <c>INSERT</c>'s rows may be.
 	/// </summary>
-	public sealed record Changed(Statement Statement, string Name, string[]? Columns) : TableReference;
+	public sealed record Changed(Statement Statement, string Name, SqlList<string>? Columns) : TableReference;
 
 
 	/// <summary>
@@ -2992,8 +2996,8 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	/// table-valued function called in a <c>FROM</c> clause.
 	/// </summary>
 	public sealed record FunctionCall(
-		Expression.RoutineInvocation Function, string? Name, string[]? Columns,
-		Clause[] Schema) : TableReference;
+		Expression.RoutineInvocation Function, string? Name, SqlList<string>? Columns,
+		SqlList<Clause> Schema) : TableReference;
 
 	/// <summary>§7.6 a source in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
 	public sealed record Parenthesized(TableReference Of) : TableReference;
@@ -3014,17 +3018,17 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	/// <param name="Hint">T-SQL's join hint, <c>HASH</c>, <c>LOOP</c>, <c>MERGE</c>, …, written before the <c>JOIN</c>.</param>
 	public sealed record Joined(
 		SqlJoin Kind, bool Outer, bool Natural, TableReference Left, TableReference Right,
-		Expression? On = null, string[]? Using = null, string? Hint = null) : TableReference;
+		Expression? On = null, SqlList<string>? Using = null, string? Hint = null) : TableReference;
 
 	/// <summary>What a clause with no sources is handed, once rather than per call.</summary>
-	public static readonly TableReference[] None = [];
+	public static readonly SqlList<TableReference> None = [];
 
 	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
 	public static Joined Joining(
 		string? kind, string? natural, TableReference left, TableReference right,
 		Expression? on, string[]? columns, string? hint = null)
 	{
-		return new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns, hint);
+		return new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, SqlList.OwnOrNull(columns), hint);
 	}
 }
 
@@ -3080,7 +3084,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// §10.10 the whole <c>ORDER BY</c>, with the two clauses the reference writes inside it:
 	/// how many rows to step over, and how many to take.
 	/// </summary>
-	public sealed record OrderBy(Clause[] By, Expression? Offset, Expression? Fetch) : Clause;
+	public sealed record OrderBy(SqlList<Clause> By, Expression? Offset, Expression? Fetch) : Clause;
 
 	/// <summary>
 	/// T-SQL's <c>TOP (n) PERCENT WITH TIES</c> — how many rows a query specification hands
@@ -3092,7 +3096,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// §7.9 <c>GROUP BY</c>: what the rows are grouped by, and the two things T-SQL writes
 	/// around the list — <c>ALL</c> in front and <c>WITH CUBE</c> or <c>WITH ROLLUP</c> after.
 	/// </summary>
-	public sealed record GroupBy(bool All, Expression[] By, string? With) : Clause;
+	public sealed record GroupBy(bool All, SqlList<Expression> By, string? With) : Clause;
 
 	/// <summary>
 	/// SQL:2003's <c>&lt;window specification&gt;</c>: which rows a call sees, and in what
@@ -3104,7 +3108,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// current row the window reaches; the text loses nothing and claims nothing.
 	/// </remarks>
 	public sealed record Window(
-		string? Name, Expression[] PartitionBy, Clause? By, string? Frame) : Clause;
+		string? Name, SqlList<Expression> PartitionBy, Clause? By, string? Frame) : Clause;
 
 	/// <summary>
 	/// One entry of a query's <c>WINDOW</c> clause: the name, and the window it stands for —
@@ -3122,7 +3126,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// T-SQL's <c>FOR SYSTEM_TIME</c>: which version of a temporal table is being read, and
 	/// the one or two times that say which.
 	/// </summary>
-	public sealed record SystemTime(string Kind, Expression[] At) : Clause;
+	public sealed record SystemTime(string Kind, SqlList<Expression> At) : Clause;
 
 	/// <summary>
 	/// T-SQL's <c>TABLESAMPLE</c>: how much of a table to read, in rows or in percent, and
@@ -3149,13 +3153,13 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 
 	/// <summary>§7.17 a named query, written in front of the statement that uses it.</summary>
 	public sealed record CommonTableExpression(
-		string Name, string[]? Columns, Query Query) : Clause;
+		string Name, SqlList<string>? Columns, Query Query) : Clause;
 
 	/// <summary>
 	/// T-SQL's <c>FOR XML</c>, <c>FOR JSON</c> and <c>FOR BROWSE</c>: what shape the rows come
 	/// back in rather than what they are.
 	/// </summary>
-	public sealed record For(string Kind, string[] Options) : Clause;
+	public sealed record For(string Kind, SqlList<string> Options) : Clause;
 
 	/// <summary>One hint, as it was written.</summary>
 	/// <remarks>
@@ -3182,13 +3186,13 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// only that one.
 	/// </remarks>
 	public sealed record Option(
-		string Name, Expression? Value, Clause[] Options, string? Partitions = null, bool Bare = false) : Clause;
+		string Name, Expression? Value, SqlList<Clause> Options, string? Partitions = null, bool Bare = false) : Clause;
 
 	/// <summary>
 	/// Where a table or an index is put: the word that says which placement, the filegroup
 	/// or partition scheme, and the column a partition scheme is applied on.
 	/// </summary>
-	public sealed record Placement(string Kind, string Target, string[]? Columns) : Clause;
+	public sealed record Placement(string Kind, string Target, SqlList<string>? Columns) : Clause;
 
 	/// <summary>
 	/// T-SQL's assignment written in a select list — <c>SELECT @a += 1</c>, which takes the
@@ -3213,7 +3217,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// anywhere, that table's columns, and a second <c>OUTPUT</c> after it where there is one.
 	/// </summary>
 	public sealed record Output(
-		Clause[] Items, TableReference? Target = null, string[]? Columns = null, Clause? Next = null) : Clause;
+		SqlList<Clause> Items, TableReference? Target = null, SqlList<string>? Columns = null, Clause? Next = null) : Clause;
 
 	/// <summary>
 	/// T-SQL's <c>EXECUTE ('…') AS USER = 'u'</c>: whom a string is run as, <c>LOGIN</c> or
@@ -3238,7 +3242,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// <c>DECLARE @v AS TABLE (…)</c> as two.
 	/// </param>
 	public sealed record VariableDeclaration(
-		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null,
+		string Name, string? Type, Expression? Value, SqlList<Clause>? Elements = null, string? Nullability = null,
 		bool As = false) : Clause;
 
 	/// <summary>
@@ -3261,11 +3265,11 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// round, and the text says which.
 	/// </param>
 	public sealed record CursorDefinition(
-		string[] Before, string[] Options, Clause[] With, Query Query, Clause? Access, Clause[] Hints,
+		SqlList<string> Before, SqlList<string> Options, SqlList<Clause> With, Query Query, Clause? Access, SqlList<Clause> Hints,
 		bool AccessFirst = false) : Clause;
 
 	/// <summary><c>FOR READ ONLY</c>, or <c>FOR UPDATE</c> and the columns it is kept to.</summary>
-	public sealed record CursorFor(bool Update, string[]? Columns = null) : Clause;
+	public sealed record CursorFor(bool Update, SqlList<string>? Columns = null) : Clause;
 
 	/// <summary>A partition by its number, or a range of them: <c>3</c>, <c>3 TO 5</c>.</summary>
 	public sealed record PartitionRange(Expression From, Expression? To = null) : Clause;
@@ -3277,7 +3281,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// </summary>
 	public sealed record ParameterDeclaration(
 		string Name, string? Type, Expression? Value,
-		string? Nullability = null, bool Varying = false, string[]? Ways = null) : Clause;
+		string? Nullability = null, bool Varying = false, SqlList<string>? Ways = null) : Clause;
 
 	/// <summary>
 	/// §11.4 one column: its name, the type as written, the expression where it is computed
@@ -3285,7 +3289,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// constraints, and the index written on it — in the order it was said.
 	/// </summary>
 	public sealed record ColumnDefinition(
-		string Name, string? Type, Expression? Computed, Clause[] Options) : Clause;
+		string Name, string? Type, Expression? Computed, SqlList<Clause> Options) : Clause;
 
 	/// <summary>
 	/// One thing said about a column after its type that is not a constraint: which thing
@@ -3294,7 +3298,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// the constraint name where the language lets a nullability have one.
 	/// </summary>
 	public sealed record ColumnOption(
-		string Kind, Expression[] Arguments, Clause[] Options, string? ConstraintName) : Clause;
+		string Kind, SqlList<Expression> Arguments, SqlList<Clause> Options, string? ConstraintName) : Clause;
 
 	/// <summary>
 	/// §11.6 a constraint or an index, written on a column or on the table: its name where it
@@ -3319,10 +3323,10 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// sorted_data FILLFACTOR = 12</c>, and a comma there closes the column instead).
 	/// </param>
 	public sealed record ConstraintDefinition(
-		string? Name, string Kind, Clause[] Columns, Expression? Check,
+		string? Name, string Kind, SqlList<Clause> Columns, Expression? Check,
 		string? Clustering = null, bool Hash = false, bool Columnstore = false,
-		string[]? Order = null, string[]? Include = null, Expression? Filter = null,
-		Clause? Referenced = null, Clause[]? Options = null, Clause[]? Placements = null,
+		SqlList<string>? Order = null, SqlList<string>? Include = null, Expression? Filter = null,
+		Clause? Referenced = null, SqlList<Clause>? Options = null, SqlList<Clause>? Placements = null,
 		bool? Enforced = null, string? ForColumn = null, bool Bracketed = true) : Clause;
 
 	/// <summary>
@@ -3330,7 +3334,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// happens on delete and on update, and whether replication is told to leave it alone.
 	/// </summary>
 	public sealed record References(
-		string Table, string[]? Columns, string? OnDelete, string? OnUpdate, bool NotForReplication) : Clause;
+		string Table, SqlList<string>? Columns, string? OnDelete, string? OnUpdate, bool NotForReplication) : Clause;
 
 	/// <summary>One pair of node tables an edge may connect.</summary>
 	public sealed record Connection(string From, string To) : Clause;
@@ -3345,13 +3349,13 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 		string Kind, string? Name, bool IfExists = false, string? Tail = null) : Clause;
 
 	/// <summary>One file of a database: the bracketed options that describe it.</summary>
-	public sealed record DatabaseFile(Clause[] Options) : Clause;
+	public sealed record DatabaseFile(SqlList<Clause> Options) : Clause;
 
 	/// <summary>
 	/// A file group in a <c>CREATE DATABASE</c>: its name, what it contains where it says,
 	/// whether it is the default, and its files.
 	/// </summary>
-	public sealed record FileGroup(string Name, string? Contains, bool Default, Clause[] Files) : Clause;
+	public sealed record FileGroup(string Name, string? Contains, bool Default, SqlList<Clause> Files) : Clause;
 
 	/// <summary>
 	/// One piece of an event session — <c>ADD EVENT</c>, <c>DROP EVENT</c>, <c>ADD TARGET</c>,
@@ -3359,16 +3363,16 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// its predicate, which is a language of its own and is kept as written.
 	/// </summary>
 	public sealed record EventPiece(
-		string Action, string Name, Clause[]? Settings = null, string[]? Actions = null, string? Where = null) : Clause;
+		string Action, string Name, SqlList<Clause>? Settings = null, SqlList<string>? Actions = null, string? Where = null) : Clause;
 
 	/// <summary>What a statement with no clauses is handed, once rather than per call.</summary>
-	public static readonly Clause[] None = [];
+	public static readonly SqlList<Clause> None = [];
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
 	public static ConstraintDefinition Constrained(
 		string kind, Clause[]? columns, Expression? check)
 	{
-		return new(null, kind, columns ?? None, check);
+		return new(null, kind, SqlList.Own(columns), check);
 	}
 
 	/// <summary>A default and what was written after it: the column it is for, and whether the rows already there take it.</summary>
@@ -3413,9 +3417,9 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// </summary>
 	public static ConstraintDefinition Keyed(
 		string kind, string? clustering, string? hash, Clause[]? columns,
-		Clause[]? options, Clause? placement, string? enforced)
+		SqlList<Clause>? options, Clause? placement, string? enforced)
 	{
-		return new(null, kind, columns ?? None, null,
+		return new(null, kind, SqlList.Own(columns), null,
 			Clustering: clustering, Hash: hash is not null,
 			Options: options, Placements: placement is null ? null : [placement],
 			Enforced: Syntax.Enforced(enforced));
@@ -3425,11 +3429,11 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	public static ConstraintDefinition Indexed(
 		string name, string? unique, string? clustering, string? columnstore, string? hash,
 		Clause[]? columns, string[]? order, string[]? include, Expression? filter,
-		Clause[]? options, Placement? on, Placement? filestream)
+		SqlList<Clause>? options, Placement? on, Placement? filestream)
 	{
-		return new(name, unique is null ? "INDEX" : "UNIQUE INDEX", columns ?? None, null,
+		return new(name, unique is null ? "INDEX" : "UNIQUE INDEX", SqlList.Own(columns), null,
 			Clustering: clustering, Hash: hash is not null, Columnstore: columnstore is not null,
-			Order: order, Include: include, Filter: filter, Options: options,
+			Order: SqlList.OwnOrNull(order), Include: SqlList.OwnOrNull(include), Filter: filter, Options: options,
 			Placements: on is null && filestream is null
 				? null
 				: [.. new[] { on, filestream }.OfType<Clause>()]);
@@ -3476,7 +3480,7 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	{
 		return by is null && window is null
 			? null
-			: new OrderBy(by ?? None, window?.Offset, window?.Fetch);
+			: new OrderBy(SqlList.Own(by), window?.Offset, window?.Fetch);
 	}
 }
 
@@ -3512,7 +3516,7 @@ public static class Syntax
 	}
 
 	/// <summary>What a call with no names is handed, once rather than per call.</summary>
-	public static readonly string[] NoNames = [];
+	public static readonly SqlList<string> NoNames = [];
 
 	/// <summary>A head and a tail as one array, which is what a separated list comes to.</summary>
 	public static T[] Listed<T>(T first, T[]? rest)
@@ -3531,7 +3535,7 @@ public static class Syntax
 	/// <summary>A session's events and the targets written after them, as its one list of pieces.</summary>
 	public static Clause[] Pieces(Clause[]? events, Clause[]? targets)
 	{
-		return [.. events ?? Clause.None, .. targets ?? Clause.None];
+		return [.. events ?? [], .. targets ?? []];
 	}
 
 	/// <summary>A head and a tail of names as one array, the way <see cref="Listed"/> does nodes.</summary>
@@ -3543,13 +3547,13 @@ public static class Syntax
 	/// <summary>Names as sort specifications with no direction, which is how a column list stands.</summary>
 	public static Clause[] Columns(string[]? names)
 	{
-		return names is null ? Clause.None : [.. names.Select(static one => new Clause.SortSpecification(new Expression.ColumnReference(one), SqlOrder.Unspecified))];
+		return names is null ? [] : [.. names.Select(static one => new Clause.SortSpecification(new Expression.ColumnReference(one), SqlOrder.Unspecified))];
 	}
 
 	/// <summary>One word as an option with nothing set, or nothing where none was written.</summary>
 	public static Clause[] Unit(string? word)
 	{
-		return word is null ? Clause.None : [new Clause.Option(Squared(word), null, Clause.None)];
+		return word is null ? [] : [new Clause.Option(Squared(word), null, Clause.None)];
 	}
 
 	/// <summary>A grouping column with what was written after it: a collation, a hint.</summary>
@@ -3870,7 +3874,7 @@ public static class Syntax
 		string? onDelete = null, onUpdate = null;
 		var replicated = false;
 
-		foreach (var action in actions ?? NoNames)
+		foreach (var action in actions ?? [])
 		{
 			var squared = Squared(action);
 
@@ -3882,7 +3886,7 @@ public static class Syntax
 				replicated = true;
 		}
 
-		return new Clause.References(table, columns, onDelete, onUpdate, replicated || replication is not null);
+		return new Clause.References(table, SqlList.OwnOrNull(columns), onDelete, onUpdate, replicated || replication is not null);
 	}
 
 	/// <summary>Whether a foreign key says what it does on a delete, and on an update, once each at most.</summary>
@@ -3891,7 +3895,7 @@ public static class Syntax
 		var deletes = 0;
 		var updates = 0;
 
-		foreach (var action in actions ?? NoNames)
+		foreach (var action in actions ?? [])
 		{
 			var squared = Squared(action);
 
@@ -3907,7 +3911,7 @@ public static class Syntax
 	/// <summary>A <c>CONNECTION</c>'s pairs and the actions after them, as one list.</summary>
 	public static Clause[] Connected(Clause first, Clause[]? rest, string[]? actions)
 	{
-		return [.. Listed(first, rest), .. (actions ?? NoNames).Select(static one => (Clause)new Clause.Option(Squared(one), null, Clause.None))];
+		return [.. Listed(first, rest), .. (actions ?? []).Select(static one => (Clause)new Clause.Option(Squared(one), null, Clause.None))];
 	}
 
 	/// <summary>Whether a word that is <c>ON</c> or <c>OFF</c> was the first of the two.</summary>
@@ -3999,11 +4003,11 @@ public static class Syntax
 	{
 		return with is null || with.Length == 0 ? statement : statement switch
 		{
-			Statement.Select select => select with { With = with },
-			Statement.Insert insert => insert with { With = with },
-			Statement.Update update => update with { With = with },
-			Statement.Delete delete => delete with { With = with },
-			Statement.Merge merge => merge with { With = with },
+			Statement.Select select => select with { With = SqlList.Own(with) },
+			Statement.Insert insert => insert with { With = SqlList.OwnOrNull(with) },
+			Statement.Update update => update with { With = SqlList.OwnOrNull(with) },
+			Statement.Delete delete => delete with { With = SqlList.OwnOrNull(with) },
+			Statement.Merge merge => merge with { With = SqlList.OwnOrNull(with) },
 			_ => statement,
 		};
 	}
@@ -4020,10 +4024,10 @@ public static class Syntax
 		string? alias, string[]? columns, Clause? sample, Clause[]? hints, TableReference? pivot)
 	{
 		TableReference source = call is null
-			? new TableReference.Named(name, when, path, alias, columns, sample, hints ?? Clause.None)
+			? new TableReference.Named(name, when, path, alias, SqlList.OwnOrNull(columns), sample, SqlList.Own(hints))
 			: new TableReference.FunctionCall(
-				new Expression.RoutineInvocation(name, arguments ?? Expression.None),
-				alias, columns, Clause.None);
+				new Expression.RoutineInvocation(name, SqlList.Own(arguments)),
+				alias, SqlList.OwnOrNull(columns), Clause.None);
 
 		return Pivoted(source, pivot);
 	}
@@ -4037,7 +4041,7 @@ public static class Syntax
 	/// </remarks>
 	public static TableReference Hanging(TableReference source, TableReference[]? tails)
 	{
-		foreach (var tail in tails ?? TableReference.None)
+		foreach (var tail in SqlList.Own(tails))
 			source = Hung(source, tail);
 
 		return source;
@@ -4072,7 +4076,7 @@ public static class Syntax
 	/// </summary>
 	public static TableReference Chained(TableReference first, TableReference[]? rest)
 	{
-		foreach (var next in rest ?? TableReference.None)
+		foreach (var next in SqlList.Own(rest))
 		{
 			first = next switch
 			{
@@ -4356,7 +4360,7 @@ public static class Syntax
 	{
 		return query switch
 		{
-			Query.Specification { Columns: var columns } => Array.Exists(columns, static one => one is Clause.VariableAssignment),
+			Query.Specification { Columns: var columns } => columns.Exists(static one => one is Clause.VariableAssignment),
 			Query.Parenthesized(var inner) => Assigns(inner),
 			_ => false,
 		};
@@ -4381,7 +4385,7 @@ public static class Syntax
 	/// <summary>Whether a query assigns a variable and has nothing to select from — which no `ORDER BY` may follow.</summary>
 	public static bool AssignsFromNothing(Query? query)
 	{
-		return query is Query.Specification { From: null or { Length: 0 } } && Assigns(query);
+		return query is Query.Specification { From.IsEmpty: true } && Assigns(query);
 	}
 
 	/// <summary>Whether no assignment of a list goes through a column — `@a = c = 1`, which a `MERGE` refuses.</summary>
@@ -4429,7 +4433,7 @@ public static class Syntax
 			return one switch
 			{
 				Expression.Literal { Kind: SqlLiteralKind.Text or SqlLiteralKind.National } => true,
-				Expression.Pieced(var parts) => Array.TrueForAll(parts, Stringy),
+				Expression.Pieced(var parts) => parts.TrueForAll(Stringy),
 				_ => false,
 			};
 		}
@@ -4488,11 +4492,15 @@ public static class Syntax
 	}
 
 	/// <summary>Whether a list of options names one.</summary>
-	public static bool HasOption(Clause[]? options, string name)
+	public static bool HasOption(ReadOnlySpan<Clause> options, string name)
 	{
-		return options is not null &&
-		Array.Exists(options, one => one is Clause.Option { Name: var named } &&
-			string.Equals(named, name, StringComparison.OrdinalIgnoreCase));
+		foreach (var one in options)
+		{
+			if (one is Clause.Option { Name: var named } && string.Equals(named, name, StringComparison.OrdinalIgnoreCase))
+				return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>Whether a column's encryption names its key, its type and its algorithm.</summary>
@@ -4751,7 +4759,7 @@ public static class Syntax
 	public static bool Written(TableReference? target)
 	{
 		return target is not TableReference.FunctionCall { Function.Arguments: var arguments } ||
-		Array.TrueForAll(arguments, static one => one is not Expression.ColumnReference(var text) || Written(text));
+		arguments.TrueForAll(static one => one is not Expression.ColumnReference(var text) || Written(text));
 	}
 
 	/// <summary>Whether a name written as a column carries no <c>$</c> part under a prefix.</summary>
@@ -4810,7 +4818,7 @@ public static class Syntax
 	{
 		return string.Equals(verb, "CREATE", StringComparison.OrdinalIgnoreCase) ||
 		spoken?.Options is not { } options ||
-		!Array.Exists(options, static one => one is Clause.Option { Name: "WEBMETHOD" });
+		!options.Exists(static one => one is Clause.Option { Name: "WEBMETHOD" });
 	}
 
 	/// <summary>Whether a string written out is one of a catalogue, whatever its quotes and case.</summary>
@@ -5405,8 +5413,8 @@ public static class Syntax
 
 		foreach (var one in options)
 			if (one is Clause.Option { Name: "ACTIVATION", Options: var inner } &&
-				!(HasOption(inner, "PROCEDURE_NAME") && HasOption(inner, "MAX_QUEUE_READERS") &&
-				  HasOption(inner, "EXECUTE AS")))
+				!(HasOption(inner.AsSpan(), "PROCEDURE_NAME") && HasOption(inner.AsSpan(), "MAX_QUEUE_READERS") &&
+				  HasOption(inner.AsSpan(), "EXECUTE AS")))
 			{
 				return false;
 			}
@@ -5500,7 +5508,7 @@ public static class Syntax
 				Clause.ConstraintDefinition { Kind: "PRIMARY KEY" or "UNIQUE" } key => Told(key),
 				Clause.ColumnOption { ConstraintName: not null } => false,
 				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "ENCRYPTED" or "NOT FOR REPLICATION" or ColumnSet } => false,
-				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Typed),
+				Clause.ColumnDefinition { Options: var options } => options.TrueForAll(Typed),
 				_ => true,
 			};
 		}
@@ -5511,7 +5519,7 @@ public static class Syntax
 		static bool Told(Clause.ConstraintDefinition constraint)
 		{
 			return constraint.Options is not { } options ||
-			Array.TrueForAll(options, one =>
+			options.TrueForAll(one =>
 				one is Clause.Option { Name: var name } &&
 				Array.Exists(
 					constraint.Bracketed ? TypeKeyBracketed : TypeKeyBare,
@@ -5544,7 +5552,7 @@ public static class Syntax
 				Clause.ColumnOption { ConstraintName: not null } => false,
 				Clause.ColumnOption { Kind: "FILESTREAM" or "NOT FOR REPLICATION" } => false,
 				Clause.ConstraintDefinition { Kind: "REFERENCES" } => false,
-				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Nameless),
+				Clause.ColumnDefinition { Options: var options } => options.TrueForAll(Nameless),
 				_ => true,
 			};
 		}
@@ -5566,7 +5574,7 @@ public static class Syntax
 			{
 				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "NOT FOR REPLICATION" or ColumnSet } => false,
 				Clause.ConstraintDefinition { Kind: "REFERENCES" } => false,
-				Clause.ColumnDefinition { Options: var options } => Array.TrueForAll(options, Kept),
+				Clause.ColumnDefinition { Options: var options } => options.TrueForAll(Kept),
 				_ => true,
 			};
 		}
@@ -5582,7 +5590,7 @@ public static class Syntax
 	public static Clause.CursorDefinition Cursor(
 		Clause[]? with, Query query, Clause? @for, Clause[]? hints, bool forFirst)
 	{
-		return new([], [], with ?? Clause.None, query, @for, hints ?? Clause.None, forFirst);
+		return new([], [], SqlList.Own(with), query, @for, SqlList.Own(hints), forFirst);
 	}
 
 	/// <summary>Whether a variable is one of the server's, <c>@@ROWCOUNT</c> and its kind.</summary>
