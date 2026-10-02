@@ -419,12 +419,6 @@ public sealed class PositionalSplitWebTests
 
 	static readonly System.Collections.Concurrent.ConcurrentDictionary<(bool Direct, bool Split), Assembly> _variants = new();
 
-	/// <summary>
-	/// The grammars whose engine rendering does not compile today, read by the reader in the engine's
-	/// variants too: RFC 5322's captured repetition of an array value is written `new T[][n]`.
-	/// </summary>
-	static readonly HashSet<string> EngineCannot = new(StringComparer.Ordinal) { "Rfc5322" };
-
 	static Assembly Compile(bool direct, bool split)
 	{
 		var parse = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
@@ -474,7 +468,7 @@ public sealed class PositionalSplitWebTests
 				Namespace             = "DotGram.Web",
 				CSharpScanner         = RoslynCSharpScanner.Instance,
 				SymbolResolver        = new RoslynSymbolResolver(host, "DotGram.Web." + Path.GetFileNameWithoutExtension(file)),
-				Direct                = direct || EngineCannot.Contains(Path.GetFileNameWithoutExtension(file)),
+				Direct                = direct,
 				PositionalFollow      = true,
 				PositionalFollowSplit = split,
 				SpanCaptures          = attribute.Contains("SpanCaptures = true", StringComparison.Ordinal),

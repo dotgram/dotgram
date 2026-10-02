@@ -3091,7 +3091,7 @@ sealed partial class Machine
 							writer.Line($"if ({collected}) guardCaptured{memberIndex}Count++;");
 						}
 
-						writer.Line($"var guardCaptured{memberIndex} = new {type}[guardCaptured{memberIndex}Count];");
+						writer.Line($"var guardCaptured{memberIndex} = {CSharpEmitter.NewArray(type, $"guardCaptured{memberIndex}Count")};");
 						writer.Line($"var guardCaptured{memberIndex}Item = 0;");
 
 						using (writer.Block($"for (var candidateAt = {floor} + 1; candidateAt < entries.Count; candidateAt++)"))

@@ -3025,6 +3025,34 @@ file.Line("return spare;");
 		return into.Append('"');
 	}
 
+	/// <summary>
+	/// The expression that creates an array of <paramref name="length"/> elements of
+	/// <paramref name="element"/>.
+	/// </summary>
+	/// <remarks>
+	/// C# writes the length in the first rank, whatever the element is: an array of
+	/// <c>T[]</c> is <c>new T[n][]</c>, and <c>new T[][n]</c> is no expression at all
+	/// (CS1586). A rule whose value is an array, captured in a repetition, collects exactly
+	/// that. The ranks are the ones the type ends with, so an array inside a type argument —
+	/// <c>List&lt;int[]&gt;</c> — stays where it is.
+	/// </remarks>
+	internal static string NewArray(string element, string length)
+	{
+		var rank = element.Length;
+
+		while (rank > 0 && element[rank - 1] == ']')
+		{
+			var open = element.LastIndexOf('[', rank - 1);
+
+			if (open < 0 || element.IndexOfAny(['<', '>', '(', ')'], open, rank - open) >= 0)
+				break;
+
+			rank = open;
+		}
+
+		return $"new {element.Substring(0, rank)}[{length}]{element.Substring(rank)}";
+	}
+
 	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
 	{
 		if (construct.How is Construction.Expression { Text: var text, At: var at })

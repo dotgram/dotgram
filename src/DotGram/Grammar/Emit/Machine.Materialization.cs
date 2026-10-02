@@ -837,7 +837,7 @@ sealed partial class Machine
 							file.Line($"if ({collected}) captured{memberIndex}Count++;");
 						}
 
-						file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
+						file.Line($"var captured{memberIndex} = {CSharpEmitter.NewArray(element, $"captured{memberIndex}Count")};");
 						file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
 
 						using (file.Block(
@@ -1043,7 +1043,7 @@ sealed partial class Machine
 				$"candidate.State == {sited.Boundary}) captured{memberIndex}Count++;");
 		}
 
-		file.Line($"var captured{memberIndex} = new {element}[captured{memberIndex}Count];");
+		file.Line($"var captured{memberIndex} = {CSharpEmitter.NewArray(element, $"captured{memberIndex}Count")};");
 		file.Line($"var captured{memberIndex}Item = captured{memberIndex}Count;");
 		file.Line($"var captured{memberIndex}Open = -1;");
 
@@ -1592,7 +1592,7 @@ sealed partial class Machine
 				file.Line($"if ({test}) foldCaptured{memberIndex}Count++;");
 			}
 
-			file.Line($"var foldCaptured{memberIndex} = new {element}[foldCaptured{memberIndex}Count];");
+			file.Line($"var foldCaptured{memberIndex} = {CSharpEmitter.NewArray(element, $"foldCaptured{memberIndex}Count")};");
 			file.Line($"var foldCaptured{memberIndex}Item = 0;");
 
 			using (file.Block(
