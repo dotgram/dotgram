@@ -559,9 +559,14 @@ sealed partial class Machine
 
 		// A fold's step leads with the value so far, and an ambient argument is something
 		// the record's own positions answer. Neither is the callee's value.
+		//
+		// Where locations are decided per call, a located alternative that hands back its
+		// callee's value is forwarded as an unlocated grammar's is: the reading that does not
+		// ask walks what a plain parser walks, and the one that asks leaves the value the range
+		// of the rule that made it rather than widening it to the alternative's.
 		if (made.Accumulator is not null ||
 			CSharpEmitter.WantsText(_graph, made) ||
-			CSharpEmitter.WantsSpan(_graph, made) ||
+			CSharpEmitter.TakesSpan(_graph, made) ||
 			CSharpEmitter.Asks(_graph, made, "parserInput") ||
 			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
 			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
