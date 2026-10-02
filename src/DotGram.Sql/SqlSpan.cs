@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace DotGram.Sql;
 
@@ -145,8 +146,18 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		return Span.Known || Span.GapStart != 0 ? new SqlLocation(Span.Stale()) : this;
 	}
 
+	// Every node's equality and hash pass through here before they reach what the node holds, which
+	// makes this the one place a deep tree can be stopped: a chain of a hundred thousand `+`, which the
+	// parser reads, would otherwise end the process with a stack overflow that nothing can catch. The
+	// check throws InsufficientExecutionStackException instead. It is one call, so that the Equals the
+	// compiler writes for each root record, and every derived record calls first, stays small enough
+	// to be inlined into them.
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public bool Equals(SqlLocation other)
 	{
+		RuntimeHelpers.EnsureSufficientExecutionStack();
+
 		return true;
 	}
 
@@ -155,8 +166,11 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		return obj is SqlLocation;
 	}
 
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public override int GetHashCode()
 	{
+		RuntimeHelpers.EnsureSufficientExecutionStack();
+
 		return 0;
 	}
 }
