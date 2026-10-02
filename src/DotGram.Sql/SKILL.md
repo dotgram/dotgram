@@ -33,8 +33,13 @@ is what to decide before using one, the contract they share, and what is easy to
 - **`bool TryParseX(string input, out T value)`** answers only whether the text reads, and says
   nothing about what was expected where it does not. Where the message is not wanted, ask this
   one: a refusal costs it about half, since nothing is read a second time to record what failed.
-- **A node is a record.** Two that mean the same are equal. `SqlWriter.Write` prints a T-SQL
-  tree back as text; `Sql2023Writer.Write` (in `DotGram.Sql.Ast`) prints the standard's.
+- **A node is a record.** Two that mean the same are equal: a tree equals its own reparse,
+  located or not. Every list a node holds is a `SqlList<T>`, read only and compared element by
+  element; make one with `[a, b]`, `[.. items]` or `SqlList.From(items)` — an array does not
+  convert. A list a record may leave out is a `SqlList<T>?`. Equality and the hash throw
+  `InsufficientExecutionStackException` on a tree deeper than the stack. `SqlWriter.Write`
+  prints a T-SQL tree back as text; `Sql2023Writer.Write` (in `DotGram.Sql.Ast`) prints the
+  standard's.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
   until `visit` answers false. It walks either tree; a check is a pattern match in the lambda.
 

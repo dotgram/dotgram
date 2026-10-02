@@ -135,6 +135,11 @@ spacing and comments and nothing else. The two are one parser: `TransactSqlParse
 positions and offers none, and pays a test per value it reads for sharing its reader.
 A span takes no part in a node's equality: the located tree of a text equals the plain one.
 
+A tree compares by what was written. The lists a node holds are `SqlList<T>`, which compare
+element by element, so two readings of the same text are equal and hash alike, and a table of
+nodes that should tell two equal subtrees apart is keyed by reference. A list is made with a
+collection expression, `[a, b]` or `[.. items]`, or with `SqlList.From(items)`.
+
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md).
 What they read is held against SQL Server itself, against a corpus of somebody else's SQL and
 against a round trip — parse, print, and compare the two readings — which catches a parser that

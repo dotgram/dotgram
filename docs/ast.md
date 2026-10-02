@@ -36,7 +36,21 @@ puts a `<query expression>` where a table belongs and
 §6 puts a `<value expression>` where a value belongs — so the roots are its own categories
 and a field says which one it holds. `Statement.Insert.Rows` is a `Query`,
 `Expression.Subquery.Query` is a `Query`, `Query.Specification.From` is a
-`TableReference[]`.
+`SqlList<TableReference>`.
+
+**A tree compares by what was written.** Every list a node holds — its columns, its arguments,
+its clauses, in either tree — is a `SqlList<T>`: one array, read only, that compares element by
+element and hashes every element in order, with its length. So the equality the compiler writes
+for each record compares the whole tree, and a tree equals its own reparse; a record added
+later is right without anything written for it. `default` is the empty list and equals `[]`;
+a list a record may leave out is a `SqlList<T>?`, where null and empty stay different answers.
+A list is made from a collection expression, `[a, b]` or `[.. items]`, or `SqlList.From`, and
+both copy, so whoever made it holds no handle into the tree; there is no conversion from an
+array, and an array handed where a list belongs does not compile. Two equal subtrees written in
+different places are equal too, so a table keyed by node is keyed by reference. Equality and the
+hash recurse; on a tree deeper than the stack has room for — a chain of a hundred thousand `+`,
+which the parser reads — they throw `InsufficientExecutionStackException`, which a caller can
+catch, rather than overflow the stack.
 
 **As many roots as there are sublanguages.** Six is what the surface needs, not a
 closed list. A JSON path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a
@@ -156,7 +170,7 @@ something asks for one.
 `SqlWalker.Walk(root, visit)` hands every node under `root` to `visit` — the root first, each
 node before what it holds — until `visit` answers false, and says whether it went to the end.
 A node is anything that is an `ISqlSpan`, which is what the six roots are; what a record
-holds of them, one or an array, is found from its type once, so a record added here is walked
+holds of them, one or a list, is found from its type once, so a record added here is walked
 without the walker being told.
 
 It is how a question the parser does not answer gets asked. The parser reads what may be
