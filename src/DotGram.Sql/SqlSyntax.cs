@@ -4041,7 +4041,7 @@ public static class Syntax
 	/// </remarks>
 	public static TableReference Hanging(TableReference source, TableReference[]? tails)
 	{
-		foreach (var tail in SqlList.Own(tails))
+		foreach (var tail in tails ?? [])
 			source = Hung(source, tail);
 
 		return source;
@@ -4076,7 +4076,7 @@ public static class Syntax
 	/// </summary>
 	public static TableReference Chained(TableReference first, TableReference[]? rest)
 	{
-		foreach (var next in SqlList.Own(rest))
+		foreach (var next in rest ?? [])
 		{
 			first = next switch
 			{
