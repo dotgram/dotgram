@@ -149,7 +149,7 @@ sealed partial class Machine
 
 			foreach (var node in NodeWalk.Descendants(body))
 			{
-				if (verdict[rule] is null && MemoRefusal(node) is { } why)
+				if (verdict[rule] is null && MemoRefusal(rule, node) is { } why)
 					verdict[rule] = why;
 
 				if (node is Node.Call(var called, _))
@@ -186,18 +186,18 @@ sealed partial class Machine
 		return verdict;
 	}
 
-	/// <summary>Why one node makes a reading depend on more than where it begins, or null.</summary>
-	string? MemoRefusal(Node node)
+	/// <summary>Why one node of a rule makes its reading depend on more than where it begins, or null.</summary>
+	string? MemoRefusal(RuleSymbol rule, Node node)
 	{
 		switch (node)
 		{
 			// A `when`, and a `switch`'s selector, which is one.
-			case Node.Guard guard when NamesState(guard.Text):
+			case Node.Guard guard when NamesState(rule, guard.Text):
 				return "context";
 
 			// A `=>` runs during recognition on the immediate carrier, and on the tape wherever a
 			// guard asks for its value.
-			case Node.Construct { How: Construction.Expression expression } when NamesState(expression.Text):
+			case Node.Construct { How: Construction.Expression expression } when NamesState(rule, expression.Text):
 				return "context";
 
 			case Node.External { UsesContext: true }:
@@ -213,10 +213,14 @@ sealed partial class Machine
 		}
 	}
 
-	/// <summary>Whether C# a hook runs names what a reading writes as it goes.</summary>
-	bool NamesState(string text)
+	/// <summary>Whether C# a hook in a rule runs names what a reading writes as it goes.</summary>
+	/// <remarks>
+	/// <c>context</c> is the reading's only where the rule has one declared; elsewhere it is a name
+	/// like any other — T-SQL's <c>EXECUTE</c> captures its <c>context</c> clause under it.
+	/// </remarks>
+	bool NamesState(RuleSymbol rule, string text)
 	{
-		return CSharpEmitter.Uses(_graph, text, "context") ||
+		return _graph.ContextOf(rule) is not null && CSharpEmitter.Uses(_graph, text, "context") ||
 			CSharpEmitter.Uses(_graph, text, "parserState") ||
 			CSharpEmitter.Uses(_graph, text, "parserMarks");
 	}

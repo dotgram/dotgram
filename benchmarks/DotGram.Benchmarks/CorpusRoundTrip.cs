@@ -211,6 +211,33 @@ internal static class CorpusRoundTrip
 		return new Result(counted, kinds);
 	}
 
+	/// <summary>
+	/// Every statement of every <c>.sql</c> file under <paramref name="root"/> that ScriptDom reads, as
+	/// the corpus writes it: cut as <see cref="Run"/> cuts them, at each file's own version capped at
+	/// <paramref name="ceiling"/>, in the order of the files' keys.
+	/// </summary>
+	internal static IEnumerable<string> Statements(string root, string ceiling = "180")
+	{
+		var files    = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var versions = Versions(root, files);
+		var readers  = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
+
+		foreach (var file in files.OrderBy(one => Key(root, one), StringComparer.Ordinal))
+		{
+			var text  = File.ReadAllText(file);
+			var named = Named(ceiling, versions.GetValueOrDefault(file));
+
+			if (!readers.TryGetValue(named, out var parser))
+				readers[named] = parser = Reader(named);
+
+			using var whole = new StringReader(text);
+
+			if (parser.Parse(whole, out var errors) is TSqlScript script && errors.Count == 0)
+				foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
+					yield return text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
+		}
+	}
+
 	/// <summary>A file's key in a baseline: relative to the root, with forward slashes.</summary>
 	internal static string Key(string root, string file)
 	{

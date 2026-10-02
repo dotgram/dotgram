@@ -26,13 +26,13 @@ namespace DotGram.Tests;
 /// <b>What it holds.</b> <c>BooleanPrimary</c> (SqlStandard92.gram) asks for a predicate before a
 /// bracketed condition, so each level of <c>WHERE ((( … a = 1 … )))</c> first reads everything below
 /// it as the value its predicate opens with, and each value bracket reads everything below it once
-/// more as a subquery: the accepted nest costs the cube of its depth, and one never closed tries
-/// every alternative and costs its cube too. Values nested in a predicate, <c>((( a ))) = 1</c>, cost
+/// more as a subquery: the accepted nest cost the cube of its depth, and one never closed tried
+/// every alternative and cost its cube too — until the reader remembered where a recursive rule had
+/// failed (<c>Machine.Memo.cs</c>). Nearly all of those readings were the same rule failing at the
+/// same token again, and now both nests cost their depth. Values nested in a predicate, <c>((( a ))) = 1</c>, cost
 /// their depth. Asking for the bracketed condition first was tried: the nest of conditions became
 /// linear, values in a predicate became a square, and a bracketed value holding a condition of its
-/// own, compared, became exponential — which is why those shapes are held here as well. Reading a
-/// bracket once at each place, whatever it is read as, is what fixes the cubes; until then they are
-/// held to the class they are in, and the day they fall the bound still holds.
+/// own, compared, became exponential — which is why those shapes are held here as well.
 /// </para>
 /// <para>
 /// <b>Counted, not timed</b> (D144). Every rule the reader reads by a method of its own counts its
@@ -44,13 +44,14 @@ namespace DotGram.Tests;
 /// </para>
 /// <para>
 /// <b>Depths a doubling apart</b>, and what each doubling adds may grow by at most the factor of the
-/// nest's class, with a tenth to spare for the ends: two for a depth, eight for a cube. Counted at
-/// 25, 50, 100 and 200 levels:
+/// nest's class, with a tenth to spare for the ends: two for a depth. Counted at 25, 50, 100 and 200
+/// levels, an entry the memo answers counted as one (without it the two nests were 5,660,639 and
+/// 11,321,278 at 200):
 /// </para>
 /// <code>
-///   a nest of conditions, accepted       16,364  105,189    750,339   5,660,639   n^3
-///   values nested in a predicate            114      189        339         639   n
-///   a nest of conditions, never closed   32,728  210,378  1,500,678  11,321,278   n^3
+///   a nest of conditions, accepted          561    1,061    2,061    4,061   n
+///   values nested in a predicate            114      189      339      639   n
+///   a nest of conditions, never closed    1,122    2,122    4,122    8,122   n
 /// </code>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -63,9 +64,9 @@ public sealed class BracketNestingCountTests
 	const double Slack = 1.1;
 
 	[Theory]
-	[InlineData("a nest of conditions, accepted",         8)]
+	[InlineData("a nest of conditions, accepted",         2)]
 	[InlineData("values nested in a predicate, accepted", 2)]
-	[InlineData("a nest of conditions, never closed",     8)]
+	[InlineData("a nest of conditions, never closed",     2)]
 	public void A_nest_of_brackets_costs_no_more_than_its_class(string shape, int growth)
 	{
 		var counts = new List<long>();
@@ -125,16 +126,18 @@ public sealed class BracketNestingCountTests
 	/// <summary>
 	/// <b>A known super-linear shape</b>, already so before any reordering: a twice bracketed
 	/// <c>CASE</c>, compared, whose <c>WHEN</c> holds the next level in a bracket of its own,
-	/// <c>((CASE WHEN (…) THEN 1 END)) = 1</c>. Each level costs three times the one inside it — 3,143,
-	/// 9,434, 28,307, 84,926 and 254,783 rule entries at 4 to 8 levels, 2.3 million at 10. Held to
-	/// that factor so that it cannot get worse; reading a bracket once at each place should make it
-	/// linear, and then this is to be tightened to <see cref="Holds_its_depth"/>.
+	/// <c>((CASE WHEN (…) THEN 1 END)) = 1</c>. Each level cost three times the one inside it — 3,143,
+	/// 9,434, 28,307, 84,926 and 254,783 rule entries at 4 to 8 levels, 2.3 million at 10. Remembering
+	/// where a rule failed took nine tenths of that away: 1,505, 3,171, 6,533, 13,287 and 26,825, twice
+	/// a level, every one of what is left a reading that succeeded and is read again. Held to that
+	/// factor so that it cannot get worse; remembering successes too should make it linear, and then
+	/// this is to be tightened to <see cref="Holds_its_depth"/>.
 	/// </summary>
 	[Fact]
-	public void A_bracketed_CASE_whose_WHEN_is_bracketed_is_known_to_cost_three_times_a_level()
+	public void A_bracketed_CASE_whose_WHEN_is_bracketed_is_known_to_cost_twice_a_level()
 	{
 		const string shape = "a twice bracketed CASE compared, its WHEN bracketed";
-		const double known = 3;
+		const double known = 2;
 
 		var counts = new List<long>();
 

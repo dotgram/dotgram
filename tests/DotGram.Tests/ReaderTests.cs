@@ -391,7 +391,11 @@ public sealed class ReaderTests
 		var written = Written(Lexical + Valued + "\nparse Start", reader: true, carrier: CarrierKind.Tape);
 
 		Assert.Contains("ways.Begin", Reading(written, "Read_Value"), StringComparison.Ordinal);
-		Assert.DoesNotContain("goto", Reading(written, "Read_Value"), StringComparison.Ordinal);
+
+		// But one: `Value` reaches itself, so the reader remembers where it failed, and every failure
+		// in it goes through the one place that does (Machine.Memo.cs).
+		Assert.DoesNotContain(
+			"goto", Reading(written, "Read_Value").Replace("goto Failed;", "", StringComparison.Ordinal), StringComparison.Ordinal);
 	}
 
 	/// <summary>A run that swallowed what came after it hands a character back.</summary>
