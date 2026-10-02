@@ -775,8 +775,8 @@ GeneralValueSpecification : @Expression
 CaseExpression : @Expression
 	= w: "NULLIF"i & '(' & a: ValueNode & ',' & b: ValueNode & ')' => @(Nodes.Invoked(w, a, [b]))
 	| w: "COALESCE"i & '(' & first: ValueNode & (',' & rest: ValueNode)+ & ')' => @(Nodes.Invoked(w, first, rest))
-	| "CASE"i & o: RowValuePredicand & { (trivia & whens: SimpleWhenClause)+ } & e: ElseClause? & "END"i => @(new Expression.Case(o.Node, SqlList.Own(whens), e))
-	| "CASE"i & { (trivia & whens: SearchedWhenClause)+ } & e: ElseClause? & "END"i => @(new Expression.Case(null, SqlList.Own(whens), e))
+	| "CASE"i & o: RowValuePredicand & { (trivia & whens: SimpleWhenClause)+ } & e: ElseClause? & "END"i => @(new Expression.Case(o.Node, Sql.SqlList.Own(whens), e))
+	| "CASE"i & { (trivia & whens: SearchedWhenClause)+ } & e: ElseClause? & "END"i => @(new Expression.Case(null, Sql.SqlList.Own(whens), e))
 
 SimpleWhenClause   : @CaseWhen = "WHEN"i & first: WhenOperand & (',' & rest: WhenOperand)* & "THEN"i & r: Result => @(new CaseWhen(Nodes.List(first, rest), r))
 SearchedWhenClause : @CaseWhen = "WHEN"i & c: SearchCondition & "THEN"i & r: Result => @(new CaseWhen(Nodes.List(c.Node, null), r))
@@ -820,7 +820,7 @@ CollectionValueConstructor : @Expression
 
 // <SQL argument list>, but table and descriptor arguments. A named argument is asked first, since
 // its name would otherwise be read as a value.
-SQLArgumentList : @SqlList<Argument> = '(' & { first: SQLArgument & (',' & rest: SQLArgument)* }? & ')' => @(Nodes.Arguments(first, rest))
+SQLArgumentList : @Sql.SqlList<Argument> = '(' & { first: SQLArgument & (',' & rest: SQLArgument)* }? & ')' => @(Nodes.Arguments(first, rest))
 SQLArgument : @Argument
 	= n: Identifier & "=>" & v: ArgumentValue => @(new Argument(v, n, true))
 	| v: ValueNode & ("AS"i & t: PathResolvedUserDefinedTypeName)? => @(new Argument(t is null ? v : new Expression.Generalized(v, new DataType.UserDefined(t))))
@@ -1122,7 +1122,7 @@ JSONPredicatePrimary : @JsonPathPredicate
 JSONTable : @JsonTableDefinition = "JSON_TABLE"i & '(' & c: JSONAPICommonSyntax & columns: JSONTableColumnsClause & p: JSONTablePlanClause? & (e: ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i)? & ')' => @(new JsonTableDefinition(c, columns, p, Nodes.TableError(e)))
 JSONTablePrimitive : @JsonTableDefinition = "JSON_TABLE_PRIMITIVE"i & '(' & c: JSONAPICommonSyntax & "COLUMNS"i & '(' & first: JSONTablePrimitiveColumn & (',' & rest: JSONTablePrimitiveColumn)* & ')' & e: ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i & ')' => @(new JsonTableDefinition(c, Nodes.List(first, rest), null, Nodes.TableError(e), true))
 
-JSONTableColumnsClause : @SqlList<JsonTableColumn> = "COLUMNS"i & '(' & first: JSONTableColumnDefinition & (',' & rest: JSONTableColumnDefinition)* & ')' => @(Nodes.List(first, rest))
+JSONTableColumnsClause : @Sql.SqlList<JsonTableColumn> = "COLUMNS"i & '(' & first: JSONTableColumnDefinition & (',' & rest: JSONTableColumnDefinition)* & ')' => @(Nodes.List(first, rest))
 
 JSONTableColumnDefinition : @JsonTableColumn
 	= "NESTED"i & k: "PATH"i? & p: CharacterStringLiteral & ("AS"i & n: Identifier)? & columns: JSONTableColumnsClause => @(new JsonTableColumn.Nested(p, n, columns, k is not null))
@@ -1182,7 +1182,7 @@ JSONTablePlanTail : @Nodes.PlanTail
 // <table value constructor>. A <table row value expression> is a row value special case or a row
 // value constructor — a common, a boolean or an explicit row value — and a value expression is
 // each of those.
-TableValueConstructor : @SqlList<RowValue> = "VALUES"i & { first: ValueNode & (',' & rest: ValueNode)* } => @(Nodes.Rows(first, rest))
+TableValueConstructor : @Sql.SqlList<RowValue> = "VALUES"i & { first: ValueNode & (',' & rest: ValueNode)* } => @(Nodes.Rows(first, rest))
 
 // ── §7.4 Table expression, §7.5 From clause ─────────────────────────────────
 
@@ -1202,7 +1202,7 @@ TableReference : @TableSource = f: TableFactor & j: Joins => @(Nodes.Joined(f.So
 // The joins after a factor: none, or steps, the first of which may have the factor's partitioning.
 Joins : @Nodes.Joins
 	= p: JoinPartitioning & first: PartitionedJoin & (trivia & rest: JoinStep)* => @(new Nodes.Joins(p, Nodes.List(first, rest)))
-	| { (trivia & steps: JoinStep)+ } => @(new Nodes.Joins(null, SqlList.OwnOrNull(steps)))
+	| { (trivia & steps: JoinStep)+ } => @(new Nodes.Joins(null, Sql.SqlList.OwnOrNull(steps)))
 	| none => @(new Nodes.Joins(null, null))
 
 JoinStep : @Nodes.JoinStep
@@ -1221,10 +1221,10 @@ PartitionedJoin : @Nodes.JoinStep
 JoinOperand     : @Nodes.JoinOperand = f: TableFactor & t: JoinOperandTail => @(Nodes.Operand(f.Source, t))
 JoinOperandTail : @Nodes.Joins
 	= p: JoinPartitioning & (first: PartitionedJoin & (trivia & rest: JoinStep)*)? => @(new Nodes.Joins(p, first is null ? null : Nodes.List(first, rest)))
-	| (trivia & steps: JoinStep)* => @(new Nodes.Joins(null, SqlList.OwnOrNull(steps)))
+	| (trivia & steps: JoinStep)* => @(new Nodes.Joins(null, Sql.SqlList.OwnOrNull(steps)))
 
 // <partitioned join table>'s partitioning.
-JoinPartitioning : @SqlList<Expression> = "PARTITION"i & "BY"i & '(' & first: ColumnReference & (',' & rest: ColumnReference)* & ')' => @(Nodes.List(first, rest))
+JoinPartitioning : @Sql.SqlList<Expression> = "PARTITION"i & "BY"i & '(' & first: ColumnReference & (',' & rest: ColumnReference)* & ')' => @(Nodes.List(first, rest))
 
 JoinType = "INNER"i | ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i?
 
@@ -1282,8 +1282,8 @@ RowPatternRecognitionClause : @RowPatternClause
 	= "MATCH_RECOGNIZE"i & '(' & p: RowPatternPartitionBy? & ("ORDER"i & "BY"i & o: SortSpecificationList)?
 	  & m: RowPatternMeasures? & r: RowPatternRowsPerMatch? & c: RowPatternCommonSyntax & ')' => @(Nodes.Recognized(p, o, m, r, c))
 
-RowPatternPartitionBy : @SqlList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
-RowPatternMeasures    : @SqlList<RowPatternMeasure> = "MEASURES"i & first: RowPatternMeasure & (',' & rest: RowPatternMeasure)* => @(Nodes.List(first, rest))
+RowPatternPartitionBy : @Sql.SqlList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
+RowPatternMeasures    : @Sql.SqlList<RowPatternMeasure> = "MEASURES"i & first: RowPatternMeasure & (',' & rest: RowPatternMeasure)* => @(Nodes.List(first, rest))
 RowPatternMeasure     : @RowPatternMeasure = v: ValueNode & "AS"i & n: Identifier => @(new RowPatternMeasure(v, n))
 
 // A column a partition is by, and the collation it is compared under.
@@ -1329,7 +1329,7 @@ RowPatternQuantifier : @RowPatternQuantifier
 	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
 	| '{' & exact: UnsignedInteger & '}' => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
 
-RowPatternSubsetClause : @SqlList<RowPatternSubset> = "SUBSET"i & first: RowPatternSubsetItem & (',' & rest: RowPatternSubsetItem)* => @(Nodes.List(first, rest))
+RowPatternSubsetClause : @Sql.SqlList<RowPatternSubset> = "SUBSET"i & first: RowPatternSubsetItem & (',' & rest: RowPatternSubsetItem)* => @(Nodes.List(first, rest))
 RowPatternSubsetItem   : @RowPatternSubset = n: Identifier & '=' & '(' & first: Identifier & (',' & rest: Identifier)* & ')' => @(new RowPatternSubset(n, Nodes.List(first, rest)))
 RowPatternDefinition   : @RowPatternDefinition = v: Identifier & "AS"i & c: SearchCondition => @(new RowPatternDefinition(v, c.Node))
 
@@ -1341,7 +1341,7 @@ QuerySystemTimePeriodSpecification : @SystemTimeSpecification
 	| "FOR"i & "SYSTEM_TIME"i & "BETWEEN"i & s: ("ASYMMETRIC"i | "SYMMETRIC"i)? & lo: DatetimeValueExpression & "AND"i & hi: DatetimeValueExpression => @(new SystemTimeSpecification.Between(lo.Node, hi.Node, Nodes.Symmetry(s)))
 	| "FOR"i & "SYSTEM_TIME"i & "FROM"i & lo: DatetimeValueExpression & "TO"i & hi: DatetimeValueExpression => @(new SystemTimeSpecification.FromTo(lo.Node, hi.Node))
 
-ColumnNameList  : @SqlList<Identifier> = first: ColumnName & (',' & rest: ColumnName)* => @(Nodes.List(first, rest))
+ColumnNameList  : @Sql.SqlList<Identifier> = first: ColumnName & (',' & rest: ColumnName)* => @(Nodes.List(first, rest))
 CorrelationName : @Identifier = i: Identifier => @(i)
 QueryName       : @Identifier = i: Identifier => @(i)
 
@@ -1379,7 +1379,7 @@ WindowSpecificationDetails : @WindowSpecification = e: ExistingWindowName? & p: 
 ExistingWindowName : @Identifier = n: WindowName & ?=("PARTITION"i | "ORDER"i | "ROWS"i | "RANGE"i | "GROUPS"i | "MEASURES"i | ')') => @(n)
 WindowName         : @Identifier = i: Identifier => @(i)
 
-WindowPartitionClause : @SqlList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
+WindowPartitionClause : @Sql.SqlList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
 WindowOrderClause     : @OrderByClause = "ORDER"i & "BY"i & s: SortSpecificationList => @(s)
 
 // <window frame clause>, with the row pattern measures before it and the row pattern syntax after.
@@ -1415,7 +1415,7 @@ SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Litera
 QuerySpecification : @Statement.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
 SetQuantifier      = "DISTINCT"i | "ALL"i
 
-SelectList : @SqlList<SelectItem> = '*' => @(Nodes.Everything())
+SelectList : @Sql.SqlList<SelectItem> = '*' => @(Nodes.Everything())
                                         | { first: SelectSublist & (',' & rest: SelectSublist)* } => @(Nodes.List(first, rest))
 
 // <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
@@ -1542,7 +1542,7 @@ OverrideClause : @OverrideKind = "OVERRIDING"i & w: ("USER"i | "SYSTEM"i) & "VAL
 
 // <contextually typed table value constructor>: rows whose values may be `DEFAULT`, `NULL` or an
 // empty collection, which take their type from where they go.
-ContextuallyTypedTableValueConstructor : @SqlList<RowValue> = "VALUES"i & { first: ContextuallyTypedRowValueExpression & (',' & rest: ContextuallyTypedRowValueExpression)* } => @(Nodes.Rows(first, rest))
+ContextuallyTypedTableValueConstructor : @Sql.SqlList<RowValue> = "VALUES"i & { first: ContextuallyTypedRowValueExpression & (',' & rest: ContextuallyTypedRowValueExpression)* } => @(Nodes.Rows(first, rest))
 
 // <contextually typed row value expression>. A bracket holds such a specification alone, or two or
 // more elements; a value expression reads any other row and value.
@@ -1558,7 +1558,7 @@ ContextuallyTypedElement : @Expression = c: ContextuallyTypedValueSpecification 
 
 // ── §14.12 Merge statement ──────────────────────────────────────────────────
 
-MergeStatement : @Statement.Merge = "MERGE"i & "INTO"i & t: TargetTable & c: TargetCorrelation? & "USING"i & s: TableReference & "ON"i & o: SearchCondition & { (trivia & clauses: MergeWhenClause)+ } => @(new Statement.Merge { Target = t, Alias = c, SourceTable = s, On = o.Node, Clauses = SqlList.Own(clauses) })
+MergeStatement : @Statement.Merge = "MERGE"i & "INTO"i & t: TargetTable & c: TargetCorrelation? & "USING"i & s: TableReference & "ON"i & o: SearchCondition & { (trivia & clauses: MergeWhenClause)+ } => @(new Statement.Merge { Target = t, Alias = c, SourceTable = s, On = o.Node, Clauses = Sql.SqlList.Own(clauses) })
 
 MergeWhenClause : @MergeClause
 	= "WHEN"i & "MATCHED"i & c: MergeCondition? & "THEN"i & a: MergeMatchedThen => @(new MergeClause.Matched(a) { Condition = c })
@@ -1578,7 +1578,7 @@ UpdateStatementPositioned : @Statement.Update = "UPDATE"i & t: TargetTable & c: 
 
 // ── §14.15 Set clause list ──────────────────────────────────────────────────
 
-SetClauseList : @SqlList<Assignment> = { first: SetClause & (',' & rest: SetClause)* } => @(Nodes.List(first, rest))
+SetClauseList : @Sql.SqlList<Assignment> = { first: SetClause & (',' & rest: SetClause)* } => @(Nodes.List(first, rest))
 
 // <set clause>: several targets and a row, or a target and a value.
 SetClause : @Assignment
@@ -1593,7 +1593,7 @@ SetClause : @Assignment
 SetTarget : @AssignmentTarget = c: ColumnName & t: SetTargetTail => @(Nodes.Assigned(c, t))
 SetTargetTail : @Nodes.TargetTail
 	= l: LeftBracketOrTrigraph & i: SimpleValueSpecification & RightBracketOrTrigraph => @(new Nodes.TargetTail(i, null, l == "??("))
-	| ('.' & m: MethodName)* => @(new Nodes.TargetTail(null, m is { Length: > 0 } ? SqlList.Own(m) : null, false))
+	| ('.' & m: MethodName)* => @(new Nodes.TargetTail(null, m is { Length: > 0 } ? Sql.SqlList.Own(m) : null, false))
 
 // ── §7.6 Data change delta table ────────────────────────────────────────────
 
@@ -1716,7 +1716,7 @@ TableContentsSource : @TableContents
 // <typed table clause>: a table of a structured type, under a supertable, with options for its
 // columns, constraints, and the column that references its rows.
 TypedTableClause      : @TableContents = "OF"i & n: PathResolvedUserDefinedTypeName & ("UNDER"i & u: TableName)? & e: TypedTableElementList? => @(new TableContents.Typed(n, u, e ?? []))
-TypedTableElementList : @SqlList<TableElement> = '(' & { first: TypedTableElement & (',' & rest: TypedTableElement)* } & ')' => @(Nodes.List(first, rest))
+TypedTableElementList : @Sql.SqlList<TableElement> = '(' & { first: TypedTableElement & (',' & rest: TypedTableElement)* } & ')' => @(Nodes.List(first, rest))
 TypedTableElement     : @TableElement = s: SelfReferencingColumnSpecification => @(s)
                                       | c: TableConstraintDefinition => @(new TableElement.TableConstraint(c))
                                       | o: ColumnOptions => @(o)
@@ -1729,11 +1729,11 @@ ReferenceGeneration : @ReferenceGeneration = "SYSTEM"i & "GENERATED"i => @(Refer
                                            | "DERIVED"i => @(ReferenceGeneration.Derived)
 
 // <column options>: a scope, a default and constraints, any of them.
-ColumnOptions : @TableElement = n: ColumnName & "WITH"i & "OPTIONS"i & ("SCOPE"i & s: TableName)? & d: DefaultClause? & (trivia & { constraints: ColumnConstraintDefinition })* => @(new TableElement.ColumnOptions(n, new ColumnOptionList(s, d, SqlList.Own(constraints))))
+ColumnOptions : @TableElement = n: ColumnName & "WITH"i & "OPTIONS"i & ("SCOPE"i & s: TableName)? & d: DefaultClause? & (trivia & { constraints: ColumnConstraintDefinition })* => @(new TableElement.ColumnOptions(n, new ColumnOptionList(s, d, Sql.SqlList.Own(constraints))))
 
 // The list is atomic: a list refused at its end gave back its elements, and their shorter readings,
 // and read every later element again for each — a square of its length.
-TableElementList : @SqlList<TableElement> = '(' & { first: TableElement & (',' & rest: TableElement)* } & ')' => @(Nodes.List(first, rest))
+TableElementList : @Sql.SqlList<TableElement> = '(' & { first: TableElement & (',' & rest: TableElement)* } & ')' => @(Nodes.List(first, rest))
 
 // <table element>. A column begins with its name, which none of the others' key words can be.
 TableElement : @TableElement = c: ColumnDefinition => @(new TableElement.Column(c))
@@ -1742,7 +1742,7 @@ TableElement : @TableElement = c: ColumnDefinition => @(new TableElement.Column(
                              | l: LikeClause => @(l)
 
 // <like clause>.
-LikeClause : @TableElement = "LIKE"i & n: TableName & (trivia & options: LikeOption)* => @(new TableElement.Like(n, SqlList.Own(options)))
+LikeClause : @TableElement = "LIKE"i & n: TableName & (trivia & options: LikeOption)* => @(new TableElement.Like(n, Sql.SqlList.Own(options)))
 LikeOption : @LikeOption = w: ("INCLUDING"i | "EXCLUDING"i) & k: ("IDENTITY"i | "DEFAULTS"i | "GENERATED"i) => @(Nodes.LikeOptionOf(w, k))
 
 // <table period definition>.
@@ -1760,7 +1760,7 @@ PeriodForSpecification : @Nodes.PeriodName = "PERIOD"i & "FOR"i & "SYSTEM_TIME"i
 // nothing back once it is read, so a type is not taken where `GENERATED ALWAYS` or `GENERATED BY`
 // follows, which only a generation can go on from.
 ColumnDefinition : @ColumnDefinition = n: ColumnName & (?!("GENERATED"i & ("ALWAYS"i | "BY"i)) & t: DataType)? & g: ColumnValueSource? & (trivia & { constraints: ColumnConstraintDefinition })* & c: CollateClause?
-	  => @(new ColumnDefinition(n, t, g, SqlList.Own(constraints), c))
+	  => @(new ColumnDefinition(n, t, g, Sql.SqlList.Own(constraints), c))
 
 ColumnValueSource : @ColumnGeneration
 	= d: DefaultClause => @(new ColumnGeneration.Default(d))
@@ -1869,7 +1869,7 @@ AlterColumnAction : @AlterColumnAction
 	| "ADD"i & "SCOPE"i & n: TableName => @(new AlterColumnAction.AddScope(n))
 	| "DROP"i & "SCOPE"i & b: DropBehavior => @(new AlterColumnAction.DropScope(b))
 	| "SET"i & "DATA"i & "TYPE"i & t: DataType => @(new AlterColumnAction.SetDataType(t))
-	| "SET"i & "GENERATED"i & g: IdentityGeneration & (trivia & options: AlterIdentityColumnOption)* => @(new AlterColumnAction.SetIdentityGeneration(g, SqlList.Own(options)))
+	| "SET"i & "GENERATED"i & g: IdentityGeneration & (trivia & options: AlterIdentityColumnOption)* => @(new AlterColumnAction.SetIdentityGeneration(g, Sql.SqlList.Own(options)))
 	| first: AlterIdentityColumnOption & (trivia & rest: AlterIdentityColumnOption)* => @(new AlterColumnAction.IdentityOptions(Nodes.List(first, rest)))
 	| "DROP"i & "IDENTITY"i => @(new AlterColumnAction.DropIdentity())
 	| "DROP"i & "EXPRESSION"i => @(new AlterColumnAction.DropExpression())
@@ -1892,7 +1892,7 @@ ViewSpecification : @ViewSpecification
 	= "OF"i & t: PathResolvedUserDefinedTypeName & ("UNDER"i & u: TableName)? & e: ViewElementList? => @(new ViewSpecification.Referenceable(t, u, e ?? []))
 	| ('(' & columns: ColumnNameList & ')')? => @(new ViewSpecification.Regular(columns ?? []))
 
-ViewElementList : @SqlList<ViewElement> = '(' & { first: ViewElement & (',' & rest: ViewElement)* } & ')' => @(Nodes.List(first, rest))
+ViewElementList : @Sql.SqlList<ViewElement> = '(' & { first: ViewElement & (',' & rest: ViewElement)* } & ')' => @(Nodes.List(first, rest))
 ViewElement     : @ViewElement = "REF"i & "IS"i & n: ColumnName & g: ReferenceGeneration? => @(new ViewElement.SelfReference(n, g))
                                | n: ColumnName & "WITH"i & "OPTIONS"i & "SCOPE"i & s: TableName => @(new ViewElement.ColumnOption(n, s))
 
@@ -1902,7 +1902,7 @@ DropViewStatement : @Statement.DropView = "DROP"i & "VIEW"i & n: TableName & b: 
 
 // <domain definition>: of a predefined type only, which a collection is not.
 DomainDefinition : @Statement.CreateDomain = "CREATE"i & "DOMAIN"i & n: SchemaQualifiedName & a: "AS"i? & t: PredefinedType & d: DefaultClause? & { (trivia & constraints: DomainConstraint)* } & c: CollateClause?
-	  => @(new Statement.CreateDomain { Name = n, AsKeyword = a is not null, Type = t, Default = d, Constraints = SqlList.Own(constraints), Collation = c })
+	  => @(new Statement.CreateDomain { Name = n, AsKeyword = a is not null, Type = t, Default = d, Constraints = Sql.SqlList.Own(constraints), Collation = c })
 DomainConstraint : @Constraint = n: ConstraintNameDefinition? & c: CheckConstraintDefinition & k: ConstraintCharacteristics? => @(c with { Name = n, Characteristics = k })
 
 AlterDomainStatement : @Statement.AlterDomain = "ALTER"i & "DOMAIN"i & n: SchemaQualifiedName & a: AlterDomainAction => @(new Statement.AlterDomain { Name = n, Action = a })
@@ -1923,7 +1923,7 @@ DropAssertionStatement : @Statement.DropAssertion = "DROP"i & "ASSERTION"i & n: 
 
 TriggerDefinition : @Statement.CreateTrigger = "CREATE"i & "TRIGGER"i & n: SchemaQualifiedName & t: TriggerActionTime & e: TriggerEvent & "ON"i & o: TableName
 	  & ("REFERENCING"i & { (trivia & references: TransitionTableOrVariable)+ })? & a: TriggeredAction
-	  => @(new Statement.CreateTrigger { Name = n, Time = t, Event = e, Table = o, Referencing = SqlList.Own(references), Action = a })
+	  => @(new Statement.CreateTrigger { Name = n, Time = t, Event = e, Table = o, Referencing = Sql.SqlList.Own(references), Action = a })
 
 TriggerActionTime : @TriggerTime = "BEFORE"i => @(TriggerTime.Before)
                                  | "AFTER"i => @(TriggerTime.After)
@@ -1943,7 +1943,7 @@ TriggeredSQLStatement : @Nodes.Triggered = s: SQLProcedureStatement => @(new Nod
                                          | c: CompoundTriggeredSQLStatement => @(c)
 
 // <compound triggered SQL statement>: one statement at least, each with its semicolon.
-CompoundTriggeredSQLStatement : @Nodes.Triggered = "BEGIN"i & "ATOMIC"i & { (statements: SQLProcedureStatement & ';')+ } & "END"i => @(new Nodes.Triggered(SqlList.Own(statements), true))
+CompoundTriggeredSQLStatement : @Nodes.Triggered = "BEGIN"i & "ATOMIC"i & { (statements: SQLProcedureStatement & ';')+ } & "END"i => @(new Nodes.Triggered(Sql.SqlList.Own(statements), true))
 
 // <drop trigger statement>, which says no drop behavior.
 DropTriggerStatement : @Statement.DropTrigger = "DROP"i & "TRIGGER"i & n: SchemaQualifiedName => @(new Statement.DropTrigger { Names = [n] })
@@ -1969,7 +1969,7 @@ MethodSpecificationDesignator : @RoutineDefinition
 	| m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & k: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause? & "FOR"i & t: SchemaQualifiedName
 	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName([k]), p, r, [], null!, Nodes.Method(m).Modifier, t))
 
-SQLParameterDeclarationList : @SqlList<ParameterDefinition> = '(' & { first: SQLParameterDeclaration & (',' & rest: SQLParameterDeclaration)* }? & ')' => @(Nodes.ListOrEmpty(first, rest))
+SQLParameterDeclarationList : @Sql.SqlList<ParameterDefinition> = '(' & { first: SQLParameterDeclaration & (',' & rest: SQLParameterDeclaration)* }? & ')' => @(Nodes.ListOrEmpty(first, rest))
 
 // <SQL parameter declaration>. A parameter's name is asked before its type, which a user-defined
 // type's name could be: `(a b)` is a parameter `a` of type `b`, and `(a)` one of type `a`.
@@ -2016,7 +2016,7 @@ ReturnsType : @ReturnsDefinition
 ReturnsTableColumn : @FieldDefinition = n: ColumnName & t: DataType => @(new FieldDefinition(n, t))
 
 // <routine characteristics>: none begins a statement, so all of them are read before the body.
-RoutineCharacteristics : @SqlList<RoutineCharacteristic> = { (trivia & items: RoutineCharacteristic)* } => @(SqlList.Own(items))
+RoutineCharacteristics : @Sql.SqlList<RoutineCharacteristic> = { (trivia & items: RoutineCharacteristic)* } => @(Sql.SqlList.Own(items))
 
 RoutineCharacteristic : @RoutineCharacteristic
 	= l: LanguageClause => @(l)
@@ -2084,7 +2084,7 @@ SQLExecutableStatement : @Statement
 
 // <alter routine statement>: a characteristic at least, and no behavior but `RESTRICT`.
 AlterRoutineStatement : @Statement.AlterRoutine = "ALTER"i & r: SpecificRoutineDesignator & { (trivia & items: AlterRoutineCharacteristic)+ } & "RESTRICT"i
-	  => @(new Statement.AlterRoutine { Routine = r, Characteristics = SqlList.Own(items), Behavior = AlterRoutineBehavior.Restrict })
+	  => @(new Statement.AlterRoutine { Routine = r, Characteristics = Sql.SqlList.Own(items), Behavior = AlterRoutineBehavior.Restrict })
 
 AlterRoutineCharacteristic : @RoutineCharacteristic
 	= l: LanguageClause => @(l)
@@ -2113,7 +2113,7 @@ RoutineType : @Nodes.RoutineTypeOf = "ROUTINE"i => @(new Nodes.RoutineTypeOf(Rou
 // in any order and number, and its methods.
 UserDefinedTypeDefinition : @Statement.CreateType = "CREATE"i & "TYPE"i & n: SchemaQualifiedName & ("UNDER"i & u: PathResolvedUserDefinedTypeName)? & ("AS"i & r: Representation)?
 	  & { (trivia & options: UserDefinedTypeOption)* } & m: MethodSpecificationList?
-	  => @(new Statement.CreateType { Definition = new UserDefinedTypeDefinition(n, u, r, SqlList.Own(options), m ?? []) })
+	  => @(new Statement.CreateType { Definition = new UserDefinedTypeDefinition(n, u, r, Sql.SqlList.Own(options), m ?? []) })
 
 // <representation>: a predefined type, a collection — of any type, `ARRAY` or `MULTISET` after it —
 // or attributes. A type of no other kind is refused: `AS ROW (a INT)` and `AS u`.
@@ -2127,7 +2127,7 @@ RepresentedElementType : @DataType = r: RowType => @(r)
                                    | f: ReferenceType => @(f)
                                    | n: PathResolvedUserDefinedTypeName => @(new DataType.UserDefined(n))
 
-MemberList          : @SqlList<AttributeDefinition> = '(' & { first: AttributeDefinition & (',' & rest: AttributeDefinition)* } & ')' => @(Nodes.List(first, rest))
+MemberList          : @Sql.SqlList<AttributeDefinition> = '(' & { first: AttributeDefinition & (',' & rest: AttributeDefinition)* } & ')' => @(Nodes.List(first, rest))
 AttributeDefinition : @AttributeDefinition = n: Identifier & t: DataType & d: DefaultClause? & c: CollateClause? => @(new AttributeDefinition(n, t, d, c))
 
 UserDefinedTypeOption : @UserTypeOption
@@ -2144,7 +2144,7 @@ CastOptionKind : @UserTypeCastKind = "SOURCE"i & "AS"i & "REF"i => @(UserTypeCas
                                    | "REF"i & "AS"i & "SOURCE"i => @(UserTypeCastKind.ToType)
                                    | "DISTINCT"i & "AS"i & "SOURCE"i => @(UserTypeCastKind.ToSource)
 
-MethodSpecificationList : @SqlList<MethodSpecification> = { first: MethodSpecification & (',' & rest: MethodSpecification)* } => @(Nodes.List(first, rest))
+MethodSpecificationList : @Sql.SqlList<MethodSpecification> = { first: MethodSpecification & (',' & rest: MethodSpecification)* } => @(Nodes.List(first, rest))
 
 // <method specification>: an overriding method says no characteristics.
 MethodSpecification : @MethodSpecification
@@ -2152,7 +2152,7 @@ MethodSpecification : @MethodSpecification
 	| o: OriginalMethodSpecification => @(o)
 
 OriginalMethodSpecification : @MethodSpecification = p: PartialMethodSpecification & r: ("SELF"i & "AS"i & "RESULT"i)? & l: ("SELF"i & "AS"i & "LOCATOR"i)? & { (trivia & characteristics: MethodCharacteristic)* }
-	  => @(p with { SelfAsResult = r is not null, SelfAsLocator = l is not null, Characteristics = SqlList.Own(characteristics) })
+	  => @(p with { SelfAsResult = r is not null, SelfAsLocator = l is not null, Characteristics = Sql.SqlList.Own(characteristics) })
 PartialMethodSpecification  : @MethodSpecification = m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & n: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause & ("SPECIFIC"i & s: SchemaQualifiedName)?
 	  => @(new MethodSpecification(Nodes.Method(m).Modifier, n, p, r, s, false, false, []))
 
@@ -2198,16 +2198,16 @@ OrderingCategory : @OrderingCategory
 
 // <transform definition>: groups, one at least, of a transform to SQL and one from it, or either.
 TransformDefinition  : @Statement.CreateTransform = "CREATE"i & k: TransformKeyword & "FOR"i & n: SchemaQualifiedName & { (trivia & groups: TransformGroup)+ }
-	  => @(new Statement.CreateTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = SqlList.Own(groups) })
+	  => @(new Statement.CreateTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = Sql.SqlList.Own(groups) })
 TransformKeyword     = "TRANSFORMS"i | "TRANSFORM"i
 TransformGroup       : @TransformGroup = n: Identifier & '(' & e: TransformElementList & ')' => @(new TransformGroup(n, e))
-TransformElementList : @SqlList<TransformElement> = first: TransformElement & (',' & second: TransformElement)? => @(Nodes.List(first, second is null ? null : new[] { second }))
+TransformElementList : @Sql.SqlList<TransformElement> = first: TransformElement & (',' & second: TransformElement)? => @(Nodes.List(first, second is null ? null : new[] { second }))
 TransformElement     : @TransformElement = k: TransformKind & "WITH"i & f: SpecificRoutineDesignator => @(new TransformElement(k, f))
 TransformKind        : @TransformDirection = "TO"i & "SQL"i => @(TransformDirection.ToSql)
                                            | "FROM"i & "SQL"i => @(TransformDirection.FromSql)
 
 AlterTransformStatement : @Statement.AlterTransform = "ALTER"i & k: TransformKeyword & "FOR"i & n: SchemaQualifiedName & { (trivia & groups: AlterGroup)+ }
-	  => @(new Statement.AlterTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = SqlList.Own(groups) })
+	  => @(new Statement.AlterTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = Sql.SqlList.Own(groups) })
 AlterGroup              : @TransformAlterGroup = n: Identifier & '(' & { first: AlterTransformAction & (',' & rest: AlterTransformAction)* } & ')' => @(new TransformAlterGroup(n, Nodes.List(first, rest)))
 
 AlterTransformAction : @TransformAlterAction
@@ -2242,13 +2242,13 @@ TransliterationSource : @TranslationSource = r: SpecificRoutineDesignator => @(n
 
 // ── §11.74 Sequence generator definition, §11.75–11.76 Alter and drop ───────
 
-SequenceGeneratorDefinition : @Statement.CreateSequence = "CREATE"i & "SEQUENCE"i & n: SchemaQualifiedName & (trivia & options: SequenceGeneratorOption)* => @(new Statement.CreateSequence { Name = n, Options = SqlList.Own(options) })
+SequenceGeneratorDefinition : @Statement.CreateSequence = "CREATE"i & "SEQUENCE"i & n: SchemaQualifiedName & (trivia & options: SequenceGeneratorOption)* => @(new Statement.CreateSequence { Name = n, Options = Sql.SqlList.Own(options) })
 
 // Not a production: an option of a sequence generator's definition, its type among them.
 SequenceGeneratorOption : @SequenceOption = "AS"i & t: DataType => @(new SequenceOption.DataTypeOption(t))
                                           | o: CommonSequenceGeneratorOption => @(o)
 
-CommonSequenceGeneratorOptions : @SqlList<SequenceOption> = first: CommonSequenceGeneratorOption & (trivia & rest: CommonSequenceGeneratorOption)* => @(Nodes.List(first, rest))
+CommonSequenceGeneratorOptions : @Sql.SqlList<SequenceOption> = first: CommonSequenceGeneratorOption & (trivia & rest: CommonSequenceGeneratorOption)* => @(Nodes.List(first, rest))
 CommonSequenceGeneratorOption  : @SequenceOption = "START"i & "WITH"i & v: SignedNumericLiteral => @(new SequenceOption.Start(new Expression.Literal(v)))
                                                  | o: BasicSequenceGeneratorOption => @(o)
 
@@ -2291,7 +2291,7 @@ RevokeStatement : @Statement.Revoke
 Privileges : @Nodes.PrivilegesOn = i: PrivilegeActions & "ON"i & o: ObjectName => @(new Nodes.PrivilegesOn(i, o))
 
 // Not a production: `ALL PRIVILEGES`, or the actions listed.
-PrivilegeActions : @SqlList<Privilege> = "ALL"i & "PRIVILEGES"i => @([new Privilege(PrivilegeKind.AllPrivileges, [], [])])
+PrivilegeActions : @Sql.SqlList<Privilege> = "ALL"i & "PRIVILEGES"i => @([new Privilege(PrivilegeKind.AllPrivileges, [], [])])
                                              | first: PrivilegeAction & (',' & rest: PrivilegeAction)* => @(Nodes.List(first, rest))
 
 // <action>. A selection names columns or methods; a column's name could be a routine type's word,
@@ -2315,7 +2315,7 @@ ObjectName : @PrivilegeObject
 	| r: SpecificRoutineDesignator => @(new PrivilegeObject.Named(PrivilegeObjectKind.Routine, r.Name, r))
 	| k: "TABLE"i? & n: TableName => @(new PrivilegeObject.Named(PrivilegeObjectKind.Table, n, null, k is not null))
 
-Grantees  : @SqlList<Grantee> = first: GranteeItem & (',' & rest: GranteeItem)* => @(Nodes.List(first, rest))
+Grantees  : @Sql.SqlList<Grantee> = first: GranteeItem & (',' & rest: GranteeItem)* => @(Nodes.List(first, rest))
 Grantor   : @Grantor = "CURRENT_USER"i => @(Grantor.CurrentUser)
                      | "CURRENT_ROLE"i => @(Grantor.CurrentRole)
 GrantedBy : @Grantor = "GRANTED"i & "BY"i & g: Grantor => @(g)
@@ -2480,7 +2480,7 @@ SQLSessionStatement : @Statement
 	| "SET"i & "COLLATION"i & v: ValueSpecification & ("FOR"i & { cs: CharacterSetSpecification & (',' & more: CharacterSetSpecification)* })? => @(new Statement.SetCollation { Value = v, ForCharacterSets = Nodes.ListOrEmpty(cs, more) })
 	| "SET"i & "NO"i & "COLLATION"i & ("FOR"i & { cs: CharacterSetSpecification & (',' & more: CharacterSetSpecification)* })? => @(new Statement.SetCollation { NoCollation = true, ForCharacterSets = Nodes.ListOrEmpty(cs, more) })
 
-SessionTransactionCharacteristics : @SqlList<TransactionMode> = "TRANSACTION"i & first: TransactionMode & (',' & rest: TransactionMode)* => @(Nodes.List(first, rest))
+SessionTransactionCharacteristics : @Sql.SqlList<TransactionMode> = "TRANSACTION"i & first: TransactionMode & (',' & rest: TransactionMode)* => @(Nodes.List(first, rest))
 
 // <value specification>.
 ValueSpecification : @Expression = l: Literal => @(new Expression.Literal(l))
@@ -2598,7 +2598,7 @@ CopyDescriptorTail : @Nodes.CopyTail
 	  => @(new Nodes.CopyTail(si, o, Nodes.DescriptorName(null, p, true), ti))
 
 // Not a production: what an item's copy takes.
-CopyOptions : @SqlList<DescriptorCopyOption> = "NAME"i & ',' & "TYPE"i => @([DescriptorCopyOption.Name, DescriptorCopyOption.Type])
+CopyOptions : @Sql.SqlList<DescriptorCopyOption> = "NAME"i & ',' & "TYPE"i => @([DescriptorCopyOption.Name, DescriptorCopyOption.Type])
                                                   | "NAME"i => @([DescriptorCopyOption.Name])
                                                   | "TYPE"i => @([DescriptorCopyOption.Type])
                                                   | "DATA"i => @([DescriptorCopyOption.Data])

@@ -69,7 +69,7 @@ public sealed class Sql2023WriterCoverageTests
 	{
 		return new Statement.Grant
 		{
-			Body = new GrantBody.Privileges(privileges, on, [new Grantee.Public()], false, false, null),
+			Body = new GrantBody.Privileges([.. privileges], on, [new Grantee.Public()], false, false, null),
 		};
 	}
 

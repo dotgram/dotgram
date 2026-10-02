@@ -97,7 +97,7 @@ public sealed class SqlWalkerTests
 
 		SqlWalker.Walk(TransactSqlParser.ParseStatement(input), node =>
 		{
-			var options = node switch
+			SqlList<Clause>? options = node switch
 			{
 				Clause.ConstraintDefinition { Options: { } some } => some,
 				Statement.Definition { Options: { } some }        => some,
