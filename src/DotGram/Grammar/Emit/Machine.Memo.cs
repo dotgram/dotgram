@@ -86,6 +86,14 @@ sealed partial class Machine
 	/// <summary>The rules that probe the stack and are not remembered, each with its reason.</summary>
 	internal IReadOnlyList<(RuleSymbol Rule, string Why)> MemoRefused => _memoRefused;
 
+	/// <summary>Whether anything this machine's reader writes is read inside a look: set where a look is written.</summary>
+	/// <remarks>
+	/// Kept as the reader is written rather than asked of the text afterwards: the text of a large
+	/// grammar's reader is fifteen megabytes in a builder of thousands of chunks, and a search of it a
+	/// character at a time cost seconds of the generator's time.
+	/// </remarks>
+	bool _looks;
+
 	/// <summary>Words a token: one for every sixty-four rules remembered.</summary>
 	int MemoWords => (_memo.Count + 63) / 64;
 

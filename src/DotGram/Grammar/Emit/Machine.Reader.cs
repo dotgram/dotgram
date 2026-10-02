@@ -970,7 +970,7 @@ sealed partial class Machine
 			}
 
 			if (Memoises)
-				MemoFailedMethod(header, file.Contains("failure.Looking++", 0));
+				MemoFailedMethod(header, _looks);
 
 			if (Probes)
 				RenderDeepening(header, state, registers);
@@ -4711,6 +4711,7 @@ sealed partial class Machine
 			// given back either way. The engine records nothing inside its own lookahead; the
 			// reader says so on the failure it carries, which every reading has, ways or not.
 			code.Line("failure.Looking++;");
+			machine._looks = true;
 			code.Line($"var {seen} = {call};");
 			code.Line("failure.Looking--;");
 			code.Line();
