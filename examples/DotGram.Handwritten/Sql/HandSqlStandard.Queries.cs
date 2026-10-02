@@ -133,7 +133,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return new WithClause(recursive, items);
+		return new WithClause(recursive, Sql.SqlList.From(items));
 	}
 
 	static bool WithListElement(ref SqlCursor cursor, out CommonTableExpression item)
@@ -145,7 +145,7 @@ partial class HandSqlStandard
 		if (!Identifier(ref cursor, out var name))
 			return false;
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
@@ -321,9 +321,9 @@ partial class HandSqlStandard
 			return first;
 
 		if (first.SetOperations.Count == 0 && first.Parentheses == 0 && first.With is null && first.OrderBy is null && first.Offset is null && first.Fetch is null)
-			return first with { SetOperations = rest };
+			return first with { SetOperations = Sql.SqlList.From(rest) };
 
-		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = rest };
+		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = Sql.SqlList.From(rest) };
 	}
 
 	static bool QueryPrimary(ref SqlCursor cursor, out Statement.Select query)
@@ -383,7 +383,7 @@ partial class HandSqlStandard
 					break;
 			}
 
-			query = new Statement.Select { Body = new QueryOperand.Values(rows) };
+			query = new Statement.Select { Body = new QueryOperand.Values(Sql.SqlList.From(rows)) };
 
 			return true;
 		}
@@ -548,7 +548,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		order = new OrderByClause(items);
+		order = new OrderByClause(Sql.SqlList.From(items));
 
 		return true;
 	}
@@ -587,7 +587,7 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static bool SelectList(ref SqlCursor cursor, out IReadOnlyList<SelectItem> items)
+	static bool SelectList(ref SqlCursor cursor, out Sql.SqlList<SelectItem> items)
 	{
 		if (cursor.Take(SqlTokenKind.Asterisk))
 		{
@@ -599,7 +599,7 @@ partial class HandSqlStandard
 		var save    = cursor;
 		var sublist = new List<SelectItem>();
 
-		items = sublist;
+		items = Sql.SqlList.From(sublist);
 
 		while (true)
 		{
@@ -673,7 +673,7 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static SelectItem Selected(Expression value, Identifier? alias, bool keyword, IReadOnlyList<Identifier>? columns)
+	static SelectItem Selected(Expression value, Identifier? alias, bool keyword, Sql.SqlList<Identifier>? columns)
 	{
 		if (value is Expression.Wildcard { Kind: WildcardKind.Member } all && alias is null)
 			return new SelectItem.QualifiedAll(all.Target, columns);
@@ -745,7 +745,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		from = new FromClause(tables);
+		from = new FromClause(Sql.SqlList.From(tables));
 
 		return true;
 	}
@@ -779,7 +779,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return new GroupByClause(quantifier, elements);
+		return new GroupByClause(quantifier, Sql.SqlList.From(elements));
 	}
 
 	static bool GroupingElement(ref SqlCursor cursor, out GroupingElement element)
@@ -814,7 +814,7 @@ partial class HandSqlStandard
 
 					if (sets.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						element = rollup ? new GroupingElement.Rollup(sets) : new GroupingElement.Cube(sets);
+						element = rollup ? new GroupingElement.Rollup(Sql.SqlList.From(sets)) : new GroupingElement.Cube(Sql.SqlList.From(sets));
 
 						return true;
 					}
@@ -846,7 +846,7 @@ partial class HandSqlStandard
 
 					if (sets.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						element = new GroupingElement.Sets(sets);
+						element = new GroupingElement.Sets(Sql.SqlList.From(sets));
 
 						return true;
 					}
@@ -901,7 +901,7 @@ partial class HandSqlStandard
 
 			if (columns.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 			{
-				element = new GroupingElement.Ordinary(columns, true);
+				element = new GroupingElement.Ordinary(Sql.SqlList.From(columns), true);
 
 				return true;
 			}
@@ -932,12 +932,12 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static bool ColumnNameList(ref SqlCursor cursor, out IReadOnlyList<Identifier> columns)
+	static bool ColumnNameList(ref SqlCursor cursor, out Sql.SqlList<Identifier> columns)
 	{
 		var save  = cursor;
 		var names = new List<Identifier>();
 
-		columns = names;
+		columns = Sql.SqlList.From(names);
 
 		if (!Identifier(ref cursor, out var first))
 			return false;
@@ -989,7 +989,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return new WindowClause(definitions);
+		return new WindowClause(Sql.SqlList.From(definitions));
 	}
 
 	static bool WindowSpecification(ref SqlCursor cursor, out WindowSpecification specification)
@@ -1038,7 +1038,7 @@ partial class HandSqlStandard
 		return null;
 	}
 
-	static IReadOnlyList<Expression>? WindowPartitionClause(ref SqlCursor cursor)
+	static Sql.SqlList<Expression>? WindowPartitionClause(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -1066,7 +1066,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return columns;
+		return Sql.SqlList.From(columns);
 	}
 
 	static WindowFrame? WindowFrameClause(ref SqlCursor cursor)
@@ -1318,10 +1318,10 @@ partial class HandSqlStandard
 	readonly record struct Factor(TableSource Source, bool JoinedTable);
 
 	/// <summary>The joins read after a factor, and the partitioning of the factor before the first.</summary>
-	readonly record struct JoinList(IReadOnlyList<Expression>? Partition, List<Joining>? Steps);
+	readonly record struct JoinList(Sql.SqlList<Expression>? Partition, List<Joining>? Steps);
 
 	/// <summary>One join: its type, whether it is natural, the table on its right, and its specification.</summary>
-	readonly record struct Joining(JoinKind? Kind, bool Natural, bool Outer, TableSource Right, JoinSpecification? Specification, IReadOnlyList<Expression>? RightPartition);
+	readonly record struct Joining(JoinKind? Kind, bool Natural, bool Outer, TableSource Right, JoinSpecification? Specification, Sql.SqlList<Expression>? RightPartition);
 
 	static TableSource Joined(TableSource left, JoinList joins)
 	{
@@ -1554,7 +1554,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<Expression>? JoinPartitioning(ref SqlCursor cursor)
+	static Sql.SqlList<Expression>? JoinPartitioning(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -1583,7 +1583,7 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
-			return columns;
+			return Sql.SqlList.From(columns);
 
 		cursor = save;
 
@@ -1699,7 +1699,7 @@ partial class HandSqlStandard
 
 						if (Correlation(ref cursor, out var correlation, true))
 						{
-							factor = Correlate(new TableSource.Unnest(collections, ordinality, null), correlation);
+							factor = Correlate(new TableSource.Unnest(Sql.SqlList.From(collections), ordinality, null), correlation);
 
 							return true;
 						}
@@ -1910,7 +1910,7 @@ partial class HandSqlStandard
 			return null;
 		}
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		var bracket = cursor;
 
@@ -2039,7 +2039,7 @@ partial class HandSqlStandard
 			return null;
 		}
 
-		IReadOnlyList<Expression>? partition = null;
+		Sql.SqlList<Expression>? partition = null;
 
 		if (cursor.Word == SqlWord.Partition)
 		{
@@ -2068,7 +2068,7 @@ partial class HandSqlStandard
 		return common with { PartitionBy = partition ?? [], OrderBy = order, Measures = measures ?? [], RowsPerMatch = rows };
 	}
 
-	static IReadOnlyList<Expression>? RowPatternPartitionBy(ref SqlCursor cursor)
+	static Sql.SqlList<Expression>? RowPatternPartitionBy(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -2096,10 +2096,10 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return columns;
+		return Sql.SqlList.From(columns);
 	}
 
-	static IReadOnlyList<RowPatternMeasure>? RowPatternMeasures(ref SqlCursor cursor)
+	static Sql.SqlList<RowPatternMeasure>? RowPatternMeasures(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -2123,7 +2123,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return measures;
+		return Sql.SqlList.From(measures);
 	}
 
 	static RowsPerMatch? RowPatternRowsPerMatch(ref SqlCursor cursor)
@@ -2217,7 +2217,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return new RowPatternClause([], null, [], null, skip, initial, pattern, subsets ?? [], definitions);
+		return new RowPatternClause([], null, [], null, skip, initial, pattern, subsets ?? [], Sql.SqlList.From(definitions));
 	}
 
 	/// <summary>
@@ -2277,7 +2277,7 @@ partial class HandSqlStandard
 		return null;
 	}
 
-	static IReadOnlyList<RowPatternSubset>? RowPatternSubsetClause(ref SqlCursor cursor)
+	static Sql.SqlList<RowPatternSubset>? RowPatternSubsetClause(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -2319,13 +2319,13 @@ partial class HandSqlStandard
 				return null;
 			}
 
-			subsets.Add(new RowPatternSubset(name, items));
+			subsets.Add(new RowPatternSubset(name, Sql.SqlList.From(items)));
 
 			if (!cursor.Take(SqlTokenKind.Comma))
 				break;
 		}
 
-		return subsets;
+		return Sql.SqlList.From(subsets);
 	}
 
 	static bool RowPattern(ref SqlCursor cursor, out RowPattern pattern)
@@ -2352,7 +2352,7 @@ partial class HandSqlStandard
 		}
 
 		if (rest is not null)
-			pattern = new RowPattern.Alternation(rest);
+			pattern = new RowPattern.Alternation(Sql.SqlList.From(rest));
 
 		return true;
 	}
@@ -2368,7 +2368,7 @@ partial class HandSqlStandard
 			(rest ??= [pattern]).Add(next);
 
 		if (rest is not null)
-			pattern = new RowPattern.Sequence(rest);
+			pattern = new RowPattern.Sequence(Sql.SqlList.From(rest));
 
 		return true;
 	}
@@ -2413,7 +2413,7 @@ partial class HandSqlStandard
 
 				if (items.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 				{
-					pattern = new RowPattern.Permute(items);
+					pattern = new RowPattern.Permute(Sql.SqlList.From(items));
 
 					return true;
 				}

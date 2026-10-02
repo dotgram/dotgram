@@ -216,7 +216,7 @@ partial class HandSqlStandard
 			names.Add(new Identifier(part.ToString(), Styled(part)));
 
 			if (dot < 0)
-				return new CharacterSetName(new QualifiedName(names.ToArray()));
+				return new CharacterSetName(new QualifiedName(Sql.SqlList.From(names)));
 
 			dotted = dotted[(dot + 1)..];
 		}

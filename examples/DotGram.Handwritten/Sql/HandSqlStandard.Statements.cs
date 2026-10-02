@@ -272,17 +272,17 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlWord.Update))
 		{
-			IReadOnlyList<Identifier>? columns = null;
+			Sql.SqlList<Identifier> columns = [];
 
 			var marked = cursor;
 
-			if (cursor.Take(SqlWord.Of) && !ColumnNameList(ref cursor, out columns!))
+			if (cursor.Take(SqlWord.Of) && !ColumnNameList(ref cursor, out columns))
 			{
 				cursor  = marked;
-				columns = null;
+				columns = [];
 			}
 
-			return new UpdatabilityClause(false, columns ?? []);
+			return new UpdatabilityClause(false, columns);
 		}
 
 		cursor = save;
@@ -421,8 +421,8 @@ partial class HandSqlStandard
 					if (locators.Count > 0)
 					{
 						statement = free
-							? new Statement.FreeLocator { Locators = locators }
-							: new Statement.HoldLocator { Locators = locators };
+							? new Statement.FreeLocator { Locators = Sql.SqlList.From(locators) }
+							: new Statement.HoldLocator { Locators = Sql.SqlList.From(locators) };
 
 						return true;
 					}
@@ -612,12 +612,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool TargetList(ref SqlCursor cursor, out IReadOnlyList<Expression> targets)
+	static bool TargetList(ref SqlCursor cursor, out Sql.SqlList<Expression> targets)
 	{
 		var save    = cursor;
 		var written = new List<Expression>();
 
-		targets = written;
+		targets = Sql.SqlList.From(written);
 
 		while (true)
 		{
@@ -897,7 +897,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<TransactionMode> TransactionModes(ref SqlCursor cursor)
+	static Sql.SqlList<TransactionMode> TransactionModes(ref SqlCursor cursor)
 	{
 		var modes = new List<TransactionMode>();
 
@@ -918,7 +918,7 @@ partial class HandSqlStandard
 			modes.Add(mode);
 		}
 
-		return modes;
+		return Sql.SqlList.From(modes);
 	}
 
 	static bool TransactionMode(ref SqlCursor cursor, out TransactionMode mode)
@@ -1017,7 +1017,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		target = new ConstraintTarget.Names(names);
+		target = new ConstraintTarget.Names(Sql.SqlList.From(names));
 
 		return true;
 	}
@@ -1183,7 +1183,7 @@ partial class HandSqlStandard
 
 			if (cursor.TakeWord("CHARACTERISTICS") && cursor.Take(SqlWord.As))
 			{
-				var characteristics = new List<IReadOnlyList<TransactionMode>>();
+				var characteristics = new List<Sql.SqlList<TransactionMode>>();
 
 				while (true)
 				{
@@ -1203,7 +1203,7 @@ partial class HandSqlStandard
 
 				if (characteristics.Count > 0)
 				{
-					statement = new Statement.SetSessionCharacteristics { Characteristics = characteristics };
+					statement = new Statement.SetSessionCharacteristics { Characteristics = Sql.SqlList.From(characteristics) };
 
 					return true;
 				}
@@ -1345,13 +1345,13 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<CharacterSetName> ForCharacterSets(ref SqlCursor cursor)
+	static Sql.SqlList<CharacterSetName> ForCharacterSets(ref SqlCursor cursor)
 	{
 		var save = cursor;
 		var sets = new List<CharacterSetName>();
 
 		if (!cursor.Take(SqlWord.For))
-			return sets;
+			return Sql.SqlList.From(sets);
 
 		while (true)
 		{
@@ -1368,7 +1368,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return sets;
+		return Sql.SqlList.From(sets);
 	}
 
 	/// <summary><c>&lt;value specification&gt;</c>: a literal, a general value specification, or a name.</summary>
@@ -1485,7 +1485,7 @@ partial class HandSqlStandard
 
 				if (items.Count > 0)
 				{
-					information = new DiagnosticsInformation.Condition(condition, items);
+					information = new DiagnosticsInformation.Condition(condition, Sql.SqlList.From(items));
 
 					return true;
 				}
@@ -1518,7 +1518,7 @@ partial class HandSqlStandard
 
 		if (statements.Count > 0)
 		{
-			information = new DiagnosticsInformation.Statement(statements);
+			information = new DiagnosticsInformation.Statement(Sql.SqlList.From(statements));
 
 			return true;
 		}
@@ -1908,7 +1908,7 @@ partial class HandSqlStandard
 
 				if (reads.Count > 0)
 				{
-					information = new DescriptorGet.Value(item, reads);
+					information = new DescriptorGet.Value(item, Sql.SqlList.From(reads));
 
 					return true;
 				}
@@ -1941,7 +1941,7 @@ partial class HandSqlStandard
 
 		if (header.Count > 0)
 		{
-			information = new DescriptorGet.Header(header);
+			information = new DescriptorGet.Header(Sql.SqlList.From(header));
 
 			return true;
 		}
@@ -1983,7 +1983,7 @@ partial class HandSqlStandard
 
 				if (writes.Count > 0)
 				{
-					information = new DescriptorSet.Value(item, writes);
+					information = new DescriptorSet.Value(item, Sql.SqlList.From(writes));
 
 					return true;
 				}
@@ -2016,7 +2016,7 @@ partial class HandSqlStandard
 
 		if (header.Count > 0)
 		{
-			information = new DescriptorSet.Header(header);
+			information = new DescriptorSet.Header(Sql.SqlList.From(header));
 
 			return true;
 		}
@@ -2059,13 +2059,13 @@ partial class HandSqlStandard
 		{
 			var options = CopyOptions(ref cursor);
 
-			if (options is not null && cursor.Take(SqlTokenKind.RightParen) && cursor.Take(SqlWord.To) && cursor.TakeWord("PTF") &&
+			if (options is { } copied && cursor.Take(SqlTokenKind.RightParen) && cursor.Take(SqlWord.To) && cursor.TakeWord("PTF") &&
 				SimpleValueSpecification(ref cursor, out var target) && cursor.Take(SqlWord.Value) &&
 				SimpleValueSpecification(ref cursor, out var targetIndex))
 			{
 				statement = new Statement.CopyDescriptor
 				{
-					Body = new DescriptorCopy.Item(source, index, options, DescriptorNameOf(null, target, true), targetIndex),
+					Body = new DescriptorCopy.Item(source, index, copied, DescriptorNameOf(null, target, true), targetIndex),
 				};
 
 				return true;
@@ -2077,7 +2077,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<DescriptorCopyOption>? CopyOptions(ref SqlCursor cursor)
+	static Sql.SqlList<DescriptorCopyOption>? CopyOptions(ref SqlCursor cursor)
 	{
 		if (cursor.TakeWord("NAME"))
 		{
@@ -2263,7 +2263,7 @@ partial class HandSqlStandard
 		}
 
 		if (values.Count > 0)
-			return new DynamicArguments.Values(values);
+			return new DynamicArguments.Values(Sql.SqlList.From(values));
 
 		cursor = save;
 

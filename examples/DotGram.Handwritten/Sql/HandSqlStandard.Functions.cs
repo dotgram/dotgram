@@ -1060,7 +1060,7 @@ partial class HandSqlStandard
 
 					if (columns.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						value = new Expression.Invocation(new QualifiedName([new Identifier("GROUPING")]), columns);
+						value = new Expression.Invocation(new QualifiedName([new Identifier("GROUPING")]), Sql.SqlList.From(columns));
 
 						return true;
 					}
@@ -1515,7 +1515,7 @@ partial class HandSqlStandard
 
 					if (cursor.Take(SqlTokenKind.RightParen) && WithinGroupSpecification(ref cursor, out var within))
 					{
-						value = new Expression.Invocation(new QualifiedName([new Identifier(spelling)]), arguments) { WithinGroup = within };
+						value = new Expression.Invocation(new QualifiedName([new Identifier(spelling)]), Sql.SqlList.From(arguments)) { WithinGroup = within };
 
 						return true;
 					}

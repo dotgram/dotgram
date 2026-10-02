@@ -409,12 +409,7 @@ public static partial class HandSqlStandard
 		if (rest is not { Count: > 0 })
 			return new QualifiedName([first]);
 
-		var parts = new Identifier[rest.Count + 1];
-
-		parts[0] = first;
-		rest.CopyTo(parts, 1);
-
-		return new QualifiedName(parts);
+		return new QualifiedName([first, .. rest]);
 	}
 
 	// ── The numbers a production writes out ────────────────────────────────────

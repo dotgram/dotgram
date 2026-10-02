@@ -671,7 +671,7 @@ partial class HandSqlStandard
 
 					if (values.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						predicate = new Expression.In(null!, false, new InSource.Values(values));
+						predicate = new Expression.In(null!, false, new InSource.Values(Sql.SqlList.From(values)));
 
 						return true;
 					}
@@ -833,7 +833,7 @@ partial class HandSqlStandard
 
 					if (types.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						part = new Tail(SqlTowers.Any, new Expression.IsOf(null!, false, types));
+						part = new Tail(SqlTowers.Any, new Expression.IsOf(null!, false, Sql.SqlList.From(types)));
 
 						return true;
 					}
@@ -1562,14 +1562,14 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<Expression> Items(Expression first, List<Expression>? rest)
+	static Sql.SqlList<Expression> Items(Expression first, List<Expression>? rest)
 	{
 		var items = new List<Expression>(1 + (rest?.Count ?? 0)) { first };
 
 		if (rest is not null)
 			items.AddRange(rest);
 
-		return items;
+		return Sql.SqlList.From(items);
 	}
 
 	/// <summary>The steps after a primary, as many as there are.</summary>
@@ -1671,7 +1671,7 @@ partial class HandSqlStandard
 
 					if (subscripts.Count > 0 && cursor.Take(SqlTokenKind.RightBracket))
 					{
-						step = new Step(SqlTowers.Bare, new Expression.JsonAccessor(null!, new JsonPathAccessor.Array(subscripts)));
+						step = new Step(SqlTowers.Bare, new Expression.JsonAccessor(null!, new JsonPathAccessor.Array(Sql.SqlList.From(subscripts))));
 
 						return true;
 					}
@@ -1779,7 +1779,7 @@ partial class HandSqlStandard
 
 							if (items.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 							{
-								value = new Typed(new Expression.Row(items, true), SqlTowers.Row);
+								value = new Typed(new Expression.Row(Sql.SqlList.From(items), true), SqlTowers.Row);
 
 								return true;
 							}
@@ -2105,7 +2105,7 @@ partial class HandSqlStandard
 
 					if (arguments.Count > 1 && cursor.Take(SqlTokenKind.RightParen))
 					{
-						value = new Expression.Invocation(new QualifiedName([new Identifier("COALESCE")]), arguments);
+						value = new Expression.Invocation(new QualifiedName([new Identifier("COALESCE")]), Sql.SqlList.From(arguments));
 
 						return true;
 					}
@@ -2165,7 +2165,7 @@ partial class HandSqlStandard
 							return false;
 						}
 
-						whens.Add(new CaseWhen(operands, result));
+						whens.Add(new CaseWhen(Sql.SqlList.From(operands), result));
 					}
 				}
 
@@ -2183,7 +2183,7 @@ partial class HandSqlStandard
 
 				if (cursor.Take(SqlWord.End))
 				{
-					value = new Expression.Case(operand, whens, otherwise);
+					value = new Expression.Case(operand, Sql.SqlList.From(whens), otherwise);
 
 					return true;
 				}
@@ -2483,7 +2483,7 @@ partial class HandSqlStandard
 
 			if (arguments.Count > 1 && cursor.Take(SqlTokenKind.RightParen))
 			{
-				value = new Expression.Invocation(new QualifiedName([new Identifier(word)]), arguments);
+				value = new Expression.Invocation(new QualifiedName([new Identifier(word)]), Sql.SqlList.From(arguments));
 
 				return true;
 			}
@@ -2526,7 +2526,7 @@ partial class HandSqlStandard
 			{
 				cursor.Take();
 
-				value = word == SqlWord.Array ? new Expression.Array(items, trigraphs) : new Expression.Multiset(items, trigraphs);
+				value = word == SqlWord.Array ? new Expression.Array(Sql.SqlList.From(items), trigraphs) : new Expression.Multiset(Sql.SqlList.From(items), trigraphs);
 
 				return true;
 			}
@@ -2593,7 +2593,7 @@ partial class HandSqlStandard
 	// ── §6.5 SQL argument list ─────────────────────────────────────────────────
 
 	/// <summary>An argument list where one is written, and null where none is.</summary>
-	static IReadOnlyList<Argument>? SQLArgumentList(ref SqlCursor cursor)
+	static Sql.SqlList<Argument>? SQLArgumentList(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -2603,7 +2603,7 @@ partial class HandSqlStandard
 		var arguments = new List<Argument>();
 
 		if (cursor.Take(SqlTokenKind.RightParen))
-			return arguments;
+			return Sql.SqlList.From(arguments);
 
 		while (true)
 		{
@@ -2621,7 +2621,7 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
-			return arguments;
+			return Sql.SqlList.From(arguments);
 
 		cursor = save;
 
@@ -2698,6 +2698,6 @@ partial class HandSqlStandard
 			if (argument is not null)
 				written.Add(new Argument(argument));
 
-		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), written);
+		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), Sql.SqlList.From(written));
 	}
 }

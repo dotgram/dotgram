@@ -169,7 +169,7 @@ partial class HandSqlStandard
 			}
 		}
 
-		common = new JsonApiCommon(context.Value, path, name, passing, context.Format);
+		common = new JsonApiCommon(context.Value, path, name, Sql.SqlList.From(passing), context.Format);
 
 		return true;
 	}
@@ -449,7 +449,7 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlTokenKind.RightParen))
 		{
-			value = new Expression.JsonObject(members, nulls, unique, output);
+			value = new Expression.JsonObject(Sql.SqlList.From(members), nulls, unique, output);
 
 			return true;
 		}
@@ -541,7 +541,7 @@ partial class HandSqlStandard
 
 				if (cursor.Take(SqlTokenKind.RightParen))
 				{
-					value = new Expression.JsonArray(elements, nulls, output);
+					value = new Expression.JsonArray(Sql.SqlList.From(elements), nulls, output);
 
 					return true;
 				}
@@ -847,7 +847,7 @@ partial class HandSqlStandard
 		if (second is not null)
 			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(second))));
 
-		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), arguments);
+		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), Sql.SqlList.From(arguments));
 	}
 
 	/// <summary>An unsigned integer as it was written, which the tree keeps.</summary>
@@ -1107,7 +1107,7 @@ partial class HandSqlStandard
 
 			if (subscripts.Count > 0 && cursor.Take(SqlTokenKind.RightBracket))
 			{
-				accessor = new JsonPathAccessor.Array(subscripts);
+				accessor = new JsonPathAccessor.Array(Sql.SqlList.From(subscripts));
 
 				return true;
 			}
@@ -1159,7 +1159,7 @@ partial class HandSqlStandard
 		}
 
 		if (rest is not null)
-			value = new JsonPathPredicate.Or(rest);
+			value = new JsonPathPredicate.Or(Sql.SqlList.From(rest));
 
 		return true;
 	}
@@ -1316,7 +1316,7 @@ partial class HandSqlStandard
 
 				if (error is not null && cursor.Take(SqlWord.On) && cursor.TakeWord("ERROR") && cursor.Take(SqlTokenKind.RightParen))
 				{
-					table = new JsonTableDefinition(common, columns, null, error, true);
+					table = new JsonTableDefinition(common, Sql.SqlList.From(columns), null, error, true);
 
 					return true;
 				}
@@ -1328,12 +1328,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool JSONTableColumnsClause(ref SqlCursor cursor, out IReadOnlyList<JsonTableColumn> columns)
+	static bool JSONTableColumnsClause(ref SqlCursor cursor, out Sql.SqlList<JsonTableColumn> columns)
 	{
 		var save = cursor;
 		var read = new List<JsonTableColumn>();
 
-		columns = read;
+		columns = Sql.SqlList.From(read);
 
 		if (!cursor.TakeWord("COLUMNS") || !cursor.Take(SqlTokenKind.LeftParen))
 		{
@@ -1688,7 +1688,7 @@ partial class HandSqlStandard
 				items.Add(next);
 			}
 
-			plan = union ? new JsonTablePlan.Union(items) : new JsonTablePlan.Cross(items);
+			plan = union ? new JsonTablePlan.Union(Sql.SqlList.From(items)) : new JsonTablePlan.Cross(Sql.SqlList.From(items));
 
 			return true;
 		}

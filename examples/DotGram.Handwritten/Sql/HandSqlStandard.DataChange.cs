@@ -342,7 +342,7 @@ partial class HandSqlStandard
 
 		cursor = defaults;
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
@@ -432,12 +432,12 @@ partial class HandSqlStandard
 	/// <c>&lt;contextually typed table value constructor&gt;</c>: rows whose values may be
 	/// <c>DEFAULT</c>, <c>NULL</c> or an empty collection, which take their type from where they go.
 	/// </summary>
-	static bool ContextuallyTypedTableValueConstructor(ref SqlCursor cursor, out IReadOnlyList<RowValue> rows)
+	static bool ContextuallyTypedTableValueConstructor(ref SqlCursor cursor, out Sql.SqlList<RowValue> rows)
 	{
 		var save    = cursor;
 		var written = new List<RowValue>();
 
-		rows = written;
+		rows = Sql.SqlList.From(written);
 
 		if (!cursor.Take(SqlWord.Values))
 			return false;
@@ -495,7 +495,7 @@ partial class HandSqlStandard
 
 			if (items.Count > 1 && cursor.Take(SqlTokenKind.RightParen))
 			{
-				value = new Expression.Row(items);
+				value = new Expression.Row(Sql.SqlList.From(items));
 
 				return true;
 			}
@@ -522,7 +522,7 @@ partial class HandSqlStandard
 
 				if (items.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 				{
-					value = new Expression.Row(items, true);
+					value = new Expression.Row(Sql.SqlList.From(items), true);
 
 					return true;
 				}
@@ -598,7 +598,7 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		statement = new Statement.Merge { Target = target, Alias = alias, SourceTable = source, On = on, Clauses = clauses };
+		statement = new Statement.Merge { Target = target, Alias = alias, SourceTable = source, On = on, Clauses = Sql.SqlList.From(clauses) };
 
 		return true;
 	}
@@ -679,7 +679,7 @@ partial class HandSqlStandard
 		if (!cursor.Take(SqlWord.Insert))
 			return false;
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
@@ -712,7 +712,7 @@ partial class HandSqlStandard
 
 			if (values.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 			{
-				action = new MergeInsertAction(columns ?? [], over, values);
+				action = new MergeInsertAction(columns ?? [], over, Sql.SqlList.From(values));
 
 				return true;
 			}
@@ -782,12 +782,12 @@ partial class HandSqlStandard
 
 	// ── §14.15 Set clause list ─────────────────────────────────────────────────
 
-	static bool SetClauseList(ref SqlCursor cursor, out IReadOnlyList<Assignment> assignments)
+	static bool SetClauseList(ref SqlCursor cursor, out Sql.SqlList<Assignment> assignments)
 	{
 		var save    = cursor;
 		var written = new List<Assignment>();
 
-		assignments = written;
+		assignments = Sql.SqlList.From(written);
 
 		while (true)
 		{
@@ -832,7 +832,7 @@ partial class HandSqlStandard
 			if (targets.Count > 0 && cursor.Take(SqlTokenKind.RightParen) && cursor.Take(SqlTokenKind.Equal) &&
 				ContextuallyTypedRowValueExpression(ref cursor, out var row))
 			{
-				assignment = new Assignment(targets, row, true);
+				assignment = new Assignment(Sql.SqlList.From(targets), row, true);
 
 				return true;
 			}
@@ -902,7 +902,7 @@ partial class HandSqlStandard
 			(path ??= []).Add(method);
 		}
 
-		target = new AssignmentTarget(new QualifiedName([column]), null, path);
+		target = new AssignmentTarget(new QualifiedName([column]), null, path is null ? null : Sql.SqlList.From(path));
 
 		return true;
 	}

@@ -65,7 +65,7 @@ partial class HandSqlStandard
 
 					if (options.Count > 0)
 					{
-						statement = new Statement.AlterSequence { Name = name, Options = options };
+						statement = new Statement.AlterSequence { Name = name, Options = Sql.SqlList.From(options) };
 
 						return true;
 					}
@@ -105,7 +105,7 @@ partial class HandSqlStandard
 
 						if (groups.Count > 0)
 						{
-							statement = new Statement.AlterTransform { PluralKeyword = plural, TypeName = name, Groups = groups };
+							statement = new Statement.AlterTransform { PluralKeyword = plural, TypeName = name, Groups = Sql.SqlList.From(groups) };
 
 							return true;
 						}
@@ -127,7 +127,7 @@ partial class HandSqlStandard
 						statement = new Statement.AlterRoutine
 						{
 							Routine         = routine,
-							Characteristics = characteristics,
+							Characteristics = Sql.SqlList.From(characteristics),
 							Behavior        = AlterRoutineBehavior.Restrict,
 						};
 
@@ -454,7 +454,7 @@ partial class HandSqlStandard
 						added.Clear();
 					}
 
-					action = new AlterTableAction.AddPeriod(period, added);
+					action = new AlterTableAction.AddPeriod(period, Sql.SqlList.From(added));
 
 					return true;
 				}
@@ -630,7 +630,7 @@ partial class HandSqlStandard
 					while (AlterIdentityColumnOption(ref cursor, out var option))
 						options.Add(option);
 
-					action = new AlterColumnAction.SetIdentityGeneration(always ? IdentityGeneration.Always : IdentityGeneration.ByDefault, options);
+					action = new AlterColumnAction.SetIdentityGeneration(always ? IdentityGeneration.Always : IdentityGeneration.ByDefault, Sql.SqlList.From(options));
 
 					return true;
 				}
@@ -727,7 +727,7 @@ partial class HandSqlStandard
 
 		if (options_.Count > 0)
 		{
-			action = new AlterColumnAction.IdentityOptions(options_);
+			action = new AlterColumnAction.IdentityOptions(Sql.SqlList.From(options_));
 
 			return true;
 		}
@@ -965,12 +965,12 @@ partial class HandSqlStandard
 		null;
 	}
 
-	static bool SQLParameterDeclarationList(ref SqlCursor cursor, out IReadOnlyList<ParameterDefinition> parameters)
+	static bool SQLParameterDeclarationList(ref SqlCursor cursor, out Sql.SqlList<ParameterDefinition> parameters)
 	{
 		var save    = cursor;
 		var written = new List<ParameterDefinition>();
 
-		parameters = written;
+		parameters = Sql.SqlList.From(written);
 
 		if (!cursor.Take(SqlTokenKind.LeftParen))
 			return false;
@@ -1219,7 +1219,7 @@ partial class HandSqlStandard
 
 		if (columns.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 		{
-			value = new Expression.DescriptorConstructor(columns);
+			value = new Expression.DescriptorConstructor(Sql.SqlList.From(columns));
 
 			return true;
 		}
@@ -1240,7 +1240,7 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlWord.Table))
 		{
-			IReadOnlyList<FieldDefinition>? columns = null;
+			Sql.SqlList<FieldDefinition>? columns = null;
 
 			var bracket = cursor;
 
@@ -1260,7 +1260,7 @@ partial class HandSqlStandard
 				}
 
 				if (written.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
-					columns = written;
+					columns = Sql.SqlList.From(written);
 				else
 					cursor = bracket;
 			}
@@ -1314,14 +1314,14 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<RoutineCharacteristic> RoutineCharacteristics(ref SqlCursor cursor)
+	static Sql.SqlList<RoutineCharacteristic> RoutineCharacteristics(ref SqlCursor cursor)
 	{
 		var characteristics = new List<RoutineCharacteristic>();
 
 		while (RoutineCharacteristic(ref cursor, out var characteristic))
 			characteristics.Add(characteristic);
 
-		return characteristics;
+		return Sql.SqlList.From(characteristics);
 	}
 
 	static bool RoutineCharacteristic(ref SqlCursor cursor, out RoutineCharacteristic characteristic)
@@ -1664,7 +1664,7 @@ partial class HandSqlStandard
 		}
 
 		if (groups.Count > 0)
-			return new Ast.TransformGroupSpecification(null, groups);
+			return new Ast.TransformGroupSpecification(null, Sql.SqlList.From(groups));
 
 		if (Identifier(ref cursor, out var single))
 			return new Ast.TransformGroupSpecification(single, []);
@@ -1680,19 +1680,21 @@ partial class HandSqlStandard
 
 		body = null!;
 
-		IReadOnlyList<ParameterDefinition>? parameters = null;
+		Sql.SqlList<ParameterDefinition>? parameters = null;
 		var dataKeyword = false;
 
 		if (cursor.TakeWord("PRIVATE"))
 		{
 			dataKeyword = cursor.TakeWord("DATA");
 
-			if (!SQLParameterDeclarationList(ref cursor, out parameters!))
+			if (!SQLParameterDeclarationList(ref cursor, out var declared))
 			{
 				cursor = save;
 
 				return false;
 			}
+
+			parameters = declared;
 		}
 
 		var describe = With(ref cursor, "DESCRIBE");
@@ -1810,7 +1812,7 @@ partial class HandSqlStandard
 
 		if (RoutineType(ref cursor, out var routine, out var method) && Names(ref cursor, 3, out var named))
 		{
-			IReadOnlyList<DataType>? types = null;
+			Sql.SqlList<DataType>? types = null;
 
 			var bracket = cursor;
 
@@ -1830,7 +1832,7 @@ partial class HandSqlStandard
 				}
 
 				if (cursor.Take(SqlTokenKind.RightParen))
-					types = written;
+					types = Sql.SqlList.From(written);
 				else
 					cursor = bracket;
 			}
@@ -1964,7 +1966,7 @@ partial class HandSqlStandard
 
 		statement = new Statement.CreateType
 		{
-			Definition = new UserDefinedTypeDefinition(name, under, representation, options, methods),
+			Definition = new UserDefinedTypeDefinition(name, under, representation, Sql.SqlList.From(options), Sql.SqlList.From(methods)),
 		};
 
 		return true;
@@ -1995,7 +1997,7 @@ partial class HandSqlStandard
 
 			if (attributes.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 			{
-				representation = new TypeRepresentation.Members(attributes);
+				representation = new TypeRepresentation.Members(Sql.SqlList.From(attributes));
 
 				return true;
 			}
@@ -2178,7 +2180,7 @@ partial class HandSqlStandard
 
 				if (attributes.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 				{
-					option = new UserTypeOption.Reference(new UserTypeReference.FromAttributes(attributes));
+					option = new UserTypeOption.Reference(new UserTypeReference.FromAttributes(Sql.SqlList.From(attributes)));
 
 					return true;
 				}
@@ -2278,7 +2280,7 @@ partial class HandSqlStandard
 		while (MethodCharacteristic(ref cursor, out var characteristic))
 			characteristics.Add(characteristic);
 
-		method = method with { SelfAsResult = result, SelfAsLocator = locator, Characteristics = characteristics };
+		method = method with { SelfAsResult = result, SelfAsLocator = locator, Characteristics = Sql.SqlList.From(characteristics) };
 
 		return true;
 
@@ -2468,7 +2470,7 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlTokenKind.RightParen))
 		{
-			designator = new MethodDesignator(modifier, name, types);
+			designator = new MethodDesignator(modifier, name, Sql.SqlList.From(types));
 
 			return true;
 		}
@@ -2632,7 +2634,7 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		statement = new Statement.CreateTransform { PluralKeyword = plural, TypeName = name, Groups = groups };
+		statement = new Statement.CreateTransform { PluralKeyword = plural, TypeName = name, Groups = Sql.SqlList.From(groups) };
 
 		return true;
 	}
@@ -2652,9 +2654,9 @@ partial class HandSqlStandard
 
 		var elements = TransformElementList(ref cursor);
 
-		if (elements is not null && cursor.Take(SqlTokenKind.RightParen))
+		if (elements is { } list && cursor.Take(SqlTokenKind.RightParen))
 		{
-			group = new Ast.TransformGroup(name, elements);
+			group = new Ast.TransformGroup(name, list);
 
 			return true;
 		}
@@ -2664,7 +2666,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<TransformElement>? TransformElementList(ref SqlCursor cursor)
+	static Sql.SqlList<TransformElement>? TransformElementList(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -2683,7 +2685,7 @@ partial class HandSqlStandard
 				cursor = marked;
 		}
 
-		return elements;
+		return Sql.SqlList.From(elements);
 	}
 
 	static bool TransformElement(ref SqlCursor cursor, out TransformElement element)
@@ -2744,7 +2746,7 @@ partial class HandSqlStandard
 
 		if (actions.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 		{
-			group = new TransformAlterGroup(name, actions);
+			group = new TransformAlterGroup(name, Sql.SqlList.From(actions));
 
 			return true;
 		}
@@ -2794,7 +2796,7 @@ partial class HandSqlStandard
 
 				if (DropBehavior(ref cursor) is { } behaviour && cursor.Take(SqlTokenKind.RightParen))
 				{
-					action = new TransformAlterAction(false, [], kinds, behaviour);
+					action = new TransformAlterAction(false, [], Sql.SqlList.From(kinds), behaviour);
 
 					return true;
 				}
@@ -2979,7 +2981,7 @@ partial class HandSqlStandard
 		while (SequenceGeneratorOption(ref cursor, out var option))
 			options.Add(option);
 
-		statement = new Statement.CreateSequence { Name = name, Options = options };
+		statement = new Statement.CreateSequence { Name = name, Options = Sql.SqlList.From(options) };
 
 		return true;
 	}
@@ -3272,7 +3274,7 @@ partial class HandSqlStandard
 		{
 			var admin = Option(ref cursor, SqlWord.Name, "ADMIN");
 
-			statement = new Statement.Grant { Body = new GrantBody.Roles(roles, to, admin, GrantedBy(ref cursor)) };
+			statement = new Statement.Grant { Body = new GrantBody.Roles(Sql.SqlList.From(roles), to, admin, GrantedBy(ref cursor)) };
 
 			return true;
 		}
@@ -3379,7 +3381,7 @@ partial class HandSqlStandard
 
 			if (DropBehavior(ref cursor) is { } behaviour)
 			{
-				statement = new Statement.Revoke { Body = new RevokeBody.Roles(admin, roles, from, by, behaviour) };
+				statement = new Statement.Revoke { Body = new RevokeBody.Roles(admin, Sql.SqlList.From(roles), from, by, behaviour) };
 
 				return true;
 			}
@@ -3390,7 +3392,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool Privileges(ref SqlCursor cursor, out IReadOnlyList<Privilege> privileges, out PrivilegeObject target)
+	static bool Privileges(ref SqlCursor cursor, out Sql.SqlList<Privilege> privileges, out PrivilegeObject target)
 	{
 		var save = cursor;
 
@@ -3430,7 +3432,7 @@ partial class HandSqlStandard
 				return false;
 			}
 
-			privileges = actions;
+			privileges = Sql.SqlList.From(actions);
 		}
 
 		if (cursor.Take(SqlWord.On) && ObjectName(ref cursor, out target))
@@ -3479,7 +3481,7 @@ partial class HandSqlStandard
 
 				if (methods.Count > 0 && cursor.Take(SqlTokenKind.RightParen))
 				{
-					privilege = new Privilege(PrivilegeKind.Select, [], methods);
+					privilege = new Privilege(PrivilegeKind.Select, [], Sql.SqlList.From(methods));
 
 					return true;
 				}
@@ -3500,7 +3502,7 @@ partial class HandSqlStandard
 
 		if (listed is not null)
 		{
-			IReadOnlyList<Identifier>? columns = null;
+			Sql.SqlList<Identifier>? columns = null;
 
 			var bracket = cursor;
 
@@ -3646,12 +3648,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool Grantees(ref SqlCursor cursor, out IReadOnlyList<Grantee> grantees)
+	static bool Grantees(ref SqlCursor cursor, out Sql.SqlList<Grantee> grantees)
 	{
 		var save    = cursor;
 		var written = new List<Grantee>();
 
-		grantees = written;
+		grantees = Sql.SqlList.From(written);
 
 		while (true)
 		{

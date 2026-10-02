@@ -173,7 +173,7 @@ partial class HandSqlStandard
 			DefaultCharacterSet = characterSet,
 			Path                = path,
 			PathFirst           = pathFirst,
-			Elements            = elements,
+			Elements            = Sql.SqlList.From(elements),
 		};
 
 		return true;
@@ -216,7 +216,7 @@ partial class HandSqlStandard
 				break;
 		}
 
-		return new PathSpecification(schemas);
+		return new PathSpecification(Sql.SqlList.From(schemas));
 	}
 
 	/// <summary>What a schema holds: everything but the schema itself and what alters or drops one.</summary>
@@ -304,7 +304,7 @@ partial class HandSqlStandard
 		contents = null!;
 
 		// A column list before a query is an element list in shape, so the query is asked first.
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
@@ -366,7 +366,7 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static IReadOnlyList<TableElement>? TypedTableElementList(ref SqlCursor cursor)
+	static Sql.SqlList<TableElement>? TypedTableElementList(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -391,7 +391,7 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
-			return elements;
+			return Sql.SqlList.From(elements);
 
 		cursor = save;
 
@@ -487,17 +487,17 @@ partial class HandSqlStandard
 		while (ColumnConstraintDefinition(ref cursor, out var constraint))
 			constraints.Add(constraint);
 
-		element = new TableElement.ColumnOptions(name, new ColumnOptionList(scope, defaults, constraints));
+		element = new TableElement.ColumnOptions(name, new ColumnOptionList(scope, defaults, Sql.SqlList.From(constraints)));
 
 		return true;
 	}
 
-	static bool TableElementList(ref SqlCursor cursor, out IReadOnlyList<TableElement> elements)
+	static bool TableElementList(ref SqlCursor cursor, out Sql.SqlList<TableElement> elements)
 	{
 		var save    = cursor;
 		var written = new List<TableElement>();
 
-		elements = written;
+		elements = Sql.SqlList.From(written);
 
 		if (!cursor.Take(SqlTokenKind.LeftParen))
 			return false;
@@ -540,7 +540,7 @@ partial class HandSqlStandard
 				while (LikeOption(ref cursor, out var option))
 					options.Add(option);
 
-				element = new TableElement.Like(table, options);
+				element = new TableElement.Like(table, Sql.SqlList.From(options));
 
 				return true;
 			}
@@ -706,7 +706,7 @@ partial class HandSqlStandard
 
 		CollateClause(ref cursor, out var collation);
 
-		column = new ColumnDefinition(name, type, source, constraints, collation);
+		column = new ColumnDefinition(name, type, source, Sql.SqlList.From(constraints), collation);
 
 		return true;
 	}
@@ -768,7 +768,7 @@ partial class HandSqlStandard
 					}
 				}
 
-				return new ColumnGeneration.Identity(always ? IdentityGeneration.Always : IdentityGeneration.ByDefault, options);
+				return new ColumnGeneration.Identity(always ? IdentityGeneration.Always : IdentityGeneration.ByDefault, Sql.SqlList.From(options));
 			}
 
 			if (always)
@@ -998,7 +998,7 @@ partial class HandSqlStandard
 
 					written.RemoveAt(written.Count - 1);
 
-					columns = written;
+					columns = Sql.SqlList.From(written);
 				}
 				else
 				{
@@ -1139,7 +1139,7 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 		Identifier? period = null;
 
 		var bracket = cursor;
@@ -1344,7 +1344,7 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		IReadOnlyList<Identifier>? columns = null;
+		Sql.SqlList<Identifier>? columns = null;
 
 		if (cursor.Kind == SqlTokenKind.LeftParen)
 		{
@@ -1363,7 +1363,7 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static IReadOnlyList<ViewElement>? ViewElementList(ref SqlCursor cursor)
+	static Sql.SqlList<ViewElement>? ViewElementList(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -1388,7 +1388,7 @@ partial class HandSqlStandard
 		}
 
 		if (cursor.Take(SqlTokenKind.RightParen))
-			return elements;
+			return Sql.SqlList.From(elements);
 
 		cursor = save;
 
@@ -1466,7 +1466,7 @@ partial class HandSqlStandard
 			AsKeyword   = keyword,
 			Type        = type,
 			Default     = defaults,
-			Constraints = constraints,
+			Constraints = Sql.SqlList.From(constraints),
 			Collation   = collation,
 		};
 
@@ -1565,7 +1565,7 @@ partial class HandSqlStandard
 				Time        = time.Value,
 				Event       = written,
 				Table       = table,
-				Referencing = references,
+				Referencing = Sql.SqlList.From(references),
 				Action      = action,
 			};
 
@@ -1595,17 +1595,17 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlWord.Update))
 		{
-			IReadOnlyList<Identifier>? columns = null;
+			Sql.SqlList<Identifier> columns = [];
 
 			var save = cursor;
 
-			if (cursor.Take(SqlWord.Of) && !ColumnNameList(ref cursor, out columns!))
+			if (cursor.Take(SqlWord.Of) && !ColumnNameList(ref cursor, out columns))
 			{
 				cursor  = save;
-				columns = null;
+				columns = [];
 			}
 
-			written = new Ast.TriggerEvent(TriggerEventKind.Update, columns ?? []);
+			written = new Ast.TriggerEvent(TriggerEventKind.Update, columns);
 
 			return true;
 		}
@@ -1720,7 +1720,7 @@ partial class HandSqlStandard
 
 				if (statements.Count > 0 && cursor.Take(SqlWord.End))
 				{
-					action = new TriggerAction(granularity, when, statements, true);
+					action = new TriggerAction(granularity, when, Sql.SqlList.From(statements), true);
 
 					return true;
 				}

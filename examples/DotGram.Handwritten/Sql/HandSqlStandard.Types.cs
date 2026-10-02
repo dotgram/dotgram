@@ -706,7 +706,7 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		type = new DataType.Row(fields);
+		type = new DataType.Row(Sql.SqlList.From(fields));
 
 		return true;
 	}
@@ -783,7 +783,7 @@ partial class HandSqlStandard
 
 		cursor.Take();
 
-		name = new CharacterSetName(new QualifiedName(parts.ToArray()));
+		name = new CharacterSetName(new QualifiedName(Sql.SqlList.From(parts)));
 
 		return true;
 	}

@@ -145,7 +145,7 @@ static class SqlTowers
 	/// What follows a bracket's value expression: the closing bracket, the rest of a row, or `AS` and a
 	/// type, a method and its arguments.
 	/// </summary>
-	public readonly record struct Bracket(int Kind, List<Expression>? Rest = null, DataType? Type = null, Identifier? Method = null, IReadOnlyList<Argument>? Arguments = null);
+	public readonly record struct Bracket(int Kind, List<Expression>? Rest = null, DataType? Type = null, Identifier? Method = null, Sql.SqlList<Argument>? Arguments = null);
 
 	/// <summary>What follows a name: the rest of an identifier chain, or `OVER` and a window.</summary>
 	public readonly record struct Chained(bool Measure, List<Identifier>? Rest, WindowReference? Over = null);
