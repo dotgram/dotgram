@@ -118,8 +118,9 @@ is kept. That is a little wide where a rule hands back a value another rule made
 `WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
 Each offer also says where the text in front of the value begins (`SqlSpan.GapStart`: the end
 of the token before it, or where the reading began), so the comments in front of a node are in
-that gap and nowhere else. It allocates nothing beyond the span itself, and a call that does
-not ask pays a test per value built. The span is kept out of the records' equality, so the
+that gap and nowhere else. It allocates nothing beyond the span itself; a call that does not
+ask still keeps where each value was read on the reader's tape and tests whether to offer it,
+a few per cent of a parse. The span is kept out of the records' equality, so the
 located tree of a text equals the plain one; a copy made with `with` keeps the span and is
 marked stale (`SqlSpan.IsStale`).
 

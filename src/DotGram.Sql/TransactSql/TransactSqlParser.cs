@@ -21,7 +21,8 @@ namespace DotGram.Sql.TransactSql;
 // which ask the same reading to tell every value where it was written and where the text in
 // front of it began. Locations are not free for a recognizer, so whoever needs them asks for
 // them by name, `TransactSqlParser.Located.TryParseStatement`; a reading that does not ask
-// pays a test per value built, and the grammar is compiled once rather than twice.
+// still keeps on its tape where each value was read and tests whether to offer it, a few per
+// cent of a parse, and the grammar is compiled once rather than twice.
 // The standard this dialect is written on top of, named rather than inherited: a class has
 // one base and as many attributes as it likes, and what a grammar is called inside this one
 // — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.

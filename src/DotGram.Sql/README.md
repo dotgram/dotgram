@@ -131,7 +131,8 @@ Where each node was written is there for whoever asks for it. `TransactSqlParser
 same parser called with locations on — `TransactSqlParser.Located.TryParseStatement` — and every
 node it builds carries in `Span` the range of text it was read from, and in `Span.GapStart` where
 the text in front of it begins: the end of the token before it, so that what lies between is
-spacing and comments and nothing else. `TransactSqlParser` itself pays a test per node it builds.
+spacing and comments and nothing else. `TransactSqlParser` itself pays a few per cent of a parse
+for being the same parser: it keeps where each value was read, and asks whether to say so.
 A span takes no part in a node's equality: the located tree of a text equals the plain one.
 
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md).
