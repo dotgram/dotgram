@@ -517,6 +517,119 @@ public sealed class PositionalFollowTests
 		Assert.True(wrong.Count == 0, $"{wrong.Count} cells differ:\n" + string.Join("\n", wrong.Take(15)));
 	}
 
+	/// <summary>
+	/// Rules a scanner may stand for (Machine.Scans), each called at the end of a published rule or
+	/// before something that can refuse: whether a scanner keeps only the first reading is asked of
+	/// the view, so the split can make a rule a scanner that the option alone does not.
+	/// </summary>
+	static readonly string[] ScannedShapes =
+	[
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp\nparse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = ('a' & Sp)+\nparse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & ?!' '\nparse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & 'b'?\nparse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & (Sp | 'b')\nparse Start\n",
+		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp\nparse Start\n",
+		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp & ?!'b'\nparse Start\n",
+	];
+
+	public static TheoryData<int, bool> ScannedCases()
+	{
+		var cases = new TheoryData<int, bool>();
+
+		for (var index = 0; index < ScannedShapes.Length; index++)
+		{
+			cases.Add(index, false);
+			cases.Add(index, true);
+		}
+
+		return cases;
+	}
+
+	/// <summary>
+	/// Off, with the option and split, a rule a scanner stands for answers as the reference interpreter
+	/// does: the whole form in all three, and from every position where the option is on. Where the
+	/// split makes it a scanner and the option alone does not, that is the view at work, and the
+	/// answers are the same.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(ScannedCases))]
+	public void A_scanner_chosen_through_the_view_answers_as_the_reference(int index, bool direct)
+	{
+		var grammar = ScannedShapes[index];
+		var graph   = Graph(grammar);
+		var start   = graph.Rules.First(static rule => rule.Name == "Start");
+		var wrong   = new List<string>();
+
+		foreach (var (follow, split) in new[] { (false, false), (true, false), (true, true) })
+		{
+			var assembly = Compiled(grammar, direct, follow, split);
+
+			// A publication on the flat path is offered no form that reads from a position (§6.3).
+			var positional = follow && assembly.GetType("Grammar")!.GetMethods().Any(one =>
+				one.Name == "TryParseStart" && one.GetParameters() is { Length: 3 } taken && taken[1].ParameterType.IsByRef);
+
+			foreach (var text in Inputs([' ', '|', 'a', 'b', 'c'], 4))
+			{
+				if (ReferenceInterpreter.Parses(graph, start, text) != EmittedCode.Match(assembly, "Grammar", "TryParseStart", text).IsSuccess)
+					wrong.Add($"follow {follow}, split {split}: whole '{text}'");
+
+				if (!positional)
+					continue;
+
+				for (var from = 0; from <= text.Length; from++)
+					if (Expected(graph, start, text, from) != Answer(assembly, text, from))
+						wrong.Add($"follow {follow}, split {split}: '{text}' from {from}: expected {Expected(graph, start, text, from)}, answered {Answer(assembly, text, from)}");
+			}
+		}
+
+		Assert.True(wrong.Count == 0, $"{wrong.Count} cells differ:\n" + string.Join("\n", wrong.Take(15)));
+	}
+
+	/// <summary>
+	/// The shapes above are where the view decides: off, the end of input makes <c>Sp</c> a scanner;
+	/// with the option alone anything may follow it and it is not one; split, the stop makes it one
+	/// again. Asked of the engine, which is where the shapes were chosen.
+	/// </summary>
+	[Fact]
+	public void The_split_makes_a_scanner_the_option_alone_does_not()
+	{
+		var decided = 0;
+
+		foreach (var grammar in ScannedShapes)
+		{
+			var off    = Source(grammar, follow: false, split: false).Contains("Scan_Sp", StringComparison.Ordinal);
+			var option = Source(grammar, follow: true,  split: false).Contains("Scan_Sp", StringComparison.Ordinal);
+			var split  = Source(grammar, follow: true,  split: true).Contains("Scan_Sp", StringComparison.Ordinal);
+
+			// The view only ever narrows what the option says follows, so it can only add a scanner.
+			Assert.False(option && !split, grammar);
+
+			if (off && split && !option)
+				decided++;
+		}
+
+		Assert.True(decided >= 2, $"Only {decided} shapes are scanned split and not with the option alone.");
+
+		static string Source(string grammar, bool follow, bool split)
+		{
+			var result = GramCompiler.Compile(
+				grammar,
+				new GramCompilerOptions
+				{
+					ClassName             = "Grammar",
+					Direct                = false,
+					PositionalFollow      = follow,
+					PositionalFollowSplit = split,
+					CSharpScanner         = RoslynCSharpScanner.Instance,
+				});
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			return result.Sources[0].Text;
+		}
+	}
+
 	/// <summary>The option is off unless asked for.</summary>
 	[Fact]
 	public void The_option_is_off_by_default()
