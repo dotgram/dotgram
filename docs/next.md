@@ -25769,3 +25769,40 @@ is left as it was there; C# refuses it as an operand too, which is a question fo
 
 Not done: C#'s target-typed conditional, `Box b = c ? new() : null;`, which needs `?:` itself to
 be typed by its place. A conditional here is typed by its branches, so that text is refused.
+
+## The initializers held against C# a second time
+
+A review comparing the branch with C# found seven places it still differed; each is now held
+against Roslyn compiling the same text (`InitializerOracleTests`), value and the order of getters,
+setters and arguments, rather than against an expectation written by hand.
+
+The one that changed what accepted text does: a member's own initializer read the member once.
+`new Journal { Items = { 1, 2 } }` built a `ListBind`, which reads `Items` once and adds twice;
+C# reads it for each `Add`. `Inner = { N = 1, Next = null }` likewise read `Inner` once for two
+entries. Only when an indexer appeared anywhere was the initializer written out, and then it ran
+as C# does, so an unrelated `[0] = …` changed how often a getter ran. Now any initializer with an
+indexer or braces of a member's own is written out (`Nested`); `MemberInit` stays only where every
+entry is `Name = value`, where it runs exactly what C# runs. `MemberBind` and `ListBind` are no
+longer made at all, and `Bound` binds values only.
+
+The rest refused what C# accepts or accepted what it refuses:
+- `?:` with branches that meet in no type is typed by its place, as C# 9 types it: `Unchosen`, a
+  third `Targetless`. `Common` asks for a targetless branch before it compares types, since the
+  `object` such a branch answers equals another's `object` — `true ? new() : new()` met in
+  `object` that way and `var x = …` of it built two `object`s. A lambda written inside a text
+  whose body is targetless waits for its delegate (`Unreturned`), so
+  `Func<Box> f = () => true ? new() : new();` builds `Box`es. A cast and a `throw` type a
+  targetless operand (`(Box)new()`, `throw new();` making an `Exception`).
+- A collection initializer of a type that is not `IEnumerable` is CS1922, nested or not.
+- The accessor an entry uses has to be callable: the setter where a value is assigned, the getter
+  where a member's own braces run on it. A `private init`, a `private set` and no setter are all
+  CS0200 to Roslyn; a read-only field CS0191. `Reachable` answered for either accessor.
+- An object creation that leaves a `required` member unset is CS9035, unless the constructor says
+  `[SetsRequiredMembers]`; both attributes asked for by name.
+- An indexer that returns a reference is one C# assigns through and an expression tree cannot:
+  refused with a message saying so, where C# accepts it.
+
+Asked of Roslyn on the way: `M(Box)` beside `M(params Box[])` is ambiguous for `M(new())` —
+a target-typed `new` converts even to an array, which it cannot make — and `M(Box)` beside
+`M(Box, int = 1)` takes the first. This language reads no `T?` in a type; the nullable cases are
+written `System.Nullable<Spot>`.

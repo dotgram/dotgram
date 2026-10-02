@@ -60,6 +60,20 @@ public sealed class InitializerOracleTests
 	[InlineData("new Journal { [Journal.Arg(1)] = { N = 2, Items = { 3, 4 } }, N = 5 }")]
 	[InlineData("new Journal { [Journal.Arg(1)] = { } }")]
 	[InlineData("new Journal { Inner = { N = 1, [2] = null } }")]
+	// A member's own initializer reads the member once for each entry inside it, indexer or none.
+	[InlineData("new Journal { Items = { 1, 2 } }")]
+	[InlineData("new Journal { Inner = { N = 1, Next = null } }")]
+	[InlineData("new Journal { Inner = { Items = { 3 } }, N = 2 }")]
+	[InlineData("new Journal { Inner = { Inner = { N = 4 }, Items = { 5, 6 } } }")]
+	// An indexer of two arguments, set and nested.
+	[InlineData("new Grid { [1, 2] = 3, [Journal.Arg(4), \"a\"] = { N = 5 } }")]
+	// The fields of a struct held in a field, set where they stand.
+	[InlineData("new Holder2 { S = { X = 1, Y = 2 } }")]
+	[InlineData("new Holder2 { S = { [1] = 7 }, Name = \"s\" }")]
+	// Required members set, or a constructor that says it sets them.
+	[InlineData("new Needs { A = 1 }")]
+	[InlineData("new Needs { B = 2, A = 1 }")]
+	[InlineData("new NeedsMet()")]
 	[InlineData("new Journal { [Journal.Arg(1)] = Journal.Made(2), [Journal.Arg(3)] = { [Journal.Arg(4)] = Journal.Made(5) } }")]
 	[InlineData("new Journal { [Journal.Arg(1)] = { [Journal.Arg(2)] = { [Journal.Arg(3)] = Journal.Made(4) } } }")]
 	[InlineData("new Journal { Inner = { [Journal.Arg(1)] = Journal.Made(2), [Journal.Arg(3)] = Journal.Made(4) } }")]
@@ -127,6 +141,16 @@ public sealed class InitializerOracleTests
 	[InlineData("Shown.Day(new(2020, 1, 2))")]
 	[InlineData("true ? new() : new Box()")]
 	[InlineData("new()")]
+	[InlineData("(Box)new()")]
+	[InlineData("new Box { Next = true ? new() : new() }")]
+	[InlineData("new Box { Next = false ? new() : null }")]
+	[InlineData("Shown.Count(true ? new() { 1 } : null)")]
+	[InlineData("Shown.Day(true ? new() : null)")]
+	[InlineData("(object)(true ? 1 : \"a\")")]
+	// Overload resolution with optional and params parameters.
+	[InlineData("Shown.Opt(new())")]
+	[InlineData("Shown.Many(new(), new())")]
+	[InlineData("Shown.Need(new() { A = 3 })")]
 	public void A_new_with_its_type_left_out_is_what_its_place_asks_for(string expression)
 	{
 		What_CSharp_accepts_reads_and_runs_alike(expression);
@@ -144,6 +168,76 @@ public sealed class InitializerOracleTests
 
 		Assert.False(match.IsSuccess);
 		Assert.Equal("There is no target type for 'new()'.", match.Error);
+	}
+
+	/// <summary>Statements, held against Roslyn running the same body as a property getter.</summary>
+	[Theory]
+	[InlineData("Box b = true ? new() : null; return Shown.Of(b);")]
+	[InlineData("List<int> list = new() { 1 }; return Shown.Of(list);")]
+	[InlineData("try { throw new(); } catch (System.Exception e) { return e.GetType().Name + e.Message.Length; }")]
+	[InlineData("System.Func<Box> f = () => true ? new() : new(); return Shown.Of(f());")]
+	[InlineData("Box b = (Box)new(); return Shown.Of(b);")]
+	public void Statements_CSharp_accepts_run_alike(string body)
+	{
+		var text = Usings + "() => { " + body + " }";
+
+		var expected  = WhatCSharpRuns(body);
+		var generated = Both.Compile<Func<string>>(text, typeof(Box).Assembly)();
+		var immediate = Run(Immediately(text));
+
+		Assert.Equal(expected, generated);
+		Assert.Equal(expected, immediate);
+	}
+
+	[Theory]
+	[InlineData("var x = true ? new() : new(); return \"\";", "CS0173")]
+	[InlineData("var x = new(); return \"\";",                "CS8754")]
+	[InlineData("var x = true ? 1 : \"a\"; return \"\";",       "CS0173")]
+	public void Statements_CSharp_refuses_are_refused(string body, string diagnostic)
+	{
+		var text = Usings + "() => { " + body + " }";
+
+		Assert.Equal(diagnostic, WhatCSharpRuns(body));
+		Assert.False(Both.TryParse(text, typeof(Box).Assembly).IsSuccess, text);
+		Assert.False(Refused(text) is null, text);
+	}
+
+	/// <summary>
+	/// An indexer that returns a reference is one C# assigns through, and an expression tree has no
+	/// node that does: refused, saying so, where C# accepts it.
+	/// </summary>
+	[Fact]
+	public void A_ref_returning_indexer_is_refused_saying_why()
+	{
+		Assert.Equal("RefBox(42)", WhatCSharpSays("new RefBox { [0] = 42 }"));
+
+		var match = Both.TryParse(Usings + "() => new RefBox { [0] = 42 }", typeof(Box).Assembly);
+
+		Assert.False(match.IsSuccess);
+		Assert.Contains("returns a reference", match.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>Nullable receivers and targets: whatever C# answers, accepted alike or refused alike.</summary>
+	[Theory]
+	// Spelled `System.Nullable<Spot>`: this language reads no `T?` in a type.
+	[InlineData("((System.Nullable<Spot>)new Spot { X = 1 }) with { }")]
+	[InlineData("((System.Nullable<Spot>)null) with { }")]
+	[InlineData("new Holder2 { S = new() { X = 3 } }")]
+	[InlineData("new Box { Next = (Box)null }")]
+	[InlineData("Shown.Day(new())")]
+	[InlineData("new System.Nullable<Spot>[] { new(), null }")]
+	public void Nullable_receivers_and_targets_answer_as_CSharp_does(string expression)
+	{
+		var said = WhatCSharpSays(expression);
+
+		if (said.Length == 6 && said.StartsWith("CS", StringComparison.Ordinal))
+		{
+			Assert.False(Both.TryParse(Usings + "() => Shown.Of(" + expression + ")", typeof(Box).Assembly).IsSuccess, said);
+
+			return;
+		}
+
+		What_CSharp_accepts_reads_and_runs_alike(expression);
 	}
 
 	/// <summary>`with` is no keyword, as it is none in C#: a variable may still be called so.</summary>
@@ -189,6 +283,7 @@ public sealed class InitializerOracleTests
 	// A `new(…)` with its type left out: two places it converts to equally (CS0121), a type with no
 	// such constructor (CS1729) or no such member (CS0117), what cannot be made so, and no place.
 	[InlineData("Shown.Pick(new())",                            "CS0121")]
+	[InlineData("Shown.Many2(new())",                           "CS0121")]
 	[InlineData("new Box { Next = new(1) }",                    "CS1729")]
 	[InlineData("Shown.Count(new() { Next = null })",           "CS0117")]
 	[InlineData("Shown.Seq(new())",                             "CS0144")]
@@ -199,6 +294,22 @@ public sealed class InitializerOracleTests
 	[InlineData("\"a\" + new()",                                "CS8310")]
 	[InlineData("new Box() == new()",                           "CS8310")]
 	[InlineData("-new()",                                       "CS8754")]
+	// A collection initializer of a type that is not enumerable (CS1922), whatever `Add` it has.
+	[InlineData("new Host { [0] = 0, Items = { 1 } }",          "CS1922")]
+	[InlineData("new Host { Items = { 1 } }",                   "CS1922")]
+	[InlineData("new Adder { 1 }",                              "CS1922")]
+	// The accessor used has to be one the text may call: a private init or set, or none at all
+	// (both CS0200), a read-only field (CS0191).
+	[InlineData("new Guarded() with { P = 1 }",                 "CS0200")]
+	[InlineData("new Guarded { P = 1 }",                        "CS0200")]
+	[InlineData("new Guarded { [0] = 1 }",                      "CS0200")]
+	[InlineData("new Guarded { Q = 1 }",                        "CS0200")]
+	[InlineData("new Pair(1, \"a\") { G = 1 }",                 "CS0191")]
+	// A required member left unset (CS9035).
+	[InlineData("new Needs()",                                  "CS9035")]
+	[InlineData("new Needs { }",                                "CS9035")]
+	[InlineData("new Needs { B = 1 }",                          "CS9035")]
+	[InlineData("Shown.Need(new())",                            "CS9035")]
 	public void What_CSharp_refuses_is_refused(string expression, string diagnostic)
 	{
 		var text = Usings + "() => Shown.Of(" + expression + ")";
@@ -219,12 +330,14 @@ public sealed class InitializerOracleTests
 
 	/// <summary>An initializer that sets an indexer is written out as statements; one that does not is left as C# builds it.</summary>
 	[Fact]
-	public void Only_an_indexer_writes_the_initializer_out()
+	public void Only_values_keep_the_member_initializer()
 	{
-		Assert.Equal(
-			ExpressionType.MemberInit,
-			Body(Usings + "() => new Holder { Items = { 1 }, Inner = { Count = 2 } }").NodeType);
+		Assert.Equal(ExpressionType.MemberInit, Body(Usings + "() => new Box { Next = null, Last = null }").NodeType);
+		Assert.Equal(ExpressionType.MemberInit, Body(Usings + "() => new Holder { Items = { }, Name = \"a\" }").NodeType);
 		Assert.Equal(ExpressionType.MemberInit, Body(Usings + "() => new List<int> { }").NodeType);
+		Assert.Equal(ExpressionType.ListInit, Body(Usings + "() => new List<int> { 1 }").NodeType);
+		Assert.Equal(ExpressionType.Block, Body(Usings + "() => new Holder { Items = { 1 } }").NodeType);
+		Assert.Equal(ExpressionType.Block, Body(Usings + "() => new Holder { Inner = { Count = 2 } }").NodeType);
 		Assert.Equal(ExpressionType.Block, Body(Usings + "() => new Dictionary<int, int> { [1] = 2 }").NodeType);
 		Assert.Equal(ExpressionType.Block, Body(Usings + "() => new Journal { Inner = { [1] = null } }").NodeType);
 	}
@@ -271,8 +384,14 @@ public sealed class InitializerOracleTests
 	/// <summary>What Roslyn makes of the same expression: what it is worth, or the first error's id.</summary>
 	static string WhatCSharpSays(string expression)
 	{
+		return WhatCSharpRuns("return Shown.Of(" + expression + ");");
+	}
+
+	/// <summary>What Roslyn makes of a body of statements: what it returns, or the first error's id.</summary>
+	static string WhatCSharpRuns(string body)
+	{
 		var source = "#nullable disable\nusing System.Collections.Generic;\nusing DotGram.Tests.ExpressionLanguage;\n" +
-			"public static class Asked { public static string Value => Shown.Of(" + expression + "); }";
+			"public static class Asked { public static string Value { get { " + body + " } } }";
 
 		var compilation = CSharpCompilation.Create(
 			"InitializerOracle",
@@ -333,6 +452,36 @@ public static class Shown
 	public static string Seq(IEnumerable<int> items)
 	{
 		return "seq";
+	}
+
+	public static string Opt(Box box)
+	{
+		return "one";
+	}
+
+	public static string Opt(Box box, int more = 1)
+	{
+		return "optional " + more;
+	}
+
+	public static string Many(params Box[] boxes)
+	{
+		return "many " + boxes.Length;
+	}
+
+	public static string Many2(Box box)
+	{
+		return "one";
+	}
+
+	public static string Many2(params Box[] boxes)
+	{
+		return "many " + boxes.Length;
+	}
+
+	public static string Need(Needs needs)
+	{
+		return "needs " + needs.A;
 	}
 
 	public static string Of(object? value)
@@ -516,6 +665,132 @@ public sealed class Journal
 		Log.Clear();
 
 		return taken;
+	}
+}
+
+/// <summary>An indexer of two arguments, of either kind, written down in the journal.</summary>
+public sealed class Grid
+{
+	readonly List<string> _set = [];
+
+	public int this[int x, int y]
+	{
+		get
+		{
+			return 0;
+		}
+		set
+		{
+			_set.Add(x + "," + y + "=" + value);
+		}
+	}
+
+	public Journal this[int x, string y]
+	{
+		get
+		{
+			Journal.Arg(x);
+
+			return new Journal();
+		}
+	}
+
+	public override string ToString()
+	{
+		return "Grid(" + string.Join(" ", _set) + ")";
+	}
+}
+
+/// <summary>A struct held in a field, whose fields an initializer sets where they stand.</summary>
+public sealed class Holder2
+{
+	public Spot S;
+
+	public string Name = "";
+
+	public override string ToString()
+	{
+		return "Holder2(" + S.X + ", " + S.Y + ", " + Name + ")";
+	}
+}
+
+/// <summary>A type with an `Add` and no <c>IEnumerable</c>, which no collection initializer may use.</summary>
+public sealed class Adder
+{
+	public void Add(int value)
+	{
+	}
+}
+
+/// <summary>Holds an <see cref="Adder"/>, and has an indexer so that an initializer of it is written out.</summary>
+public sealed class Host
+{
+	public Adder Items { get; } = new();
+
+	public int this[int at]
+	{
+		get
+		{
+			return at;
+		}
+		set
+		{
+		}
+	}
+}
+
+/// <summary>Accessors the text may not call: a private init, a private set, and none.</summary>
+public sealed record Guarded
+{
+	public int P { get; private init; }
+
+	public int Q { get; }
+
+	public int this[int at]
+	{
+		get
+		{
+			return at;
+		}
+		private set
+		{
+		}
+	}
+}
+
+/// <summary>An indexer that returns a reference, which C# assigns through.</summary>
+public sealed class RefBox
+{
+	readonly int[] _held = new int[2];
+
+	public ref int this[int at] => ref _held[at];
+
+	public override string ToString()
+	{
+		return "RefBox(" + _held[0] + ")";
+	}
+}
+
+/// <summary>A required member, which every object initializer has to set.</summary>
+public class Needs
+{
+	public required int A { get; set; }
+
+	public int B { get; set; }
+
+	public override string ToString()
+	{
+		return "Needs(" + A + ", " + B + ")";
+	}
+}
+
+/// <summary>The same, made by a constructor that says it sets them.</summary>
+public sealed class NeedsMet : Needs
+{
+	[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+	public NeedsMet()
+	{
+		A = 9;
 	}
 }
 

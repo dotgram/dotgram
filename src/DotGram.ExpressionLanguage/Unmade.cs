@@ -35,6 +35,11 @@ public static partial class ExpressionParser
 		readonly Element[]?     _items;
 		readonly ResolutionScope _scope;
 
+		/// <summary>Every type: whether it can be made that way is asked once it is built.</summary>
+		/// <remarks>
+		/// Asked of Roslyn: `M(Box)` beside `M(params Box[])` is ambiguous for `M(new())` (CS0121),
+		/// so even an array, which no `new()` can make, is a type it converts to there.
+		/// </remarks>
 		public override bool Builds(Type target)
 		{
 			return target is not null && target != typeof(void);

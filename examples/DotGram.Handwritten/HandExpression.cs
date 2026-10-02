@@ -3373,7 +3373,7 @@ public static class HandExpression
 					return -1;
 
 				if (_build)
-					node = Expression.Throw(thrown!);
+					node = ExpressionParser.Thrown(thrown!);
 
 				return value + 1;
 			}
@@ -3510,7 +3510,7 @@ public static class HandExpression
 				return at;
 
 			if (_build)
-				node = ExpressionParser.Chosen(node!, whenTrue, whenFalse);
+				node = ExpressionParser.Chosen(node!, whenTrue, whenFalse, _context);
 
 			return otherwise;
 		}

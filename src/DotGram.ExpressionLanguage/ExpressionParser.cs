@@ -1097,7 +1097,7 @@ namespace DotGram.ExpressionLanguage;
 	Jump : @Expression
 		= "break"                     => @(Expression.Break(context.Exit(parserState, parserMarks)))
 		| "continue"                  => @(Expression.Continue(context.Again(parserState, parserMarks)))
-		| "throw" & value: Expression => @(Expression.Throw(value))
+		| "throw" & value: Expression => @(ExpressionParser.Thrown(value))
 		| "throw"                     => @(Expression.Rethrow())
 
 	// Three shapes and one reading of each part: the handlers are read once, whether or not
@@ -1207,7 +1207,7 @@ namespace DotGram.ExpressionLanguage;
 	// why they are the only two that were written this way.
 	Conditional : @Expression
 		= test: Coalesce & ('?' & then: Conditional & ':' & otherwise: Conditional)?
-		  => @(ExpressionParser.Chosen(test, then, otherwise))
+		  => @(ExpressionParser.Chosen(test, then, otherwise, context))
 
 	Coalesce : @Expression
 		= left: Binary & ("??" & right: Coalesce)?
@@ -1919,13 +1919,30 @@ public static partial class ExpressionParser
 	/// A cast is where the difference is most visible and least like the others: `(byte)300`
 	/// is 44 unchecked and throws checked, and neither is an error the C# compiler would
 	/// have caught here — the value is not a constant until the tree is compiled.
+	///
+	/// A value with no type of its own — a `new(…)` that leaves it out, a switch or a `?:` whose
+	/// branches meet in none — is typed by the cast, as C# types it: `(Box)new()` is a
+	/// <c>Box</c>.
 	/// </remarks>
 	internal static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading)
 	{
+		if (operand is Targetless targetless)
+			return targetless.Built(type);
+
 		return ReferenceEquals(operand, Null) && CanBeNull(type) ? Expression.Constant(null, type)
 		: Formattable(operand, type) is { } formattable ? formattable
 		: Checked(reading) ? Expression.ConvertChecked(operand, type)
 		: Expression.Convert(operand, type);
+	}
+
+	/// <summary>`throw value`: an exception, which is what a value with no type of its own is typed as.</summary>
+	/// <remarks>C#'s `throw new();` constructs an <c>Exception</c>, typed by the throw.</remarks>
+	internal static Expression Thrown(Expression value)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value));
+
+		return Expression.Throw(value is Targetless targetless ? targetless.Built(typeof(Exception)) : value);
 	}
 
 	internal static Expression AddAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading)
@@ -2388,12 +2405,17 @@ public static partial class ExpressionParser
 		return [];
 	}
 
-	/// <summary>Those settings against the type that has the members.</summary>
+	/// <summary>Those settings against the type that has the members, where each is a value.</summary>
 	/// <remarks>
 	/// The grammar reads `Name = value` and stops there, because which member a name is
 	/// cannot be known where it is read: the type is a sibling of the braces rather than
 	/// something above them. So the pairs travel as text and a value, and the member is
 	/// found here, where the type is in hand.
+	///
+	/// Only values: a nested initializer is written out by <see cref="Unrolled(NewExpression, Setting[], ResolutionScope)"/>,
+	/// since C# reads the member again for every entry inside it and <c>MemberBind</c> and
+	/// <c>ListBind</c> read it once. Braces with nothing in them touch nothing, as in C#, and
+	/// are left out — a binding with no bindings of its own would still call the getter.
 	/// </remarks>
 	internal static MemberBinding[] Bound(Type type, Setting[] settings, ResolutionScope scope)
 	{
@@ -2407,21 +2429,10 @@ public static partial class ExpressionParser
 
 		for (var at = 0; at < settings.Length; at++)
 		{
-			var setting = settings[at];
-			var member  = Initialized(type, settings, at, scope);
+			var member = Initialized(type, settings, at, scope);
 
-			// Nested braces with nothing in them touch nothing, as in C#: not even the member's
-			// getter, which a binding with no bindings of its own would still call.
-			if (setting.Fields is { Length: 0 })
-				continue;
-
-			// Which of the three the text wrote, answered here rather than where it was
-			// read: a nested initializer needs the *member's* type to go on, and that is
-			// known one step further in than the name was.
-			bound.Add(
-				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields, scope)) :
-				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items, scope)) :
-				Expression.Bind(member, Converted(setting.Value!, MemberType(member))));
+			if (settings[at].Value is { } value)
+				bound.Add(Expression.Bind(member, Converted(value, MemberType(member))));
 		}
 
 		return [.. bound];
@@ -2431,7 +2442,10 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// A member set twice in one initializer is refused, as C# refuses it (CS1912); an indexer
 	/// may be set as often as it is written. A property of a value type cannot have an
-	/// initializer of its own, since what it would set is a copy (CS1918); a field can.
+	/// initializer of its own, since what it would set is a copy (CS1918); a field can. And the
+	/// accessor the setting uses has to be one the text may call: the setter where a value is
+	/// assigned (CS0272, CS0200, and CS0191 for a read-only field), the getter where an
+	/// initializer of the member's own is run on what it holds.
 	/// </remarks>
 	static MemberInfo Initialized(Type type, Setting[] settings, int at, ResolutionScope scope)
 	{
@@ -2444,7 +2458,14 @@ public static partial class ExpressionParser
 				throw new InvalidOperationException($"Duplicate initialization of member '{setting.Name}'.");
 
 		if (setting.Value is null)
+		{
 			Unboxed(type, member);
+			Readable(type, member, scope);
+		}
+		else
+		{
+			Writable(type, member, scope);
+		}
 
 		return member;
 	}
@@ -2458,11 +2479,42 @@ public static partial class ExpressionParser
 				"assigned with an object initializer because it is of a value type.");
 	}
 
-	/// <summary>Whether an initializer sets an indexer anywhere, nested ones included.</summary>
-	static bool SetsIndexer(Setting[] settings)
+	/// <summary>Refuses a member or indexer whose setter the text cannot call, or that has none.</summary>
+	static void Writable(Type type, MemberInfo member, ResolutionScope scope)
+	{
+		switch (member)
+		{
+			case FieldInfo { IsInitOnly: true } or FieldInfo { IsLiteral: true }:
+				throw new InvalidOperationException(
+					$"A readonly field cannot be assigned to: '{type.Name}.{member.Name}'.");
+			case PropertyInfo { SetMethod: null } property:
+				throw new InvalidOperationException(
+					$"Property or indexer '{type.Name}.{property.Name}' cannot be assigned to -- it is read only.");
+			case PropertyInfo property when !Reachable(property.SetMethod, scope):
+				throw new InvalidOperationException(
+					$"The property or indexer '{type.Name}.{property.Name}' cannot be used in this context because the set accessor is inaccessible.");
+		}
+	}
+
+	/// <summary>Refuses a member or indexer whose getter the text cannot call, or that has none.</summary>
+	static void Readable(Type type, MemberInfo member, ResolutionScope scope)
+	{
+		if (member is PropertyInfo property && (property.GetMethod is null || !Reachable(property.GetMethod, scope)))
+			throw new InvalidOperationException(
+				$"The property or indexer '{type.Name}.{property.Name}' cannot be used in this context because the get accessor is inaccessible.");
+	}
+
+	/// <summary>Whether an initializer has to be written out: an indexer, or an initializer of a member's own.</summary>
+	/// <remarks>
+	/// Where every entry is `Name = value`, <c>MemberInit</c> runs exactly what C# runs. Where one
+	/// is not, it would not: it has no binding for an indexer, and it reads a member once for all
+	/// the entries of that member's own braces, where C# reads it once for each. Empty braces
+	/// count for nothing, since they run nothing either way.
+	/// </remarks>
+	static bool Nested(Setting[] settings)
 	{
 		foreach (var setting in settings)
-			if (setting.Index is not null || setting.Fields is { } fields && SetsIndexer(fields))
+			if (setting.Index is not null || setting.Items is not null || setting.Fields is { Length: > 0 })
 				return true;
 
 		return false;
@@ -2471,10 +2523,9 @@ public static partial class ExpressionParser
 	/// <summary>A construction and its initializer as the statements C# runs for them, in a block.</summary>
 	/// <remarks>
 	/// <para>
-	/// The API has no binding for an indexer — <c>MemberInit</c> sets fields and properties and
-	/// nothing else — so an initializer that sets one anywhere is written out instead: the
-	/// object into a variable, each entry an assignment to it, a nested initializer's entries
-	/// assignments to what its member or indexer reads, and the variable last, as its value.
+	/// The object into a variable, each entry an assignment to it, a nested initializer's entries
+	/// assignments to (and calls of `Add` on) what its member or indexer reads, and the variable
+	/// last, as its value.
 	/// </para>
 	/// <para>
 	/// In the order C# runs them, and as often: a nested initializer's member or indexer is read
@@ -2508,8 +2559,18 @@ public static partial class ExpressionParser
 			{
 				var element = Slot(target, index, scope);
 
-				if (setting.Value is null && element.Indexer is { } indexer)
-					Unboxed(target.Type, indexer);
+				if (element.Indexer is { } indexer)
+				{
+					if (setting.Value is null)
+					{
+						Unboxed(target.Type, indexer);
+						Readable(target.Type, indexer, scope);
+					}
+					else
+					{
+						Writable(target.Type, indexer, scope);
+					}
+				}
 
 				// The arguments are worked out where the entry is, before what holds the indexer
 				// is read, as C# works them out: held in variables of their own, so that a nested
@@ -2555,11 +2616,26 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>The element `[…]` names, as a place to write: an indexer's, or an array's own.</summary>
+	/// <remarks>
+	/// An indexer that returns a reference, `ref int this[int i]`, is one C# assigns through; an
+	/// expression tree has no node that does, so it is refused, saying so.
+	/// </remarks>
 	static IndexExpression Slot(Expression target, Expression[] index, ResolutionScope scope)
 	{
-		return target.Type.IsArray
-			? Expression.ArrayAccess(target, Converted(index, typeof(int)))
-			: (IndexExpression)Indexed(target, index, scope);
+		if (target.Type.IsArray)
+			return Expression.ArrayAccess(target, Converted(index, typeof(int)));
+
+		try
+		{
+			return (IndexExpression)Indexed(target, index, scope);
+		}
+		catch (ArgumentException) when (Array.Exists(
+			target.Type.GetProperties(), static one => one.PropertyType.IsByRef && one.GetIndexParameters().Length > 0))
+		{
+			throw new InvalidOperationException(
+				$"The indexer of '{target.Type.Name}' returns a reference, which an expression tree cannot assign " +
+				"through, so it cannot be set in an initializer.");
+		}
 	}
 
 	/// <summary>What a field or property holds, which a nested initializer is written in.</summary>
@@ -2573,7 +2649,8 @@ public static partial class ExpressionParser
 	/// The overload is chosen by the arguments, the same way a call's is — and for the same
 	/// reason it is done here and not in the grammar: what `Add` a collection has is a
 	/// question about the type, and the type is a sibling of the braces rather than
-	/// something inside them.
+	/// something inside them. The type has to be enumerable, as C# requires of a collection
+	/// initializer (CS1922), whatever `Add` it has.
 	/// </remarks>
 	internal static ElementInit[] Added(Type type, Element[] elements, ResolutionScope scope)
 	{
@@ -2582,6 +2659,11 @@ public static partial class ExpressionParser
 
 		if (elements is null)
 			throw new ArgumentNullException(nameof(elements));
+
+		if (!typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+			throw new InvalidOperationException(
+				$"Cannot initialize type '{type.Name}' with a collection initializer because it does not implement " +
+				"'System.Collections.IEnumerable'.");
 
 		var added = new ElementInit[elements.Length];
 
@@ -2609,12 +2691,49 @@ public static partial class ExpressionParser
 	{
 		var made = Constructed(type, args, scope);
 
-		if (fields is not null && SetsIndexer(fields))
+		Required(made, fields);
+
+		if (fields is not null && Nested(fields))
 			return Unrolled(made, fields, scope);
 
 		return fields is not null ? Expression.MemberInit(made, Bound(type, fields, scope))
 			: items is not null   ? Expression.ListInit(made, Added(type, items, scope))
 			: made;
+	}
+
+	/// <summary>Refuses a construction that leaves a `required` member unset (CS9035).</summary>
+	/// <remarks>
+	/// C# requires every member marked `required`, the type's own and its bases', to be set by
+	/// name in the object initializer, unless the constructor called says it sets them all
+	/// (<c>[SetsRequiredMembers]</c>). Both are attributes, asked for by name, since the
+	/// frameworks this builds for do not all declare them.
+	/// </remarks>
+	static void Required(NewExpression made, Setting[]? fields)
+	{
+		const string Marked = "System.Runtime.CompilerServices.RequiredMemberAttribute";
+		const string Sets   = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
+
+		if (!Attributed(made.Type, Marked) || made.Constructor is { } constructor && Attributed(constructor, Sets))
+			return;
+
+		const BindingFlags Declared =
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
+		for (var each = made.Type; each is not null; each = each.BaseType)
+			foreach (var member in each.GetMembers(Declared))
+				if (member is FieldInfo or PropertyInfo && Attributed(member, Marked) &&
+					(fields is null || !Array.Exists(fields, one => one.Index is null && one.Name == member.Name)))
+					throw new InvalidOperationException(
+						$"Required member '{each.Name}.{member.Name}' must be set in the object initializer or attribute constructor.");
+	}
+
+	static bool Attributed(MemberInfo member, string name)
+	{
+		foreach (var attribute in member.CustomAttributes)
+			if (attribute.AttributeType.FullName == name)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>The arguments of a call, in the order they were written.</summary>
@@ -2707,17 +2826,25 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// Typed as C# types one: where one branch converts to the other's type and not back,
 	/// that type, and a literal <c>null</c> takes the type of the branch beside it. Where
-	/// neither — `c ? 1 : "a"` — it is refused as C# refuses it (CS0173), and not made
-	/// <c>void</c> as an `if` would be: a `?:` is always worth something.
+	/// neither — `c ? 1 : "a"`, `c ? new() : null` — it has no type of its own and is typed by
+	/// the place it stands in, as C# types it (the target-typed conditional), converting each
+	/// branch to what that place asks for; where nothing asks, it is refused as C# refuses it
+	/// (CS0173), and not made <c>void</c> as an `if` would be: a `?:` is always worth something.
 	/// </remarks>
-	internal static Expression Chosen(Expression test, Expression? then, Expression? otherwise)
+	internal static Expression Chosen(Expression test, Expression? then, Expression? otherwise, State context)
 	{
 		if (then is null || otherwise is null)
 			return test;
 
-		var type = Common(then, otherwise) ?? throw new InvalidOperationException(
-			"Type of conditional expression cannot be determined because there is no implicit " +
-			$"conversion between '{Shown(then)}' and '{Shown(otherwise)}'.");
+		if (context is null)
+			throw new ArgumentNullException(nameof(context));
+
+		if (Common(then, otherwise) is not { } type)
+		{
+			context.Waiting();
+
+			return new Unchosen(test, then, otherwise);
+		}
 
 		return Expression.Condition(test, Implicitly(then, type)!, Implicitly(otherwise, type)!);
 	}
@@ -2730,6 +2857,17 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static Type? Common(Expression first, Expression second)
 	{
+		// A branch with no type of its own — a `new(…)` that leaves it out, a switch or a `?:`
+		// whose branches meet in none — has none to meet in, and the `object` it answers with is
+		// not one: the other branch's type is the one, where it converts to it, as C# types
+		// `c ? new() : list` by `list`. Asked before the types are compared for that reason.
+		if (first is Targetless || second is Targetless)
+		{
+			var (untyped, other) = first is Targetless ? (first, second) : (second, first);
+
+			return Typed(other) && Converts(untyped, other.Type) ? other.Type : null;
+		}
+
 		if (first.Type == second.Type)
 			return first.Type;
 
@@ -2738,14 +2876,6 @@ public static partial class ExpressionParser
 
 		if (ReferenceEquals(second, Null))
 			return CanBeNull(first.Type) ? first.Type : null;
-
-		// A `new(…)` with its type left out has none to meet in: the other branch's is the one,
-		// as C# types `c ? new() : list` by `list`.
-		if (first is Unmade)
-			return second is Targetless || !Typed(second) ? null : second.Type;
-
-		if (second is Unmade)
-			return first is Targetless || !Typed(first) ? null : first.Type;
 
 		var toSecond = Converts(first, second.Type);
 		var toFirst  = Converts(second, first.Type);
@@ -5274,7 +5404,18 @@ public static partial class ExpressionParser
 			if (body is null)
 				throw new ArgumentNullException(nameof(body));
 
-			return Expression.Lambda(Returning(body, state, marks), parameters);
+			var returned = Returning(body, state, marks);
+
+			// A body with no type of its own is typed by the delegate the lambda is converted to,
+			// as C# types it, so the lambda waits for that delegate too.
+			if (returned is Targetless waiting)
+			{
+				Waiting();
+
+				return new Unreturned(waiting, parameters);
+			}
+
+			return Expression.Lambda(returned, parameters);
 		}
 
 		/// <summary>The body with the place its returns go to, where any of them do.</summary>

@@ -198,11 +198,16 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   `new int[3]`, `new int[] { 1, 2 }` or `new[] { 1, 2 }`, the last of its elements' best common
   type as in C# (`new[] { 1, 2L }` is a `long[]`). The type may be left out where the place
   says it, as in C#: `List<int> list = new();`, `Next = new() { … }`, `M(new(1))`, a `return`.
-  Not where only `?:` would say it: `Box b = c ? new() : null;` is refused, since a
-  conditional here is typed by its branches and never by its place.
-- An initializer that sets an indexer anywhere, `{ [1] = 2 }` or `Map = { [1] = 2 }`, is built as
-  a block of assignments rather than a `MemberInit`, which has no binding for an indexer. It runs
-  as C# runs it; a visitor that looks for `MemberInit` finds statements there.
+  So may a `?:` whose branches meet in no type (`Box b = c ? new() : null;`), and a cast or a
+  `throw` says it too: `(Box)new()`, `throw new();`.
+- An initializer that sets an indexer, `{ [1] = 2 }`, or has braces of a member's own,
+  `Items = { 1 }` or `Inner = { N = 1 }`, is built as a block of assignments and `Add` calls
+  rather than a `MemberInit`: the API has no binding for an indexer, and C# reads such a member
+  again for each entry inside its braces where `MemberBind`/`ListBind` read it once. It runs as
+  C# runs it; a visitor that looks for `MemberInit` finds statements there. Only `Name = value`
+  entries keep the `MemberInit`.
+- An indexer that returns a reference (`ref int this[int i]`) cannot be set in an initializer:
+  an expression tree has no node that assigns through one. C# allows it.
 - `default` needs its type: `default(int)`, never a bare `default`.
 - `nameof` answers with the name as written and checks nothing.
 - A tuple element cannot be named: write `(true, x)`, not `(Valid: true, Value: x)`. In C# a
