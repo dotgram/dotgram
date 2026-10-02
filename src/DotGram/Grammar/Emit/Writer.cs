@@ -264,14 +264,42 @@ sealed class Writer(int depth)
 	}
 
 	/// <summary>
-	/// Makes the static members written since <paramref name="from"/> at <paramref name="depth"/>
-	/// internal: what a generic class's members need for the class around it to call them.
+	/// Makes internal the static methods written since <paramref name="from"/> at
+	/// <paramref name="depth"/> whose names are in <paramref name="names"/>: what a generic class's
+	/// members need for the class around it to call them, and nothing more, so that the rest stay
+	/// private and an analysis of unused members still sees them.
 	/// </summary>
-	public void Expose(int from, int depth)
+	public void Expose(int from, int depth, System.Collections.Generic.ICollection<string> names)
 	{
-		var member = Lines.Ending + new string('\t', depth) + "static ";
+		if (names.Count == 0)
+			return;
 
-		_text.Replace(member, Lines.Ending + new string('\t', depth) + "internal static ", Math.Max(0, from - Lines.Ending.Length), _text.Length - Math.Max(0, from - Lines.Ending.Length));
+		var start  = Math.Max(0, from - Lines.Ending.Length);
+		var head   = Lines.Ending + new string('\t', depth) + "static ";
+		var text   = _text.ToString(start, _text.Length - start);
+		var result = new StringBuilder(text.Length + 64);
+		var at     = 0;
+
+		while (true)
+		{
+			var found = text.IndexOf(head, at, StringComparison.Ordinal);
+
+			if (found < 0)
+				break;
+
+			var open  = text.IndexOf('(', found + head.Length);
+			var end   = text.IndexOf('\n', found + Lines.Ending.Length);
+			var space = open < 0 ? -1 : text.LastIndexOf(' ', open);
+			var name  = open < 0 || (end >= 0 && open > end) || space < found ? "" : text.Substring(space + 1, open - space - 1);
+
+			result.Append(text, at, found - at);
+			result.Append(names.Contains(name) ? Lines.Ending + new string('\t', depth) + "internal static " : head);
+			at = found + head.Length;
+		}
+
+		result.Append(text, at, text.Length - at);
+		_text.Length = start;
+		_text.Append(result);
 	}
 
 	public override string ToString()

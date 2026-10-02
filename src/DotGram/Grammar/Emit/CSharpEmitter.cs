@@ -504,6 +504,8 @@ public static partial class CSharpEmitter
 				return true;
 			};
 
+		var publishedAt = file.Length;
+
 		void Publish(bool? locating)
 		{
 			foreach (var compiled in machines)
@@ -562,6 +564,15 @@ public static partial class CSharpEmitter
 		{
 			Publish(null);
 		}
+
+		// What the published methods call inside the generic machine, which is all of it that has to
+		// be more than private (Writer.Expose).
+		var called = new HashSet<string>(StringComparer.Ordinal);
+
+		if (graph.PerCall is not null)
+			foreach (System.Text.RegularExpressions.Match one in System.Text.RegularExpressions.Regex.Matches(
+				file.ToString().Substring(publishedAt), ReadingClass + @"<\w+>\.(\w+)\("))
+				called.Add(one.Groups[1].Value);
 
 		foreach (var rule in results.Built)
 		{
@@ -633,7 +644,7 @@ public static partial class CSharpEmitter
 					continuationProbes, streamedParts, streamedSyncs, overKinds);
 
 		if (graph.PerCall is not null)
-			file.Expose(recognizersAt, machineDepth);
+			file.Expose(recognizersAt, machineDepth, called);
 
 
 		// `parse` demands the input end. Asking the rule and then checking would leave it
@@ -718,8 +729,8 @@ public static partial class CSharpEmitter
 		// The extras arrive laid out from a depth of their own, one or none.
 		if (graph.PerCall is not null)
 		{
-			file.Expose(extrasAt, machineDepth);
-			file.Expose(extrasAt, machineDepth + 1);
+			file.Expose(extrasAt, machineDepth, called);
+			file.Expose(extrasAt, machineDepth + 1, called);
 		}
 
 		if (graph.PerCall is not null)

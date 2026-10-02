@@ -177,6 +177,33 @@ public sealed class LocatedReadingTests
 		Assert.Contains(Nodes(statement).OfType<Expression.RoutineInvocation>(), node => text.Substring(node.Span.At, node.Span.Length) == "d AT TIME ZONE 'UTC'");
 	}
 
+	/// <summary>
+	/// The words that stand for a value of their own — <c>NULL</c>, <c>DEFAULT</c> — are a node per
+	/// place they are written, so each has its own span, also when readings run at once.
+	/// </summary>
+	[Fact]
+	public void A_null_is_a_node_of_its_own_in_every_reading()
+	{
+		var first  = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = NULL");
+		var second = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL");
+		var one    = Nodes(first).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
+		var two    = Nodes(second).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
+
+		Assert.NotSame(one, two);
+		Assert.Equal(17, one.Span.At);
+		Assert.Equal(25, two.Span.At);
+
+		System.Threading.Tasks.Parallel.For(0, 64, i =>
+		{
+			var text    = new string(' ', i) + "UPDATE t SET a = NULL";
+			var literal = Nodes(TransactSqlParser.Located.ParseStatement(text)).OfType<Expression.Literal>().Single();
+
+			Assert.Equal(i + 17, literal.Span.At);
+		});
+
+		Assert.Equal(17, one.Span.At);
+	}
+
 	/// <summary>A backup's tail is put on the statement with <c>with</c>, and the statement keeps its span.</summary>
 	[Theory]
 	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH INIT")]
@@ -318,10 +345,15 @@ public sealed class LocatedReadingTests
 	static int Gaps(Statement statement, string text, int floor)
 	{
 		var count = 0;
+		var seen  = new HashSet<ISqlSpan>(ReferenceEqualityComparer.Instance);
 
 		SqlWalker.Walk(statement, node =>
 		{
 			var span = node.Span;
+
+			// A node told where it was written is this reading's own: one object shared between
+			// two places, or with another reading, would have one span written over the other.
+			Assert.True(seen.Add(node), $"{node.GetType().Name} at {span.At} is reached twice");
 
 			if (!span.Known && span.GapStart == 0)
 				return true;
