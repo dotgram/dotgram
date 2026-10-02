@@ -791,6 +791,14 @@ namespace DotGram.ExpressionLanguage;
 	// Where a brace does follow, another word is refused past itself, as a misspelled `_` arm is.
 	Change : @Setting[] = ?=(Word & '{') & w: Word & when @(w == "with") & set: Bindings => @(set)
 
+	// `new(…)` with the type left out, as C# leaves it out where the place it stands in says what
+	// it is: `List<int> list = new();`, `Next = new() { … }`, `M(new(1))`. Built once that place
+	// converts it (§10.2.18), and refused where nothing does. A rule of its own for the reason
+	// `ImplicitArray` is one.
+	TargetNew : @Expression
+		= "new" & args: Arguments & (fields: Bindings | '{' & items: Elements & '}')?
+		=> @(ExpressionParser.Targeted(args, fields, items, context.Here(parserSpan)))
+
 	// `new[] { … }`: an array of the one type its elements' types all convert to, which is C#'s
 	// best common type and the fixing a generic method's inference already does. The `[]` is one
 	// token, as it is after a type. Braces with nothing typed in them — none, or only `null`s and
@@ -866,7 +874,7 @@ namespace DotGram.ExpressionLanguage;
 		= inferred: Word & when @(inferred == "var")
 		& name: Identifier & '=' & value: Value & ';'
 		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan))
-		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
+		=> @(ExpressionParser.Implied(context.Named(name, parserSpan), value))
 
 	// `var` in the body of a lambda whose parameters say no types, while that body is read
 	// before they have them (`Untyped`). `Inferred` asks what the initializer is worth, and a
@@ -1426,6 +1434,7 @@ namespace DotGram.ExpressionLanguage;
 		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | '{' & items: Elements & '}')
 		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
 		| made: ImplicitArray => @(made)
+		| made: TargetNew     => @(made)
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -1842,16 +1851,22 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Add(Expression left, Expression right, ReadOnlySpan<Reading> reading)
 	{
+		Operated(left, right);
+
 		return Joined(left, right) ?? Arithmetic(Checked(reading) ? Expression.AddChecked : Expression.Add, left, right);
 	}
 
 	internal static Expression Subtract(Expression left, Expression right, ReadOnlySpan<Reading> reading)
 	{
+		Operated(left, right);
+
 		return Arithmetic(Checked(reading) ? Expression.SubtractChecked : Expression.Subtract, left, right);
 	}
 
 	internal static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading)
 	{
+		Operated(left, right);
+
 		return Arithmetic(Checked(reading) ? Expression.MultiplyChecked : Expression.Multiply, left, right);
 	}
 
@@ -1867,6 +1882,8 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Negate(Expression operand, ReadOnlySpan<Reading> reading)
 	{
+		Operated(operand, null);
+
 		if (operand is ConstantExpression { Value: var value })
 		{
 			if (value is 2147483648u)
@@ -2722,6 +2739,14 @@ public static partial class ExpressionParser
 		if (ReferenceEquals(second, Null))
 			return CanBeNull(first.Type) ? first.Type : null;
 
+		// A `new(…)` with its type left out has none to meet in: the other branch's is the one,
+		// as C# types `c ? new() : list` by `list`.
+		if (first is Unmade)
+			return second is Targetless || !Typed(second) ? null : second.Type;
+
+		if (second is Unmade)
+			return first is Targetless || !Typed(first) ? null : first.Type;
+
 		var toSecond = Converts(first, second.Type);
 		var toFirst  = Converts(second, first.Type);
 
@@ -2954,6 +2979,21 @@ public static partial class ExpressionParser
 			converted[at] = Converted(values[at], to);
 
 		return converted;
+	}
+
+	/// <summary>A `var` declaration's assignment: of a value that has a type of its own to give it.</summary>
+	/// <remarks>
+	/// A switch whose arms meet in no type and a `new(…)` with its type left out answer
+	/// <c>object</c> for want of one, and converted to the <c>object</c> variable that answer
+	/// declared they would be built as one. C# refuses both here (CS8506, CS8754), and so does
+	/// this, in the words each is refused in where nothing ever types it.
+	/// </remarks>
+	internal static Expression Implied(ParameterExpression variable, Expression value)
+	{
+		if (value is Targetless targetless)
+			throw targetless.Refusal();
+
+		return Assigned(variable, value);
 	}
 
 	/// <summary>An assignment, the value converted to what it is assigned to.</summary>
@@ -3276,6 +3316,19 @@ public static partial class ExpressionParser
 		return null;
 	}
 
+	/// <summary>Refuses a `new(…)` with its type left out as an operator's operand (CS8310).</summary>
+	/// <remarks>
+	/// It converts to every type, so an operator would find one for it — `1 + new()` an
+	/// <c>int</c> and `"a" + new()` an <c>object</c> — where C# gives an operator nothing to
+	/// type it by and refuses it. `??` is no such operator: its right side is converted to
+	/// what its left one is, as C# converts it.
+	/// </remarks>
+	static void Operated(Expression left, Expression? right)
+	{
+		if (left is Unmade || right is Unmade)
+			throw new InvalidOperationException("An operator cannot be applied to operand 'new()': it has no type of its own.");
+	}
+
 	/// <summary>Whether an operand is one C#'s predefined numeric operators could take.</summary>
 	static bool Predefined(Expression operand)
 	{
@@ -3286,6 +3339,8 @@ public static partial class ExpressionParser
 	internal static Expression Arithmetic(
 		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
 	{
+		Operated(left, right);
+
 		return Operand(_arithmetics, left, right) is { } type
 			? make(Implicitly(left, type)!, Implicitly(right, type)!)
 			: make(left, right);
@@ -3294,6 +3349,8 @@ public static partial class ExpressionParser
 	/// <summary>The unary <c>+</c>, likewise.</summary>
 	internal static Expression Arithmetic(Func<Expression, UnaryExpression> make, Expression operand)
 	{
+		Operated(operand, null);
+
 		return Operand(_arithmetics, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
 	}
 
@@ -3305,6 +3362,8 @@ public static partial class ExpressionParser
 	internal static Expression Integral(
 		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
 	{
+		Operated(left, right);
+
 		if (Operand(_integrals, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
@@ -3318,6 +3377,8 @@ public static partial class ExpressionParser
 	/// <summary>The unary <c>~</c>, likewise.</summary>
 	internal static Expression Integral(Func<Expression, UnaryExpression> make, Expression operand)
 	{
+		Operated(operand, null);
+
 		return Operand(_integrals, operand, null) is { } type ? make(Implicitly(operand, type)!)
 		: Underlying(operand.Type).IsEnum ? Expression.Convert(make(AsUnderlying(operand)), operand.Type)
 		: make(operand);
@@ -3327,6 +3388,8 @@ public static partial class ExpressionParser
 	internal static Expression Shift(
 		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
 	{
+		Operated(left, right);
+
 		if (Operand(_integrals, left, null) is not { } promoted)
 			return make(left, right);
 
@@ -3347,6 +3410,8 @@ public static partial class ExpressionParser
 	internal static Expression Equality(
 		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
 	{
+		Operated(left, right);
+
 		if (Operand(_arithmetics, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
@@ -3359,6 +3424,8 @@ public static partial class ExpressionParser
 	internal static Expression Relational(
 		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
 	{
+		Operated(left, right);
+
 		if (Operand(_arithmetics, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
@@ -4904,11 +4971,11 @@ public static partial class ExpressionParser
 				throw new FormatException("a 'return' here is inside no lambda.");
 
 			// A `return` in the OUTERMOST lambda gives back what the delegate gives back, so a
-			// switch with no natural type is typed by that. One inside a lambda written within
-			// it gives back what that lambda is handed to, which this knows nothing about, and
-			// is left to be refused if nothing else types it.
-			if (value is Untargeted untargeted && Target is not null && Outermost(state))
-				value = untargeted.Built(Target);
+			// switch with no natural type, or a `new(…)` with no type written, is typed by that.
+			// One inside a lambda written within it gives back what that lambda is handed to,
+			// which this knows nothing about, and is left to be refused if nothing else types it.
+			if (value is Targetless targetless && Target is not null && Outermost(state))
+				value = targetless.Built(Target);
 
 			var target = Labelled("return", of, value.Type);
 
@@ -5157,7 +5224,7 @@ public static partial class ExpressionParser
 		/// </remarks>
 		internal Type? Target { get; init; }
 
-		/// <summary>Said once a switch with no natural type was made, so the walk below is worth taking.</summary>
+		/// <summary>Said once a value with no type of its own was made, so the walk below is worth taking.</summary>
 		internal void Waiting()
 		{
 			_untargeted = true;
@@ -5183,12 +5250,12 @@ public static partial class ExpressionParser
 			// The body of `(…) => switch` is the one place a target reaches that no conversion
 			// inside the text passes through: nothing converts the body, because the body is
 			// what the lambda is worth.
-			if (Target is not null && lambda!.Body is Untargeted body)
+			if (Target is not null && lambda!.Body is Targetless body)
 				lambda = Expression.Lambda(body.Built(Target), lambda.Parameters);
 
 			// Anything still waiting had no target anywhere — refused in the words it would have
 			// been refused in before a target was ever asked for.
-			if (Untargeted.Remains(lambda!) is { } waiting)
+			if (Targetless.Remains(lambda!) is { } waiting)
 				throw waiting.Refusal();
 
 			return lambda!;

@@ -25737,3 +25737,35 @@ rather than starved: the brace the lookahead wants is not there to be looked at.
 Written first as `?!(Word & ?!'{')`, the lookahead never let `with` through on the generated
 parser, while the hand-written one, peeking at the same two tokens, read it. Not looked into
 further: the positive form says the same thing and reads alike on both.
+
+## `new(…)` with its type left out
+
+Target-typed `new` reads now, as in C#: `List<int> list = new();`, `Next = new() { … }`,
+`new Box[] { new(), null }`, `M(new(1))`, a `return new() { 3 };` in a lambda compiled to a
+`Func<List<int>>`. C# gives such a `new` a conversion to every type (§10.2.18) and builds it as
+whatever it is converted to, which is how a switch with no natural type already worked here:
+`Untargeted` waits for `Implicitly` to hand it a type. Both derive from `Targetless` now, an
+expression that answers `object` for want of a type and is built by the conversion; `Unmade` is
+the new one, holding the arguments and the initializer and calling `Made` with the target (the
+underlying type of a nullable one). Everything that asked `is Untargeted` asks `is Targetless`:
+the conversions, `Typed`, the outermost `return` and body, and the walk that refuses what nothing
+typed, now in the words C# uses for each ("There is no target type for 'new()'.").
+
+Asked of Roslyn, with the oracle tests: an overload pair it converts to equally is ambiguous
+(CS0121), as weighing by the targets alone already made it; a missing constructor or member is
+refused once built (CS1729, CS0117); an interface, abstract class or array is no target (CS0144,
+CS8752); `new[] { new() }` has no best type (CS0826); `var x = new();` is CS8754 and an
+operator's operand CS8310 (CS8754 under a unary minus).
+
+Two things the shared machinery had wrong surfaced on the way. `Implicitly` returned a value
+unchanged when its type was the target's, and `object` is the type a targetless value answers
+with, so converting one to `object` — `Shown.Of(new())`, or a switch with no natural type
+assigned to an `object` — handed it on unbuilt to be refused at the end. It is built first now,
+which C# does too. That made `var` a target, since a `var` declares the initializer's type: it is
+refused there now (`Implied`), in the words each is refused in where nothing types it (CS8506 for
+the switch, which the old path also gave). And an operator would find a type for a `new()`, `1 +
+new()` an `int`, `"a" + new()` an `object`: refused at the operators now (`Operated`). The switch
+is left as it was there; C# refuses it as an operand too, which is a question for another day.
+
+Not done: C#'s target-typed conditional, `Box b = c ? new() : null;`, which needs `?:` itself to
+be typed by its place. A conditional here is typed by its branches, so that text is refused.

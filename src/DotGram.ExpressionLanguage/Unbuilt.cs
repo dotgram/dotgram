@@ -183,13 +183,13 @@ public static partial class ExpressionParser
 
 	/// <summary>Whether an expression has a type of its own to be weighed by.</summary>
 	/// <remarks>
-	/// The literal <c>null</c>, a lambda not yet built and a switch whose arms meet in no type
-	/// are the three that have none: C# types the first by where it stands, the second by what
-	/// it is handed to and the third by what is wanted of it, so none of them says anything
-	/// about which overload is the better one until that is settled.
+	/// The literal <c>null</c>, a lambda not yet built, a switch whose arms meet in no type and a
+	/// `new(…)` that leaves its type out are the four that have none: C# types the first by where
+	/// it stands, the second by what it is handed to and the last two by what is wanted of them,
+	/// so none of them says anything about which overload is the better one until that is settled.
 	/// </remarks>
 	static bool Typed(Expression value)
 	{
-		return !ReferenceEquals(value, Null) && value is not Unbuilt and not Untargeted;
+		return !ReferenceEquals(value, Null) && value is not Unbuilt and not Targetless;
 	}
 }

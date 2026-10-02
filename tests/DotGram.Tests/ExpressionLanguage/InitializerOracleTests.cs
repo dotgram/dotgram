@@ -113,6 +113,39 @@ public sealed class InitializerOracleTests
 		What_CSharp_accepts_reads_and_runs_alike(expression);
 	}
 
+	[Theory]
+	// `new(…)` with its type left out, made as what the place it stands in asks for: a member,
+	// an element, a parameter, a nullable value type's underlying type, the other branch of `?:`.
+	[InlineData("new Box { Next = new() }")]
+	[InlineData("new Box { Next = new() { Last = new() }, }")]
+	[InlineData("new Box[] { new(), null }")]
+	[InlineData("new[] { new Box(), new() }")]
+	[InlineData("new Dictionary<int, Box> { [1] = new() }")]
+	[InlineData("new Holder { Name = new('a', 3) }")]
+	[InlineData("Shown.Count(new() { 1, 2 })")]
+	[InlineData("Shown.Count(new(8))")]
+	[InlineData("Shown.Day(new(2020, 1, 2))")]
+	[InlineData("true ? new() : new Box()")]
+	[InlineData("new()")]
+	public void A_new_with_its_type_left_out_is_what_its_place_asks_for(string expression)
+	{
+		What_CSharp_accepts_reads_and_runs_alike(expression);
+	}
+
+	/// <summary>Typed by the variable it initializes and by the delegate's return, and refused with none.</summary>
+	[Fact]
+	public void A_new_with_its_type_left_out_is_typed_by_a_declaration_and_a_return()
+	{
+		Assert.Equal(2, Both.Compile<Func<int>>(Usings + "() => { List<int> list = new() { 1, 2 }; return list.Count; }", typeof(Box).Assembly)());
+		Assert.Equal([3], Both.Compile<Func<List<int>>>(Usings + "() => new() { 3 }", typeof(Box).Assembly)());
+		Assert.Equal([4], Both.Compile<Func<List<int>>>(Usings + "() => { return new() { 4 }; }", typeof(Box).Assembly)());
+
+		var match = Both.TryParse(Usings + "() => { var made = new(); return 1; }", typeof(Box).Assembly);
+
+		Assert.False(match.IsSuccess);
+		Assert.Equal("There is no target type for 'new()'.", match.Error);
+	}
+
 	/// <summary>`with` is no keyword, as it is none in C#: a variable may still be called so.</summary>
 	[Fact]
 	public void With_is_still_a_name()
@@ -153,6 +186,19 @@ public sealed class InitializerOracleTests
 	[InlineData("new Pair(1, \"a\") with { [0] = 1 }",           "CS0131")]
 	[InlineData("new Pair(1, \"a\") with { L = { 1 } }",         "CS1525")]
 	[InlineData("new Pair(1, \"a\") with { L = { } }",           "CS1525")]
+	// A `new(…)` with its type left out: two places it converts to equally (CS0121), a type with no
+	// such constructor (CS1729) or no such member (CS0117), what cannot be made so, and no place.
+	[InlineData("Shown.Pick(new())",                            "CS0121")]
+	[InlineData("new Box { Next = new(1) }",                    "CS1729")]
+	[InlineData("Shown.Count(new() { Next = null })",           "CS0117")]
+	[InlineData("Shown.Seq(new())",                             "CS0144")]
+	[InlineData("new Box[][] { new() }",                        "CS8752")]
+	[InlineData("new[] { new() }",                              "CS0826")]
+	[InlineData("new().ToString()",                             "CS8754")]
+	[InlineData("1 + new()",                                    "CS8310")]
+	[InlineData("\"a\" + new()",                                "CS8310")]
+	[InlineData("new Box() == new()",                           "CS8310")]
+	[InlineData("-new()",                                       "CS8754")]
 	public void What_CSharp_refuses_is_refused(string expression, string diagnostic)
 	{
 		var text = Usings + "() => Shown.Of(" + expression + ")";
@@ -264,6 +310,31 @@ public sealed class InitializerOracleTests
 /// <summary>A value rendered the same way whoever built it, and what <see cref="Journal"/> saw on the way.</summary>
 public static class Shown
 {
+	public static string Count(List<int> list)
+	{
+		return list.Count + " of " + list.Capacity;
+	}
+
+	public static string Pick(Box box)
+	{
+		return "box";
+	}
+
+	public static string Pick(List<int> list)
+	{
+		return "list";
+	}
+
+	public static string Day(DateTime? day)
+	{
+		return day?.Day.ToString() ?? "none";
+	}
+
+	public static string Seq(IEnumerable<int> items)
+	{
+		return "seq";
+	}
+
 	public static string Of(object? value)
 	{
 		var seen = Journal.Taken();

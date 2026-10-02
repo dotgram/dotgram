@@ -221,6 +221,9 @@ public static class ExpressionCorpus
 		// A copy with members set, of a struct, chained; and of what is neither a record nor a struct.
 		"(int x) => new System.ValueTuple<int, int>(x, 1) with { Item2 = x, } with { }",
 		"(int x) => \"a\" with { Length = x }",
+		// A `new(…)` with its type left out, typed by a declaration, and with no type to take.
+		"(int x) => { System.Text.StringBuilder b = new(x) { Length = 0 }; b.Capacity }",
+		"(int x) => { var b = new(x); 1 }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 

@@ -79,6 +79,9 @@ public sealed class TargetTypedTests
 	[InlineData("(int tag) => { return " + Arms + "; }")]
 	[InlineData("(int tag) => TargetTypedTests.Pick(" + Arms + ")")]
 	[InlineData("(int tag) => { TargetTypedTests.Held h = " + Arms + "; return h; }")]
+	// `object` is a target like any other: every arm converts to it. It was the type such a switch
+	// answered with for want of one, and was taken for its own until 0.3.0, so this was refused.
+	[InlineData("(int tag) => { object o = " + Arms + "; return (TargetTypedTests.Held)o; }")]
 	public void A_switch_with_no_natural_type_is_typed_by_the_place_it_stands_in(string body)
 	{
 		var made = ExpressionParser.Compile<Making>(Text(body), typeof(TargetTypedTests).Assembly);
@@ -101,6 +104,17 @@ public sealed class TargetTypedTests
 	{
 		var thrown = Assert.Throws<InvalidOperationException>(
 			() => ExpressionParser.Parse(Text("(int tag) => " + Arms), typeof(TargetTypedTests).Assembly));
+
+		Assert.Contains("Type of switch expression cannot be determined", thrown.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>A `var` takes the type of its initializer, and such a switch has none to give (CS8506).</summary>
+	[Fact]
+	public void A_var_is_no_target()
+	{
+		var thrown = Assert.Throws<InvalidOperationException>(
+			() => ExpressionParser.Compile<Making>(
+				Text("(int tag) => { var h = " + Arms + "; return (TargetTypedTests.Held)h; }"), typeof(TargetTypedTests).Assembly));
 
 		Assert.Contains("Type of switch expression cannot be determined", thrown.Message, StringComparison.Ordinal);
 	}

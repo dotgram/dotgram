@@ -31,6 +31,14 @@ public static partial class ExpressionParser
 	{
 		var from = value.Type;
 
+		// A switch whose arms meet in no type of their own is what this conversion is FOR: `to`
+		// is the target C# would have typed it by, and every arm converts to it or the switch
+		// converts to nothing. A `new(…)` with its type left out is the other such value. Asked
+		// before anything else, since the type such a value answers with, `object`, is no type
+		// of its own: converted to `object`, it is built as one.
+		if (value is Targetless targetless)
+			return targetless.Builds(to) ? targetless.Built(to) : null;
+
 		if (from == to)
 			return value;
 
@@ -40,12 +48,6 @@ public static partial class ExpressionParser
 
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to) ? Expression.Constant(null, to) : null;
-
-		// A switch whose arms meet in no type of their own is what this conversion is FOR: `to`
-		// is the target C# would have typed it by, and every arm converts to it or the switch
-		// converts to nothing.
-		if (value is Untargeted untargeted)
-			return untargeted.Builds(to) ? untargeted.Built(to) : null;
 
 		if (value is ConstantExpression { Value: { } constant })
 		{
@@ -72,6 +74,12 @@ public static partial class ExpressionParser
 	{
 		var from = value.Type;
 
+		// The same question about a switch with no natural type, asked without building it: it
+		// goes where every one of its arms goes, which is what lets one overload take it and
+		// another be left out. A `new(…)` with its type left out goes anywhere.
+		if (value is Targetless targetless)
+			return targetless.Builds(to);
+
 		if (from == to)
 			return true;
 
@@ -80,12 +88,6 @@ public static partial class ExpressionParser
 
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to);
-
-		// The same question about a switch with no natural type, asked without building it: it
-		// goes where every one of its arms goes, which is what lets one overload take it and
-		// another be left out.
-		if (value is Untargeted untargeted)
-			return untargeted.Builds(to);
 
 		// A lambda not yet built goes to a delegate that takes as many parameters as it was
 		// written with, and gives back something its body can be: `s => s.Length` is no

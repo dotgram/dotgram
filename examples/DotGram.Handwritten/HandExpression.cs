@@ -2648,7 +2648,7 @@ public static class HandExpression
 				return Refuse(value + 1);
 
 			if (_build)
-				node = ExpressionParser.Assigned(_context.Named(name, span), read);
+				node = ExpressionParser.Implied(_context.Named(name, span), read);
 
 			return value + 1;
 		}
@@ -4291,6 +4291,22 @@ public static class HandExpression
 		{
 			node = null;
 
+			// `new(…)` with its type left out, and its initializer: typed where it is converted.
+			if (Kind(i + 1) == LeftParen)
+			{
+				var passed = Arguments(i + 1, out var given);
+
+				if (passed < 0)
+					return -1;
+
+				var tail = Initializer(passed, out var set, out var added);
+
+				if (_build)
+					node = ExpressionParser.Targeted(given!, set, added, _context);
+
+				return tail;
+			}
+
 			// `new[] { … }`: of its elements' best common type, which the construction works out.
 			if (Kind(i + 1) == Brackets)
 			{
@@ -4379,34 +4395,36 @@ public static class HandExpression
 					return -1;
 			}
 
-			var fields   = default(ExpressionParser.Setting[]);
-			var elements = default(ExpressionParser.Element[]);
-			var after    = arguments;
-
-			// One tail rather than three alternatives: what stands inside the braces is what
-			// says which of the two it is. Braces that begin `Name =` are members and nothing
-			// else, as in C#, so a reading of them that fails is not followed by one as elements.
-			if (Kind(after) == LeftBrace)
-			{
-				var bound = Bindings(after, out fields);
-
-				if (bound >= 0)
-				{
-					after = bound;
-				}
-				else
-				{
-					var listed = Elements(after, out elements);
-
-					if (listed >= 0)
-						after = listed;
-				}
-			}
+			var after = Initializer(arguments, out var fields, out var elements);
 
 			if (_build)
 				node = ExpressionParser.Made(type, args!, fields, elements, _context.Reach);
 
 			return after;
+		}
+
+		/// <summary>The initializer a construction may have after its arguments, or nothing: where it ends.</summary>
+		/// <remarks>
+		/// One tail rather than three alternatives: what stands inside the braces is what says
+		/// which of the two it is. Braces that begin `Name =` are members and nothing else, as in
+		/// C#, so a reading of them that fails is not followed by one as elements.
+		/// </remarks>
+		int Initializer(int i, out ExpressionParser.Setting[]? fields, out ExpressionParser.Element[]? elements)
+		{
+			fields   = null;
+			elements = null;
+
+			if (Kind(i) != LeftBrace)
+				return i;
+
+			var bound = Bindings(i, out fields);
+
+			if (bound >= 0)
+				return bound;
+
+			var listed = Elements(i, out elements);
+
+			return listed >= 0 ? listed : i;
 		}
 
 		/// <summary>Member initializers, in their braces: the braces' first entry is one, or they are elements.</summary>
