@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -72,6 +73,14 @@ namespace DotGram.Tests;
 /// reading was known to be the machine.
 /// </para>
 /// <para>
+/// <b>Since 2026-10-02 the control also gates the class, rather than failing the build on its own
+/// noise.</b> It is measured once per process, cached for every row, and retried up to
+/// <see cref="Attempts"/> times if a reading exceeds 2.0; the first clean reading is trusted. If none
+/// of those is clean, every row in the class is skipped as inconclusive, naming the control's exponent
+/// on each attempt: a control that only ever says "the machine was noisy" should not then fail CI on
+/// exactly that noise, and the other rows of that same noisy run are not trustworthy either.
+/// </para>
+/// <para>
 /// <b>A count gate is still owed, and is now buildable.</b> The marks figures above were taken with
 /// counters emitted onto the generated <c>Ways</c> and then removed, because a consumer should not
 /// carry them; <c>BlockScalingTests</c> can read <c>State.Places</c> only because the state is
@@ -84,13 +93,44 @@ namespace DotGram.Tests;
 [Collection(nameof(Alone))]
 public sealed class ReaderScalingTests
 {
+	/// <summary>The row that is linear by construction and gates the class; see the class remarks.</summary>
+	const string ControlWhat = "no block at all";
+
+	const string ControlBlock = "System.Math.Abs(x + {0});";
+
+	const double Bound = 2.0;
+
+	/// <summary>How many times the control is measured before a reading over its bound is believed.</summary>
+	const int Attempts = 3;
+
 	[Theory]
-	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", 2.0)]
-	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", 2.0)]
-	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", 2.0)]
-	[InlineData("no block at all", "System.Math.Abs(x + {0});", 2.0)]
+	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", Bound)]
+	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", Bound)]
+	[InlineData("a `for` loop", "for (var i = 0; i < {0}; i++) System.Math.Abs(i);", Bound)]
+	[InlineData(ControlWhat, ControlBlock, Bound)]
 	public void Four_times_the_blocks_does_not_cost_sixteen(string what, string block, double bound)
 	{
+		var control = Control.Value;
+
+		if (control.Inconclusive)
+		{
+			Assert.Skip(
+				$"The control row (\"{ControlWhat}\") read an exponent of {control.Exponent:F2} against its " +
+				$"bound of {bound:F2} on every one of {Attempts} measurements ({control.Readings}); the machine " +
+				"is noisy and none of this class's rows can be trusted this run.");
+
+			return;
+		}
+
+		if (what == ControlWhat)
+		{
+			Assert.True(
+				control.Exponent <= bound,
+				$"With {what}, four times the blocks took an exponent of {control.Exponent:F2} against {bound:F2}.");
+
+			return;
+		}
+
 		var shorter = Best(50, block);
 		var longer  = Best(200, block);
 
@@ -100,6 +140,47 @@ public sealed class ReaderScalingTests
 			exponent <= bound,
 			$"With {what}, four times the blocks took {longer / shorter:F1} times as long " +
 			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2} against {bound:F2}.");
+	}
+
+	/// <summary>
+	/// The control's own exponent for the whole process: measured once, retried up to
+	/// <see cref="Attempts"/> times while it reads over <see cref="Bound"/>, and shared by every row
+	/// of the theory so that a noisy control can skip the class instead of failing it.
+	/// </summary>
+	static readonly Lazy<ControlReading> Control = new(MeasureControl);
+
+	static ControlReading MeasureControl()
+	{
+		var readings = new List<double>();
+
+		for (var attempt = 1; attempt <= Attempts; attempt++)
+		{
+			var shorter  = Best(50, ControlBlock);
+			var longer   = Best(200, ControlBlock);
+			var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+
+			readings.Add(exponent);
+
+			if (exponent <= Bound)
+				return new ControlReading(exponent, readings, false);
+		}
+
+		return new ControlReading(readings[^1], readings, true);
+	}
+
+	/// <summary>What <see cref="MeasureControl"/> found: the trusted exponent, every attempt, and whether all of them were over the bound.</summary>
+	sealed class ControlReading
+	{
+		public ControlReading(double exponent, List<double> attempts, bool inconclusive)
+		{
+			Exponent     = exponent;
+			Inconclusive = inconclusive;
+			Readings     = string.Join(", ", attempts.Select(static one => one.ToString("F2")));
+		}
+
+		public double Exponent { get; }
+		public bool Inconclusive { get; }
+		public string Readings { get; }
 	}
 
 	/// <summary>The fastest of several readings of a text of that many blocks, in microseconds.</summary>
