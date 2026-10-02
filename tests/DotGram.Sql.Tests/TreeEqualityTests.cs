@@ -299,37 +299,74 @@ public sealed class TreeEqualityTests
 	}
 
 	/// <summary>
-	/// A chain through any such member deeper than the stack has room for throws a catchable
-	/// exception from Equals and from GetHashCode, before the first node that has no room
-	/// compares or hashes what it holds — whatever else the nodes hold, and whether the
-	/// member is a node or a list of them.
+	/// A chain through any such member deeper than the stack has room for never ends the process:
+	/// GetHashCode throws a catchable exception, before the first node that has no room hashes
+	/// what it holds — whatever else the nodes hold, and whether the member is a node or a list
+	/// of them — and Equals of two such chains either throws the same or answers true.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The hash has to walk the whole chain: each node combines its child's hash after the call
+	/// returns. Equals need not. Where the recursive member is the last thing a record compares —
+	/// <c>Right</c> of a multiset operation, <c>Group</c> of a regular expression — the JIT may
+	/// make that comparison a tail call, and then a chain of any depth is compared in constant
+	/// stack: no exception, and the right answer. Whether it does differs between Linux and
+	/// Windows, so Equals is held only to never crashing and to being right when it finishes.
+	/// </para>
+	/// <para>
+	/// How deep is deep enough is found rather than assumed: the stack a thread is given is
+	/// rounded up differently by each platform, so the depth doubles from twenty thousand until
+	/// the hash throws, and a chain that still hashes at over a million nodes on a small thread
+	/// is a failure. A record that missed its check would not get that far: it would overflow
+	/// the stack and end the run.
+	/// </para>
+	/// </remarks>
 	[Theory]
 	[MemberData(nameof(RecursiveMembers))]
 	public void A_chain_through_any_recursive_member_throws_a_catchable_exception(string typeName, string propertyName)
 	{
 		var type     = typeof(SqlList).Assembly.GetType(typeName)!;
 		var property = type.GetProperty(propertyName)!;
-		var left     = Chain(type, property, 20_000);
-		var right    = Chain(type, property, 20_000);
+		var depth    = 20_000;
 
-		Assert.IsType<InsufficientExecutionStackException>(OnSmallStack(() => left.Equals(right)));
-		Assert.IsType<InsufficientExecutionStackException>(OnSmallStack(() => left.GetHashCode()));
+		Exception? thrown;
+
+		while ((thrown = OnSmallStack(Chain(type, property, depth).GetHashCode).Thrown) is null)
+		{
+			Assert.True(depth < 1_000_000, $"{depth} nodes hashed on a small thread without the stack running out");
+
+			depth *= 2;
+		}
+
+		Assert.IsType<InsufficientExecutionStackException>(thrown);
+
+		var left   = Chain(type, property, depth);
+		var right  = Chain(type, property, depth);
+		var equals = OnSmallStack(() => left.Equals(right));
+
+		if (equals.Thrown is not null)
+			Assert.IsType<InsufficientExecutionStackException>(equals.Thrown);
+		else
+			Assert.True(equals.Answer);
 
 		Assert.Equal(Chain(type, property, 100), Chain(type, property, 100));
 		Assert.Equal(Chain(type, property, 100).GetHashCode(), Chain(type, property, 100).GetHashCode());
 	}
 
-	/// <summary>Runs <paramref name="action"/> on a thread with a quarter of a megabyte of stack, and says what it threw.</summary>
-	static Exception? OnSmallStack(Action action)
+	/// <summary>
+	/// Runs <paramref name="function"/> on a thread asked for a quarter of a megabyte of stack, and
+	/// says what it answered or threw.
+	/// </summary>
+	static (T Answer, Exception? Thrown) OnSmallStack<T>(Func<T> function)
 	{
+		T          answer = default!;
 		Exception? caught = null;
 
 		var thread = new Thread(() =>
 		{
 			try
 			{
-				action();
+				answer = function();
 			}
 			catch (Exception exception)
 			{
@@ -340,7 +377,7 @@ public sealed class TreeEqualityTests
 		thread.Start();
 		thread.Join();
 
-		return caught;
+		return (answer, caught);
 	}
 
 	/// <summary>
