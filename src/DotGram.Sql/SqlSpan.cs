@@ -146,12 +146,15 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		return Span.Known || Span.GapStart != 0 ? new SqlLocation(Span.Stale()) : this;
 	}
 
-	// Every node's equality and hash pass through here before they reach what the node holds, which
-	// makes this the one place a deep tree can be stopped: a chain of a hundred thousand `+`, which the
-	// parser reads, would otherwise end the process with a stack overflow that nothing can catch. The
-	// check throws InsufficientExecutionStackException instead. It is one call, so that the Equals the
-	// compiler writes for each root record, and every derived record calls first, stays small enough
-	// to be inlined into them.
+	// Equality and the hash recurse, and a deep tree — a chain of a hundred thousand `+`, which the
+	// parser reads — would end the process with a stack overflow that nothing can catch. So every
+	// node checks the stack before it compares or hashes what it holds, and throws
+	// InsufficientExecutionStackException instead. A record of a family reaches this slot first: its
+	// Equals and GetHashCode begin with the root's, and the root declares nothing before the slot. It
+	// is one call, so that the root's Equals, which the compiler writes, stays small enough to be
+	// inlined into every derived record's. A sealed record of no family compares its positional
+	// members before the slot, so it checks in its EqualityContract instead, which its Equals and
+	// GetHashCode read first (Guard).
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public bool Equals(SqlLocation other)
@@ -166,11 +169,49 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		return obj is SqlLocation;
 	}
 
+	/// <summary>The stack check, for a sealed record of no family to make in its EqualityContract.</summary>
+	public static Type Guard(Type contract)
+	{
+		RuntimeHelpers.EnsureSufficientExecutionStack();
+
+		return contract;
+	}
+
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public override int GetHashCode()
 	{
 		RuntimeHelpers.EnsureSufficientExecutionStack();
 
+		return 0;
+	}
+}
+
+/// <summary>
+/// Something a record holds and its equality does not look at, the way <see cref="SqlLocation"/>
+/// holds a span: where a batch was read from.
+/// </summary>
+internal readonly struct SqlUncompared<T> : IEquatable<SqlUncompared<T>>
+	where T : class
+{
+	public SqlUncompared(T? value)
+	{
+		Value = value;
+	}
+
+	public T? Value { get; }
+
+	public bool Equals(SqlUncompared<T> other)
+	{
+		return true;
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is SqlUncompared<T>;
+	}
+
+	public override int GetHashCode()
+	{
 		return 0;
 	}
 }

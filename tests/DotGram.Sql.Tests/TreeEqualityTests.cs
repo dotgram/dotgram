@@ -28,8 +28,10 @@ public sealed class TreeEqualityTests
 {
 	/// <summary>
 	/// Every statement of the corpus equals its own reparse and its located reading, with an equal
-	/// hash; the distinct statements hash apart; and changing the deepest literal of one makes it
-	/// unequal, with a different hash.
+	/// hash; and changing the deepest literal of one makes it unequal. The distinct statements hash
+	/// apart, and so do the changed ones from their originals, as a 32-bit hash does: string hashes
+	/// are seeded per process, so a collision is allowed at a rate a good hash stays far below
+	/// (<see cref="Tolerated"/>), never demanded to be zero.
 	/// </summary>
 	[Fact]
 	public void Every_corpus_statement_equals_its_own_reparse()
@@ -88,14 +90,17 @@ public sealed class TreeEqualityTests
 
 		Assert.True(statements > 6_000, $"{statements} statements");
 		Assert.True(changed > 2_000, $"{changed} statements with a literal");
-		Assert.Equal(0, collisions);
+		Assert.True(collisions <= Tolerated(changed), $"{collisions} of {changed} changed statements hash as before");
 		Assert.True(distinct.Count > 4_000, $"{distinct.Count} distinct statements");
-		Assert.Equal(distinct.Count, distinct.Select(static one => one.GetHashCode()).Distinct().Count());
+		var hashed = distinct.Select(static one => one.GetHashCode()).Distinct().Count();
+
+		Assert.True(distinct.Count - hashed <= Tolerated(distinct.Count), $"{distinct.Count} distinct statements, {hashed} distinct hashes");
 	}
 
 	/// <summary>
 	/// Statements that differ in one element in the middle of a list — what machine-written SQL
-	/// varies in — all hash apart. A hash of a list's length, or of its ends, gives each set one value.
+	/// varies in — hash apart, but for the odd collision a 32-bit hash may have. A hash of a list's
+	/// length, or of its ends, gives each set one value.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT c FROM t WHERE id = {0}", 10_000)]
@@ -110,7 +115,18 @@ public sealed class TreeEqualityTests
 		for (var i = 0; i < count; i++)
 			hashes.Add(TransactSqlParser.ParseStatement(string.Format(template, i)).GetHashCode());
 
-		Assert.Equal(count, hashes.Count);
+		Assert.True(count - hashes.Count <= Tolerated(count), $"{hashes.Count} distinct hashes of {count} statements");
+	}
+
+	/// <summary>
+	/// The collisions allowed among <paramref name="count"/> distinct values: one in a thousand,
+	/// and at least one. A uniform 32-bit hash collides about count² / 2³³ times — 0.01 times
+	/// among ten thousand — so a hash that skips elements fails by orders of magnitude, while
+	/// the odd seeded collision does not fail the run.
+	/// </summary>
+	static int Tolerated(int count)
+	{
+		return Math.Max(1, count / 1000);
 	}
 
 	/// <summary>
@@ -199,9 +215,50 @@ public sealed class TreeEqualityTests
 		var tail = list is ["a", .. var rest] ? rest : default;
 
 		Assert.Equal(SqlList.From(new[] { "b", "c" }), tail);
+		Assert.True(list.Slice(3, 0).IsEmpty);
+		Assert.Throws<ArgumentOutOfRangeException>(() => list.Slice(-1, 0));
+		Assert.Throws<ArgumentOutOfRangeException>(() => list.Slice(4, 0));
+		Assert.Throws<ArgumentOutOfRangeException>(() => list.Slice(1, 3));
+		Assert.Throws<ArgumentOutOfRangeException>(() => default(SqlList<string>).Slice(1, 0));
 		Assert.True(list.Exists(static one => one == "c"));
 		Assert.False(list.TrueForAll(static one => one == "a"));
 		Assert.Equal(list, new List<string> { "a", "b", "c" }.ToSqlList());
+	}
+
+	/// <summary>
+	/// A factory that takes an array copies it: changing the array afterwards changes neither the
+	/// node nor its hash.
+	/// </summary>
+	[Fact]
+	public void A_factory_keeps_no_handle_on_the_array_it_was_given()
+	{
+		var parts = new[] { new Ast.Identifier("a"), new Ast.Identifier("b") };
+		var name  = Ast.QualifiedName.Of(parts);
+		var hash  = name.GetHashCode();
+
+		parts[0] = new Ast.Identifier("z");
+
+		Assert.Equal(Ast.QualifiedName.Of(new Ast.Identifier("a"), new Ast.Identifier("b")), name);
+		Assert.Equal(hash, name.GetHashCode());
+	}
+
+	/// <summary>
+	/// Two readings of one script give equal batches: where a batch was read from takes no part in
+	/// its equality, as a span takes none in a node's.
+	/// </summary>
+	[Fact]
+	public void Two_readings_of_a_script_give_equal_batches()
+	{
+		const string script = "SELECT 1\nGO\nSELECT a FROM t WHERE b IN (1, 2)\nGO 2\n";
+
+		var first  = TransactSqlParser.ParseScript(script);
+		var second = TransactSqlParser.ParseScript(script);
+
+		Assert.Equal(2, first.Length);
+		Assert.NotSame(first[1].Source, second[1].Source);
+		Assert.Equal(first, second);
+		Assert.Equal(first[1].GetHashCode(), second[1].GetHashCode());
+		Assert.NotEqual(first[0], first[1]);
 	}
 
 	/// <summary>
@@ -219,6 +276,130 @@ public sealed class TreeEqualityTests
 		Assert.Equal(located, back);
 		Assert.Equal(located.GetHashCode(), back.GetHashCode());
 		Assert.True(back.Span.IsStale);
+	}
+
+	/// <summary>
+	/// Every member through which a node can hold another of its own type, in either tree: found
+	/// by reflection, so a record added later is asked too.
+	/// </summary>
+	public static TheoryData<string, string> RecursiveMembers()
+	{
+		var rows = new TheoryData<string, string>();
+
+		foreach (var type in typeof(SqlList).Assembly.GetExportedTypes().Where(static type => type.IsClass && !type.IsAbstract && type.GetMethod("<Clone>$") is not null))
+		{
+			foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+			{
+				if (BackingField(type, property) is not null && Element(property.PropertyType).IsAssignableFrom(type))
+					rows.Add(type.FullName!, property.Name);
+			}
+		}
+
+		return rows;
+	}
+
+	/// <summary>
+	/// A chain through any such member deeper than the stack has room for throws a catchable
+	/// exception from Equals and from GetHashCode, before the first node that has no room
+	/// compares or hashes what it holds — whatever else the nodes hold, and whether the
+	/// member is a node or a list of them.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(RecursiveMembers))]
+	public void A_chain_through_any_recursive_member_throws_a_catchable_exception(string typeName, string propertyName)
+	{
+		var type     = typeof(SqlList).Assembly.GetType(typeName)!;
+		var property = type.GetProperty(propertyName)!;
+		var left     = Chain(type, property, 20_000);
+		var right    = Chain(type, property, 20_000);
+
+		Assert.IsType<InsufficientExecutionStackException>(OnSmallStack(() => left.Equals(right)));
+		Assert.IsType<InsufficientExecutionStackException>(OnSmallStack(() => left.GetHashCode()));
+
+		Assert.Equal(Chain(type, property, 100), Chain(type, property, 100));
+		Assert.Equal(Chain(type, property, 100).GetHashCode(), Chain(type, property, 100).GetHashCode());
+	}
+
+	/// <summary>Runs <paramref name="action"/> on a thread with a quarter of a megabyte of stack, and says what it threw.</summary>
+	static Exception? OnSmallStack(Action action)
+	{
+		Exception? caught = null;
+
+		var thread = new Thread(() =>
+		{
+			try
+			{
+				action();
+			}
+			catch (Exception exception)
+			{
+				caught = exception;
+			}
+		}, 256 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		return caught;
+	}
+
+	/// <summary>
+	/// <paramref name="depth"/> nodes of <paramref name="type"/>, each holding the one before it in
+	/// <paramref name="property"/> and nothing else: every other member is left as a reading that
+	/// never wrote it would leave it.
+	/// </summary>
+	static object Chain(Type type, PropertyInfo property, int depth)
+	{
+		var field = BackingField(type, property)!;
+
+		object? made = null;
+
+		for (var i = 0; i < depth; i++)
+		{
+			var node = System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject(type);
+
+			if (made is not null)
+				field.SetValue(node, Wrapped(made, property.PropertyType));
+
+			made = node;
+		}
+
+		return made!;
+	}
+
+	/// <summary>A node as the value of a member of <paramref name="type"/>: itself, or a list of one.</summary>
+	static object Wrapped(object node, Type type)
+	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+
+		if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(SqlList<>))
+			return node;
+
+		var element = type.GetGenericArguments()[0];
+		var one     = Array.CreateInstance(element, 1);
+
+		one.SetValue(Wrapped(node, element), 0);
+
+		return typeof(SqlList).GetMethod(nameof(SqlList.From))!.MakeGenericMethod(element).Invoke(null, [one])!;
+	}
+
+	/// <summary>What a member holds: its type, through a Nullable and any number of lists.</summary>
+	static Type Element(Type type)
+	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+
+		return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(SqlList<>) ? Element(type.GetGenericArguments()[0]) : type;
+	}
+
+	static FieldInfo? BackingField(Type type, PropertyInfo property)
+	{
+		for (var at = type; at is not null; at = at.BaseType)
+		{
+			if (at.GetField($"<{property.Name}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic) is { } field)
+				return field;
+		}
+
+		return null;
 	}
 
 	/// <summary>

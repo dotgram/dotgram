@@ -14,7 +14,7 @@ namespace DotGram.Sql.Ast;
 // decides them, not before it.
 
 /// <summary>T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target.</summary>
-public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, bool WithTies) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, bool WithTies) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -25,7 +25,7 @@ public sealed record TopClause(Expression Value, bool Parentheses, bool Percent,
 /// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t</c>, which makes a table. Not the
 /// standard's <see cref="IntoClause"/>, whose targets are variables.
 /// </summary>
-public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -33,7 +33,7 @@ public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup)
 }
 
 /// <summary>T-SQL: OPENJSON, OPENXML, OPENROWSET BULK (Transact-SQL). A column of a rowset function's <c>WITH (…)</c> schema.</summary>
-public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -105,7 +105,7 @@ public enum JoinHint { Loop, Hash, Merge, Remote }
 /// option, with a value or options of its own. One record for the whole catalogue (proposal 20):
 /// it is a name and a value, not a tail of text, so a round trip has something typed to print.
 /// </remarks>
-public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -113,7 +113,7 @@ public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> 
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). Where a table, its large values or its filestream data are put.</summary>
-public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Identifier>? Columns) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Identifier>? Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -130,7 +130,7 @@ public enum PlacementKind { On, TextImageOn, FilestreamOn }
 /// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
 /// <c>OUTPUT</c> to the caller.
 /// </remarks>
-public sealed record OutputClause(SqlList<SelectItem> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record OutputClause(SqlList<SelectItem> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -138,7 +138,7 @@ public sealed record OutputClause(SqlList<SelectItem> Items, TableSource? Into, 
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Whom a module or a statement runs as.</summary>
-public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -149,7 +149,7 @@ public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name
 public enum ExecutionContextKind { Caller, Self, Owner, User, Login }
 
 /// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). A partition, or a range of them.</summary>
-public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -157,7 +157,7 @@ public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode 
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). An edge constraint of a graph table: which node table connects to which.</summary>
-public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -326,7 +326,7 @@ public abstract record AlterDatabaseAction : ISqlNode
 /// <c>MAXSIZE = UNLIMITED</c> a name as one, and <c>SIZE = 10 MB</c> an
 /// <see cref="Expression.Measured"/>. So no part of it is a tail of text (P2).
 /// </remarks>
-public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span;
+public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	/// <summary>Records where this file was written.</summary>
 	public void Locate(int at, int length)
 	{
@@ -525,6 +525,7 @@ public sealed record TransactionName(Identifier? Name, Expression? Variable = nu
 {
 	/// <inheritdoc/>
 	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
 	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>
@@ -542,6 +543,7 @@ public sealed record TransactionMark(Expression? Description = null) : ISqlNode
 {
 	/// <inheritdoc/>
 	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
 	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>

@@ -63,6 +63,9 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>A part of the list, as a list of its own; what a list pattern's <c>..</c> reads.</summary>
 	public SqlList<T> Slice(int start, int length)
 	{
+		if ((uint)start > (uint)Length || (uint)length > (uint)(Length - start))
+			throw new ArgumentOutOfRangeException(start < 0 || start > Length ? nameof(start) : nameof(length));
+
 		return length == 0 ? default : new SqlList<T>(AsSpan().Slice(start, length).ToArray());
 	}
 

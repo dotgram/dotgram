@@ -623,7 +623,7 @@ WindowSpecification : @Clause.Window
 	  & frame: WindowFrame?
 		=> @(new Clause.Window(
 				 name, first is null ? Expression.None : SqlList.Own(Syntax.Listed(first, rest)),
-				 Clause.Ordered(by, null), frame))
+				 Clause.Ordered(SqlList.OwnOrNull(by), null), frame))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
 // window itself would. Guarded the same way a correlation name is and for the same
@@ -1134,7 +1134,7 @@ TSqlTablePrimary : @TableReference
 	  & when @((call is null || (hints is null && close is null && path is null))
 			   && (close is null || (alias is not null && hints is null)))
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints ?? close, pivot))
+		=> @(Syntax.Sourced(name, version, path is not null, call, SqlList.OwnOrNull(args), alias, SqlList.OwnOrNull(columns), sample, SqlList.OwnOrNull(hints ?? close), pivot))
 	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Syntax.Pivoted(Syntax.OfVariable(t, s), pivot))
 	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
@@ -1369,7 +1369,7 @@ TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: ValueExpression & ')' =
 // refuses (`Msg 1033`); an `OPTION` there it refuses as syntax, since that is a statement's.
 TSqlSubquery : @Query
 	= '(' & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause? & ')'
-		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
+		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), shape))
 
 // §7.3's table value constructor, narrowed: T-SQL writes every row in brackets — `VALUES 1,
 // 2` is refused — and the brackets hold values and never a query: `VALUES (SELECT a FROM u)`
@@ -1396,7 +1396,7 @@ TSqlDirectSelect : @Statement
 	  & shape: ForClause? & options: QueryHints?
 	  & when @((by is null || !Syntax.AssignsFromNothing(q)) && !Syntax.AssignsCombined(q))
 		=> @(new Statement.Select(
-				 SqlList.Own(with), q, Clause.Ordered(by, window),
+				 SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window),
 				 shape is null ? Clause.None : [shape],
 				 SqlList.Own(options)))
 
@@ -1437,7 +1437,7 @@ TSqlSortKey : @Expression = v: ValueExpression => @(v)
 // and a statement printed without it is not the one that came in.
 CteBody : @Query
 	= q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
-		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), null))
+		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), null))
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
@@ -1893,7 +1893,7 @@ SearchTop : @Expression = ',' & ?=((Sql92.Lexical.Digits | TSql.Variable) & ')')
 // A statement and as many `;` after it as a text of statements takes, the engine reading the
 // empty ones: a statement cut out of a text may carry them, `… AS staging_data;\n;`.
 TSqlStatement : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Syntax.Preceded(with, s))
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
 	| c: BareCall & ';'*                                         => @(c)
 
 StatementBody : @Statement
@@ -1966,7 +1966,7 @@ InsertRows : @Query
 	| e: ExecuteStatement       => @(new Query.FromExecute(e))
 	| q: ChangedSource          => @(q)
 	| q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause?
-		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
+		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), shape))
 
 // The rows a statement returns, read as the rows to insert: `SELECT … FROM (MERGE … OUTPUT …)
 // AS c WHERE …`, which the published block calls `<dml_table_source>`. Put to the engine some
@@ -2228,7 +2228,7 @@ FirstPiece : @Statement
 
 SqlPiece : @Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i & ?!Unseparated)
-		=> @(Syntax.Preceded(with, s))
+		=> @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
 
 // A statement not ended by `;` is not followed by one whose first word is not reserved: the
 // engine reads the word as a continuation of the statement before it and answers `Msg 102`.
@@ -2319,7 +2319,7 @@ LoopStatement : @Statement
 	= "WHILE"i & c: SearchCondition & body: Branch => @(new Statement.While(c, body))
 
 Branch : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody => @(Syntax.Preceded(with, s))
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody => @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
 
 // ── Transactions ────────────────────────────────────────────────────────────
 TransactionStatement : @Statement
@@ -2476,7 +2476,7 @@ CodeStatement : @Statement
 	| "ALTER"i & "ASSEMBLY"i & name: Identifier
 	  & tail: (("FROM"i & SetValue)? & options: AssemblyOptions? & AssemblyDrop? & AssemblyAdd?)
 	  & when @(Syntax.Tail(tail) is not null)
-		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier & tail: ("FROM"i & "FILE"i & '=' & Quoted)
 		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier
@@ -2501,10 +2501,10 @@ CodeStatement : @Statement
 	| "CREATE"i & "EXTERNAL"i & "MODEL"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & Identifier)? & "WITH"i & options: ModelOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "EXTERNAL"i & "MODEL"i & name: Identifier & tail: ("SET"i & options: ModelOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Syntax.Binds(c, true))
 		=> @(Statement.Defined("RULE", name, Syntax.Tail(tail)))
 	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Syntax.Binds(v, false))
@@ -2684,10 +2684,10 @@ TypeName    = Identifier & ('.' & Identifier)*
 SequenceStatement : @Statement
 	= "CREATE"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption*)
 	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "RESTART"))
-		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption+)
 	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "START") && !Syntax.HasOption(options, "AS"))
-		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 SequenceName : @string = t: QualifiedName => @(t)
 
@@ -2951,10 +2951,10 @@ BrokerStatement : @Statement
 	// `ON fg.x` is `Msg 102`. It stands after the options and not before them (`Msg 319`).
 	| "CREATE"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith? & ("ON"i & (Identifier | Quoted))?)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.Activates(options))
-		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith | QueueAction)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "SERVICE"i & name: Identifier
 	  & tail: (Authorization? & "ON"i & "QUEUE"i & QualifiedName & ('(' & Identifier & (',' & Identifier)* & ')')?)
 		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "CREATE"))
@@ -2963,25 +2963,25 @@ BrokerStatement : @Statement
 		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "ROUTE"i & name: Identifier & tail: (Authorization? & "WITH"i & options: RouteOptions)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "ADDRESS"))
-		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "ROUTE"i & name: Identifier & tail: ("WITH"i & options: RouteOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: Identifier
 	  & tail: (Authorization? & "TO"i & "SERVICE"i & BrokerString & "WITH"i & options: BindingOptions)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "USER"))
-		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: Identifier & tail: ("WITH"i & options: BindingOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "BROKER"i & "PRIORITY"i & name: Identifier
 	  & tail: ("FOR"i & "CONVERSATION"i & ("SET"i & '(' & options: PriorityOptions & ')')?)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", options))
+		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "BROKER"i & "PRIORITY"i & name: Identifier
 	  & tail: ("FOR"i & "CONVERSATION"i & "SET"i & '(' & options: PriorityOptions & ')')
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", options))
+		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 MessageValidation = "VALIDATION"i & '=' & ("VALID_XML"i & "WITH"i & "SCHEMA"i & "COLLECTION"i & QualifiedName
 										 | ?!"VALID_XML"i & Identifier)
@@ -3246,13 +3246,13 @@ CursorOption : @string
 // ONLY` or `FOR UPDATE`, one of them, before the hints or after: the engine reads both.
 CursorQuery : @Clause.CursorDefinition
 	= with: WithClause? & q: CursorSelect & f: CursorFor & hints: QueryHints
-		=> @(Syntax.Cursor(with, q, f, hints, true))
+		=> @(Syntax.Cursor(SqlList.OwnOrNull(with), q, f, SqlList.OwnOrNull(hints), true))
 	| with: WithClause? & q: CursorSelect & hints: QueryHints? & f: CursorFor?
-		=> @(Syntax.Cursor(with, q, f, hints, false))
+		=> @(Syntax.Cursor(SqlList.OwnOrNull(with), q, f, SqlList.OwnOrNull(hints), false))
 
 CursorSelect : @Query
 	= q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & when @(Syntax.Cursorable(q))
-		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), null))
+		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), null))
 
 CursorFor : @Clause
 	= "FOR"i & "READ"i & "ONLY"i => @(new Clause.CursorFor(false))
@@ -3699,7 +3699,7 @@ BulkFormat : @Expression
 SimpleCommand : @Statement
 	= "PRINT"i & v: ValueExpression      => @(Statement.Commanded("PRINT", v))
 	| "RETURN"i & (?!Label & v: ValueExpression)? => @(Statement.Commanded("RETURN", v))
-	| "THROW"i & (?!Label & args: Arguments)?     => @(Statement.Commanded("THROW", args))
+	| "THROW"i & (?!Label & args: Arguments)?     => @(Statement.Commanded("THROW", SqlList.OwnOrNull(args)))
 	| "GOTO"i & name: Identifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
 	| name: Identifier & ':' & ?!':'     => @(new Statement.Label(name))
 	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
@@ -3906,7 +3906,7 @@ DeclaredBody : @Clause[] = body: TableBody & when @(Syntax.Stored(body)) => @(bo
 
 TableElement : @Clause
 	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
-		=> @(Clause.Constrained("PERIOD FOR SYSTEM_TIME", Syntax.Columns(columns), null))
+		=> @(Clause.Constrained("PERIOD FOR SYSTEM_TIME", SqlList.OwnOrNull(Syntax.Columns(columns)), null))
 	| i: TableIndex                                => @(i)
 	| "CONSTRAINT"i & name: Identifier & c: ConstraintBody => @(c with { Name = name })
 	| c: ConstraintBody                            => @(c)
@@ -3997,14 +3997,14 @@ EncryptionSyntax
 ConstraintBody : @Clause.ConstraintDefinition
 	= "PRIMARY"i & "KEY"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
 	  & o: ConstraintWith? & p: IndexOn? & e: Enforced?
-		=> @(Clause.Keyed("PRIMARY KEY", k, h, columns, o?.Options, p, e)
+		=> @(Clause.Keyed("PRIMARY KEY", k, h, SqlList.OwnOrNull(columns), o?.Options, p, e)
 			 with { Bracketed = o is not { Bare: true } })
 	| "UNIQUE"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
 	  & o: ConstraintWith? & p: IndexOn? & e: Enforced?
-		=> @(Clause.Keyed("UNIQUE", k, h, columns, o?.Options, p, e)
+		=> @(Clause.Keyed("UNIQUE", k, h, SqlList.OwnOrNull(columns), o?.Options, p, e)
 			 with { Bracketed = o is not { Bare: true } })
 	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & r: References & e: Enforced?
-		=> @(Clause.Constrained("FOREIGN KEY", columns, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
+		=> @(Clause.Constrained("FOREIGN KEY", SqlList.OwnOrNull(columns), null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
 	| r: References & e: Enforced?
 		=> @(Clause.Constrained("REFERENCES", null, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
 	| "CHECK"i & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
@@ -4038,7 +4038,7 @@ EdgePair : @Clause = f: QualifiedName & "TO"i & t: QualifiedName => @(new Clause
 References : @Clause
 	= "REFERENCES"i & t: QualifiedName & ('(' & c: ColumnList & ')')? & a: ReferenceOn*
 	  & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & when @(Syntax.ActedOnce(a))
-		=> @(Syntax.Referenced(t, c, a, n))
+		=> @(Syntax.Referenced(t, SqlList.OwnOrNull(c), a, n))
 
 ReferenceOn : @string = t: ("ON"i & DeleteOrUpdate & RefAction) => @(t)
 
@@ -4312,7 +4312,7 @@ TableIndex : @Clause
 	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: TableIndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
+		=> @(Clause.Indexed(name, u, c, s, h, SqlList.OwnOrNull(columns), SqlList.OwnOrNull(order), SqlList.OwnOrNull(include), filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
 			 with { Bracketed = o is not { Bare: true } })
 
 // ── What a table is created with, and set to ────────────────────────────────
@@ -4411,23 +4411,23 @@ AlterTableStatement : @Statement
 
 AlterTableAction : @Statement.AlterTable
 	= "ADD"i & c: ConstraintBody & "FOR"i & Identifier
-		=> @(Statement.Altered("ADD", new Clause[] { c }))
+		=> @(Statement.Altered("ADD", [c]))
 	| "ADD"i & "CONSTRAINT"i & name: Identifier & c: ConstraintBody & "FOR"i & Identifier
-		=> @(Statement.Altered("ADD", new Clause[] { c with { Name = name } }))
+		=> @(Statement.Altered("ADD", [c with { Name = name }]))
 	// A key `ALTER TABLE` adds may be built online and resumed, which one `CREATE TABLE`
 	// declares may not: the same body, with the other list of index options in its place.
 	| "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
-		=> @(Statement.Altered("ADD", body))
+		=> @(Statement.Altered("ADD", SqlList.OwnOrNull(body)))
 	| "WITH"i & mode: CheckWord & "ADD"i
 	  & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
-		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
+		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", SqlList.OwnOrNull(body)))
 	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline? & when @(Syntax.AlteredColumn(column))
-		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
+		=> @(Statement.Altered("ALTER COLUMN", [column], SqlList.OwnOrNull(options)))
 	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: ColumnOnline?
 	  & when @(Syntax.FlagsOnline(flag, options))
-		=> @(Statement.Flagged(name, flag, options))
+		=> @(Statement.Flagged(name, flag, SqlList.OwnOrNull(options)))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
-		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
+		=> @(Statement.Altered("DROP", SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 	| word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
 
@@ -4634,9 +4634,9 @@ FunctionReturns : @Statement.CreateFunction
 // brackets, and the writer puts the `WITH` and the order back inside them.
 InlineReturn : @Statement[]
 	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
-		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), q, Clause.Ordered(by, window), Clause.None, Clause.None) })
+		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window), Clause.None, Clause.None) })
 	| '(' & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
-		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
+		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), new Query.Parenthesized(q), Clause.Ordered(SqlList.OwnOrNull(by), window), Clause.None, Clause.None) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement
@@ -4686,7 +4686,7 @@ CreateIndexStatement : @Statement
 	  & "ON"i & on: QualifiedName & '(' & promoted: ColumnList & ')'
 	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name, null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
+				 on, Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(Syntax.Columns(promoted)), null, null, null, o?.Options, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
 	// A spatial index: one column, the grid it is cut by, and a list of options the engine reads
 	// as it reads no other (`SpatialWith`). Put to the engine some two hundred times.
@@ -4694,13 +4694,13 @@ CreateIndexStatement : @Statement
 	  & "ON"i & on: QualifiedName & columns: SpatialColumn
 	  & over: ("USING"i & Identifier)? & o: SpatialWith? & p: IndexOn? & when @(p is not Clause.Placement(_, _, not null))
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, (Clause.Placement?)p, null),
+				 on, Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(columns), null, null, null, o?.Options, (Clause.Placement?)p, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & over: XmlIndexUsing? & when @(over is null || Syntax.Squared(kind!) == "XML") & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, null, null),
+				 on, Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(columns), null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	// A JSON index, SQL Server 2025's, over one column of a table — no order on it, no second
 	// column, no included columns, no filter, no placement (`Msg 102`, `156`) — the paths it
@@ -4714,21 +4714,21 @@ CreateIndexStatement : @Statement
 	  & "ON"i & on: QualifiedName & '(' & column: Identifier & ')'
 	  & over: ("FOR"i & '(' & JsonIndexPath & (',' & JsonIndexPath)* & ')')? & o: JsonIndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name, null, null, null, null, Syntax.Columns(new[] { column }), null, null, null, o?.Options, null, null),
+				 on, Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(Syntax.Columns(new[] { column })), null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, SqlList.OwnOrNull(columns), null, SqlList.OwnOrNull(include), filter, o?.Options, (Clause.Placement?)p, f is null ? null : Syntax.Joined(f with { Kind = "FILESTREAM_ON" }, f, f))
 			 with { Bracketed = o is not { Bare: true } }))
 	| "CREATE"i & k: IndexOrder? & s: "COLUMNSTORE"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: ColumnstoreWith? & p: IndexOn?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, columns, order, null, filter, o?.Options, (Clause.Placement?)p, null)
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, SqlList.OwnOrNull(columns), SqlList.OwnOrNull(order), null, filter, o?.Options, (Clause.Placement?)p, null)
 			 with { Bracketed = o is not { Bare: true } }))
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
@@ -4842,21 +4842,21 @@ AlterIndexAction : @Statement.AlterIndex
 KeyStatement : @Statement
 	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier
 	  & tail: (Authorization? & o: AsymmetricBody & ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?)
-		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
+		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: (o: AsymmetricChange)
-		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
+		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 
 	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: SymmetricKeyName & tail: (Authorization? & o: SymmetricBody)
-		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
+		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier
 	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*)
 		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "CERTIFICATE"i & name: Identifier
 	  & tail: (Authorization? & o: CertificateBody & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?)
-		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail), options: o))
+		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "CERTIFICATE"i & name: Identifier & tail: (o: CertificateChange)
-		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail), options: o))
+		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 
 	// Azure SQL Database makes a master key with no password; SQL Server answers that it is
 	// not supported in this version, which is a product's answer and not a syntax's.
@@ -4891,16 +4891,16 @@ KeyStatement : @Statement
 
 	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
 	  & tail: ("WITH"i & "VALUES"i & first: ColumnKeyValue & (',' & rest: ColumnKeyValue)*)
-		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail), options: Syntax.Listed(first, rest)))
+		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
 	  & tail: ("ADD"i & "VALUE"i & added: ColumnKeyValue
 			  | "DROP"i & "VALUE"i & '(' & dropped: ColumnKeySetting & ')')
 		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail),
-				 options: added is not null ? new Clause[] { added } : Statement.Holding("VALUE", new Clause[] { dropped! })))
+				 options: SqlList.OwnOrNull(added is not null ? new Clause[] { added } : Statement.Holding("VALUE", [dropped!]))))
 	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier
 	  & tail: ("WITH"i & ?=('(' & MasterKeyLocation & (',' & MasterKeyEnclave)? & ')')
 			   & '(' & first: MasterKeySetting & (',' & rest: MasterKeySetting)* & ')')
-		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail), options: Syntax.Listed(first, rest)))
+		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 
 	| verb: CreateOrAlter & "CREDENTIAL"i & name: Identifier
 	  & tail: (CredentialWith & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
@@ -5024,7 +5024,7 @@ ProviderKeyOption
 AsymmetricChange : @Clause[]
 	= "REMOVE"i & "PRIVATE"i & "KEY"i => @([])
 	| "WITH"i & "PRIVATE"i & "KEY"i & '(' & first: KeyPasswordSetting & (',' & rest: KeyPasswordSetting)* & ')'
-		=> @(Statement.Holding("PRIVATE KEY", Syntax.Listed(first, rest)))
+		=> @(Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 	| Attestation => @([])
 
 // Who vouches for a key or a certificate. In no published block, and read by the engine at
@@ -5088,9 +5088,9 @@ CertificateSource : @Clause[]
 	= "ASSEMBLY"i & QualifiedName => @([])
 	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
 	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
-		=> @(Statement.Holding("PRIVATE KEY", k))
+		=> @(Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
 	| "BINARY"i & '=' & TSql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
-		=> @(Statement.Holding("PRIVATE KEY", k))
+		=> @(Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
 
 PrivateKeyList : @Clause[]
 	= '(' & first: PrivateKeySetting & (',' & rest: PrivateKeySetting)* & ')' => @(Syntax.Listed(first, rest))
@@ -5102,7 +5102,7 @@ PrivateKeyOption
 
 CertificateChange : @Clause[]
 	= "REMOVE"i & "PRIVATE"i & "KEY"i => @([])
-	| "WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Statement.Holding("PRIVATE KEY", k))
+	| "WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
 	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @([])
 	| Attestation => @([])
 
@@ -6315,25 +6315,25 @@ DropStatement : @Statement
 DropBody : @Statement
 	// A key names one part and may say its provider's key goes with it.
 	= what: DropKeyKind & name: DropOnePart & tail: ("REMOVE"i & "PROVIDER"i & "KEY"i)?
-		=> @(Statement.Dropped(what, new Expression[] { name }, tail))
+		=> @(Statement.Dropped(what, [name], tail))
 	| "ASSEMBLY"i & exists: IfExists? & names: DropNames
 	  & tail: ("WITH"i & "NO"i & "DEPENDENTS"i)?
-		=> @(Statement.Dropped("ASSEMBLY", names, tail, exists))
+		=> @(Statement.Dropped("ASSEMBLY", SqlList.OwnOrNull(names), tail, exists))
 	| "EXTERNAL"i & "LIBRARY"i & name: DropOnePart & tail: ("AUTHORIZATION"i & Identifier)?
-		=> @(Statement.Dropped("EXTERNAL LIBRARY", new Expression[] { name }, tail))
+		=> @(Statement.Dropped("EXTERNAL LIBRARY", [name], tail))
 	| "EXTERNAL"i & "LANGUAGE"i & name: DropOnePart & tail: ("AUTHORIZATION"i & Identifier)?
-		=> @(Statement.Dropped("EXTERNAL LANGUAGE", new Expression[] { name }, tail))
+		=> @(Statement.Dropped("EXTERNAL LANGUAGE", [name], tail))
 	| "EVENT"i & "SESSION"i & name: DropOnePart & tail: ("ON"i & ("SERVER"i | "DATABASE"i))
-		=> @(Statement.Dropped("EVENT SESSION", new Expression[] { name }, tail))
+		=> @(Statement.Dropped("EVENT SESSION", [name], tail))
 	| "EVENT"i & "NOTIFICATION"i & names: DropOneParts & tail: ("ON"i & ("SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName))
-		=> @(Statement.Dropped("EVENT NOTIFICATION", names, tail))
+		=> @(Statement.Dropped("EVENT NOTIFICATION", SqlList.OwnOrNull(names), tail))
 
 	// An index is named twice — once for itself and once for what it is on — and the older
 	// spelling puts both in one qualified name.
 	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
-		=> @(Statement.Dropped("FULLTEXT INDEX", new Expression[] { on }))
+		=> @(Statement.Dropped("FULLTEXT INDEX", [on]))
 	| "INDEX"i & exists: IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
-		=> @(Statement.Dropped("INDEX", Syntax.Listed(first, rest), null, exists))
+		=> @(Statement.Dropped("INDEX", SqlList.OwnOrNull(Syntax.Listed(first, rest)), null, exists))
 
 	// A signature is dropped off a module rather than by its own name, and a sensitivity
 	// classification off a column.
@@ -6341,12 +6341,12 @@ DropBody : @Statement
 	  & first: SignatureCrypto & (',' & rest: SignatureCrypto)*
 		=> @(new Statement.DropSignature(SqlList.Own(Syntax.Listed(first, rest)), module, counter is not null))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
-		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
+		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", SqlList.OwnOrNull(names)))
 
 	// A trigger says which of the kinds it is by what it is on: a database's or every server's,
 	// and nothing for a table's. `ON SERVER` and `ON QUEUE q` are `Msg 102`.
 	| "TRIGGER"i & exists: IfExists? & names: DropNames & tail: ("ON"i & ("DATABASE"i | "ALL"i & "SERVER"i))?
-		=> @(Statement.Dropped("TRIGGER", names, tail, exists))
+		=> @(Statement.Dropped("TRIGGER", SqlList.OwnOrNull(names), tail, exists))
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
@@ -6355,24 +6355,24 @@ DropBody : @Statement
 	// Statistics are named by their table and themselves, in a list; one part the engine reads
 	// and objects to (`Msg 1053`, "you must provide both the object name and the statistics name").
 	| "STATISTICS"i & names: DropNames
-		=> @(Statement.Dropped("STATISTICS", names))
+		=> @(Statement.Dropped("STATISTICS", SqlList.OwnOrNull(names)))
 	| what: DropListedKind & exists: IfExists? & names: DropNames
-		=> @(Statement.Dropped(what, names, null, exists))
+		=> @(Statement.Dropped(what, SqlList.OwnOrNull(names), null, exists))
 	| what: DropSingleKind & exists: IfExists? & name: DropOnePart
-		=> @(Statement.Dropped(what, new Expression[] { name }, null, exists))
+		=> @(Statement.Dropped(what, [name], null, exists))
 	| "TYPE"i & exists: IfExists? & name: DropLedName
-		=> @(Statement.Dropped("TYPE", new Expression[] { name }, null, exists))
+		=> @(Statement.Dropped("TYPE", [name], null, exists))
 	| what: DropQualifiedKind & name: DropName
-		=> @(Statement.Dropped(what, new Expression[] { name }))
+		=> @(Statement.Dropped(what, [name]))
 	| "XML"i & "SCHEMA"i & "COLLECTION"i & name: DropLedName
-		=> @(Statement.Dropped("XML SCHEMA COLLECTION", new Expression[] { name }))
+		=> @(Statement.Dropped("XML SCHEMA COLLECTION", [name]))
 	| "WORKLOAD"i & "CLASSIFIER"i & names: DropLedNames
-		=> @(Statement.Dropped("WORKLOAD CLASSIFIER", names))
+		=> @(Statement.Dropped("WORKLOAD CLASSIFIER", SqlList.OwnOrNull(names)))
 	| what: DropNamedKind & name: DropOnePart
-		=> @(Statement.Dropped(what, new Expression[] { name }))
+		=> @(Statement.Dropped(what, [name]))
 	// After the kinds that begin with its word.
 	| "DATABASE"i & exists: IfExists? & names: DropOneParts
-		=> @(Statement.Dropped("DATABASE", names, null, exists))
+		=> @(Statement.Dropped("DATABASE", SqlList.OwnOrNull(names), null, exists))
 
 DropNames : @Expression[]
 	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))

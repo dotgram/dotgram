@@ -1852,19 +1852,19 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	}
 
 	/// <summary>The same where the values arrived as a list that may not be there.</summary>
-	public static Statement Commanded(string word, Expression[]? values)
+	public static Statement Commanded(string word, SqlList<Expression>? values)
 	{
 		return word switch
 		{
 			"PRINT" => new Print(values is { Length: > 0 } some ? some[0] : null!),
 			"RETURN" => new Return(values is { Length: > 0 } some ? some[0] : null),
-			"THROW" => new Throw(SqlList.Own(values)),
+			"THROW" => new Throw(values ?? []),
 			"GOTO" => new GoTo(values is { Length: > 0 } some ? some[0] : null!),
 			"BREAK" => new Break(),
 			"CONTINUE" => new Continue(),
 			"CHECKPOINT" => new Checkpoint(values is { Length: > 0 } some ? some[0] : null),
 			"USE" => new Use(values is { Length: > 0 } some ? some[0] : null!),
-			"RAISERROR" => new RaiseError(SqlList.Own(values)),
+			"RAISERROR" => new RaiseError(values ?? []),
 			"WAITFOR" => new WaitFor(values is { Length: > 0 } some ? some[0] : null!),
 			_ => throw Syntax.Unknown(word),
 		};
@@ -1918,15 +1918,15 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
 	public static Statement Defined(
-		string what, string name, string? tail = null, string? verb = null, Clause[]? options = null)
+		string what, string name, string? tail = null, string? verb = null, SqlList<Clause>? options = null)
 	{
-		return Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = SqlList.OwnOrNull(options) };
+		return Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
 	}
 
 	/// <summary>A list held under one name: a private key's settings, an Always Encrypted value's parts.</summary>
-	public static Clause[] Holding(string name, Clause[]? settings)
+	public static Clause[] Holding(string name, SqlList<Clause>? settings)
 	{
-		return settings is null ? [] : [new Clause.Option(name, null, SqlList.Own(settings))];
+		return settings is not { } held ? [] : [new Clause.Option(name, null, held)];
 	}
 
 	static Definition Named(string what, string name)
@@ -2019,17 +2019,17 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	}
 
 	/// <summary>What is being done to a database, as the statement it is.</summary>
-	public static Statement OfDatabase(string name, string action, Clause[]? settings, string? tail = null)
+	public static Statement OfDatabase(string name, string action, SqlList<Clause>? settings, string? tail = null)
 	{
 		return OfDatabase(name, action, settings) is Definition made ? made with { Tail = Syntax.Tail(tail) } : OfDatabase(name, action, settings);
 	}
 
-	static Statement OfDatabase(string name, string action, Clause[]? settings)
+	static Statement OfDatabase(string name, string action, SqlList<Clause>? settings)
 	{
 		return action switch
 		{
-			"CREATE" => new CreateDatabase(name, SqlList.Own(settings)),
-			"SET" => new AlterDatabaseSet(name, SqlList.Own(settings)),
+			"CREATE" => new CreateDatabase(name, settings ?? []),
+			"SET" => new AlterDatabaseSet(name, settings ?? []),
 			"COLLATE" => new AlterDatabaseCollate(name),
 			"MODIFY NAME" => new AlterDatabaseModifyName(name),
 			"MODIFY FILEGROUP" => new AlterDatabaseModifyFileGroup(name),
@@ -2050,15 +2050,15 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
 	public static AlterTable Altered(
-		string action, Clause[]? elements, Clause[]? options = null, string? tail = null)
+		string action, SqlList<Clause>? elements, SqlList<Clause>? options = null, string? tail = null)
 	{
-		return new("", action, SqlList.Own(elements), SqlList.OwnOrNull(options), Syntax.Tail(tail));
+		return new("", action, elements ?? [], options, Syntax.Tail(tail));
 	}
 
 	/// <summary>A column altered by one word — <c>ADD SPARSE</c>, <c>DROP PERSISTED</c>.</summary>
-	public static AlterTable Flagged(string name, string flag, Clause[]? options)
+	public static AlterTable Flagged(string name, string flag, SqlList<Clause>? options)
 	{
-		return new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], SqlList.OwnOrNull(options));
+		return new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], options);
 	}
 
 	/// <summary>The <c>DROP</c> the word names, which is what a <c>DROP</c> statement is.</summary>
@@ -2070,7 +2070,7 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// is a defect in this file and not in anybody's SQL.
 	/// </remarks>
 	public static Statement Dropped(
-		string kind, Expression[]? some, string? tail = null, string? ifExists = null)
+		string kind, SqlList<Expression>? some, string? tail = null, string? ifExists = null)
 	{
 		return Removed(kind, some) switch
 		{
@@ -2079,9 +2079,9 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		};
 	}
 
-	static Statement Removed(string kind, Expression[]? some)
+	static Statement Removed(string kind, SqlList<Expression>? some)
 	{
-		var names = SqlList.Own(some);
+		var names = some ?? [];
 
 		return Syntax.Squared(kind) switch
 		{
@@ -2167,14 +2167,22 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 /// Not a statement and not a node of the other four kinds: a script is a client's idea, and
 /// the server never sees the line a batch ends at. So it is a record of its own, holding the
 /// statements, and it is what <c>ParseScript</c> hands back a list of.
+/// <para>
+/// Two batches are equal when their statements and their <c>GO</c> lines are: <see cref="Source"/>
+/// says where a batch was read from, as a node's span does, and takes no part in equality either,
+/// so two readings of one script give equal batches.
+/// </para>
 /// </remarks>
 public sealed record Batch(SqlList<Statement> Statements, string? Go = null)
 {
+	/// <summary>Where the batch was read from, held where the record's equality does not look.</summary>
+	SqlUncompared<ScriptBatch> _source;
+
 	/// <summary>
 	/// The batch as the script was cut: its text, how many times it is sent, and the way back from
 	/// a position in it to where that was written. Null for a batch made by hand.
 	/// </summary>
-	public ScriptBatch? Source { get; init; }
+	public ScriptBatch? Source { get => _source.Value; init => _source = new(value); }
 }
 
 /// <summary>
@@ -3026,9 +3034,9 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
 	public static Joined Joining(
 		string? kind, string? natural, TableReference left, TableReference right,
-		Expression? on, string[]? columns, string? hint = null)
+		Expression? on, SqlList<string>? columns, string? hint = null)
 	{
-		return new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, SqlList.OwnOrNull(columns), hint);
+		return new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns, hint);
 	}
 }
 
@@ -3370,9 +3378,9 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
 	public static ConstraintDefinition Constrained(
-		string kind, Clause[]? columns, Expression? check)
+		string kind, SqlList<Clause>? columns, Expression? check)
 	{
-		return new(null, kind, SqlList.Own(columns), check);
+		return new(null, kind, columns ?? [], check);
 	}
 
 	/// <summary>A default and what was written after it: the column it is for, and whether the rows already there take it.</summary>
@@ -3416,10 +3424,10 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// A key or a uniqueness: the kind, and everything T-SQL lets stand after it.
 	/// </summary>
 	public static ConstraintDefinition Keyed(
-		string kind, string? clustering, string? hash, Clause[]? columns,
+		string kind, string? clustering, string? hash, SqlList<Clause>? columns,
 		SqlList<Clause>? options, Clause? placement, string? enforced)
 	{
-		return new(null, kind, SqlList.Own(columns), null,
+		return new(null, kind, columns ?? [], null,
 			Clustering: clustering, Hash: hash is not null,
 			Options: options, Placements: placement is null ? null : [placement],
 			Enforced: Syntax.Enforced(enforced));
@@ -3428,12 +3436,12 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// <summary>An index written inside a table or on its own, with everything that may follow it.</summary>
 	public static ConstraintDefinition Indexed(
 		string name, string? unique, string? clustering, string? columnstore, string? hash,
-		Clause[]? columns, string[]? order, string[]? include, Expression? filter,
+		SqlList<Clause>? columns, SqlList<string>? order, SqlList<string>? include, Expression? filter,
 		SqlList<Clause>? options, Placement? on, Placement? filestream)
 	{
-		return new(name, unique is null ? "INDEX" : "UNIQUE INDEX", SqlList.Own(columns), null,
+		return new(name, unique is null ? "INDEX" : "UNIQUE INDEX", columns ?? [], null,
 			Clustering: clustering, Hash: hash is not null, Columnstore: columnstore is not null,
-			Order: SqlList.OwnOrNull(order), Include: SqlList.OwnOrNull(include), Filter: filter, Options: options,
+			Order: order, Include: include, Filter: filter, Options: options,
 			Placements: on is null && filestream is null
 				? null
 				: [.. new[] { on, filestream }.OfType<Clause>()]);
@@ -3476,11 +3484,11 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// The order clause and the two the reference writes inside it, gathered where they were
 	/// read apart. Nothing where nothing was written.
 	/// </summary>
-	public static OrderBy? Ordered(Clause[]? by, OrderBy? window)
+	public static OrderBy? Ordered(SqlList<Clause>? by, OrderBy? window)
 	{
 		return by is null && window is null
 			? null
-			: new OrderBy(SqlList.Own(by), window?.Offset, window?.Fetch);
+			: new OrderBy(by ?? [], window?.Offset, window?.Fetch);
 	}
 }
 
@@ -3869,7 +3877,7 @@ public static class Syntax
 	}
 
 	/// <summary>A <c>REFERENCES</c> from its parts, the actions read back from the words.</summary>
-	public static Clause.References Referenced(string table, string[]? columns, string[]? actions, string? replication = null)
+	public static Clause.References Referenced(string table, SqlList<string>? columns, string[]? actions, string? replication = null)
 	{
 		string? onDelete = null, onUpdate = null;
 		var replicated = false;
@@ -3886,7 +3894,7 @@ public static class Syntax
 				replicated = true;
 		}
 
-		return new Clause.References(table, SqlList.OwnOrNull(columns), onDelete, onUpdate, replicated || replication is not null);
+		return new Clause.References(table, columns, onDelete, onUpdate, replicated || replication is not null);
 	}
 
 	/// <summary>Whether a foreign key says what it does on a delete, and on an update, once each at most.</summary>
@@ -3999,15 +4007,15 @@ public static class Syntax
 	/// A <c>WITH</c> may precede five statements, and each of the five keeps it; any other
 	/// statement has no <c>WITH</c> to be given, and the grammar does not offer it one.
 	/// </remarks>
-	public static Statement Preceded(Clause[]? with, Statement statement)
+	public static Statement Preceded(SqlList<Clause>? with, Statement statement)
 	{
-		return with is null || with.Length == 0 ? statement : statement switch
+		return with is not { Length: > 0 } list ? statement : statement switch
 		{
-			Statement.Select select => select with { With = SqlList.Own(with) },
-			Statement.Insert insert => insert with { With = SqlList.OwnOrNull(with) },
-			Statement.Update update => update with { With = SqlList.OwnOrNull(with) },
-			Statement.Delete delete => delete with { With = SqlList.OwnOrNull(with) },
-			Statement.Merge merge => merge with { With = SqlList.OwnOrNull(with) },
+			Statement.Select select => select with { With = list },
+			Statement.Insert insert => insert with { With = with },
+			Statement.Update update => update with { With = with },
+			Statement.Delete delete => delete with { With = with },
+			Statement.Merge merge => merge with { With = with },
 			_ => statement,
 		};
 	}
@@ -4020,14 +4028,14 @@ public static class Syntax
 	/// which record comes out is decided by whether the brackets were there.
 	/// </remarks>
 	public static TableReference Sourced(
-		string name, Clause? when, bool path, string? call, Expression[]? arguments,
-		string? alias, string[]? columns, Clause? sample, Clause[]? hints, TableReference? pivot)
+		string name, Clause? when, bool path, string? call, SqlList<Expression>? arguments,
+		string? alias, SqlList<string>? columns, Clause? sample, SqlList<Clause>? hints, TableReference? pivot)
 	{
 		TableReference source = call is null
-			? new TableReference.Named(name, when, path, alias, SqlList.OwnOrNull(columns), sample, SqlList.Own(hints))
+			? new TableReference.Named(name, when, path, alias, columns, sample, hints ?? [])
 			: new TableReference.FunctionCall(
-				new Expression.RoutineInvocation(name, SqlList.Own(arguments)),
-				alias, SqlList.OwnOrNull(columns), Clause.None);
+				new Expression.RoutineInvocation(name, arguments ?? []),
+				alias, columns, Clause.None);
 
 		return Pivoted(source, pivot);
 	}
@@ -5588,9 +5596,9 @@ public static class Syntax
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(
-		Clause[]? with, Query query, Clause? @for, Clause[]? hints, bool forFirst)
+		SqlList<Clause>? with, Query query, Clause? @for, SqlList<Clause>? hints, bool forFirst)
 	{
-		return new([], [], SqlList.Own(with), query, @for, SqlList.Own(hints), forFirst);
+		return new([], [], with ?? [], query, @for, hints ?? [], forFirst);
 	}
 
 	/// <summary>Whether a variable is one of the server's, <c>@@ROWCOUNT</c> and its kind.</summary>

@@ -62,7 +62,9 @@ the other half of having no universal base.
 lines that say `GO` are where a client cuts a file, and the server never sees them — so
 `ParseScript` hands back a `Batch[]`, each holding the statements of one batch, the `GO`
 line that ended it (`GO`, or `GO 5` with its count) and in `Source` the batch as the script was
-cut (`ScriptBatch`, from `SqlScript.Read`, which does the cutting and knows no grammar). It is
+cut (`ScriptBatch`, from `SqlScript.Read`, which does the cutting and knows no grammar).
+`Source` takes no part in a batch's equality, as a span takes none in a node's: two readings of
+one script give equal batches. It is
 not in the tables below because nothing in the language produces it; `ParseSql` and
 `ParseStatement` never build one. A node's span in a batch where a variable was substituted is
 a position in that batch's text, which `Source.Locate` maps back to the script; in every other
