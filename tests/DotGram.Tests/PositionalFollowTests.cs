@@ -374,7 +374,7 @@ public sealed class PositionalFollowTests
 	/// what follows can <em>begin</em> somewhere — the settled optional's entry, a run past its stop
 	/// character (<c>NeverGivesBackPast</c>), the replay of a carrier — is never one of them.
 	/// </summary>
-	static readonly string[] Taught = ["NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "SettledText"];
+	static readonly string[] Taught = ["NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "SettledText", "Scannable"];
 
 	/// <summary>
 	/// Every read of the view is an argument of a call to one of <see cref="Taught"/>, itself or its

@@ -27,14 +27,17 @@ namespace DotGram.Grammar.Model;
 /// A published rule is where the answer comes from rather than where it is needed. A
 /// <c>parse</c> reads the whole input, so after its root there is the end of the text and
 /// nothing else — a fact, and the strongest one here. A <c>yield</c> hands its elements out
-/// one at a time, and what comes after one of them is the next step the driver asks for, not
-/// anything the element could be asked to give back to; so after its root there is nothing,
-/// and it is <em>nothing</em> rather than <em>the end</em> because a caller may stop
-/// enumerating wherever it likes and the end of the text must not be claimed. A <c>find</c>
-/// may stop anywhere, so after its root there is anything — whether it, too, could say
-/// nothing is a question nobody has worked through, and an unexamined <c>None</c> there would
-/// be quiet daring rather than knowledge. A rule published several ways gets all of them,
-/// which is the widest.
+/// one at a time, each read from where the last one ended: what comes after one of them is the
+/// next element, the end of the text, or nothing where the caller stops enumerating, and
+/// nothing the element could be asked to give back to. So after its root there is anything to
+/// the questions of where a continuation can begin, and a stop to the proofs that ask only
+/// whether what follows can fail (<see cref="Continuation.View"/>) — not <em>nothing</em>,
+/// which says that no continuation can begin at all and lets an optional at the end of the
+/// element drop its skip, nor <em>the end</em>, which a caller that stops early never reaches.
+/// A <c>find</c> may stop anywhere, so after its root there is anything — whether it, too,
+/// could say nothing is a question nobody has worked through, and an unexamined <c>None</c>
+/// there would be quiet daring rather than knowledge. A rule published several ways gets all
+/// of them, which is the widest.
 /// </para>
 /// </remarks>
 public static class FollowSets
@@ -390,10 +393,20 @@ public static class FollowSets
 			if (!follow.ContainsKey(publication.Rule))
 				continue;
 
+			// A `yield` reads each element from where the last one ended and demands nothing
+			// after it: the next element is read afresh, the input may end, or the caller may
+			// stop enumerating. So after the element anything may stand — what follows it can
+			// begin with anything, and a skip it might take is not refused for want of a
+			// continuation — and nothing after it can fail and ask it back for a shorter
+			// reading, which is the stop the view says (Continuation.View). Not `None`, which
+			// says that nothing can begin after the element: an optional at its end then kept
+			// no way back to its skip, and `'a' & ('b' & 'c')?` refused the `a` of "aba".
+			var yielded = Continuation.All with { View = new Split(Continuation.Stop) };
+
 			var after = publication.Kind switch
 			{
 				PublishKind.Parse => Continuation.End,
-				PublishKind.Yield => Continuation.None,
+				PublishKind.Yield => yielded,
 				_                 => Continuation.All,
 			};
 
@@ -417,8 +430,12 @@ public static class FollowSets
 
 			if (graph.Trivia.TryGetValue(publication.Rule, out var around))
 			{
+				// A yield's step is entered as a positional reading is, the trivia before the
+				// element and not after it.
 				entries.Add((
-					new Node.Sequence([around, new Node.Call(publication.Rule, []), around]),
+					publication.Kind == PublishKind.Yield
+						? new Node.Sequence([around, new Node.Call(publication.Rule, [])])
+						: new Node.Sequence([around, new Node.Call(publication.Rule, []), around]),
 					after,
 					SeamOf(publication.Rule, graph)));
 

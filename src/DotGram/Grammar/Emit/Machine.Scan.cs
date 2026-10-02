@@ -201,9 +201,21 @@ sealed partial class Machine
 		_follows ??= FollowSets.Of(_graph);
 
 		// Both readings of what follows, with a seam woven in and without: a rule whose
-		// callers disagree about the seam is judged against the wider of the two.
+		// callers disagree about the seam is judged against the wider of the two. Asked of the
+		// view (Continuation.Taught): a scanner keeps only the first reading, and that loses
+		// nothing only where what follows cannot fail and ask for another — a question the
+		// stop after a yielded element or a positional reading answers.
 		return _follows.TryGetValue(rule, out var following) &&
-			Scannable(body, following.Plain.Or(following.AfterSeam));
+			Scannable(body, following.Taught);
+	}
+
+	/// <summary>
+	/// <see cref="Scannable(Node, FirstSets.First, HashSet{RuleSymbol})"/> against both readings
+	/// of a continuation, with a seam woven in and without.
+	/// </summary>
+	bool Scannable(Node body, FollowSets.Continuation following)
+	{
+		return Scannable(body, following.Plain.Or(following.AfterSeam));
 	}
 
 	IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation>? _follows;
