@@ -179,6 +179,184 @@ public sealed class FailureMemoTests
 		Assert.Contains("remembered 0", said, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// What a grammar with a context is handed: a switch a guard can turn on, and the context the
+	/// last one turned on, for a construction that reads it without naming <c>context</c>.
+	/// </summary>
+	const string Context =
+		"public sealed class Ctx " +
+		"{ " +
+		"public static Ctx Current = new Ctx(); " +
+		"public bool On; " +
+		"public bool Set() { On = true; Current = this; return true; } " +
+		"} " +
+		"public static bool Allowed(System.ReadOnlySpan<char> input, ref int pos) { return Ctx.Current.On; }";
+
+	/// <summary>
+	/// <c>C</c> refused at the start while the context is off, the context turned on, and <c>C</c>
+	/// entered again at the same token: read again, it reads. A rule that reaches the context is not
+	/// remembered, whichever way it reaches it, so the memo answers what the reader without it does.
+	/// </summary>
+	[Theory]
+	[InlineData("a guard",                       "C = '(' & C & ')' | Lexical.Name & when @(context.On)")]
+	[InlineData("a guard in a rule below",       "C = '(' & C & ')' | Lexical.Name & Checked\nChecked = when @(context.On)")]
+	[InlineData("a selector",                    "C = '(' & C & ')' | Lexical.Name & switch @(context.On ? 1 : 0) { case 1: none default: '#' }")]
+	[InlineData("a construction a guard reads",  "C = '(' & C & ')' | b: Probe & when @(b)\nProbe : @bool = Lexical.Name => @(context.On)")]
+	public void A_rule_that_reads_the_context_is_read_again_where_the_context_changed(string where, string rules)
+	{
+		var grammar =
+			Lexical +
+			"context : @Ctx\n" +
+			"Start = (C & '!' | Flip & C) & eof\n" +
+			"Flip = when @(context.Set())\n" +
+			rules.Replace("\\n", "\n", StringComparison.Ordinal) + "\n" +
+			"parse Start\n";
+
+		var with    = Contextual(grammar, memo: true, "a");
+		var without = Contextual(grammar, memo: false, "a");
+
+		Assert.True(without.IsSuccess, $"{where}: the reader without the memo refused: {without.Error}");
+		Assert.Equal(without, with);
+		Assert.Contains("C (context)", Reported(grammar, members: Context), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The same where what changes is the reading's own state: <c>C</c> refused outside a mark, then
+	/// entered at the same token inside one, where the construction its guard reads sees the mark.
+	/// </summary>
+	[Fact]
+	public void A_rule_that_reads_the_reading_state_is_read_again_inside_a_mark()
+	{
+		const string grammar =
+			Lexical +
+			"state : @int\n" +
+			"Start = (C & '!' | M) & eof\n" +
+			"M = C with state @(1)\n" +
+			"C = '(' & C & ')' | b: Probe & when @(b)\n" +
+			"Probe : @bool = Lexical.Name => @(parserState.ToArray().Length > 0)\n" +
+			"parse Start\n";
+
+		var with    = EmittedCode.Match(Compiled(grammar, memo: true), "Grammar", "TryParseStart", "a");
+		var without = EmittedCode.Match(Compiled(grammar, memo: false), "Grammar", "TryParseStart", "a");
+
+		Assert.Equal(without, with);
+		Assert.Contains("C (context)", Reported(grammar), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// <b>The contract the memo rests on, broken on purpose.</b> A construction a guard reads runs
+	/// during recognition; this one reads the context through a static alias rather than by its name,
+	/// which nothing here can see. Turned on between two entries of <c>C</c> at one token, it would
+	/// let the second read: the reader without the memo reads it, the reader with it answers with the
+	/// failure it remembered. §7.2 forbids exactly this — a guard, a selector, a
+	/// recognizer and a value one of them reads answer from their arguments, captures and the text —
+	/// and this test holds the consequence where it is documented, so that a change to it is a
+	/// decision and not an accident.
+	/// </summary>
+	[Theory]
+	[InlineData("a construction a guard reads", "C = '(' & C & ')' | b: Probe & when @(b)\nProbe : @bool = Lexical.Name => @(Ctx.Current.On)")]
+	public void State_read_behind_the_generators_back_breaks_the_contract_and_the_memo_shows_it(string where, string rules)
+	{
+		var grammar =
+			Lexical +
+			"context : @Ctx\n" +
+			"Start = (C & '!' | Flip & C) & eof\n" +
+			"Flip = when @(context.Set())\n" +
+			rules + "\n" +
+			"parse Start\n";
+
+		Assert.True(Contextual(grammar, memo: false, "a").IsSuccess, $"{where}: the reader without the memo refused.");
+		Assert.False(Contextual(grammar, memo: true, "a").IsSuccess, $"{where}: the reader with the memo read it.");
+	}
+
+	/// <summary>
+	/// An external recognizer reading the same state behind the generator's back: it reads
+	/// characters, so the grammar is not cut into tokens, and a reader over characters remembers
+	/// nothing — the second entry is read again and both readers read it.
+	/// </summary>
+	[Fact]
+	public void A_rule_that_calls_an_external_recognizer_is_read_over_characters_and_read_again()
+	{
+		const string grammar =
+			Lexical +
+			"context : @Ctx\n" +
+			"Start = (C & '!' | Flip & C) & eof\n" +
+			"Flip = when @(context.Set())\n" +
+			"C = '(' & C & ')' | Lexical.Name & @Allowed\n" +
+			"parse Start\n";
+
+		Assert.Contains("C (characters)", Reported(grammar, members: Context), StringComparison.Ordinal);
+		Assert.True(Contextual(grammar, memo: true, "a").IsSuccess);
+		Assert.Equal(Contextual(grammar, memo: false, "a"), Contextual(grammar, memo: true, "a"));
+	}
+
+	/// <summary>
+	/// A nest deep enough to be carried onto stacks of its own: <c>D</c> fails in a look first (where
+	/// nothing is remembered), then outside it, where the failures deep in the nest are remembered on
+	/// the stacks the reading was carried to; the second alternative steps over every bracket and
+	/// meets the bit at the bottom after the reading has come back. Refused the same way, at the same
+	/// place, with the same message, with the memo and without it.
+	/// </summary>
+	[Theory]
+	[InlineData("+")]
+	[InlineData("a")]
+	public void A_reading_carried_onto_another_stack_remembers_and_answers_as_the_reader_without_it(string bottom)
+	{
+		const string grammar =
+			Lexical +
+			"Start = ?!(D & 'z') & D & eof | '('+ & D & '!' & eof\n" +
+			"D = '(' & D & ')' | Lexical.Name\n" +
+			"parse Start\n";
+
+		var input   = new string('(', 4000) + bottom;
+		var with    = OnSmallStack(Compiled(grammar, memo: true), input);
+		var without = OnSmallStack(Compiled(grammar, memo: false), input);
+
+		Assert.False(without.IsSuccess);
+		Assert.Equal(without, with);
+	}
+
+	/// <summary>A reading on a thread with a quarter of a megabyte of stack: deep enough nests are carried off it.</summary>
+	static (bool IsSuccess, object? Value, string? Error, long Position) OnSmallStack(Assembly assembly, string input)
+	{
+		(bool, object?, string?, long) answer = default;
+		Exception? thrown = null;
+
+		var thread = new System.Threading.Thread(() =>
+		{
+			try { answer = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input); }
+			catch (Exception e) { thrown = e; }
+		}, 256 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		if (thrown is not null)
+			throw new InvalidOperationException("the reading threw", thrown);
+
+		return answer;
+	}
+
+	/// <summary>A grammar with a context read with a fresh one, and nothing left over from the reading before.</summary>
+	static (bool IsSuccess, string? Error, long Position) Contextual(string grammar, bool memo, string input)
+	{
+		var assembly = Compiled(grammar, memo, members: Context);
+		var context  = assembly.GetType("Grammar+Ctx")!;
+
+		context.GetField("Current")!.SetValue(null, Activator.CreateInstance(context));
+
+		var method = assembly.GetType("Grammar")!.GetMethods()
+			.Single(static one => one.Name == "TryParseStart" && one.GetParameters() is [{ ParameterType: var text }, { ParameterType.Name: "Ctx" }] && text == typeof(string));
+		var match  = method.Invoke(null, [input, Activator.CreateInstance(context)])!;
+
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
+
+		return ((bool)Read("IsSuccess")!, (string?)Read("Error"), (long)Read("Position")!);
+	}
+
 	/// <summary>Nothing reaches itself, so nothing is remembered, and the parser is written as it was.</summary>
 	[Fact]
 	public void A_grammar_without_recursion_is_written_as_it_was()
@@ -223,24 +401,26 @@ public sealed class FailureMemoTests
 
 	static readonly Dictionary<(string, bool, bool), Assembly> _compiled = [];
 
-	static Assembly Compiled(string grammar, bool memo, bool counts = false)
+	static Assembly Compiled(string grammar, bool memo, bool counts = false, string? members = null)
 	{
 		lock (_compiled)
 		{
 			if (!_compiled.TryGetValue((grammar, memo, counts), out var assembly))
 				_compiled[(grammar, memo, counts)] = assembly = EmittedCode.Compile(
-					Source(grammar, memo, counts), "Grammar", symbols: counts ? ["DOTGRAM_COUNTS"] : null);
+					Source(grammar, memo, counts, members), "Grammar", declarationMembers: members, symbols: counts ? ["DOTGRAM_COUNTS"] : null);
 
 			return assembly;
 		}
 	}
 
-	static string Source(string grammar, bool memo, bool counts = false)
+	/// <param name="members">The host's own members, which the generator is told of as a build would tell it.</param>
+	static string Source(string grammar, bool memo, bool counts = false, string? members = null)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			ClassName       = "Grammar",
 			CSharpScanner   = RoslynCSharpScanner.Instance,
+			SymbolResolver  = Resolver(members),
 			Lexical         = true,
 			CountRules      = counts,
 			MemoiseFailures = memo,
@@ -251,13 +431,25 @@ public sealed class FailureMemoTests
 		return result.Sources[0].Text;
 	}
 
+	/// <summary>What the generator asks C# questions of: the host and its own members, as a build would have it.</summary>
+	static RoslynSymbolResolver Resolver(string? members)
+	{
+		var host = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+			"Host",
+			[Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}")],
+			EmittedCode.References);
+
+		return new RoslynSymbolResolver(host, "Grammar");
+	}
+
 	/// <summary>The report's word on which rules are remembered.</summary>
-	static string Reported(string grammar, bool lexical = true)
+	static string Reported(string grammar, bool lexical = true, string? members = null)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			ClassName      = "Grammar",
 			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = Resolver(members),
 			Lexical        = lexical,
 			ReportCarriers = true,
 		});

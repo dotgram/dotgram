@@ -31,8 +31,11 @@ namespace DotGram.Grammar.Emit;
 /// <b>What a bit may stand for.</b> Only a failure, and only one that a second reading would
 /// repeat. Over tokens a rule's answer is a function of where it begins: its arguments are
 /// written into it, its strength is a parameter (and only strength zero, where a bracket enters a
-/// rule, is remembered), and the C# it runs answers from its arguments and the text (§7.2). So a
-/// candidate is refused where that may not hold, decided over everything it reaches:
+/// rule, is remembered), and the C# it runs answers from its arguments and the text (§7.2) — and
+/// so does a construction whose value a guard reads, which runs during recognition too. That is a
+/// contract and not something this file can check: C# that reads state other than by naming
+/// <c>context</c> (a static field, say) is not seen, and a rule that reaches it is remembered all
+/// the same. What can be seen is refused, decided over everything a candidate reaches:
 /// </para>
 /// <list type="bullet">
 /// <item><description><c>context</c> — a hook that names <c>context</c> or the reading's state,

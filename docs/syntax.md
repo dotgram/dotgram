@@ -2099,6 +2099,10 @@ a rule, entered again at a token where it has already failed in the same reading
 is not remembered where its answer could depend on more than where it begins: one that reaches
 a hook naming `context` or the reading's state (§7.2), one that gives back (`?`), every rule of
 a reading that recovers (§8.2) or reads a buffered input, and every rule read over characters.
+**This relies on §7.2's contract**: a guard, a selector, an external recognizer and a
+construction whose value one of them reads answer from their arguments, captures and the text,
+or from `context` named as such. One that reads state some other way breaks it, and the memo
+then answers with the failure it remembered.
 
 ### 6.6 `[GramOptions]`, a second reading of the same grammar
 
@@ -2535,10 +2539,14 @@ ordinary C# rules.
   that require rollback.
 - The answer of a `when` guard, a `switch` selector and an external recognizer depends only
   on its arguments and the text — not merely "no side effects": it may not read state that
-  changes while the input is read. A reader over tokens remembers where a recursive rule
-  failed and answers the next entry there without reading it again (§6.5), which holds only
-  if asking again could not have answered otherwise. A hook may still read `context`, which
-  the generator can see: a rule that reaches one is read again every time.
+  changes while the input is read. The same holds of a `=>` construction whose value such a
+  check reads: that value is built during recognition, and it may depend only on its captures
+  and the text. A reader over tokens remembers where a recursive rule failed and answers the
+  next entry there without reading it again (§6.5), which holds only if asking again could not
+  have answered otherwise. A hook may still read `context` by that name, which the generator
+  can see: a rule that reaches one is read again every time. State reached any other way — a
+  static field, a context kept somewhere else — it cannot see, and a check that reads it may be
+  answered with a failure remembered from before the state changed.
 - A `=>` construction is deferred until the accepted derivation is known unless a `when`
   guard explicitly inspects its value. Captures normally record what matched and the
   chosen factory builds only the accepted path. A value requested by a guard is built
