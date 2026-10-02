@@ -96,9 +96,12 @@ read everything any level reads. A database at level 150 refuses a `WINDOW` clau
 `ParseStatement150`, `ParseSql150`, `ParseScript150`, from `100` to `170`.
 
 **Locations are paid for, and only where asked.** A node from `TransactSqlParser` has a `Span`
-that says nothing (`Known` is false). `TransactSqlParser.Located` is the same grammar with
-spans filled in, at about fourteen per cent more time:
-`TransactSqlParser.Located.ParseStatement(text).Span`.
+that says nothing (`Known` is false). `TransactSqlParser.Located` is the same parser with
+spans filled in: `TransactSqlParser.Located.ParseStatement(text).Span`. `Span.GapStart` is where
+the trivia in front of the node begins, so `text[GapStart..At]` holds its leading comments and
+nothing else; a match's `ReadingEnd` is where the reading stopped looking, so the comments after
+the last statement lie between its end and that. Spans take no part in equality: key a table of
+nodes by reference. A copy made with `with` keeps the span and says `IsStale`.
 
 **Two trees with the same names.** `DotGram.Sql` and `DotGram.Sql.Ast` both have a `Statement`
 and an `Expression`, and they are different types. Code that uses both parsers imports one

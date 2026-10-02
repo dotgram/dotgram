@@ -110,12 +110,18 @@ the tree does not hold cannot come back, so that comparison is also the list of 
 missing.
 
 **A node knows where it was written, where the grammar asked.** `TransactSqlParser` asks with
-`[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]`, a second parser beside
-the first, `TransactSqlParser.Located`, and the six roots implement `ISqlSpan`: the reader
+`[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]`: one
+parser, whose methods in `TransactSqlParser.Located` call it with locations on, and the six
+roots implement `ISqlSpan` (and the internal `ISqlLocatable` the reader offers to): the reader
 offers each value the range of every rule it came out of, innermost first, and the last offer
 is kept. That is a little wide where a rule hands back a value another rule made —
 `WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
-It allocates nothing, and a grammar that does not ask pays nothing for it.
+Each offer also says where the text in front of the value begins (`SqlSpan.GapStart`: the end
+of the token before it, or where the reading began), so the comments in front of a node are in
+that gap and nowhere else. It allocates nothing beyond the span itself, and a call that does
+not ask pays a test per value built. The span is kept out of the records' equality, so the
+located tree of a text equals the plain one; a copy made with `with` keeps the span and is
+marked stale (`SqlSpan.IsStale`).
 
 **But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,

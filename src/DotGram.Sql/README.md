@@ -128,9 +128,11 @@ is not known, `script.HasClientSyntax` says whether anything in it was the tool'
 batch ended by `GO` counts, which is why the question is not how many batches there are.
 
 Where each node was written is there for whoever asks for it. `TransactSqlParser.Located` is the
-same grammar compiled with `LocationType = typeof(ISqlSpan)` —
-`TransactSqlParser.Located.TryParseStatement` — and every node it builds carries in `Span` the
-range of text it was read from. `TransactSqlParser` itself pays nothing for them.
+same parser called with locations on — `TransactSqlParser.Located.TryParseStatement` — and every
+node it builds carries in `Span` the range of text it was read from, and in `Span.GapStart` where
+the text in front of it begins: the end of the token before it, so that what lies between is
+spacing and comments and nothing else. `TransactSqlParser` itself pays a test per node it builds.
+A span takes no part in a node's equality: the located tree of a text equals the plain one.
 
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md).
 What they read is held against SQL Server itself, against a corpus of somebody else's SQL and
