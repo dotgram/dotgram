@@ -44,6 +44,10 @@ public sealed class NewFormsTests
 	// sets nothing: refused until 0.3.0, when `Elements` wanted at least one.
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int> { }; return t.Count; }")]
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>() { }; return t.Count; }")]
+	// An implicitly typed array, of its elements' best common type, as in C#: refused until
+	// 0.3.0, when the element type had to be written.
+	[InlineData("(int x) => { var t = new[] { 448, 447 }; return t.Length; }")]
+	[InlineData("(int x) => { int[] t = new[] { 448, 447 }; return t.Length; }")]
 	public void These_forms_of_new_read(string text)
 	{
 		Assert.True(ExpressionParser.TryParse(text).IsSuccess, text);
@@ -54,9 +58,6 @@ public sealed class NewFormsTests
 	// which is C#'s rule too. Leaving them out on their own would be an extension nobody asked
 	// for, and the guard on the rule is what keeps it out.
 	[InlineData("using System.Collections.Generic;\n(int x) => { List<int> t = new List<int>; return t.Count; }")]
-	// An implicitly typed array: the element type has to be written.
-	[InlineData("(int x) => { var t = new[] { 448, 447 }; return t.Length; }")]
-	[InlineData("(int x) => { int[] t = new[] { 448, 447 }; return t.Length; }")]
 	// An initializer with no `new` at all.
 	[InlineData("(int x) => { int[] t = { 448, 447 }; return t.Length; }")]
 	public void These_forms_of_new_do_not(string text)

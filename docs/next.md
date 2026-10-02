@@ -25690,3 +25690,20 @@ as in C#.
 
 The refusal record gains the rows of the new corpus shapes and changes three: the message after
 members, and `{ x = 1,` cut short now expects a name or `[`.
+
+## `new[] { … }`
+
+The implicitly typed array reads now, as in C#. Its element type is the best common type of its
+elements (§12.6.3.15), which is the fixing a generic method's inference does with the elements'
+types as bounds, and `Fixed` already does that: the one type all the others convert to, `long`
+for `{ 1, 2L }`, `int` for `{ (byte)1, 1 }`. An element with no type of its own — `null`, a
+lambda not yet built — is no bound and is converted to what the others settle on; braces with
+no typed element, or elements no one type takes (`{ 1u, 1 }`, `{ 1, "a" }`), are refused with
+C#'s CS0826 words. Asked of Roslyn, all of these, and `{ 1, null }`, which C# calls CS0037 and
+the API here refuses as an `object` it cannot put in an `int[]`.
+
+It is a rule of its own, `ImplicitArray`, rather than another alternative of `Primary`: there
+its two captures took `Primary` past the sixty slots a rule read by methods may hold, and the
+grammar fell back to the shared engine (GRAM5005). Placed after the other forms of `new`, it
+moves `"new"` in the expected lists that name every token an expression may begin with, which
+is all the refusal record's thirty-seven changed rows say.

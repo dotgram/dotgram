@@ -215,6 +215,9 @@ public static class ExpressionCorpus
 		"(int x) => new System.Collections.Generic.List<int> { 1, [0] = x }",
 		"(int x) => new System.Collections.Generic.Dictionary<int, int> { [0] = x, 1 }",
 		"(int x) => new System.Text.StringBuilder { Capacity = x, Capacity = 1 }",
+		// An implicitly typed array, of its elements' best common type, and one with none.
+		"(int x) => new[] { x, 2L, }",
+		"(int x) => new[] { x, \"a\" }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
 

@@ -193,7 +193,8 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   element and not to a longer chain.
 - `new` may leave its parentheses out before an initializer, as C# may: `new List<int> { 1, 2 }`
   and `new List<int>() { 1, 2 }` both read. `new T` with neither tail is refused. An array is
-  `new int[3]` or `new int[] { 1, 2 }`, never `new[] { 1, 2 }`.
+  `new int[3]`, `new int[] { 1, 2 }` or `new[] { 1, 2 }`, the last of its elements' best common
+  type as in C# (`new[] { 1, 2L }` is a `long[]`).
 - An initializer that sets an indexer anywhere, `{ [1] = 2 }` or `Map = { [1] = 2 }`, is built as
   a block of assignments rather than a `MemberInit`, which has no binding for an indexer. It runs
   as C# runs it; a visitor that looks for `MemberInit` finds statements there.

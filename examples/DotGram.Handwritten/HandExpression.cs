@@ -4268,6 +4268,28 @@ public static class HandExpression
 		{
 			node = null;
 
+			// `new[] { … }`: of its elements' best common type, which the construction works out.
+			if (Kind(i + 1) == Brackets)
+			{
+				if (Kind(i + 2) != LeftBrace)
+					return -1;
+
+				var from = _values;
+				var read = Expressions(i + 3);
+
+				// A comma after the last element, as C# allows.
+				if (read > i + 3 && Kind(read) == Comma)
+					read++;
+
+				if (Kind(read) != RightBrace)
+					return Dropped(from);
+
+				if (_build)
+					node = ExpressionParser.Implicit(Popped(from));
+
+				return read + 1;
+			}
+
 			var at = Type(i + 1, out var type, _build);
 
 			if (at < 0)

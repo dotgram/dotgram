@@ -780,6 +780,16 @@ namespace DotGram.ExpressionLanguage;
 		  => @(new Element(ExpressionParser.Listed(first, rest)))
 		| ?!(NameOnly & '=') & only: Conditional => @(ExpressionParser.Only(only))
 
+	// `new[] { … }`: an array of the one type its elements' types all convert to, which is C#'s
+	// best common type and the fixing a generic method's inference already does. The `[]` is one
+	// token, as it is after a type. Braces with nothing typed in them — none, or only `null`s and
+	// lambdas — say nothing it could be of, and are refused, as in C#. A rule of its own rather
+	// than an alternative of `Primary`, whose captures are as many as a rule read by methods
+	// may hold.
+	ImplicitArray : @Expression
+		= "new" & "[]" & '{' & (first: Expression & (',' & rest: Expression)* & ','?)? & '}'
+		=> @(ExpressionParser.Implicit(ExpressionParser.Listed(first, rest)))
+
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
 		=> @(ExpressionParser.Listed(first, rest))
@@ -1400,6 +1410,7 @@ namespace DotGram.ExpressionLanguage;
 		// with `new`, which there is no such thing as.
 		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | '{' & items: Elements & '}')
 		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
+		| made: ImplicitArray => @(made)
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -2827,6 +2838,29 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>Each of those values converted to that type.</summary>
+	/// <summary>`new[] { … }`: an array of its elements' best common type, each converted to it.</summary>
+	/// <remarks>
+	/// C#'s rule (§12.6.3.15) is the fixing of an inferred type argument with the elements'
+	/// types as its bounds, which is <see cref="Fixed"/>: the one type all the others convert
+	/// to. An element with no type of its own — `null`, a lambda not yet built — is no bound,
+	/// and is converted to what the others settle on, or refused there.
+	/// </remarks>
+	internal static Expression Implicit(Expression[] elements)
+	{
+		if (elements is null)
+			throw new ArgumentNullException(nameof(elements));
+
+		var bounds = new List<Type>(elements.Length);
+
+		foreach (var element in elements)
+			if (Typed(element) && !bounds.Contains(element.Type))
+				bounds.Add(element.Type);
+
+		var type = Fixed(bounds) ?? throw new InvalidOperationException("No best type found for implicitly-typed array.");
+
+		return Expression.NewArrayInit(type, Converted(elements, type));
+	}
+
 	internal static Expression[] Converted(Expression[] values, Type to)
 	{
 		if (values is null)

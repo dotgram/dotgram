@@ -79,6 +79,23 @@ public sealed class InitializerOracleTests
 	}
 
 	[Theory]
+	// An implicitly typed array, of the one type all its elements' types convert to; an element
+	// with no type of its own, `null`, is converted to that.
+	[InlineData("new[] { 1, 2 }")]
+	[InlineData("new[] { 1, 2L, }")]
+	[InlineData("new[] { (byte)1, 1 }")]
+	[InlineData("new[] { 1.5, 2 }")]
+	[InlineData("new[] { null, \"a\" }")]
+	[InlineData("new[] { new Box(), null }")]
+	[InlineData("new[] { new[] { 1 }, new[] { 2, 3 } }")]
+	[InlineData("new[] { new List<int> { 1 }, new List<int>() }")]
+	[InlineData("new Holder { Name = new[] { \"a\", \"b\" }[1] }")]
+	public void An_implicitly_typed_array_is_of_the_type_CSharp_gives_it(string expression)
+	{
+		What_CSharp_accepts_reads_and_runs_alike(expression);
+	}
+
+	[Theory]
 	// A member set twice in one initializer (CS1912), plainly, nested, and where an indexer
 	// writes the initializer out; an indexer may be set as often as it is written.
 	[InlineData("new Box { Next = null, Next = null }",          "CS1912")]
@@ -94,6 +111,12 @@ public sealed class InitializerOracleTests
 	[InlineData("new Spot { [0] = { } }",                       "CS1918")]
 	// A member the type does not have, empty braces or not.
 	[InlineData("new Box { Nope = { } }",                       "CS0117")]
+	// An implicitly typed array with no best type (CS0826), or one an element does not convert to.
+	[InlineData("new[] { }",                                    "CS0826")]
+	[InlineData("new[] { null }",                               "CS0826")]
+	[InlineData("new[] { 1u, 1 }",                              "CS0826")]
+	[InlineData("new[] { 1, \"a\" }",                           "CS0826")]
+	[InlineData("new[] { 1, null }",                            "CS0037")]
 	public void What_CSharp_refuses_is_refused(string expression, string diagnostic)
 	{
 		var text = Usings + "() => Shown.Of(" + expression + ")";
@@ -228,6 +251,19 @@ public static class Shown
 			case Journal journal:
 				return "Journal(" + journal.Value + ", " + Rendered(journal.Values) + ", " + Rendered(journal.Entries) + ", " +
 					Rendered(journal.Numbers) + ")";
+			case Array array:
+			{
+				var built = new StringBuilder(array.GetType().Name).Append(' ').Append('[');
+				var first = true;
+
+				foreach (var item in array)
+				{
+					built.Append(first ? "" : ", ").Append(Rendered(item));
+					first = false;
+				}
+
+				return built.Append(']').ToString();
+			}
 			case Spot spot:
 				return "Spot(" + spot.X + ", " + spot.Y + ")";
 			case IDictionary map:
