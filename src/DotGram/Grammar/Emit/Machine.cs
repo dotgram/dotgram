@@ -2908,11 +2908,11 @@ sealed partial class Machine
 						atScan.Line($"p = {scanner}(text, p{ScannerArguments}{reached});");
 
 						if (reports)
-							RecordReached(atScan, node, DeclareExpected([rule.Name]));
+							RecordReached(atScan, node, DeclareExpected([Named(rule)]));
 					}
 					else
 					{
-						var arrayName = DeclareExpected([rule.Name]);
+						var arrayName = DeclareExpected([Named(rule)]);
 
 						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments}{reached});");
 						atScan.Line("if (scanned < 0)");
@@ -6386,6 +6386,15 @@ sealed partial class Machine
 			default:
 				return Seam(node);
 		}
+	}
+
+	/// <summary>
+	/// A rule by the name its author gave it: a clone a publication's <c>with</c> made is called
+	/// <c>Number_With1</c> inside the generator, and what the grammar says is <c>Number</c>.
+	/// </summary>
+	static string Named(RuleSymbol rule)
+	{
+		return rule.Declaration?.Name ?? rule.Name;
 	}
 
 	/// <summary>Whether a node is the seam a grammar's <c>trivia</c> weaves between operands.</summary>

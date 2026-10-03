@@ -203,7 +203,9 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Where a turn of a repetition read again inside its own element ends, matched or stepped
-	/// over: how far the reading it is inside had got is put back under what this turn got to.
+	/// over: how far the reading it is inside had got is put back under what this turn got to —
+	/// or, where the turn was read inside a look ahead, put back as it was: nothing a look ahead
+	/// reads counts as how far an element got, and the turn's own count began where it began.
 	/// </summary>
 	/// <remarks>
 	/// The turn's record stays where it is — what the turn recognized is above it and is kept —
@@ -216,14 +218,15 @@ sealed partial class Machine
 		{
 			writer.Line("var ended = entries[turnAt];");
 			writer.Line($"if (ended.Kind != ParserEntry.Turn || ended.State != {id} || ended.RepeatIndex != repeat) continue;");
-			writer.Line($"if (ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
+			writer.Line($"if (ended.LookaheadIndex >= 0 || ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
 			writer.Line("break;");
 		}
 	}
 
 	/// <summary>
 	/// Where unwinding takes a turn's record away (<see cref="Reenters"/>): the reading it was
-	/// inside gets back how far it had got, under what was reached since.
+	/// inside gets back how far it had got, under what was reached since — or as it was, where the
+	/// turn was read inside a look ahead (<see cref="TurnEnds"/>).
 	/// </summary>
 	void TurnsUnwound(Writer file)
 	{
@@ -237,7 +240,7 @@ sealed partial class Machine
 					if (_recoveringStates[id].Again)
 					{
 						file.Line($"case {id}:");
-						file.Line($"\tif (entry.AtomicIndex > reach{id}) reach{id} = entry.AtomicIndex;");
+						file.Line($"\tif (entry.LookaheadIndex >= 0 || entry.AtomicIndex > reach{id}) reach{id} = entry.AtomicIndex;");
 						file.Line("\tbreak;");
 					}
 

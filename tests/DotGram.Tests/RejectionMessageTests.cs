@@ -568,6 +568,62 @@ public sealed class RejectionMessageTests
 	}
 
 	/// <summary>
+	/// What the reading of the repetition inside a look ahead got to stays inside it: the outer
+	/// element stopped at 2, and the inner reading's elements, which stopped further along, do not
+	/// lend it their place or take its message, whether the look ahead holds or not.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_look_ahead_into_the_repetition_keeps_its_places_to_itself(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Item = """
+			Item : @string = 'a' & '\n' & 'b' => @("")
+			               | 'a' & ?=Start & 'c' => @("")
+
+			""";
+
+		foreach (var (told, wanted) in new[]
+		{
+			("@(parserFailurePosition.ToString())", "2,2,4"),
+			("@(Text(parserMessage))", "Expected \"a\\nb\" at 2:1.,Expected '!' or 'a' at 2:1.,Expected '!' or 'a' at 3:1."),
+		})
+		{
+			var host  = Compiled(Item + "Start : @string = items: Item* recover eol => " + told + " & '!' => @(string.Join(\",\", items))\nparse Start as ParseStart\n", direct, carrier);
+			var match = EmittedCode.Match(host, "Grammar", "TryParseStart", "a\nx\ny\n!");
+
+			Assert.True(match.IsSuccess && (string?)match.Value == wanted, $"{rendering}: {match.Value ?? match.Error}");
+		}
+	}
+
+	/// <summary>
+	/// A scanned rule a publication's <c>with</c> cloned is named as the author wrote it where a
+	/// refusal is recorded at how far it read: <c>Number</c>, never <c>Number_With1</c>.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_scanned_rule_cloned_by_with_is_named_as_written(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Grammar = """
+			Digit  = ['0'..'9']
+			Other  = ['0'..'8']
+			Number = Digit+ & ('.' & Digit+)?
+			Start : @string = n: Number => @(Text(n))
+			parse Start with (Digit = Other) as ParseStart
+
+			""";
+
+		var host = Compiled(Grammar, direct, carrier);
+
+		foreach (var input in new[] { "1.x", "x" })
+		{
+			var match = EmittedCode.Match(host, "Grammar", "TryParseStart", input);
+
+			Assert.False(match.IsSuccess, rendering + ": " + input);
+			Assert.True(match.Error is { } error && !error.Contains("_With", StringComparison.Ordinal), $"{rendering} {input}: {match.Error}");
+		}
+	}
+
+	/// <summary>
 	/// An optional group that began to match and stopped is where reading got furthest, and a
 	/// refusal says so: <c>1.x</c> wanted a digit after the point, not the end of the input after
 	/// the <c>1</c>. Over a string, a <c>TextReader</c> and a byte stream, in every rendering, and
