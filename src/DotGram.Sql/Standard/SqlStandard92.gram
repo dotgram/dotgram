@@ -425,7 +425,7 @@ SelectSublist : @Clause
     = qualifier: QualifiedName & '.' & '*'   => @(new Clause.QualifiedAsterisk(qualifier))
     | v: ValueExpression & name: AsClause?   => @(new Clause.DerivedColumn(v, name))
 
-AsClause = "AS"i? & Identifier
+AsClause : @string = "AS"i? & t: Identifier => @(t)
 
 // §7.4. The comma list is a cross join written the older way, and it is kept as a list
 // rather than folded into joins: what the standard writes is what the tree says.

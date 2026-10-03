@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 
 using DotGram.Sql;
+using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
 using Xunit;
@@ -95,6 +96,208 @@ public sealed class TreeEqualityTests
 		var hashed = distinct.Select(static one => one.GetHashCode()).Distinct().Count();
 
 		Assert.True(distinct.Count - hashed <= Tolerated(distinct.Count), $"{distinct.Count} distinct statements, {hashed} distinct hashes");
+	}
+
+	/// <summary>
+	/// Every statement the corpus holds equals the reparse of what <see cref="SqlWriter"/> wrote of
+	/// it: not merely the same text by some other printer's judgment (<c>CorpusRoundTripTests</c>,
+	/// held to ScriptDom's own), but the same tree TransactSqlParser itself reads back.
+	/// </summary>
+	[Fact]
+	public void Every_corpus_statement_is_the_same_tree_after_the_writer_and_a_reparse()
+	{
+		var root  = Path.GetFullPath(Path.Combine(Here(), "..", "Corpus", "ScriptDom"));
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var read  = 0;
+		var faults = new List<string>();
+
+		Assert.True(files.Length > 1000, root);
+
+		foreach (var file in files)
+			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
+			{
+				var first = TransactSqlParser.TryParseSql(batch);
+
+				if (!first.IsSuccess)
+					continue;
+
+				foreach (var statement in first.Value)
+				{
+					read++;
+
+					string written;
+
+					try
+					{
+						written = SqlWriter.Write(statement);
+					}
+					catch (Exception failure)
+					{
+						faults.Add($"the writer threw {failure.GetType().Name} on a statement it had just read: {failure.Message}");
+
+						continue;
+					}
+
+					var reparsed = TransactSqlParser.TryParseStatement(written);
+
+					if (!reparsed.IsSuccess)
+						faults.Add($"printed as `{written}`, which the parser refuses to read back");
+					else if (!Equals(statement, reparsed.Value))
+						faults.Add($"printed as `{written}`, which reparses to a different tree");
+				}
+			}
+
+		Assert.True(read > 6_000, $"{read} statements");
+		Assert.Equal([], faults);
+	}
+
+	/// <summary>
+	/// Every query the corpus holds that SQL-92 can read is the same tree after
+	/// <see cref="SqlWriter"/> writes it and <see cref="Sql92Parser"/> reads it back.
+	/// </summary>
+	/// <remarks>
+	/// SQL-92 has no cutter of its own for somebody else's T-SQL: this asks what
+	/// <see cref="TransactSqlParser"/> already read and <see cref="SqlWriter"/> already printed, in the
+	/// walk above, which <see cref="Sql92Parser"/> happens to read as well — a query plain enough to be
+	/// both. The corpus is T-SQL, so most of it is not; what SQL-92 refuses here is a dialect
+	/// difference and not a defect, exactly as <c>Sql92ParserTests</c> already treats it.
+	/// </remarks>
+	[Fact]
+	public void Every_SQL92_query_the_corpus_holds_is_the_same_tree_after_the_writer_and_a_reparse()
+	{
+		var root  = Path.GetFullPath(Path.Combine(Here(), "..", "Corpus", "ScriptDom"));
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var read  = 0;
+		var faults = new List<string>();
+
+		foreach (var file in files)
+			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
+			{
+				var first = TransactSqlParser.TryParseSql(batch);
+
+				if (!first.IsSuccess)
+					continue;
+
+				foreach (var statement in first.Value)
+				{
+					if (statement is not Statement.Select)
+						continue;
+
+					string candidate;
+
+					try
+					{
+						candidate = SqlWriter.Write(statement);
+					}
+					catch (Exception)
+					{
+						continue; // The writer's own fault, held above; not this grammar's to answer for.
+					}
+
+					var firstRead = Sql92Parser.TryParseSelect(candidate);
+
+					if (!firstRead.IsSuccess)
+						continue; // T-SQL syntax SQL-92 does not have: a dialect difference, not this test's business.
+
+					read++;
+
+					string written;
+
+					try
+					{
+						written = SqlWriter.Write(firstRead.Value!);
+					}
+					catch (Exception failure)
+					{
+						faults.Add($"the writer threw {failure.GetType().Name} on `{candidate}`: {failure.Message}");
+
+						continue;
+					}
+
+					var secondRead = Sql92Parser.TryParseSelect(written);
+
+					if (!secondRead.IsSuccess)
+						faults.Add($"`{candidate}` printed as `{written}`, which SQL-92 refuses to read back");
+					else if (!Equals(firstRead.Value, secondRead.Value))
+						faults.Add($"`{candidate}` printed as `{written}`, which reparses to a different tree");
+				}
+			}
+
+		Assert.True(read > 50, $"{read} SQL-92 queries found in the corpus");
+		Assert.Equal([], faults);
+	}
+
+	/// <summary>
+	/// Every query the corpus holds that SQL:2023 can read is the same tree after
+	/// <see cref="Ast.Sql2023Writer"/> writes it and <see cref="SqlStandardParser"/> reads it back.
+	/// </summary>
+	/// <remarks>
+	/// The same corpus of T-SQL, asked the same way as the SQL-92 test above: most of it is not
+	/// SQL:2023 either, and what is read here is only what both dialects happen to agree on.
+	/// </remarks>
+	[Fact]
+	public void Every_SQL2023_query_the_corpus_holds_is_the_same_tree_after_the_writer_and_a_reparse()
+	{
+		var root  = Path.GetFullPath(Path.Combine(Here(), "..", "Corpus", "ScriptDom"));
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var read  = 0;
+		var faults = new List<string>();
+
+		foreach (var file in files)
+			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
+			{
+				var first = TransactSqlParser.TryParseSql(batch);
+
+				if (!first.IsSuccess)
+					continue;
+
+				foreach (var statement in first.Value)
+				{
+					if (statement is not Statement.Select)
+						continue;
+
+					string candidate;
+
+					try
+					{
+						candidate = SqlWriter.Write(statement);
+					}
+					catch (Exception)
+					{
+						continue; // The writer's own fault, held above; not this grammar's to answer for.
+					}
+
+					var firstRead = SqlStandardParser.TryParseQueryExpression(candidate);
+
+					if (!firstRead.IsSuccess)
+						continue; // T-SQL syntax SQL:2023 does not have: a dialect difference, not this test's business.
+
+					read++;
+
+					string written;
+
+					try
+					{
+						written = Ast.Sql2023Writer.Write(firstRead.Value!);
+					}
+					catch (Exception failure)
+					{
+						faults.Add($"the writer threw {failure.GetType().Name} on `{candidate}`: {failure.Message}");
+
+						continue;
+					}
+
+					var secondRead = SqlStandardParser.TryParseQueryExpression(written);
+
+					if (!secondRead.IsSuccess)
+						faults.Add($"`{candidate}` printed as `{written}`, which SQL:2023 refuses to read back");
+					else if (!Equals(firstRead.Value, secondRead.Value))
+						faults.Add($"`{candidate}` printed as `{written}`, which reparses to a different tree");
+				}
+			}
+
+		Assert.True(read > 100, $"{read} SQL:2023 queries found in the corpus");
+		Assert.Equal([], faults);
 	}
 
 	/// <summary>
