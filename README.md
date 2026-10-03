@@ -60,7 +60,8 @@ a sequence of typed records, from a `TextReader`, one record at a time while the
 being read. A mistyped record does not cost the file: `recover` marks the repetition of
 records, a bad one is reported with where it is and why, and reading goes on at the next line.
 
-A price list, `prices.txt`:
+A price list the café's owner keeps by hand behind the counter and retypes into a text file
+now and then, `prices.txt`:
 
 ```text
 Espresso       2.40
@@ -134,7 +135,8 @@ becomes, and the names it uses are filled in by the parser: `parserLine` is the 
 opens the file at, and `parserMessage` says where reading the line stopped, as a line and a
 column, and what would have fit there — the comma, and the letter O typed for a zero.
 
-An order sheet, `order.txt` — two header lines, then items and remarks in any order:
+An order sheet a wholesaler's clerk fills in from a phone call, `order.txt` — two header
+lines, then items and remarks in any order:
 
 ```text
 Order for: Hill Street Cafe
@@ -203,7 +205,8 @@ required: a sheet without them is refused with a `FormatException`, thrown by th
 first record, because nothing is read before the loop asks. Recovery is for the lines that
 repeat; the frame around them still has to be there.
 
-A logbook, `log.txt`, where the third entry has a day of one digit:
+A maintenance logbook the people who run the machines fill in by hand on the shop floor,
+`log.txt`, where the third entry has a day of one digit:
 
 ```text
 2026-10-01 07:55 press-4 oil topped up
