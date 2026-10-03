@@ -6065,13 +6065,23 @@ sealed partial class Machine
 	/// </remarks>
 	IReadOnlyList<string> Displays(Node node)
 	{
+		return Displays(node, leading: true);
+	}
+
+	/// <summary>
+	/// The same, where <paramref name="leading"/> says whether a node made of others is said by
+	/// what can begin it — a set of what was expected — or printed whole, as a comment or a
+	/// diagnostic shows the node itself.
+	/// </summary>
+	IReadOnlyList<string> Displays(Node node, bool leading)
+	{
 		// One character that does not begin something, `(?!Separator & any)+`'s turn, is what a
 		// person would call it: printed as written it is the notation and not what was wanted.
 		if (node is Node.Sequence { Nodes: [Node.Lookahead(false, var excluded), var one] } && IsAny(one))
 			return ["anything but " + excluded];
 
 		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
-			return [node.ToString()];
+			return leading && Leading(node) is { Count: > 0 } items ? items : [node.ToString()];
 
 		return node switch
 		{
@@ -6080,11 +6090,109 @@ sealed partial class Machine
 			Node.Element { Categories.Count: 0, References.Count: 0 } element =>
 				Covered(inventory, element),
 			Node.Choice choice =>
-				[.. choice.Nodes.SelectMany(Displays).Distinct()],
+				[.. choice.Nodes.SelectMany(one => Displays(one, leading)).Distinct()],
 			Node.Sequence { Nodes.Count: > 0 } sequence =>
-				Displays(sequence.Nodes[0]),
+				Displays(sequence.Nodes[0], leading),
 			_ => [node.ToString()],
 		};
+	}
+
+	/// <summary>
+	/// What can begin a node over characters, each item a literal, a class or a rule's name: the
+	/// set a refusal names where the node was wanted, and never the node's own source — an
+	/// alternative that reads <c>trivia &amp; '+' &amp; trivia &amp; right: Expr</c> is <c>'+'</c>
+	/// where it was expected.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A sequence is said by its first part, and by the parts after it for as long as those before
+	/// can match nothing. What takes no input — a look around, a guard, a mark — says nothing, and
+	/// neither does the seam: spaces may come before an operator, but what was wanted there is the
+	/// operator, and a refusal listing the whitespace classes first is one nobody can act on.
+	/// </para>
+	/// <para>
+	/// Empty where the node says nothing of its own, for the caller to print it as written instead.
+	/// </para>
+	/// </remarks>
+	IReadOnlyList<string> Leading(Node node)
+	{
+		var items = new List<string>();
+
+		Lead(node, items);
+
+		return items;
+	}
+
+	/// <summary>Adds what can begin <paramref name="node"/> to <paramref name="items"/>, each once.</summary>
+	void Lead(Node node, List<string> items)
+	{
+		switch (node)
+		{
+			case Node.Literal or Node.Element or Node.External:
+				Add(node.ToString());
+				break;
+
+			// By the name the author gave it: a publication's `with` reads a clone of the rule, and
+			// `Expr_With1` appears nowhere in the grammar.
+			case Node.Call(var rule, var arguments):
+				if (!Seam(node))
+					Add(arguments.Count == 0 && rule.Declaration?.Name is { } declared ? declared : node.ToString());
+				break;
+
+			case Node.Capture(_, var body):
+				Lead(body, items);
+				break;
+
+			case Node.Construct(var body, _):
+				Lead(body, items);
+				break;
+
+			case Node.Atomic(var body):
+				Lead(body, items);
+				break;
+
+			case Node.Marked(var body, _):
+				Lead(body, items);
+				break;
+
+			case Node.Repeat(var body, _, _):
+				Lead(body, items);
+				break;
+
+			case Node.Choice(var alternatives):
+				foreach (var alternative in alternatives)
+					Lead(alternative, items);
+				break;
+
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+				{
+					if (Seam(part))
+						continue;
+
+					Lead(part, items);
+
+					if (!FirstSets.Nullable(part, _graph))
+						break;
+				}
+				break;
+		}
+
+		void Add(string item)
+		{
+			if (!items.Contains(item))
+				items.Add(item);
+		}
+	}
+
+	/// <summary>Whether a node is the seam a grammar's <c>trivia</c> weaves between operands.</summary>
+	bool Seam(Node node)
+	{
+		foreach (var seam in _graph.Trivia.Values)
+			if (Equals(seam, node) || seam is Node.Call(var woven, _) && node is Node.Call(var called, _) && woven == called)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>Whether a node is one item, whatever it is: <c>any</c>, called or written out.</summary>
@@ -6097,7 +6205,7 @@ sealed partial class Machine
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
 	internal string Display(Node node)
 	{
-		return string.Join(" or ", Displays(node));
+		return string.Join(" or ", Displays(node, leading: false));
 	}
 
 	/// <summary>

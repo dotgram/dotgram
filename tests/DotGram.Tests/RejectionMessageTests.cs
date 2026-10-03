@@ -506,6 +506,50 @@ public sealed class RejectionMessageTests
 		}
 	}
 
+	/// <summary>
+	/// What the calculator of the README can say where an operator or the end was wanted: one item
+	/// for each operator, never the source of the alternatives that read them.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void An_expected_set_names_what_begins_each_alternative(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Calculator = """
+			trivia = Std.Spacing?
+
+			Value : @int = d: Std.Digits => @(int.Parse(d))
+
+			Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+			             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
+			             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
+			             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
+			             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
+			             | '-' & operand: Expr             >> 3 => @(-operand)
+			             | '(' & inner: Expr & ')'              => @(inner)
+			             | value: Value                         => @(value)
+
+			IntNumber : @int = d: Std.Digits => @(int.Parse(d))
+
+			parse Expr with (Value = IntNumber) as ParseStart
+
+			""";
+
+		var result = GramCompiler.Compile(Calculator, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Direct = direct, Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var source = Assert.Single(result.Sources).Text;
+
+		// Every item of every set is a literal, a class or a name, and no alternative's source.
+		foreach (System.Text.RegularExpressions.Match set in System.Text.RegularExpressions.Regex.Matches(source, @"new string\[\] \{ (?<items>[^}]*) \}"))
+			Assert.False(
+				set.Groups["items"].Value.Contains(" & ", StringComparison.Ordinal) || set.Groups["items"].Value.Contains("=>", StringComparison.Ordinal),
+				rendering + ": " + set.Value);
+	}
+
 	const string Choice = """
 		trivia = ' '*
 		Digit  = ['0'..'9']
