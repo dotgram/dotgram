@@ -824,7 +824,28 @@ sealed partial class Machine
 	/// It holds a stack, and the pages a deep reading touched stay with it, so it does not outlive the
 	/// work by more than <see cref="Linger"/> milliseconds; what it was handed of a reading is cleared
 	/// as soon as that reading has it back. The thread that made it may ask again at the moment it
-	/// decides to go, and <c>state</c> says which came first: 0 waiting, 1 reading, 2 gone.
+	/// decides to go, and <c>deepState</c> says which came first: 0 waiting, 1 reading, 2 gone.
+	/// </para>
+	/// <para>
+	/// <b>Whose context a reading runs in.</b> The caller's: its execution context — every
+	/// <c>AsyncLocal</c> a semantic action or a <c>when</c> may read — and its cultures are captured
+	/// at every hand-off and the reading runs under them, and the thread goes back to its own after,
+	/// so nothing one parse set is seen by the next. What does stay with the thread from one reading
+	/// to the next is its thread-static state, which in generated code is the spare stores that are
+	/// kept per thread to be reused, so a reused thread is what they are for; nothing emitted assumes
+	/// a fresh one.
+	/// </para>
+	/// <para>
+	/// <b>How many there are.</b> One for every thread that handed a reading off in the last
+	/// <see cref="Linger"/> milliseconds, for every parser class, and one more for every level of
+	/// hand-off below that: 16 MiB of address space each, and as much of it in use as the reading
+	/// touched. There is no cap; a reading this deep is rare, and each ends shortly after its last.
+	/// </para>
+	/// <para>
+	/// <b>A wait disturbed.</b> An interrupt of the thread that handed a reading off is held until the
+	/// reading is done and thrown then: returning at once would leave a completion behind for the next
+	/// hand-off to take as its own, and clear fields the reading still had in hand. Anything else that
+	/// ends the wait early retires the thread.
 	/// </para>
 	/// </remarks>
 	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
@@ -833,24 +854,31 @@ sealed partial class Machine
 
 		file.Line("/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>");
 		file.Line("[global::System.ThreadStatic]");
-		file.Line($"static {deep}? lingering;");
+		file.Line($"static {deep}? deepLingering;");
 		file.Line();
-		file.Line("readonly global::System.Threading.SemaphoreSlim go   = new global::System.Threading.SemaphoreSlim(0, 1);");
-		file.Line("readonly global::System.Threading.SemaphoreSlim done = new global::System.Threading.SemaphoreSlim(0, 1);");
+		file.Line("/// <summary>The reading, under the context it was handed with.</summary>");
+		file.Line($"static readonly global::System.Threading.ContextCallback deepReadIn = ReadIn;");
 		file.Line();
-		file.Line("int state = 1;");
+		file.Line("readonly global::System.Threading.SemaphoreSlim deepGo   = new global::System.Threading.SemaphoreSlim(0, 1);");
+		file.Line("readonly global::System.Threading.SemaphoreSlim deepDone = new global::System.Threading.SemaphoreSlim(0, 1);");
+		file.Line();
+		file.Line("int deepState = 1;");
+		file.Line("volatile bool deepRetired;");
+		file.Line("global::System.Threading.ExecutionContext? deepContext;");
+		file.Line("global::System.Globalization.CultureInfo? deepCulture;");
+		file.Line("global::System.Globalization.CultureInfo? deepUiCulture;");
 		file.Line();
 		file.Line("/// <summary>The thread this one handed off to last, if it is still waiting, or a new one.</summary>");
 
 		using (file.Block($"internal static {deep} Take()"))
 		{
-			file.Line("var deep = lingering;");
+			file.Line("var deep = deepLingering;");
 			file.Line();
-			file.Line("if (deep != null && global::System.Threading.Interlocked.CompareExchange(ref deep.state, 1, 0) == 0)");
+			file.Line("if (deep != null && !deep.deepRetired && global::System.Threading.Interlocked.CompareExchange(ref deep.deepState, 1, 0) == 0)");
 			file.Then("return deep;");
 			file.Line();
 			file.Line($"deep       = new {deep}();");
-			file.Line("lingering  = deep;");
+			file.Line("deepLingering = deep;");
 			file.Line();
 			file.Line("var thread = new global::System.Threading.Thread(deep.Loop, 16 * 1024 * 1024) { IsBackground = true };");
 			file.Line();
@@ -860,12 +888,52 @@ sealed partial class Machine
 		}
 
 		file.Line();
-		file.Line("/// <summary>Reads on that thread and waits for it.</summary>");
+		file.Line("/// <summary>Reads on that thread, in this one's context and cultures, and waits for it.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// However the wait is disturbed: an interrupt is held until the reading is done and then thrown,");
+		file.Line("/// since returning early would leave its completion for the next hand-off to take as its own, and");
+		file.Line("/// anything else that ends the wait retires the thread, so that it is never handed another.");
+		file.Line("/// </remarks>");
 
 		using (file.Block("internal void Go()"))
 		{
-			file.Line("go.Release();");
-			file.Line("done.Wait();");
+			file.Line("deepContext   = global::System.Threading.ExecutionContext.Capture();");
+			file.Line("deepCulture   = global::System.Globalization.CultureInfo.CurrentCulture;");
+			file.Line("deepUiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;");
+			file.Line();
+			file.Line("deepGo.Release();");
+			file.Line();
+			file.Line("global::System.Threading.ThreadInterruptedException? interrupted = null;");
+			file.Line();
+
+			using (file.Block("while (true)"))
+			{
+				using (file.Block("try"))
+				{
+					file.Line("deepDone.Wait();");
+					file.Line();
+					file.Line("break;");
+				}
+
+				using (file.Block("catch (global::System.Threading.ThreadInterruptedException caught)"))
+					file.Line("interrupted = caught;");
+
+				using (file.Block("catch"))
+				{
+					file.Line("deepRetired = true;");
+					file.Line();
+					file.Line("throw;");
+				}
+			}
+
+			file.Line();
+
+			using (file.Block("if (interrupted != null)"))
+			{
+				file.Line("Clear();");
+				file.Line();
+				file.Line("global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(interrupted).Throw();");
+			}
 		}
 
 		file.Line();
@@ -889,20 +957,64 @@ sealed partial class Machine
 		{
 			using (file.Block("while (true)"))
 			{
-				using (file.Block($"if (!go.Wait({Linger}))"))
+				using (file.Block("try"))
 				{
-					file.Line("if (global::System.Threading.Interlocked.CompareExchange(ref state, 2, 0) == 0)");
-					file.Then("return;");
-					file.Line();
-					file.Line("// Taken in the moment before it could go: the reading is on its way.");
-					file.Line("go.Wait();");
+					using (file.Block($"if (!deepGo.Wait({Linger}))"))
+					{
+						file.Line("if (global::System.Threading.Interlocked.CompareExchange(ref deepState, 2, 0) == 0)");
+						file.Then("return;");
+						file.Line();
+						file.Line("// Taken in the moment before it could go: the reading is on its way.");
+						file.Line("deepGo.Wait();");
+					}
+				}
+
+				using (file.Block("catch (global::System.Threading.ThreadInterruptedException)"))
+				{
+					file.Line("// Nobody outside holds this thread, but the grammar's own code can interrupt it.");
+					file.Line("continue;");
 				}
 
 				file.Line();
-				file.Line("Run();");
+				file.Line("var handed = deepContext;");
 				file.Line();
-				file.Line("global::System.Threading.Volatile.Write(ref state, 0);");
-				file.Line("done.Release();");
+				file.Line("deepContext = null;");
+				file.Line();
+				file.Line("if (handed == null)");
+				file.Then("ReadIn(this);");
+				file.Line("else");
+				file.Then("global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);");
+				file.Line();
+				file.Line("deepCulture   = null;");
+				file.Line("deepUiCulture = null;");
+				file.Line();
+				file.Line("global::System.Threading.Volatile.Write(ref deepState, 0);");
+				file.Line("deepDone.Release();");
+			}
+		}
+
+		file.Line();
+		file.Line("/// <summary>The reading, in the cultures of the thread that handed it over, and this thread's own put back.</summary>");
+
+		using (file.Block("static void ReadIn(object? state)"))
+		{
+			file.Line($"var deep      = ({deep})state!;");
+			file.Line("var culture   = global::System.Globalization.CultureInfo.CurrentCulture;");
+			file.Line("var uiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;");
+			file.Line();
+
+			using (file.Block("try"))
+			{
+				file.Line("global::System.Globalization.CultureInfo.CurrentCulture   = deep.deepCulture!;");
+				file.Line("global::System.Globalization.CultureInfo.CurrentUICulture = deep.deepUiCulture!;");
+				file.Line();
+				file.Line("deep.Run();");
+			}
+
+			using (file.Block("finally"))
+			{
+				file.Line("global::System.Globalization.CultureInfo.CurrentCulture   = culture;");
+				file.Line("global::System.Globalization.CultureInfo.CurrentUICulture = uiCulture;");
 			}
 		}
 

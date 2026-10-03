@@ -176,7 +176,7 @@ public sealed class StackDepthTests
 	}
 
 	/// <summary>A grammar that recurses on its own opening bracket, carried as asked.</summary>
-	static Assembly Compile(CarrierKind carrier, string grammar = Nested)
+	static Assembly Compile(CarrierKind carrier, string grammar = Nested, string? members = null)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
@@ -190,7 +190,7 @@ public sealed class StackDepthTests
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text, "Probe", "Carried");
+		return EmittedCode.Compile(Assert.Single(result.Sources).Text, "Probe", "Carried", members);
 	}
 
 	const string Nested =
@@ -256,6 +256,154 @@ public sealed class StackDepthTests
 			Assert.Equal(depth, levels);
 		}
 	}
+
+	/// <summary>
+	/// A reading handed to another thread runs in the context of the parse that handed it over — its
+	/// <c>AsyncLocal</c> values and its culture — and nothing of one parse is seen by the next, though the
+	/// thread it is handed to is the same one.
+	/// </summary>
+	/// <remarks>
+	/// The thread a reading is handed to lingers and takes the next hand-off from the same thread. Made
+	/// by the first parse, it began in that parse's context; without the context captured at every
+	/// hand-off, the second parse's semantic actions read the first one's values. On the tape the
+	/// values are built after the reading, on the caller's own thread, so only the carrier that builds
+	/// them where it reads them can see the difference; both are held to it.
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_reading_handed_off_runs_in_the_context_of_the_parse_that_handed_it(CarrierKind carrier)
+	{
+		var host    = Compile(carrier, Seeing, SeeingMembers);
+		var ambient = (AsyncLocal<string>)host.GetType("Carried.Probe")!.GetField("Ambient")!.GetValue(null)!;
+		var text    = new string('(', 2_000) + "x" + new string(')', 2_000);
+		var seen    = new List<object?>();
+		var thrown  = default(Exception);
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					foreach (var (value, culture) in new[] { ("first", "fr-FR"), ("second", "de-DE"), (null, "") })
+					{
+						ambient.Value = value!;
+						System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(culture);
+
+						seen.Add(EmittedCode.Match(host, "Carried.Probe", "TryParseStart", text).Value);
+					}
+				}
+				catch (Exception caught)
+				{
+					thrown = caught;
+				}
+			},
+			128 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		Assert.Null(thrown);
+		Assert.Equal(["first/fr-FR", "second/de-DE", "/"], seen);
+	}
+
+	/// <summary>
+	/// A thread interrupted while it waits for a reading it handed off still waits for it to end, and
+	/// the next hand-off from that thread reads its own input rather than taking the last one's end.
+	/// </summary>
+	/// <remarks>
+	/// The interrupt used to end the wait at once. The reading went on over there, and when it ended it
+	/// left its completion behind; the next hand-off, reusing the same thread within its linger, took
+	/// that completion as its own, came back before anything had been read, and cleared fields the
+	/// reading still had in hand. Now the interrupt is held until the reading is done and thrown then,
+	/// which is what is held first: when it is thrown, the reading it interrupted has ended. Whether the
+	/// next hand-off then came back too soon depends on timing the test cannot fix, so that is asserted
+	/// only as its answer.
+	/// The leaf of the first reading sleeps, so the interrupt lands while the wait is on, and says when
+	/// it is done, so the next hand-off is made while the thread it went to is waiting for another.
+	/// </remarks>
+	[Fact]
+	public void An_interrupted_hand_off_leaves_nothing_behind_for_the_next()
+	{
+		var host  = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
+		var pause = host.GetType("Carried.Probe")!.GetField("Pause")!;
+		var left  = (ManualResetEventSlim)host.GetType("Carried.Probe")!.GetField("Left")!.GetValue(null)!;
+		var first = default(Exception);
+		var next  = default((bool IsSuccess, object? Value, string? Error, long Position));
+		var other = default(Exception);
+		var ended = false;
+
+		pause.SetValue(null, 300);
+
+		var thread = new Thread(
+			() =>
+			{
+				System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+				try
+				{
+					EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 2_000) + "x" + new string(')', 2_000));
+				}
+				catch (TargetInvocationException caught)
+				{
+					first = caught.InnerException;
+					ended = left.IsSet;
+				}
+
+				// Until the reading has ended over there, and its thread waits for another, which it does for
+				// a tenth of a second: the next hand-off goes to it. Its leaf sleeps too, so a wait that took
+				// the old completion comes back long before it.
+				pause.SetValue(null, 50);
+				left.Wait();
+				Thread.Sleep(50);
+
+				try
+				{
+					next = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+				}
+				catch (Exception caught)
+				{
+					other = caught;
+				}
+			},
+			128 * 1024);
+
+		thread.Start();
+		Thread.Sleep(100);
+		thread.Interrupt();
+		thread.Join();
+
+		Assert.IsType<ThreadInterruptedException>(first);
+		Assert.True(ended, "the interrupt came back before the reading it interrupted had ended");
+		Assert.Null(other);
+		Assert.True(next.IsSuccess, next.Error);
+		Assert.Equal("/", next.Value);
+	}
+
+	/// <summary>A nest whose innermost value says what it saw of its caller's context.</summary>
+	const string Seeing =
+		"""
+		Start : @string = '(' & n: Start & ')' => @(n)
+			 | 'x' => @(Seen())
+		parse Start
+		""";
+
+	const string SeeingMembers =
+		"""
+		public static readonly global::System.Threading.AsyncLocal<string> Ambient = new global::System.Threading.AsyncLocal<string>();
+		public static int Pause;
+		public static readonly global::System.Threading.ManualResetEventSlim Left = new global::System.Threading.ManualResetEventSlim();
+		static string Seen()
+		{
+			if (Pause > 0)
+			{
+				global::System.Threading.Thread.Sleep(Pause);
+				Left.Set();
+			}
+
+			return Ambient.Value + "/" + global::System.Globalization.CultureInfo.CurrentCulture.Name;
+		}
+		""";
 
 	/// <summary>A recursion with two small readings of the same rule beside it at every level.</summary>
 	const string Beside =

@@ -3548,23 +3548,30 @@ namespace DotGram.Snapshots
 
 			/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>
 			[global::System.ThreadStatic]
-			static Deep_DotGram_Sum? lingering;
+			static Deep_DotGram_Sum? deepLingering;
 
-			readonly global::System.Threading.SemaphoreSlim go   = new global::System.Threading.SemaphoreSlim(0, 1);
-			readonly global::System.Threading.SemaphoreSlim done = new global::System.Threading.SemaphoreSlim(0, 1);
+			/// <summary>The reading, under the context it was handed with.</summary>
+			static readonly global::System.Threading.ContextCallback deepReadIn = ReadIn;
 
-			int state = 1;
+			readonly global::System.Threading.SemaphoreSlim deepGo   = new global::System.Threading.SemaphoreSlim(0, 1);
+			readonly global::System.Threading.SemaphoreSlim deepDone = new global::System.Threading.SemaphoreSlim(0, 1);
+
+			int deepState = 1;
+			volatile bool deepRetired;
+			global::System.Threading.ExecutionContext? deepContext;
+			global::System.Globalization.CultureInfo? deepCulture;
+			global::System.Globalization.CultureInfo? deepUiCulture;
 
 			/// <summary>The thread this one handed off to last, if it is still waiting, or a new one.</summary>
 			internal static Deep_DotGram_Sum Take()
 			{
-				var deep = lingering;
+				var deep = deepLingering;
 
-				if (deep != null && global::System.Threading.Interlocked.CompareExchange(ref deep.state, 1, 0) == 0)
+				if (deep != null && !deep.deepRetired && global::System.Threading.Interlocked.CompareExchange(ref deep.deepState, 1, 0) == 0)
 					return deep;
 
 				deep       = new Deep_DotGram_Sum();
-				lingering  = deep;
+				deepLingering = deep;
 
 				var thread = new global::System.Threading.Thread(deep.Loop, 16 * 1024 * 1024) { IsBackground = true };
 
@@ -3573,11 +3580,48 @@ namespace DotGram.Snapshots
 				return deep;
 			}
 
-			/// <summary>Reads on that thread and waits for it.</summary>
+			/// <summary>Reads on that thread, in this one's context and cultures, and waits for it.</summary>
+			/// <remarks>
+			/// However the wait is disturbed: an interrupt is held until the reading is done and then thrown,
+			/// since returning early would leave its completion for the next hand-off to take as its own, and
+			/// anything else that ends the wait retires the thread, so that it is never handed another.
+			/// </remarks>
 			internal void Go()
 			{
-				go.Release();
-				done.Wait();
+				deepContext   = global::System.Threading.ExecutionContext.Capture();
+				deepCulture   = global::System.Globalization.CultureInfo.CurrentCulture;
+				deepUiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;
+
+				deepGo.Release();
+
+				global::System.Threading.ThreadInterruptedException? interrupted = null;
+
+				while (true)
+				{
+					try
+					{
+						deepDone.Wait();
+
+						break;
+					}
+					catch (global::System.Threading.ThreadInterruptedException caught)
+					{
+						interrupted = caught;
+					}
+					catch
+					{
+						deepRetired = true;
+
+						throw;
+					}
+				}
+
+				if (interrupted != null)
+				{
+					Clear();
+
+					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(interrupted).Throw();
+				}
 			}
 
 			/// <summary>Lets go of what it was handed of a reading.</summary>
@@ -3593,19 +3637,58 @@ namespace DotGram.Snapshots
 			{
 				while (true)
 				{
-					if (!go.Wait(100))
+					try
 					{
-						if (global::System.Threading.Interlocked.CompareExchange(ref state, 2, 0) == 0)
-							return;
+						if (!deepGo.Wait(100))
+						{
+							if (global::System.Threading.Interlocked.CompareExchange(ref deepState, 2, 0) == 0)
+								return;
 
-						// Taken in the moment before it could go: the reading is on its way.
-						go.Wait();
+							// Taken in the moment before it could go: the reading is on its way.
+							deepGo.Wait();
+						}
+					}
+					catch (global::System.Threading.ThreadInterruptedException)
+					{
+						// Nobody outside holds this thread, but the grammar's own code can interrupt it.
+						continue;
 					}
 
-					Run();
+					var handed = deepContext;
 
-					global::System.Threading.Volatile.Write(ref state, 0);
-					done.Release();
+					deepContext = null;
+
+					if (handed == null)
+						ReadIn(this);
+					else
+						global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);
+
+					deepCulture   = null;
+					deepUiCulture = null;
+
+					global::System.Threading.Volatile.Write(ref deepState, 0);
+					deepDone.Release();
+				}
+			}
+
+			/// <summary>The reading, in the cultures of the thread that handed it over, and this thread's own put back.</summary>
+			static void ReadIn(object? state)
+			{
+				var deep      = (Deep_DotGram_Sum)state!;
+				var culture   = global::System.Globalization.CultureInfo.CurrentCulture;
+				var uiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;
+
+				try
+				{
+					global::System.Globalization.CultureInfo.CurrentCulture   = deep.deepCulture!;
+					global::System.Globalization.CultureInfo.CurrentUICulture = deep.deepUiCulture!;
+
+					deep.Run();
+				}
+				finally
+				{
+					global::System.Globalization.CultureInfo.CurrentCulture   = culture;
+					global::System.Globalization.CultureInfo.CurrentUICulture = uiCulture;
 				}
 			}
 

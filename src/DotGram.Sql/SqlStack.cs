@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
@@ -105,6 +106,27 @@ static class SqlStack
 	/// the moment it decides to go; the state says which of the two came first, and a thread that finds
 	/// it gone makes another.
 	/// </para>
+	/// <para>
+	/// <b>Whose context a walk runs in.</b> The caller's: its execution context — every
+	/// <c>AsyncLocal</c> — and its cultures are captured at every hand-off and the walk runs under
+	/// them, and the thread goes back to its own afterwards, so nothing one caller set is seen by the
+	/// next. What does stay with the thread from one walk to the next is its thread-static state, which
+	/// in DotGram.Sql is the generated parsers' spare stores — kept per thread for reuse by design, so a
+	/// thread that is reused is what they are for. Nothing here assumes a fresh thread.
+	/// </para>
+	/// <para>
+	/// <b>How many there are.</b> One for every thread that has handed a walk off in the last
+	/// <see cref="Linger"/> milliseconds, and one more for every level of hand-off below that: threads
+	/// walking at once times the depth of their trees in stacks, each with 16 MiB of address space and
+	/// as much of it in use as the walk touched. There is no cap; a reading or a walk this deep is rare,
+	/// and each such thread ends a tenth of a second after its last.
+	/// </para>
+	/// <para>
+	/// <b>A wait interrupted.</b> The thread that handed a walk off waits for it to end however the wait
+	/// is disturbed: <see cref="Thread.Interrupt"/> is held until the walk is done and then thrown, since
+	/// returning early would leave a completion behind for the next walk to take as its own. Anything
+	/// else that ends the wait early retires the thread, so that it is never handed another.
+	/// </para>
 	/// </remarks>
 	sealed class Worker
 	{
@@ -118,9 +140,16 @@ static class SqlStack
 		readonly SemaphoreSlim _go   = new(0, 1);
 		readonly SemaphoreSlim _done = new(0, 1);
 
-		int        _state = Busy;
-		Action?    _walk;
-		Exception? _thrown;
+		int               _state = Busy;
+		volatile bool     _retired;
+		Action?           _walk;
+		ExecutionContext? _context;
+		CultureInfo?      _culture;
+		CultureInfo?      _uiCulture;
+		Exception?        _thrown;
+
+		/// <summary>The walk, under the context it was handed with.</summary>
+		static readonly ContextCallback Walk = static worker => ((Worker)worker!).Walked();
 
 		public Worker()
 		{
@@ -136,15 +165,47 @@ static class SqlStack
 		/// <summary>Claims it for one more walk, unless it has already ended.</summary>
 		public bool Take()
 		{
-			return Interlocked.CompareExchange(ref _state, Busy, Idle) == Idle;
+			return !_retired && Interlocked.CompareExchange(ref _state, Busy, Idle) == Idle;
 		}
 
 		/// <summary>Runs <paramref name="walk"/> there and waits for it, throwing what it threw.</summary>
 		public void Run(Action walk)
 		{
-			_walk = walk;
+			_walk      = walk;
+			_context   = ExecutionContext.Capture();
+			_culture   = CultureInfo.CurrentCulture;
+			_uiCulture = CultureInfo.CurrentUICulture;
+
 			_go.Release();
-			_done.Wait();
+
+			ThreadInterruptedException? interrupted = null;
+
+			while (true)
+			{
+				try
+				{
+					_done.Wait();
+
+					break;
+				}
+				catch (ThreadInterruptedException caught)
+				{
+					interrupted = caught;
+				}
+				catch
+				{
+					_retired = true;
+
+					throw;
+				}
+			}
+
+			if (interrupted is not null)
+			{
+				_thrown = null;
+
+				ExceptionDispatchInfo.Capture(interrupted).Throw();
+			}
 
 			var thrown = _thrown;
 
@@ -158,28 +219,62 @@ static class SqlStack
 		{
 			while (true)
 			{
-				if (!_go.Wait(Linger))
-				{
-					if (Interlocked.CompareExchange(ref _state, Gone, Idle) == Idle)
-						return;
-
-					// Claimed in the moment before it could go: the walk is on its way.
-					_go.Wait();
-				}
-
 				try
 				{
-					_walk!();
+					if (!_go.Wait(Linger))
+					{
+						if (Interlocked.CompareExchange(ref _state, Gone, Idle) == Idle)
+							return;
+
+						// Claimed in the moment before it could go: the walk is on its way.
+						_go.Wait();
+					}
 				}
-				catch (Exception thrown)
+				catch (ThreadInterruptedException)
 				{
-					_thrown = thrown;
+					// Nobody outside holds this thread, but a walk's own code can interrupt it.
+					continue;
 				}
 
-				_walk = null;
+				var context = _context;
+
+				_context = null;
+
+				if (context is null)
+					Walked();
+				else
+					ExecutionContext.Run(context, Walk, this);
+
+				_walk      = null;
+				_culture   = null;
+				_uiCulture = null;
 
 				Volatile.Write(ref _state, Idle);
 				_done.Release();
+			}
+		}
+
+		/// <summary>The walk, in the caller's cultures, and the thread's own put back afterwards.</summary>
+		void Walked()
+		{
+			var culture   = CultureInfo.CurrentCulture;
+			var uiCulture = CultureInfo.CurrentUICulture;
+
+			try
+			{
+				CultureInfo.CurrentCulture   = _culture!;
+				CultureInfo.CurrentUICulture = _uiCulture!;
+
+				_walk!();
+			}
+			catch (Exception thrown)
+			{
+				_thrown = thrown;
+			}
+			finally
+			{
+				CultureInfo.CurrentCulture   = culture;
+				CultureInfo.CurrentUICulture = uiCulture;
 			}
 		}
 	}

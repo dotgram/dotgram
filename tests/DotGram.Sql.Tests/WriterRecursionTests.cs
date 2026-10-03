@@ -27,9 +27,18 @@ namespace DotGram.Sql.Tests;
 /// the checked methods are taken out, naming it.
 /// </para>
 /// <para>
-/// A method is checked when its first statement is <c>if (!SqlStack.Enough())</c>. Calls through a
-/// delegate the writer did not name here are not edges; every delegate the writers call is one they
-/// were handed by a method of their own, and that method's naming of it is the edge.
+/// A method or a local function is a node, and is checked when its first statement is
+/// <c>if (!SqlStack.Enough())</c>. Calls through a delegate the writer did not name here are not
+/// edges; every delegate the writers call is one they were handed by a method of their own, and that
+/// method's naming of it is the edge. <c>The_scan_finds_a_cycle_through_a_local_function</c> plants
+/// each kind of cycle and holds the scan to finding it.
+/// </para>
+/// <para>
+/// <b>What it does not see: dispatch.</b> A call to an interface or virtual member is an edge to that
+/// member and to nothing that implements or overrides it. The writers make no such call into code of
+/// their own today — their classes are static or sealed, and the node types they read are records
+/// whose members they read rather than call into — so a cycle through one would have to be written
+/// first; this is where it would be missed.
 /// </para>
 /// </remarks>
 public sealed class WriterRecursionTests
@@ -46,50 +55,148 @@ public sealed class WriterRecursionTests
 		var model  = compilation.GetSemanticModel(tree);
 		var writer = model.GetDeclaredSymbol(tree.GetRoot(token).DescendantNodes().OfType<ClassDeclarationSyntax>().First(), token)!;
 
-		var calls   = new Dictionary<IMethodSymbol, HashSet<IMethodSymbol>>(SymbolEqualityComparer.Default);
-		var guarded = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+		var (cycling, methods) = Scan(compilation, trees, writer);
 
-		foreach (var part in trees)
-		{
-			var partModel = compilation.GetSemanticModel(part);
-
-			foreach (var method in part.GetRoot(token).DescendantNodes().OfType<MethodDeclarationSyntax>())
-			{
-				var symbol = partModel.GetDeclaredSymbol(method, token)!;
-
-				if (!Within(symbol.ContainingType, writer))
-					continue;
-
-				calls[symbol] = Called(partModel, method, writer);
-
-				if (Checks(method))
-					guarded.Add(symbol);
-			}
-		}
-
-		Assert.True(calls.Count > 20, $"{calls.Count} methods found in {writer.Name}: the scan is reading the wrong thing");
-		Assert.NotEmpty(guarded);
-
-		var cycling = Cycling(calls, guarded);
+		Assert.True(methods > 20, $"{methods} methods found in {writer.Name}: the scan is reading the wrong thing");
 
 		Assert.True(
 			cycling.Count == 0,
 			$"{writer.Name} can reach these again without a stack check: {string.Join(", ", cycling)}");
 	}
 
-	/// <summary>Every method of the writer that <paramref name="method"/> names, by a call or as a delegate.</summary>
-	static HashSet<IMethodSymbol> Called(SemanticModel model, MethodDeclarationSyntax method, INamedTypeSymbol writer)
+	/// <summary>
+	/// The scan finds a cycle wherever one can be written: through a local function calling itself or
+	/// handed on as a delegate, as well as through methods, and passes the ones that check first.
+	/// </summary>
+	[Fact]
+	public void The_scan_finds_a_cycle_through_a_local_function()
+	{
+		const string planted =
+			"""
+			using System;
+
+			static class SqlStack
+			{
+				public static bool Enough()
+				{
+					return true;
+				}
+			}
+
+			static class Planted
+			{
+				static void Each(int[] items, Action<int> put)
+				{
+					foreach (var item in items)
+						put(item);
+				}
+
+				static void Called(int depth)
+				{
+					Visit(depth);
+
+					void Visit(int at)
+					{
+						if (at > 0)
+							Visit(at - 1);
+					}
+				}
+
+				static void Handed(int[] items)
+				{
+					Each(items, Put);
+
+					void Put(int item)
+					{
+						Each([item - 1], Put);
+					}
+				}
+
+				static void Checked(int depth)
+				{
+					Down(depth);
+
+					void Down(int at)
+					{
+						if (!SqlStack.Enough())
+						{
+							return;
+						}
+
+						Down(at - 1);
+					}
+				}
+
+				static void Method(int depth)
+				{
+					Method(depth - 1);
+				}
+			}
+			""";
+
+		var tree        = CSharpSyntaxTree.ParseText(planted, new CSharpParseOptions(LanguageVersion.Preview), "Planted.cs", cancellationToken: TestContext.Current.CancellationToken);
+		var compilation = CSharpCompilation.Create("Planted", [tree], References(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var planter     = compilation.GetTypeByMetadataName("Planted")!;
+
+		var (cycling, _) = Scan(compilation, [tree], planter);
+
+		Assert.Equal(["Method(Int32)", "Put(Int32)", "Visit(Int32)"], cycling);
+	}
+
+	/// <summary>
+	/// Every method and local function of <paramref name="writer"/> that can reach itself without passing
+	/// one that checks the stack first, and how many there are in all.
+	/// </summary>
+	static (List<string> Cycling, int Methods) Scan(CSharpCompilation compilation, IEnumerable<SyntaxTree> trees, INamedTypeSymbol writer)
+	{
+		var token   = TestContext.Current.CancellationToken;
+		var calls   = new Dictionary<IMethodSymbol, HashSet<IMethodSymbol>>(SymbolEqualityComparer.Default);
+		var guarded = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+		foreach (var part in trees)
+		{
+			var model = compilation.GetSemanticModel(part);
+
+			foreach (var declaration in part.GetRoot(token).DescendantNodes())
+			{
+				var (symbol, body) = declaration switch
+				{
+					MethodDeclarationSyntax method       => (model.GetDeclaredSymbol(method, token), (SyntaxNode?)method.Body ?? method.ExpressionBody),
+					LocalFunctionStatementSyntax local => (model.GetDeclaredSymbol(local, token) as IMethodSymbol, (SyntaxNode?)local.Body ?? local.ExpressionBody),
+					_                                    => (null, null),
+				};
+
+				if (symbol is null || body is null || !Within(symbol.ContainingType, writer))
+					continue;
+
+				calls[symbol] = Called(model, body, writer);
+
+				if (Checks(body))
+					guarded.Add(symbol);
+			}
+		}
+
+		return (Cycling(calls, guarded), calls.Count);
+	}
+
+	/// <summary>
+	/// Every method or local function of the writer that <paramref name="body"/> names, by a call or as a
+	/// delegate — in it, or in a lambda in it, but not in a local function declared in it, which is a
+	/// node of its own and names what it names itself.
+	/// </summary>
+	static HashSet<IMethodSymbol> Called(SemanticModel model, SyntaxNode body, INamedTypeSymbol writer)
 	{
 		var called = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+		var names  = body.DescendantNodes(static node => node is not LocalFunctionStatementSyntax).OfType<SimpleNameSyntax>();
 
-		foreach (var name in method.DescendantNodes().OfType<SimpleNameSyntax>())
+		foreach (var name in names)
 		{
-			var info   = model.GetSymbolInfo(name);
-			var named  = info.Symbol is { } one ? ImmutableArray.Create(one) : info.CandidateSymbols;
+			var info  = model.GetSymbolInfo(name);
+			var named = info.Symbol is { } one ? ImmutableArray.Create(one) : info.CandidateSymbols;
 
 			foreach (var symbol in named)
 			{
-				if (symbol is IMethodSymbol { MethodKind: MethodKind.Ordinary } target &&
+				if (symbol is IMethodSymbol { MethodKind: MethodKind.Ordinary or MethodKind.LocalFunction } target &&
 				    Within(target.ContainingType, writer))
 					called.Add(target.OriginalDefinition);
 			}
@@ -99,9 +206,9 @@ public sealed class WriterRecursionTests
 	}
 
 	/// <summary>Whether a method begins with the check the writers make.</summary>
-	static bool Checks(MethodDeclarationSyntax method)
+	static bool Checks(SyntaxNode body)
 	{
-		return method.Body?.Statements.FirstOrDefault() is IfStatementSyntax check &&
+		return body is BlockSyntax { Statements: [IfStatementSyntax check, ..] } &&
 		       check.Condition.ToString() == "!SqlStack.Enough()";
 	}
 
@@ -175,15 +282,19 @@ public sealed class WriterRecursionTests
 			.Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), parse, path))
 			.ToList();
 
-		var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
-			.Split(Path.PathSeparator)
-			.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path));
-
 		var compilation = CSharpCompilation.Create(
-			"Writers", trees, references,
+			"Writers", trees, References(),
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
 		return (compilation, trees);
+	}
+
+	/// <summary>The runtime's own assemblies, which is all either compilation here refers to.</summary>
+	static IEnumerable<MetadataReference> References()
+	{
+		return ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+			.Split(Path.PathSeparator)
+			.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path));
 	}
 
 	static string Root()
