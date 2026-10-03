@@ -2198,43 +2198,43 @@ namespace DotGram.Snapshots
 				switch (log[at + 1])
 				{
 					case 0:
-						Materialize_DotGram_Direct_Arm0(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm0(read, slot, values, log); break;
 					case 1:
-						Materialize_DotGram_Direct_Arm1(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm1(read, slot, values, log); break;
 					case 2:
-						Materialize_DotGram_Direct_Arm2(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm2(read, slot, values, log); break;
 					case 3:
-						Materialize_DotGram_Direct_Arm3(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm3(read, slot, values, log); break;
 					case 4:
-						Materialize_DotGram_Direct_Arm4(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm4(read, slot, values, log); break;
 					case 5:
-						Materialize_DotGram_Direct_Arm5(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm5(read, slot, values, log); break;
 					case 6:
-						Materialize_DotGram_Direct_Arm6(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm6(read, slot, values, log); break;
 					case 7:
-						Materialize_DotGram_Direct_Arm7(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm7(read, slot, values, log); break;
 					case 8:
-						Materialize_DotGram_Direct_Arm8(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm8(read, slot, values, log); break;
 					case 9:
-						Materialize_DotGram_Direct_Arm9(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm9(read, slot, values, log); break;
 					case 10:
-						Materialize_DotGram_Direct_Arm10(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm10(read, slot, values, log); break;
 					case 11:
-						Materialize_DotGram_Direct_Arm11(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm11(read, slot, values, log); break;
 					case 12:
-						Materialize_DotGram_Direct_Arm12(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm12(read, slot, values, log); break;
 					case 13:
-						Materialize_DotGram_Direct_Arm13(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm13(read, slot, values, log); break;
 					case 14:
-						Materialize_DotGram_Direct_Arm14(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm14(read, slot, values, log); break;
 					case 15:
-						Materialize_DotGram_Direct_Arm15(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm15(read, slot, values, log); break;
 					case 16:
-						Materialize_DotGram_Direct_Arm16(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm16(read, slot, values, log); break;
 					case 17:
-						Materialize_DotGram_Direct_Arm17(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm17(read, slot, values, log); break;
 					case 18:
-						Materialize_DotGram_Direct_Arm18(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm18(text, read, slot, values, log); break;
 				}
 
 				ways.Built = ways.Records;
@@ -2541,273 +2541,273 @@ namespace DotGram.Snapshots
 				switch (log[at + 1])
 				{
 					case 0:
-						Materialize_DotGram_Direct_Arm0(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm0(read, slot, values, log); break;
 					case 1:
-						Materialize_DotGram_Direct_Arm1(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm1(read, slot, values, log); break;
 					case 2:
-						Materialize_DotGram_Direct_Arm2(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm2(read, slot, values, log); break;
 					case 3:
-						Materialize_DotGram_Direct_Arm3(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm3(read, slot, values, log); break;
 					case 4:
-						Materialize_DotGram_Direct_Arm4(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm4(read, slot, values, log); break;
 					case 5:
-						Materialize_DotGram_Direct_Arm5(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm5(read, slot, values, log); break;
 					case 6:
-						Materialize_DotGram_Direct_Arm6(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm6(read, slot, values, log); break;
 					case 7:
-						Materialize_DotGram_Direct_Arm7(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm7(read, slot, values, log); break;
 					case 8:
-						Materialize_DotGram_Direct_Arm8(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm8(read, slot, values, log); break;
 					case 9:
-						Materialize_DotGram_Direct_Arm9(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm9(read, slot, values, log); break;
 					case 10:
-						Materialize_DotGram_Direct_Arm10(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm10(read, slot, values, log); break;
 					case 11:
-						Materialize_DotGram_Direct_Arm11(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm11(read, slot, values, log); break;
 					case 12:
-						Materialize_DotGram_Direct_Arm12(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm12(read, slot, values, log); break;
 					case 13:
-						Materialize_DotGram_Direct_Arm13(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm13(read, slot, values, log); break;
 					case 14:
-						Materialize_DotGram_Direct_Arm14(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm14(read, slot, values, log); break;
 					case 15:
-						Materialize_DotGram_Direct_Arm15(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm15(read, slot, values, log); break;
 					case 16:
-						Materialize_DotGram_Direct_Arm16(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm16(read, slot, values, log); break;
 					case 17:
-						Materialize_DotGram_Direct_Arm17(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm17(read, slot, values, log); break;
 					case 18:
-						Materialize_DotGram_Direct_Arm18(text, read, slot); break;
+						Materialize_DotGram_Direct_Arm18(text, read, slot, values, log); break;
 				}
 			}
 
 			ways.Built = ways.Records;
+		}
 
-			void Materialize_DotGram_Direct_Arm0(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm0(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L01((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L01((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm1(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm1(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L02((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L02((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm2(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm2(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L03((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L03((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm3(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm3(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L04((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L04((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm4(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm4(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L05((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L05((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm5(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm5(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L06((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L06((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm6(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm6(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L07((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L07((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm7(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm7(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L08((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L08((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm8(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm8(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L09((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L09((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm9(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm9(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L10((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L10((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm10(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm10(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L11((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L11((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm11(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm11(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L12((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L12((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm12(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm12(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L13((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L13((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm13(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm13(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L14((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L14((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm14(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm14(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L15((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L15((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm15(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm15(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L16((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L16((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm16(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm16(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L17((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L17((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm17(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var record0 = log[read++];
-				int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
+		static void Materialize_DotGram_Direct_Arm17(int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var record0 = log[read++];
+			int? captured0 = record0 < 0 ? default(int?) : values0[record0].Value;
 
-				var record1 = log[read++];
-				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
+			var record1 = log[read++];
+			int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L18((int)captured0!, (int)captured1!);
-			}
+			values0[slot].Value = Construct_L18((int)captured0!, (int)captured1!);
+		}
 
-			void Materialize_DotGram_Direct_Arm18(global::System.ReadOnlySpan<char> text, int read, int slot)
-			{
-				var values0 = values.V0;
-				var from0 = log[read++];
-				var to0   = log[read++];
-				var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
+		static void Materialize_DotGram_Direct_Arm18(global::System.ReadOnlySpan<char> text, int read, int slot, DirectValues values, int[] log)
+		{
+			var values0 = values.V0;
+			var from0 = log[read++];
+			var to0   = log[read++];
+			var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-				values0[slot].Value = Construct_Digits(captured0!);
-			}
+			values0[slot].Value = Construct_Digits(captured0!);
 		}
 
 		static bool Recognize_DotGram_Guard0(int inner) =>

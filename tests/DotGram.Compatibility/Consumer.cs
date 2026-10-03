@@ -180,4 +180,39 @@ namespace DotGram.Compatibility
 		/// <summary>What it is set to.</summary>
 		public string Value { get; }
 	}
+
+	// Sixteen valued rules on the tape, each with a guard that builds while the text is read,
+	// which is where a walk's arms become methods of their own: static methods of the class
+	// beside the walk, each handed what of it it reads. A grammar with fewer writes them
+	// inline, and the floor would never see one.
+	/// <summary>A tower of sixteen guarded levels, built by the walk over the tape.</summary>
+	[Gram(
+		"L01 : @int = '(' & inner: L02 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L02 : @int = '(' & inner: L03 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L03 : @int = '(' & inner: L04 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L04 : @int = '(' & inner: L05 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L05 : @int = '(' & inner: L06 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L06 : @int = '(' & inner: L07 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L07 : @int = '(' & inner: L08 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L08 : @int = '(' & inner: L09 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L09 : @int = '(' & inner: L10 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L10 : @int = '(' & inner: L11 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L11 : @int = '(' & inner: L12 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L12 : @int = '(' & inner: L13 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L13 : @int = '(' & inner: L14 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L14 : @int = '(' & inner: L15 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L15 : @int = '(' & inner: L16 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"L16 : @int = '(' & inner: Digits & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
+		"Digits : @int = text: ['0'..'9']+ => @(ToInt(text))\n" +
+		"parse L01", Carrier = GramCarrier.Tape)]
+	public partial class ManyArms
+	{
+		static int ToInt(string text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - '0');
+			return result;
+		}
+	}
+
 }

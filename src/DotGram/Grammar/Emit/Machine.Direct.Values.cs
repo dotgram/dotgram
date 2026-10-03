@@ -817,6 +817,8 @@ sealed partial class Machine
 		IReadOnlyList<RuleSymbol> rules, List<List<(RuleSymbol Rule, int Factory)>> parts)
 	{
 		var file = new Writer(0);
+		// What is written after the walk, beside it in the class: its arms and parts.
+		var after = new Writer(0);
 
 		file.Line("/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>");
 
@@ -844,6 +846,55 @@ sealed partial class Machine
 			// Whether the arms are methods of their own (CallDirectArm): wherever the walk is
 			// divided, and where it holds enough of them that their locals are a frame worth zeroing.
 			var alone = parts.Count > 1 || parts[0].Count >= AloneArms;
+			// Such an arm is a static method of the class and not a local function of the walk
+			// (DirectArmMethod), so it is handed whatever of the walk it names, rendered first
+			// to learn what that is.
+			var shared  = DirectShared(strays, twice, placed);
+			var methods = new Dictionary<int, (Writer Body, List<(string Type, string Name)> Takes)>();
+
+			if (alone)
+				foreach (var part in parts)
+					foreach (var (rule, factory) in part)
+						if (!IsExtent(rule))
+							methods[DirectArm(rule, factory)] = DirectArmBody(rule, factory, shared);
+
+			// The other switch over the same arms, divided into the same groups (below), each
+			// handed the log and the flags only where one of its arms reads them.
+			var reaches = new List<(Writer Body, List<(string Type, string Name)> Takes)>();
+
+			if (strays && parts.Count > 1)
+				foreach (var part in parts)
+				{
+					var body = new Writer(1);
+
+					using (body.Block("switch (kind)"))
+					{
+						foreach (var (rule, factory) in part)
+							MarkDirectArm(body, rule, factory, selected ? $"{DirectMaterializer}_Reach" : null);
+
+						body.Line("default: return false;");
+					}
+
+					body.Line();
+					body.Line("return true;");
+
+					// A walk that follows references hands each record reached to `_Reach`, which
+					// takes it where it is not built yet (DirectReach); the other raises its flag.
+					var marks = body.ToString();
+					var takes = selected
+						? new List<(string Type, string Name)> { ("int[]", "log"), ("bool[]", "built"), ("int[]", "pending"), ("ref int", "count"), ("int", "kind"), ("int", "read") }
+						: new List<(string Type, string Name)> { ("int[]", "log"), ("bool[]", "live"), ("int", "kind"), ("int", "read") };
+
+					reaches.Add((body, takes.Where(one => one.Name == "kind" || Names(marks, one.Name)).ToList()));
+				}
+
+			// A part is handed what any of its arms is, to hand on.
+			var handed = parts
+				.Select(part => shared
+					.Where(one => part.Any(arm =>
+						methods.TryGetValue(DirectArm(arm.Rule, arm.Factory), out var method) && method.Takes.Contains(one)))
+					.ToList())
+				.ToList();
 
 			// Which arm builds the record at `at`, into `slot`: the loop's, and the one-record path's.
 			void Dispatch()
@@ -860,7 +911,7 @@ sealed partial class Machine
 					{
 						foreach (var (rule, factory) in parts[0])
 							if (alone)
-								CallDirectArm(file, rule, factory, placed);
+								CallDirectArm(file, rule, factory, methods);
 							else
 								MaterializeDirectArm(file, rule, factory);
 					}
@@ -873,9 +924,7 @@ sealed partial class Machine
 
 							using (file.Indent())
 							{
-								file.Line(
-									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
-									(placed ? ", start, end" : "") + ");");
+								file.Line($"{DirectMaterializer}_Part{part}(log[at + 1]{Handed(handed[part])});");
 								file.Line("break;");
 							}
 						}
@@ -1039,8 +1088,8 @@ sealed partial class Machine
 							for (var part = 0; part < parts.Count; part++)
 								file.Line(
 									(part < parts.Count - 1 ? "if (!" : "	") +
-									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
-									(placed ? ", start, end" : "") + (part < parts.Count - 1 ? "))" : ");"));
+									$"{DirectMaterializer}_Part{part}(log[at + 1]{Handed(handed[part])}" +
+									(part < parts.Count - 1 ? "))" : ");"));
 						else
 							Dispatch();
 
@@ -1056,7 +1105,7 @@ sealed partial class Machine
 			// What the root reaches, and nothing else: a valued rule that matched without being
 			// captured is in the log, and its factory must not run (docs/syntax.md §7.2).
 			if (selected)
-				DirectReach(file, rules, parts.Count);
+				DirectReach(file, rules, reaches.Select(static part => part.Takes).ToList());
 			else if (strays)
 			{
 				file.Line("var starts = values.Starts;");
@@ -1113,12 +1162,12 @@ sealed partial class Machine
 						file.Line();
 
 						for (var part = 0; part < parts.Count; part++)
-							file.Line(
-								part == 0
-									? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
-									: part < parts.Count - 1
-										? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
-										: $"	{DirectMaterializer}_Reaches{part}(log, live, kind, read);");
+						{
+							var call = $"{DirectMaterializer}_Reaches{part}(" +
+								string.Join(", ", reaches[part].Takes.Select(Argument)) + ")";
+
+							file.Line(part < parts.Count - 1 ? $"if (!{call})" : $"	{call};");
+						}
 					}
 				}
 			}
@@ -1248,46 +1297,51 @@ sealed partial class Machine
 				file.Line("ways.Built = ways.Records;");
 			}
 
-			// Local functions, for the reason the tape's materializer has them
+			// Methods of their own, for the reason the tape's materializer has parts
 			// (Machine.Materialization.cs): the compiler below stops optimizing a method
 			// past about two thousand basic blocks, and this one is a walk with an arm per
 			// valued rule — so it grows with the grammar and nothing else was dividing it.
-			// The span cannot be a field of the frame a local function captures and is
-			// handed over; `read` and `slot` are the iteration's own and are handed over
-			// too, `read` because an arm advances it and no one after the arm reads it.
+			// `read` and `slot` are the iteration's own, `read` because an arm advances it
+			// and no one after the arm reads it.
+			//
+			// Static methods of the class, beside the walk, and not local functions inside
+			// it: the C# compiler binds and lowers a method together with its local
+			// functions, one method at a time, so the largest walks — over seventeen hundred
+			// arms in T-SQL — were each compiled on one thread, and were the longest part of
+			// building the SQL parsers. Methods of the class are compiled in parallel. Each
+			// is handed what of the walk it names (DirectShared); a local function was handed
+			// the same through the frame it captured, by reference.
 			if (parts.Count == 1 && alone)
 				foreach (var (rule, factory) in parts[0])
-					DirectArmMethod(file, rule, factory, placed);
+					DirectArmMethod(after, rule, factory, methods);
 
 			if (parts.Count > 1)
 				for (var part = 0; part < parts.Count; part++)
 				{
-					file.Line();
+					after.Line();
 
-					using (file.Block(
-						$"bool {DirectMaterializer}_Part{part}(" +
-						$"{InputType} text, int kind, int read, int slot" +
-						(placed ? ", int start, int end" : "") + ")"))
+					using (after.Block(
+						$"static bool {DirectMaterializer}_Part{part}(int kind{Taken(handed[part])})"))
 					{
 						// Each arm is a method of its own, called from here. The JIT gives every
 						// local of a method a slot of its own and zeroes each one that holds a
 						// reference, in the prologue, on every call; with the arms' bodies here
 						// that was the locals of all of them, some ten kilobytes, for a record
 						// that runs one (SQL:2023's select20: 32 of its 71 µs).
-						using (file.Block("switch (kind)"))
+						using (after.Block("switch (kind)"))
 						{
 							foreach (var (rule, factory) in parts[part])
-								CallDirectArm(file, rule, factory, placed);
+								CallDirectArm(after, rule, factory, methods);
 
-							file.Line("default: return false;");
+							after.Line("default: return false;");
 						}
 
-						file.Line();
-						file.Line("return true;");
+						after.Line();
+						after.Line("return true;");
 					}
 
 					foreach (var (rule, factory) in parts[part])
-						DirectArmMethod(file, rule, factory, placed);
+						DirectArmMethod(after, rule, factory, methods);
 				}
 
 			// The other switch over the same arms, divided into the same groups. It says
@@ -1299,73 +1353,61 @@ sealed partial class Machine
 			// It answers whether it knew the kind, so the groups are asked in turn and the
 			// one that knows it stops the chain. `read` is handed over by value: an arm
 			// steps it and nothing after the switch reads it.
-			if (strays && parts.Count > 1)
-				for (var part = 0; part < parts.Count; part++)
-				{
-					file.Line();
+			for (var part = 0; part < reaches.Count; part++)
+			{
+				after.Line();
 
-					using (file.Block(
-						$"static bool {DirectMaterializer}_Reaches{part}(" +
-						(selected ? "int[] log, bool[] built, int[] pending, ref int count, int kind, int read)" : "int[] log, bool[] live, int kind, int read)")))
-					{
-						using (file.Block("switch (kind)"))
-						{
-							foreach (var (rule, factory) in parts[part])
-								MarkDirectArm(file, rule, factory, selected ? $"{DirectMaterializer}_Reach" : null);
-
-							file.Line("default: return false;");
-						}
-
-						file.Line();
-						file.Line("return true;");
-					}
-				}
+				using (after.Block(
+					$"static bool {DirectMaterializer}_Reaches{part}(" +
+					string.Join(", ", reaches[part].Takes.Select(static one => $"{one.Type} {one.Name}")) + ")"))
+					after.Append(reaches[part].Body);
+			}
 
 			// One record reached: taken where it is not built yet, and flagged at once, so that a
-			// record two others name is taken once.
+			// record two others name is taken once. A static method of the class like the parts
+			// that call it, and with no attribute: those need C# 9, and the generated code is held
+			// to C# 8. It is small enough for the JIT to inline unasked.
 			if (selected)
 			{
-				// A local function like the rest, so no attribute: those need C# 9, and the generated
-				// code is held to C# 8. It is small enough for the JIT to inline unasked.
-				file.Line();
+				after.Line();
 
-				using (file.Block($"static void {DirectMaterializer}_Reach(bool[] built, int[] pending, ref int count, int slot)"))
+				using (after.Block($"static void {DirectMaterializer}_Reach(bool[] built, int[] pending, ref int count, int slot)"))
 				{
-					file.Line("if (built[slot])");
-					file.Then("return;");
-					file.Line();
-					file.Line("built[slot] = true;");
-					file.Line("pending[count++] = slot;");
+					after.Line("if (built[slot])");
+					after.Then("return;");
+					after.Line();
+					after.Line("built[slot] = true;");
+					after.Line("pending[count++] = slot;");
 				}
 			}
 
 			// Whether a record between two places in the log hands its factory the marks.
 			if (_marksAsked is { } arms)
 			{
-				file.Line();
-				// Not a documentation comment: a local function takes none, and a consumer generating
-				// the documentation of their own assembly is told so (CS1587).
-				file.Line("// Whether a record the walk may build from here on is handed the marks standing over it.");
+				after.Line();
+				after.Line("// Whether a record the walk may build from here on is handed the marks standing over it.");
 
-				using (file.Block($"static bool {DirectMaterializer}_AsksMarks(int[] log, int from, int end)"))
+				using (after.Block($"static bool {DirectMaterializer}_AsksMarks(int[] log, int from, int end)"))
 				{
-					using (file.Block("for (var at = from; at < end; at += log[at])"))
+					using (after.Block("for (var at = from; at < end; at += log[at])"))
 					{
-						file.Line("switch (log[at + 1])");
+						after.Line("switch (log[at + 1])");
 
-						using (file.Block(""))
+						using (after.Block(""))
 						{
-							file.Line(string.Concat(arms.Select(static arm => $"case {arm}: ")) + "return true;");
+							after.Line(string.Concat(arms.Select(static arm => $"case {arm}: ")) + "return true;");
 						}
 					}
 
-					file.Line();
-					file.Line("return false;");
+					after.Line();
+					after.Line("return false;");
 				}
 
 				_marksAsked = null;
 			}
 		}
+
+		file.Append(after);
 
 		return file.ToString();
 	}
@@ -1392,7 +1434,7 @@ sealed partial class Machine
 	/// record's factory reads the values of the records it holds, and those were written before it.
 	/// </para>
 	/// </remarks>
-	void DirectReach(Writer file, IReadOnlyList<RuleSymbol> rules, int parts)
+	void DirectReach(Writer file, IReadOnlyList<RuleSymbol> rules, List<List<(string Type, string Name)>> parts)
 	{
 		file.Line("var starts  = values.Starts;");
 		file.Line("var pending = values.Pending;");
@@ -1432,11 +1474,11 @@ sealed partial class Machine
 			file.Line("var kind = log[at + 1];");
 			file.Line();
 
-			for (var part = 0; part < parts; part++)
+			for (var part = 0; part < parts.Count; part++)
 				file.Line(
-					(part < parts - 1 ? "if (!" : "	") +
-					$"{DirectMaterializer}_Reaches{part}(log, built, pending, ref count, kind, read)" +
-					(part < parts - 1 ? ")" : ";"));
+					(part < parts.Count - 1 ? "if (!" : "	") +
+					$"{DirectMaterializer}_Reaches{part}({string.Join(", ", parts[part].Select(Argument))})" +
+					(part < parts.Count - 1 ? ")" : ";"));
 		}
 
 		file.Line();
@@ -1513,7 +1555,9 @@ sealed partial class Machine
 	const int AloneArms = 16;
 
 	/// <summary>An arm called where it is a method of its own, and an extent's arm, which builds nothing.</summary>
-	void CallDirectArm(Writer file, RuleSymbol rule, int factory, bool placed)
+	void CallDirectArm(
+		Writer file, RuleSymbol rule, int factory,
+		Dictionary<int, (Writer Body, List<(string Type, string Name)> Takes)> methods)
 	{
 		if (IsExtent(rule))
 		{
@@ -1524,40 +1568,156 @@ sealed partial class Machine
 
 		file.Line($"case {DirectArm(rule, factory)}:");
 		file.Then(
-			$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(text, read, slot" +
-			(placed ? ", start, end" : "") + "); break;");
+			$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+			string.Join(", ", methods[DirectArm(rule, factory)].Takes.Select(static one => one.Name)) + "); break;");
 	}
 
 	/// <summary>An arm as a method of its own, holding its own locals and taking its own tables.</summary>
-	void DirectArmMethod(Writer file, RuleSymbol rule, int factory, bool placed)
+	void DirectArmMethod(
+		Writer file, RuleSymbol rule, int factory,
+		Dictionary<int, (Writer Body, List<(string Type, string Name)> Takes)> methods)
 	{
 		if (IsExtent(rule))
 			return;
 
+		var (body, takes) = methods[DirectArm(rule, factory)];
+
 		file.Line();
 
 		using (file.Block(
-			$"void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
-			$"{InputType} text, int read, int slot" +
-			(placed ? ", int start, int end" : "") + ")"))
-		{
-			var body = new Writer(file.Depth);
-
-			MaterializeDirectArmBody(body, rule, factory);
-
-			var rendered = body.ToString();
-
-			// The tables this arm reads and writes, taken from their fields here and
-			// not by the walk for every arm: a table the walk holds is a field of the
-			// frame all its arms share, and the walk filled a hundred of them on
-			// every call to build one record. A table that grows is stored back to its
-			// field by Grow, so what an arm takes is always the table.
-			if (!DenseDirectValues)
-				foreach (var table in TablesIn(rendered))
-					file.Line($"var values{table} = values.V{table}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
-
+			$"static void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+			string.Join(", ", takes.Select(static one => $"{one.Type} {one.Name}")) + ")"))
 			file.Append(body);
+	}
+
+	/// <summary>
+	/// An arm's body as the method of its own writes it, and the variables of the walk it
+	/// names, which the method is handed.
+	/// </summary>
+	(Writer Body, List<(string Type, string Name)> Takes) DirectArmBody(
+		RuleSymbol rule, int factory, List<(string Type, string Name)> shared)
+	{
+		// The depth of a method's body in the class the walk is written into.
+		var body = new Writer(1);
+		var arm  = new Writer(1);
+
+		MaterializeDirectArmBody(arm, rule, factory);
+
+		var rendered = arm.ToString();
+
+		// The tables this arm reads and writes, taken from their fields here and
+		// not by the walk for every arm: the walk filled a hundred of them on
+		// every call to build one record, when they were fields of the frame all its
+		// arms shared. A table that grows is stored back to its field by Grow, so
+		// what an arm takes is always the table.
+		if (!DenseDirectValues)
+			foreach (var table in TablesIn(rendered))
+				body.Line($"var values{table} = values.V{table}{(Carrier is TapeCarrier { AdaptiveStore: true } ? ".First" : "")};");
+
+		body.Append(arm);
+
+		var text = body.ToString();
+
+		return (body, shared.Where(one => Names(text, one.Name)).ToList());
+	}
+
+	/// <summary>
+	/// What of the walk an arm may name: the record it builds — where it is read from, which
+	/// slot, and where it was written where positions are placed — and the walk's parameters
+	/// and the locals it sets before any arm runs. An arm assigns none of them but <c>read</c>,
+	/// which it advances and nothing after the arm reads.
+	/// </summary>
+	/// <remarks>
+	/// An arm is handed only what it names, the record's own included: a parameter a method
+	/// never reads is a finding of the consumer's analyzers (IDE0060), where a local function's
+	/// was not.
+	/// </remarks>
+	List<(string Type, string Name)> DirectShared(bool strays, bool twice, bool placed)
+	{
+		var shared = new List<(string Type, string Name)>
+		{
+			(InputType, "text"),
+			("int", "read"),
+			("int", "slot"),
+		};
+
+		if (placed)
+		{
+			shared.Add(("int", "start"));
+			shared.Add(("int", "end"));
 		}
+
+		shared.Add((WaysType, "ways"));
+		shared.Add(("DirectValues", "values"));
+		shared.Add(("int[]", "log"));
+
+		if (strays)
+			shared.Add(("bool[]", "live"));
+
+		if (twice)
+			shared.Add(("bool[]", "built"));
+
+		if (UsesMarks)
+			shared.Add(("int", "marked"));
+
+		if (UsesInput)
+			shared.Add(("string", "parserInput"));
+
+		if (OverKinds)
+		{
+			shared.Add(("string", "parserSource"));
+			shared.Add(("int[]", "parserStarts"));
+			shared.Add(("int[]", "parserLengths"));
+		}
+
+		if (UsesContext)
+			shared.Add((_graph.Context!, "context"));
+
+		if (UsesReading)
+			shared.Add(("int", "parserReading"));
+
+		if (UsesLocating)
+			shared.Add(("int", "parserLocating"));
+
+		return shared;
+	}
+
+	/// <summary>Whether code names an identifier: the word, not a longer one it begins or ends.</summary>
+	static bool Names(string code, string name)
+	{
+		for (var at = code.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			at = code.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			var end = at + name.Length;
+
+			if ((at == 0 || !IsWordPart(code[at - 1])) && (end == code.Length || !IsWordPart(code[end])))
+				return true;
+		}
+
+		return false;
+
+		static bool IsWordPart(char c)
+		{
+			return char.IsLetterOrDigit(c) || c == '_';
+		}
+	}
+
+	/// <summary>The walk's variables as the arguments of a call that hands them over, each after a comma.</summary>
+	static string Handed(List<(string Type, string Name)> takes)
+	{
+		return string.Concat(takes.Select(static one => ", " + Argument(one)));
+	}
+
+	/// <summary>One of the walk's variables as the argument that hands it over: by reference where it is taken so.</summary>
+	static string Argument((string Type, string Name) one)
+	{
+		return one.Type.StartsWith("ref ", StringComparison.Ordinal) ? "ref " + one.Name : one.Name;
+	}
+
+	/// <summary>The walk's variables as the parameters of a method that is handed them, each after a comma.</summary>
+	static string Taken(List<(string Type, string Name)> takes)
+	{
+		return string.Concat(takes.Select(static one => $", {one.Type} {one.Name}"));
 	}
 
 	/// <summary>The tables an arm's rendered body names, each once and in the order it first names them.</summary>
