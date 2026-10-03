@@ -339,6 +339,26 @@ public static partial class ExpressionParser
 		return typeof(Nullable<>).MakeGenericType(type);
 	}
 
+	/// <summary>The type `T?` means, as C# means it: `Nullable&lt;T&gt;` for a value type that is
+	/// not already one, and the reference type itself otherwise.</summary>
+	/// <remarks>
+	/// A reference type's own `?` is a nullable-reference annotation in C#, erased by the time
+	/// anything runs — `string?` and `string` are one `Type` at runtime — and nothing here tracks
+	/// annotations, so there is nothing for it to mean beyond the type already written. A value
+	/// type that is already nullable has none to lift a second time, which is no type in C# either
+	/// (CS8629): `int??` is refused here in the same words `Type` is refused in generally, naming
+	/// the one type that is not the two `?` it was asked to be.
+	/// </remarks>
+	internal static Type Nulled(Type type)
+	{
+		if (!type.IsValueType)
+			return type;
+
+		return Nullable.GetUnderlyingType(type) is null
+			? Lifted(type)
+			: throw new FormatException($"'{type.Name}?' is not a type: '{type.Name}' is already nullable.");
+	}
+
 	static bool CanBeNull(Type type)
 	{
 		return !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;

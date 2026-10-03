@@ -2269,6 +2269,18 @@ public static class HandExpression
 			if (at < 0)
 				return -1;
 
+			// `int?` is `Nullable<int>`, read where C#'s `?:` has no `?` of its own to be
+			// confused with (every place but `is`/`as`, which `Tested` reads instead) — before
+			// the brackets, since `?` binds to what stands right before them and not to the
+			// array: `int?[]` is an array of nullable `int`.
+			if (Kind(at) == Question)
+			{
+				if (build)
+					type = Nulled(type);
+
+				at++;
+			}
+
 			while (Kind(at) == Brackets)
 			{
 				type = type?.MakeArrayType();
@@ -2276,6 +2288,51 @@ public static class HandExpression
 			}
 
 			return at;
+		}
+
+		/// <summary>
+		/// The same, for `is` and `as`, where C#'s `?:` also reads a `?`: `x is int ? 1 : 2` is
+		/// `(x is int) ? 1 : 2`, not `x is (int?)` with nothing after it. A bare `?` is read as
+		/// nullable only where what follows it could not be the start of a new expression — a
+		/// name, a keyword, a digit, a quote, `(`, or a unary `+ - ! ~` all open one, so none of
+		/// them stands here. `NullableFollows` says the tokens that close an enclosing construct
+		/// or continue with an operator that is never a prefix, among the tokens this grammar
+		/// reaches from here; the lexer's own `?` and `??` are already two tokens (`Question` and
+		/// `Coalesce`), so a `?` run into another never reaches this check at all.
+		/// </summary>
+		int Tested(int i, out Type? type, bool build)
+		{
+			var at = Core(i, out type, build);
+
+			if (at < 0)
+				return -1;
+
+			if (Kind(at) == Question && NullableFollows(Kind(at + 1)))
+			{
+				if (build)
+					type = Nulled(type);
+
+				at++;
+			}
+
+			while (Kind(at) == Brackets)
+			{
+				type = type?.MakeArrayType();
+				at++;
+			}
+
+			return at;
+		}
+
+		static Type? Nulled(Type? type)
+		{
+			return type is null ? null : ExpressionParser.Nulled(type);
+		}
+
+		static bool NullableFollows(byte kind)
+		{
+			return kind is RightParen or RightBracket or RightBrace or Semicolon or Comma or Colon
+				or Equal or NotEqual or LessEq or GreaterEq or End;
 		}
 
 		int Core(int i, out Type? type, bool build)
@@ -3596,7 +3653,7 @@ public static class HandExpression
 				// they sit at the relational level because C# puts them there.
 				if (operation == KwIs || operation == KwAs)
 				{
-					var named = Type(read + 1, out var type, _build);
+					var named = Tested(read + 1, out var type, _build);
 
 					if (named < 0)
 						return read;

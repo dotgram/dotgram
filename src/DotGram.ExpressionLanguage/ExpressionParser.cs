@@ -604,10 +604,46 @@ namespace DotGram.ExpressionLanguage;
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
 	// rather than a switch over strings refusing it at run time.
-	// A type is a name for one, and then as many `[]` as the author wrote. Left recursive,
-	// so `int[][]` is read once and folded rather than started over.
-	Type : @Type on fail "Expected a type." = t: Type & "[]" => @(t.MakeArrayType())
-	             | c: Core        => @(c)
+	// A type is a name for one, then `?` where C# writes a nullable value type over it, and
+	// then as many `[]` as the author wrote — `int?[]` is an array of nullable `int`, read as
+	// one type and not two, since `?` binds to what stands right before the `[]` and not to
+	// the array. Left recursive, so `int[][]` is read once and folded rather than started over.
+	//
+	// Written here rather than as a fourth thing `[]` may stand on: every place this rule is
+	// read — a declaration, a cast, `typeof`, `default`, a generic argument, `foreach`, `catch`
+	// — has nothing else a bare `?` could mean right there, so it is always nullable. `Tested`,
+	// below, is the one place that is not true.
+	Type : @Type on fail "Expected a type."
+		= t: Type & "[]" => @(t.MakeArrayType())
+		| c: Core & nulled: Marked?
+		  => @(nulled == true ? ExpressionParser.Nulled(c) : c)
+
+	// A bare `?`, built apart from `Type` and `Tested` because a nested group takes its result
+	// type from the rule around it (§3.7) — inside either of those, declared `@Type`, `=> @(true)`
+	// would have to be a `Type` instead of the `bool` it is.
+	Marked : @bool = '?' => @(true)
+
+	// `is` and `as` read a type where C#'s `?:` also reads one — `x is int ? 1 : 2` is `(x is
+	// int) ? 1 : 2`, not `x is (int?)` with nothing after it — so here, unlike in `Type`, a bare
+	// `?` is read as nullable only where what follows it could not be the start of a new
+	// expression, the same question C#'s own grammar note about this ambiguity asks: a name, a
+	// keyword, a digit, a quote, `(`, or a unary `+ - ! ~` all open one, so none of them stands
+	// here; what closes an enclosing construct, or continues with an operator that is never a
+	// prefix, does not, and is read as nullable. `TestedMarked` says the closing and continuing
+	// tokens this language has rather than everything C#'s does, because `Tested` is the only
+	// rule that reads this far and the ones it has not read are not reached from here: `&&`,
+	// `||`, `|`, `^`, `&`, `*`, `/`, `%`, `<<` and `>>` after such a `?` are read as the ternary's
+	// `?`, as they were before `Tested` existed, rather than a nullable type's. One rule and not
+	// `Type` itself, because every OTHER place `Type` is read has nothing else a `?` could mean,
+	// and a guard that cost them all a lookahead for an ambiguity none of them have would be the
+	// wrong place to put it.
+	Tested : @Type on fail "Expected a type."
+		= t: Tested & "[]" => @(t.MakeArrayType())
+		| c: Core & nulled: TestedMarked?
+		  => @(nulled == true ? ExpressionParser.Nulled(c) : c)
+
+	TestedMarked : @bool
+		= '?' & ?=(')' | ']' | '}' | ';' | ',' | ':' | "==" | "!=" | "<=" | ">=" | eof) => @(true)
 
 	Core : @Type = "sbyte"   => @(typeof(sbyte))
 	             | "byte"    => @(typeof(byte))
@@ -1241,8 +1277,8 @@ namespace DotGram.ExpressionLanguage;
 		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(ExpressionParser.Integral(Expression.And, left, right))
 		| left: Binary & "==" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.Equal, left, right))
 		| left: Binary & "!=" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.NotEqual, left, right))
-		| left: Binary & "is" & type: Type           << 7  => @(Expression.TypeIs(left, type))
-		| left: Binary & "as" & type: Type           << 7  => @(Expression.TypeAs(left, type))
+		| left: Binary & "is" & type: Tested          << 7  => @(Expression.TypeIs(left, type))
+		| left: Binary & "as" & type: Tested          << 7  => @(Expression.TypeAs(left, type))
 		| left: Binary & "<=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.LessThanOrEqual, left, right))
 		| left: Binary & ">=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.GreaterThanOrEqual, left, right))
 		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(ExpressionParser.Relational(Expression.LessThan, left, right))
