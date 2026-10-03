@@ -215,4 +215,23 @@ namespace DotGram.Compatibility
 		}
 	}
 
+	// A grammar read over kinds, whose tokenizer reads its transitions from a table: at the
+	// floor the table is an array initializer (from C# 11 it is a UTF-8 literal decoded once,
+	// which this project, held to C# 8, must never be handed).
+	/// <summary>Statements read over the kinds a tokenizer finds.</summary>
+	[Gram(
+		"wordboundary = ['a'..'z'] | ['0'..'9'] | '_'\n" +
+		"trivia = { (' ' | '\\t' | '\\r' | '\\n')* }\n" +
+		"namespace Token\n" +
+		"{\n" +
+		"\ttrivia = none\n" +
+		"\tName   = (['a'..'z'] | '_') & (['a'..'z'] | ['0'..'9'] | '_')*\n" +
+		"\tNumber = ['0'..'9']+\n" +
+		"}\n" +
+		"Program   : @string[] = Statement* & eof\n" +
+		"Statement : @string = \"let\" & name: Token.Name & '=' & value: Token.Number & ';' => @(name + \"=\" + value)\n" +
+		"parse Program", Lexical = true)]
+	public partial class Tokens
+	{
+	}
 }

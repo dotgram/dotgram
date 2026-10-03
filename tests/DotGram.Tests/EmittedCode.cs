@@ -70,11 +70,15 @@ static class EmittedCode
 		string? @namespace = null,
 		string? declarationMembers = null,
 		IEnumerable<string>? sourceParts = null,
-		IEnumerable<string>? symbols = null)
+		IEnumerable<string>? symbols = null,
+		bool utf8Literals = false)
 	{
 		// Preprocessor symbols, for the one thing generated code writes behind a `#if`: the
 		// counters of D144, which no project defines and a counting gate compiles for itself.
-		var parse = symbols is null ? Floor : Floor.WithPreprocessorSymbols(symbols);
+		// And C# 11 where the code was emitted for it (GramCompilerOptions.Utf8Literals): the
+		// one form above the floor, compiled at the version that asked for it.
+		var floor = utf8Literals ? Floor.WithLanguageVersion(LanguageVersion.CSharp11) : Floor;
+		var parse = symbols is null ? floor : floor.WithPreprocessorSymbols(symbols);
 
 		var declaration = @namespace is null
 			? $"public partial class {className} {{ {declarationMembers} }}"

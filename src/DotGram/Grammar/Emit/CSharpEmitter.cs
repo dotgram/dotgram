@@ -189,7 +189,7 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false, bool trace = false)
+		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false)
 	{
 		statics ??= [];
 
@@ -906,7 +906,7 @@ public static partial class CSharpEmitter
 		// calls the same one.
 		if (lexical is not null)
 		{
-			file.Write(Lexical(lexical, valuing));
+			file.Write(Lexical(lexical, valuing, utf8Literals));
 			file.Line();
 		}
 
@@ -2459,11 +2459,11 @@ public static partial class CSharpEmitter
 	/// of every other pattern, and it ran for ten minutes without finishing.
 	/// </para>
 	/// </remarks>
-	static string Lexical(LexicalSplit lexical, Machine? valuing)
+	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals)
 	{
 		var file = new Writer(0);
 
-		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!));
+		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
 		file.Line();
 
 		var seam     = Seam(lexical);

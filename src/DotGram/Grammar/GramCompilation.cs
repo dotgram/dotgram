@@ -275,6 +275,18 @@ public sealed class GramCompilerOptions
 	public bool MemoiseFailures { get; set; } = true;
 
 	/// <summary>
+	/// Whether the consumer's C# is 11 or later, so that the code may hold UTF-8 string
+	/// literals. Off by default, which is the C# 8 floor every emitted file is held to.
+	/// </summary>
+	/// <remarks>
+	/// It chooses how a lexer's table is written and nothing a consumer can see: as a UTF-8
+	/// literal, which the C# compiler reads as one token, or as an array initializer of every
+	/// cell, which is the floor's form and the slowest thing in a large grammar to compile.
+	/// The generator sets it from the effective language version of the compilation.
+	/// </remarks>
+	public bool Utf8Literals { get; set; }
+
+	/// <summary>
 	/// Whether a <c>parse</c> is compiled knowing that it is also read from a position, where
 	/// anything may follow it, and not only to the end of input. Experimental, and off by default.
 	/// </summary>

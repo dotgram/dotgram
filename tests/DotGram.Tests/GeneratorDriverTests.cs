@@ -1,8 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
+using System.Text;
 using System.Threading;
 
 using DotGram.Generation;
@@ -2621,6 +2627,156 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
 		Assert.Contains("Same", refusal.GetMessage(), StringComparison.Ordinal);
+	}
+
+	// ── A lexer's table and the consumer's language version ─────────────────────
+
+	/// <summary>
+	/// Several large lexical grammars in one assembly put their tables in its image, not in
+	/// its heap of user strings.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A lexer's transition table is written as a UTF-8 literal where the consumer's C# is 11
+	/// or later, and as an array initializer below it. An ordinary string literal would have
+	/// been one token as well, but it goes into the heap of user strings, which holds sixteen
+	/// megabytes for the whole assembly, every literal of the consumer's beside ours; a few
+	/// grammars the size of T-SQL's would have filled it, and the assembly would not compile
+	/// (CS8103) where the arrays did. A UTF-8 literal is data in the image, as the array is.
+	/// </para>
+	/// <para>
+	/// So the heap of user strings is the same size whichever form the tables take, and the
+	/// parsers read the same either way.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Several_lexical_grammars_keep_their_tables_out_of_the_heap_of_user_strings()
+	{
+		var hosts = new StringBuilder();
+
+		for (var grammar = 0; grammar < 4; grammar++)
+			hosts.Append(LexicalHost(grammar, 300));
+
+		var latest = BuiltAt(LanguageVersion.Preview, hosts.ToString());
+		var floor  = BuiltAt(LanguageVersion.CSharp8, hosts.ToString());
+
+		// Each lexer's table is a UTF-8 literal at the one and an array at the other, or the
+		// comparison below is between two of the same thing.
+		Assert.Equal(4, latest.Sources.Count(static source => source.Contains("\"u8, ", StringComparison.Ordinal)));
+		Assert.DoesNotContain(floor.Sources, static source => source.Contains("\"u8", StringComparison.Ordinal));
+
+		var cells = latest.Sources.Sum(static source => Cells(source));
+
+		Assert.True(cells > 4 * 10_000, $"{cells} cells: too few for the heap to show them.");
+		Assert.Equal(floor.UserStrings, latest.UserStrings);
+
+		for (var grammar = 0; grammar < 4; grammar++)
+		{
+			var words = string.Join(" ", Keywords(grammar, 300).Where(static (_, at) => at % 37 == 0)) + " other";
+
+			Assert.True(Parses(latest.Assembly, grammar, words), words);
+			Assert.True(Parses(floor.Assembly, grammar, words), words);
+			Assert.False(Parses(latest.Assembly, grammar, words + " 1"));
+			Assert.False(Parses(floor.Assembly, grammar, words + " 1"));
+		}
+
+		static bool Parses(Assembly assembly, int grammar, string input)
+		{
+			var match = assembly.GetType($"Words{grammar}")!.GetMethod("TryParseProgram", [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		// How many cells a table written as a UTF-8 literal holds: the count its decoder is
+		// handed after the literal.
+		static int Cells(string source)
+		{
+			var at = source.IndexOf("\"u8, ", StringComparison.Ordinal);
+
+			if (at < 0)
+				return 0;
+
+			at += 5;
+
+			return int.Parse(source.Substring(at, source.IndexOf(')', at) - at), CultureInfo.InvariantCulture);
+		}
+	}
+
+	/// <summary>
+	/// A host class whose grammar is cut into a lexer and a syntax over its kinds, with
+	/// <paramref name="count"/> keywords for the lexer's table to tell apart.
+	/// </summary>
+	static string LexicalHost(int grammar, int count)
+	{
+		var text = new StringBuilder()
+			.Append("wordboundary = ['a'..'z']\n")
+			.Append("trivia = { ' '* }\n")
+			.Append("namespace Token\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n")
+			.Append("Program = Word* & eof\n")
+			.Append("Word = ")
+			.Append(string.Join(" | ", Keywords(grammar, count).Select(static word => "\"" + word + "\"")))
+			.Append(" | Token.Name\n")
+			.Append("parse Program\n");
+
+		return
+			"[DotGram.Gram(@\"" + text.ToString().Replace("\"", "\"\"", StringComparison.Ordinal) + "\", Lexical = true)]\n" +
+			$"public partial class Words{grammar} {{ }}\n";
+	}
+
+	/// <summary>Distinct words, and different ones for each grammar.</summary>
+	static IEnumerable<string> Keywords(int grammar, int count)
+	{
+		for (var word = 0; word < count; word++)
+		{
+			var spelled = new StringBuilder().Append((char)('a' + grammar));
+
+			for (var rest = (word + 1) * 7919 % 456_959 + 17_576; rest > 0; rest /= 26)
+				spelled.Append((char)('a' + rest % 26));
+
+			yield return spelled.Append('q').Append((char)('a' + word % 26)).Append((char)('a' + word / 26)).ToString();
+		}
+	}
+
+	/// <summary>
+	/// Runs the generator over <paramref name="source"/> at a language version, emits the
+	/// assembly, and says what the generator wrote and how large the heap of user strings is.
+	/// </summary>
+	static (string[] Sources, int UserStrings, Assembly Assembly) BuiltAt(LanguageVersion version, string source)
+	{
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(version);
+
+		var compilation = CSharpCompilation.Create(
+			$"DotGram.Tests.Heap.{version}",
+			[CSharpSyntaxTree.ParseText(source, parseOptions, "Hosts.cs")],
+			GetMetadataReferences(),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, TestContext.Current.CancellationToken)
+			.GetRunResult();
+
+		Assert.Empty(run.Diagnostics.Where(static diagnostic => diagnostic.Severity != DiagnosticSeverity.Info));
+
+		using var stream = new MemoryStream();
+
+		var emitted = output.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(emitted.Success, string.Join("\n", emitted.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+
+		stream.Position = 0;
+
+		int userStrings;
+
+		using (var pe = new PEReader(stream, PEStreamOptions.LeaveOpen))
+			userStrings = pe.GetMetadataReader().GetHeapSize(HeapIndex.UserString);
+
+		return (
+			[.. run.Results.SelectMany(static result => result.GeneratedSources)
+				.Where(static generated => !IsSupport(generated.HintName))
+				.Select(static generated => generated.SourceText.ToString())],
+			userStrings,
+			Assembly.Load(stream.ToArray()));
 	}
 
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────

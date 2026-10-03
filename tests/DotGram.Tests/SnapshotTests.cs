@@ -60,7 +60,7 @@ public sealed class SnapshotTests
 			// consumer’s project.
 			EmittedCode.Compile(
 				sources[0].Text, options.ClassName, options.Namespace, declarations,
-				sources.Skip(1).Select(static source => source.Text));
+				sources.Skip(1).Select(static source => source.Text), utf8Literals: options.Utf8Literals);
 
 			foreach (var source in sources)
 				Held(source.HintName, source.Text);
@@ -269,6 +269,17 @@ public sealed class SnapshotTests
 				chained.SuffixDeclared = true;
 
 				yield return (chained, null);
+
+				// And for a consumer whose C# is 11 or later, where the transition table is a UTF-8
+				// literal rather than an array of every cell; the default is the C# 8 floor's form.
+				var utf8 = Options();
+
+				utf8.Lexical        = true;
+				utf8.Utf8Literals   = true;
+				utf8.Suffix         = "Utf8";
+				utf8.SuffixDeclared = true;
+
+				yield return (utf8, null);
 
 				break;
 			}

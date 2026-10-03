@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -61,12 +62,14 @@ public static class LexerEmitter
 	/// <summary>Writes the scanner for a machine.</summary>
 	/// <param name="machine">What to write.</param>
 	/// <param name="tag">What to hang on the emitted names, so two may live together.</param>
-	public static string Emit(LexicalAutomaton machine, string tag = "")
+	/// <param name="utf8">Whether the consumer's C# is 11 or later, so that the cells may be a UTF-8 literal.</param>
+	public static string Emit(LexicalAutomaton machine, string tag = "", bool utf8 = false)
 	{
 		if (machine is null)
 			throw new ArgumentNullException(nameof(machine));
 
-		Tag = tag;
+		Tag  = tag;
+		Utf8 = utf8;
 		Bounds.Clear();
 		Named.Clear();
 		Fields.Clear();
@@ -386,10 +389,49 @@ public static class LexerEmitter
 		}
 
 		text.Line("/// <summary>Where each state goes, for the characters its row holds.</summary>");
-		text.Line($"static readonly {(Wide ? "int" : "short")}[] Scan{tag}_Cells =");
 
-		using (text.Braces("", ";"))
-			Numbers(text, cells);
+		var type = Wide ? "int" : "short";
+
+		if (!Utf8)
+		{
+			text.Line($"static readonly {type}[] Scan{tag}_Cells =");
+
+			using (text.Braces("", ";"))
+				Numbers(text, cells);
+		}
+		else
+		{
+			text.Line($"static readonly {type}[] Scan{tag}_Cells = Scan{tag}_Decode(");
+
+			using (text.Indent())
+				Spell(text, cells);
+
+			text.Line();
+			text.Line("/// <summary>The cells out of the bytes they are written in, once, when the class is first used.</summary>");
+
+			using (text.Braces($"static {type}[] Scan{tag}_Decode(global::System.ReadOnlySpan<byte> cells, int count)"))
+			{
+				text.Line($"var decoded = new {type}[count];");
+				text.Line("var at      = 0;");
+				text.Line("var value   = 0;");
+				text.Line();
+
+				using (text.Braces("for (var i = 0; i < cells.Length; i++)"))
+				{
+					text.Line($"value = value << {SpelledBits} | cells[i] & {(1 << SpelledBits) - 1};");
+					text.Line();
+
+					using (text.Braces($"if (cells[i] < 0x{SpelledMore:X2})"))
+					{
+						text.Line(Wide ? "decoded[at++] = value - 1;" : "decoded[at++] = (short)(value - 1);");
+						text.Line("value = 0;");
+					}
+				}
+
+				text.Line();
+				text.Line("return decoded;");
+			}
+		}
 
 		text.Line();
 		text.Line("/// <summary>Each state's row: where it begins in the cells, how wide, and from");
@@ -400,6 +442,84 @@ public static class LexerEmitter
 			Numbers(text, states);
 
 		text.Line();
+	}
+
+	/// <summary>
+	/// Whether the cells may be written as a UTF-8 string literal: the consumer's C# is 11 or
+	/// later (<see cref="Emit"/>).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// An array of numbers is what the cells cost the C# compiler most as: an initializer of
+	/// half a million constants, which T-SQL's is, is bound and lowered as one expression of
+	/// the class's static constructor, on one thread, and it was a tenth of the time it took to
+	/// build the SQL parsers. A string literal is one token.
+	/// </para>
+	/// <para>
+	/// UTF-8 and not UTF-16: an ordinary string literal goes into the assembly's heap of user
+	/// strings, which is sixteen megabytes for the whole assembly and every literal of the
+	/// consumer's beside ours, and an assembly past it does not compile. A UTF-8 literal is
+	/// data in the image, as an array initializer's is, and has no such bound. Below C# 11 the
+	/// cells are written as numbers, as they always were; both are decoded into the same array.
+	/// </para>
+	/// </remarks>
+	[ThreadStatic] static bool Utf8;
+
+	/// <summary>How many bits of a cell one byte of its spelling carries.</summary>
+	const int SpelledBits = 5;
+
+	/// <summary>
+	/// The bytes that say more of the cell follows: <c>0x60</c> to <c>0x7F</c>. The last byte
+	/// of a cell is <c>0x40</c> to <c>0x5F</c>.
+	/// </summary>
+	const int SpelledMore = 0x60;
+
+	/// <summary>
+	/// The cells as one UTF-8 string literal, each the cell plus one in groups of
+	/// <see cref="SpelledBits"/> bits, the highest first, and then how many cells there are.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Exact for every cell, narrow or wide: a cell is at least <c>-1</c>, so what is written
+	/// is never negative, and as many groups are written as it takes. <c>-1</c>, the commonest,
+	/// is one byte, <c>'@'</c>; a state below a thousand is two.
+	/// </para>
+	/// <para>
+	/// Every byte is ASCII, so the literal's UTF-8 is the bytes themselves. Letters and
+	/// <c>'@'</c> are written as themselves and everything else as <c>\u00XX</c>, never as
+	/// punctuation or a space: the size estimates read the emitted text
+	/// (<c>Machine.Branches</c>), and a <c>"||"</c> or a <c>"case "</c> spelled by the cells
+	/// would be counted as code of the method above them.
+	/// </para>
+	/// </remarks>
+	static void Spell(Writer text, List<int> cells)
+	{
+		var line   = text.OpenLine().Append('"');
+		var groups = new Stack<int>();
+
+		foreach (var cell in cells)
+		{
+			for (var value = (uint)(cell + 1); groups.Count == 0 || value != 0; value >>= SpelledBits)
+				groups.Push((int)(value & ((1 << SpelledBits) - 1)));
+
+			while (groups.Count > 0)
+			{
+				var group = groups.Pop();
+
+				Byte(line, group | (groups.Count > 0 ? SpelledMore : 0x40));
+			}
+		}
+
+		line.Append("\"u8, ").Append(cells.Count.ToString(CultureInfo.InvariantCulture)).Append(");");
+		text.CloseLine();
+
+		static void Byte(StringBuilder line, int value)
+		{
+			if (value is '@' or >= 'A' and <= 'Z' or >= 'a' and <= 'z')
+				line.Append((char)value);
+			else
+				line.Append("\\u").Append(value.ToString("X4", CultureInfo.InvariantCulture));
+		}
 	}
 
 	/// <summary>

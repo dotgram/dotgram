@@ -91,7 +91,7 @@ public sealed class LexerEmitterTests
 		return split.Inventory.Machine;
 	}
 
-	static (TerminalInventory Inventory, Func<string, int, (int Kind, int End)> Scan) Built(string grammar)
+	static (TerminalInventory Inventory, Func<string, int, (int Kind, int End)> Scan) Built(string grammar, bool utf8 = false)
 	{
 		var split = LexicalSplit.Of(
 			GrammarNormalizer.Normalize(
@@ -108,14 +108,14 @@ public sealed class LexerEmitterTests
 			"public partial class Lexer\r\n{\r\n" +
 			string.Join(
 				"\r\n",
-				LexerEmitter.Emit(split.Inventory.Machine).Replace("\r\n", "\n").Split('\n')
+				LexerEmitter.Emit(split.Inventory.Machine, utf8: utf8).Replace("\r\n", "\n").Split('\n')
 					.Select(line => line.Length == 0 ? line : "\t" + line)) +
 			// Reflection cannot carry a span, so the wrapper takes a string and the emitted
 			// method keeps the signature it will really have.
 			"\r\n\tpublic static int Over(string text, int pos, out int kind) =>" +
 			"\r\n\t\tScan(global::System.MemoryExtensions.AsSpan(text), pos, out kind);\r\n}\r\n";
 
-		var method = EmittedCode.Compile(source, "Lexer").GetType("Lexer")!.GetMethod("Over")!;
+		var method = EmittedCode.Compile(source, "Lexer", utf8Literals: utf8).GetType("Lexer")!.GetMethod("Over")!;
 
 		return (split.Inventory, (text, at) =>
 		{
@@ -176,6 +176,25 @@ public sealed class LexerEmitterTests
 
 		Assert.Equal(0, kind);
 		Assert.Equal(0, end);
+	}
+
+	/// <summary>The table written as a UTF-8 literal scans as the array it replaces.</summary>
+	/// <remarks>
+	/// From C# 11 the cells are spelled as bytes and decoded once, when the class is first
+	/// used; below it they are an array initializer. Both are the same table, so every token
+	/// of either reads the same kind to the same end.
+	/// </remarks>
+	[Fact]
+	public void A_table_written_as_UTF8_scans_as_the_array_does()
+	{
+		Assert.Contains("\"u8, ", Emitted(Sql, utf8: true), StringComparison.Ordinal);
+		Assert.DoesNotContain("\"u8", Emitted(Sql), StringComparison.Ordinal);
+
+		var (_, array) = Built(Sql);
+		var (_, bytes) = Built(Sql, utf8: true);
+
+		foreach (var input in new[] { "select", "selects", "set", "se", "<=", "<", "=", "10", "1.5", "1.", "abc9", "#", "" })
+			Assert.Equal(array(input, 0), bytes(input, 0));
 	}
 
 	/// <summary>
@@ -350,7 +369,7 @@ public sealed class LexerEmitterTests
 		Assert.Contains("if (c >= ", source, StringComparison.Ordinal);
 	}
 
-	static string Emitted(string grammar)
+	static string Emitted(string grammar, bool utf8 = false)
 	{
 		return LexerEmitter.Emit(
 			LexicalSplit.Of(
@@ -359,7 +378,7 @@ public sealed class LexerEmitterTests
 						GramParser.Parse(
 							GramLexer.Tokenize(
 								grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)))!
-			.Inventory.Machine!);
+			.Inventory.Machine!, utf8: utf8);
 	}
 
 	/// <summary>The character each state's row begins at.</summary>

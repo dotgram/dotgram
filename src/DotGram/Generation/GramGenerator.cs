@@ -10,6 +10,7 @@ using DotGram.Grammar;
 using DotGram.Grammar.Emit;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -136,6 +137,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var tracing = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
 			IsTrue(options, "build_property.DotGramTrace"));
 
+		// And one whose effective C# is 11 or later may hold UTF-8 string literals, which a lexer's
+		// table is written as there (GramCompilerOptions.Utf8Literals): the version the consumer's
+		// <LangVersion> resolves to, never one inferred from the target framework.
+		//
 		// And one that defines DOTGRAM_NO_COLLAPSE calls every rule that only forwards another's value
 		// as written, so that a test can hold a trace build's frames of those rules to the rules
 		// themselves (GramCompilerOptions.CollapseForwarders).
@@ -143,7 +148,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			(Counts: input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
 			Memoises: !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
 			Traces: input.Right,
-			Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol)));
+			Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
+			Utf8: input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 }));
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -294,7 +300,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8) counting, Positional positional)
 	{
 		try
 		{
@@ -327,11 +333,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// cache of its own, and written down so that nothing has to know that.
 	/// </remarks>
 	readonly record struct CompileKey(
-		Grammar                                                   Grammar,
-		Reporting                                                 Reporting,
-		(bool Counts, bool Memoises, bool Traces, bool Collapses) Counting,
-		Positional                                                Positional,
-		Guid                                                      Generator);
+		Grammar                                                             Grammar,
+		Reporting                                                           Reporting,
+		(bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8) Counting,
+		Positional                                                          Positional,
+		Guid                                                                Generator);
 
 	/// <summary>
 	/// The parsers compiled in this process, kept for the next compilation that asks for one of them.
@@ -371,7 +377,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
 	/// same input.
 	/// </summary>
-	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional, Caching caching)
+	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8) counting, Positional positional, Caching caching)
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
@@ -920,7 +926,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8) counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -999,6 +1005,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			MemoiseFailures = counting.Memoises,
 			Trace           = host.Trace || counting.Traces,
 			CollapseForwarders = counting.Collapses,
+			Utf8Literals    = counting.Utf8,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,

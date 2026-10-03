@@ -689,6 +689,10 @@ The generated parser is C# 8 and targets whatever the project around it targets.
 [`tests/DotGram.Compatibility`](tests/DotGram.Compatibility) builds one grammar for
 `netstandard2.0`, `net472` and `net8.0` at C# 8 on every build.
 
+One thing is written differently above the floor: where the project's C# is 11 or later, a
+lexical grammar's transition table is a UTF-8 literal rather than an array initializer of
+every cell, which the compiler reads as one token. The parser it makes is the same.
+
 Two things an older target has to say:
 
 * **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
