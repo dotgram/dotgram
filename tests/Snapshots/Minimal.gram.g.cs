@@ -4152,6 +4152,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
+					failure.Stood = failure.Position; failure.Tied = failure.ExpectedMore?.Count ?? 0;
 					if (repeating.Value >= 0)
 						entries.Add(new ParserEntry(ParserEntry.Choice, 5, p, call, atomic, repeat, lookahead, 0));
 					if (repeating.Value >= 0) goto S21;
@@ -4293,7 +4294,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					if ((uint)p >= (uint)text.Length) { expected = null; goto Fail; }
-					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[reach] = Expecting_DotGram(ref failure, reach);
+					parser.Expecting = Expecting_DotGram(ref failure, reach);
 					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach, repeat, lookahead, 0));
 				}
 
@@ -4353,6 +4354,7 @@ namespace DotGram.Snapshots
 							entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
 						if (choice.RepeatIndex == repeat && choice.State == 15 && (choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || choice.Kind == ParserEntry.PendingRecovery)) break;
 					}
+					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[entries.Count] = parser.Expecting;
 					entries.Add(new ParserEntry(ParserEntry.Recovery, 0, recoveryFrom, call, recoveryReach, repeat, lookahead, recoveryTo, entries[repeat].Value));
 					var recoveredRepeat = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);
@@ -4487,7 +4489,7 @@ namespace DotGram.Snapshots
 							{
 								case 0:
 								{
-									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Recalled_DotGram(parser.Expectations, recovered.AtomicIndex), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
+									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Wanted_DotGram(Recalled_DotGram(parser.Expectations, recoveryAt)), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 									break;
 								}
 							}
@@ -5323,7 +5325,7 @@ namespace DotGram.Snapshots
 					if (at < 0)
 						to = at = window.Length;
 
-					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, Rejected_DotGram(Expecting_DotGram(ref failure0, failure0.Reach), "Row", window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
+					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, Rejected_DotGram(Wanted_DotGram(Expecting_DotGram(ref failure0, failure0.Reach)), "Row", window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 					ordinal0++;
 					start = at;
 					continue;
@@ -5595,7 +5597,7 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Recalled_DotGram(parser.Expectations, recovered.AtomicIndex), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
+						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Wanted_DotGram(Recalled_DotGram(parser.Expectations, recoveryAt)), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 						break;
 					}
 				}
@@ -6077,6 +6079,15 @@ namespace DotGram.Snapshots
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
 
+			/// <summary>
+			/// Where the furthest refusal stood when the turn of a recovering repetition last began,
+			/// and how many sets tied there then: what is recorded at that place since is the turn's.
+			/// </summary>
+			public int Stood;
+
+			/// <summary>See <c>Stood</c>.</summary>
+			public int Tied;
+
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 			public bool Starved;
 
@@ -6130,6 +6141,21 @@ namespace DotGram.Snapshots
 
 			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
 			private long _break = -1;
+
+			/// <summary>Whether the last character dropped was a <c>\r</c>, which a <c>\n</c> held next closes.</summary>
+			private bool _droppedCr;
+
+			/// <summary>
+			/// Whether a line ends at a character held: as <c>eol</c> ends one, at <c>\r\n</c>,
+			/// <c>\n</c> or <c>\r</c>, a <c>\r\n</c> counted once at its <c>\r</c> — the two
+			/// halves may be either side of a refill.
+			/// </summary>
+			private bool Ends(int at)
+			{
+				var c = _buffer[at];
+
+				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
+			}
 
 			public Window(global::System.IO.TextReader input, int capacity)
 			{
@@ -6185,7 +6211,7 @@ namespace DotGram.Snapshots
 				var line = _lines + 1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (Ends(at))
 						line++;
 
 				return line;
@@ -6197,7 +6223,7 @@ namespace DotGram.Snapshots
 				var start = -1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (_buffer[at] == '\n' || _buffer[at] == '\r')
 						start = at;
 
 				// The line began before the window did, so the length of what is held is
@@ -6229,11 +6255,15 @@ namespace DotGram.Snapshots
 					// is counted on the way out. Without this a position past the first
 					// window would be reported as a line near the top of the file.
 					for (var at = 0; at < from; at++)
-						if (_buffer[at] == '\n')
-						{
+					{
+						if (Ends(at))
 							_lines++;
+
+						if (_buffer[at] == '\n' || _buffer[at] == '\r')
 							_break = _offset + at;
-						}
+					}
+
+					_droppedCr = _buffer[from - 1] == '\r';
 
 					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
@@ -6374,36 +6404,50 @@ namespace DotGram.Snapshots
 				return position - _start + 1;
 			}
 
+			// A line ends where `eol` ends one: at `\r\n`, `\n` or `\r`. A `\r` counts, and a `\n`
+			// counts unless it closes a `\r\n`, which the `\r` already counted.
 			void Move(global::System.ReadOnlySpan<char> text, int position)
 			{
 				if (position >= _at)
 				{
 					for (; _at < position; _at++)
-						if (text[_at] == '\n')
-						{
+					{
+						var c = text[_at];
+
+						if (c != '\r' && c != '\n')
+							continue;
+
+						if (c == '\r' || _at == 0 || text[_at - 1] != '\r')
 							_lines++;
-							_start = _at + 1;
-						}
+
+						_start = _at + 1;
+					}
 
 					return;
 				}
 
 				for (var at = _at - 1; at >= position; at--)
-					if (text[at] == '\n')
+					if (text[at] == '\r' || text[at] == '\n' && (at == 0 || text[at - 1] != '\r'))
 						_lines--;
 
 				_at    = position;
 				_start = position;
 
-				while (_start > 0 && text[_start - 1] != '\n')
+				while (_start > 0 && text[_start - 1] != '\n' && text[_start - 1] != '\r')
 					_start--;
 			}
 		}
 
 		/// <summary>
-		/// What would have fit where a rejected element stopped: the sets recorded there, or null
-		/// where the furthest refusal is elsewhere or said nothing.
+		/// What would have fit where a rejected element stopped: the sets recorded there since the
+		/// turn began, or null where the furthest refusal is elsewhere or nothing was said.
 		/// </summary>
+		/// <remarks>
+		/// Where the furthest refusal already stood at that place when the turn began — an element
+		/// before that read across its line and stopped where this one begins — what was recorded
+		/// then is that one's: a tie at a place adds to <c>ExpectedMore</c>, so this one's sets are
+		/// the ones after the <c>Tied</c> that stood there.
+		/// </remarks>
 		static string[]? Expecting_DotGram(ref Failure failure, int at)
 		{
 			if (failure.Position != at)
@@ -6411,27 +6455,43 @@ namespace DotGram.Snapshots
 
 			var more = failure.ExpectedMore;
 
+			if (failure.Stood == at)
+			{
+				if (more == null || more.Count <= failure.Tied)
+					return null;
+
+				return more.Count - failure.Tied == 1
+					? more[failure.Tied]
+					: Merged_DotGram(null, more, failure.Tied);
+			}
+
 			if (more == null || more.Count == 0)
 				return failure.Expected;
 
-			var total = failure.Expected == null ? 0 : failure.Expected.Length;
+			return Merged_DotGram(failure.Expected, more, 0);
+		}
 
-			foreach (var each in more)
-				total += each.Length;
+		/// <summary>The sets from <paramref name="from"/> on, after the first where there is one, as one.</summary>
+		static string[] Merged_DotGram(string[]? first, global::System.Collections.Generic.List<string[]> more, int from)
+		{
+			var total = first == null ? 0 : first.Length;
+
+			for (var at = from; at < more.Count; at++)
+				total += more[at].Length;
 
 			var merged = new string[total];
 			var put    = 0;
 
-			if (failure.Expected != null)
+			if (first != null)
 			{
-				failure.Expected.CopyTo(merged, 0);
-				put = failure.Expected.Length;
+				first.CopyTo(merged, 0);
+				put = first.Length;
 			}
 
-			foreach (var each in more)
+			for (var at = from; at < more.Count; at++)
 			{
-				each.CopyTo(merged, put);
-				put += each.Length;
+				more[at].CopyTo(merged, put);
+				put += more[at].Length;
 			}
 
 			return merged;
@@ -6450,6 +6510,9 @@ namespace DotGram.Snapshots
 			for (var i = 0; i < expected.Length; i++)
 				if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 					return expected[i];
+
+			if (expected.Length == 1)
+				return expected[0];
 
 			var unique = new string[expected.Length];
 			var kept   = 0;
@@ -6482,10 +6545,9 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Why an element was rejected, and where reading it stopped, <c>line:column</c>.</summary>
-		static string Rejected_DotGram(string[]? expected, string rule, string place)
+		static string Rejected_DotGram(string? wanted, string rule, string place)
 		{
-			var at     = " at " + place + ".";
-			var wanted = Wanted_DotGram(expected);
+			var at = " at " + place + ".";
 
 			if (wanted == null)
 				return "Input does not match '" + rule + "'" + at;
@@ -7294,6 +7356,7 @@ namespace DotGram.Snapshots
 			string[][] _values2 = global::System.Array.Empty<string[]>();
 			internal Located_DotGram Located;
 			internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;
+			internal string[]? Expecting;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -7376,7 +7439,11 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(_values1, 0, global::System.Math.Min(_valuesUsed, _values1.Length));
 				global::System.Array.Clear(_values2, 0, global::System.Math.Min(_valuesUsed, _values2.Length));
 				Located = default;
-				Expectations?.Clear();
+				if (Expectations != null && Expectations.Count > 64)
+					Expectations = null;
+				else
+					Expectations?.Clear();
+				Expecting = null;
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be

@@ -3759,6 +3759,10 @@ sealed partial class Machine
 					code.Line();
 				}
 
+				// What stood at the place the turn begins, for what its element is told it wanted.
+				if (read.Plan.Recovery.Explains)
+					code.Line(Machine.Stand);
+
 				// The complete continuation first, once the minimum is met.
 				using (min > 0 ? code.Block($"if ({turn} >= {min})") : null)
 				{
@@ -3838,6 +3842,9 @@ sealed partial class Machine
 			var ways  = machine.Carrier is not ImmediateCarrier || machine.Opens(body);
 			var mark  = $"k{_ways++}";
 
+			if (read.Plan.Recovery.Explains)
+				code.Line(Machine.Stand);
+
 			code.Line("failure.Reach = p;");
 
 			var taken = Attempt(code, body, inside, ways ? mark : null);
@@ -3882,6 +3889,11 @@ sealed partial class Machine
 			code.Line("var p     = pos;");
 			code.Line("var reach = failure.Reach;");
 			code.Line("var to    = p;");
+
+			// What would have fit where the element stopped, taken before the synchronization is
+			// looked for: a candidate that begins to match and does not records further along.
+			if (read.Plan.Recovery.Explains)
+				code.Line("var expecting = Expecting_DotGram(ref failure, reach);");
 
 			if (machine.PaddedDelimiter(read.Plan.Recovery.Sync) is not null)
 				code.Line(machine.BufferedBytes ? "var c     = 0;" : "var c     = '\\0';");
@@ -3962,10 +3974,9 @@ sealed partial class Machine
 
 			_records = true;
 
-			// What would have fit where the element stopped, kept by that place for the walk that
-			// builds the element after the parse: by then the failure says where the parse stopped.
+			// Kept by where the element's record begins, for the walk that builds it after the parse.
 			if (machine.Carrier is TapeCarrier && read.Plan.Recovery.Explains)
-				code.Line($"{Keep("ways")}[reach] = Expecting_DotGram(ref failure, reach);");
+				code.Line($"{Keep("ways")}[ways.LogCount] = expecting;");
 
 			foreach (var line in machine.Carrier.Recovered(read.Plan, slot, RuleOfSlot(slot), _positions))
 				Carried(code, line);

@@ -697,11 +697,11 @@ sealed partial class Machine
 				yield return "var recovered = (Position: pos, Value: to, AtomicIndex: reach, RuleIndex: ordinal);";
 
 			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name =>
-				machine.RecoverySupplied(name, plan, "located", "Expecting_DotGram(ref failure, recovered.AtomicIndex)")));
+				machine.RecoverySupplied(name, plan, "located", "expecting")));
 			// A yield's step keeps its element as the item it hands out, gathering nothing.
-			var built     = plan.Recovery.YieldStep
+			var built     = (WordsOnce(plan.Recovery, "expecting") is { } once ? once + " " : "") + (plan.Recovery.YieldStep
 				? $"{Last(element)} = {plan.Method}({arguments});"
-				: $"{Last(element)} = {plan.Method}({arguments}); {PushRecord(slot, element)}";
+				: $"{Last(element)} = {plan.Method}({arguments}); {PushRecord(slot, element)}");
 
 			yield return Unbuilding ? $"if (unbuilt == 0) {{ {built} }}" : built;
 		}

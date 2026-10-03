@@ -779,6 +779,9 @@ public static partial class CSharpEmitter
 		{
 			file.Write(FailureStructWith(
 				reach: graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery),
+				// What stood where a turn of a recovering repetition began, where its element is told
+				// what would have fit (Expecting_DotGram).
+				stood: Explaining(graph),
 				starved: Streaming(graph, overKinds),
 				expected: true,
 				// The machine that reads a terminal again is an engine too, and an engine

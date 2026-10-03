@@ -3070,10 +3070,18 @@ Expected '.' at 3:17.
 The place in it is `line:column`, the same whichever overload read the input; over bytes a
 column counts bytes, which is the character for ASCII. Where a rule says its own refusal
 (§4's `on fail`), its sentence is the message and the place follows it; where nothing at all
-was recorded at that place, the message says only that the input does not match the rule. What would have fit is
-the parse's furthest refusal, so it is the element's where the two are at one place — a
-continuation tried at the same boundary that read further and failed later has the furthest
-refusal, and then nothing more particular is said.
+was recorded at that place, the message says only that the input does not match the rule.
+
+What would have fit is what was refused at that place since the turn began: the element, and
+the continuation tried first at the same boundary where it got as far — `end of input or
+'a'` where the repetition ends the input. An element before that stopped at the same place,
+having read across its line, keeps what it wanted, and this one is not told it. Where the
+continuation read further than the element and failed there, the parse's furthest refusal is
+elsewhere, and nothing more particular is said.
+
+A line ends where `eol` ends one — at `\r\n`, `\n` or a `\r` alone — so every line and column
+here, `parserLine` and `parserColumn` included, counts lines as the grammar reads them,
+however a stream's buffer cut a `\r\n` in two.
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
 story: the supplied names become parameters of the generated factory for a `=>` or a

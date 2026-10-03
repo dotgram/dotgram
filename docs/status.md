@@ -261,8 +261,8 @@ the specification in ways worth knowing:
   separates the elements and is not part of one, so a rejected `b1b\n` is three
   characters, not four.
 - **What would have fit is the parse's furthest refusal.** `parserExpected` and the
-  message are the element's where reading it stopped at that furthest place, which is the
-  usual case. Where a continuation tried at the same boundary read further than the
+  message are what was refused where reading the element stopped, since its turn began,
+  where that place is the furthest, which is the usual case. Where a continuation tried at the same boundary read further than the
   element and failed there, the message says only that the input does not match the
   rule, `Input does not match 'Row' at 4:1.`, and `parserExpected` is the rule's name.
 

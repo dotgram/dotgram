@@ -1601,7 +1601,10 @@ sealed partial class Machine
 			var arguments = new List<string>();
 
 			foreach (var name in plan.Recovery.Asks)
-				arguments.Add(RecoverySupplied(name, plan, "located", "Recalled_DotGram(ways.Expectations, recovered.AtomicIndex)"));
+				arguments.Add(RecoverySupplied(name, plan, "located", "Recalled_DotGram(ways.Expectations, at)"));
+
+			if (WordsOnce(plan.Recovery, "Recalled_DotGram(ways.Expectations, at)") is { } once)
+				file.Line(once);
 
 			file.Line($"{DirectInto(type, "slot")} = {plan.Method}({string.Join(", ", arguments)});");
 

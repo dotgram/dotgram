@@ -2724,6 +2724,21 @@ namespace DotGram.Snapshots
 			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
 			private long _break = -1;
 
+			/// <summary>Whether the last character dropped was a <c>\r</c>, which a <c>\n</c> held next closes.</summary>
+			private bool _droppedCr;
+
+			/// <summary>
+			/// Whether a line ends at a character held: as <c>eol</c> ends one, at <c>\r\n</c>,
+			/// <c>\n</c> or <c>\r</c>, a <c>\r\n</c> counted once at its <c>\r</c> — the two
+			/// halves may be either side of a refill.
+			/// </summary>
+			private bool Ends(int at)
+			{
+				var c = _buffer[at];
+
+				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
+			}
+
 			public Window(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
@@ -2778,7 +2793,7 @@ namespace DotGram.Snapshots
 				var line = _lines + 1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (Ends(at))
 						line++;
 
 				return line;
@@ -2790,7 +2805,7 @@ namespace DotGram.Snapshots
 				var start = -1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (_buffer[at] == '\n' || _buffer[at] == '\r')
 						start = at;
 
 				// The line began before the window did, so the length of what is held is
@@ -2822,11 +2837,15 @@ namespace DotGram.Snapshots
 					// is counted on the way out. Without this a position past the first
 					// window would be reported as a line near the top of the file.
 					for (var at = 0; at < from; at++)
-						if (_buffer[at] == '\n')
-						{
+					{
+						if (Ends(at))
 							_lines++;
+
+						if (_buffer[at] == '\n' || _buffer[at] == '\r')
 							_break = _offset + at;
-						}
+					}
+
+					_droppedCr = _buffer[from - 1] == '\r';
 
 					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 

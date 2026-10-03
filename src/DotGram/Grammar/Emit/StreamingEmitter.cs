@@ -460,6 +460,10 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, Recovery recovery,
 		string factory, int stage, string element)
 	{
+		var sets   = $"Expecting_DotGram(ref failure{stage}, failure{stage}.Reach)";
+		var once   = Machine.WordsOnce(recovery, sets);
+		var wanted = once is null ? $"Wanted_DotGram({sets})" : "wanted";
+
 		string Supplied(string name)
 		{
 			return name switch
@@ -478,8 +482,8 @@ public static partial class CSharpEmitter
 				"parserFailurePosition" => "window.Offset + from + reached",
 				"parserFailureLine" => "window.LineAt(from + reached)",
 				"parserFailureColumn" => "window.ColumnAt(from + reached)",
-				"parserExpected" => $"Expected_DotGram(Expecting_DotGram(ref failure{stage}, failure{stage}.Reach), \"{element}\")",
-				"parserMessage" => $"Rejected_DotGram(Expecting_DotGram(ref failure{stage}, failure{stage}.Reach), \"{element}\", " +
+				"parserExpected" => $"Expected_DotGram({wanted}, \"{element}\")",
+				"parserMessage" => $"Rejected_DotGram({wanted}, \"{element}\", " +
 					"window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \":\" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture))",
 				_ => "default",
 			};
@@ -498,6 +502,9 @@ public static partial class CSharpEmitter
 
 			foreach (var name in recovery.Asks)
 				arguments.Add(Supplied(name));
+
+			if (once is not null)
+				file.Line(once);
 
 			file.Line($"yield return {factory}({string.Join(", ", arguments)});");
 		}

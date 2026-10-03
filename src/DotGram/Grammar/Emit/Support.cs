@@ -214,6 +214,21 @@ public static partial class CSharpEmitter
 			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
 			private long _break = -1;
 
+			/// <summary>Whether the last character dropped was a <c>\r</c>, which a <c>\n</c> held next closes.</summary>
+			private bool _droppedCr;
+
+			/// <summary>
+			/// Whether a line ends at a character held: as <c>eol</c> ends one, at <c>\r\n</c>,
+			/// <c>\n</c> or <c>\r</c>, a <c>\r\n</c> counted once at its <c>\r</c> — the two
+			/// halves may be either side of a refill.
+			/// </summary>
+			private bool Ends(int at)
+			{
+				var c = _buffer[at];
+
+				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
+			}
+
 			public Window(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
@@ -268,7 +283,7 @@ public static partial class CSharpEmitter
 				var line = _lines + 1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (Ends(at))
 						line++;
 
 				return line;
@@ -280,7 +295,7 @@ public static partial class CSharpEmitter
 				var start = -1;
 
 				for (var at = 0; at < position; at++)
-					if (_buffer[at] == '\n')
+					if (_buffer[at] == '\n' || _buffer[at] == '\r')
 						start = at;
 
 				// The line began before the window did, so the length of what is held is
@@ -312,11 +327,15 @@ public static partial class CSharpEmitter
 					// is counted on the way out. Without this a position past the first
 					// window would be reported as a line near the top of the file.
 					for (var at = 0; at < from; at++)
-						if (_buffer[at] == '\n')
-						{
+					{
+						if (Ends(at))
 							_lines++;
+
+						if (_buffer[at] == '\n' || _buffer[at] == '\r')
 							_break = _offset + at;
-						}
+					}
+
+					_droppedCr = _buffer[from - 1] == '\r';
 
 					global::System.Array.Copy(_buffer, from, _buffer, 0, _filled - from);
 
@@ -826,7 +845,7 @@ public static partial class CSharpEmitter
 	/// site.
 	/// </remarks>
 	internal static string FailureStructWith(
-		bool reach, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
+		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
 		bool looking = false, bool quiet = false, bool began = false)
 	{
 		return Lines.Normalize(FailureStruct)
@@ -837,6 +856,9 @@ public static partial class CSharpEmitter
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
 				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
+			.Replace(
+				"\t{{stood}}" + Lines.Ending,
+				stood ? Lines.Normalize(StoodField) + Lines.Ending : "")
 			.Replace(
 				"\t{{starved}}" + Lines.Ending,
 				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "")
@@ -919,6 +941,7 @@ public static partial class CSharpEmitter
 			{{restore:OutOfInput}}
 			{{began}}
 			{{reach}}
+			{{stood}}
 			{{starved}}
 			{{expected}}
 			{{expectedMore}}
@@ -940,6 +963,22 @@ public static partial class CSharpEmitter
 
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
+		""";
+
+	/// <summary>
+	/// The fields a grammar whose rejected elements are told what would have fit carries beside
+	/// <c>Position</c> (Expecting_DotGram).
+	/// </summary>
+	const string StoodField = """
+
+			/// <summary>
+			/// Where the furthest refusal stood when the turn of a recovering repetition last began,
+			/// and how many sets tied there then: what is recorded at that place since is the turn's.
+			/// </summary>
+			public int Stood;
+
+			/// <summary>See <c>Stood</c>.</summary>
+			public int Tied;
 		""";
 
 	/// <summary>
@@ -1523,8 +1562,13 @@ public static partial class CSharpEmitter
 
 		// What each rejected element wanted where it stopped, by that place, until it is built.
 		runtime = CacheRuntime(runtime, "EXPECTED_FIELD",
-			"internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;", explaining);
-		runtime = CacheRuntime(runtime, "EXPECTED_RESET", "Expectations?.Clear();", explaining);
+			"internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;\n" +
+			"internal string[]? Expecting;", explaining);
+		// Let go rather than cleared after a parse that rejected many: a dictionary cleared keeps
+		// its room, and the pooled parser would hold it for every parse after (Ways.Return, the same).
+		runtime = CacheRuntime(runtime, "EXPECTED_RESET",
+			"if (Expectations != null && Expectations.Count > 64)\n\tExpectations = null;\nelse\n\tExpectations?.Clear();\nExpecting = null;",
+			explaining);
 
 		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
 		// it is the mark that encloses it, and everywhere else the innermost mark standing
@@ -1973,28 +2017,36 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 				return position - _start + 1;
 			}
 
+			// A line ends where `eol` ends one: at `\r\n`, `\n` or `\r`. A `\r` counts, and a `\n`
+			// counts unless it closes a `\r\n`, which the `\r` already counted.
 			void Move(global::System.ReadOnlySpan<char> text, int position)
 			{
 				if (position >= _at)
 				{
 					for (; _at < position; _at++)
-						if (text[_at] == '\n')
-						{
+					{
+						var c = text[_at];
+
+						if (c != '\r' && c != '\n')
+							continue;
+
+						if (c == '\r' || _at == 0 || text[_at - 1] != '\r')
 							_lines++;
-							_start = _at + 1;
-						}
+
+						_start = _at + 1;
+					}
 
 					return;
 				}
 
 				for (var at = _at - 1; at >= position; at--)
-					if (text[at] == '\n')
+					if (text[at] == '\r' || text[at] == '\n' && (at == 0 || text[at - 1] != '\r'))
 						_lines--;
 
 				_at    = position;
 				_start = position;
 
-				while (_start > 0 && text[_start - 1] != '\n')
+				while (_start > 0 && text[_start - 1] != '\n' && text[_start - 1] != '\r')
 					_start--;
 			}
 		}
@@ -2021,9 +2073,15 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 	/// </remarks>
 	internal const string ExpectingHelper = """
 		/// <summary>
-		/// What would have fit where a rejected element stopped: the sets recorded there, or null
-		/// where the furthest refusal is elsewhere or said nothing.
+		/// What would have fit where a rejected element stopped: the sets recorded there since the
+		/// turn began, or null where the furthest refusal is elsewhere or nothing was said.
 		/// </summary>
+		/// <remarks>
+		/// Where the furthest refusal already stood at that place when the turn began — an element
+		/// before that read across its line and stopped where this one begins — what was recorded
+		/// then is that one's: a tie at a place adds to <c>ExpectedMore</c>, so this one's sets are
+		/// the ones after the <c>Tied</c> that stood there.
+		/// </remarks>
 		static string[]? Expecting_DotGram(ref Failure failure, int at)
 		{
 			if (failure.Position != at)
@@ -2031,27 +2089,43 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
 			var more = failure.ExpectedMore;
 
+			if (failure.Stood == at)
+			{
+				if (more == null || more.Count <= failure.Tied)
+					return null;
+
+				return more.Count - failure.Tied == 1
+					? more[failure.Tied]
+					: Merged_DotGram(null, more, failure.Tied);
+			}
+
 			if (more == null || more.Count == 0)
 				return failure.Expected;
 
-			var total = failure.Expected == null ? 0 : failure.Expected.Length;
+			return Merged_DotGram(failure.Expected, more, 0);
+		}
 
-			foreach (var each in more)
-				total += each.Length;
+		/// <summary>The sets from <paramref name="from"/> on, after the first where there is one, as one.</summary>
+		static string[] Merged_DotGram(string[]? first, global::System.Collections.Generic.List<string[]> more, int from)
+		{
+			var total = first == null ? 0 : first.Length;
+
+			for (var at = from; at < more.Count; at++)
+				total += more[at].Length;
 
 			var merged = new string[total];
 			var put    = 0;
 
-			if (failure.Expected != null)
+			if (first != null)
 			{
-				failure.Expected.CopyTo(merged, 0);
-				put = failure.Expected.Length;
+				first.CopyTo(merged, 0);
+				put = first.Length;
 			}
 
-			foreach (var each in more)
+			for (var at = from; at < more.Count; at++)
 			{
-				each.CopyTo(merged, put);
-				put += each.Length;
+				more[at].CopyTo(merged, put);
+				put += more[at].Length;
 			}
 
 			return merged;
@@ -2070,6 +2144,9 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 			for (var i = 0; i < expected.Length; i++)
 				if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 					return expected[i];
+
+			if (expected.Length == 1)
+				return expected[0];
 
 			var unique = new string[expected.Length];
 			var kept   = 0;
@@ -2112,10 +2189,8 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 	/// </summary>
 	internal const string ExpectedHelper = """
 		/// <summary>What would have fit where a rejected element stopped, or the rule it should have been.</summary>
-		static string Expected_DotGram(string[]? expected, string rule)
+		static string Expected_DotGram(string? wanted, string rule)
 		{
-			var wanted = Wanted_DotGram(expected);
-
 			if (wanted == null)
 				return rule;
 
@@ -2133,10 +2208,9 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 	/// </remarks>
 	internal const string RejectedHelper = """
 		/// <summary>Why an element was rejected, and where reading it stopped, <c>line:column</c>.</summary>
-		static string Rejected_DotGram(string[]? expected, string rule, string place)
+		static string Rejected_DotGram(string? wanted, string rule, string place)
 		{
-			var at     = " at " + place + ".";
-			var wanted = Wanted_DotGram(expected);
+			var at = " at " + place + ".";
 
 			if (wanted == null)
 				return "Input does not match '" + rule + "'" + at;
@@ -2539,6 +2613,14 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways ways)
 			{
+				// <expectations>
+				// What a parse that rejected many elements kept for them is let go rather than
+				// pooled: a dictionary cleared keeps its room, and the room is the parse's, not the
+				// next one's.
+				if (ways.Expectations != null && ways.Expectations.Count > 64)
+					ways.Expectations = null;
+
+				// </expectations>
 				// Bound retained capacity, including an earlier parse's high-water size. Past it
 				// the tape is not thrown away — that was a cliff rather than a bound: one entry
 				// over and the next parse of a document that size grew everything again from

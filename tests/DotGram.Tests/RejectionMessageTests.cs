@@ -27,8 +27,9 @@ public sealed class RejectionMessageTests
 		"Muffin         2.80\n";
 
 	const string PriceList = """
-		PriceList : @string[] = Entry* recover eol
+		PriceList : @string = lines: Entry* recover eol
 		    => @(Told(parserLine, parserColumn, parserFailureLine, parserFailureColumn, parserFailurePosition, parserExpected, parserMessage))
+		    => @(Join(lines))
 		Entry  : @string = item: Item & amount: Amount & ' '* & eol => @(Text(amount))
 		Item   = [^ '0'..'9' | '\r' | '\n']+
 		Amount = ['0'..'9']+ & '.' & ['0'..'9']{2}
@@ -38,11 +39,21 @@ public sealed class RejectionMessageTests
 	const string Helpers = """
 		static string Text(string text) { return text; }
 		static string Text(global::System.ReadOnlySpan<char> text) { return text.ToString(); }
+		static string Text(global::System.ReadOnlySpan<byte> text) { return global::System.Text.Encoding.ASCII.GetString(text.ToArray()); }
+		static bool Allowed() { return false; }
+		static string Join(string[] parts) { return string.Join("\u0001", parts); }
 		static string Told(int line, int column, int failureLine, int failureColumn, long failurePosition, string expected, string message)
 		{
 			return line + ":" + column + " " + failureLine + ":" + failureColumn + "@" + failurePosition + " " + expected + " | " + message;
 		}
 		""";
+
+	/// <summary>The renderings that read by methods, whose refusals a choice says over a call (Refuse_DotGram_Over).</summary>
+	public static TheoryData<string, bool, CarrierKind> Readers => new()
+	{
+		{ "tape", true, CarrierKind.Tape },
+		{ "immediate", true, CarrierKind.Immediate },
+	};
 
 	public static TheoryData<string, bool, CarrierKind> Renderings => new()
 	{
@@ -64,8 +75,9 @@ public sealed class RejectionMessageTests
 		Assert.True(told.Length == 5, rendering + ": " + string.Join(" / ", told));
 		Assert.Equal("2.40", told[0]);
 		Assert.Equal("3.10", told[1]);
-		Assert.Equal("3:1 3:17@56 Amount | Expected Amount at 3:17.", told[2]);
-		Assert.Equal("4:1 4:19@78 Amount | Expected Amount at 4:19.", told[3]);
+		// The engine names the rule the reading was in; a reader, the character it wanted there.
+		Assert.Equal(direct ? "3:1 3:17@56 '.' | Expected '.' at 3:17." : "3:1 3:17@56 Amount | Expected Amount at 3:17.", told[2]);
+		Assert.Equal(direct ? "4:1 4:19@78 ['0'..'9'] | Expected ['0'..'9'] at 4:19." : "4:1 4:19@78 Amount | Expected Amount at 4:19.", told[3]);
 		Assert.Equal("2.80", told[4]);
 	}
 
@@ -78,7 +90,10 @@ public sealed class RejectionMessageTests
 	[InlineData(4096)]
 	public void A_streamed_record_is_told_the_same_place(int window)
 	{
-		var host = Compiled(PriceList + "parse PriceList as ReadStart stream yield\n", direct: true, CarrierKind.Auto);
+		var host = Compiled(
+			PriceList.Replace("PriceList : @string = lines: Entry*", "PriceList : @string[] = Entry*").Replace("\n    => @(Join(lines))", "") +
+			"parse PriceList as ReadStart stream yield\n",
+			direct: true, CarrierKind.Auto);
 		var read = host.GetType("Grammar")!.GetMethods()
 			.Single(static one => one.Name == "ReadStart" && one.GetParameters()[0].ParameterType == typeof(TextReader));
 		var told = ((IEnumerable)read.Invoke(null, [new StringReader(Prices), window, null])!)
@@ -97,7 +112,7 @@ public sealed class RejectionMessageTests
 	public void A_rule_that_forwards_per_alternative_is_an_element_that_recovers()
 	{
 		const string Lines = """
-			Sheet : @string[] = Line* recover eol => @(Told(parserLine, parserColumn, parserFailureLine, parserFailureColumn, parserFailurePosition, parserExpected, parserMessage)) & eof
+			Sheet : @string = lines: Line* recover eol => @(Told(parserLine, parserColumn, parserFailureLine, parserFailureColumn, parserFailurePosition, parserExpected, parserMessage)) & eof => @(Join(lines))
 			Item   : @string = d: ['0'..'9']+ & eol => @(Text(d))
 			Remark : @string = '#' & t: [^ '\n']* & eol => @(Text(t))
 			parse Sheet as ParseStart
@@ -181,6 +196,309 @@ public sealed class RejectionMessageTests
 		Assert.Equal("Expected 'b' at 1.", Assert.IsType<FormatException>(thrown.InnerException).Message);
 	}
 
+	const string Where = "@(Told(parserLine, parserColumn, parserFailureLine, parserFailureColumn, parserFailurePosition, parserExpected, parserMessage))";
+
+	/// <summary>
+	/// What would have fit is taken where the element failed, not after the synchronization was
+	/// looked for: <c>ENX</c> begins to match <c>"END"</c> and refuses further along than the element did.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_synchronization_that_begins_to_match_does_not_take_the_explanation(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(
+			"Item : @string = t: 'a' & ';' => @(Text(t))\n" +
+			"Start : @string = items: Item* recover \"END\" => " + Where + " => @(Join(items))\n" +
+			"parse Start as ParseStart\n",
+			direct, carrier);
+
+		var told = Recovered(host, "a;b ENX q ENDa;");
+
+		Assert.True(told.Length == 3, rendering + ": " + string.Join(" / ", told));
+		Told(told[1], "1:3 1:3@2", "'a'", rendering);
+	}
+
+	/// <summary>
+	/// Two elements that stop at one place keep what each wanted: the first reads across its line
+	/// and fails where the second begins, which fails there too, wanting something else.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void Two_elements_that_stop_at_one_place_keep_their_own(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(
+			"Pair : @string = t: 'a' & eol & 'b' & eol => @(Text(t))\n" +
+			"Start : @string = pairs: Pair* recover eol => " + Where + " => @(Join(pairs))\n" +
+			"parse Start as ParseStart\n",
+			direct, carrier);
+
+		var told = Recovered(host, "a\nx\na\nb\n");
+
+		Assert.True(told.Length == 3, rendering + ": " + string.Join(" / ", told));
+		Told(told[0], "1:1 2:1@2", "'b'", rendering);
+		Told(told[1], "2:1 2:1@2", "'a'", rendering);
+		Assert.DoesNotContain("'b'", told[1], StringComparison.Ordinal);
+		Assert.Equal("a", told[2]);
+	}
+
+	/// <summary>Input with lines ended every way <c>eol</c> ends one: <c>\r\n</c>, <c>\r</c> and <c>\n</c>.</summary>
+	const string Mixed = "a\r\na\rx\na\r\nx\r\na\r";
+
+	const string Rows = "Row : @string = t: 'a' & eol => @(Text(t))\n";
+
+	/// <summary>A line ends where <c>eol</c> ends one, in the coordinates and in the message, over a string.</summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_line_ends_where_eol_ends_one(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(Rows + "Start : @string = rows: Row* recover eol => " + Where + " => @(Join(rows))\nparse Start as ParseStart\n", direct, carrier);
+		var told = Recovered(host, Mixed);
+
+		Assert.True(told.Length == 6, rendering + ": " + string.Join(" / ", told));
+		Told(told[2], "3:1 3:1@5", "'a'", rendering);
+		Told(told[4], "5:1 5:1@10", "'a'", rendering);
+	}
+
+	/// <summary>The same from a <c>TextReader</c>, through windows that cut a <c>\r\n</c> in two.</summary>
+	[Theory]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(5)]
+	[InlineData(4096)]
+	public void A_line_ends_where_eol_ends_one_in_a_stream(int window)
+	{
+		var host = Compiled(Rows + "Start : @string[] = Row* recover eol => " + Where + "\nparse Start as ReadStart stream yield\n", direct: true, CarrierKind.Auto);
+		var told = Read(host, "ReadStart", new StringReader(Mixed), window);
+
+		Assert.True(told.Length == 6, string.Join(" / ", told));
+		Told(told[2], "3:1 3:1@5", "'a'", "window " + window);
+		Told(told[4], "5:1 5:1@10", "'a'", "window " + window);
+	}
+
+	/// <summary>
+	/// The same over bytes, where only the message says the place, and over the buffered
+	/// <c>TextReader</c> beside it, through buffers that cut a <c>\r\n</c> in two.
+	/// </summary>
+	[Theory]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(4096)]
+	public void A_line_ends_where_eol_ends_one_over_bytes(int buffer)
+	{
+		foreach (var (form, over) in new (string, Func<object>)[]
+		{
+			("stream bytes", () => new MemoryStream(System.Text.Encoding.ASCII.GetBytes(Mixed))),
+			("stream", () => new StringReader(Mixed)),
+		})
+		{
+			var host = Compiled(
+				Rows + "Start : @string[] = Row* recover eol => @(Text(parserMessage))\nparse Start as ParseStart " + form + "\n",
+				direct: true, CarrierKind.Auto);
+			var input = over();
+			var parse = host.GetType("Grammar")!.GetMethods().Single(one =>
+				one.Name == "TryParseStart" && one.GetParameters()[0].ParameterType == (input is Stream ? typeof(Stream) : typeof(TextReader)) &&
+				one.ReturnType.Name.StartsWith("Match", StringComparison.Ordinal));
+			var arguments = parse.GetParameters().Select((one, at) => at == 0 ? input : one.Name == "bufferSize" ? buffer : one.DefaultValue).ToArray();
+			var match = parse.Invoke(null, arguments)!;
+			var value = (IEnumerable)match.GetType().GetProperty("Value")!.GetValue(match)!;
+			var told  = value.Cast<object>().Select(static one => one.ToString()!).ToArray();
+
+			Assert.True(told.Length == 6, form + ": " + string.Join(" / ", told));
+			Assert.EndsWith("'a' at 3:1.", told[2], StringComparison.Ordinal);
+			Assert.EndsWith("'a' at 5:1.", told[4], StringComparison.Ordinal);
+		}
+	}
+
+	/// <summary>Read from a position, or within a window of the input, the place is still the input's own.</summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_reading_from_a_position_says_the_place_in_the_whole_input(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host  = Compiled(Rows + "Start : @string = rows: Row* recover eol => " + Where + " & eof => @(Join(rows))\nparse Start as ParseStart\n", direct, carrier);
+		var type  = host.GetType("Grammar")!;
+		const string Input = "zz\na\nx\na\n";
+
+		foreach (var arguments in new object[][] { [Input, 3], [Input, 3, Input.Length - 3] })
+		{
+			var match = type.GetMethod("TryParseStart", [.. arguments.Select(static one => one.GetType())])!.Invoke(null, arguments)!;
+			var told  = ((string)match.GetType().GetProperty("Value")!.GetValue(match)!).Split('\u0001');
+
+			Assert.True(told.Length == 3, rendering + ": " + string.Join(" / ", told));
+			Told(told[1], "3:1 3:1@5", "'a'", rendering);
+		}
+	}
+
+	/// <summary>
+	/// The forwarding rule of §6's spelling is an element in every rendering, alternatives that
+	/// begin alike included, and answers as the grouped spelling does.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_forwarding_rule_recovers_alike_in_every_rendering(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Lines = """
+			Sheet : @string = lines: Line* recover eol => @(Text(parserMessage)) & eof => @(Join(lines))
+			Item  : @string = d: ['0'..'9']+ & 'x' & eol => @(Text(d))
+			Note  : @string = d: ['0'..'9']+ & '#' & eol => @(Text(d) + "#")
+			parse Sheet as ParseStart
+
+			""";
+		const string Input = "1x\n2#\n3?\n4x\n";
+
+		var perAlternative = Recovered(Compiled("Line : @string = v: Item => @(v) | v: Note => @(v)\n" + Lines, direct, carrier), Input);
+		var grouped        = Recovered(Compiled("Line : @string = (v: Item | v: Note) => @(v)\n" + Lines, direct, carrier), Input);
+
+		Assert.True(grouped.SequenceEqual(perAlternative), rendering + ": " + string.Join(" / ", perAlternative));
+		Assert.Equal(["1", "2#", "4"], new[] { perAlternative[0], perAlternative[1], perAlternative[3] });
+		Assert.EndsWith(" at 3:2.", perAlternative[2], StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// What a choice says over the call that begins its widest group, where something else was
+	/// recorded at the place first: that stays, said beside the choice's set.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void A_choice_said_over_its_call_keeps_what_stood_there_before(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host  = Compiled(Choice + "Start : @int = ('q' & 'z')? & e: Expr => @(e)\nparse Start as ParseStart\n", direct, carrier);
+		var error = EmittedCode.Match(host, "Grammar", "TryParseStart", "x").Error!;
+
+		Assert.False(error.Contains("Digit", StringComparison.Ordinal), rendering + ": " + error);
+		Assert.Contains("'q'", error, StringComparison.Ordinal);
+		Assert.Contains("['(' | '-' | '0'..'9']", error, StringComparison.Ordinal);
+	}
+
+	/// <summary>A rule that says its own refusal is heard over the choice that calls it.</summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void A_choice_said_over_its_call_keeps_the_rules_own_words(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(
+			Choice.Replace("Number : @int =", "Number : @int on fail \"Expected a number.\" =") + "parse Expr as ParseStart\n",
+			direct, carrier);
+
+		Assert.True(EmittedCode.Match(host, "Grammar", "TryParseStart", "x").Error == "Expected a number.", rendering);
+	}
+
+	/// <summary>A dispatch inside the call, whose own widest group begins with a call too: every set said once.</summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void A_choice_said_over_a_nested_dispatch_says_each_set_once(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Nested = """
+			Digit  = ['0'..'9']
+			Dec    : @int = d: Digit+ => @(int.Parse(Text(d)))
+			Hex    : @int = "0x" & d: ['0'..'9' | 'a'..'f']+ => @(System.Convert.ToInt32(Text(d), 16))
+			Value  : @int = '#' & v: Hex => @(v) | '%' & v: Hex => @(-v) | v: Dec => @(v)
+			Expr   : @int = '(' & e: Expr & ')' => @(e) | '-' & e: Expr => @(-e) | v: Value => @(v)
+			parse Expr as ParseStart
+
+			""";
+
+		var host = Compiled(Nested, direct, carrier);
+
+		foreach (var input in new[] { "x", "-x", "(x" })
+		{
+			var error = EmittedCode.Match(host, "Grammar", "TryParseStart", input).Error!;
+			var items = error.Substring("Expected ".Length).TrimEnd('.').Replace(" or ", ", ").Split(", ");
+
+			Assert.False(error.Contains("Digit", StringComparison.Ordinal), rendering + ": " + error);
+			Assert.Equal(items.Length, items.Distinct().Count());
+		}
+	}
+
+	/// <summary>A group led by a guard that says no is not named, and the rest is said once.</summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void A_choice_said_over_its_call_under_a_guard_says_each_set_once(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(
+			Choice.Replace("| '-' & e: Expr => @(-e)", "| when @(Allowed()) & '-' & e: Expr => @(-e)") + "parse Expr as ParseStart\n",
+			direct, carrier);
+		var error = EmittedCode.Match(host, "Grammar", "TryParseStart", "x").Error!;
+
+		Assert.False(error.Contains("Digit", StringComparison.Ordinal), rendering + ": " + error);
+		Assert.DoesNotContain("'-'", error, StringComparison.Ordinal);
+	}
+
+	const string Choice = """
+		trivia = ' '*
+		Digit  = ['0'..'9']
+		Number : @int = d: Digit+ => @(int.Parse(Text(d)))
+		Expr   : @int = '(' & e: Expr & ')' => @(e) | '-' & e: Expr => @(-e) | n: Number => @(n)
+
+		""";
+
+	/// <summary>
+	/// What a parse that rejected many elements kept for them goes with the parse: the pooled
+	/// parser and tape a later parse is handed do not hold it.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void What_was_kept_for_many_rejections_is_not_pooled(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host  = Compiled(Rows + "Start : @string = rows: Row* recover eol => " + Where + " => @(Join(rows))\nparse Start as ParseStart\n", direct, carrier);
+		var heavy = string.Concat(Enumerable.Repeat("x\n", 1000));
+
+		Assert.Equal(1000, Recovered(host, heavy).Length);
+		Assert.Single(Recovered(host, "a\n"));
+
+		foreach (var pooled in Pooled(host.GetType("Grammar")!))
+		{
+			var kept = pooled.GetType().GetField("Expectations", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.GetValue(pooled);
+
+			// Its room, which a dictionary cleared keeps, and not only its count.
+			var room = kept is null ? 0 : (int)kept.GetType().GetMethod("EnsureCapacity")!.Invoke(kept, [0])!;
+
+			Assert.True(room < 1000, rendering + ": a pooled dictionary keeps room for " + room);
+		}
+
+		// The immediate carrier keeps nothing past the element it builds.
+		if (carrier == CarrierKind.Immediate)
+			return;
+
+		Assert.NotEmpty(Pooled(host.GetType("Grammar")!));
+	}
+
+	/// <summary>The spare parser and tape a parse leaves pooled, where this thread has one.</summary>
+	static object[] Pooled(Type host)
+	{
+		var found = new System.Collections.Generic.List<object>();
+
+		foreach (var type in host.GetNestedTypes(BindingFlags.NonPublic).Append(host))
+			foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.NonPublic))
+				if (field.FieldType.GetField("Expectations", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) is not null &&
+					field.GetValue(null) is { } spare)
+					found.Add(spare);
+
+		return [.. found];
+	}
+
+	static string[] Read(Assembly host, string method, TextReader reader, int window)
+	{
+		var read = host.GetType("Grammar")!.GetMethods()
+			.Single(one => one.Name == method && one.GetParameters()[0].ParameterType == typeof(TextReader));
+
+		return [.. ((IEnumerable)read.Invoke(null, [reader, window, null])!).Cast<object>().Select(static one => one.ToString()!)];
+	}
+
+	/// <summary>
+	/// A rejection told as <see cref="Where"/> tells it: the places exactly, and of what would
+	/// have fit, that it ends with <paramref name="wanted"/> — before it may stand what the
+	/// continuation tried at the same place wanted, which renderings say differently.
+	/// </summary>
+	static void Told(string told, string places, string wanted, string context)
+	{
+		var bar = told.IndexOf(" | ", StringComparison.Ordinal);
+		var at  = places.Split(' ')[1].Split('@')[0];
+
+		Assert.True(bar > places.Length && told.StartsWith(places + " ", StringComparison.Ordinal), context + ": " + told);
+		Assert.True(told.Substring(places.Length + 1, bar - places.Length - 1).EndsWith(wanted, StringComparison.Ordinal), context + ": " + told);
+		Assert.True(told.Substring(bar + 3).StartsWith("Expected ", StringComparison.Ordinal), context + ": " + told);
+		Assert.True(told.EndsWith(wanted + " at " + at + ".", StringComparison.Ordinal), context + ": " + told);
+	}
+
 	static Assembly Compiled(string grammar, bool direct, CarrierKind carrier)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
@@ -190,7 +508,14 @@ public sealed class RejectionMessageTests
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Helpers);
+		var source = Assert.Single(result.Sources).Text;
+
+		// Held to what it is about: where a reader was asked for, a recovering repetition of the
+		// root is the reader's and not the engine's (RecoveringReaderTests says the same).
+		if (direct && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*\w+\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
+			Assert.Contains("failure.Reach = p;", source, StringComparison.Ordinal);
+
+		return EmittedCode.Compile(source, declarationMembers: Helpers);
 	}
 
 	static string[] Recovered(Assembly host, string input = Prices)
@@ -199,6 +524,8 @@ public sealed class RejectionMessageTests
 
 		Assert.True(match.IsSuccess, match.Error);
 
-		return [.. ((IEnumerable)match.Value!).Cast<object>().Select(static one => one?.ToString() ?? "<null>")];
+		return match.Value is string joined
+			? joined.Split('\u0001')
+			: [.. ((IEnumerable)match.Value!).Cast<object>().Select(static one => one?.ToString() ?? "<null>")];
 	}
 }

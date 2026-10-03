@@ -447,6 +447,7 @@ public static partial class CSharpEmitter
 		// The line break as an element: a byte has to be cast to, and a character already is one.
 		var lines   = LocatedMembers
 			.Replace("(ELEMENT)'\\n'", element == "byte" ? "(byte)'\\n'" : "'\\n'")
+			.Replace("(ELEMENT)'\\r'", element == "byte" ? "(byte)'\\r'" : "'\\r'")
 			.Replace("ELEMENT", element).Replace("\r\n", "\n").Split('\n');
 
 		for (var i = 0; i < lines.Length; i++)
@@ -491,10 +492,15 @@ public static partial class CSharpEmitter
 		private int _lineAt;
 		private int _lines;
 		private int _lineStart;
+		// Whether what stands just before _lineAt is a `\r`, which a `\n` at _lineAt closes: a line
+		// ends where `eol` ends one, at `\r\n`, `\n` or `\r`, counted once, at its `\r`, wherever a
+		// refill or a release cut the pair.
+		private bool _crBefore;
 		// Where lines were last counted up to before the buffer let text go, and where the line
 		// holding that place began: a walk back stops there, since nothing behind it is held.
 		private int _floor;
 		private int _releasedLine;
+		private bool _floorCr;
 
 		public int LineAt(int position)
 		{
@@ -516,49 +522,89 @@ public static partial class CSharpEmitter
 			MoveLine(position);
 			_releasedLine = _lineStart;
 			_floor        = position;
+			_floorCr      = _crBefore;
 		}
 
 		private void MoveLine(int position)
 		{
 			if (position >= _lineAt)
 			{
-				// Searched for, not read a character at a time: a feed asking for lines had a
-				// branch on every character it read counted again.
 				var span = new global::System.ReadOnlySpan<ELEMENT>(_buffer, _lineAt - _start, position - _lineAt);
-				var last = global::System.MemoryExtensions.LastIndexOf(span, (ELEMENT)'\n');
 
-				if (last >= 0)
+				if (span.Length == 0)
+					return;
+
+				var endsOnCr = span[span.Length - 1] == '\r';
+
+				// A `\n` closing a `\r` the last count ended on was counted with it.
+				if (_crBefore && span[0] == '\n')
 				{
-					_lineStart = _lineAt + last + 1;
-					span       = span.Slice(0, last + 1);
-					#if NET8_0_OR_GREATER
-					_lines += global::System.MemoryExtensions.Count(span, (ELEMENT)'\n');
-					#else
-					for (var at = global::System.MemoryExtensions.IndexOf(span, (ELEMENT)'\n'); at >= 0; at = global::System.MemoryExtensions.IndexOf(span, (ELEMENT)'\n'))
-					{
-						_lines++;
-						span = span.Slice(at + 1);
-					}
-					#endif
+					_lineStart = _lineAt + 1;
+					_lineAt++;
+					span = span.Slice(1);
 				}
 
-				_lineAt = position;
+				// Searched for, not read a character at a time: a feed asking for lines had a
+				// branch on every character it read counted again. Where a `\r` stands in it, the
+				// pairs are told apart one character at a time.
+				if (global::System.MemoryExtensions.IndexOf(span, (ELEMENT)'\r') < 0)
+				{
+					var last = global::System.MemoryExtensions.LastIndexOf(span, (ELEMENT)'\n');
+
+					if (last >= 0)
+					{
+						_lineStart = _lineAt + last + 1;
+						var counted = span.Slice(0, last + 1);
+						#if NET8_0_OR_GREATER
+						_lines += global::System.MemoryExtensions.Count(counted, (ELEMENT)'\n');
+						#else
+						for (var at = global::System.MemoryExtensions.IndexOf(counted, (ELEMENT)'\n'); at >= 0; at = global::System.MemoryExtensions.IndexOf(counted, (ELEMENT)'\n'))
+						{
+							_lines++;
+							counted = counted.Slice(at + 1);
+						}
+						#endif
+					}
+				}
+				else
+				{
+					for (var at = 0; at < span.Length; at++)
+					{
+						if (span[at] != '\r' && span[at] != '\n')
+							continue;
+
+						if (span[at] == '\r' || at == 0 || span[at - 1] != '\r')
+							_lines++;
+
+						_lineStart = _lineAt + at + 1;
+					}
+				}
+
+				_crBefore = endsOnCr;
+				_lineAt   = position;
 
 				return;
 			}
 
 			for (var at = _lineAt - 1; at >= position; at--)
-				if (_buffer[at - _start] == '\n')
+				if (_buffer[at - _start] == '\r' || _buffer[at - _start] == '\n' && !CrAt(at - 1))
 					_lines--;
 
 			_lineAt    = position;
 			_lineStart = position;
+			_crBefore  = CrAt(position - 1);
 
-			while (_lineStart > _floor && _buffer[_lineStart - 1 - _start] != '\n')
+			while (_lineStart > _floor && _buffer[_lineStart - 1 - _start] != '\n' && _buffer[_lineStart - 1 - _start] != '\r')
 				_lineStart--;
 
 			if (_lineStart == _floor)
 				_lineStart = _releasedLine;
+		}
+
+		// Whether a `\r` stands at a place held, or, just behind what is held, stood there.
+		private bool CrAt(int position)
+		{
+			return position >= _floor ? position >= _start && _buffer[position - _start] == '\r' : _floorCr;
 		}
 		""";
 

@@ -52,6 +52,11 @@ sealed partial class Machine
 		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		atLoop.Line("var repeating = entries[repeat];");
 
+		// What stood at the place the turn begins, before the continuation and the element are
+		// tried there: what is recorded at that place since is theirs.
+		if (recovery.Recovery.Explains)
+			atLoop.Line(Stand);
+
 		if (max is { } limit)
 			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(atLoop, exit)};");
 
@@ -70,10 +75,10 @@ sealed partial class Machine
 		// a required element or continuation is missing, and scanning would not advance.
 		atAsked.Line($"if ({Short(1)}) {{ expected = null; goto Fail; }}");
 
-		// What would have fit where the element stopped, kept by that place until the element
-		// is built: what the parse records there now, a later turn may record over.
+		// What would have fit where the element stopped, taken now: the synchronization about to
+		// be looked for records refusals of its own, further along.
 		if (recovery.Recovery.Explains)
-			atAsked.Line($"{Keep("parser")}[reach] = Expecting_DotGram(ref failure, reach);");
+			atAsked.Line("parser.Expecting = Expecting_DotGram(ref failure, reach);");
 
 		atAsked.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
@@ -120,6 +125,11 @@ sealed partial class Machine
 			}
 		}
 		DeactivateChoices(atRecovered, asked);
+
+		// Kept by the entry the element is recorded as, until it is built after the parse.
+		if (recovery.Recovery.Explains)
+			atRecovered.Line($"{Keep("parser")}[entries.Count] = parser.Expecting;");
+
 		atRecovered.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
 			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
@@ -207,6 +217,9 @@ sealed partial class Machine
 				foreach (var name in plan.Recovery.Asks)
 					arguments.Add(RecoverySupplied(name, plan));
 
+				if (WordsOnce(plan.Recovery) is { } once)
+					file.Line(once);
+
 				file.Line(
 					$"{ValueInto(RecoveredType(plan), "recoveryAt")} = " +
 					$"{plan.Method}({string.Join(", ", arguments)});");
@@ -232,15 +245,16 @@ sealed partial class Machine
 	/// input the buffer counts, since only it knows what it has let go.
 	/// </param>
 	/// <param name="expected">
-	/// What would have fit where the element stopped, as the sets recorded there: kept by that
-	/// place where the element is built after the parse (<see cref="Keep"/>), and read off the
-	/// failure where it is built as it is stepped over.
+	/// What would have fit where the element stopped, as the sets recorded there when it failed:
+	/// kept by the record of the element where it is built after the parse (<see cref="Keep"/>),
+	/// and taken before the synchronization is looked for where it is built as it is stepped over.
 	/// </param>
 	string RecoverySupplied(
 		string name, RecoveryPlan plan, string located = "parser.Located",
-		string expected = "Recalled_DotGram(parser.Expectations, recovered.AtomicIndex)")
+		string expected = "Recalled_DotGram(parser.Expectations, recoveryAt)")
 	{
 		var element = Escape(plan.Element?.Name ?? "an element");
+		var wanted  = WordsOnce(plan.Recovery) is null ? $"Wanted_DotGram({expected})" : "wanted";
 
 		return name switch
 		{
@@ -253,11 +267,23 @@ sealed partial class Machine
 			"parserFailurePosition" => At("recovered.AtomicIndex"),
 			"parserFailureLine" => Line("recovered.AtomicIndex", located),
 			"parserFailureColumn" => Column("recovered.AtomicIndex", located),
-			"parserExpected" => $"Expected_DotGram({expected}, \"{element}\")",
-			"parserMessage" => $"Rejected_DotGram({expected}, \"{element}\", {Place("recovered.AtomicIndex", located)})",
+			"parserExpected" => $"Expected_DotGram({wanted}, \"{element}\")",
+			"parserMessage" => $"Rejected_DotGram({wanted}, \"{element}\", {Place("recovered.AtomicIndex", located)})",
 			"parserInput" => "parserInput",
 			_ => "default",
 		};
+	}
+
+	/// <summary>
+	/// Where a factory asks both for what would have fit and for the message, the words they share,
+	/// made once before the call as <c>wanted</c> — never for the hook, whose arguments go with the
+	/// call nobody implements.
+	/// </summary>
+	internal static string? WordsOnce(Recovery recovery, string expected = "Recalled_DotGram(parser.Expectations, recoveryAt)")
+	{
+		return recovery.Factory is not null && recovery.Asks.Contains("parserExpected") && recovery.Asks.Contains("parserMessage")
+			? $"var wanted = Wanted_DotGram({expected});"
+			: null;
 	}
 
 	/// <summary>A place the machine names, as a message says it: <c>line:column</c>.</summary>
@@ -285,13 +311,20 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// Where what each rejected element wanted is kept until the element is built, by the place
-	/// it stopped: on the parser or the tape, made the first time a parse rejects anything.
+	/// Where what each rejected element wanted is kept until the element is built, by the record
+	/// of the element — its arena entry, or where its record begins on the tape: two elements may
+	/// stop at one place. On the parser or the tape, made the first time a parse rejects anything.
 	/// </summary>
 	internal static string Keep(string owner)
 	{
 		return $"({owner}.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())";
 	}
+
+	/// <summary>
+	/// Where the furthest refusal stands as a turn of a repetition marked <c>recover</c> begins, and
+	/// how many sets tie there, for <c>Expecting_DotGram</c> to tell the element's own from them.
+	/// </summary>
+	internal const string Stand = "failure.Stood = failure.Position; failure.Tied = failure.ExpectedMore?.Count ?? 0;";
 
 	/// <summary>Whether the engine keeps what its rejected elements wanted until they are built.</summary>
 	public bool KeepsExpectations => _recoveryPlans.Exists(static plan => plan.Recovery.Explains);
