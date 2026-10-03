@@ -308,7 +308,7 @@ namespace DotGram.Snapshots
 				if (this.whole.IsEmpty)
 					throw new global::System.InsufficientExecutionStackException();
 
-				var deep = new Deep_DotGram();
+				var deep = Deep_DotGram.Take();
 
 				deep.whole  = this.whole;
 				deep.ways   = this.ways;
@@ -319,19 +319,22 @@ namespace DotGram.Snapshots
 				deep.which  = which;
 				deep.power  = power;
 
-				var thread = new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024);
-
-				thread.Start();
-				thread.Join();
+				deep.Go();
 
 				this.failure = deep.failure;
 				// Still on the stack that ran low: the next entry probes it again.
 				this.probes = 0;
 
-				if (deep.thrown != null)
-					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();
+				var thrown = deep.thrown;
+				var end    = deep.end;
 
-				return deep.end;
+				// It lingers for the next hand-off: what it holds of this reading goes now.
+				deep.Clear();
+
+				if (thrown != null)
+					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(thrown).Throw();
+
+				return end;
 			}
 
 			/// <summary><c>Sum</c>, and the way back into it.</summary>
@@ -910,6 +913,70 @@ namespace DotGram.Snapshots
 			internal int power;
 			internal int end;
 			internal global::System.Exception? thrown;
+
+			/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>
+			[global::System.ThreadStatic]
+			static Deep_DotGram? lingering;
+
+			readonly global::System.Threading.SemaphoreSlim go   = new global::System.Threading.SemaphoreSlim(0, 1);
+			readonly global::System.Threading.SemaphoreSlim done = new global::System.Threading.SemaphoreSlim(0, 1);
+
+			int state = 1;
+
+			/// <summary>The thread this one handed off to last, if it is still waiting, or a new one.</summary>
+			internal static Deep_DotGram Take()
+			{
+				var deep = lingering;
+
+				if (deep != null && global::System.Threading.Interlocked.CompareExchange(ref deep.state, 1, 0) == 0)
+					return deep;
+
+				deep       = new Deep_DotGram();
+				lingering  = deep;
+
+				var thread = new global::System.Threading.Thread(deep.Loop, 16 * 1024 * 1024) { IsBackground = true };
+
+				thread.Start();
+
+				return deep;
+			}
+
+			/// <summary>Reads on that thread and waits for it.</summary>
+			internal void Go()
+			{
+				go.Release();
+				done.Wait();
+			}
+
+			/// <summary>Lets go of what it was handed of a reading.</summary>
+			internal void Clear()
+			{
+				whole  = default;
+				ways   = default!;
+				values = default!;
+				failure = default!;
+				thrown = null;
+			}
+
+			void Loop()
+			{
+				while (true)
+				{
+					if (!go.Wait(100))
+					{
+						if (global::System.Threading.Interlocked.CompareExchange(ref state, 2, 0) == 0)
+							return;
+
+						// Taken in the moment before it could go: the reading is on its way.
+						go.Wait();
+					}
+
+					Run();
+
+					global::System.Threading.Volatile.Write(ref state, 0);
+					done.Release();
+				}
+			}
 
 			internal void Run()
 			{

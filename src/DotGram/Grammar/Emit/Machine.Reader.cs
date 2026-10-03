@@ -690,10 +690,11 @@ sealed partial class Machine
 	/// as a <c>ReadOnlyMemory</c>, and the reader is made again on the other side.
 	/// </para>
 	/// <para>
-	/// One thread a low stack rather than one a parse: the probe fires once in sixty-four
-	/// entries and only when the runtime says the margin has gone, so a reading that never
-	/// goes deep never makes one. A reading that goes deeper still probes again on the new
-	/// stack and takes another, and so on for as long as there is memory to take one with.
+	/// One thread a low stack rather than one a parse: the probe fires only when the runtime
+	/// says the margin has gone, so a reading that never goes deep never makes one. A reading
+	/// that goes deeper still probes again on the new stack and takes another, and so on for as
+	/// long as there is memory to take one with. Every hand-off from one thread goes to the same
+	/// one while it lingers (<see cref="RenderLingering"/>).
 	/// </para>
 	/// <para>
 	/// What is not carried is a reading over a window (§6.3): there is no whole input to
@@ -758,7 +759,7 @@ sealed partial class Machine
 				file.Then("throw new global::System.InsufficientExecutionStackException();");
 				file.Line();
 			}
-			file.Line($"var deep = new Deep_DotGram{_tag}();");
+			file.Line($"var deep = Deep_DotGram{_tag}.Take();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
 			if (_readerWays)
@@ -776,10 +777,7 @@ sealed partial class Machine
 			file.Line("deep.which  = which;");
 			file.Line("deep.power  = power;");
 			file.Line();
-			file.Line("var thread = new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024);");
-			file.Line();
-			file.Line("thread.Start();");
-			file.Line("thread.Join();");
+			file.Line("deep.Go();");
 			file.Line();
 
 			// Back into the reading that asked: what it hands over is readonly and did not
@@ -796,13 +794,123 @@ sealed partial class Machine
 			file.Line("this.probes = 0;");
 
 			file.Line();
-			file.Line("if (deep.thrown != null)");
-			file.Then(
-				"global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();");
+			file.Line("var thrown = deep.thrown;");
+			file.Line("var end    = deep.end;");
 			file.Line();
-			file.Line("return deep.end;");
+			file.Line("// It lingers for the next hand-off: what it holds of this reading goes now.");
+			file.Line("deep.Clear();");
+			file.Line();
+			file.Line("if (thrown != null)");
+			file.Then(
+				"global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(thrown).Throw();");
+			file.Line();
+			file.Line("return end;");
 		}
 	}
+
+	/// <summary>
+	/// The thread a reading is handed to: one for every hand-off from the same thread, made on the first
+	/// and kept until it has waited <see cref="Linger"/> for another.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A hand-off that comes back finds the stack as low as it was, so everything read after it on
+	/// that stack is handed off too, one rule at a time: a list of a hundred thousand values that
+	/// begins at the margin is a hundred thousand hand-offs. A thread made for each cost about 150
+	/// microseconds, and such a list was read in eight seconds where it takes a tenth of one. Handed
+	/// to the thread the last one went to, each costs a wake-up.
+	/// </para>
+	/// <para>
+	/// It holds a stack, and the pages a deep reading touched stay with it, so it does not outlive the
+	/// work by more than <see cref="Linger"/> milliseconds; what it was handed of a reading is cleared
+	/// as soon as that reading has it back. The thread that made it may ask again at the moment it
+	/// decides to go, and <c>state</c> says which came first: 0 waiting, 1 reading, 2 gone.
+	/// </para>
+	/// </remarks>
+	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
+	{
+		var deep = $"Deep_DotGram{_tag}";
+
+		file.Line("/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>");
+		file.Line("[global::System.ThreadStatic]");
+		file.Line($"static {deep}? lingering;");
+		file.Line();
+		file.Line("readonly global::System.Threading.SemaphoreSlim go   = new global::System.Threading.SemaphoreSlim(0, 1);");
+		file.Line("readonly global::System.Threading.SemaphoreSlim done = new global::System.Threading.SemaphoreSlim(0, 1);");
+		file.Line();
+		file.Line("int state = 1;");
+		file.Line();
+		file.Line("/// <summary>The thread this one handed off to last, if it is still waiting, or a new one.</summary>");
+
+		using (file.Block($"internal static {deep} Take()"))
+		{
+			file.Line("var deep = lingering;");
+			file.Line();
+			file.Line("if (deep != null && global::System.Threading.Interlocked.CompareExchange(ref deep.state, 1, 0) == 0)");
+			file.Then("return deep;");
+			file.Line();
+			file.Line($"deep       = new {deep}();");
+			file.Line("lingering  = deep;");
+			file.Line();
+			file.Line("var thread = new global::System.Threading.Thread(deep.Loop, 16 * 1024 * 1024) { IsBackground = true };");
+			file.Line();
+			file.Line("thread.Start();");
+			file.Line();
+			file.Line("return deep;");
+		}
+
+		file.Line();
+		file.Line("/// <summary>Reads on that thread and waits for it.</summary>");
+
+		using (file.Block("internal void Go()"))
+		{
+			file.Line("go.Release();");
+			file.Line("done.Wait();");
+		}
+
+		file.Line();
+		file.Line("/// <summary>Lets go of what it was handed of a reading.</summary>");
+
+		using (file.Block("internal void Clear()"))
+		{
+			file.Line("whole  = default;");
+			if (_readerWays)
+				file.Line("ways   = default!;");
+
+			foreach (var (_, name) in carried)
+				file.Line($"{name} = default!;");
+
+			file.Line("thrown = null;");
+		}
+
+		file.Line();
+
+		using (file.Block("void Loop()"))
+		{
+			using (file.Block("while (true)"))
+			{
+				using (file.Block($"if (!go.Wait({Linger}))"))
+				{
+					file.Line("if (global::System.Threading.Interlocked.CompareExchange(ref state, 2, 0) == 0)");
+					file.Then("return;");
+					file.Line();
+					file.Line("// Taken in the moment before it could go: the reading is on its way.");
+					file.Line("go.Wait();");
+				}
+
+				file.Line();
+				file.Line("Run();");
+				file.Line();
+				file.Line("global::System.Threading.Volatile.Write(ref state, 0);");
+				file.Line("done.Release();");
+			}
+		}
+
+		file.Line();
+	}
+
+	/// <summary>Milliseconds a thread a reading was handed to waits for the next before it ends.</summary>
+	internal const int Linger = 100;
 
 	/// <summary>The state of a reading, in a shape that may be handed to another thread.</summary>
 	void RenderDeep(
@@ -836,6 +944,7 @@ sealed partial class Machine
 			file.Line("internal int end;");
 			file.Line("internal global::System.Exception? thrown;");
 			file.Line();
+			RenderLingering(file, carried);
 
 			using (file.Block("internal void Run()"))
 			{

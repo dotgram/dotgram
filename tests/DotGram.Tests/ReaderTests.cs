@@ -253,7 +253,11 @@ public sealed class ReaderTests
 
 		// And carried over rather than given up on.
 		Assert.Contains("Deepen_DotGram(pos, ", written, StringComparison.Ordinal);
-		Assert.Contains("new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024)", written, StringComparison.Ordinal);
+		Assert.Contains("new global::System.Threading.Thread(deep.Loop, 16 * 1024 * 1024)", written, StringComparison.Ordinal);
+
+		// Onto the thread the last hand-off went to while it lingers, rather than a new one each time.
+		Assert.Contains("[global::System.ThreadStatic]", written, StringComparison.Ordinal);
+		Assert.Contains("Take();", written, StringComparison.Ordinal);
 
 		// Nothing says how many stacks are enough, so nothing counts them.
 		Assert.DoesNotContain("this.stacks", written, StringComparison.Ordinal);
