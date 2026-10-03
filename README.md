@@ -122,8 +122,8 @@ foreach (var line in PriceList.Read(prices))
 ```text
 Espresso: 2.40
 Cappuccino: 3.10
-line 3: Input does not match 'Entry' at 56. (Flat white     3,20)
-line 4: Input does not match 'Entry' at 78. (Croissant      2.1O)
+line 3: Expected '.' at 3:17. (Flat white     3,20)
+line 4: Expected ['0'..'9'] at 4:19. (Croissant      2.1O)
 Muffin: 2.80
 ```
 
@@ -131,8 +131,8 @@ Muffin: 2.80
 `IEnumerable<PriceLine>` that reads a line when the loop asks for the next one, and the bad
 lines arrive in their place among the good ones. The `=>` after `recover` says what a bad line
 becomes, and the names it uses are filled in by the parser: `parserLine` is the line a person
-opens the file at, and the offset in `parserMessage` is where in the file reading stopped — the
-comma, and the letter O typed for a zero.
+opens the file at, and `parserMessage` says where reading the line stopped, as a line and a
+column, and what would have fit there — the comma, and the letter O typed for a zero.
 
 An order sheet, `order.txt` — two header lines, then items and remarks in any order:
 
@@ -194,7 +194,7 @@ Delivery { When = Monday, before 8 }
 Ordered { Quantity = 12, Product = milk 1l }
 Ordered { Quantity = 3, Product = oat milk, the barista one }
 Remark { Text = the croissants were stale last week, ask }
-Unclear { Line = 6, Text = x2 sugar, Message = Input does not match 'Line' at 140. }
+Unclear { Line = 6, Text = x2 sugar, Message = Expected ['0'..'9' | '#'] at 6:1. }
 Ordered { Quantity = 4, Product = butter }
 ```
 
@@ -253,7 +253,7 @@ foreach (var entry in Logbook.Read(log))
 ```text
 07:55:00 press-4: oil topped up
 09:10:00 press-2: belt replaced
-line 3: Input does not match 'Entry' at 87. (2026-10-1 11:30 press-4 noise from the bearing)
+line 3: Expected ['0'..'9'] at 3:10. (2026-10-1 11:30 press-4 noise from the bearing)
 14:05:00 lathe-1: calibrated
 ```
 
