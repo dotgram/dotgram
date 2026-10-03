@@ -176,10 +176,10 @@ public sealed class StackDepthTests
 	}
 
 	/// <summary>A grammar that recurses on its own opening bracket, carried as asked.</summary>
-	static Assembly Compile(CarrierKind carrier)
+	static Assembly Compile(CarrierKind carrier, string grammar = Nested)
 	{
 		var result = GramCompiler.Compile(
-			Nested,
+			grammar,
 			new GramCompilerOptions
 			{
 				ClassName     = "Probe",
@@ -198,6 +198,72 @@ public sealed class StackDepthTests
 		Start : @int = '(' & n: Start & ')' => @(n + 1)
 			 | 'x' => @(1)
 		parse Start
+		""";
+
+	/// <summary>
+	/// A level that enters the probing rule three times — twice for something small beside the
+	/// recursion, once for the recursion — is handed on wherever the stack runs low, on every carrier.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The probe fires once in four entries (<c>Machine.Interval</c>), and a reading carried onto
+	/// another stack enters its rule there once more, so a level of three entries and one carried
+	/// is four: once the probe has found the stack low on one of the small readings beside the
+	/// recursion, it finds it there again every level after, the small reading is carried off and
+	/// comes back, and the recursion goes on down the low stack until it overflows. T-SQL's
+	/// <c>CASE … ELSE CASE …</c> did exactly this at ten thousand levels on a megabyte.
+	/// </para>
+	/// <para>
+	/// Where the probe first finds the stack low decides whether it locks onto a small reading, and
+	/// that is the depth the stack runs out at, so the size of the stack is swept rather than chosen.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_level_the_probe_keeps_missing_is_still_handed_on(CarrierKind carrier)
+	{
+		var host  = Compile(carrier, Beside);
+		var depth = 5_000;
+		var text  = "x;" + string.Concat(System.Linq.Enumerable.Repeat("cxtxe", depth)) + "x";
+
+		foreach (var stackKb in new[] { 64, 80, 96, 112, 128, 160, 192, 256 })
+		{
+			var levels = default(int?);
+			var thrown = default(Exception);
+
+			var thread = new Thread(
+				() =>
+				{
+					try
+					{
+						levels = (int)EmittedCode.Match(host, "Carried.Probe", "TryParseTop", text).Value!;
+					}
+					catch (Exception caught)
+					{
+						thrown = caught;
+					}
+				},
+				stackKb * 1024);
+
+			thread.Start();
+			thread.Join();
+
+			Assert.True(
+				thrown is null,
+				$"{carrier} at {depth} levels on {stackKb} KiB threw {thrown?.GetType().Name}: {thrown?.Message}");
+
+			Assert.Equal(depth, levels);
+		}
+	}
+
+	/// <summary>A recursion with two small readings of the same rule beside it at every level.</summary>
+	const string Beside =
+		"""
+		Top : @int = a: Start & ';' & b: Start => @(a + b)
+		Start : @int = 'c' & s: Start & 't' & u: Start & 'e' & n: Start => @(n + 1)
+			 | 'x' => @(0)
+		parse Top
 		""";
 
 	/// <summary>

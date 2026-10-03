@@ -529,10 +529,20 @@ sealed partial class Machine
 	/// it to this same arithmetic. If that test fails, this number is what has to move.
 	/// </para>
 	/// <para>
-	/// The counter is carried across the hand-off and back, so the phase travels with the reading
-	/// rather than restarting. That is why survival is not a function of depth — at 16, depth 200
-	/// on a 512 KiB stack died while 150 and 300 lived — and why <c>StackDepthTests</c> sweeps
-	/// depths instead of choosing one.
+	/// The counter is carried onto the new stack, so the phase travels with the reading rather
+	/// than restarting. That is why survival is not a function of depth — at 16, depth 200 on a
+	/// 512 KiB stack died while 150 and 300 lived — and why <c>StackDepthTests</c> sweeps depths
+	/// instead of choosing one.
+	/// </para>
+	/// <para>
+	/// <b>It is not carried back.</b> The reading that handed over is still on the stack that ran
+	/// low, and what it reads next may be the recursion itself. T-SQL's <c>CASE … ELSE CASE …</c>
+	/// enters a probing rule four times a level, so a probe once in four entries fell on the same
+	/// entries every level: on the condition and the <c>THEN</c>, which were carried off and came
+	/// back, never on the <c>ELSE</c> that holds the next level, which went on down the low stack
+	/// unprobed until it overflowed. So the hand-off comes back with the counter at zero, and the
+	/// next entry on that stack probes; one that finds it still low hands over and comes back at
+	/// zero again, so below the margin every entry probes, and above it the interval resumes.
 	/// </para>
 	/// </remarks>
 	/// <summary>Entries between two probes of the stack. A power of two: the test is a mask.</summary>
@@ -779,7 +789,11 @@ sealed partial class Machine
 			foreach (var (_, name) in registers)
 				file.Line($"this.{name} = deep.{name};");
 
-			file.Line("this.probes = deep.probes;");
+			// Not the count the other stack ended on: this one is as low as it was when the probe
+			// fired, so whatever is read on it next probes on its first entry, and every entry
+			// after that until the reading climbs back above the margin (Interval).
+			file.Line("// Still on the stack that ran low: the next entry probes it again.");
+			file.Line("this.probes = 0;");
 
 			file.Line();
 			file.Line("if (deep.thrown != null)");

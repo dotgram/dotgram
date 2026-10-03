@@ -331,7 +331,8 @@ namespace DotGram.Snapshots
 
 					this.failure = deep.failure;
 					this.last0 = deep.last0;
-					this.probes = deep.probes;
+					// Still on the stack that ran low: the next entry probes it again.
+					this.probes = 0;
 
 					if (deep.thrown != null)
 						global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();
