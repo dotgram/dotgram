@@ -32,6 +32,8 @@ public sealed class RoslynSymbolResolver(
 
 	readonly Dictionary<string, INamedTypeSymbol?> _types = new(StringComparer.Ordinal);
 
+	readonly Dictionary<string, ITypeSymbol?> _values = new(StringComparer.Ordinal);
+
 	public bool TypeExists(string qualifiedName)
 	{
 		return TypeNamed(qualifiedName) is not null;
@@ -56,7 +58,23 @@ public sealed class RoslynSymbolResolver(
 		return ValueTypeNamed(from) is { } source && ValueTypeNamed(to) is { } target && IsAssignableSymbol(source, target);
 	}
 
+	/// <summary>
+	/// A type by the name a grammar writes, arrays and constructed generics included, looked up once:
+	/// a grammar's declared types are each asked about against all the others.
+	/// </summary>
 	ITypeSymbol? ValueTypeNamed(string name)
+	{
+		if (_values.TryGetValue(name, out var known))
+			return known;
+
+		var resolved = ResolveValueType(name);
+
+		_values.Add(name, resolved);
+
+		return resolved;
+	}
+
+	ITypeSymbol? ResolveValueType(string name)
 	{
 		if (name.StartsWith("global::", StringComparison.Ordinal)) name = name.Substring(8);
 		if (name.EndsWith("[]", StringComparison.Ordinal))

@@ -47,9 +47,28 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int Rewinds = -7;
 
+	/// <summary>
+	/// And which of the grammar's declared types a declared type fits: every pairing of two of
+	/// them, asked as one question per type rather than one per pair.
+	/// </summary>
+	/// <remarks>
+	/// A pair is a question the binder asks, and the pairs are the square of the declared types:
+	/// a grammar declaring six hundred of them asks a third of a million, nearly every one of them
+	/// answered no, and the questions and answers are kept with the parser they were asked for. As
+	/// one question per type the answer lists only what it fits, and the set it was asked against
+	/// is the names of the other questions of this kind — so a pair of two declared types is still
+	/// a pair that was foreseen, and an answer of no is still an answer rather than a guess.
+	/// </remarks>
+	public const int Fitting = -8;
+
 	public static Question Fits(string from, string to)
 	{
 		return new(from, Assignability, to);
+	}
+
+	public static Question FitsAmong(string type)
+	{
+		return new(type, Fitting);
 	}
 
 	public static Question Builds(string type)
@@ -95,6 +114,10 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 /// What the type can be built with, each constructor as its parameters in order (§7.3).
 /// Empty unless the question asked.
 /// </param>
+/// <param name="Fits">
+/// For a <see cref="Question.Fitting"/> question, the other declared types the asked one fits,
+/// in the order the questions are; empty for every other kind.
+/// </param>
 /// <remarks>
 /// Everything here compares by value, which is the whole point of the stage: an answer
 /// that changed by identity alone would rebuild the parser on every keystroke.
@@ -106,7 +129,8 @@ readonly record struct Answer(
 	EquatableArray<ObjectMember> Properties = default,
 	string? ExternalType = null,
 	bool ExternalAmbiguous = false,
-	ExternalMethodResolution Method = ExternalMethodResolution.Found);
+	ExternalMethodResolution Method = ExternalMethodResolution.Found,
+	EquatableArray<string> Fits = default);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -147,7 +171,7 @@ static class Questions
 		var imports   = new List<string>();
 		var names     = new List<Question>();
 		var declared  = new List<string>();
-		var sequences = new List<string>();
+		var known     = new HashSet<string>(StringComparer.Ordinal);
 		var externals = new List<string>();
 		var predicates = new List<string>();
 		var producers = new List<(string Method, string Against)>();
@@ -164,8 +188,8 @@ static class Questions
 		// "the question collector did not foresee the type question for 'int[]'", for a
 		// rule declared `: Number[]` whose body was a call to `List(Number, ',')`.
 		foreach (var type in declared.ToArray())
-			if (!type.EndsWith("[]", StringComparison.Ordinal) && !declared.Contains(type + "[]"))
-				declared.Add(type + "[]");
+			if (!type.EndsWith("[]", StringComparison.Ordinal))
+				Declare(type + "[]");
 
 		var questions = ImmutableHashSet.CreateBuilder<Question>();
 		foreach (var contract in contracts)
@@ -174,23 +198,17 @@ static class Questions
 					foreach (var target in new[] { contract }.Concat(imports.Select(import => import + "." + contract)))
 						questions.Add(Question.Fits(source, target));
 
-		// §4.1 case 2 asks which of the grammar's own result types fit into a sequence's
-		// element type, and it asks after binding — so every pairing is asked for here.
-		// The same superset as everywhere in this file: a grammar declaring five types and
-		// one sequence asks five questions, of which the ones that matter are a subset.
-		foreach (var element in sequences)
-			foreach (var type in declared)
-				questions.Add(Question.Fits(type, element));
-
-		// And every declared type against every other. A rebinding is checked by asking
-		// whether what replaces a rule produces something the replaced one's callers can
-		// still use (§5.1), which pairs two declared types the way nothing else here does —
-		// and a rebinding that changes a type is exactly what a `with` on a publication is
-		// for, so the pair has to be foreseen rather than discovered in a consumer's build.
-		foreach (var one in declared)
-			foreach (var other in declared)
-				if (one != other)
-					questions.Add(Question.Fits(one, other));
+		// Every declared type against every other. A rebinding is checked by asking whether
+		// what replaces a rule produces something the replaced one's callers can still use
+		// (§5.1), which pairs two declared types the way nothing else here does — and a
+		// rebinding that changes a type is exactly what a `with` on a publication is for, so
+		// the pair has to be foreseen rather than discovered in a consumer's build. §4.1 case 2
+		// asks which of the grammar's own result types fit into a sequence's element type, after
+		// binding, and every element type is a declared type as well (Type below), so those
+		// pairs are among these. One question for each type and not one for each pair: see
+		// Question.Fitting.
+		foreach (var type in declared)
+			questions.Add(Question.FitsAmong(type));
 
 		// Both ways round, because the effective contract is whichever of them satisfies the
 		// rest and that is what the answers are for deciding.
@@ -341,7 +359,7 @@ static class Questions
 
 			Exists(type);
 
-			(type.IsSequence ? sequences : declared).Add(type.Name);
+			Declare(type.Name);
 
 			// A sequence's element type is a type in its own right, and a rule declaring
 			// `: T[]` may itself be an element of another sequence — as `T[]`, which is the
@@ -349,13 +367,15 @@ static class Questions
 			// go in: the element, because it is what a sequence collects, and the array,
 			// because a rule whose value is one can be an operand of another sequence.
 			if (type.IsSequence)
-			{
-				if (!declared.Contains(type.Name))
-					declared.Add(type.Name);
+				Declare(type.Name + "[]");
+		}
 
-				if (!declared.Contains(type.Name + "[]"))
-					declared.Add(type.Name + "[]");
-			}
+		// Each name once, in the order first met: a grammar of a thousand rules declares a
+		// few hundred types.
+		void Declare(string type)
+		{
+			if (known.Add(type))
+				declared.Add(type);
 		}
 
 		// Whether a type exists, asked the way the binder asks it: a generic one as its
@@ -421,6 +441,9 @@ static class Questions
 	{
 		var answers = ImmutableArray.CreateBuilder<Answer>(questions.Length);
 
+		// What a Fitting question is asked against: the names of all of them.
+		var among = questions.Where(static question => question.Kind == Question.Fitting).Select(static question => question.Name).ToArray();
+
 		foreach (var question in questions)
 			answers.Add(question.Kind switch
 			{
@@ -453,10 +476,24 @@ static class Questions
 
 				Question.Rewinds => new Answer(question, resolver.Rewinds(question.Name)),
 
+				Question.Fitting => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
+
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
 
 		return answers.ToImmutable();
+	}
+
+	/// <summary>The names in <paramref name="among"/> other than <paramref name="type"/> that it fits.</summary>
+	static EquatableArray<string> Fitted(string type, string[] among, ISymbolResolver resolver)
+	{
+		var fits = ImmutableArray.CreateBuilder<string>();
+
+		foreach (var other in among)
+			if (!string.Equals(other, type, StringComparison.Ordinal) && resolver.IsAssignable(type, other))
+				fits.Add(other);
+
+		return new EquatableArray<string>(fits.ToImmutable());
 	}
 
 	/// <summary>The host's answer as something that compares by value.</summary>
@@ -485,6 +522,8 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 {
 	readonly Dictionary<Question, Answer> _answers = Index(answers);
 
+	readonly Dictionary<string, HashSet<string>> _fits = Fitting(answers);
+
 	static Dictionary<Question, Answer> Index(ImmutableArray<Answer> answers)
 	{
 		var index = new Dictionary<Question, Answer>();
@@ -495,6 +534,18 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		return index;
 	}
 
+	/// <summary>What each declared type was found to fit, by its name.</summary>
+	static Dictionary<string, HashSet<string>> Fitting(ImmutableArray<Answer> answers)
+	{
+		var fits = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+		foreach (var answer in answers)
+			if (answer.Asked.Kind == Question.Fitting)
+				fits[answer.Asked.Name] = new HashSet<string>(answer.Fits.Items, StringComparer.Ordinal);
+
+		return fits;
+	}
+
 	public bool TypeExists(string qualifiedName)
 	{
 		return Look(new Question(qualifiedName, Question.Exists)).Yes;
@@ -502,7 +553,18 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 
 	public bool IsAssignable(string from, string to)
 	{
-		return string.Equals(from, to, StringComparison.Ordinal) || Look(Question.Fits(from, to)).Yes;
+		if (string.Equals(from, to, StringComparison.Ordinal))
+			return true;
+
+		// A pair asked as a pair first, and then a pair of two declared types, which was asked
+		// as one question for each and is answered by whether the one's answer lists the other.
+		if (_answers.TryGetValue(Question.Fits(from, to), out var answer))
+			return answer.Yes;
+
+		if (_fits.TryGetValue(from, out var fits) && _fits.ContainsKey(to))
+			return fits.Contains(to);
+
+		return Look(Question.Fits(from, to)).Yes;
 	}
 
 	public bool Rewinds(string qualifiedName)

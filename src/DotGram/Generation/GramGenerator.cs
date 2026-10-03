@@ -477,10 +477,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	/// <remarks>
 	/// The questions and answers are counted by the room their elements take in their arrays and not
-	/// by the names in them, which a grammar's hundreds of thousands of questions share among a few
-	/// hundred types: the SQL:2023 grammar asks 381,492, and its two arrays are 30 MB for one target
-	/// framework. The members and parameters an answer lists, and the diagnostics, are small objects
-	/// with strings of their own, counted as such. Not exact, and not meant to be: it is what makes a
+	/// by the names in them, which a grammar's thousands of questions share among a few hundred
+	/// types: the SQL:2023 grammar asks 8,172. The members and parameters an answer lists, and the
+	/// diagnostics, are small objects with strings of their own, counted as such. Not exact, and not meant to be: it is what makes a
 	/// key weigh what it holds.
 	/// </remarks>
 	static long WeightOf(CompileKey key, Parser parser)
@@ -503,6 +502,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			if (answer.Properties.Items.Length > 0)
 				weight += ObjectWeight;
 
+			// The names a Fitting answer lists are the questions' own strings: only the array is its own.
+			if (answer.Fits.Items.Length > 0)
+				weight += ObjectWeight + (long)ReferenceWeight * answer.Fits.Items.Length;
+
 			foreach (var member in answer.Properties.Items)
 				weight += ObjectWeight + member.Name.Length + member.Type.Length;
 		}
@@ -524,8 +527,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>A <see cref="Question"/> in its array, in characters: 24 bytes.</summary>
 	const int QuestionWeight = 12;
 
-	/// <summary>An <see cref="Answer"/> in its array, in characters: 56 bytes.</summary>
-	const int AnswerWeight = 28;
+	/// <summary>An <see cref="Answer"/> in its array, in characters: 64 bytes.</summary>
+	const int AnswerWeight = 32;
+
+	/// <summary>A reference in an array, in characters: 8 bytes.</summary>
+	const int ReferenceWeight = 4;
 
 	static bool IsTrue(AnalyzerConfigOptionsProvider options, string property)
 	{
