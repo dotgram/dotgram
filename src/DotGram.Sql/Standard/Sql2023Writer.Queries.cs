@@ -290,6 +290,13 @@ public static partial class Sql2023Writer
 
 		void PutGrouping(GroupingElement element)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, element, static (into, node) => into.PutGrouping(node));
+
+				return;
+			}
+
 			switch (element)
 			{
 				case GroupingElement.Ordinary ordinary when ordinary.Parenthesized:
@@ -974,6 +981,13 @@ public static partial class Sql2023Writer
 
 		void PutJsonColumn(JsonTableColumn column)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, column, static (into, node) => into.PutJsonColumn(node));
+
+				return;
+			}
+
 			switch (column)
 			{
 				case JsonTableColumn.Ordinality ordinality:

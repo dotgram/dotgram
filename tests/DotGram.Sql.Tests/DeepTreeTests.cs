@@ -27,8 +27,9 @@ namespace DotGram.Sql.Tests;
 /// shapes it was found in: ten thousand <c>CASE … ELSE CASE …</c> ended the process that read them,
 /// because the reader probed its stack once in four entries and that level enters a probing rule four
 /// times, so the probe fell on the same entries every level and never on the <c>ELSE</c>; and a chain
-/// of a hundred thousand <c>+</c>, which every parser reads, ended the process that wrote it. Every
-/// other shape is swept in <c>DeepTreeSweepTests</c> (DotGram.Tests.Slow).
+/// of ten thousand <c>+</c>, which every parser reads, ended the process that wrote it. Every
+/// other shape is swept in <c>DeepTreeSweepTests</c>, and trees of a hundred thousand nodes and
+/// more are written in <c>DeepTreeHandOffTests</c> (both DotGram.Tests.Slow).
 /// </para>
 /// </remarks>
 public sealed class DeepTreeTests
@@ -58,13 +59,14 @@ public sealed class DeepTreeTests
 	}
 
 	/// <summary>
-	/// A chain of a hundred thousand <c>+</c>, which every parser reads, is written by the writer of
-	/// its tree: the writer recursed a level a node and overflowed at about ten thousand.
+	/// A chain of twenty thousand <c>+</c> is written by the writer of each tree: the writers recursed a
+	/// level a node and overflowed at about ten thousand. A hundred thousand is in
+	/// <c>DeepTreeHandOffTests</c> (DotGram.Tests.Slow).
 	/// </summary>
 	[Fact]
-	public void A_chain_of_a_hundred_thousand_is_written()
+	public void A_chain_of_twenty_thousand_is_written()
 	{
-		var chain = Nested("SELECT ", "1 + ", "1", "", "", 100_000);
+		var chain = Nested("SELECT ", "1 + ", "1", "", "", 20_000);
 		var from  = chain + " FROM t";
 
 		var (written, thrown) = OnStack(() =>
@@ -83,6 +85,58 @@ public sealed class DeepTreeTests
 		Assert.Null(thrown);
 		Assert.NotEmpty(written);
 	}
+
+	/// <summary>
+	/// The two cycles of the SQL:2023 writer that its checks missed, each reached through a method
+	/// handed to <c>Each</c> rather than called: a grouping set inside a grouping set, and a JSON
+	/// table's <c>NESTED PATH</c> inside another. <c>WriterRecursionTests</c> is what finds the next one.
+	/// </summary>
+	[Theory]
+	[InlineData("GROUPING SETS", "SELECT a FROM t GROUP BY ", "GROUPING SETS (", "a", ")", "")]
+	[InlineData("NESTED PATH",   "SELECT * FROM JSON_TABLE('{}', '$' COLUMNS (", "NESTED PATH '$' COLUMNS (", "a INTEGER PATH '$'", ")", ")) AS j")]
+	public void Sql2023_writes_any_depth_of(string shape, string prefix, string open, string middle, string close, string suffix)
+	{
+		var text = Nested(prefix, open, middle, close, suffix, Depth);
+
+		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseQueryExpression, Ast.Sql2023Writer.Write));
+
+		Assert.True(thrown is null, $"{shape}: {thrown}");
+		Assert.NotEmpty(written);
+	}
+
+	/// <summary>
+	/// What a walk throws on a stack it was handed to is thrown to the caller as itself, and the thread
+	/// that asked can hand off again afterwards. Twenty thousand levels is past a megabyte and no more:
+	/// an exception unwinds every frame it passes, and through a million it takes most of a minute.
+	/// </summary>
+	[Fact]
+	public void An_exception_on_a_stack_handed_to_reaches_the_caller()
+	{
+		Ast.Expression made = new Unwritable();
+
+		for (var i = 0; i < 20_000; i++)
+			made = new Ast.Expression.Parenthesized(made);
+
+		var deep = Nested("SELECT ", "1 + ", "1", "", "", 100_000);
+
+		var (written, thrown) = OnStack(() =>
+		{
+			var caught = Assert.Throws<NotSupportedException>(() => Ast.Sql2023Writer.Write(made));
+
+			Assert.Contains(nameof(Unwritable), caught.Message, StringComparison.Ordinal);
+
+			// Thrown again by the thread that handed the walk over, which is what says it crossed.
+			Assert.Contains("SqlStack", caught.StackTrace, StringComparison.Ordinal);
+
+			return SqlWriter.Write(TransactSqlParser.ParseStatement(deep));
+		});
+
+		Assert.Null(thrown);
+		Assert.Equal(deep, written);
+	}
+
+	/// <summary>A node no grammar builds, which the SQL:2023 writer refuses.</summary>
+	sealed record Unwritable : Ast.Expression;
 
 	/// <summary>
 	/// A walk and a hash of a deep tree end: the walk with every node, and the hash with its value or,

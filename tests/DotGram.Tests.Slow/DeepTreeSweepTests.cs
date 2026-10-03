@@ -122,6 +122,8 @@ public sealed class DeepTreeSweepTests
 	[InlineData("derived tables",    "SELECT 1 FROM ",   "(SELECT 1 AS a FROM ",  "t",     ") AS x",     "")]
 	[InlineData("joins",             "SELECT 1 FROM t",  " JOIN t ON 1 = 1",      "",      "",           "")]
 	[InlineData("UNION",             "SELECT ",          "1 FROM t UNION SELECT ", "1",    "",           " FROM t")]
+	[InlineData("GROUPING SETS",     "SELECT a FROM t GROUP BY ", "GROUPING SETS (", "a", ")",     "")]
+	[InlineData("NESTED PATH",       "SELECT * FROM JSON_TABLE('{}', '$' COLUMNS (", "NESTED PATH '$' COLUMNS (", "a INTEGER PATH '$'", ")", ")) AS j")]
 	public void Sql2023_reads_and_writes_any_depth(string shape, string prefix, string open, string middle, string close, string suffix)
 	{
 		var text = Nested(prefix, open, middle, close, suffix, Depth);

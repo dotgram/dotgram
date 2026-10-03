@@ -64,43 +64,122 @@ static class SqlStack
 	/// </remarks>
 	public static void Deeper<T1, T2>(T1 first, T2 second, Action<T1, T2> walk)
 	{
-		var deep = new Deep<T1, T2, bool>(first, second, default!, (one, two, _) => walk(one, two));
-
-		deep.Go();
+		Hand(() => walk(first, second));
 	}
 
 	/// <inheritdoc cref="Deeper{T1, T2}(T1, T2, Action{T1, T2})"/>
 	public static void Deeper<T1, T2, T3>(T1 first, T2 second, T3 third, Action<T1, T2, T3> walk)
 	{
-		var deep = new Deep<T1, T2, T3>(first, second, third, walk);
-
-		deep.Go();
+		Hand(() => walk(first, second, third));
 	}
 
-	sealed class Deep<T1, T2, T3>(T1 first, T2 second, T3 third, Action<T1, T2, T3> walk)
+	/// <summary>The thread this one hands its walks to, while it is still there to take them.</summary>
+	[ThreadStatic]
+	static Worker? _worker;
+
+	static void Hand(Action walk)
 	{
+		var worker = _worker;
+
+		if (worker is null || !worker.Take())
+			_worker = worker = new Worker();
+
+		worker.Run(walk);
+	}
+
+	/// <summary>
+	/// A thread with a stack of its own that takes one walk after another from the thread that made it,
+	/// and ends when it has been left idle a while.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <b>Why one thread for many walks.</b> A walk that runs a stack low hands over the node it is at,
+	/// and when that comes back the stack is as low as it was, so every sibling after it is handed over
+	/// too: a list of a hundred thousand values that begins at the margin is a hundred thousand walks.
+	/// A thread made for each took 150 microseconds, and such a list was written in fifteen seconds
+	/// where it takes a tenth of one; handed to a thread that is already there, each costs a wake-up.
+	/// </para>
+	/// <para>
+	/// <b>Why it ends.</b> It holds a stack, and the pages a deep walk touched stay with it, so it does
+	/// not outlive the work by more than <see cref="Linger"/>. The thread that made it may ask again at
+	/// the moment it decides to go; the state says which of the two came first, and a thread that finds
+	/// it gone makes another.
+	/// </para>
+	/// </remarks>
+	sealed class Worker
+	{
+		const int Idle = 0;
+		const int Busy = 1;
+		const int Gone = 2;
+
+		/// <summary>How long, in milliseconds, it waits for another walk before it ends.</summary>
+		const int Linger = 100;
+
+		readonly SemaphoreSlim _go   = new(0, 1);
+		readonly SemaphoreSlim _done = new(0, 1);
+
+		int        _state = Busy;
+		Action?    _walk;
 		Exception? _thrown;
 
-		public void Go()
+		public Worker()
 		{
-			var thread = new Thread(Run, Size);
+			var thread = new Thread(Loop, Size)
+			{
+				IsBackground = true,
+				Name         = "DotGram.Sql deep walk",
+			};
 
 			thread.Start();
-			thread.Join();
-
-			if (_thrown is not null)
-				ExceptionDispatchInfo.Capture(_thrown).Throw();
 		}
 
-		void Run()
+		/// <summary>Claims it for one more walk, unless it has already ended.</summary>
+		public bool Take()
 		{
-			try
+			return Interlocked.CompareExchange(ref _state, Busy, Idle) == Idle;
+		}
+
+		/// <summary>Runs <paramref name="walk"/> there and waits for it, throwing what it threw.</summary>
+		public void Run(Action walk)
+		{
+			_walk = walk;
+			_go.Release();
+			_done.Wait();
+
+			var thrown = _thrown;
+
+			_thrown = null;
+
+			if (thrown is not null)
+				ExceptionDispatchInfo.Capture(thrown).Throw();
+		}
+
+		void Loop()
+		{
+			while (true)
 			{
-				walk(first, second, third);
-			}
-			catch (Exception thrown)
-			{
-				_thrown = thrown;
+				if (!_go.Wait(Linger))
+				{
+					if (Interlocked.CompareExchange(ref _state, Gone, Idle) == Idle)
+						return;
+
+					// Claimed in the moment before it could go: the walk is on its way.
+					_go.Wait();
+				}
+
+				try
+				{
+					_walk!();
+				}
+				catch (Exception thrown)
+				{
+					_thrown = thrown;
+				}
+
+				_walk = null;
+
+				Volatile.Write(ref _state, Idle);
+				_done.Release();
 			}
 		}
 	}
