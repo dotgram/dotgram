@@ -415,6 +415,12 @@ Every recognizer takes a `ref Failure` and raises `Position` at the one place a 
 gives up on where it is. Nothing is paid on the path that matches, a rule call carries
 its callee's failure out with it, and a lookahead is the one machine that does not take
 the state — how far it looked before answering "no" is not how far the parse got.
+A turn of a possessive repetition, or an alternative of a group that commits, kept in
+locals gives the position back at the door it leaves by; what refused inside it is recorded
+there, where it is further than anything before, so `Digit+ & ('.' & ['0'..'9']+)?` on `1.x`
+refuses at the `x` wanting a digit rather than at the point wanting the end. A scanner that
+gave input back to itself hands back how far it read when it matches too, and that place is
+recorded in the scanned rule's name, as its refusal is.
 
 `Failure` now also carries `Expected` — §0/§11's first tier, built live beside
 `Position` rather than re-derived afterward: every literal or element test that fails
@@ -433,7 +439,13 @@ rather than leave a stale value behind, the same care `lookahead < 0` already ta
 the union of every alternative's first-set ranges, rendered as one element set, since
 `Predictive` already proved each of those first sets known and finite before it agreed
 to predict at all. `Calculator.Explain("2*")` names `"Expected ['-' | '(' | '0'..'9']."`
-rather than falling back to "Expected more input."
+rather than falling back to "Expected more input." Where the alternatives begin with the seam —
+the operators of a spaced grammar, each read after `trivia` — their first sets hold the spaces
+too, and a set listing the whitespace classes before the operators is not what was wanted: such
+a choice says one item per alternative instead, what begins it past the seam, `Expected '+', '-'
+or ')'.`. Every item of a set is a literal, a class or a rule's name, whatever it is asked of — a
+choice whose alternatives are whole sequences names what begins each, never the alternative's
+source.
 
 One narrowing remains, documented at its own site: a prefix-conflicted run of
 literals — `"p" | "q" | "pr"` — can under-report what it covers, since two entry-less

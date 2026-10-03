@@ -2714,7 +2714,7 @@ file.Line("return spare;");
 			{
 				if (skipping.Name is { } scanner)
 				{
-					file.Line($"var skipped = {scanner}(text, p);");
+					file.Line($"var skipped = {scanner}(text, p{(seam.ScannerReports(skipping.Rule) ? ", out _" : "")});");
 					file.Line();
 					file.Line("if (skipped > p)");
 					file.Then("p = skipped;");

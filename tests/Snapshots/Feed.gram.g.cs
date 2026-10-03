@@ -1949,7 +1949,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Amount_Row(text, p, ref failure);
+					var scanned = Scan_Amount_Row(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1957,6 +1957,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Feed_Expected14;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -2165,7 +2171,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Amount</c>, recognized with nothing written down.</summary>
-		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -2235,11 +2241,13 @@ namespace DotGram.Snapshots
 
 			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
+			reachedAt = furthest;
 			return p;
 
 			Refuse:
 			if (p > furthest) furthest = p;
 
+			reachedAt = furthest;
 			return -1 - furthest;
 		}
 

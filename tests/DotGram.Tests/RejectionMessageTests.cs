@@ -507,6 +507,87 @@ public sealed class RejectionMessageTests
 	}
 
 	/// <summary>
+	/// An optional group that began to match and stopped is where reading got furthest, and a
+	/// refusal says so: <c>1.x</c> wanted a digit after the point, not the end of the input after
+	/// the <c>1</c>. Over a string, a <c>TextReader</c> and a byte stream, in every rendering, and
+	/// with the number read in place, by a rule of its own and inside a value.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void An_optional_group_that_stopped_part_way_is_where_the_refusal_is(string rendering, bool direct, CarrierKind carrier)
+	{
+		foreach (var (grammar, wanted) in new[]
+		{
+			("Number = ['0'..'9']+ & ('.' & ['0'..'9']+)?\nparse Number as ParseStart", "Expected ['0'..'9']."),
+			("Digit = ['0'..'9']\nNumber = Digit+ & ('.' & ['0'..'9']+)?\nparse Number as ParseStart", "Expected ['0'..'9']."),
+			("Digit = ['0'..'9']\nNumber = Digit+ & ('.' & ['0'..'9']+)?\nStart = Number\nparse Start as ParseStart", null),
+			("Digit = ['0'..'9']\nNumber = Digit+ & ('.' & ['0'..'9']+)?\nStart : @string = n: Number => @(Text(n))\nparse Start as ParseStart", null),
+			("Start : @string = n: (['0'..'9']+ & ('.' & ['0'..'9']+)?) => @(Text(n))\nparse Start as ParseStart", "Expected ['0'..'9']."),
+		})
+		{
+			foreach (var form in new[] { " stream", " stream bytes" })
+			{
+				var host = Compiled(grammar + form + "\n", direct, carrier);
+
+				foreach (var input in new[] { "1.x", "1." })
+				{
+					foreach (var (over, position, error) in Refusals(host, input))
+					{
+						var context = $"{rendering} {grammar.Replace('\n', ' ')} {over} {input}";
+
+						Assert.True(position == 2, context + ": refused at " + position + ": " + error);
+
+						if (wanted is not null)
+							Assert.True(error == wanted, context + ": " + error);
+					}
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// The same inside an element of a recovering repetition: what the element is told it wanted
+	/// is where its optional group stopped, and that is where its failure is said to be.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void An_optional_group_that_stopped_part_way_is_what_a_rejected_element_wanted(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Grammar = """
+			Item  : @string = 'a' & ('.' & ['b'..'c'])? & ';' => @("a")
+			Start : @string = items: Item* recover ';' => @(Told(parserLine, parserColumn, parserFailureLine, parserFailureColumn, parserFailurePosition, parserExpected, parserMessage)) => @(Join(items))
+			parse Start as ParseStart
+
+			""";
+
+		var told = Recovered(Compiled(Grammar, direct, carrier), "a;a.x;a.b;");
+
+		Assert.True(told.Length == 3, rendering + ": " + string.Join(" / ", told));
+		Told(told[1], "1:3 1:5@4", "['b'..'c']", rendering);
+	}
+
+	/// <summary>The calculator of the README, over <c>int</c>.</summary>
+	const string Calculator = """
+		trivia = Std.Spacing?
+
+		Value : @int = d: Std.Digits => @(int.Parse(d))
+
+		Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+		             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
+		             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
+		             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
+		             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
+		             | '-' & operand: Expr             >> 3 => @(-operand)
+		             | '(' & inner: Expr & ')'              => @(inner)
+		             | value: Value                         => @(value)
+
+		IntNumber : @int = d: Std.Digits => @(int.Parse(d))
+
+		parse Expr with (Value = IntNumber) as ParseStart
+
+		""";
+
+	/// <summary>
 	/// What the calculator of the README can say where an operator or the end was wanted: one item
 	/// for each operator, never the source of the alternatives that read them.
 	/// </summary>
@@ -514,26 +595,6 @@ public sealed class RejectionMessageTests
 	[MemberData(nameof(Renderings))]
 	public void An_expected_set_names_what_begins_each_alternative(string rendering, bool direct, CarrierKind carrier)
 	{
-		const string Calculator = """
-			trivia = Std.Spacing?
-
-			Value : @int = d: Std.Digits => @(int.Parse(d))
-
-			Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
-			             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
-			             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
-			             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
-			             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
-			             | '-' & operand: Expr             >> 3 => @(-operand)
-			             | '(' & inner: Expr & ')'              => @(inner)
-			             | value: Value                         => @(value)
-
-			IntNumber : @int = d: Std.Digits => @(int.Parse(d))
-
-			parse Expr with (Value = IntNumber) as ParseStart
-
-			""";
-
 		var result = GramCompiler.Compile(Calculator, new GramCompilerOptions
 		{
 			ClassName = "Grammar", Direct = direct, Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance,
@@ -548,6 +609,65 @@ public sealed class RejectionMessageTests
 			Assert.False(
 				set.Groups["items"].Value.Contains(" & ", StringComparison.Ordinal) || set.Groups["items"].Value.Contains("=>", StringComparison.Ordinal),
 				rendering + ": " + set.Value);
+	}
+
+	/// <summary>
+	/// What the calculator of the README says where an operator or the end was wanted: each
+	/// operator, and not the spaces the seam before one would have taken, in every rendering.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_choice_of_operators_after_the_seam_says_each_operator(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(Calculator, direct, carrier, "static int Raise(int left, int right) { return (int)System.Math.Pow(left, right); }");
+
+		foreach (var (input, position, error) in new[]
+		{
+			("1.5", 1, "Expected '+', '-', '*', '/', '^' or end of input."),
+			("(1", 2, "Expected '+', '-', '*', '/', '^' or ')'."),
+			("(1 x", 3, "Expected '+', '-', '*', '/', '^' or ')'."),
+			("1 x", 2, "Expected '+', '-', '*', '/', '^' or end of input."),
+		})
+		{
+			var match = EmittedCode.Match(host, "Grammar", "TryParseStart", input);
+
+			Assert.False(match.IsSuccess, rendering + ": " + input);
+			Assert.True(match.Position == position && match.Error == error, $"{rendering} {input}: {match.Position}: {match.Error}");
+		}
+	}
+
+	/// <summary>Where and what a refusal says over a string, and over the stream the publication also reads.</summary>
+	static (string Over, long Position, string? Error)[] Refusals(Assembly host, string input)
+	{
+		var type   = host.GetType("Grammar")!;
+		var direct = EmittedCode.Match(host, "Grammar", "TryParseStart", input);
+		var found  = new System.Collections.Generic.List<(string, long, string?)>();
+
+		Assert.False(direct.IsSuccess, input);
+		found.Add(("string", direct.Position, direct.Error));
+
+		foreach (var parse in type.GetMethods().Where(static one =>
+			one.Name == "TryParseStart" && one.ReturnType.Name.StartsWith("Match", StringComparison.Ordinal) &&
+			(one.GetParameters()[0].ParameterType == typeof(Stream) || one.GetParameters()[0].ParameterType == typeof(TextReader))))
+		{
+			object over = parse.GetParameters()[0].ParameterType == typeof(Stream)
+				? new MemoryStream(System.Text.Encoding.ASCII.GetBytes(input))
+				: new StringReader(input);
+			var arguments = parse.GetParameters().Select((one, at) => at == 0 ? over : one.DefaultValue).ToArray();
+			var match     = parse.Invoke(null, arguments)!;
+
+			object? Read(string name)
+			{
+				return match.GetType().GetProperty(name)!.GetValue(match);
+			}
+
+			Assert.False((bool)Read("IsSuccess")!, input);
+			found.Add((over is Stream ? "bytes" : "reader", (long)Read("Position")!, (string?)Read("Error")));
+		}
+
+		Assert.True(found.Count == 2, "a stream form was published: " + found.Count);
+
+		return [.. found];
 	}
 
 	const string Choice = """
@@ -627,7 +747,7 @@ public sealed class RejectionMessageTests
 		Assert.True(told.EndsWith(wanted + " at " + at + ".", StringComparison.Ordinal), context + ": " + told);
 	}
 
-	static Assembly Compiled(string grammar, bool direct, CarrierKind carrier)
+	static Assembly Compiled(string grammar, bool direct, CarrierKind carrier, string helpers = "")
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -644,7 +764,7 @@ public sealed class RejectionMessageTests
 		if (direct && grammar.Split("recover").Length == 2 && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*(Start|PriceList|Sheet)\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
 			Assert.Contains("failure.Reach = p;", source, StringComparison.Ordinal);
 
-		return EmittedCode.Compile(source, declarationMembers: Helpers);
+		return EmittedCode.Compile(source, declarationMembers: Helpers + helpers);
 	}
 
 	static string[] Recovered(Assembly host, string input = Prices)

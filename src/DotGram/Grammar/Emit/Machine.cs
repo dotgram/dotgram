@@ -2289,8 +2289,51 @@ sealed partial class Machine
 			}
 		}
 
-		return file.ToString();
+		return Reaching(file.ToString());
 	}
+
+	/// <summary>
+	/// Where a state written before every recovering repetition was compiled raises how far each
+	/// one's element got: the line that stands for them is written as one line a repetition, now
+	/// that they are all known (<see cref="RecordGivenBack"/>).
+	/// </summary>
+	string Reaching(string text)
+	{
+		if (text.IndexOf(ReachesMarker, StringComparison.Ordinal) < 0)
+			return text;
+
+		var lines = new List<string>();
+
+		foreach (var line in text.Split([Lines.Ending], StringSplitOptions.None))
+		{
+			var marker = line.IndexOf(ReachesMarker, StringComparison.Ordinal);
+
+			if (marker < 0)
+			{
+				lines.Add(line);
+
+				continue;
+			}
+
+			var indent   = line.Substring(0, marker);
+			var from     = marker + ReachesMarker.Length;
+			var position = line.Substring(from, line.IndexOf("*/", from, StringComparison.Ordinal) - from);
+
+			for (var id = 0; id < _recoveringStates.Count; id++)
+			{
+				lines.Add($"{indent}if ({position} > reach{id})");
+				lines.Add($"{indent}\treach{id} = {position};");
+			}
+		}
+
+		return string.Join(Lines.Ending, lines);
+	}
+
+	/// <summary>
+	/// Stands for the lines that raise how far each recovering repetition's element got to the
+	/// position named after it, up to the end of the comment (<see cref="Reaching"/>).
+	/// </summary>
+	const string ReachesMarker = "/*RECOVERING_REACHES ";
 
 	/// <summary>
 	/// Every state <see cref="PlanLayout"/> decided is written, in the order it decided,
@@ -2850,6 +2893,8 @@ sealed partial class Machine
 				if (ScannerOf(rule) is { } scanner)
 				{
 					var scanned = Reserve(out var atScan);
+					var reports = ScannerReports(rule);
+					var reached = reports ? ", out var scanReached" : "";
 
 					// Without the check only where there is nothing to check: a scanner that
 					// cannot refuse. Nullable is a different question and was the wrong one —
@@ -2858,13 +2903,16 @@ sealed partial class Machine
 							? inside
 							: _graph.Bodies[rule]))
 					{
-						atScan.Line($"p = {scanner}(text, p{ScannerArguments});");
+						atScan.Line($"p = {scanner}(text, p{ScannerArguments}{reached});");
+
+						if (reports)
+							RecordReached(atScan, node, DeclareExpected([rule.Name]));
 					}
 					else
 					{
 						var arrayName = DeclareExpected([rule.Name]);
 
-						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments});");
+						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments}{reached});");
 						atScan.Line("if (scanned < 0)");
 
 						using (atScan.Block(""))
@@ -2877,6 +2925,9 @@ sealed partial class Machine
 						}
 
 						atScan.Line("p = scanned;");
+
+						if (reports)
+							RecordReached(atScan, node, arrayName);
 					}
 
 					atScan.Line($"goto {Label(atScan, next)};");
@@ -3438,7 +3489,7 @@ sealed partial class Machine
 						if (!direct)
 							doors = true;
 
-						_fail  = direct ? target : GiveBack(target, mine, out _, undone);
+						_fail  = direct ? target : GiveBack(target, mine, out _, undone, tried[at]);
 						target = Compile(tried[at], next, following);
 						_fail  = saved;
 					}
@@ -3661,9 +3712,11 @@ sealed partial class Machine
 						var backOut   = GiveBack(outward, mine, out _);
 
 						_fail = backOut;
+						_doorLooking++;
 
 						var flatInner = Compile(body, rewind, FollowSets.Continuation.All);
 
+						_doorLooking--;
 						_fail = outward;
 
 						var flatState = Reserve(out var atFlatEnter);
@@ -3685,9 +3738,11 @@ sealed partial class Machine
 					var saved     = _fail;
 
 					_fail = resume;
+					_doorLooking++;
 
 					var refused = Compile(body, matched, FollowSets.Continuation.All);
 
+					_doorLooking--;
 					_fail = saved;
 					_checkpointsAllowed = checkpoints;
 
@@ -4568,6 +4623,12 @@ sealed partial class Machine
 	/// </remarks>
 	IReadOnlyList<string> PredictedDisplays(IReadOnlyList<Node> alternatives)
 	{
+		// Alternatives that begin with the seam predict spaces too, and a set that lists the
+		// whitespace classes before the operators says nothing anybody wanted: each is said by
+		// what begins it past the seam instead, one item an alternative.
+		if (!OverKinds && alternatives.Any(BeginsWithSeam))
+			return [.. alternatives.SelectMany(Displays).Distinct()];
+
 		var ranges = new List<CharRange>();
 
 		foreach (var alternative in alternatives)
@@ -4797,11 +4858,20 @@ sealed partial class Machine
 		};
 	}
 
-	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null)
+	/// <param name="recording">
+	/// The construct whose failure leaves by this door, where what refused there is a failure of
+	/// the parse to record: a turn of a possessive repetition or an alternative of a group that
+	/// commits, which read past where it began and stopped. Null for a look around, which does
+	/// not say how far it looked.
+	/// </param>
+	int GiveBack(int next, int depth, out string start, IReadOnlyList<string>? resetLocals = null, Node? recording = null)
 	{
 		start = "turn" + depth;
 
 		var state = Reserve(out var writer);
+
+		if (recording is not null && _doorLooking == 0 && !InSeam(recording))
+			RecordGivenBack(writer, start);
 
 		writer.Line($"p = {start};");
 
@@ -4818,6 +4888,99 @@ sealed partial class Machine
 
 		return state;
 	}
+
+	/// <summary>
+	/// What refused inside a turn or an alternative given back at its door, recorded where it is
+	/// further than anything before: the door puts the position back, and the parse goes on from
+	/// where the turn began and may refuse there, short of where reading got.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>Number = Digit+ &amp; ('.' &amp; ['0'..'9']+)?</c> on <c>1.x</c> got to the <c>x</c>
+	/// wanting a digit, gave the point back and refused the point itself, wanting the end of the
+	/// input; the refusal said the second. Where the engine kept the turn in the arena, its failure
+	/// went through <c>Fail:</c> and was recorded there; a turn kept in locals leaves by this door
+	/// and never reached it.
+	/// </para>
+	/// <para>
+	/// Only a turn that read past where it began: one that refused where it began refused at the
+	/// place the parse goes on from, which is already where everything after it is said. Never in a
+	/// look around, a quiet reading or the seam, which record nothing either way. Only a further
+	/// place, never a tie: what ties at the place is said by whatever refuses there next.
+	/// </para>
+	/// </remarks>
+	void RecordGivenBack(Writer writer, string start)
+	{
+		RecordFurther(writer, $"p > {start}", "p", "expected");
+	}
+
+	/// <summary>
+	/// A refusal at <paramref name="at"/> recorded where <paramref name="asked"/> holds and it is
+	/// further than anything before, as the engine's <c>Fail:</c> records one; and, in the engine,
+	/// counted as far as the element of every recovering repetition got, as <c>Fail:</c> counts it.
+	/// </summary>
+	void RecordFurther(Writer writer, string asked, string at, string said)
+	{
+		// A lowered method has no look around but those kept in locals, which the caller has
+		// answered for, and no recovering repetition to count for.
+		var looking   = _lowering ? "" : " && lookahead < 0";
+		var recording = (Quiets ? "!failure.Quiet && " : "") + $"{at} > failure.Position";
+		var counting  = !_lowering && _recoveries.Count > 0;
+
+		using (writer.Block(counting ? $"if ({asked}{looking})" : $"if ({asked}{looking} && {recording})"))
+		{
+			using (counting ? writer.Block($"if ({recording})") : null)
+			{
+				writer.Line($"failure.Position = {at};");
+				writer.Line($"failure.Expected = {said};");
+
+				// A lowered method carries no list of ties where nothing in it can tie.
+				if (!_lowering || Ties)
+					writer.Line("failure.ExpectedMore?.Clear();");
+			}
+
+			// How far a recovering element got is counted in every reading, the quiet one included:
+			// it is where the element's own refusal is said to stand (parserFailurePosition).
+			if (counting)
+			{
+				writer.Line($"if ({at} > reach)");
+				writer.Then($"reach = {at};");
+				writer.Line($"{ReachesMarker}{at}*/");
+			}
+		}
+
+		if (_lowering)
+			_recordsBeforeFail = true;
+	}
+
+	/// <summary>
+	/// Where a scanner that matched had read further and refused, that refusal recorded, as the
+	/// rule's own refusal is: the scanner gave input back to itself and matched short of it, and
+	/// what refuses next, from where it matched, may be short of it too.
+	/// </summary>
+	/// <remarks>
+	/// The same conditions as <see cref="RecordGivenBack"/>, of which this is the case kept inside
+	/// a method: one comparison where the scan matched as far as it read, which is nearly always.
+	/// </remarks>
+	void RecordReached(Writer writer, Node call, string said)
+	{
+		if (_doorLooking > 0 || InSeam(call))
+			return;
+
+		_expectedUsed.Add(said);
+
+		RecordFurther(writer, "scanReached > p", "scanReached", said);
+	}
+
+	/// <summary>How many look arounds kept in locals the states being compiled are inside.</summary>
+	int _doorLooking;
+
+	/// <summary>
+	/// Whether a lowered method records a failure anywhere but at <c>Fail:</c> — a door that gave a
+	/// turn back, or a scanner that read further than it matched — so that <c>Fail:</c> keeps a
+	/// further place it finds there.
+	/// </summary>
+	bool _recordsBeforeFail;
 
 	int CompileSilentRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
 	{
@@ -4861,7 +5024,7 @@ sealed partial class Machine
 			var saved = _fail;
 
 			// Round again, or out — and out is through the door that puts the position back.
-			_fail = direct ? next : GiveBack(next, mine, out _, resets);
+			_fail = direct ? next : GiveBack(next, mine, out _, resets, repeatNode);
 
 			var inner = Compile(body, loop, inside);
 
@@ -4881,7 +5044,7 @@ sealed partial class Machine
 				var saved = _fail;
 				var after = target;
 
-				_fail  = direct ? after : GiveBack(after, mine, out _, resets);
+				_fail  = direct ? after : GiveBack(after, mine, out _, resets, repeatNode);
 				target = Compile(body, after, inside);
 				_fail  = saved;
 
@@ -6182,6 +6345,44 @@ sealed partial class Machine
 		{
 			if (!items.Contains(item))
 				items.Add(item);
+		}
+	}
+
+	/// <summary>Whether a node can begin with the seam: spaces may come first, and what it wants after them.</summary>
+	/// <remarks>
+	/// A look around ahead of the seam says what may begin there, and the seam then begins
+	/// nothing of its own.
+	/// </remarks>
+	bool BeginsWithSeam(Node node)
+	{
+		switch (node)
+		{
+			case Node.Capture(_, var body):
+				return BeginsWithSeam(body);
+			case Node.Construct(var body, _):
+				return BeginsWithSeam(body);
+			case Node.Atomic(var body):
+				return BeginsWithSeam(body);
+			case Node.Marked(var body, _):
+				return BeginsWithSeam(body);
+			case Node.Choice(var alternatives):
+				return alternatives.Any(BeginsWithSeam);
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+				{
+					if (part is Node.Lookahead or Node.Behind)
+						return false;
+
+					if (Seam(part) || BeginsWithSeam(part))
+						return true;
+
+					if (!FirstSets.Nullable(part, _graph))
+						return false;
+				}
+
+				return false;
+			default:
+				return Seam(node);
 		}
 	}
 

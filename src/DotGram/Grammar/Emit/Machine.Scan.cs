@@ -292,6 +292,37 @@ sealed partial class Machine
 		return ScannerOf(rule);
 	}
 
+	/// <summary>
+	/// Whether the scanner of <paramref name="rule"/> can match short of where it read to: it gives
+	/// input back to itself, so the furthest it reached is worth handing back on a match too.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the scanner's own text, written once with nothing declared — the class tables and
+	/// sets a real rendering declares are asked for later, where it is rendered, in the order they
+	/// always were.
+	/// </remarks>
+	internal bool ScannerReports(RuleSymbol rule)
+	{
+		if (_scannerReports.TryGetValue(rule, out var known))
+			return known;
+
+		// Not one the seam reaches, whose refusals nothing records: what it reads past spaces is
+		// never what a refusal says, and the seam is called at every step of a parse.
+		if (SeamReached.Contains(rule))
+			return _scannerReports[rule] = false;
+
+		var body    = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
+		var reports = new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+			.Render(body)
+			.Contains("furthest", StringComparison.Ordinal);
+
+		_scannerReports[rule] = reports;
+
+		return reports;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _scannerReports = [];
+
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	/// <summary>What a scanner takes beyond the input, where it has anything to say.</summary>
 	string ScannerParameters =>
@@ -316,14 +347,15 @@ sealed partial class Machine
 			var body = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
 
 			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters);
-			var inner = scan.Render(body);
+			var inner = scan.Render(body, ScannerReports(rule));
 
 			reaches |= scan.Reaches;
 
 			file.Line($"/// <summary><c>{rule.Name}</c>, recognized with nothing written down.</summary>");
 
 			using (file.Block(
-				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParameters})"))
+				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParameters}" +
+				(ScannerReports(rule) ? ", out int reachedAt)" : ")")))
 			{
 				file.Write(inner);
 			}
@@ -723,7 +755,11 @@ sealed partial class Machine
 		/// <summary>Whether anything written asked how far a literal run matched.</summary>
 		public bool Reaches => _reaches;
 
-		public string Render(Node body)
+		/// <param name="reports">
+		/// Whether the scan hands back how far it read, matched or not, in <c>reachedAt</c>: where it
+		/// gave input back to itself, it may match short of a place it read to and refused at.
+		/// </param>
+		public string Render(Node body, bool reports = false)
 		{
 			var code = new Writer(0);
 
@@ -778,6 +814,9 @@ sealed partial class Machine
 				head.Line();
 			}
 
+			if (reports)
+				head.Line("reachedAt = furthest;");
+
 			head.Line("return p;");
 
 			if (written.Contains("goto Refuse;", StringComparison.Ordinal))
@@ -789,6 +828,9 @@ sealed partial class Machine
 				{
 					head.Line("if (p > furthest) furthest = p;");
 					head.Line();
+
+					if (reports)
+						head.Line("reachedAt = furthest;");
 
 					// Negated, so one value says both that it refused and where it reached,
 					// and a caller wanting only the first can still ask `< 0`.

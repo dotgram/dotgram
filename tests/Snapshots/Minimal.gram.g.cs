@@ -2751,6 +2751,11 @@ namespace DotGram.Snapshots
 
 			S7:
 			{
+				if (p > turn0 && !failure.Quiet && p > failure.Position)
+				{
+					failure.Position = p;
+					failure.Expected = expected;
+				}
 				p = turn0;
 			}
 
@@ -2767,8 +2772,11 @@ namespace DotGram.Snapshots
 
 			Fail:
 			value = default!;
-			failure.Position = p;
-			failure.Expected = expected;
+			if (p >= failure.Position)
+			{
+				failure.Position = p;
+				failure.Expected = expected;
+			}
 			return -1;
 		}
 
@@ -3178,6 +3186,11 @@ namespace DotGram.Snapshots
 
 			S8:
 			{
+				if (p > turn0 && !failure.Quiet && p > failure.Position)
+				{
+					failure.Position = p;
+					failure.Expected = expected;
+				}
 				p = turn0;
 			}
 
@@ -3206,8 +3219,11 @@ namespace DotGram.Snapshots
 
 			Fail:
 			value = default!;
-			failure.Position = p;
-			failure.Expected = expected;
+			if (p >= failure.Position)
+			{
+				failure.Position = p;
+				failure.Expected = expected;
+			}
 			return -1;
 		}
 

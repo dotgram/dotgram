@@ -884,48 +884,96 @@ namespace DotGram.Snapshots
 
 				S47:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto Return;
 				}
 
 				S48:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S45;
 				}
 
 				S49:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S41;
 				}
 
 				S50:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S39;
 				}
 
 				S51:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S35;
 				}
 
 				S52:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S33;
 				}
 
 				S53:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S29;
 				}
 
 				S54:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S27;
 				}
@@ -1276,7 +1324,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1284,6 +1332,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -1452,7 +1506,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1460,6 +1514,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -1604,7 +1664,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1612,6 +1672,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -1729,7 +1795,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1737,6 +1803,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -1854,7 +1926,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1862,6 +1934,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -1969,7 +2047,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Group(text, p, ref failure);
+					var scanned = Scan_Group(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1977,6 +2055,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected25;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -2386,36 +2470,72 @@ namespace DotGram.Snapshots
 
 				S173:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S171;
 				}
 
 				S174:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S169;
 				}
 
 				S175:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S165;
 				}
 
 				S176:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S163;
 				}
 
 				S177:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S159;
 				}
 
 				S178:
 				{
+					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 					goto S157;
 				}
@@ -2454,7 +2574,7 @@ namespace DotGram.Snapshots
 
 				S182:
 				{
-					var scanned = Scan_PctEncoded(text, p, ref failure);
+					var scanned = Scan_PctEncoded(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2462,6 +2582,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected2;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				S183:
@@ -2535,7 +2661,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_UserInfo(text, p, ref failure);
+					var scanned = Scan_UserInfo(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2543,6 +2669,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected21;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 
 				{
@@ -2821,7 +2953,7 @@ namespace DotGram.Snapshots
 
 				S212:
 				{
-					var scanned = Scan_PctEncoded(text, p, ref failure);
+					var scanned = Scan_PctEncoded(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2829,6 +2961,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected2;
+						failure.ExpectedMore?.Clear();
+					}
 					goto S209;
 				}
 
@@ -3019,7 +3157,7 @@ namespace DotGram.Snapshots
 
 				S228:
 				{
-					var scanned = Scan_PctEncoded(text, p, ref failure);
+					var scanned = Scan_PctEncoded(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -3027,6 +3165,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected2;
+						failure.ExpectedMore?.Clear();
+					}
 					goto S225;
 				}
 
@@ -3152,7 +3296,7 @@ namespace DotGram.Snapshots
 
 				S240:
 				{
-					var scanned = Scan_PctEncoded(text, p, ref failure);
+					var scanned = Scan_PctEncoded(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -3160,6 +3304,12 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
+					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					{
+						failure.Position = scanReached;
+						failure.Expected = Recognize_DotGram_Expected2;
+						failure.ExpectedMore?.Clear();
+					}
 					goto S238;
 				}
 
@@ -3412,7 +3562,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>PctEncoded</c>, recognized with nothing written down.</summary>
-		static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3440,11 +3590,13 @@ namespace DotGram.Snapshots
 
 			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
+			reachedAt = furthest;
 			return p;
 
 			Refuse:
 			if (p > furthest) furthest = p;
 
+			reachedAt = furthest;
 			return -1 - furthest;
 		}
 
@@ -3468,7 +3620,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>UserInfo</c>, recognized with nothing written down.</summary>
-		static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3515,11 +3667,13 @@ namespace DotGram.Snapshots
 
 			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
+			reachedAt = furthest;
 			return p;
 
 			Refuse:
 			if (p > furthest) furthest = p;
 
+			reachedAt = furthest;
 			return -1 - furthest;
 		}
 
@@ -3551,7 +3705,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Group</c>, recognized with nothing written down.</summary>
-		static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3583,11 +3737,13 @@ namespace DotGram.Snapshots
 
 			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
+			reachedAt = furthest;
 			return p;
 
 			Refuse:
 			if (p > furthest) furthest = p;
 
+			reachedAt = furthest;
 			return -1 - furthest;
 		}
 

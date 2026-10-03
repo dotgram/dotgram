@@ -2484,6 +2484,12 @@ namespace DotGram.Snapshots
 
 				S8:
 				{
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 				}
 
@@ -2743,6 +2749,12 @@ namespace DotGram.Snapshots
 
 				S8:
 				{
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
+					{
+						failure.Position = p;
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 					p = turn0;
 				}
 

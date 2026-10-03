@@ -34,6 +34,7 @@ sealed partial class Machine
 		_namedOutside.Clear();
 		_checkpointIds      = 0;
 		_seam               = FollowSets.SeamOf(rule, _graph);
+		_recordsBeforeFail  = false;
 		int entry;
 
 		using (var modes = Keeping())
@@ -123,15 +124,10 @@ sealed partial class Machine
 
 			if (_checkpoints.Count == 0)
 			{
-				// Deterministic throughout, so there is only ever one attempt: wherever it
-				// gave up is the furthest the input was followed, with nothing to compare
-				// it to — so this is an unconditional assignment, not the max-comparison
-				// RenderEngine's Fail: makes, and there is no tie to accumulate either — a
-				// reference straight into whichever array the generator already declared,
-				// nothing to allocate.
-				file.Line("failure.Position = p;");
-				file.Line("failure.Expected = expected;");
-					file.Line("return -1;");
+				// Deterministic throughout, so there is only ever one attempt: not the
+				// max-comparison RenderEngine's Fail: makes (RecordFlatFailure).
+				RecordFlatFailure(file);
+				file.Line("return -1;");
 			}
 			else
 			{
@@ -389,6 +385,7 @@ sealed partial class Machine
 		_seam           = FollowSets.SeamOf(rule, _graph);
 		_valuesInLocals = true;
 		_lowering       = true;
+		_recordsBeforeFail = false;
 
 		var entry = Compile(BodyOf(rule, whole), Accept, seed);
 
@@ -476,12 +473,34 @@ sealed partial class Machine
 			file.Line();
 			file.Line("Fail:");
 			file.Line("value = default!;");
-			file.Line("failure.Position = p;");
-			file.Line("failure.Expected = expected;");
+			RecordFlatFailure(file);
 			file.Line("return -1;");
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// What a lowered method with no way back records where it gives up: where it stopped, unless
+	/// something recorded further along before (<see cref="_recordsBeforeFail"/>).
+	/// </summary>
+	/// <remarks>
+	/// Deterministic throughout, so wherever it gave up is the furthest the input was followed
+	/// but for a turn it gave back, and there is no tie to accumulate: a reference straight into
+	/// whichever array the generator already declared, nothing to allocate. Where a turn given back
+	/// or a scanner recorded a further place, that place stands, and a refusal at the same place
+	/// is said in its stead.
+	/// </remarks>
+	void RecordFlatFailure(Writer file)
+	{
+		using (_recordsBeforeFail ? file.Block("if (p >= failure.Position)") : null)
+		{
+			file.Line("failure.Position = p;");
+			file.Line("failure.Expected = expected;");
+
+			if (_recordsBeforeFail && Ties)
+				file.Line("failure.ExpectedMore?.Clear();");
+		}
 	}
 
 	/// <summary>One rule's value, from its locals — a switch on the tag where it has one.</summary>
