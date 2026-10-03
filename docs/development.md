@@ -67,12 +67,11 @@ compilation, which keeps nothing; anything else that times generation sets `-p:D
 And the cache is found by every input of the compile, which is a claim a test can only sample:
 `-p:DotGramVerifyCache=true`, a property only this repository declares (`Directory.Build.targets`),
 compiles afresh every grammar it finds in the cache, holds the two parsers to each other and fails
-the build with `GRAM0001` where they differ. The `checked` job in CI builds the solution with it,
-which takes nothing from the cache (every compilation there is a first), and then rebuilds
-`DotGram.Sql` twice after touching a C# file: the first may have to compile again what the rest of
-the solution pushed out of the cache, the second takes both target frameworks' parsers from it and
-verifies them, and a report line reads `cached and verified` where that
-happened.
+the build with `GRAM0001` where they differ; a report line reads `cached and verified` where it
+took one. The `checked` job in CI builds the solution with it — which hits only where two
+compilations happen to share every input — and then rebuilds `DotGram.Sql` after touching a C#
+file, once for both target frameworks and once for each on its own, and requires each of its three
+parsers to be cached and verified for each framework.
 
 ## The same build on Linux
 

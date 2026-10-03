@@ -149,8 +149,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// `DotGramNoCache`: compile every grammar afresh rather than take a parser kept from an
 		// earlier compilation in this process (Compiled). `DotGramVerifyCache` is the repository's
 		// own: take it, compile afresh as well, and fail the build where the two differ.
+		// A design-time build — the editor's — keeps nothing either: its driver keeps the last parser
+		// already, its process does not end, and a grammar being typed would fill the cache with a
+		// parser for every state of it.
 		var caching = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
 			IsTrue(options, "build_property.DotGramNoCache") ? Caching.Off :
+			IsTrue(options, "build_property.DesignTimeBuild") ? Caching.Off :
 			IsTrue(options, "build_property.DotGramVerifyCache") ? Caching.Verify :
 			Caching.On);
 
@@ -324,21 +328,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// that compile is most of the generator's time: seconds for a grammar of a thousand rules. The
 	/// compiler server keeps this assembly loaded, so the parser kept here is found again.
 	/// <para>
-	/// The budget is two parsers of the largest grammar this repository has, T-SQL, whose text is
-	/// sixteen million characters — 64 MB as .NET holds it. Small on purpose: a long-lived server is
+	/// The budget is sixty-four million characters, 128 MB as .NET holds them: what the three SQL
+	/// parsers of DotGram.Sql hold for both of its target frameworks, the largest this repository
+	/// has, with a little to spare. Counted, those are 59 million: T-SQL's text is sixteen million,
+	/// and SQL:2023's keys hold its 381,492 questions and answers, fifteen million for each target
+	/// framework. A smaller budget keeps them apart, and each build compiles SQL:2023 again for
+	/// one framework or the other. No larger, though: a long-lived server is
 	/// shared by every project and every checkout on the machine, and each build of the generator it
 	/// loads has a cache of its own. Two target frameworks of one project mostly compile the same
-	/// text, and hold it once (Shared). What is counted is text; the questions and answers each key
-	/// holds come on top of it, about a fifth more: the three SQL parsers of DotGram.Sql for both
-	/// of its target frameworks left 67 MB more held after a full collection than without the cache.
-	/// A generator built again in the same place does not add a second cache beside the first: when
-	/// that was measured, each build after such a change ran in a new compiler server process.
+	/// text, and hold it once (Shared). The large strings are counted exactly and the rest — the
+	/// questions and answers, the diagnostics — by an estimate (WeightOf), so that a grammar whose
+	/// C# types have thousands of members weighs what it holds; and no more than 64 entries are
+	/// kept, whatever they weigh. A generator built again in the same place does not add a second
+	/// cache beside the first: when that was measured, each build after such a change ran in a new
+	/// compiler server process.
 	/// </para>
 	/// </remarks>
 	static readonly CompileCache<CompileKey, Parser> Compiled = new(
-		32L * 1024 * 1024,
-		static (key, parser) => StringsOf(key, parser),
-		static (parser, kept) => Shared(parser, kept));
+		budget:   64_000_000,
+		capacity: 64,
+		strings:  static (key, parser) => StringsOf(key, parser),
+		weight:   static (key, parser) => WeightOf(key, parser),
+		share:    static (parser, kept) => Shared(parser, kept));
 
 	static readonly Guid GeneratorBuild = typeof(GramGenerator).Assembly.ManifestModule.ModuleVersionId;
 
@@ -438,15 +449,83 @@ public sealed class GramGenerator : IIncrementalGenerator
 		return parser;
 	}
 
-	/// <summary>The strings of an entry that the budget counts: the grammar and what it compiled into.</summary>
+	/// <summary>
+	/// The large strings of an entry, which the budget counts exactly: the grammar, what it compiled
+	/// into, and what the diagnostics quote of it.
+	/// </summary>
 	static IEnumerable<string?> StringsOf(CompileKey key, Parser parser)
 	{
 		yield return key.Grammar.Text;
+		yield return key.Grammar.Host.Literal;
 		yield return parser.Text;
+		yield return parser.Summary;
+		yield return parser.Detail;
 
 		foreach (var part in parser.Parts.Items)
 			yield return part.Text;
+
+		foreach (var report in key.Grammar.Reports.Items.Concat(parser.Reports.Items))
+		{
+			yield return report.Grammar;
+			yield return report.Written;
+		}
 	}
+
+	/// <summary>
+	/// Everything else an entry holds, in characters, as an estimate: the questions, the answers with
+	/// the members and parameters they list, the diagnostics and the pieces.
+	/// </summary>
+	/// <remarks>
+	/// The questions and answers are counted by the room their elements take in their arrays and not
+	/// by the names in them, which a grammar's hundreds of thousands of questions share among a few
+	/// hundred types: the SQL:2023 grammar asks 381,492, and its two arrays are 30 MB for one target
+	/// framework. The members and parameters an answer lists, and the diagnostics, are small objects
+	/// with strings of their own, counted as such. Not exact, and not meant to be: it is what makes a
+	/// key weigh what it holds.
+	/// </remarks>
+	static long WeightOf(CompileKey key, Parser parser)
+	{
+		var grammar = key.Grammar;
+		var weight  = (long)ObjectWeight * (4 + grammar.Pieces.Items.Length + parser.Parts.Items.Length)
+			+ (long)QuestionWeight * grammar.Questions.Items.Length
+			+ (long)AnswerWeight   * grammar.Answers.Items.Length;
+
+		foreach (var answer in grammar.Answers.Items)
+		{
+			foreach (var constructor in answer.Constructors.Items)
+			{
+				weight += ObjectWeight;
+
+				foreach (var parameter in constructor.Items)
+					weight += ObjectWeight + parameter.Name.Length + parameter.Type.Length;
+			}
+
+			if (answer.Properties.Items.Length > 0)
+				weight += ObjectWeight;
+
+			foreach (var member in answer.Properties.Items)
+				weight += ObjectWeight + member.Name.Length + member.Type.Length;
+		}
+
+		foreach (var report in grammar.Reports.Items.Concat(parser.Reports.Items))
+		{
+			weight += 4 * ObjectWeight + report.Id.Length + report.Title.Length + report.MessageFormat.Length + (report.FilePath?.Length ?? 0);
+
+			foreach (var argument in report.Arguments.Items)
+				weight += ObjectWeight + argument.Length;
+		}
+
+		return weight;
+	}
+
+	/// <summary>A small object's header and fields, in characters: about 24 bytes.</summary>
+	const int ObjectWeight = 12;
+
+	/// <summary>A <see cref="Question"/> in its array, in characters: 24 bytes.</summary>
+	const int QuestionWeight = 12;
+
+	/// <summary>An <see cref="Answer"/> in its array, in characters: 56 bytes.</summary>
+	const int AnswerWeight = 28;
 
 	static bool IsTrue(AnalyzerConfigOptionsProvider options, string property)
 	{

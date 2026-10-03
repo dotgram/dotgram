@@ -132,19 +132,29 @@ jobs:
       - name: Build with the invariant compiled in
         run: dotnet build DotGram.slnx --no-restore --configuration Linux -p:DotGramChecks=true -p:DotGramVerifyCache=true -warnaserror
 
-      # The build above takes nothing from the cache: every compilation in it is a first. What a
-      # user's rebuild after an edit to C# alone does is this, on the largest grammars there are. The
-      # first rebuild compiles DotGram.Sql's parsers again wherever the rest of the solution pushed them
-      # out of the cache's small budget; the second takes both target frameworks' from the cache and
-      # verifies them. The grep is what says the check ran at all.
+      # The build above takes from the cache only where two of its compilations happen to share every
+      # input, which proves little. What a user's rebuild after an edit to C# alone does is this, on the
+      # largest grammars there are. The first rebuild compiles again whatever the rest of the solution
+      # pushed out of the cache's small budget. Then each target framework is rebuilt on its own, so
+      # that the report lines it prints are its own, and every one of the three parsers must say it was
+      # taken from the cache and verified: a check that verified nothing must not pass.
       - name: The generator's cache, verified on a C#-only rebuild
         shell: bash
         run: |
-          for build in first second; do
+          build() {
             touch src/DotGram.Sql/SqlWalker.cs
-            dotnet build src/DotGram.Sql/DotGram.Sql.csproj --no-restore --configuration Release -p:DotGramChecks=true -p:DotGramVerifyCache=true -warnaserror | tee "$RUNNER_TEMP/verify-cache-$build.log"
+            dotnet build src/DotGram.Sql/DotGram.Sql.csproj --no-restore --configuration Release -p:DotGramChecks=true -p:DotGramVerifyCache=true -warnaserror "$@"
+          }
+          build
+          for framework in net10.0 netstandard2.0; do
+            log="$RUNNER_TEMP/verify-cache-$framework.log"
+            build --framework "$framework" | tee "$log"
+            for host in DotGram.Sql.Standard.Sql92Parser DotGram.Sql.Standard.SqlStandardParser DotGram.Sql.TransactSql.TransactSqlParser; do
+              grep -qE "DotGram: $host, .*, cached and verified\$" "$log" || { echo "::error::$host ($framework) was not taken from the cache and verified"; exit 1; }
+            done
+            reported=$(grep -oE "DotGram: DotGram\.Sql\.[^,]+," "$log" | sort -u | wc -l)
+            [ "$reported" -eq 3 ] || { echo "::error::DotGram.Sql ($framework) reported $reported parsers, not 3"; exit 1; }
           done
-          grep "cached and verified" "$RUNNER_TEMP/verify-cache-second.log"
 
       # Every suite, snapshots included. The check lines are in the generated TEXT whether or not the
       # symbol is defined — the symbol decides only whether they compile — so the baseline matches

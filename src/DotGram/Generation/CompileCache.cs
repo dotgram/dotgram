@@ -22,10 +22,13 @@ namespace DotGram.Generation;
 /// with statics of its own.
 /// </para>
 /// <para>
-/// Bounded by what the values hold rather than by how many there are, because one value is a
-/// parser's text: tens of megabytes for a large grammar and a few kilobytes for a small one. A
-/// string that two values hold — the same parser compiled for two target frameworks — is counted
-/// once, which is what it costs. A value larger than the whole budget is not kept at all.
+/// Bounded by what the entries hold, because one value is a parser's text: tens of megabytes for a
+/// large grammar and a few kilobytes for a small one. What an entry holds is counted in characters:
+/// its large strings exactly — a string that two entries hold, the same parser compiled for two
+/// target frameworks, is counted once, which is what it costs — and everything else it holds as
+/// an estimate the caller gives. A cap on how many entries there are stands beside that, so that
+/// entries which each weigh little cannot pile up without end. An entry heavier than the whole
+/// budget is not kept at all.
 /// </para>
 /// <para>
 /// Reading takes no lock. Adding takes one, briefly, to keep the count of what is held and the
@@ -45,42 +48,61 @@ public sealed class CompileCache<TKey, TValue>
 {
 	readonly ConcurrentDictionary<TKey, Entry> _entries = new();
 	readonly Func<TKey, TValue, IEnumerable<string?>> _strings;
+	readonly Func<TKey, TValue, long> _weight;
 	readonly Func<TValue, IEnumerable<TValue>, TValue>? _share;
 	readonly object _adding = new();
 	long _clock;
 
-	/// <param name="budget">The characters the kept keys and values may hold between them.</param>
+	/// <param name="budget">The characters the kept entries may hold between them.</param>
+	/// <param name="capacity">How many entries may be kept, however little they hold.</param>
 	/// <param name="strings">
-	/// The strings an entry holds that are worth counting: the large ones, which is what the budget
-	/// is about. One held by several entries is counted once.
+	/// The large strings an entry holds, counted exactly. One held by several entries is counted
+	/// once.
+	/// </param>
+	/// <param name="weight">
+	/// Everything else an entry holds, as an estimate in characters: arrays, small strings, the
+	/// objects around them. Counted for each entry on its own.
 	/// </param>
 	/// <param name="share">
 	/// The value about to be kept, given the values kept already, made to hold their very strings
 	/// where it holds equal ones; or null to keep values as they come.
 	/// </param>
-	public CompileCache(long budget, Func<TKey, TValue, IEnumerable<string?>> strings, Func<TValue, IEnumerable<TValue>, TValue>? share = null)
+	public CompileCache(
+		long                                         budget,
+		int                                          capacity,
+		Func<TKey, TValue, IEnumerable<string?>>     strings,
+		Func<TKey, TValue, long>?                    weight = null,
+		Func<TValue, IEnumerable<TValue>, TValue>?   share  = null)
 	{
 		if (budget <= 0)
 			throw new ArgumentOutOfRangeException(nameof(budget));
 
+		if (capacity <= 0)
+			throw new ArgumentOutOfRangeException(nameof(capacity));
+
 		Budget   = budget;
+		Capacity = capacity;
 		_strings = strings ?? throw new ArgumentNullException(nameof(strings));
+		_weight  = weight ?? NoWeight;
 		_share   = share;
 	}
 
 	/// <summary>The characters the kept entries may hold between them.</summary>
 	public long Budget { get; }
 
+	/// <summary>How many entries may be kept.</summary>
+	public int Capacity { get; }
+
 	/// <summary>How many entries are kept.</summary>
 	public int Count => _entries.Count;
 
-	/// <summary>The characters the kept entries hold between them.</summary>
+	/// <summary>The characters the kept entries hold between them, estimate included.</summary>
 	public long Size
 	{
 		get
 		{
 			lock (_adding)
-				return Measure(_entries);
+				return Holdings(_entries, out _);
 		}
 	}
 
@@ -89,7 +111,7 @@ public sealed class CompileCache<TKey, TValue>
 	{
 		if (_entries.TryGetValue(key, out var entry))
 		{
-			Interlocked.Exchange(ref entry.Used, Interlocked.Increment(ref _clock));
+			entry.Touch(Interlocked.Increment(ref _clock));
 
 			value = entry.Value;
 
@@ -103,10 +125,10 @@ public sealed class CompileCache<TKey, TValue>
 
 	/// <summary>
 	/// Keeps <paramref name="value"/> under <paramref name="key"/>, letting the least recently used
-	/// go until what is kept fits the budget.
+	/// go until what is kept fits the budget and the capacity.
 	/// </summary>
 	/// <returns>
-	/// Whether it was kept: not where the key is held already, nor where the value alone is larger
+	/// Whether it was kept: not where the key is held already, nor where the entry alone is heavier
 	/// than the budget.
 	/// </returns>
 	public bool Add(TKey key, TValue value)
@@ -118,24 +140,46 @@ public sealed class CompileCache<TKey, TValue>
 
 			var entry = new Entry(_share is null ? value : _share(value, _entries.Values.Select(static one => one.Value)));
 
-			if (Measure([new KeyValuePair<TKey, Entry>(key, entry)]) > Budget)
+			if (Holdings([new KeyValuePair<TKey, Entry>(key, entry)], out _) > Budget)
 				return false;
 
-			entry.Used    = Interlocked.Increment(ref _clock);
+			entry.Touch(Interlocked.Increment(ref _clock));
 			_entries[key] = entry;
 
-			while (Measure(_entries) > Budget)
-			{
-				var oldest = _entries
-					.Where(pair => !pair.Key.Equals(key))
-					.OrderBy(static pair => Interlocked.Read(ref pair.Value.Used))
-					.First();
+			// Measured once and sorted once: each entry let go takes away its estimate and the
+			// strings no other entry still holds.
+			var size  = Holdings(_entries, out var holders);
+			var count = _entries.Count;
 
-				_entries.TryRemove(oldest.Key, out _);
+			if (size <= Budget && count <= Capacity)
+				return true;
+
+			var oldest = _entries
+				.Where(pair => !pair.Key.Equals(key))
+				.OrderBy(static pair => pair.Value.Used)
+				.ToList();
+
+			foreach (var pair in oldest)
+			{
+				if (size <= Budget && count <= Capacity)
+					break;
+
+				_entries.TryRemove(pair.Key, out _);
+				count--;
+				size -= _weight(pair.Key, pair.Value.Value);
+
+				foreach (var text in _strings(pair.Key, pair.Value.Value))
+					if (text is not null && --holders[text] == 0)
+						size -= text.Length;
 			}
 		}
 
 		return true;
+	}
+
+	static long NoWeight(TKey key, TValue value)
+	{
+		return 0;
 	}
 
 	/// <summary>Lets the value under <paramref name="key"/> go, if one is kept.</summary>
@@ -145,16 +189,34 @@ public sealed class CompileCache<TKey, TValue>
 			return _entries.TryRemove(key, out _);
 	}
 
-	/// <summary>Every string the entries hold, each counted once however many of them hold it.</summary>
-	long Measure(IEnumerable<KeyValuePair<TKey, Entry>> entries)
+	/// <summary>
+	/// What the entries hold: each string once however many of them hold it, and each entry's
+	/// estimate of the rest.
+	/// </summary>
+	/// <param name="holders">How many times the entries name each string.</param>
+	long Holdings(IEnumerable<KeyValuePair<TKey, Entry>> entries, out Dictionary<string, int> holders)
 	{
-		var counted = new HashSet<string>(SameString.Instance);
-		var size    = 0L;
+		var size = 0L;
+
+		holders = new Dictionary<string, int>(SameString.Instance);
 
 		foreach (var pair in entries)
+		{
+			size += _weight(pair.Key, pair.Value.Value);
+
 			foreach (var text in _strings(pair.Key, pair.Value.Value))
-				if (text is not null && counted.Add(text))
+			{
+				if (text is null)
+					continue;
+
+				holders.TryGetValue(text, out var held);
+
+				if (held == 0)
 					size += text.Length;
+
+				holders[text] = held + 1;
+			}
+		}
 
 		return size;
 	}
@@ -162,7 +224,28 @@ public sealed class CompileCache<TKey, TValue>
 	sealed class Entry(TValue value)
 	{
 		public readonly TValue Value = value;
-		public long            Used;
+		long _used;
+
+		public long Used => Interlocked.Read(ref _used);
+
+		/// <summary>
+		/// Marks the entry used at <paramref name="stamp"/>, unless a later use already has: two
+		/// readers that took their stamps in one order may get here in the other.
+		/// </summary>
+		public void Touch(long stamp)
+		{
+			var seen = Interlocked.Read(ref _used);
+
+			while (seen < stamp)
+			{
+				var was = Interlocked.CompareExchange(ref _used, stamp, seen);
+
+				if (was == seen)
+					return;
+
+				seen = was;
+			}
+		}
 	}
 
 	/// <summary>Strings told apart by which object they are, which is what memory is counted in.</summary>

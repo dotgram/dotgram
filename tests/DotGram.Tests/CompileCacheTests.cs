@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.Generation;
 
@@ -136,12 +139,53 @@ public sealed class CompileCacheTests
 	}
 
 	/// <summary>
-	/// A grammar whose compile failed with an error of its own — a diagnostic about what was
-	/// written — is kept like any other: the input decides the answer. One that failed inside, with
-	/// GRAM0001, is not, which the bound's tests below hold to the cache itself.
+	/// And where they differ, the build fails: the kept parser is altered behind the cache's back,
+	/// which is what a key that missed one of the compile's inputs would look like from outside.
 	/// </summary>
 	[Fact]
-	public void A_grammar_with_errors_is_kept_with_its_diagnostics()
+	public void Verification_fails_the_build_where_the_kept_parser_differs()
+	{
+		var name   = Unique();
+		var source = Host(name);
+		var first  = Run(source);
+
+		Tamper(name);
+
+		var second = Run(source, ("build_property.DotGramVerifyCache", "true"));
+
+		Assert.Contains(
+			second.Diagnostics,
+			diagnostic => diagnostic.Id == "GRAM0001" &&
+				diagnostic.GetMessage(CultureInfo.InvariantCulture).Contains("differs from a fresh compile of the same input: the text", StringComparison.Ordinal));
+
+		// What the build is handed is the fresh parser, not the altered one.
+		Assert.Equal(Parser(first), Parser(second));
+	}
+
+	/// <summary>
+	/// A parser taken from the cache reports what its compile reported: diagnostics are part of what
+	/// is kept, and delivered again on every hit.
+	/// </summary>
+	[Fact]
+	public void A_parser_taken_from_the_cache_reports_its_diagnostics_again()
+	{
+		var source = Host(Unique()).Replace(")]", ", Lexical = true)]", StringComparison.Ordinal);
+		var first  = Run(source);
+		var second = Run(source);
+
+		Assert.EndsWith(", cached", Report(second), StringComparison.Ordinal);
+		Assert.Contains(first.Diagnostics, static diagnostic => diagnostic.Id == "GRAM5004");
+		Assert.Equal(
+			first.Diagnostics.Select(static diagnostic => diagnostic.ToString()),
+			second.Diagnostics.Select(static diagnostic => diagnostic.ToString()));
+	}
+
+	/// <summary>
+	/// A grammar with errors of its own reports them the same the second time. Whether that second
+	/// compile was a hit cannot be read here: such a grammar writes no report line.
+	/// </summary>
+	[Fact]
+	public void A_grammar_with_errors_reports_the_same_errors_the_second_time()
 	{
 		var source = Host(Unique()).Replace("parse Start", "Other = Missing\\nparse Start", StringComparison.Ordinal);
 		var first  = Run(source);
@@ -153,12 +197,27 @@ public sealed class CompileCacheTests
 			second.Diagnostics.Select(static diagnostic => diagnostic.ToString()));
 	}
 
+	/// <summary>
+	/// The editor's builds keep nothing: a grammar compiled only by them is compiled afresh by the
+	/// next build that is not one. Read through that build, since a design-time one writes no report.
+	/// </summary>
+	[Fact]
+	public void A_design_time_build_keeps_nothing()
+	{
+		var source = Host(Unique());
+
+		Run(source, ("build_property.DesignTimeBuild", "true"));
+		Run(source, ("build_property.DesignTimeBuild", "true"));
+
+		Assert.Matches(@"ms generation$", Report(Run(source)));
+	}
+
 	// ── The cache itself ─────────────────────────────────────────────────────────
 
 	[Fact]
 	public void The_budget_lets_the_least_recently_used_go()
 	{
-		var cache = new CompileCache<string, string>(10, static (key, value) => [value]);
+		var cache = new CompileCache<string, string>(10, 100, static (key, value) => [value]);
 
 		Assert.True(cache.Add("a", new string('a', 4)));
 		Assert.True(cache.Add("b", new string('b', 4)));
@@ -176,7 +235,7 @@ public sealed class CompileCacheTests
 	[Fact]
 	public void A_value_larger_than_the_budget_is_not_kept_and_lets_nothing_go()
 	{
-		var cache = new CompileCache<string, string>(10, static (key, value) => [value]);
+		var cache = new CompileCache<string, string>(10, 100, static (key, value) => [value]);
 
 		cache.Add("a", new string('a', 4));
 
@@ -189,7 +248,7 @@ public sealed class CompileCacheTests
 	public void A_string_two_entries_hold_is_counted_once()
 	{
 		var shared = new string('s', 6);
-		var cache  = new CompileCache<string, string>(10, static (key, value) => [value]);
+		var cache  = new CompileCache<string, string>(10, 100, static (key, value) => [value]);
 
 		cache.Add("net10.0",        shared);
 		cache.Add("netstandard2.0", shared);
@@ -207,8 +266,9 @@ public sealed class CompileCacheTests
 	{
 		var cache = new CompileCache<string, string>(
 			10,
+			100,
 			static (key, value) => [value],
-			static (value, kept) => kept.FirstOrDefault(one => string.Equals(one, value, StringComparison.Ordinal)) ?? value);
+			share: static (value, kept) => kept.FirstOrDefault(one => string.Equals(one, value, StringComparison.Ordinal)) ?? value);
 
 		cache.Add("net10.0",        new string('s', 6));
 		cache.Add("netstandard2.0", new string('s', 6));
@@ -219,10 +279,69 @@ public sealed class CompileCacheTests
 		Assert.Equal(6, cache.Size);
 	}
 
+	/// <summary>
+	/// What an entry holds besides its large strings is counted too: entries that each hold almost no
+	/// text but thousands of answers cannot pile up under a budget of characters.
+	/// </summary>
+	[Fact]
+	public void The_estimate_of_what_else_an_entry_holds_counts_against_the_budget()
+	{
+		var cache = new CompileCache<string, string>(10, 100, static (key, value) => [value], static (key, value) => 4);
+
+		cache.Add("a", "a");
+		cache.Add("b", "b");
+
+		// Five each: the third would make fifteen, and the oldest goes.
+		cache.Add("c", "c");
+
+		Assert.False(cache.TryGet("a", out _));
+		Assert.Equal(2, cache.Count);
+		Assert.Equal(10, cache.Size);
+	}
+
+	[Fact]
+	public void No_more_entries_than_the_capacity_are_kept_however_little_they_hold()
+	{
+		var cache = new CompileCache<string, string>(1_000, 2, static (key, value) => [value]);
+
+		cache.Add("a", "a");
+		cache.Add("b", "b");
+		cache.TryGet("a", out _);
+		cache.Add("c", "c");
+
+		Assert.Equal(2, cache.Count);
+		Assert.True(cache.TryGet("a", out _));
+		Assert.False(cache.TryGet("b", out _));
+		Assert.True(cache.TryGet("c", out _));
+	}
+
+	/// <summary>
+	/// Letting an entry go frees only the strings no other entry still holds: one shared with an
+	/// entry that stays is still counted, and the eviction goes on until the rest fits.
+	/// </summary>
+	[Fact]
+	public void Eviction_counts_a_shared_string_until_its_last_holder_goes()
+	{
+		var shared = new string('s', 6);
+		var cache  = new CompileCache<string, string>(12, 100, static (key, value) => [value]);
+
+		cache.Add("a", shared);
+		cache.Add("b", shared);
+		cache.Add("c", new string('c', 4));
+
+		// Six and four: ten. Seven more makes seventeen; "a" going frees nothing, "b" frees six.
+		cache.Add("d", new string('d', 7));
+
+		Assert.False(cache.TryGet("a", out _));
+		Assert.False(cache.TryGet("b", out _));
+		Assert.True(cache.TryGet("c", out _));
+		Assert.Equal(11, cache.Size);
+	}
+
 	[Fact]
 	public void The_first_of_two_concurrent_adds_is_the_one_kept()
 	{
-		var cache = new CompileCache<string, string>(10, static (key, value) => [value]);
+		var cache = new CompileCache<string, string>(10, 100, static (key, value) => [value]);
 		var first = new string('x', 2);
 
 		Assert.True(cache.Add("a", first));
@@ -232,6 +351,36 @@ public sealed class CompileCacheTests
 	}
 
 	// ── Helpers ──────────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// Alters the text of the parser the generator keeps for the host named <paramref name="name"/>,
+	/// through reflection: the cache gives nothing outside the generator a way to do it.
+	/// </summary>
+	static void Tamper(string name)
+	{
+		var cache   = typeof(GramGenerator).GetField("Compiled", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+		var entries = (IEnumerable)cache.GetType().GetField("_entries", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(cache)!;
+
+		foreach (var pair in entries)
+		{
+			var entry  = pair.GetType().GetProperty("Value")!.GetValue(pair)!;
+			var field  = entry.GetType().GetField("Value")!;
+			var parser = field.GetValue(entry)!;
+			var text   = (string?)parser.GetType().GetProperty("Text")!.GetValue(parser);
+
+			if (text is null || !text.Contains(name, StringComparison.Ordinal))
+				continue;
+
+			parser.GetType()
+				.GetField("<Text>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance)!
+				.SetValue(parser, text + "// altered\n");
+			field.SetValue(entry, parser);
+
+			return;
+		}
+
+		Assert.Fail($"No kept parser for {name}.");
+	}
 
 	/// <summary>A name for a host no other test in the process compiles.</summary>
 	static string Unique()
