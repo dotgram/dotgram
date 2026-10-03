@@ -130,6 +130,75 @@ public sealed class TargetTypedTests
 		Assert.Contains("does not convert to", thrown.Message, StringComparison.Ordinal);
 	}
 
+	// ── A switch with no natural type is refused as a plain operator's operand ─
+
+	/// <summary>
+	/// An ordinary operator does not target-type its operand the way an assignment, a `return`, an
+	/// argument or a cast does, so a switch whose arms meet in nothing has nowhere to find a type
+	/// here, and is refused as C# refuses it (CS8506, alongside CS0019 for the operator itself) —
+	/// rather than reaching the operator's own factory with none, which answered in its own words
+	/// before this refused it in the switch's.
+	/// </summary>
+	[Theory]
+	[InlineData("1 + (tag switch { 1 => 1.0, _ => 1m })")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) + 1")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) - 1")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) * 2")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) / 2")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) % 2")]
+	[InlineData("-(tag switch { 1 => 1.0, _ => 1m })")]
+	[InlineData("+(tag switch { 1 => 1.0, _ => 1m })")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) == 1.0")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) != 1.0")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) < 1.0")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) > 1.0")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) <= 1.0")]
+	[InlineData("(tag switch { 1 => 1.0, _ => 1m }) >= 1.0")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) & 1")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) | 1")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) ^ 1")]
+	[InlineData("~(tag switch { 1 => 1, _ => \"a\" })")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) << 1")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) >> 1")]
+	[InlineData("1 << (tag switch { 1 => 1, _ => \"a\" })")]
+	[InlineData("(tag switch { 1 => true, _ => \"a\" }) && true")]
+	[InlineData("(tag switch { 1 => true, _ => \"a\" }) || true")]
+	[InlineData("!(tag switch { 1 => true, _ => \"a\" })")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) is int")]
+	[InlineData("(tag switch { 1 => 1, _ => \"a\" }) as object")]
+	public void A_switch_with_no_natural_type_is_refused_as_a_plain_operators_operand(string body)
+	{
+		var thrown = Assert.Throws<InvalidOperationException>(() => Both.Parse(Text("(int tag) => " + body)));
+
+		Assert.Contains("Type of switch expression cannot be determined", thrown.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The same arms, meeting in a type (`int`) of their own, read as any other operand would:
+	/// nothing above refuses a switch that has a natural type, only one that has none.
+	/// </summary>
+	[Fact]
+	public void A_switch_with_a_natural_type_still_reads_as_a_plain_operators_operand()
+	{
+		Assert.Equal(20, Both.Compile<Func<int, int>>(
+			Text("(int tag) => 2 * (tag switch { 1 => 10, _ => tag })"))(1));
+
+		Assert.True(Both.Compile<Func<int, bool>>(
+			Text("(int tag) => (tag switch { 1 => true, _ => false }) && true"))(1));
+	}
+
+	/// <summary>
+	/// Concatenation is the one operator C# gives a switch with no natural type somewhere to go even
+	/// so: `string operator +(string, object)` takes it boxed to `object`, which every arm converts
+	/// to, so this keeps reading where the arithmetic and logical operators above refuse it.
+	/// </summary>
+	[Fact]
+	public void A_string_concatenation_still_boxes_a_switch_with_no_natural_type()
+	{
+		Assert.Equal("tag=1", Both.Compile<Func<int, string>>(
+			Text("(int tag) => \"tag=\" + (tag switch { 1 => 1, _ => \"many\" })"))(1));
+	}
+
 	// ── A lambda typed by the delegate it is compiled to ────────────────────────
 
 	[Fact]

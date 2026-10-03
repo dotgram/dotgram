@@ -3809,8 +3809,8 @@ public static class HandExpression
 		{
 			return operation switch
 			{
-				OrElse    => Expression.OrElse(left, right),
-				AndAlso   => Expression.AndAlso(left, right),
+				OrElse    => ExpressionParser.Logical(Expression.OrElse, left, right),
+				AndAlso   => ExpressionParser.Logical(Expression.AndAlso, left, right),
 				Pipe      => ExpressionParser.Integral(Expression.Or, left, right),
 				Caret     => ExpressionParser.Integral(Expression.ExclusiveOr, left, right),
 				Amp       => ExpressionParser.Integral(Expression.And, left, right),
@@ -3869,7 +3869,7 @@ public static class HandExpression
 					{
 						Minus => ExpressionParser.Negate(operand!, Marks),
 						Plus  => ExpressionParser.Arithmetic(Expression.UnaryPlus, operand!),
-						Not   => Expression.Not(operand!),
+						Not   => ExpressionParser.Not(operand!),
 						_     => ExpressionParser.Integral(Expression.OnesComplement, operand!),
 					};
 

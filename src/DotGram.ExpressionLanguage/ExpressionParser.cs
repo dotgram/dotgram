@@ -1234,8 +1234,8 @@ namespace DotGram.ExpressionLanguage;
 	// is no `>>` for the lexer to make, `~` says the two stand with nothing between them,
 	// and `a > > b` is refused exactly as C# refuses it.
 	Binary : @Expression on fail "Expected an expression."
-		= left: Binary & "||" & right: Binary        << 1  => @(Expression.OrElse(left, right))
-		| left: Binary & "&&" & right: Binary        << 2  => @(Expression.AndAlso(left, right))
+		= left: Binary & "||" & right: Binary        << 1  => @(ExpressionParser.Logical(Expression.OrElse, left, right))
+		| left: Binary & "&&" & right: Binary        << 2  => @(ExpressionParser.Logical(Expression.AndAlso, left, right))
 		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(ExpressionParser.Integral(Expression.Or, left, right))
 		| left: Binary & '^' & right: Binary         << 4  => @(ExpressionParser.Integral(Expression.ExclusiveOr, left, right))
 		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(ExpressionParser.Integral(Expression.And, left, right))
@@ -1276,7 +1276,7 @@ namespace DotGram.ExpressionLanguage;
 		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
 		| '-' & operand: Unary => @(ExpressionParser.Negate(operand, parserState))
 		| '+' & operand: Unary => @(ExpressionParser.Arithmetic(Expression.UnaryPlus, operand))
-		| '!' & operand: Unary => @(Expression.Not(operand))
+		| '!' & operand: Unary => @(ExpressionParser.Not(operand))
 		| '~' & operand: Unary => @(ExpressionParser.Integral(Expression.OnesComplement, operand))
 
 		// A cast is told from a parenthesized expression by what stands inside it. A keyword
@@ -1898,7 +1898,12 @@ public static partial class ExpressionParser
 
 		Func<Expression, UnaryExpression> make = Checked(reading) ? Expression.NegateChecked : Expression.Negate;
 
-		return Operand(_negatables, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+		if (Operand(_negatables, operand, null) is { } type)
+			return make(Implicitly(operand, type)!);
+
+		Typeless(operand, null);
+
+		return make(operand);
 	}
 
 	/// <summary>A constant's negation, or null where it has none of its own type.</summary>
@@ -3459,6 +3464,23 @@ public static partial class ExpressionParser
 			throw new InvalidOperationException("An operator cannot be applied to operand 'new()': it has no type of its own.");
 	}
 
+	/// <summary>Refuses a switch or a `?:` that met in no type as a plain operator's operand (CS8506/CS0173).</summary>
+	/// <remarks>
+	/// Asked only once everything above has already failed to give the operator's own resolution a
+	/// type for it — a numeric promotion, a lifted nullable, a string beside it. An ordinary operator
+	/// never supplies a target the way an assignment, a <c>return</c>, an argument or a cast does, so
+	/// there is nothing left here to give such a value a type, and it is refused in the same words it
+	/// would have been refused in had nothing anywhere asked for one.
+	/// </remarks>
+	static void Typeless(Expression left, Expression? right)
+	{
+		if (left is Targetless one)
+			throw one.Refusal();
+
+		if (right is Targetless two)
+			throw two.Refusal();
+	}
+
 	/// <summary>Whether an operand is one C#'s predefined numeric operators could take.</summary>
 	static bool Predefined(Expression operand)
 	{
@@ -3471,9 +3493,12 @@ public static partial class ExpressionParser
 	{
 		Operated(left, right);
 
-		return Operand(_arithmetics, left, right) is { } type
-			? make(Implicitly(left, type)!, Implicitly(right, type)!)
-			: make(left, right);
+		if (Operand(_arithmetics, left, right) is { } type)
+			return make(Implicitly(left, type)!, Implicitly(right, type)!);
+
+		Typeless(left, right);
+
+		return make(left, right);
 	}
 
 	/// <summary>The unary <c>+</c>, likewise.</summary>
@@ -3481,7 +3506,12 @@ public static partial class ExpressionParser
 	{
 		Operated(operand, null);
 
-		return Operand(_arithmetics, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+		if (Operand(_arithmetics, operand, null) is { } type)
+			return make(Implicitly(operand, type)!);
+
+		Typeless(operand, null);
+
+		return make(operand);
 	}
 
 	/// <summary>A bitwise operator — <c>&amp; | ^</c> — over integers, <c>bool</c>s or one enum.</summary>
@@ -3497,6 +3527,8 @@ public static partial class ExpressionParser
 		if (Operand(_integrals, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
+		Typeless(left, right);
+
 		var (first, second) = Unified(left, right);
 
 		return first.Type == second.Type && Underlying(first.Type).IsEnum
@@ -3509,9 +3541,12 @@ public static partial class ExpressionParser
 	{
 		Operated(operand, null);
 
-		return Operand(_integrals, operand, null) is { } type ? make(Implicitly(operand, type)!)
-		: Underlying(operand.Type).IsEnum ? Expression.Convert(make(AsUnderlying(operand)), operand.Type)
-		: make(operand);
+		if (Operand(_integrals, operand, null) is { } type)
+			return make(Implicitly(operand, type)!);
+
+		Typeless(operand, null);
+
+		return Underlying(operand.Type).IsEnum ? Expression.Convert(make(AsUnderlying(operand)), operand.Type) : make(operand);
 	}
 
 	/// <summary>A shift: the left side promoted on its own, and the count an <c>int</c>.</summary>
@@ -3521,15 +3556,22 @@ public static partial class ExpressionParser
 		Operated(left, right);
 
 		if (Operand(_integrals, left, null) is not { } promoted)
+		{
+			Typeless(left, right);
+
 			return make(left, right);
+		}
 
 		var lifted = IsLifted(left) || IsLifted(right);
 		var type   = lifted ? Lifted(Underlying(promoted)) : promoted;
 		var count  = lifted ? typeof(int?) : typeof(int);
 
-		return Implicitly(left, type) is { } shifted && Implicitly(right, count) is { } by
-			? make(shifted, by)
-			: make(left, right);
+		if (Implicitly(left, type) is { } shifted && Implicitly(right, count) is { } by)
+			return make(shifted, by);
+
+		Typeless(left, right);
+
+		return make(left, right);
 	}
 
 	/// <summary><c>==</c> and <c>!=</c>: numbers promoted, and otherwise one side converted to the other's type.</summary>
@@ -3545,6 +3587,8 @@ public static partial class ExpressionParser
 		if (Operand(_arithmetics, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
+		Typeless(left, right);
+
 		var (first, second) = Unified(left, right);
 
 		return make(first, second);
@@ -3559,11 +3603,31 @@ public static partial class ExpressionParser
 		if (Operand(_arithmetics, left, right) is { } type)
 			return make(Implicitly(left, type)!, Implicitly(right, type)!);
 
+		Typeless(left, right);
+
 		var (first, second) = Unified(left, right);
 
 		return first.Type == second.Type && Underlying(first.Type).IsEnum
 			? make(AsUnderlying(first), AsUnderlying(second))
 			: make(first, second);
+	}
+
+	/// <summary><c>&amp;&amp;</c> and <c>||</c>, over operands that are already <c>bool</c> or lift to one.</summary>
+	internal static Expression Logical(Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		Operated(left, right);
+		Typeless(left, right);
+
+		return make(left, right);
+	}
+
+	/// <summary><c>!</c>, over an operand that is already <c>bool</c> or lifts to one.</summary>
+	internal static Expression Not(Expression operand)
+	{
+		Operated(operand, null);
+		Typeless(operand, null);
+
+		return Expression.Not(operand);
 	}
 
 	/// <summary>A `+` over text, which is <c>string.Concat</c>; null where neither side is a string.</summary>
