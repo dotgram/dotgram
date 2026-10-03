@@ -330,6 +330,12 @@ public static partial class CSharpEmitter
 						file.Line("var from = start;");
 						file.Line("var to   = start;");
 						file.Line("var at   = -1;");
+
+						// How far past its start the element got, which stays true when the
+						// window moves under it while the synchronization is looked for.
+						if (recovery.Words || recovery.Asks.Contains("parserFailurePosition") ||
+							recovery.Asks.Contains("parserFailureLine") || recovery.Asks.Contains("parserFailureColumn"))
+							file.Line($"var reached = failure{i}.Reach - from;");
 						file.Line();
 
 						using (file.Block("while (true)"))
@@ -469,9 +475,12 @@ public static partial class CSharpEmitter
 				// with two meanings and, past two gigabytes, a silently wrong one. Nothing
 				// reaches this now: a grammar that asks for a span is refused a stream.
 				"parserSpan" => "new SourceSpan(from, to - from)",
-				"parserMessage" => $"\"Input does not match '{element}' at \" + " +
-					$"(window.Offset + failure{stage}.Reach).ToString(" +
-					"global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+				"parserFailurePosition" => "window.Offset + from + reached",
+				"parserFailureLine" => "window.LineAt(from + reached)",
+				"parserFailureColumn" => "window.ColumnAt(from + reached)",
+				"parserExpected" => $"Expected_DotGram(Expecting_DotGram(ref failure{stage}, failure{stage}.Reach), \"{element}\")",
+				"parserMessage" => $"Rejected_DotGram(Expecting_DotGram(ref failure{stage}, failure{stage}.Reach), \"{element}\", " +
+					"window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \":\" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture))",
 				_ => "default",
 			};
 		}

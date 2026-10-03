@@ -302,12 +302,14 @@ public sealed class DelimiterScanTests
 	/// <summary>
 	/// The reader's two scans — a value up to the separator, and the end of a bad element — against
 	/// the same grammar spelled so that neither is recognized: turns that ask the separator at every
-	/// character, and a synchronization tried wherever it can begin. What was read, where, and what a
-	/// refusal says, over every input form and both carriers.
+	/// character, and a synchronization tried wherever it can begin. What was read, where, and where a
+	/// refusal says reading stopped, over every input form and both carriers.
 	/// </summary>
 	/// <remarks>
 	/// The last separator pads with more characters than a search takes, so its recovery tries every
-	/// position rather than a few characters; the others are searched for.
+	/// position rather than a few characters; the others are searched for. What a refusal says would
+	/// have fit is not held: the spelling that asks at every character is another grammar, and says
+	/// what it wanted in its own words (<c>?!Separator &amp; when (true) &amp; any</c>).
 	/// </remarks>
 	[Theory]
 	[InlineData("' '* & '|' & ' '*",            "+")]
@@ -338,7 +340,7 @@ public sealed class DelimiterScanTests
 			}
 			static string Error(long position, string raw, string message)
 			{
-				return position + ":" + raw + ":" + message;
+				return position + ":" + raw + ":" + message.Substring(message.LastIndexOf(" at ", global::System.StringComparison.Ordinal) + 1);
 			}
 			static string Error(long position, global::System.ReadOnlySpan<byte> raw, string message)
 			{
@@ -424,7 +426,7 @@ public sealed class DelimiterScanTests
 			}
 			static string Error(long position, string raw, string message)
 			{
-				return position + ":" + raw + ":" + message;
+				return position + ":" + raw + ":" + message.Substring(message.LastIndexOf(" at ", global::System.StringComparison.Ordinal) + 1);
 			}
 			static string Error(long position, global::System.ReadOnlySpan<byte> raw, string message)
 			{

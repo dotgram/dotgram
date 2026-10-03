@@ -82,6 +82,10 @@ static class Renderings
 		[(Rendering.Engine, "parserLine")]     = null,
 		[(Rendering.Engine, "parserColumn")]   = null,
 		[(Rendering.Engine, "parserMessage")]  = null,
+		[(Rendering.Engine, "parserExpected")] = null,
+		[(Rendering.Engine, "parserFailurePosition")] = null,
+		[(Rendering.Engine, "parserFailureLine")] = null,
+		[(Rendering.Engine, "parserFailureColumn")] = null,
 
 		// A flat rendering keeps its captures in locals and has no entry saying where the
 		// rule began, so what the rule matched and where are the two it cannot answer. The
@@ -110,7 +114,7 @@ static class Renderings
 		[(Rendering.Site, "parserMarks")] = "a site's call is built from the spans it recorded",
 		[(Rendering.Site, "context")]     = "a site's call is built from the spans it recorded",
 
-		// The five a `recover` factory is handed. Recovery keeps the engine outright —
+		// The nine a `recover` factory is handed. Recovery keeps the engine outright —
 		// `CSharpEmitter` asks `RecoversWithin` before a rendering is chosen at all — so
 		// these never reach a decision here, and saying so is what stops them being read as
 		// undecided.
@@ -119,11 +123,19 @@ static class Renderings
 		[(Rendering.Flat, "parserLine")]     = "recovery keeps the engine, so a recover factory is never rendered flat",
 		[(Rendering.Flat, "parserColumn")]   = "recovery keeps the engine, so a recover factory is never rendered flat",
 		[(Rendering.Flat, "parserMessage")]  = "recovery keeps the engine, so a recover factory is never rendered flat",
+		[(Rendering.Flat, "parserExpected")] = "recovery keeps the engine, so a recover factory is never rendered flat",
+		[(Rendering.Flat, "parserFailurePosition")] = "recovery keeps the engine, so a recover factory is never rendered flat",
+		[(Rendering.Flat, "parserFailureLine")] = "recovery keeps the engine, so a recover factory is never rendered flat",
+		[(Rendering.Flat, "parserFailureColumn")] = "recovery keeps the engine, so a recover factory is never rendered flat",
 		[(Rendering.Site, "parserPosition")] = "recovery keeps the engine, so a recover factory is never sited",
 		[(Rendering.Site, "parserOrdinal")]  = "recovery keeps the engine, so a recover factory is never sited",
 		[(Rendering.Site, "parserLine")]     = "recovery keeps the engine, so a recover factory is never sited",
 		[(Rendering.Site, "parserColumn")]   = "recovery keeps the engine, so a recover factory is never sited",
 		[(Rendering.Site, "parserMessage")]  = "recovery keeps the engine, so a recover factory is never sited",
+		[(Rendering.Site, "parserExpected")] = "recovery keeps the engine, so a recover factory is never sited",
+		[(Rendering.Site, "parserFailurePosition")] = "recovery keeps the engine, so a recover factory is never sited",
+		[(Rendering.Site, "parserFailureLine")] = "recovery keeps the engine, so a recover factory is never sited",
+		[(Rendering.Site, "parserFailureColumn")] = "recovery keeps the engine, so a recover factory is never sited",
 	};
 
 	/// <summary>Why this rendering cannot hand that over, or null where it can.</summary>

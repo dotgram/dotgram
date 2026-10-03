@@ -1354,7 +1354,7 @@ sealed partial class Machine
 			{
 				using (code.Block($"if ({machine.NotAtEnd("p")})"))
 				{
-					code.Line(Refusal("null"));
+					code.Line(Refusal(machine.EndOfInputExpected()));
 					code.Line("return -1;");
 				}
 			}
@@ -2101,6 +2101,14 @@ sealed partial class Machine
 			if (around is { } before)
 				code.Line(before.Before);
 
+			// What was recorded here before the call, for a refusal said over the call's own
+			// (Refuse_DotGram_Over): nothing where the furthest refusal stood short of here, and
+			// otherwise how many sets had tied here, those after them being the call's.
+			var stood = _refuseWith is { } refusing && _refuseOver is { } over && over != refusing ? $"f{result}" : null;
+
+			if (stood is not null)
+				code.Line($"var {stood} = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;");
+
 			code.Line(
 				$"var {result} = {machine.ReaderOf(called)}(p{strength});");
 
@@ -2137,13 +2145,13 @@ sealed partial class Machine
 						{
 							_refuseUnless = null;
 
-							RefusedUnless(code, expected, guard, without, covered);
+							RefusedUnless(code, expected, guard, without, (covered, stood!));
 						}
 						else
 						{
 							code.Line(machine.Quiets
-								? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered});"
-								: $"{Refusing}_Over(ref failure, p, {expected}, {covered});");
+								? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});"
+								: $"{Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});");
 							code.Line("return -1;");
 						}
 					}
@@ -3954,6 +3962,11 @@ sealed partial class Machine
 
 			_records = true;
 
+			// What would have fit where the element stopped, kept by that place for the walk that
+			// builds the element after the parse: by then the failure says where the parse stopped.
+			if (machine.Carrier is TapeCarrier && read.Plan.Recovery.Explains)
+				code.Line($"{Keep("ways")}[reach] = Expecting_DotGram(ref failure, reach);");
+
 			foreach (var line in machine.Carrier.Recovered(read.Plan, slot, RuleOfSlot(slot), _positions))
 				Carried(code, line);
 
@@ -4601,7 +4614,7 @@ sealed partial class Machine
 		/// read, and <paramref name="without"/> where it would not. The guard is asked only when
 		/// the refusal is recorded, so a reading that goes on pays nothing for it.
 		/// </summary>
-		void RefusedUnless(Writer code, string expected, Node.Guard guard, string without, string? covered = null)
+		void RefusedUnless(Writer code, string expected, Node.Guard guard, string without, (string Set, string Stood)? covered = null)
 		{
 			machine._expectedUsed.Add(expected);
 			machine._expectedUsed.Add(without);
@@ -4615,9 +4628,9 @@ sealed partial class Machine
 				var call  = EmitGuardCall(code, guard);
 				var named = $"{call} ? {expected} : {without}";
 
-				code.Line(covered is null
+				code.Line(covered is not { } over
 					? $"{Refusing}(ref failure, p, {named});"
-					: $"{Refusing}_Over(ref failure, p, {named}, {covered});");
+					: $"{Refusing}_Over(ref failure, p, {named}, {over.Set}, {over.Stood});");
 			}
 
 			_guardTexts.Clear();

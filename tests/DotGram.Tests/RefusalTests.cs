@@ -48,7 +48,7 @@ public sealed class RefusalTests
 
 			Assert.False(match.IsSuccess);
 			Assert.Equal(at, match.Position);
-			Assert.Equal("Expected 'b' or eof.", match.Error);
+			Assert.Equal("Expected 'b' or end of input.", match.Error);
 		}
 	}
 

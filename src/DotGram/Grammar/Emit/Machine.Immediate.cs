@@ -279,7 +279,7 @@ sealed partial class Machine
 				// bad elements are stepped over in the order they are read, as the tape's walk visits
 				// them. Over buffered input the buffer counts, and nothing is kept here.
 				if (!machine.BufferedInput && machine._recoveryReads.Values.Any(static read =>
-					read.Plan.Recovery.Asks.Contains("parserLine") || read.Plan.Recovery.Asks.Contains("parserColumn")))
+					read.Plan.Recovery.Locates || read.Plan.Recovery.Words))
 					yield return ("Located_DotGram", "located");
 			}
 		}
@@ -696,7 +696,8 @@ sealed partial class Machine
 			if (plan.Recovery.Asks.Count > 0)
 				yield return "var recovered = (Position: pos, Value: to, AtomicIndex: reach, RuleIndex: ordinal);";
 
-			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name => machine.RecoverySupplied(name, plan, "located")));
+			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name =>
+				machine.RecoverySupplied(name, plan, "located", "Expecting_DotGram(ref failure, recovered.AtomicIndex)")));
 			// A yield's step keeps its element as the item it hands out, gathering nothing.
 			var built     = plan.Recovery.YieldStep
 				? $"{Last(element)} = {plan.Method}({arguments});"

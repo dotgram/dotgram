@@ -472,7 +472,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected0; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -867,16 +867,16 @@ namespace DotGram.Snapshots
 		}
 
 		static string[]? Recognize_DotGram_Expected0_Built;
-		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "eof" }, null) ?? Recognize_DotGram_Expected0_Built!;
+		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected0_Built!;
 
 		static string[]? Recognize_DotGram_Expected1_Built;
-		static string[] Recognize_DotGram_Expected1 => Recognize_DotGram_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected1_Built, new string[] { "\"\r\n\"", "'\\n'", "'\\r'" }, null) ?? Recognize_DotGram_Expected1_Built!;
+		static string[] Recognize_DotGram_Expected1 => Recognize_DotGram_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected1_Built, new string[] { "\"\\r\\n\"", "'\\n'", "'\\r'" }, null) ?? Recognize_DotGram_Expected1_Built!;
 
 		static string[]? Recognize_DotGram_Expected2_Built;
-		static string[] Recognize_DotGram_Expected2 => Recognize_DotGram_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected2_Built, new string[] { "\"\r\n\"", "'\\r'" }, null) ?? Recognize_DotGram_Expected2_Built!;
+		static string[] Recognize_DotGram_Expected2 => Recognize_DotGram_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected2_Built, new string[] { "\"\\r\\n\"", "'\\r'" }, null) ?? Recognize_DotGram_Expected2_Built!;
 
 		static string[]? Recognize_DotGram_Expected3_Built;
-		static string[] Recognize_DotGram_Expected3 => Recognize_DotGram_Expected3_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected3_Built, new string[] { "\"\r\n\"" }, null) ?? Recognize_DotGram_Expected3_Built!;
+		static string[] Recognize_DotGram_Expected3 => Recognize_DotGram_Expected3_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected3_Built, new string[] { "\"\\r\\n\"" }, null) ?? Recognize_DotGram_Expected3_Built!;
 
 		static string[]? Recognize_DotGram_Expected4_Built;
 		static string[] Recognize_DotGram_Expected4 => Recognize_DotGram_Expected4_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected4_Built, new string[] { "'\\n'" }, null) ?? Recognize_DotGram_Expected4_Built!;

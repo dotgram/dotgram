@@ -61,7 +61,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | --- | --- | --- |
 | `GRAM2001` | Expected a particular token. | The message names it. |
 | `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only those four things stand at the top of a grammar: a rule, `namespace`, `parse`/`find`, and the `context`/`state`/`trivia` declarations. |
-| `GRAM2003` | Expected a literal, a reference, an element set, a group or an atomic group. | An operand is missing where one has to stand — often after a `&` or a `\|`. |
+| `GRAM2003` | Expected a literal, a reference, an element set, a group or an atomic group. | An operand is missing where one has to stand — often after a `&` or a `\|`. Said in its own words for `when:`, a capture called `when`: `when` begins a guard, so rename the capture. |
 | `GRAM2004` | Expected a name. | |
 | `GRAM2005` | A binding power is a whole number. | `<< 2`, `>> 3` (§4.3.1). |
 | `GRAM2006` | A namespace header's rebindings need `with`. | `namespace Name with (A = B) { … }` (§5.1). |
@@ -102,7 +102,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4007` | One name is captured twice with different types. | A member has one type; give the two captures the same one, or different names (§7.3). A fold step (§4.3) that collects a name another alternative holds once is the same case: one side is a sequence, the other a scalar. |
 | `GRAM4008` | A `=>` is not on an alternative, or a rule that builds does not say what type. | A `=>` builds the rule's value, so it belongs at the end of an alternative, and the rule needs `: @T` to say what it builds. |
 | `GRAM4009` | An alternative is recursive and states no strength while its siblings do. | A rule uses one convention or the other — levels as rules, or `<<` and `>>` on every recursive alternative (§4.3.1). |
-| `GRAM4010` | A recovery's `=>` has no sequence to put the rejected element in. | The repetition collects text rather than values. Give the repeated rule a capture of its own, or drop the `=>` and report out of band (§8.2). |
+| `GRAM4010` | A recovery's `=>` has no sequence to put the rejected element in. | The repetition collects text rather than values. Give the repeated rule a capture of its own, or drop the `=>` and report out of band (§8.2). A rule whose every alternative forwards another rule's value — `Line : @T = v: Item => @(v) \| v: Remark => @(v)` — builds a value, and is read as one here. |
 | `GRAM4011` | A rule's declared type is neither a C# type nor a rule in view. | §4.1 case 3 takes the value of a rule named here; a C# type is written with `@`. |
 | `GRAM4012` | A capture takes one of the supplied names. | Every name the parser supplies to a `=>` or a `when` begins with `parser`, which is what that prefix is for (§7.3). |
 | `GRAM4013` | A value stands where a piece of grammar goes. | A value is allowed where a value is expected — a count, an argument of `@Method`, inside `@(…)`. Drop its type to make it a recognizer (§4.2). |

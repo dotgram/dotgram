@@ -499,7 +499,7 @@ public sealed class ExampleTests
 		Assert.Equal(
 			[
 				new TradeLine("AAPL", 100, new DateOnly(2026, 8, 12)),
-				new RejectedLine(1, 3, "R|MSFT|two hundred|2026-08-12", "Input does not match 'Row' at 47."),
+				new RejectedLine(1, 3, "R|MSFT|two hundred|2026-08-12", "Expected Digit at 3:8."),
 				new TradeLine("NVDA",  75, new DateOnly(2026, 8, 11)),
 			],
 			lines);
@@ -583,7 +583,7 @@ public sealed class ExampleTests
 		Assert.Equal("Row", one.Rule);
 		Assert.Equal(3,     one.Line);
 		Assert.Equal("R|MSFT|two hundred|2026-08-12", one.Text);
-		Assert.StartsWith("Input does not match 'Row'", one.Message);
+		Assert.Equal("Expected Digit at 3:8.", one.Message);
 	}
 
 	[Fact]

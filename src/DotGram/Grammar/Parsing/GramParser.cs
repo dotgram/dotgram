@@ -806,6 +806,22 @@ public sealed class GramParser
 
 		var start = Current.Position;
 
+		// `when:` reads as a capture, and here a capture cannot be called that: `when` opens a
+		// guard. Said as what to do about it, and read on as the capture it was meant to be, so
+		// that one name does not cost every message after it.
+		if (Next.Kind == TokenKind.Colon)
+		{
+			Report(
+				ExpectedExpression,
+				"'when' begins a guard, so a capture cannot be called 'when'. Rename the capture — " +
+				"'whenText:', say, or 'at:'.");
+
+			Take();
+			Take();                                 // `:`
+
+			return new Expr.Capture("when", ParsePrefixed()) { At = From(start) };
+		}
+
 		Take();
 
 		// `when (` and `when A is B` ask whether recognizers have strings in common, which

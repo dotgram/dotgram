@@ -3711,15 +3711,37 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_recovered_element_can_say_why_it_was_rejected()
 	{
-		// The rule it should have been, and where the input stopped being one.
+		// What would have fit where the input stopped being one, and where that was.
 		Assert.Equal(
-			["aa", "Input does not match 'Row' at 4.", "cc"],
+			["aa", "Expected ['\\r' | '\\n'] at 2:2.", "cc"],
 			((Array)Read(
 				Built("""
 					Row   = name: ['a'..'z']+ & eol
 					Start = rows: Row* recover eol => @(new Row(parserMessage))
 					""",
 					"aa\nb1b\ncc\n"),
+				"Rows")!)
+				.Cast<object>()
+				.Select(row => Read(row, "Name")));
+	}
+
+	[Fact]
+	public void A_recovered_element_is_told_where_it_went_wrong_and_what_would_have_fit()
+	{
+		// Where the element began, where reading it stopped, and what would have fit there: the
+		// third line goes wrong at its comma, sixteen characters in.
+		Assert.Equal(
+			["2.40", "3.10", "3:1 3:17 26 '.'", "8.00"],
+			((Array)Read(
+				Built("""
+					Row   = ' '* & name: Price & eol
+					Price = ['0'..'9']+ & '.' & ['0'..'9']{2}
+					Start = rows: Row* recover eol
+					      => @(new Row(parserLine + ":" + parserColumn + " " +
+					                   parserFailureLine + ":" + parserFailureColumn + " " + parserFailurePosition + " " +
+					                   parserExpected))
+					""",
+					"2.40\n3.10\n" + new string(' ', 15) + "3,20\n8.00\n"),
 				"Rows")!)
 				.Cast<object>()
 				.Select(row => Read(row, "Name")));

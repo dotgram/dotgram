@@ -418,8 +418,10 @@ public static partial class CSharpEmitter
 			$"{inputType} input{context}{parameters})"))
 		{
 			file.Line($"var match = Try{method}(input{(machine.UsesContext ? ", context" : "")}{forward});");
-			file.Line("if (!match.IsSuccess) throw new global::System.FormatException(match.Error);");
-			file.Line("return match.Value;");
+			file.Line("if (match.IsSuccess)");
+			file.Then("return match.Value;");
+			file.Line();
+			ThrowRefusal(file);
 		}
 	}
 
@@ -442,7 +444,10 @@ public static partial class CSharpEmitter
 		var ending  = buffered.Contains("\r\n") ? "\r\n" : "\n";
 		var members = new System.Text.StringBuilder();
 		var element = buffered.Contains("class BufferedBytes") ? "byte" : "char";
-		var lines   = LocatedMembers.Replace("ELEMENT", element).Replace("\r\n", "\n").Split('\n');
+		// The line break as an element: a byte has to be cast to, and a character already is one.
+		var lines   = LocatedMembers
+			.Replace("(ELEMENT)'\\n'", element == "byte" ? "(byte)'\\n'" : "'\\n'")
+			.Replace("ELEMENT", element).Replace("\r\n", "\n").Split('\n');
 
 		for (var i = 0; i < lines.Length; i++)
 		{

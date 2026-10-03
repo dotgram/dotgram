@@ -10,7 +10,7 @@ Examples	IDE0059	1257
 Examples	IDE0060	135
 Examples	IDE0051	279
 Examples	IDE0052	19
-Examples	IDE0004	40
+Examples	IDE0004	38
 ExpressionLanguage	IDE0035	0
 ExpressionLanguage	IDE0059	1258
 ExpressionLanguage	IDE0060	1236

@@ -326,6 +326,57 @@ public sealed record Recovery(Node Sync, string? Factory)
 		}
 	}
 
+	/// <summary>
+	/// Whether a rejected element must be told what would have fit where it stopped: its
+	/// factory asks for that or for the message that says it, or there is no factory and
+	/// the hook it reports on is handed the message.
+	/// </summary>
+	public bool Explains
+	{
+		get
+		{
+			if (Factory is null)
+				return true;
+
+			var asked = Asks;
+
+			return asked.Contains("parserMessage") || asked.Contains("parserExpected");
+		}
+	}
+
+	/// <summary>
+	/// Whether a rejected element must be told a line and a column: where it began, or where
+	/// it stopped.
+	/// </summary>
+	/// <remarks>
+	/// A recovery without a factory always does: the hook it reports on takes the line and
+	/// the column whether or not anybody implements it.
+	/// </remarks>
+	public bool Locates
+	{
+		get
+		{
+			if (Factory is null)
+				return true;
+
+			var asked = Asks;
+
+			return asked.Contains("parserLine") || asked.Contains("parserColumn") ||
+				asked.Contains("parserFailureLine") || asked.Contains("parserFailureColumn");
+		}
+	}
+
+	/// <summary>
+	/// Whether a rejected element is given a message: its factory asks for one, or there is no
+	/// factory and the hook it reports on is handed one.
+	/// </summary>
+	/// <remarks>
+	/// The message says where reading stopped as a line and a column, which counts lines as
+	/// <see cref="Locates"/> does. Not part of it, because over bytes the message counts a byte a
+	/// column where a name a factory is handed may not (GRAM4026).
+	/// </remarks>
+	public bool Words => Factory is null || Asks.Contains("parserMessage");
+
 	static bool Mentions(string csharp, string name)
 	{
 		for (var at = csharp.IndexOf(name, StringComparison.Ordinal); at >= 0;

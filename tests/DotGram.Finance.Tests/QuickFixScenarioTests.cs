@@ -100,10 +100,11 @@ public sealed class QuickFixScenarioTests
 			// a positive number (0, -1) is not a field, and a field with no value is not one either,
 			// so the reading stops where the wire stops being FIX and there is no message to have a
 			// finding about. A session answers those with a Reject (SessionRejectReason 0 and 4); this
-			// package answers with the refusal, which names the offset. The three are listed so that
-			// a change on either side, a fourth refusal or one of these read, fails here.
+			// package answers with the refusal, which names what would have fit and where. The three
+			// are listed so that a change on either side, a fourth refusal or one of these read, fails
+			// here.
 			Assert.Contains((scenario, exchange), RefusedAtTheDoor);
-			Assert.Contains("Input does not match", error!.Reason, StringComparison.Ordinal);
+			Assert.Matches(@"^Expected .+ at 1:[0-9]+\.$", error!.Reason);
 
 			return;
 		}

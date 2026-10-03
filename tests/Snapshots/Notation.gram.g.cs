@@ -16,7 +16,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Hashed</c>, answering rather than throwing.</summary>
@@ -212,7 +216,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Marked</c>, answering rather than throwing.</summary>
@@ -276,7 +284,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>List</c>, answering rather than throwing.</summary>
@@ -472,7 +484,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>List</c>, answering rather than throwing.</summary>
@@ -668,7 +684,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Small</c>, answering rather than throwing.</summary>
@@ -864,7 +884,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Small</c>, answering rather than throwing.</summary>
@@ -1060,7 +1084,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Ab</c>, answering rather than throwing.</summary>
@@ -1124,7 +1152,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Primary</c>, answering rather than throwing.</summary>
@@ -1671,7 +1703,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected1);
 					return -1;
 				}
 				return p;
@@ -1919,7 +1951,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Hashed_Expected1; goto Fail; }
 			string value2 = default!;
 			if (flat1_1Start >= 0)
 			{
@@ -2197,7 +2229,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected1);
 					return -1;
 				}
 				return p;
@@ -2612,7 +2644,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected1);
 					return -1;
 				}
 				return p;
@@ -2942,10 +2974,11 @@ namespace DotGram.Snapshots
 						}
 					default:
 						{
+							var fq2 = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;
 							var q2 = Read_Word_Small(p);
 							if (q2 < 0)
 							{
-								if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, Recognize_DotGram_Small_Expected1, Recognize_DotGram_Hashed_Expected0);
+								if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, Recognize_DotGram_Small_Expected1, Recognize_DotGram_Hashed_Expected0, fq2);
 								return -1;
 							}
 							p = q2;
@@ -3178,7 +3211,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected1);
 					return -1;
 				}
 				return p;
@@ -3481,7 +3514,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Hashed_Expected1; goto Fail; }
 			return p;
 
 			Fail:
@@ -3784,7 +3817,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected1);
 					return -1;
 				}
 				return p;
@@ -4140,7 +4173,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Hashed_Expected1; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -4273,6 +4306,9 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_Hashed_Expected0_Built;
 		static string[] Recognize_DotGram_Hashed_Expected0 => Recognize_DotGram_Hashed_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Hashed_Expected0_Built, new string[] { "['a'..'z']" }, null) ?? Recognize_DotGram_Hashed_Expected0_Built!;
+
+		static string[]? Recognize_DotGram_Hashed_Expected1_Built;
+		static string[] Recognize_DotGram_Hashed_Expected1 => Recognize_DotGram_Hashed_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Hashed_Expected1_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Hashed_Expected1_Built!;
 
 		static string[]? Recognize_DotGram_List_With1_Expected0_Built;
 		static string[] Recognize_DotGram_List_With1_Expected0 => Recognize_DotGram_List_With1_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_List_With1_Expected0_Built, new string[] { "Sep_With1" }, null) ?? Recognize_DotGram_List_With1_Expected0_Built!;
@@ -4957,6 +4993,7 @@ namespace DotGram.Snapshots
 			internal int AllBuiltAt;
 
 
+
 			#if DOTGRAM_CHECKS
 
 			/// <summary>
@@ -5400,12 +5437,42 @@ namespace DotGram.Snapshots
 
 		/// <summary>
 		/// Records what a choice wanted where the call that begins its widest group refused at the
-		/// same place: that call's own set, which the choice's holds, is dropped for it.
+		/// same place: what that call said there, which the choice's set holds, is dropped for it.
 		/// </summary>
-		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered)
+		/// <remarks>
+		/// <para>
+		/// Everything the call recorded here is about the character it began at — its own first
+		/// set, or a rule that begins with it, <c>Digit</c> where the choice says
+		/// <c>['0'..'9']</c> — which the choice's set holds, so the choice says it once, in its own
+		/// words. <paramref name="stood"/> says which of what is here is the call's: all of it
+		/// where it is -1, nothing having been recorded here before the call, and otherwise the
+		/// sets that tied after the first that many.
+		/// </para>
+		/// <para>
+		/// Where the call's rule says its own refusal (§4's <c>on fail</c>), nothing goes: the
+		/// author's words are the whole answer.
+		/// </para>
+		/// </remarks>
+		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
 		{
 			if (failure.Looking > 0)
 				return;
+
+			if (at == failure.Position && !Spoke_DotGram(failure.Expected) && !Spoke_DotGram(failure.ExpectedMore))
+			{
+				if (stood < 0)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+
+					return;
+				}
+
+				var more = failure.ExpectedMore;
+
+				if (more != null && more.Count > stood)
+					more.RemoveRange(stood, more.Count - stood);
+			}
 
 			if (at == failure.Position)
 			{
@@ -5416,6 +5483,28 @@ namespace DotGram.Snapshots
 			}
 
 			Refuse_DotGram(ref failure, at, expected);
+		}
+
+		/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
+		static bool Spoke_DotGram(string[]? expected)
+		{
+			if (expected != null)
+				foreach (var one in expected)
+					if (one.Length > 0 && one[0] == '\u0000')
+						return true;
+
+			return false;
+		}
+
+		/// <summary>Whether any of the sets that tied holds one.</summary>
+		static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
+		{
+			if (tied != null)
+				foreach (var one in tied)
+					if (Spoke_DotGram(one))
+						return true;
+
+			return false;
 		}
 
 		/// <summary>How much of a run matched, asked only when it did not.</summary>

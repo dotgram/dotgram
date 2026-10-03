@@ -299,6 +299,14 @@ sealed partial class Machine
 	/// <summary>Whether a reader of this machine reads a repetition marked <c>recover</c>.</summary>
 	public bool ReadsRecovery => _recoveryReads.Count > 0;
 
+	/// <summary>
+	/// Whether the tape keeps what an element this machine's reader stepped over wanted where it
+	/// stopped, for the walk that builds the element after the parse; the immediate carrier builds
+	/// it where it is stepped over, and reads the failure there.
+	/// </summary>
+	public bool TapeKeepsExpectations =>
+		Carrier is TapeCarrier && _recoveryReads.Values.Any(static read => read.Plan.Recovery.Explains);
+
 	/// <summary>The recovering repetitions <see cref="UnreadRecovery"/> admitted, by the repetition.</summary>
 	readonly Dictionary<Node, RecoveryRead> _recoveryReads = new(NodeIdentity.Instance);
 

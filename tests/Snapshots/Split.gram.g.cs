@@ -16,7 +16,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Script</c>, answering rather than throwing.</summary>
@@ -887,6 +891,9 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_Expected20_Built;
 		static string[] Recognize_DotGram_Expected20 => Recognize_DotGram_Expected20_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected20_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected20_Built!;
+
+		static string[]? Recognize_DotGram_Expected21_Built;
+		static string[] Recognize_DotGram_Expected21 => Recognize_DotGram_Expected21_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected21_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected21_Built!;
 
 		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 

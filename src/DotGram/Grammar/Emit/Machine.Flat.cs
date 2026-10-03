@@ -115,7 +115,7 @@ sealed partial class Machine
 			file.Line();
 			file.Line("Accept:");
 			if (whole)
-				file.Line("if (p != text.Length) { expected = null; goto Fail; }");
+				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
 			file.Line("return p;");
 
 			file.Line();
@@ -452,7 +452,7 @@ sealed partial class Machine
 			file.Line();
 			file.Line("Accept:");
 			if (whole)
-				file.Line("if (p != text.Length) { expected = null; goto Fail; }");
+				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
 
 			// The constructions, deferred to here: the parse is decided, and only now
 			// does anything the author wrote run. Inner sites first — a child's id is

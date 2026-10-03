@@ -3051,6 +3051,29 @@ names are supplied rather than captured:
 | `parserSpan`, `parserText` | its extent, and the input it covers |
 | `parserInput` | the whole of what was read, `string` — see below |
 | `parserMessage` | why it was rejected — only here, never in a capture |
+| `parserExpected` | what would have fit where reading it stopped — only here |
+| `parserFailureLine`, `parserFailureColumn` | where reading it stopped, for a person, from 1 — only here |
+| `parserFailurePosition` | the same place as an absolute offset, `long` — only here |
+
+**Where a bad element began is not where it went wrong.** `Flat white     3,20` is
+rejected as a whole line, and `parserLine` and `parserColumn` say where that line begins;
+what a person wants to know is that the comma is where reading stopped and a `.` would
+have fit there. `parserFailureLine` and `parserFailureColumn` are that place, and
+`parserExpected` is what would have fit, said as `Match<T>.Error` says it — `'.'`,
+`Amount or '#'` — or, where nothing more particular was recorded there, the name of the
+rule the element should have been. `parserMessage` puts the two together:
+
+```text
+Expected '.' at 3:17.
+```
+
+The place in it is `line:column`, the same whichever overload read the input; over bytes a
+column counts bytes, which is the character for ASCII. Where a rule says its own refusal
+(§4's `on fail`), its sentence is the message and the place follows it; where nothing at all
+was recorded at that place, the message says only that the input does not match the rule. What would have fit is
+the parse's furthest refusal, so it is the element's where the two are at one place — a
+continuation tried at the same boundary that read further and failed later has the furthest
+refusal, and then nothing more particular is said.
 
 Every one of them begins with `parser`, and that prefix is the whole of the collision
 story: the supplied names become parameters of the generated factory for a `=>` or a
@@ -3095,7 +3118,8 @@ public sealed record Row(string Symbol, int Qty, long Ordinal, int Line);
 ```
 
 Counting lines costs a scan of the text an element consumed, and is done only when a
-name that needs it was asked for.
+name that needs it was asked for — `parserMessage` among them, since it says a line and a
+column.
 
 #### Why separate arguments and not one context object
 

@@ -16,7 +16,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>A</c>, answering rather than throwing.</summary>
@@ -74,7 +78,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>B</c>, answering rather than throwing.</summary>
@@ -132,7 +140,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>C</c>, answering rather than throwing.</summary>
@@ -190,7 +202,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>D</c>, answering rather than throwing.</summary>
@@ -248,7 +264,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>E</c>, answering rather than throwing.</summary>
@@ -306,7 +326,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>F</c>, answering rather than throwing.</summary>
@@ -364,7 +388,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Text</c>, answering rather than throwing.</summary>
@@ -422,7 +450,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Number</c>, answering rather than throwing.</summary>
@@ -480,7 +512,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Alias</c>, answering rather than throwing.</summary>
@@ -538,7 +574,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Predicted</c>, answering rather than throwing.</summary>
@@ -596,7 +636,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>List</c>, answering rather than throwing.</summary>
@@ -654,7 +698,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Counted</c>, answering rather than throwing.</summary>
@@ -712,7 +760,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Maybe</c>, answering rather than throwing.</summary>
@@ -770,7 +822,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Ahead</c>, answering rather than throwing.</summary>
@@ -828,7 +884,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Not</c>, answering rather than throwing.</summary>
@@ -886,7 +946,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Committed</c>, answering rather than throwing.</summary>
@@ -944,7 +1008,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Sum</c>, answering rather than throwing.</summary>
@@ -1128,7 +1196,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Either</c>, answering rather than throwing.</summary>
@@ -1186,7 +1258,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Wrapped</c>, answering rather than throwing.</summary>
@@ -1244,7 +1320,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Sheet</c>, answering rather than throwing.</summary>
@@ -1422,7 +1502,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Ci</c>, answering rather than throwing.</summary>
@@ -1480,7 +1564,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Upper</c>, answering rather than throwing.</summary>
@@ -1538,7 +1626,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Pair</c>, answering rather than throwing.</summary>
@@ -1814,7 +1906,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -1855,7 +1947,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -1973,7 +2065,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -2027,7 +2119,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -2132,7 +2224,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -2254,7 +2346,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			return p;
 
 			Fail:
@@ -2333,7 +2425,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Text(captured0_0);
 			return p;
@@ -2398,7 +2490,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Number(captured0_0);
 			return p;
@@ -2484,7 +2576,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			int value1 = default!;
 			if (flat0_0Start >= 0)
 			{
@@ -2595,7 +2687,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Predicted(captured0_0);
 			return p;
@@ -2668,7 +2760,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_List(captured0_0);
 			return p;
@@ -2763,7 +2855,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Counted(captured0_0);
 			return p;
@@ -2825,7 +2917,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Maybe(captured0_0);
 			return p;
@@ -2921,7 +3013,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Ahead(captured0_0);
 			return p;
@@ -3018,7 +3110,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Not(captured0_0);
 			return p;
@@ -3107,7 +3199,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Committed(captured0_0);
 			return p;
@@ -3390,7 +3482,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Sheet_Expected0);
 					return -1;
 				}
 				return p;
@@ -3787,7 +3879,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			string value2 = default!;
 			if (flat0_1Start >= 0)
 			{
@@ -3977,7 +4069,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			string value2 = default!;
 			if (flat0_1Start >= 0)
 			{
@@ -4201,6 +4293,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					if ((uint)p >= (uint)text.Length) { expected = null; goto Fail; }
+					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[reach] = Expecting_DotGram(ref failure, reach);
 					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach, repeat, lookahead, 0));
 				}
 
@@ -4358,7 +4451,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -4394,7 +4487,7 @@ namespace DotGram.Snapshots
 							{
 								case 0:
 								{
-									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+									OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Recalled_DotGram(parser.Expectations, recovered.AtomicIndex), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 									break;
 								}
 							}
@@ -4607,7 +4700,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Ci(captured0_0);
 			return p;
@@ -4672,7 +4765,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Upper(captured0_0);
 			return p;
@@ -4823,7 +4916,7 @@ namespace DotGram.Snapshots
 			}
 
 			Accept:
-			if (p != text.Length) { expected = null; goto Fail; }
+			if (p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 			var captured0_0 = flat0_0Start < 0 ? string.Empty : text.Slice(flat0_0Start, flat0_0End - flat0_0Start).ToString();
 			value = Construct_Spaced_Pair(captured0_0);
 			return p;
@@ -5000,7 +5093,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Sheet_Expected0; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -5193,6 +5286,7 @@ namespace DotGram.Snapshots
 					var from = start;
 					var to   = start;
 					var at   = -1;
+					var reached = failure0.Reach - from;
 
 					while (true)
 					{
@@ -5229,7 +5323,7 @@ namespace DotGram.Snapshots
 					if (at < 0)
 						to = at = window.Length;
 
-					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, "Input does not match 'Row' at " + (window.Offset + failure0.Reach).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, Rejected_DotGram(Expecting_DotGram(ref failure0, failure0.Reach), "Row", window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 					ordinal0++;
 					start = at;
 					continue;
@@ -5277,6 +5371,9 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_A_Expected0_Built;
 		static string[] Recognize_DotGram_A_Expected0 => Recognize_DotGram_A_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_A_Expected0_Built, new string[] { "'a'" }, null) ?? Recognize_DotGram_A_Expected0_Built!;
+
+		static string[]? Recognize_DotGram_Sheet_Expected0_Built;
+		static string[] Recognize_DotGram_Sheet_Expected0 => Recognize_DotGram_Sheet_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected0_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Sheet_Expected0_Built!;
 
 		static string[]? Recognize_DotGram_B_Expected0_Built;
 		static string[] Recognize_DotGram_B_Expected0 => Recognize_DotGram_B_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_B_Expected0_Built, new string[] { "\"abcd\"" }, null) ?? Recognize_DotGram_B_Expected0_Built!;
@@ -5498,7 +5595,7 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, "Input does not match 'Row' at " + recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+						OnRecovered("Row", text.Slice(recovered.Position, recovered.Value - recovered.Position).ToString(), recovered.Position, parser.Located.LineAt(text, recovered.Position), parser.Located.ColumnAt(text, recovered.Position), recovered.RuleIndex, Rejected_DotGram(Recalled_DotGram(parser.Expectations, recovered.AtomicIndex), "Row", parser.Located.LineAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + parser.Located.ColumnAt(text, recovered.AtomicIndex).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 						break;
 					}
 				}
@@ -5588,9 +5685,6 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
-
-		static string[]? Recognize_DotGram_Sheet_Expected0_Built;
-		static string[] Recognize_DotGram_Sheet_Expected0 => Recognize_DotGram_Sheet_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected0_Built, new string[] { "eof" }, null) ?? Recognize_DotGram_Sheet_Expected0_Built!;
 
 		static string[]? Recognize_DotGram_Sheet_Expected1_Built;
 		static string[] Recognize_DotGram_Sheet_Expected1 => Recognize_DotGram_Sheet_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected1_Built, new string[] { "';'" }, null) ?? Recognize_DotGram_Sheet_Expected1_Built!;
@@ -6306,6 +6400,104 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		/// <summary>
+		/// What would have fit where a rejected element stopped: the sets recorded there, or null
+		/// where the furthest refusal is elsewhere or said nothing.
+		/// </summary>
+		static string[]? Expecting_DotGram(ref Failure failure, int at)
+		{
+			if (failure.Position != at)
+				return null;
+
+			var more = failure.ExpectedMore;
+
+			if (more == null || more.Count == 0)
+				return failure.Expected;
+
+			var total = failure.Expected == null ? 0 : failure.Expected.Length;
+
+			foreach (var each in more)
+				total += each.Length;
+
+			var merged = new string[total];
+			var put    = 0;
+
+			if (failure.Expected != null)
+			{
+				failure.Expected.CopyTo(merged, 0);
+				put = failure.Expected.Length;
+			}
+
+			foreach (var each in more)
+			{
+				each.CopyTo(merged, put);
+				put += each.Length;
+			}
+
+			return merged;
+		}
+
+		/// <summary>
+		/// The sets as a person reads them — <c>'.' or Digit</c> — each once and in the order they
+		/// were recorded; a rule's own <c>on fail</c> words alone where one stands, marked as
+		/// <c>Match&lt;T&gt;.Error</c> marks them; or null where there is nothing to say.
+		/// </summary>
+		static string? Wanted_DotGram(string[]? expected)
+		{
+			if (expected == null || expected.Length == 0)
+				return null;
+
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 0 && expected[i][0] == '\u0000')
+					return expected[i];
+
+			var unique = new string[expected.Length];
+			var kept   = 0;
+
+			for (var i = 0; i < expected.Length; i++)
+			{
+				var seen = false;
+
+				for (var j = 0; j < kept; j++)
+					if (string.Equals(unique[j], expected[i], global::System.StringComparison.Ordinal))
+					{
+						seen = true;
+						break;
+					}
+
+				if (!seen)
+					unique[kept++] = expected[i];
+			}
+
+			if (kept == 1)
+				return unique[0];
+
+			return string.Join(", ", unique, 0, kept - 1) + " or " + unique[kept - 1];
+		}
+
+		/// <summary>The sets kept for the place a rejected element stopped, or null where none were.</summary>
+		static string[]? Recalled_DotGram(global::System.Collections.Generic.Dictionary<int, string[]?>? kept, int at)
+		{
+			return kept != null && kept.TryGetValue(at, out var expected) ? expected : null;
+		}
+
+		/// <summary>Why an element was rejected, and where reading it stopped, <c>line:column</c>.</summary>
+		static string Rejected_DotGram(string[]? expected, string rule, string place)
+		{
+			var at     = " at " + place + ".";
+			var wanted = Wanted_DotGram(expected);
+
+			if (wanted == null)
+				return "Input does not match '" + rule + "'" + at;
+
+			if (wanted[0] != '\u0000')
+				return "Expected " + wanted + at;
+
+			var said = wanted.Substring(1);
+
+			return (said.EndsWith(".", global::System.StringComparison.Ordinal) ? said.Substring(0, said.Length - 1) : said) + at;
+		}
+
 		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
 		/// <remarks>
 		/// Two integers per way: the alternative in force, and the last one there is. A
@@ -6376,6 +6568,7 @@ namespace DotGram.Snapshots
 			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
 			/// </remarks>
 			internal int AllBuiltAt;
+
 
 
 			#if DOTGRAM_CHECKS
@@ -6821,12 +7014,42 @@ namespace DotGram.Snapshots
 
 		/// <summary>
 		/// Records what a choice wanted where the call that begins its widest group refused at the
-		/// same place: that call's own set, which the choice's holds, is dropped for it.
+		/// same place: what that call said there, which the choice's set holds, is dropped for it.
 		/// </summary>
-		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered)
+		/// <remarks>
+		/// <para>
+		/// Everything the call recorded here is about the character it began at — its own first
+		/// set, or a rule that begins with it, <c>Digit</c> where the choice says
+		/// <c>['0'..'9']</c> — which the choice's set holds, so the choice says it once, in its own
+		/// words. <paramref name="stood"/> says which of what is here is the call's: all of it
+		/// where it is -1, nothing having been recorded here before the call, and otherwise the
+		/// sets that tied after the first that many.
+		/// </para>
+		/// <para>
+		/// Where the call's rule says its own refusal (§4's <c>on fail</c>), nothing goes: the
+		/// author's words are the whole answer.
+		/// </para>
+		/// </remarks>
+		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
 		{
 			if (failure.Looking > 0)
 				return;
+
+			if (at == failure.Position && !Spoke_DotGram(failure.Expected) && !Spoke_DotGram(failure.ExpectedMore))
+			{
+				if (stood < 0)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+
+					return;
+				}
+
+				var more = failure.ExpectedMore;
+
+				if (more != null && more.Count > stood)
+					more.RemoveRange(stood, more.Count - stood);
+			}
 
 			if (at == failure.Position)
 			{
@@ -6837,6 +7060,28 @@ namespace DotGram.Snapshots
 			}
 
 			Refuse_DotGram(ref failure, at, expected);
+		}
+
+		/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
+		static bool Spoke_DotGram(string[]? expected)
+		{
+			if (expected != null)
+				foreach (var one in expected)
+					if (one.Length > 0 && one[0] == '\u0000')
+						return true;
+
+			return false;
+		}
+
+		/// <summary>Whether any of the sets that tied holds one.</summary>
+		static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
+		{
+			if (tied != null)
+				foreach (var one in tied)
+					if (Spoke_DotGram(one))
+						return true;
+
+			return false;
 		}
 
 		/// <summary>How much of a run matched, asked only when it did not.</summary>
@@ -7048,6 +7293,7 @@ namespace DotGram.Snapshots
 			int[] _values1 = global::System.Array.Empty<int>();
 			string[][] _values2 = global::System.Array.Empty<string[]>();
 			internal Located_DotGram Located;
+			internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -7130,6 +7376,7 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(_values1, 0, global::System.Math.Min(_valuesUsed, _values1.Length));
 				global::System.Array.Clear(_values2, 0, global::System.Math.Min(_valuesUsed, _values2.Length));
 				Located = default;
+				Expectations?.Clear();
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be

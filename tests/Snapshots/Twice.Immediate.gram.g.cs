@@ -18,7 +18,11 @@ namespace DotGram.Snapshots
 				if (match.IsSuccess)
 					return match.Value;
 
-				throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+				var error = match.Error!;
+
+				throw new global::System.FormatException(
+					(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+					" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 			}
 
 			/// <summary>Parses the whole input as <c>Sum</c>, answering rather than throwing.</summary>
@@ -500,10 +504,11 @@ namespace DotGram.Snapshots
 							}
 						default:
 							{
+								var fq3 = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;
 								var q3 = Read_Digits(p);
 								if (q3 < 0)
 								{
-									if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, Recognize_DotGram_Expected4, Recognize_DotGram_Expected5);
+									if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, Recognize_DotGram_Expected4, Recognize_DotGram_Expected5, fq3);
 									return -1;
 								}
 								p = q3;
@@ -742,7 +747,7 @@ namespace DotGram.Snapshots
 					p = q2;
 					if (p != text.Length)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Expected7);
 						return -1;
 					}
 					return p;
@@ -943,6 +948,9 @@ namespace DotGram.Snapshots
 
 			static string[]? Recognize_DotGram_Expected5_Built;
 			static string[] Recognize_DotGram_Expected5 => Recognize_DotGram_Expected5_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected5_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected5_Built!;
+
+			static string[]? Recognize_DotGram_Expected7_Built;
+			static string[] Recognize_DotGram_Expected7 => Recognize_DotGram_Expected7_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected7_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected7_Built!;
 
 			/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 			public enum Outcome
@@ -1267,6 +1275,7 @@ namespace DotGram.Snapshots
 				/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
 				/// </remarks>
 				internal int AllBuiltAt;
+
 
 
 				#if DOTGRAM_CHECKS
@@ -1712,12 +1721,42 @@ namespace DotGram.Snapshots
 
 			/// <summary>
 			/// Records what a choice wanted where the call that begins its widest group refused at the
-			/// same place: that call's own set, which the choice's holds, is dropped for it.
+			/// same place: what that call said there, which the choice's set holds, is dropped for it.
 			/// </summary>
-			static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered)
+			/// <remarks>
+			/// <para>
+			/// Everything the call recorded here is about the character it began at — its own first
+			/// set, or a rule that begins with it, <c>Digit</c> where the choice says
+			/// <c>['0'..'9']</c> — which the choice's set holds, so the choice says it once, in its own
+			/// words. <paramref name="stood"/> says which of what is here is the call's: all of it
+			/// where it is -1, nothing having been recorded here before the call, and otherwise the
+			/// sets that tied after the first that many.
+			/// </para>
+			/// <para>
+			/// Where the call's rule says its own refusal (§4's <c>on fail</c>), nothing goes: the
+			/// author's words are the whole answer.
+			/// </para>
+			/// </remarks>
+			static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
 			{
 				if (failure.Looking > 0)
 					return;
+
+				if (at == failure.Position && !Spoke_DotGram(failure.Expected) && !Spoke_DotGram(failure.ExpectedMore))
+				{
+					if (stood < 0)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+
+						return;
+					}
+
+					var more = failure.ExpectedMore;
+
+					if (more != null && more.Count > stood)
+						more.RemoveRange(stood, more.Count - stood);
+				}
 
 				if (at == failure.Position)
 				{
@@ -1728,6 +1767,28 @@ namespace DotGram.Snapshots
 				}
 
 				Refuse_DotGram(ref failure, at, expected);
+			}
+
+			/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
+			static bool Spoke_DotGram(string[]? expected)
+			{
+				if (expected != null)
+					foreach (var one in expected)
+						if (one.Length > 0 && one[0] == '\u0000')
+							return true;
+
+				return false;
+			}
+
+			/// <summary>Whether any of the sets that tied holds one.</summary>
+			static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
+			{
+				if (tied != null)
+					foreach (var one in tied)
+						if (Spoke_DotGram(one))
+							return true;
+
+				return false;
 			}
 
 			/// <summary>How much of a run matched, asked only when it did not.</summary>

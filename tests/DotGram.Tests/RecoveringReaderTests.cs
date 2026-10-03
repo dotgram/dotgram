@@ -21,14 +21,16 @@ namespace DotGram.Tests;
 /// prefix, each with a character left out and with one too many — which is where an element
 /// breaks in its middle, a trailer is short, and a synchronization is missing at the end. Each
 /// factory is handed everything a reader supplies (text, ordinal, line, span, message), so that
-/// a place counted differently anywhere shows.
+/// a place counted differently anywhere shows. Of the message, the place it names is held and
+/// not its words: how a reader words what it expected is held to the engine's in the refusal
+/// record, for every grammar at once.
 /// </remarks>
 public sealed class RecoveringReaderTests
 {
 	const string Helpers = """
 		static string Text(string text) { return text; }
 		static string Text(global::System.ReadOnlySpan<char> text) { return text.ToString(); }
-		static string Bad(string text, int ordinal, int line, SourceSpan span, string message) { return "!" + text + "@" + ordinal + "/" + line + "/" + span.Start + "+" + span.Length + "/" + message; }
+		static string Bad(string text, int ordinal, int line, SourceSpan span, string message) { return "!" + text + "@" + ordinal + "/" + line + "/" + span.Start + "+" + span.Length + "/" + message.Substring(message.LastIndexOf(" at ", global::System.StringComparison.Ordinal) + 1); }
 		static string Bad(global::System.ReadOnlySpan<char> text, int ordinal, int line, SourceSpan span, string message) { return Bad(text.ToString(), ordinal, line, span, message); }
 		""";
 

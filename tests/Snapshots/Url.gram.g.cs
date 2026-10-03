@@ -16,7 +16,11 @@ namespace DotGram.Snapshots
 			if (match.IsSuccess)
 				return match.Value;
 
-			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
+			var error = match.Error!;
+
+			throw new global::System.FormatException(
+				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
+				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>Parses the whole input as <c>Url</c>, answering rather than throwing.</summary>
@@ -3233,7 +3237,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = null; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected32; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -3966,6 +3970,9 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_Expected31_Built;
 		static string[] Recognize_DotGram_Expected31 => Recognize_DotGram_Expected31_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected31_Built, new string[] { "['!' | '$' | '&'..',' | ';' | '=']" }, null) ?? Recognize_DotGram_Expected31_Built!;
+
+		static string[]? Recognize_DotGram_Expected32_Built;
+		static string[] Recognize_DotGram_Expected32 => Recognize_DotGram_Expected32_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected32_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected32_Built!;
 
 		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 

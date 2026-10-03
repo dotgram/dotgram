@@ -996,6 +996,7 @@ public static partial class CSharpEmitter
 			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
 			/*LOCATED_FIELD*/
+			/*EXPECTED_FIELD*/
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -1075,6 +1076,7 @@ public static partial class CSharpEmitter
 				/*TYPED_RESET*/
 				/*CACHE_RESET*/
 				/*LOCATED_RESET*/
+				/*EXPECTED_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be
@@ -1460,7 +1462,8 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	internal static string ParserRuntime(
-		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false)
+		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false,
+		bool explaining = false)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1517,6 +1520,11 @@ public static partial class CSharpEmitter
 		// Where the recovered elements of this parse are: counted on from one to the next.
 		runtime = CacheRuntime(runtime, "LOCATED_FIELD", "internal Located_DotGram Located;", locating);
 		runtime = CacheRuntime(runtime, "LOCATED_RESET", "Located = default;", locating);
+
+		// What each rejected element wanted where it stopped, by that place, until it is built.
+		runtime = CacheRuntime(runtime, "EXPECTED_FIELD",
+			"internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;", explaining);
+		runtime = CacheRuntime(runtime, "EXPECTED_RESET", "Expectations?.Clear();", explaining);
 
 		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
 		// it is the mark that encloses it, and everywhere else the innermost mark standing
@@ -1991,6 +1999,156 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 			}
 		}
 		""";
+
+	/// <summary>
+	/// What a rejected element of a recovering repetition is told about where it stopped: what
+	/// would have fit there, said the way <c>Match&lt;T&gt;.Error</c> says it (docs/syntax.md §8.2).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Taken in two steps for the reason <see cref="LocateHelper"/> is two functions. Where the
+	/// element is stepped over, only the sets recorded at the place it stopped are kept — the
+	/// array the furthest refusal already holds, copied only where several tied there. The words
+	/// are made from them as <b>arguments</b> of the factory or the hook, so a hook nobody
+	/// implements takes the wording with it when the compiler removes the call.
+	/// </para>
+	/// <para>
+	/// The sets are the parse's furthest refusal, and that is the element's only where the two
+	/// are at one place: something further along — a continuation tried at the same boundary
+	/// that read on and failed later — has the furthest refusal, and then nothing is said
+	/// rather than something about another part of the grammar.
+	/// </para>
+	/// </remarks>
+	internal const string ExpectingHelper = """
+		/// <summary>
+		/// What would have fit where a rejected element stopped: the sets recorded there, or null
+		/// where the furthest refusal is elsewhere or said nothing.
+		/// </summary>
+		static string[]? Expecting_DotGram(ref Failure failure, int at)
+		{
+			if (failure.Position != at)
+				return null;
+
+			var more = failure.ExpectedMore;
+
+			if (more == null || more.Count == 0)
+				return failure.Expected;
+
+			var total = failure.Expected == null ? 0 : failure.Expected.Length;
+
+			foreach (var each in more)
+				total += each.Length;
+
+			var merged = new string[total];
+			var put    = 0;
+
+			if (failure.Expected != null)
+			{
+				failure.Expected.CopyTo(merged, 0);
+				put = failure.Expected.Length;
+			}
+
+			foreach (var each in more)
+			{
+				each.CopyTo(merged, put);
+				put += each.Length;
+			}
+
+			return merged;
+		}
+
+		/// <summary>
+		/// The sets as a person reads them — <c>'.' or Digit</c> — each once and in the order they
+		/// were recorded; a rule's own <c>on fail</c> words alone where one stands, marked as
+		/// <c>Match&lt;T&gt;.Error</c> marks them; or null where there is nothing to say.
+		/// </summary>
+		static string? Wanted_DotGram(string[]? expected)
+		{
+			if (expected == null || expected.Length == 0)
+				return null;
+
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 0 && expected[i][0] == '\u0000')
+					return expected[i];
+
+			var unique = new string[expected.Length];
+			var kept   = 0;
+
+			for (var i = 0; i < expected.Length; i++)
+			{
+				var seen = false;
+
+				for (var j = 0; j < kept; j++)
+					if (string.Equals(unique[j], expected[i], global::System.StringComparison.Ordinal))
+					{
+						seen = true;
+						break;
+					}
+
+				if (!seen)
+					unique[kept++] = expected[i];
+			}
+
+			if (kept == 1)
+				return unique[0];
+
+			return string.Join(", ", unique, 0, kept - 1) + " or " + unique[kept - 1];
+		}
+		""";
+
+	/// <summary>What was kept of where a rejected element stopped, read where it is built after the parse.</summary>
+	internal const string RecalledHelper = """
+		/// <summary>The sets kept for the place a rejected element stopped, or null where none were.</summary>
+		static string[]? Recalled_DotGram(global::System.Collections.Generic.Dictionary<int, string[]?>? kept, int at)
+		{
+			return kept != null && kept.TryGetValue(at, out var expected) ? expected : null;
+		}
+		""";
+
+	/// <summary>
+	/// <c>parserExpected</c>: what would have fit, or the rule the element should have been
+	/// where nothing more particular was recorded — never null, so that it can be written into a
+	/// sentence as it is.
+	/// </summary>
+	internal const string ExpectedHelper = """
+		/// <summary>What would have fit where a rejected element stopped, or the rule it should have been.</summary>
+		static string Expected_DotGram(string[]? expected, string rule)
+		{
+			var wanted = Wanted_DotGram(expected);
+
+			if (wanted == null)
+				return rule;
+
+			return wanted[0] == '\u0000' ? wanted.Substring(1) : wanted;
+		}
+		""";
+
+	/// <summary>
+	/// <c>parserMessage</c> and the hook's <c>message</c>: what would have fit and where, the
+	/// place said as a line and a column because a person is who reads it.
+	/// </summary>
+	/// <remarks>
+	/// A rule's <c>on fail</c> is a sentence of the author's, and it is given the place the same
+	/// way: its closing full stop moves to after it.
+	/// </remarks>
+	internal const string RejectedHelper = """
+		/// <summary>Why an element was rejected, and where reading it stopped, <c>line:column</c>.</summary>
+		static string Rejected_DotGram(string[]? expected, string rule, string place)
+		{
+			var at     = " at " + place + ".";
+			var wanted = Wanted_DotGram(expected);
+
+			if (wanted == null)
+				return "Input does not match '" + rule + "'" + at;
+
+			if (wanted[0] != '\u0000')
+				return "Expected " + wanted + at;
+
+			var said = wanted.Substring(1);
+
+			return (said.EndsWith(".", global::System.StringComparison.Ordinal) ? said.Substring(0, said.Length - 1) : said) + at;
+		}
+		""";
 }
 
 public static partial class CSharpEmitter
@@ -2119,6 +2277,14 @@ public static partial class CSharpEmitter
 			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
 			/// </remarks>
 			internal int AllBuiltAt;
+
+			// <expectations>
+			/// <summary>
+			/// What each element a recovering repetition stepped over wanted where it stopped, by that
+			/// place: read when the element is built, which is after the parse.
+			/// </summary>
+			internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;
+			// </expectations>
 
 			// <marks>
 			/// <summary>The marks open right now: each one's log position, innermost last.</summary>
@@ -2360,6 +2526,9 @@ public static partial class CSharpEmitter
 				spare.Built     = 0;
 				spare.AllBuilt  = 0;
 				spare.AllBuiltAt = 0;
+				// <expectations>
+				spare.Expectations?.Clear();
+				// </expectations>
 				// <marks>
 				spare.MarkDepth    = 0;
 				spare.MarkLogCount = 0;
@@ -2716,12 +2885,42 @@ public static partial class CSharpEmitter
 
 		/// <summary>
 		/// Records what a choice wanted where the call that begins its widest group refused at the
-		/// same place: that call's own set, which the choice's holds, is dropped for it.
+		/// same place: what that call said there, which the choice's set holds, is dropped for it.
 		/// </summary>
-		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered)
+		/// <remarks>
+		/// <para>
+		/// Everything the call recorded here is about the character it began at — its own first
+		/// set, or a rule that begins with it, <c>Digit</c> where the choice says
+		/// <c>['0'..'9']</c> — which the choice's set holds, so the choice says it once, in its own
+		/// words. <paramref name="stood"/> says which of what is here is the call's: all of it
+		/// where it is -1, nothing having been recorded here before the call, and otherwise the
+		/// sets that tied after the first that many.
+		/// </para>
+		/// <para>
+		/// Where the call's rule says its own refusal (§4's <c>on fail</c>), nothing goes: the
+		/// author's words are the whole answer.
+		/// </para>
+		/// </remarks>
+		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
 		{
 			if (failure.Looking > 0)
 				return;
+
+			if (at == failure.Position && !Spoke_DotGram(failure.Expected) && !Spoke_DotGram(failure.ExpectedMore))
+			{
+				if (stood < 0)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+
+					return;
+				}
+
+				var more = failure.ExpectedMore;
+
+				if (more != null && more.Count > stood)
+					more.RemoveRange(stood, more.Count - stood);
+			}
 
 			if (at == failure.Position)
 			{
@@ -2732,6 +2931,28 @@ public static partial class CSharpEmitter
 			}
 
 			Refuse_DotGram(ref failure, at, expected);
+		}
+
+		/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
+		static bool Spoke_DotGram(string[]? expected)
+		{
+			if (expected != null)
+				foreach (var one in expected)
+					if (one.Length > 0 && one[0] == '\u0000')
+						return true;
+
+			return false;
+		}
+
+		/// <summary>Whether any of the sets that tied holds one.</summary>
+		static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
+		{
+			if (tied != null)
+				foreach (var one in tied)
+					if (Spoke_DotGram(one))
+						return true;
+
+			return false;
 		}
 
 		/// <summary>How much of a run matched, asked only when it did not.</summary>

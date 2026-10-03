@@ -198,7 +198,8 @@ a capture, a parameter.
 
 Beside the captures, a `=>` or a `when` can name what the parse worked out: `parserText`
 (the matched text), `parserSpan`, `parserInput`, and in a recovery `parserOrdinal`,
-`parserLine`, `parserColumn`, `parserPosition` and `parserMessage`.
+`parserLine`, `parserColumn`, `parserPosition`, `parserMessage`, `parserExpected` and
+`parserFailureLine`, `parserFailureColumn`, `parserFailurePosition`.
 
 ## Rules that take arguments
 
@@ -421,7 +422,10 @@ Feed : @string[] = Row* recover eol => @(parserText)
 The `=>` says what to make of what was rejected — here the text of the bad line, which
 arrives in the sequence beside the good ones. It can as well build a record of its own
 carrying `parserLine` and `parserMessage`, or go to a `partial void` hook and stay out of
-the result.
+the result. `parserLine` and `parserColumn` are where the bad record begins;
+`parserFailureLine` and `parserFailureColumn` are where reading it stopped, and
+`parserExpected` is what would have fit there (`'.'`, `Amount or '#'`). `parserMessage`
+says both: `Expected '.' at 3:17.`
 
 `Lexical = true` on the attribute compiles the grammar over tokens instead of characters:
 a lexical half makes them, and the half above decides each choice by the token in front of

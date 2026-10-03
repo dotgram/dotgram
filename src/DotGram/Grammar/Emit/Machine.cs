@@ -1989,8 +1989,8 @@ sealed partial class Machine
 				file.Line();
 				file.Line("Accept:");
 				file.Line(BufferedInput
-					? "if (whole && text.Peek(p, out _)) { expected = null; goto Fail; }"
-					: "if (whole && p != text.Length) { expected = null; goto Fail; }");
+					? $"if (whole && text.Peek(p, out _)) {{ expected = {EndOfInputExpected()}; goto Fail; }}"
+					: $"if (whole && p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
 
 				if (hasValues || _recoveryPlans.Count > 0)
 				{
@@ -6059,6 +6059,11 @@ sealed partial class Machine
 	/// </remarks>
 	IReadOnlyList<string> Displays(Node node)
 	{
+		// One character that does not begin something, `(?!Separator & any)+`'s turn, is what a
+		// person would call it: printed as written it is the notation and not what was wanted.
+		if (node is Node.Sequence { Nodes: [Node.Lookahead(false, var excluded), var one] } && IsAny(one))
+			return ["anything but " + excluded];
+
 		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
 			return [node.ToString()];
 
@@ -6074,6 +6079,13 @@ sealed partial class Machine
 				Displays(sequence.Nodes[0]),
 			_ => [node.ToString()],
 		};
+	}
+
+	/// <summary>Whether a node is one item, whatever it is: <c>any</c>, called or written out.</summary>
+	static bool IsAny(Node node)
+	{
+		return node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } ||
+			node is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 };
 	}
 
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
@@ -6262,7 +6274,7 @@ sealed partial class Machine
 	{
 		// Written out once per list: an answer kept by `Covered` is the same list every time it
 		// is asked for, and in T-SQL some of them name every keyword there is.
-		var items = _itemsOf.GetValue(display, static display => string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\"")));
+		var items = _itemsOf.GetValue(display, static display => string.Join(", ", display.Select(d => $"\"{EscapeExpected(Said(d))}\"")));
 
 		// The same set asked for twice is the same array. Two terminals that accept the
 		// same thing are commonplace — a rule called from two places, a character class
@@ -6289,6 +6301,56 @@ sealed partial class Machine
 		_expected.Add(entry);
 
 		return entry.Name;
+	}
+
+	/// <summary>
+	/// The set a whole reading refuses with where input is left after what it read: the end of
+	/// the input, which is what it wanted there.
+	/// </summary>
+	/// <remarks>
+	/// Without it the refusal there said nothing, and where nothing else was recorded at that place
+	/// the message fell back to "does not match" for input that had matched, and only went on.
+	/// </remarks>
+	internal string EndOfInputExpected()
+	{
+		var name = DeclareExpected([EndOfInputSaid]);
+
+		_expectedUsed.Add(name);
+
+		return name;
+	}
+
+	/// <summary>How a refusal says the end of the input: <c>eof</c> is the grammar's word for it, not a reader's.</summary>
+	const string EndOfInputSaid = "end of input";
+
+	/// <summary>One item of what was expected, as a refusal says it.</summary>
+	/// <remarks>
+	/// A character a message cannot show is written as the grammar writes it: a literal of more
+	/// than one character is printed as it stands (<c>"\r\n"</c> in <c>eol</c>), and a line break
+	/// inside a message broke the message in two. A rule's own words (<see cref="Spoken"/>) are
+	/// the author's, and pass as they are, mark included.
+	/// </remarks>
+	static string Said(string display)
+	{
+		if (display == "eof")
+			return EndOfInputSaid;
+
+		if (display.StartsWith("\u0000", StringComparison.Ordinal) || !display.Any(static character => character < ' '))
+			return display;
+
+		var said = new StringBuilder(display.Length + 4);
+
+		foreach (var character in display)
+			said.Append(character switch
+			{
+				'\r' => "\\r",
+				'\n' => "\\n",
+				'\t' => "\\t",
+				< ' ' => "\\u" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture),
+				_ => character.ToString(),
+			});
+
+		return said.ToString();
 	}
 
 	/// <summary>

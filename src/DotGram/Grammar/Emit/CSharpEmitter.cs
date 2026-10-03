@@ -819,8 +819,9 @@ public static partial class CSharpEmitter
 		var engined = machines.Exists(static compiled => !compiled.Flat && !compiled.Direct) || valuing is not null;
 
 		// And one that counts line breaks as it lets input go, where a recovery asks for a line or
-		// a column: what it has let go it can no longer read.
-		var locating = Locating(graph);
+		// a column, or for the message that says one: what it has let go it can no longer read.
+		// Bytes are asked only for the message (ByteRefusal), which counts a byte a column.
+		var locating = Locating(graph) || Wording(graph);
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
 			file.Write(Located(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass), locating));
@@ -841,10 +842,39 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		if (Locating(graph))
+		if (Locating(graph) || Wording(graph))
 		{
 			file.Write(LocateHelper);
 			file.Line();
+		}
+
+		// What a rejected element is told about where it stopped (§8.2), each piece only where
+		// a recovery says it: the sets, the words a factory asks for, and the message.
+		if (Explaining(graph))
+		{
+			file.Write(ExpectingHelper);
+			file.Line();
+
+			// Kept by the place it stopped where the element is built after the parse: by the
+			// engine, and by the tape's walk.
+			if (machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations) ||
+				machines.Exists(static compiled => compiled.Direct && compiled.Machine.TapeKeepsExpectations))
+			{
+				file.Write(RecalledHelper);
+				file.Line();
+			}
+
+			if (graph.Recoveries.Values.Any(static recovery => recovery.Asks.Contains("parserExpected")))
+			{
+				file.Write(ExpectedHelper);
+				file.Line();
+			}
+
+			if (graph.Recoveries.Values.Any(static recovery => recovery.Factory is null || recovery.Asks.Contains("parserMessage")))
+			{
+				file.Write(RejectedHelper);
+				file.Line();
+			}
 		}
 
 		// The lexical half: the machine that reads characters and answers with kinds, the
@@ -866,7 +896,9 @@ public static partial class CSharpEmitter
 			// The memo of failures is on the tape too, and counts in its bound where a machine keeps one.
 			var memoises = machines.Exists(static compiled => compiled.Direct && compiled.Machine.Memoises);
 
-			file.Write(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises)
+			var expectations = machines.Exists(static compiled => compiled.Direct && compiled.Machine.TapeKeepsExpectations);
+
+			file.Write(Region(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises), "expectations", expectations)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
 				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" : "")
@@ -917,7 +949,8 @@ public static partial class CSharpEmitter
 				machines.Exists(static compiled => compiled.Machine.Caches),
 				machines.Exists(static compiled => compiled.Machine.UsesMarks),
 				tables,
-				Locating(graph)));
+				Locating(graph) || Wording(graph),
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations)));
 
 		// A carrier the author asked for and did not get, said once per reason and said here:
 		// which carrier a machine took is settled by what it turned out to hold, and nothing
@@ -1750,7 +1783,7 @@ public static partial class CSharpEmitter
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
 			file.Line();
-			file.Line("throw new global::System.FormatException(match.Error + \" at \" + match.Position.ToString());");
+			ThrowRefusal(file);
 		}
 
 		file.Line();
@@ -3802,15 +3835,41 @@ file.Line("return spare;");
 	static bool Locating(RecognitionGraph graph)
 	{
 		foreach (var recovery in graph.Recoveries.Values)
-		{
-			if (recovery.Factory is null)
+			if (recovery.Locates)
 				return true;
 
-			var asked = recovery.Asks;
+		return false;
+	}
 
-			if (asked.Contains("parserLine") || asked.Contains("parserColumn"))
+	/// <summary>
+	/// What a published method without a <c>Try</c> throws for a refusal: the sentence
+	/// <c>Match&lt;T&gt;.Error</c> says, with where it was said before its full stop.
+	/// </summary>
+	internal static void ThrowRefusal(Writer file)
+	{
+		file.Line("var error = match.Error!;");
+		file.Line();
+		file.Line("throw new global::System.FormatException(");
+		file.Then("(error.EndsWith(\".\", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +");
+		file.Then("\" at \" + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+	}
+
+	/// <summary>Whether any <c>recover</c> in this grammar is given a message (§8.2's <c>parserMessage</c>, §8.3's hook).</summary>
+	static bool Wording(RecognitionGraph graph)
+	{
+		foreach (var recovery in graph.Recoveries.Values)
+			if (recovery.Words)
 				return true;
-		}
+
+		return false;
+	}
+
+	/// <summary>Whether any <c>recover</c> in this grammar is told what would have fit where its element stopped.</summary>
+	internal static bool Explaining(RecognitionGraph graph)
+	{
+		foreach (var recovery in graph.Recoveries.Values)
+			if (recovery.Explains)
+				return true;
 
 		return false;
 	}
@@ -3839,9 +3898,9 @@ file.Line("return spare;");
 	{
 		return name switch
 		{
-			"parserText" or "parserMessage" or "parserInput" => "string",
+			"parserText" or "parserMessage" or "parserExpected" or "parserInput" => "string",
 			"parserSpan" => "SourceSpan",
-			"parserPosition" => "long",
+			"parserPosition" or "parserFailurePosition" => "long",
 			_ => "int",
 		};
 	}

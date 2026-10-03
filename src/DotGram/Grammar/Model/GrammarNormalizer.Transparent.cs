@@ -189,6 +189,15 @@ public sealed partial class GrammarNormalizer
 					return inlined is null ? node : ((Node.Choice)node).Rebuild(inlined);
 				}
 
+				// The element of a repetition marked `recover` keeps its call. A rejected element is
+				// reported as the rule it should have been, and put where the read ones go as a value
+				// of that rule (§8.2); a choice of the sources in its place is neither one rule nor,
+				// to the check that a rejection has somewhere to go, a value at all (GRAM4010).
+				case Node.Repeat(var body, _, _)
+					when _recoveries.ContainsKey(node) &&
+						(body is Node.Call or Node.Capture(_, Node.Call)):
+					return node;
+
 				case Node.Repeat(var body, var min, var max):
 					return Inline(body) is var repeated && ReferenceEquals(repeated, body)
 						? node

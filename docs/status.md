@@ -253,18 +253,20 @@ without using atomic groups to classify a failed element.
 
 ## What a rejection is told
 
-All nine names of §8.2 are supplied — the seven a recovery names, and `parserInput` and
-`parserState`, which a construction may ask for too (`SuppliedNames`). Three differ from
+All thirteen names of §8.2 are supplied — the eleven a recovery names, and `parserInput` and
+`parserState`, which a construction may ask for too (`SuppliedNames`). Two differ from
 the specification in ways worth knowing:
 
 - **`parserText` and `parserSpan` stop where the synchronization point begins.** `eol`
   separates the elements and is not part of one, so a rejected `b1b\n` is three
   characters, not four.
-- **`parserMessage` is not the expected set.** It says which rule the element should
-  have been and where the input stopped being one — `Input does not match 'Row' at 43.`
-  The set of what could have appeared there would say more, and is not carried yet.
+- **What would have fit is the parse's furthest refusal.** `parserExpected` and the
+  message are the element's where reading it stopped at that furthest place, which is the
+  usual case. Where a continuation tried at the same boundary read further than the
+  element and failed there, the message says only that the input does not match the
+  rule, `Input does not match 'Row' at 4:1.`, and `parserExpected` is the rule's name.
 
-Which of the seven a factory asked for is read out of its C#, because §8.2 has counting
+Which of the eleven a factory asked for is read out of its C#, because §8.2 has counting
 lines cost a scan and only a factory that named `parserLine` should pay for one. The
 reading is a whole-word search over the text, so it over-approximates: `parserLine`
 inside a string literal counts as asked for. That direction is the safe one — a name that was written is

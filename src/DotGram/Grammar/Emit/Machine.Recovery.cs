@@ -69,6 +69,12 @@ sealed partial class Machine
 		// element, even if its first token did not match. Empty EOF cannot recover:
 		// a required element or continuation is missing, and scanning would not advance.
 		atAsked.Line($"if ({Short(1)}) {{ expected = null; goto Fail; }}");
+
+		// What would have fit where the element stopped, kept by that place until the element
+		// is built: what the parse records there now, a later turn may record over.
+		if (recovery.Recovery.Explains)
+			atAsked.Line($"{Keep("parser")}[reach] = Expecting_DotGram(ref failure, reach);");
+
 		atAsked.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
@@ -225,26 +231,70 @@ sealed partial class Machine
 	/// walks are one a step where a parse yields, and a walk's own in the reader's. Over buffered
 	/// input the buffer counts, since only it knows what it has let go.
 	/// </param>
-	string RecoverySupplied(string name, RecoveryPlan plan, string located = "parser.Located")
+	/// <param name="expected">
+	/// What would have fit where the element stopped, as the sets recorded there: kept by that
+	/// place where the element is built after the parse (<see cref="Keep"/>), and read off the
+	/// failure where it is built as it is stepped over.
+	/// </param>
+	string RecoverySupplied(
+		string name, RecoveryPlan plan, string located = "parser.Located",
+		string expected = "Recalled_DotGram(parser.Expectations, recovered.AtomicIndex)")
 	{
+		var element = Escape(plan.Element?.Name ?? "an element");
+
 		return name switch
 		{
 			"parserText" => Cut("recovered.Position", "recovered.Value - recovered.Position"),
 			"parserPosition" => At("recovered.Position"),
 			"parserOrdinal" => "recovered.RuleIndex",
-			"parserLine" => BufferedInput && !OverKinds
-				? $"text.LineAt({At("recovered.Position")})"
-				: $"{located}.LineAt({Source}, {At("recovered.Position")})",
-			"parserColumn" => BufferedInput && !OverKinds
-				? $"text.ColumnAt({At("recovered.Position")})"
-				: $"{located}.ColumnAt({Source}, {At("recovered.Position")})",
+			"parserLine" => Line("recovered.Position", located),
+			"parserColumn" => Column("recovered.Position", located),
 			"parserSpan" => Span("recovered.Position", "recovered.Value - recovered.Position"),
-			"parserMessage" => $"\"Input does not match '{Escape(plan.Element?.Name ?? "an element")}' at \" + " +
-				"recovered.AtomicIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\"",
+			"parserFailurePosition" => At("recovered.AtomicIndex"),
+			"parserFailureLine" => Line("recovered.AtomicIndex", located),
+			"parserFailureColumn" => Column("recovered.AtomicIndex", located),
+			"parserExpected" => $"Expected_DotGram({expected}, \"{element}\")",
+			"parserMessage" => $"Rejected_DotGram({expected}, \"{element}\", {Place("recovered.AtomicIndex", located)})",
 			"parserInput" => "parserInput",
 			_ => "default",
 		};
 	}
+
+	/// <summary>A place the machine names, as a message says it: <c>line:column</c>.</summary>
+	string Place(string position, string located)
+	{
+		const string Invariant = "global::System.Globalization.CultureInfo.InvariantCulture";
+
+		return $"{Line(position, located)}.ToString({Invariant}) + \":\" + {Column(position, located)}.ToString({Invariant})";
+	}
+
+	/// <summary>Which line a place the machine names is on, for a person.</summary>
+	string Line(string position, string located)
+	{
+		return BufferedInput && !OverKinds
+			? $"text.LineAt({At(position)})"
+			: $"{located}.LineAt({Source}, {At(position)})";
+	}
+
+	/// <summary>How far into its line a place the machine names is, for a person.</summary>
+	string Column(string position, string located)
+	{
+		return BufferedInput && !OverKinds
+			? $"text.ColumnAt({At(position)})"
+			: $"{located}.ColumnAt({Source}, {At(position)})";
+	}
+
+	/// <summary>
+	/// Where what each rejected element wanted is kept until the element is built, by the place
+	/// it stopped: on the parser or the tape, made the first time a parse rejects anything.
+	/// </summary>
+	internal static string Keep(string owner)
+	{
+		return $"({owner}.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())";
+	}
+
+	/// <summary>Whether the engine keeps what its rejected elements wanted until they are built.</summary>
+	public bool KeepsExpectations => _recoveryPlans.Exists(static plan => plan.Recovery.Explains);
 
 	/// <summary>
 	/// Whether anything a group recognised outlives the group.
