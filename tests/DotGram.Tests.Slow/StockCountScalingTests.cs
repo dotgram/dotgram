@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using DotGram.Examples.Feeds;
@@ -15,10 +17,27 @@ namespace DotGram.Tests;
 /// to read, not a hundred.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Every tenth line of these counts is broken, and the grammar asks for each broken line's
 /// number (<c>parserLine</c>). That number used to be counted from the start of the input for
-/// each of them, which made a count with rejections quadratic in its length. The bound, fifteen
-/// against ten, leaves room for noise and none for that. Timed alone, the best of several runs.
+/// each of them, which made a count with rejections quadratic in its length. The bound, thirty
+/// against ten, leaves room for noise and none for that (<see cref="Linear"/>'s own remarks say
+/// how). Timed alone, the best of several runs.
+/// </para>
+/// <para>
+/// <b>Since 2026-10-03 a control gates the class, rather than the two tests failing CI on its own
+/// noise.</b> <c>And_from_a_reader</c> read ratios as high as 33.8 and 35.6 against this same
+/// bound of 30 on a shared Linux runner (2026-10-02; the lower one on commit c230688c, run
+/// 37050539448), where a quiet machine reads about 10.5. The control is a count with no broken
+/// lines at all: it never asks the grammar to recover, so it cannot be made quadratic by the
+/// defect above, and a reading of it over bound is a statement about the run and not about the
+/// reader — the same argument <c>ReaderScalingTests</c> makes for its own "no block at all" row.
+/// It is measured once per process, cached, and retried up to <see cref="Attempts"/> times if a
+/// reading exceeds <see cref="Linear"/>; the first clean reading is trusted. If none of those is
+/// clean, both tests of the class are skipped as inconclusive, naming the control's readings: a
+/// control that only ever says "the machine was noisy" should not then fail CI on exactly that
+/// noise, and the two real readings of that same noisy run are not trustworthy either.
+/// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class StockCountScalingTests
@@ -39,9 +58,21 @@ public sealed class StockCountScalingTests
 	/// </remarks>
 	const double Linear = 30;
 
+	/// <summary>How many times the control is measured before a reading over its bound is believed.</summary>
+	const int Attempts = 3;
+
 	[Fact]
 	public void A_count_with_broken_lines_reads_in_time_linear_in_its_length_from_a_string()
 	{
+		var control = Control.Value;
+
+		if (control.Inconclusive)
+		{
+			Assert.Skip(InconclusiveMessage(control));
+
+			return;
+		}
+
 		var shorter = Count(1_000);
 		var longer  = Count(10_000);
 
@@ -51,12 +82,30 @@ public sealed class StockCountScalingTests
 	[Fact]
 	public void And_from_a_reader()
 	{
+		var control = Control.Value;
+
+		if (control.Inconclusive)
+		{
+			Assert.Skip(InconclusiveMessage(control));
+
+			return;
+		}
+
 		var shorter = Count(1_000);
 		var longer  = Count(10_000);
 
 		AssertLinear(
 			Best(() => StockCountReader.Read(new StringReader(shorter))),
 			Best(() => StockCountReader.Read(new StringReader(longer))));
+	}
+
+	/// <summary>What to tell xunit when the control never read clean; see the class remarks.</summary>
+	static string InconclusiveMessage(ControlReading control)
+	{
+		return
+			$"The control row (a count with no broken lines) read {control.Readings} against a bound " +
+			$"of {Linear} on every one of {Attempts} measurements; the machine is noisy and neither of " +
+			"this class's tests can be trusted this run.";
 	}
 
 	static void AssertLinear(double shorter, double longer)
@@ -67,6 +116,47 @@ public sealed class StockCountScalingTests
 			$"({shorter:F0} µs against {longer:F0} µs), against a bound of {Linear}.");
 	}
 
+	/// <summary>
+	/// The control's own ratio for the whole process: measured once, retried up to
+	/// <see cref="Attempts"/> times while it reads over <see cref="Linear"/>, and shared by both
+	/// tests of the class so that a noisy control can skip the class instead of failing it.
+	/// </summary>
+	static readonly Lazy<ControlReading> Control = new(MeasureControl);
+
+	static ControlReading MeasureControl()
+	{
+		var readings = new List<double>();
+
+		for (var attempt = 1; attempt <= Attempts; attempt++)
+		{
+			var shorter = BestControl(() => StockCountReader.Read(CountAllGood(1_000)));
+			var longer  = BestControl(() => StockCountReader.Read(CountAllGood(10_000)));
+			var ratio   = longer / shorter;
+
+			readings.Add(ratio);
+
+			if (ratio < Linear)
+				return new ControlReading(ratio, readings, false);
+		}
+
+		return new ControlReading(readings[^1], readings, true);
+	}
+
+	/// <summary>What <see cref="MeasureControl"/> found: the trusted ratio, every attempt, and whether all of them were over the bound.</summary>
+	sealed class ControlReading
+	{
+		public ControlReading(double ratio, List<double> attempts, bool inconclusive)
+		{
+			Ratio        = ratio;
+			Inconclusive = inconclusive;
+			Readings     = string.Join(", ", attempts.Select(static one => one.ToString("F1")));
+		}
+
+		public double Ratio { get; }
+		public bool Inconclusive { get; }
+		public string Readings { get; }
+	}
+
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
 	static double Best(Func<StockCount> read)
 	{
@@ -74,6 +164,22 @@ public sealed class StockCountScalingTests
 
 		Assert.Equal(count.Lines.Count / 10, count.Lines.Count - count.Total);
 
+		return Time(read);
+	}
+
+	/// <summary>The fastest of several reads of the control's all-good count, in microseconds.</summary>
+	static double BestControl(Func<StockCount> read)
+	{
+		var count = read();
+
+		Assert.Equal(count.Lines.Count, count.Total);
+
+		return Time(read);
+	}
+
+	/// <summary>The fastest of several further reads of what was already read once, in microseconds.</summary>
+	static double Time(Func<StockCount> read)
+	{
 		var best = double.MaxValue;
 
 		for (var run = 0; run < 7; run++)
@@ -106,6 +212,20 @@ public sealed class StockCountScalingTests
 		}
 
 		return text.Append("END ").Append(good).Append('\n').ToString();
+	}
+
+	/// <summary>
+	/// A count of so many lines, none of them broken: the control, linear by construction because
+	/// it never asks the grammar to recover (see the class remarks).
+	/// </summary>
+	static string CountAllGood(int lines)
+	{
+		var text = new StringBuilder();
+
+		for (var line = 0; line < lines; line++)
+			text.Append(Item(line)).Append(": ").Append(line % 100).Append('\n');
+
+		return text.Append("END ").Append(lines).Append('\n').ToString();
 	}
 
 	/// <summary>An item named in letters only, as the grammar's names are: item a, b, … z, ba, ….</summary>
