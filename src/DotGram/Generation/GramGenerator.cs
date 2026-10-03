@@ -132,7 +132,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// test can hold the parser with it to the parser without it (GramCompilerOptions.MemoiseFailures).
 		var counting = context.ParseOptionsProvider.Select(static (options, _) =>
 			(Counts: options.PreprocessorSymbolNames.Contains(CountsSymbol),
-			Memoises: !options.PreprocessorSymbolNames.Contains(NoMemoSymbol)));
+			Memoises: !options.PreprocessorSymbolNames.Contains(NoMemoSymbol),
+			Trace: options.PreprocessorSymbolNames.Contains("DOTGRAM_GRAMTRACE_NOINLINE") ? 2 :
+				options.PreprocessorSymbolNames.Contains("DOTGRAM_GRAMTRACE") ? 1 : 0));
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -280,7 +282,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, int Trace) counting, Positional positional)
 	{
 		try
 		{
@@ -315,7 +317,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	readonly record struct CompileKey(
 		Grammar                      Grammar,
 		Reporting                    Reporting,
-		(bool Counts, bool Memoises) Counting,
+		(bool Counts, bool Memoises, int Trace) Counting,
 		Positional                   Positional,
 		Guid                         Generator);
 
@@ -357,7 +359,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
 	/// same input.
 	/// </summary>
-	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional, Caching caching)
+	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, int Trace) counting, Positional positional, Caching caching)
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
@@ -906,7 +908,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, int Trace) counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -983,6 +985,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting.Counts,
 			MemoiseFailures = counting.Memoises,
+			Trace           = counting.Trace,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,

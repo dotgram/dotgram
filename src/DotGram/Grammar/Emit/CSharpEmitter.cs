@@ -1133,6 +1133,9 @@ public static partial class CSharpEmitter
 		// answered here because this is the earliest the answer exists.
 		written = Suppressed(written);
 
+		if (TraceSpike.Mode != 0)
+			written = Traced(written, graph, machines.Count > 0 ? machines[0].Machine : null, declares: true);
+
 		// A mark stands for a state whose final name was not known when it was written, and
 		// `Settle` puts the name in. One that reaches here would be a control character in
 		// the consumer's source — so it is caught here, where the failure names the
@@ -1193,6 +1196,8 @@ public static partial class CSharpEmitter
 			foreach (var methods in separated)
 			{
 				var part = Numbered(opening + methods + ending, tables);
+				if (TraceSpike.Mode != 0)
+					part = Traced(part, graph, null, declares: false);
 				if (part.IndexOf('\u0001') >= 0)
 					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
 				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);

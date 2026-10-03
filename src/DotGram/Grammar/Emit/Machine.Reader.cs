@@ -340,7 +340,21 @@ sealed partial class Machine
 						file.Line();
 					}
 
-					if (body is null)
+					if (TraceSpike.Mode != 0)
+					{
+						// Spike: the rule entered once, after the memo and the probe, and left on
+						// every return of the body.
+						var traced = new Writer(0);
+
+						body ??= reader.Render(_graph.Bodies[rule], FollowOf(rule));
+						traced.Line($"failure.Trace?.Enter({TraceIdOf(rule)}, pos);");
+
+						if (slot < 0 || !MemoBody(traced, rule, slot, body))
+							traced.Write(body);
+
+						file.Write(TracedReturns(traced.ToString(), TraceIdOf(rule)));
+					}
+					else if (body is null)
 						reader.Render(file, _graph.Bodies[rule], FollowOf(rule));
 					else if (slot < 0 || !MemoBody(file, rule, slot, body))
 						file.Write(body);

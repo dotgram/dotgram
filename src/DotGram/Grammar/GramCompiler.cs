@@ -51,6 +51,24 @@ public static class GramCompiler
 
 		options ??= new GramCompilerOptions();
 
+		// Spike: the trace build is read by the stages below from a thread-static, which a
+		// real implementation would pass as an option (one compilation runs on one thread).
+		var tracing = TraceSpike.Mode;
+
+		TraceSpike.Mode = options.Trace;
+
+		try
+		{
+			return CompileTraced(grammarText, options);
+		}
+		finally
+		{
+			TraceSpike.Mode = tracing;
+		}
+	}
+
+	static GramCompilation CompileTraced(string grammarText, GramCompilerOptions options)
+	{
 		var sources     = new List<GeneratedSource>();
 		var diagnostics = new List<GramDiagnostic>();
 

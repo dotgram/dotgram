@@ -209,7 +209,8 @@ public sealed partial class GrammarNormalizer
 		// What the forwarding rule said about its refusal is handed on first, as a builder:
 		// the collapse itself only changes the shape (D14).
 		normalizer.SaysThroughForwarders();
-		normalizer.CollapseTransparent();
+		if (TraceSpike.Mode != 2)
+			normalizer.CollapseTransparent();
 
 		normalizer.ComputeResults();
 

@@ -221,6 +221,9 @@ public sealed class GramCompilerOptions
 	/// </remarks>
 	public bool CountRules { get; set; }
 
+	/// <summary>Spike: 0 no trace, 1 a trace build, 2 a trace build without collapsing forwarding rules.</summary>
+	public int Trace { get; set; }
+
 	/// <summary>
 	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
 	/// answers a second entry there at once. On by default; off is for a test that holds the

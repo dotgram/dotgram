@@ -63,6 +63,9 @@
 		     multi-targeted projects in a way that looks like the checks breaking them. -->
 		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
 		<DefineConstants Condition="'$(DotGramChecks)' == 'true'">$(DefineConstants);DOTGRAM_CHECKS</DefineConstants>
+		<!-- Spike: a trace build of every grammar (1), or one that keeps forwarding rules as written (2). -->
+		<DefineConstants Condition="'$(DotGramSpikeTrace)' == '1'">$(DefineConstants);DOTGRAM_GRAMTRACE</DefineConstants>
+		<DefineConstants Condition="'$(DotGramSpikeTrace)' == '2'">$(DefineConstants);DOTGRAM_GRAMTRACE;DOTGRAM_GRAMTRACE_NOINLINE</DefineConstants>
 
 		<!-- Off everywhere unless a caller sets it: the generator's own generated code analysed
 		     for dead or redundant emitter output (tools/DotGram.GeneratedAnalyzers), which each
