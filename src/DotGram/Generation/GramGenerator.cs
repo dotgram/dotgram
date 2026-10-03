@@ -328,12 +328,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// that compile is most of the generator's time: seconds for a grammar of a thousand rules. The
 	/// compiler server keeps this assembly loaded, so the parser kept here is found again.
 	/// <para>
-	/// The budget is sixty-four million characters, 128 MB as .NET holds them: what the three SQL
-	/// parsers of DotGram.Sql hold for both of its target frameworks, the largest this repository
-	/// has, with a little to spare. Counted, those are 59 million: T-SQL's text is sixteen million,
-	/// and SQL:2023's keys hold its 381,492 questions and answers, fifteen million for each target
-	/// framework. A smaller budget keeps them apart, and each build compiles SQL:2023 again for
-	/// one framework or the other. No larger, though: a long-lived server is
+	/// The budget is forty million characters, 80 MB as .NET holds them: what the three SQL parsers
+	/// of DotGram.Sql hold for both of its target frameworks, the largest this repository has, with
+	/// room for them to grow. Counted, those are 29 million, most of it the parsers' text — T-SQL's
+	/// alone is sixteen million — which the two frameworks share; their questions and answers are
+	/// ten thousand between the three grammars. A smaller budget keeps them apart, and each build
+	/// compiles a grammar again for one framework or the other. No larger, though: a long-lived server is
 	/// shared by every project and every checkout on the machine, and each build of the generator it
 	/// loads has a cache of its own. Two target frameworks of one project mostly compile the same
 	/// text, and hold it once (Shared). The large strings are counted exactly and the rest — the
@@ -345,7 +345,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </para>
 	/// </remarks>
 	static readonly CompileCache<CompileKey, Parser> Compiled = new(
-		budget:   64_000_000,
+		budget:   40_000_000,
 		capacity: 64,
 		strings:  static (key, parser) => StringsOf(key, parser),
 		weight:   static (key, parser) => WeightOf(key, parser),
@@ -479,8 +479,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// The questions and answers are counted by the room their elements take in their arrays and not
 	/// by the names in them, which a grammar's thousands of questions share among a few hundred
 	/// types: the SQL:2023 grammar asks 8,172. The members and parameters an answer lists, and the
-	/// diagnostics, are small objects with strings of their own, counted as such. Not exact, and not meant to be: it is what makes a
-	/// key weigh what it holds.
+	/// diagnostics, are small objects with strings of their own, counted as such. Not exact, and not
+	/// meant to be: it is what makes a key weigh what it holds.
 	/// </remarks>
 	static long WeightOf(CompileKey key, Parser parser)
 	{

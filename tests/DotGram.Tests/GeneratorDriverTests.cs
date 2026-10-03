@@ -1617,6 +1617,48 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM0001");
 	}
 
+	/// <summary>
+	/// Which declared types fit which others is asked of the host once for each type, and the
+	/// answer says yes where the host's C# does and no where it does not.
+	/// </summary>
+	/// <remarks>
+	/// A sequence of the base type collects rules producing its derived types (§4.1 case 2),
+	/// and a sequence of one derived type leaves out a rule producing its sibling. Both pairs are
+	/// pairs of declared types, which are not asked one by one: the answer for each type lists
+	/// what it fits, and a pair it does not list is a no rather than a question nobody foresaw.
+	/// </remarks>
+	[Fact]
+	public void Declared_types_fit_where_the_hosts_types_do_and_not_elsewhere()
+	{
+		const string Shapes = """
+			public abstract class Shape { }
+			public sealed class Circle : Shape { }
+			public sealed class Square : Shape { }
+
+			""";
+
+		var shapes = (Array)Build(Shapes + """
+			[DotGram.Gram("Shapes : @Shape[] = C+ & S+\nC : @Circle = 'c' => @(new Circle())\nS : @Square = 's' => @(new Square())\nparse Shapes")]
+			public partial class Drawing;
+			""")
+			.GetType("Drawing")!
+			.GetMethod("ParseShapes", [typeof(string)])!
+			.Invoke(null, ["ccs"])!;
+
+		Assert.Equal(["Circle", "Circle", "Square"], shapes.Cast<object>().Select(static shape => shape.GetType().Name));
+
+		// A square is not a circle, so it is an operand of some other type and contributes nothing.
+		var circles = (Array)Build(Shapes + """
+			[DotGram.Gram("Circles : @Circle[] = C+ & S+\nC : @Circle = 'c' => @(new Circle())\nS : @Square = 's' => @(new Square())\nparse Circles")]
+			public partial class Mismatched;
+			""")
+			.GetType("Mismatched")!
+			.GetMethod("ParseCircles", [typeof(string)])!
+			.Invoke(null, ["ccs"])!;
+
+		Assert.Equal(["Circle", "Circle"], circles.Cast<object>().Select(static shape => shape.GetType().Name));
+	}
+
 	// ── parse over a reader (§6.3) ───────────────────────────────────────────────
 
 	/// <summary>A feed whose records are read one at a time.</summary>
