@@ -1257,6 +1257,7 @@ public static partial class CSharpEmitter
 
 			/// <inheritdoc cref="StateSet"/>
 			internal const int StateEnd = 18;
+			/*TURN_KIND*/
 
 			internal ParserEntry(
 				int kind, int state, int position, int callIndex, int atomicIndex,
@@ -1502,7 +1503,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string ParserRuntime(
 		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false,
-		bool explaining = false)
+		bool explaining = false, bool turns = false)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1559,6 +1560,13 @@ public static partial class CSharpEmitter
 		// Where the recovered elements of this parse are: counted on from one to the next.
 		runtime = CacheRuntime(runtime, "LOCATED_FIELD", "internal Located_DotGram Located;", locating);
 		runtime = CacheRuntime(runtime, "LOCATED_RESET", "Located = default;", locating);
+
+		// A turn of a recovering repetition that can be read again inside its own element, as a
+		// record of its own: what stood where it began and how far the enclosing reading of the
+		// same repetition had got (Machine.Recovery.cs, Reenters). Popping it is what puts the
+		// enclosing reading's count back.
+		runtime = CacheRuntime(runtime, "TURN_KIND",
+			"/// <summary>A turn of a recovering repetition read again inside its own element.</summary>\ninternal const int Turn = 19;", turns);
 
 		// What each rejected element wanted where it stopped, by that place, until it is built.
 		runtime = CacheRuntime(runtime, "EXPECTED_FIELD",

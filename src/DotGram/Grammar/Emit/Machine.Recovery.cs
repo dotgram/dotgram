@@ -44,7 +44,8 @@ sealed partial class Machine
 		// Numbered by the place it is compiled at rather than by the plan: a repetition compiled at
 		// two places is two sets of them.
 		var id        = _recoveringStates.Count;
-		_recoveringStates.Add((recovery, asked));
+		var again     = Reenters(repeatNode);
+		_recoveringStates.Add((recovery, asked, again));
 		var inner     = Compile(
 			body, after,
 			new FollowSets.Continuation(
@@ -60,8 +61,15 @@ sealed partial class Machine
 		atLoop.Line("var repeating = entries[repeat];");
 
 		// What stood at the place the turn begins, before the continuation and the element are
-		// tried there: what is recorded at that place since is theirs.
-		if (recovery.Recovery.Explains)
+		// tried there: what is recorded at that place since is theirs. Where the repetition can be
+		// read again inside its own element, a record of the turn on the arena instead of in the
+		// locals, which a reading inside would run over: what stood here, and how far the reading
+		// this one is inside had got, which this turn's count is about to begin afresh over.
+		if (again)
+			atLoop.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.Turn, {id}, failure.Position, failure.ExpectedMore?.Count ?? 0, " +
+				$"reach{id}, repeat, lookahead, 0));");
+		else if (recovery.Recovery.Explains)
 			atLoop.Line($"stood{id} = failure.Position; tied{id} = failure.ExpectedMore?.Count ?? 0;");
 
 		if (max is { } limit)
@@ -73,6 +81,20 @@ sealed partial class Machine
 		atLoop.Line($"goto {Label(atLoop, attempt)};");
 
 		atAttempt.Line("reach = p;");
+
+		// The continuation tried since the turn began is the enclosing reading's too: how far it
+		// got goes into the record before this turn's count begins. The record is on top: the
+		// way to here was pushed over it and has been taken.
+		if (again)
+		{
+			atAttempt.Line("var turnAt = entries[entries.Count - 1];");
+			atAttempt.Line("global::System.Diagnostics.Debug.Assert(turnAt.Kind == ParserEntry.Turn);");
+			atAttempt.Line($"if (reach{id} > turnAt.AtomicIndex)");
+			atAttempt.Then(
+				$"entries[entries.Count - 1] = new ParserEntry(ParserEntry.Turn, {id}, turnAt.Position, turnAt.CallIndex, " +
+				$"reach{id}, turnAt.RepeatIndex, turnAt.LookaheadIndex, 0);");
+		}
+
 		atAttempt.Line($"reach{id} = p;");
 		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atAttempt, asked)}, p, call, atomic, repeat, lookahead, 0));");
 		atAttempt.Line($"goto {Label(atAttempt, inner)};");
@@ -86,7 +108,17 @@ sealed partial class Machine
 		// What would have fit where the element stopped, taken now: the synchronization about to
 		// be looked for records refusals of its own, further along.
 		if (recovery.Recovery.Explains)
-			atAsked.Line($"expecting{id} = Expecting_DotGram(ref failure, reach{id}, stood{id}, tied{id});");
+		{
+			if (again)
+			{
+				// The turn's record is on top again: the way back to here was pushed over it.
+				atAsked.Line("var turnOf = entries[entries.Count - 1];");
+				atAsked.Line("global::System.Diagnostics.Debug.Assert(turnOf.Kind == ParserEntry.Turn);");
+				atAsked.Line($"expecting{id} = Expecting_DotGram(ref failure, reach{id}, turnOf.Position, turnOf.CallIndex);");
+			}
+			else
+				atAsked.Line($"expecting{id} = Expecting_DotGram(ref failure, reach{id}, stood{id}, tied{id});");
+		}
 
 		atAsked.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach{id}, repeat, lookahead, 0));");
@@ -134,6 +166,9 @@ sealed partial class Machine
 		}
 		DeactivateChoices(atRecovered, asked);
 
+		if (again)
+			TurnEnds(atRecovered, id);
+
 		// Kept by the entry the element is recorded as, until it is built after the parse.
 		if (recovery.Recovery.Explains)
 			atRecovered.Line($"{Keep("parser")}[entries.Count] = expecting{id};");
@@ -150,6 +185,10 @@ sealed partial class Machine
 		atRecovered.Line($"goto {Label(atRecovered, loop)};");
 
 		DeactivateChoices(atAfter, asked);
+
+		if (again)
+			TurnEnds(atAfter, id);
+
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
@@ -161,6 +200,95 @@ sealed partial class Machine
 
 		return entry;
 	}
+
+	/// <summary>
+	/// Where a turn of a repetition read again inside its own element ends, matched or stepped
+	/// over: how far the reading it is inside had got is put back under what this turn got to.
+	/// </summary>
+	/// <remarks>
+	/// The turn's record stays where it is — what the turn recognized is above it and is kept —
+	/// so it is found, the latest of this repetition's own reading (its <c>RepeatIndex</c>); a
+	/// reading inside, of the same repetition, has a repetition entry of its own.
+	/// </remarks>
+	static void TurnEnds(Writer writer, int id)
+	{
+		using (writer.Block("for (var turnAt = entries.Count - 1; turnAt > repeat; turnAt--)"))
+		{
+			writer.Line("var ended = entries[turnAt];");
+			writer.Line($"if (ended.Kind != ParserEntry.Turn || ended.State != {id} || ended.RepeatIndex != repeat) continue;");
+			writer.Line($"if (ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
+			writer.Line("break;");
+		}
+	}
+
+	/// <summary>
+	/// Where unwinding takes a turn's record away (<see cref="Reenters"/>): the reading it was
+	/// inside gets back how far it had got, under what was reached since.
+	/// </summary>
+	void TurnsUnwound(Writer file)
+	{
+		if (!KeepsTurns)
+			return;
+
+		using (file.Block("if (entry.Kind == ParserEntry.Turn)"))
+		{
+			using (file.Block("switch (entry.State)"))
+				for (var id = 0; id < _recoveringStates.Count; id++)
+					if (_recoveringStates[id].Again)
+					{
+						file.Line($"case {id}:");
+						file.Line($"\tif (entry.AtomicIndex > reach{id}) reach{id} = entry.AtomicIndex;");
+						file.Line("\tbreak;");
+					}
+
+			file.Line("continue;");
+		}
+
+		file.Line();
+	}
+
+	/// <summary>
+	/// Whether a repetition marked <c>recover</c> can be read again while one of its turns is open:
+	/// inside its element, the continuation tried at its boundaries or its synchronization, which
+	/// is a rule that holds it calling itself — through a look ahead into that rule, or by
+	/// recursion.
+	/// </summary>
+	/// <remarks>
+	/// Where it cannot, its turn's state is kept in locals, a set for each repetition, as it
+	/// always was. Where it can, the reading inside would run over them, so each turn keeps what
+	/// it needs on the arena (<c>ParserEntry.Turn</c>), where unwinding finds it.
+	/// </remarks>
+	bool Reenters(Node.Repeat repeatNode)
+	{
+		var holders = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		foreach (var pair in _graph.Bodies)
+			if (NodeWalk.Descendants(pair.Value).Any(node => ReferenceEquals(node, repeatNode)))
+				pending.Push(pair.Key);
+
+		// A rule compiled in place holds what it holds wherever it is called.
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!holders.Add(rule) || !CanInline(rule))
+				continue;
+
+			foreach (var pair in _graph.Bodies)
+				if (NodeWalk.Descendants(pair.Value).Any(node => node is Node.Call(var called, _) && called == rule))
+					pending.Push(pair.Key);
+		}
+
+		var again = holders.Overlaps(_graph.Recursive);
+
+		KeepsTurns |= again;
+
+		return again;
+	}
+
+	/// <summary>Whether a repetition this machine compiled keeps its turns on the arena (<see cref="Reenters"/>).</summary>
+	public bool KeepsTurns { get; private set; }
 
 	static void DeactivateChoices(Writer writer, int attempt)
 	{
@@ -338,7 +466,7 @@ sealed partial class Machine
 	internal const string Stand = "failure.Stood = failure.Position; failure.Tied = failure.ExpectedMore?.Count ?? 0;";
 
 	/// <summary>Every recovering repetition the engine compiled, with the state its element's failure lands in.</summary>
-	readonly List<(RecoveryPlan Plan, int Asked)> _recoveringStates = [];
+	readonly List<(RecoveryPlan Plan, int Asked, bool Again)> _recoveringStates = [];
 
 	/// <summary>
 	/// The engine's locals of each recovering repetition: how far its element got, and where it
@@ -348,21 +476,27 @@ sealed partial class Machine
 	/// One set per repetition, not one for the engine: a repetition inside the element of another,
 	/// or in the synchronization another looks for, ran over the outer one's when they were shared —
 	/// the outer element was told how far the inner one got, and what the inner one wanted. A
-	/// repetition reached again inside its own element (a rule that calls itself through it) still
-	/// shares its own.
+	/// repetition reached again inside its own element (a rule that calls itself through it) keeps
+	/// what stood where each turn began on the arena instead, and puts back how far the enclosing
+	/// turn had got wherever an inner one ends (<see cref="Reenters"/>).
 	/// </remarks>
 	void RecoveryLocals(Writer file)
 	{
 		for (var id = 0; id < _recoveringStates.Count; id++)
 		{
-			var (plan, asked) = _recoveringStates[id];
+			var (plan, asked, again) = _recoveringStates[id];
 
 			file.Line($"var reach{id} = 0;");
 
 			if (plan.Recovery.Explains && Written(asked))
 			{
-				file.Line($"var stood{id} = -1;");
-				file.Line($"var tied{id} = 0;");
+				// A repetition read again inside its own element keeps these on the arena.
+				if (!again)
+				{
+					file.Line($"var stood{id} = -1;");
+					file.Line($"var tied{id} = 0;");
+				}
+
 				file.Line($"string[]? expecting{id} = null;");
 			}
 		}

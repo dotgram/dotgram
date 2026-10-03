@@ -957,7 +957,8 @@ public static partial class CSharpEmitter
 				machines.Exists(static compiled => compiled.Machine.UsesMarks),
 				tables,
 				Locating(graph) || Wording(graph),
-				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations)));
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations),
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsTurns)));
 
 		// A carrier the author asked for and did not get, said once per reason and said here:
 		// which carrier a machine took is settled by what it turned out to hold, and nothing

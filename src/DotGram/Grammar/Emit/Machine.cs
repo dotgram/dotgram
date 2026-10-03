@@ -2155,6 +2155,8 @@ sealed partial class Machine
 						file.Line();
 					}
 
+					TurnsUnwound(file);
+
 					if (_captures > 0 || _constructs.Count > 0 || _recoveries.Count > 0 || _usesDead ||
 						_marks.Count > 0)
 					{

@@ -507,6 +507,67 @@ public sealed class RejectionMessageTests
 	}
 
 	/// <summary>
+	/// A recovering repetition reached again inside its own element, through a look ahead into the
+	/// rule that owns it, keeps the outer turn: the outer element stopped where it wanted <c>'b'</c>,
+	/// and the inner reading of the same repetition began turns of its own in between.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_recovering_repetition_reached_again_inside_its_own_element_keeps_the_outer_turn(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Item = """
+			Item : @string = 'a' & '\n' & 'b' => @("")
+			               | 'a' & ?=Start & 'c' => @("")
+
+			""";
+
+		foreach (var start in new[]
+		{
+			"Start : @string[] = Item* recover eol => @(Text(parserMessage))\n",
+			"Start : @string = items: Item* recover eol => @(Text(parserMessage)) => @(Join(items))\n",
+		})
+		{
+			var told = Recovered(Compiled(Item + start + "parse Start as ParseStart\n", direct, carrier), "a\nx\n");
+
+			Assert.True(told.Length == 2, rendering + ": " + string.Join(" / ", told));
+			Assert.True(
+				told[0].StartsWith("Expected ", StringComparison.Ordinal) && told[0].Contains('b', StringComparison.Ordinal) &&
+				told[0].EndsWith(" at 2:1.", StringComparison.Ordinal),
+				rendering + ": " + told[0]);
+		}
+	}
+
+	/// <summary>
+	/// The same where the element reads the rule again by recursion: each reading of the
+	/// repetition tells its own elements what they wanted, the inner one inside the brackets and
+	/// the outer one after them.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_recovering_repetition_read_again_by_recursion_tells_each_element_its_own(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Grammar = """
+			Item  : @string = '(' & s: List & ')' => @("(" + s + ")") | 'a' & 'b' => @("ab")
+			List  : @string = items: Item* recover ';' => @("!" + Text(parserMessage)) => @(string.Join(",", items))
+			parse List as ParseStart
+
+			""";
+
+		var host = Compiled(Grammar, direct, carrier);
+
+		foreach (var (input, told) in new[]
+		{
+			("ab(ax;ab)az;ab", "ab,(!Expected \"ab\" at 1:5.,ab),!Expected \"ab\" at 1:11.,ab"),
+			("(a;)x;ab", "(!Expected \"ab\" at 1:3.),!Expected end of input or ['(' | 'a'] at 1:5.,ab"),
+		})
+		{
+			var match = EmittedCode.Match(host, "Grammar", "TryParseStart", input);
+
+			Assert.True(match.IsSuccess && (string?)match.Value == told, $"{rendering} {input}: {match.Value ?? match.Error}");
+		}
+	}
+
+	/// <summary>
 	/// An optional group that began to match and stopped is where reading got furthest, and a
 	/// refusal says so: <c>1.x</c> wanted a digit after the point, not the end of the input after
 	/// the <c>1</c>. Over a string, a <c>TextReader</c> and a byte stream, in every rendering, and
@@ -760,8 +821,9 @@ public sealed class RejectionMessageTests
 
 		// Held to what it is about: where a reader was asked for, a recovering repetition of the
 		// root is the reader's and not the engine's (RecoveringReaderTests says the same). One in
-		// another rule as well keeps the engine (Machine.UnreadRecovery).
-		if (direct && grammar.Split("recover").Length == 2 && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*(Start|PriceList|Sheet)\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
+		// another rule as well keeps the engine (Machine.UnreadRecovery), and so does the root's
+		// where the rule is read again inside its own element.
+		if (direct && grammar.Split("recover").Length == 2 && !grammar.Contains("?=Start", StringComparison.Ordinal) && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*(Start|PriceList|Sheet)\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
 			Assert.Contains("failure.Reach = p;", source, StringComparison.Ordinal);
 
 		return EmittedCode.Compile(source, declarationMembers: Helpers + helpers);
