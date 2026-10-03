@@ -585,8 +585,8 @@ public sealed class ExampleTests
 			[
 				new Price("Espresso",   2.40m),
 				new Price("Cappuccino", 3.10m),
-				new Typo(3, "Flat white     3,20", "Input does not match 'Entry' at 56."),
-				new Typo(4, "Croissant      2.1O", "Input does not match 'Entry' at 78."),
+				new Typo(3, "Flat white     3,20", "Expected '.' at 3:17."),
+				new Typo(4, "Croissant      2.1O", "Expected ['0'..'9'] at 4:19."),
 				new Price("Muffin",     2.80m),
 			],
 			PriceList.Read(reader));
@@ -622,7 +622,7 @@ public sealed class ExampleTests
 				new Delivery("Monday, before 8"),
 				new Ordered(12, "milk 1l"),
 				new Remark("ask about the croissants"),
-				new Unclear(5, "x2 sugar", "Input does not match 'Line' at 94."),
+				new Unclear(5, "x2 sugar", "Expected ['0'..'9' | '#'] at 5:1."),
 				new Ordered(4, "butter"),
 			],
 			OrderSheet.ParseSheet(new StringReader(Text)));
@@ -660,7 +660,7 @@ public sealed class ExampleTests
 			Assert.True(entries.MoveNext());
 			Assert.Equal(new LogEntry(new DateTime(2026, 10, 1, 14, 5, 0), "lathe-1", "calibrated"), entries.Current);
 			Assert.Equal(
-				"line 2: Input does not match 'Entry' at 48. (2026-10-1 11:30 press-4 noise from the bearing)",
+				"line 2: Expected ['0'..'9'] at 2:10. (2026-10-1 11:30 press-4 noise from the bearing)",
 				rejected.ToString().TrimEnd());
 
 			Assert.False(entries.MoveNext());
