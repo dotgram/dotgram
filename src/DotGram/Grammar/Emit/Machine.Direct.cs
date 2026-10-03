@@ -304,6 +304,8 @@ sealed partial class Machine
 	/// stopped, for the walk that builds the element after the parse; the immediate carrier builds
 	/// it where it is stepped over, and reads the failure there.
 	/// </summary>
+	public bool ReadsExplainedRecovery => _recoveryReads.Values.Any(static read => read.Plan.Recovery.Explains);
+
 	public bool TapeKeepsExpectations =>
 		Carrier is TapeCarrier && _recoveryReads.Values.Any(static read => read.Plan.Recovery.Explains);
 

@@ -422,6 +422,90 @@ public sealed class RejectionMessageTests
 		Assert.DoesNotContain("'-'", error, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A turn that wants a set said at the same place before it is told that set: an element
+	/// that wanted <c>'a'</c> where the one before had wanted <c>'a'</c> too.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_turn_that_wants_what_was_wanted_there_before_is_told_it(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Pair = "Pair : @string = 'a' & eol & 'a' & eol => @(\"ok\")\n";
+
+		foreach (var start in new[]
+		{
+			"Start : @string[] = Pair* recover eol => @(Text(parserMessage))\n",
+			"Start : @string = pairs: Pair* recover eol => @(Text(parserMessage)) => @(Join(pairs))\n",
+		})
+		{
+			var told = Recovered(Compiled(Pair + start + "parse Start as ParseStart\n", direct, carrier), "a\nx\n");
+
+			Assert.True(told.Length == 2, rendering + ": " + string.Join(" / ", told));
+			Assert.EndsWith("'a' at 2:1.", told[0], StringComparison.Ordinal);
+			Assert.True(told[1].StartsWith("Expected ", StringComparison.Ordinal) && told[1].EndsWith("'a' at 2:1.", StringComparison.Ordinal), rendering + ": " + told[1]);
+		}
+	}
+
+	/// <summary>
+	/// A recovering repetition read inside an element of another keeps to its own turn: the outer
+	/// element stopped where it wanted <c>'b'</c>, and the inner repetition, which a look ahead
+	/// in the other alternative read, began its turn there and is not the outer one's.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_recovering_repetition_inside_an_element_keeps_the_outer_turn(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Grammar = """
+			Row   : @string = 'r' => @("r")
+			Inner : @string = rows: Row* recover eol => @(Text(parserMessage)) & 'a' & '\n' => @("")
+			Item  : @string = 'a' & '\n' & 'b' => @("") | ?=Inner & 'c' => @("")
+
+			""";
+
+		foreach (var start in new[]
+		{
+			"Start : @string[] = Item* recover eol => @(Text(parserMessage))\n",
+			"Start : @string = items: Item* recover eol => @(Text(parserMessage)) => @(Join(items))\n",
+		})
+		{
+			var told = Recovered(Compiled(Grammar + start + "parse Start as ParseStart\n", direct, carrier), "a\nx\n");
+
+			Assert.True(told.Length == 2, rendering + ": " + string.Join(" / ", told));
+			Assert.True(
+				told[0].StartsWith("Expected ", StringComparison.Ordinal) && told[0].Contains('b', StringComparison.Ordinal) &&
+				told[0].EndsWith(" at 2:1.", StringComparison.Ordinal),
+				rendering + ": " + told[0]);
+		}
+	}
+
+	/// <summary>
+	/// A synchronization that recovers in a repetition of its own does not take the place of what
+	/// the element it steps over wanted.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_synchronization_that_recovers_itself_keeps_the_elements_explanation(string rendering, bool direct, CarrierKind carrier)
+	{
+		const string Grammar = """
+			Item : @string = 'a' => @("")
+			Row  : @string = 'r' => @("")
+			Sync : @string = rows: Row* recover ';' => @(Text(parserMessage)) & ']' => @("")
+
+			""";
+
+		foreach (var start in new[]
+		{
+			"Start : @string[] = Item* recover Sync => @(Text(parserMessage))\n",
+			"Start : @string = items: Item* recover Sync => @(Text(parserMessage)) => @(Join(items))\n",
+		})
+		{
+			var told = Recovered(Compiled(Grammar + start + "parse Start as ParseStart\n", direct, carrier), "x;]");
+
+			Assert.True(told.Length == 1, rendering + ": " + string.Join(" / ", told));
+			Assert.True(told[0].StartsWith("Expected ", StringComparison.Ordinal) && told[0].EndsWith("'a' at 1:1.", StringComparison.Ordinal), rendering + ": " + told[0]);
+		}
+	}
+
 	const string Choice = """
 		trivia = ' '*
 		Digit  = ['0'..'9']
@@ -511,8 +595,9 @@ public sealed class RejectionMessageTests
 		var source = Assert.Single(result.Sources).Text;
 
 		// Held to what it is about: where a reader was asked for, a recovering repetition of the
-		// root is the reader's and not the engine's (RecoveringReaderTests says the same).
-		if (direct && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*\w+\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
+		// root is the reader's and not the engine's (RecoveringReaderTests says the same). One in
+		// another rule as well keeps the engine (Machine.UnreadRecovery).
+		if (direct && grammar.Split("recover").Length == 2 && System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*(Start|PriceList|Sheet)\s*: @string = \w+: \w+\* recover", System.Text.RegularExpressions.RegexOptions.Multiline))
 			Assert.Contains("failure.Reach = p;", source, StringComparison.Ordinal);
 
 		return EmittedCode.Compile(source, declarationMembers: Helpers);

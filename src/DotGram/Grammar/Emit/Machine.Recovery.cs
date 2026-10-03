@@ -38,6 +38,13 @@ sealed partial class Machine
 		var asked     = Reserve(out var atAsked);
 		var after     = Reserve(out var atAfter);
 		var entry     = Reserve(out var atEntry);
+
+		// Its own locals (RecoveryLocals): a recovering repetition inside the element of another,
+		// or one in the synchronization it looks for, keeps to its own.
+		// Numbered by the place it is compiled at rather than by the plan: a repetition compiled at
+		// two places is two sets of them.
+		var id        = _recoveringStates.Count;
+		_recoveringStates.Add((recovery, asked));
 		var inner     = Compile(
 			body, after,
 			new FollowSets.Continuation(
@@ -55,7 +62,7 @@ sealed partial class Machine
 		// What stood at the place the turn begins, before the continuation and the element are
 		// tried there: what is recorded at that place since is theirs.
 		if (recovery.Recovery.Explains)
-			atLoop.Line(Stand);
+			atLoop.Line($"stood{id} = failure.Position; tied{id} = failure.ExpectedMore?.Count ?? 0;");
 
 		if (max is { } limit)
 			atLoop.Line($"if (repeating.Value >= {limit}) goto {Label(atLoop, exit)};");
@@ -66,6 +73,7 @@ sealed partial class Machine
 		atLoop.Line($"goto {Label(atLoop, attempt)};");
 
 		atAttempt.Line("reach = p;");
+		atAttempt.Line($"reach{id} = p;");
 		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atAttempt, asked)}, p, call, atomic, repeat, lookahead, 0));");
 		atAttempt.Line($"goto {Label(atAttempt, inner)};");
 
@@ -78,10 +86,10 @@ sealed partial class Machine
 		// What would have fit where the element stopped, taken now: the synchronization about to
 		// be looked for records refusals of its own, further along.
 		if (recovery.Recovery.Explains)
-			atAsked.Line("parser.Expecting = Expecting_DotGram(ref failure, reach);");
+			atAsked.Line($"expecting{id} = Expecting_DotGram(ref failure, reach{id}, stood{id}, tied{id});");
 
 		atAsked.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
+			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach{id}, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
 
 		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
@@ -128,7 +136,7 @@ sealed partial class Machine
 
 		// Kept by the entry the element is recorded as, until it is built after the parse.
 		if (recovery.Recovery.Explains)
-			atRecovered.Line($"{Keep("parser")}[entries.Count] = parser.Expecting;");
+			atRecovered.Line($"{Keep("parser")}[entries.Count] = expecting{id};");
 
 		atRecovered.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
@@ -322,9 +330,53 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Where the furthest refusal stands as a turn of a repetition marked <c>recover</c> begins, and
-	/// how many sets tie there, for <c>Expecting_DotGram</c> to tell the element's own from them.
+	/// how many sets tie there, for <c>Expecting_DotGram</c> to tell the element's own from them,
+	/// and for <c>Refuse_DotGram</c> to record a set the turn wants again though it was said there
+	/// before. A reader's: it keeps them on the failure, and puts back what an enclosing turn had
+	/// there where its repetition is left (<see cref="ReaderWriter"/>'s recovering loop).
 	/// </summary>
 	internal const string Stand = "failure.Stood = failure.Position; failure.Tied = failure.ExpectedMore?.Count ?? 0;";
+
+	/// <summary>Every recovering repetition the engine compiled, with the state its element's failure lands in.</summary>
+	readonly List<(RecoveryPlan Plan, int Asked)> _recoveringStates = [];
+
+	/// <summary>
+	/// The engine's locals of each recovering repetition: how far its element got, and where it
+	/// explains its element, what stood where its turn began and what it took for the element.
+	/// </summary>
+	/// <remarks>
+	/// One set per repetition, not one for the engine: a repetition inside the element of another,
+	/// or in the synchronization another looks for, ran over the outer one's when they were shared —
+	/// the outer element was told how far the inner one got, and what the inner one wanted. A
+	/// repetition reached again inside its own element (a rule that calls itself through it) still
+	/// shares its own.
+	/// </remarks>
+	void RecoveryLocals(Writer file)
+	{
+		for (var id = 0; id < _recoveringStates.Count; id++)
+		{
+			var (plan, asked) = _recoveringStates[id];
+
+			file.Line($"var reach{id} = 0;");
+
+			if (plan.Recovery.Explains && Written(asked))
+			{
+				file.Line($"var stood{id} = -1;");
+				file.Line($"var tied{id} = 0;");
+				file.Line($"string[]? expecting{id} = null;");
+			}
+		}
+	}
+
+	/// <summary>How far each recovering repetition's element got, raised where the engine fails.</summary>
+	void RecoveryReaches(Writer file)
+	{
+		for (var id = 0; id < _recoveringStates.Count; id++)
+		{
+			file.Line($"if (lookahead < 0 && p > reach{id})");
+			file.Then($"reach{id} = p;");
+		}
+	}
 
 	/// <summary>Whether the engine keeps what its rejected elements wanted until they are built.</summary>
 	public bool KeepsExpectations => _recoveryPlans.Exists(static plan => plan.Recovery.Explains);

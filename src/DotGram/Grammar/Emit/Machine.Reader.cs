@@ -3747,6 +3747,13 @@ sealed partial class Machine
 			if (ways)
 				code.Line($"var {began} = ways.Cursor;");
 
+			// What a turn of an enclosing recovering repetition marked on the failure, put back
+			// wherever this one is left: its element is told what it wanted since its own turn began.
+			var stood = read.Plan.Recovery.Explains ? $"{turn}s" : null;
+
+			if (stood is not null)
+				code.Line($"var {stood} = failure.Stood; var {stood}t = failure.Tied;");
+
 			code.Line();
 
 			using (code.Block("while (true)"))
@@ -3818,6 +3825,9 @@ sealed partial class Machine
 					if (ways)
 						code.Line($"ways.Count = ways.Cursor = {began};");
 
+					if (stood is not null)
+						code.Line($"failure.Stood = {stood}; failure.Tied = {stood}t;");
+
 					code.Line("return -1;");
 				}
 
@@ -3828,6 +3838,9 @@ sealed partial class Machine
 				code.Line($"p = {Broken(read, slot, out var handed)}(p, {turn}{handed});");
 				code.Line($"{turn}++;");
 			}
+
+			if (stood is not null)
+				code.Line($"failure.Stood = {stood}; failure.Tied = {stood}t;");
 		}
 
 		/// <summary>
@@ -3893,7 +3906,7 @@ sealed partial class Machine
 			// What would have fit where the element stopped, taken before the synchronization is
 			// looked for: a candidate that begins to match and does not records further along.
 			if (read.Plan.Recovery.Explains)
-				code.Line("var expecting = Expecting_DotGram(ref failure, reach);");
+				code.Line("var expecting = Expecting_DotGram(ref failure, reach, failure.Stood, failure.Tied);");
 
 			if (machine.PaddedDelimiter(read.Plan.Recovery.Sync) is not null)
 				code.Line(machine.BufferedBytes ? "var c     = 0;" : "var c     = '\\0';");

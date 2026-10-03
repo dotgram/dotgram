@@ -265,6 +265,10 @@ the specification in ways worth knowing:
   where that place is the furthest, which is the usual case. Where a continuation tried at the same boundary read further than the
   element and failed there, the message says only that the input does not match the
   rule, `Input does not match 'Row' at 4:1.`, and `parserExpected` is the rule's name.
+- **Each recovering repetition keeps its own count of where its turn began.** One read inside
+  the element of another, or in the synchronization another looks for, keeps to its own; the
+  engine holds them per repetition, so a repetition reached again inside its own element — a
+  rule that calls itself through it — still shares its count with the outer reading of it.
 
 Which of the eleven a factory asked for is read out of its C#, because §8.2 has counting
 lines cost a scan and only a factory that named `parserLine` should pay for one. The

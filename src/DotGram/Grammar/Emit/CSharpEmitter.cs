@@ -781,7 +781,7 @@ public static partial class CSharpEmitter
 				reach: graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery),
 				// What stood where a turn of a recovering repetition began, where its element is told
 				// what would have fit (Expecting_DotGram).
-				stood: Explaining(graph),
+				stood: machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery),
 				starved: Streaming(graph, overKinds),
 				expected: true,
 				// The machine that reads a terminal again is an engine too, and an engine
@@ -901,7 +901,11 @@ public static partial class CSharpEmitter
 
 			var expectations = machines.Exists(static compiled => compiled.Direct && compiled.Machine.TapeKeepsExpectations);
 
-			file.Write(Region(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises), "expectations", expectations)
+			// A reader that tells its rejected elements what they wanted marks where each turn began,
+			// and a refusal records a set the turn says again though it was said there before.
+			var turns = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery);
+
+			file.Write(Region(Region(Region(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
 				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" : "")

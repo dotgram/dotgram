@@ -1562,12 +1562,11 @@ public static partial class CSharpEmitter
 
 		// What each rejected element wanted where it stopped, by that place, until it is built.
 		runtime = CacheRuntime(runtime, "EXPECTED_FIELD",
-			"internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;\n" +
-			"internal string[]? Expecting;", explaining);
+			"internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;", explaining);
 		// Let go rather than cleared after a parse that rejected many: a dictionary cleared keeps
 		// its room, and the pooled parser would hold it for every parse after (Ways.Return, the same).
 		runtime = CacheRuntime(runtime, "EXPECTED_RESET",
-			"if (Expectations != null && Expectations.Count > 64)\n\tExpectations = null;\nelse\n\tExpectations?.Clear();\nExpecting = null;",
+			"if (Expectations != null && Expectations.Count > 64)\n\tExpectations = null;\nelse\n\tExpectations?.Clear();",
 			explaining);
 
 		// One int per arena slot, and it says two things without conflicting: at a `StateSet`
@@ -2077,26 +2076,28 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		/// turn began, or null where the furthest refusal is elsewhere or nothing was said.
 		/// </summary>
 		/// <remarks>
-		/// Where the furthest refusal already stood at that place when the turn began — an element
-		/// before that read across its line and stopped where this one begins — what was recorded
-		/// then is that one's: a tie at a place adds to <c>ExpectedMore</c>, so this one's sets are
-		/// the ones after the <c>Tied</c> that stood there.
+		/// <paramref name="stood"/> and <paramref name="tied"/> are where the furthest refusal stood
+		/// when the turn began and how many sets tied there then. Where it already stood at that
+		/// place — an element before that read across its line and stopped where this one begins —
+		/// what was recorded then is that one's: a tie at a place adds to <c>ExpectedMore</c>, and a
+		/// set said again in the turn is added again (Refuse_DotGram), so this one's sets are the
+		/// ones after the <paramref name="tied"/> that stood there.
 		/// </remarks>
-		static string[]? Expecting_DotGram(ref Failure failure, int at)
+		static string[]? Expecting_DotGram(ref Failure failure, int at, int stood, int tied)
 		{
 			if (failure.Position != at)
 				return null;
 
 			var more = failure.ExpectedMore;
 
-			if (failure.Stood == at)
+			if (stood == at)
 			{
-				if (more == null || more.Count <= failure.Tied)
+				if (more == null || more.Count <= tied)
 					return null;
 
-				return more.Count - failure.Tied == 1
-					? more[failure.Tied]
-					: Merged_DotGram(null, more, failure.Tied);
+				return more.Count - tied == 1
+					? more[tied]
+					: Merged_DotGram(null, more, tied);
 			}
 
 			if (more == null || more.Count == 0)
@@ -2948,6 +2949,7 @@ public static partial class CSharpEmitter
 				failure.Expected     = expected;
 				failure.ExpectedMore?.Clear();
 			}
+			// <noturn>
 			else if (at == failure.Position && expected != null && !ReferenceEquals(expected, failure.Expected))
 			{
 				// The same set said twice is one thing wanted, not two. A rule refused at the
@@ -2963,6 +2965,27 @@ public static partial class CSharpEmitter
 
 				more.Add(expected);
 			}
+			// </noturn>
+			// <turn>
+			else if (at == failure.Position && expected != null)
+			{
+				// The same set said twice is one thing wanted, not two — except across the start of
+				// a turn of a recovering repetition that began at this place (Failure.Stood): what
+				// the turn wants is the turn's, and its element is told it (Expecting_DotGram).
+				var turn = failure.Stood == at ? failure.Tied : -1;
+				var more = failure.ExpectedMore;
+
+				if (turn < 0 && ReferenceEquals(expected, failure.Expected))
+					return;
+
+				if (more == null)
+					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+				else if (more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
+					return;
+
+				more.Add(expected);
+			}
+			// </turn>
 		}
 
 		/// <summary>

@@ -4113,6 +4113,10 @@ namespace DotGram.Snapshots
 				var power   = initialPower;
 				var reach   = 0;
 				var syncFrom = 0;
+				var reach0 = 0;
+				var stood0 = -1;
+				var tied0 = 0;
+				string[]? expecting0 = null;
 				var c       = '\0';
 				string[]? expected = null;
 				var turn0 = 0;
@@ -4152,7 +4156,7 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
-					failure.Stood = failure.Position; failure.Tied = failure.ExpectedMore?.Count ?? 0;
+					stood0 = failure.Position; tied0 = failure.ExpectedMore?.Count ?? 0;
 					if (repeating.Value >= 0)
 						entries.Add(new ParserEntry(ParserEntry.Choice, 5, p, call, atomic, repeat, lookahead, 0));
 					if (repeating.Value >= 0) goto S21;
@@ -4161,6 +4165,7 @@ namespace DotGram.Snapshots
 				S5:
 				{
 					reach = p;
+					reach0 = p;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -4294,8 +4299,8 @@ namespace DotGram.Snapshots
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					if ((uint)p >= (uint)text.Length) { expected = null; goto Fail; }
-					parser.Expecting = Expecting_DotGram(ref failure, reach);
-					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach, repeat, lookahead, 0));
+					expecting0 = Expecting_DotGram(ref failure, reach0, stood0, tied0);
+					entries.Add(new ParserEntry(ParserEntry.PendingRecovery, 15, p, call, reach0, repeat, lookahead, 0));
 				}
 
 				S16:
@@ -4354,7 +4359,7 @@ namespace DotGram.Snapshots
 							entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
 						if (choice.RepeatIndex == repeat && choice.State == 15 && (choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || choice.Kind == ParserEntry.PendingRecovery)) break;
 					}
-					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[entries.Count] = parser.Expecting;
+					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[entries.Count] = expecting0;
 					entries.Add(new ParserEntry(ParserEntry.Recovery, 0, recoveryFrom, call, recoveryReach, repeat, lookahead, recoveryTo, entries[repeat].Value));
 					var recoveredRepeat = entries[repeat];
 					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);
@@ -4511,6 +4516,8 @@ namespace DotGram.Snapshots
 				}
 				if (lookahead < 0 && p > reach)
 					reach = p;
+				if (lookahead < 0 && p > reach0)
+					reach0 = p;
 				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
@@ -5325,7 +5332,7 @@ namespace DotGram.Snapshots
 					if (at < 0)
 						to = at = window.Length;
 
-					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, Rejected_DotGram(Wanted_DotGram(Expecting_DotGram(ref failure0, failure0.Reach)), "Row", window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
+					OnRecovered("Row", window.Text(from, to - from), window.Offset + from, window.LineAt(from), window.ColumnAt(from), ordinal0, Rejected_DotGram(Wanted_DotGram(Expecting_DotGram(ref failure0, failure0.Reach, -1, 0)), "Row", window.LineAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ":" + window.ColumnAt(from + reached).ToString(global::System.Globalization.CultureInfo.InvariantCulture)));
 					ordinal0++;
 					start = at;
 					continue;
@@ -6079,15 +6086,6 @@ namespace DotGram.Snapshots
 			/// <summary>How far the element a recovering repetition last began got.</summary>
 			public int Reach;
 
-			/// <summary>
-			/// Where the furthest refusal stood when the turn of a recovering repetition last began,
-			/// and how many sets tied there then: what is recorded at that place since is the turn's.
-			/// </summary>
-			public int Stood;
-
-			/// <summary>See <c>Stood</c>.</summary>
-			public int Tied;
-
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 			public bool Starved;
 
@@ -6443,26 +6441,28 @@ namespace DotGram.Snapshots
 		/// turn began, or null where the furthest refusal is elsewhere or nothing was said.
 		/// </summary>
 		/// <remarks>
-		/// Where the furthest refusal already stood at that place when the turn began — an element
-		/// before that read across its line and stopped where this one begins — what was recorded
-		/// then is that one's: a tie at a place adds to <c>ExpectedMore</c>, so this one's sets are
-		/// the ones after the <c>Tied</c> that stood there.
+		/// <paramref name="stood"/> and <paramref name="tied"/> are where the furthest refusal stood
+		/// when the turn began and how many sets tied there then. Where it already stood at that
+		/// place — an element before that read across its line and stopped where this one begins —
+		/// what was recorded then is that one's: a tie at a place adds to <c>ExpectedMore</c>, and a
+		/// set said again in the turn is added again (Refuse_DotGram), so this one's sets are the
+		/// ones after the <paramref name="tied"/> that stood there.
 		/// </remarks>
-		static string[]? Expecting_DotGram(ref Failure failure, int at)
+		static string[]? Expecting_DotGram(ref Failure failure, int at, int stood, int tied)
 		{
 			if (failure.Position != at)
 				return null;
 
 			var more = failure.ExpectedMore;
 
-			if (failure.Stood == at)
+			if (stood == at)
 			{
-				if (more == null || more.Count <= failure.Tied)
+				if (more == null || more.Count <= tied)
 					return null;
 
-				return more.Count - failure.Tied == 1
-					? more[failure.Tied]
-					: Merged_DotGram(null, more, failure.Tied);
+				return more.Count - tied == 1
+					? more[tied]
+					: Merged_DotGram(null, more, tied);
 			}
 
 			if (more == null || more.Count == 0)
@@ -7356,7 +7356,6 @@ namespace DotGram.Snapshots
 			string[][] _values2 = global::System.Array.Empty<string[]>();
 			internal Located_DotGram Located;
 			internal global::System.Collections.Generic.Dictionary<int, string[]?>? Expectations;
-			internal string[]? Expecting;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -7443,7 +7442,6 @@ namespace DotGram.Snapshots
 					Expectations = null;
 				else
 					Expectations?.Clear();
-				Expecting = null;
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be

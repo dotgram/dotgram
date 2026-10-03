@@ -1829,6 +1829,7 @@ sealed partial class Machine
 				{
 					file.Line("var reach   = 0;");
 					file.Line("var syncFrom = 0;");
+					RecoveryLocals(file);
 				}
 
 				if (UsesChar)
@@ -2059,6 +2060,7 @@ sealed partial class Machine
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
 					file.Then("reach = p;");
+					RecoveryReaches(file);
 				}
 				file.Line("Trace(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();

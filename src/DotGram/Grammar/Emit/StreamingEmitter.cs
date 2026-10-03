@@ -460,7 +460,8 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, Recovery recovery,
 		string factory, int stage, string element)
 	{
-		var sets   = $"Expecting_DotGram(ref failure{stage}, failure{stage}.Reach)";
+		// The element is read on a failure of its own, so all that is recorded at the place is its.
+		var sets   = $"Expecting_DotGram(ref failure{stage}, failure{stage}.Reach, -1, 0)";
 		var once   = Machine.WordsOnce(recovery, sets);
 		var wanted = once is null ? $"Wanted_DotGram({sets})" : "wanted";
 
