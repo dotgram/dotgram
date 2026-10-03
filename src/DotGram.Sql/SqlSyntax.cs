@@ -3701,12 +3701,11 @@ public static class Syntax
 	/// <summary>Whether a value is a column and nothing more, brackets aside.</summary>
 	public static bool IsColumn(Expression? value)
 	{
-		return value switch
-		{
-			Expression.ColumnReference => true,
-			Expression.Parenthesized(var inner) => IsColumn(inner),
-			_ => false,
-		};
+		// A loop down the brackets rather than a call a bracket: the parser reads any number of them.
+		while (value is Expression.Parenthesized(var inner))
+			value = inner;
+
+		return value is Expression.ColumnReference;
 	}
 
 	static string Unquoted(string name)
@@ -4070,12 +4069,39 @@ public static class Syntax
 	/// <remarks>The source goes to the first of them, which is the innermost (<see cref="Chained"/>).</remarks>
 	public static TableReference Pivoted(TableReference source, TableReference? pivot)
 	{
-		return pivot switch
+		// Every table read asks this, and nearly every one has no pivot: nothing to allocate for that.
+		if (pivot is not (TableReference.Pivot or TableReference.Unpivot))
+			return source;
+
+		// The chain from the last pivot in to the first, then built again from the first out: a loop
+		// and not a call a pivot, since a chain of them is as long as the text that writes it.
+		var chain = new List<TableReference>();
+
+		for (var at = pivot; at is TableReference.Pivot or TableReference.Unpivot; )
 		{
-			TableReference.Pivot turned => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
-			TableReference.Unpivot turned => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
-			_ => source,
-		};
+			chain.Add(at);
+
+			at = at switch
+			{
+				TableReference.Pivot turned   => turned.Of,
+				TableReference.Unpivot turned => turned.Of,
+				_                             => null,
+			};
+		}
+
+		var made = source;
+
+		for (var at = chain.Count - 1; at >= 0; at--)
+		{
+			made = chain[at] switch
+			{
+				TableReference.Pivot turned   => turned with { Of = made },
+				TableReference.Unpivot turned => turned with { Of = made },
+				_                             => made,
+			};
+		}
+
+		return made;
 	}
 
 	/// <summary>
@@ -4297,18 +4323,35 @@ public static class Syntax
 	/// </remarks>
 	public static bool Cursorable(Query? query)
 	{
-		return query switch
+		// One query, which is nearly always what this is asked about, without the stack below.
+		if (query is not (Query.Union or Query.Except or Query.Intersect or Query.Parenthesized or Query.Ordered))
+			return query is not (null or Query.Specification { Into: not null } or Query.TableValueConstructor);
+
+		// Every query the operators and brackets lead to, kept on a stack of its own: the parser
+		// reads a chain of `UNION` as long as the text, deeper than a call each would have room for.
+		var pending = new Stack<Query?>();
+
+		pending.Push(query);
+
+		while (pending.Count > 0)
 		{
-			null => false,
-			Query.Specification { Into: not null } => false,
-			Query.TableValueConstructor => false,
-			Query.Union(var left, var right, _) => Cursorable(left) && Cursorable(right),
-			Query.Except(var left, var right, _) => Cursorable(left) && Cursorable(right),
-			Query.Intersect(var left, var right, _) => Cursorable(left) && Cursorable(right),
-			Query.Parenthesized(var inner) => Cursorable(inner),
-			Query.Ordered(var inner, _, _) => Cursorable(inner),
-			_ => true,
-		};
+			var next = pending.Pop();
+
+			if (next is null or Query.Specification { Into: not null } or Query.TableValueConstructor)
+				return false;
+
+			if (Combined(next) is (var left, var right))
+			{
+				pending.Push(right);
+				pending.Push(left);
+			}
+			else if (next is Query.Parenthesized(var bracketed))
+				pending.Push(bracketed);
+			else if (next is Query.Ordered(var ordered, _, _))
+				pending.Push(ordered);
+		}
+
+		return true;
 	}
 
 	/// <summary>Whether a routine's parameters pass a cursor, which a function may not.</summary>
@@ -4366,12 +4409,10 @@ public static class Syntax
 	/// <summary>Whether a query assigns a variable in its select list, anywhere down its brackets.</summary>
 	public static bool Assigns(Query? query)
 	{
-		return query switch
-		{
-			Query.Specification { Columns: var columns } => columns.Exists(static one => one is Clause.VariableAssignment),
-			Query.Parenthesized(var inner) => Assigns(inner),
-			_ => false,
-		};
+		while (query is Query.Parenthesized(var inner))
+			query = inner;
+
+		return query is Query.Specification { Columns: var columns } && columns.Exists(static one => one is Clause.VariableAssignment);
 	}
 
 	/// <summary>
@@ -4380,13 +4421,43 @@ public static class Syntax
 	/// </summary>
 	public static bool AssignsCombined(Query? query)
 	{
+		// Every select statement asks this, and nearly every one is one query: no stack for that.
+		if (query is not (Query.Union or Query.Except or Query.Intersect or Query.Parenthesized))
+			return false;
+
+		// On a stack of its own, as Cursorable is: a chain of operators is as deep as the text is long.
+		var pending = new Stack<Query?>();
+
+		pending.Push(query);
+
+		while (pending.Count > 0)
+		{
+			var next = pending.Pop();
+
+			if (Combined(next) is (var left, var right))
+			{
+				if (Assigns(left) || Assigns(right))
+					return true;
+
+				pending.Push(right);
+				pending.Push(left);
+			}
+			else if (next is Query.Parenthesized(var inner))
+				pending.Push(inner);
+		}
+
+		return false;
+	}
+
+	/// <summary>The two sides of a <c>UNION</c>, <c>EXCEPT</c> or <c>INTERSECT</c>, or null for any other query.</summary>
+	static (Query Left, Query Right)? Combined(Query? query)
+	{
 		return query switch
 		{
-			Query.Union(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
-			Query.Except(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
-			Query.Intersect(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
-			Query.Parenthesized(var inner) => AssignsCombined(inner),
-			_ => false,
+			Query.Union(var left, var right, _)     => (left, right),
+			Query.Except(var left, var right, _)    => (left, right),
+			Query.Intersect(var left, var right, _) => (left, right),
+			_                                       => null,
 		};
 	}
 

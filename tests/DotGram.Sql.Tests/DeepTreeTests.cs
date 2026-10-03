@@ -1,0 +1,182 @@
+﻿using System;
+using System.Text;
+using System.Threading;
+
+using DotGram.Sql.Standard;
+using DotGram.Sql.TransactSql;
+
+using Xunit;
+
+namespace DotGram.Sql.Tests;
+
+/// <summary>
+/// A tree of any depth a parser reads is read, written and walked on a thread of an ordinary size:
+/// a reading ends in a tree or a refusal, and a walk of the tree in its answer, never in a stack
+/// overflow.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Why a thread of a megabyte.</b> It is what a thread is given unless somebody asks for more, and
+/// a host that parses text it was sent does it on a thread like that. The generated readers carry a
+/// reading onto a stack of their own when theirs runs low; whatever walks the tree afterwards by
+/// recursion has to do the same.
+/// </para>
+/// <para>
+/// <b>What a failure looks like.</b> A stack overflow cannot be caught: it ends the test process, and
+/// the run is red because it never finished, not because an assertion said so. These are the two
+/// shapes it was found in: ten thousand <c>CASE … ELSE CASE …</c> ended the process that read them,
+/// because the reader probed its stack once in four entries and that level enters a probing rule four
+/// times, so the probe fell on the same entries every level and never on the <c>ELSE</c>; and a chain
+/// of a hundred thousand <c>+</c>, which every parser reads, ended the process that wrote it. Every
+/// other shape is swept in <c>DeepTreeSweepTests</c> (DotGram.Tests.Slow).
+/// </para>
+/// </remarks>
+public sealed class DeepTreeTests
+{
+	const int Depth = 10_000;
+
+	/// <summary>The size of thread a host gets without asking.</summary>
+	const int Stack = 1024 * 1024;
+
+	[Fact]
+	public void Ten_thousand_CASE_in_ELSE_are_read_and_written()
+	{
+		var text = Nested("SELECT ", "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END", "", Depth);
+
+		var (written, thrown) = OnStack(() =>
+		{
+			Assert.True(TransactSqlParser.TryParseStatement(text, 0).IsSuccess, "the positional reading refused it");
+			Assert.True(TransactSqlParser.Located.TryParseStatement(text).IsSuccess, "the located reading refused it");
+			Assert.True(TransactSqlParser.TryParseScript(text).IsSuccess, "the script reading refused it");
+			Assert.True(Sql92Parser.TryParseSelect(text + " FROM t").IsSuccess, "SQL-92 refused it");
+
+			return RoundTrip(text, TransactSqlParser.ParseStatement, SqlWriter.Write);
+		});
+
+		Assert.Null(thrown);
+		Assert.NotEmpty(written);
+	}
+
+	/// <summary>
+	/// A chain of a hundred thousand <c>+</c>, which every parser reads, is written by the writer of
+	/// its tree: the writer recursed a level a node and overflowed at about ten thousand.
+	/// </summary>
+	[Fact]
+	public void A_chain_of_a_hundred_thousand_is_written()
+	{
+		var chain = Nested("SELECT ", "1 + ", "1", "", "", 100_000);
+		var from  = chain + " FROM t";
+
+		var (written, thrown) = OnStack(() =>
+		{
+			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
+			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseQueryExpression(from));
+			var sql92    = SqlWriter.Write(Sql92Parser.ParseSelect(from));
+
+			Assert.Equal(chain, transact);
+			Assert.Equal(from, standard);
+			Assert.Equal(from, sql92);
+
+			return transact;
+		});
+
+		Assert.Null(thrown);
+		Assert.NotEmpty(written);
+	}
+
+	/// <summary>
+	/// A walk and a hash of a deep tree end: the walk with every node, and the hash with its value or,
+	/// where its stack runs out, a catchable exception.
+	/// </summary>
+	[Fact]
+	public void A_deep_tree_is_walked_and_hashed_without_a_crash()
+	{
+		var text = Nested("SELECT ", "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END", "", Depth);
+
+		var (nodes, thrown) = OnStack(() =>
+		{
+			var tree  = TransactSqlParser.ParseStatement(text);
+			var count = 0;
+
+			SqlWalker.Walk(tree, _ =>
+			{
+				count++;
+
+				return true;
+			});
+
+			try
+			{
+				tree.GetHashCode();
+			}
+			catch (InsufficientExecutionStackException)
+			{
+				// What a hash deeper than the stack answers (TreeEqualityTests); whether this one is
+				// depends on the frames the JIT gave it.
+			}
+
+			return count;
+		});
+
+		Assert.Null(thrown);
+		Assert.True(nodes > 3 * Depth, $"{nodes} nodes walked");
+	}
+
+	/// <summary>
+	/// Reads <paramref name="text"/>, writes the tree, reads what was written and writes that, and holds
+	/// the two texts written to each other.
+	/// </summary>
+	static string RoundTrip<T>(string text, Func<string, T> parse, Func<T, string> write)
+	{
+		var written = write(parse(text));
+		var again   = write(parse(written));
+
+		Assert.Equal(written, again);
+
+		return written;
+	}
+
+	static string Nested(string prefix, string open, string middle, string close, string suffix, int depth)
+	{
+		var text = new StringBuilder(prefix.Length + suffix.Length + middle.Length + (open.Length + close.Length) * depth);
+
+		text.Append(prefix);
+
+		for (var i = 0; i < depth; i++)
+			text.Append(open);
+
+		text.Append(middle);
+
+		for (var i = 0; i < depth; i++)
+			text.Append(close);
+
+		return text.Append(suffix).ToString();
+	}
+
+	/// <summary>
+	/// Runs <paramref name="function"/> on a thread of <see cref="Stack"/> bytes, and says what it answered
+	/// or threw.
+	/// </summary>
+	static (T Answer, Exception? Thrown) OnStack<T>(Func<T> function)
+	{
+		T          answer = default!;
+		Exception? caught = null;
+
+		var thread = new Thread(() =>
+		{
+			try
+			{
+				answer = function();
+			}
+			catch (Exception exception)
+			{
+				caught = exception;
+			}
+		}, Stack);
+
+		thread.Start();
+		thread.Join();
+
+		return (answer, caught);
+	}
+}

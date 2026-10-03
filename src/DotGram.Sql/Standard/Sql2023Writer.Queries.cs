@@ -21,6 +21,13 @@ public static partial class Sql2023Writer
 		// cursor specification says of it after them stands outside.
 		void PutQuery(Statement.Select query)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, query, static (into, node) => into.PutQuery(node));
+
+				return;
+			}
+
 			for (var at = 0; at < query.Parentheses; at++)
 				Open();
 
@@ -151,6 +158,13 @@ public static partial class Sql2023Writer
 
 		void PutOperand(QueryOperand operand)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, operand, static (into, node) => into.PutOperand(node));
+
+				return;
+			}
+
 			switch (operand)
 			{
 				case QueryOperand.Select select:
@@ -530,6 +544,13 @@ public static partial class Sql2023Writer
 
 		void PutPattern(RowPattern pattern)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, pattern, static (into, node) => into.PutPattern(node));
+
+				return;
+			}
+
 			switch (pattern)
 			{
 				case RowPattern.Variable variable:
@@ -622,6 +643,13 @@ public static partial class Sql2023Writer
 
 		void PutSource(TableSource source)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, source, static (into, node) => into.PutSource(node));
+
+				return;
+			}
+
 			switch (source)
 			{
 				case TableSource.Named named:
@@ -886,6 +914,13 @@ public static partial class Sql2023Writer
 
 		void PutPlan(JsonTablePlan plan)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, plan, static (into, node) => into.PutPlan(node));
+
+				return;
+			}
+
 			switch (plan)
 			{
 				case JsonTablePlan.Name name:
@@ -1037,6 +1072,13 @@ public static partial class Sql2023Writer
 
 		void PutStatement(Statement statement)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, statement, static (into, node) => into.PutStatement(node));
+
+				return;
+			}
+
 			switch (statement)
 			{
 				case Statement.Select select:

@@ -34,6 +34,11 @@ namespace DotGram.Sql;
 /// — `CONVERT (v USING cs)` against `CONVERT (type, v)` — what comes out is T-SQL's, because
 /// that is the dialect this is an oracle for.
 /// </para>
+/// <para>
+/// <b>Any depth the parsers read is written.</b> The writer recurses a level a node, and every
+/// method that can reach a node of its own kind checks the stack first and, where it runs low, goes
+/// on writing on a thread of its own (<c>SqlStack</c>), as the generated readers do.
+/// </para>
 /// </remarks>
 public static class SqlWriter
 {
@@ -86,6 +91,13 @@ public static class SqlWriter
 
 	static void Put(StringBuilder text, Statement statement)
 	{
+		if (!SqlStack.Enough())
+		{
+			SqlStack.Deeper(text, statement, static (into, node) => Put(into, node));
+
+			return;
+		}
+
 		switch (statement)
 		{
 			case Statement.Select(var with, var of, var by, var shape, var options):
@@ -1606,6 +1618,13 @@ public static class SqlWriter
 
 	static void Put(StringBuilder text, Query query, int least)
 	{
+		if (!SqlStack.Enough())
+		{
+			SqlStack.Deeper(text, query, least, static (into, node, level) => Put(into, node, level));
+
+			return;
+		}
+
 		var binds = query switch
 		{
 			Query.Union or Query.Except => 1,
@@ -1768,6 +1787,13 @@ public static class SqlWriter
 
 	static void Put(StringBuilder text, TableReference source)
 	{
+		if (!SqlStack.Enough())
+		{
+			SqlStack.Deeper(text, source, static (into, node) => Put(into, node));
+
+			return;
+		}
+
 		switch (source)
 		{
 			case TableReference.Named(
@@ -2027,6 +2053,13 @@ public static class SqlWriter
 
 	static void Put(StringBuilder text, Clause clause)
 	{
+		if (!SqlStack.Enough())
+		{
+			SqlStack.Deeper(text, clause, static (into, node) => Put(into, node));
+
+			return;
+		}
+
 		switch (clause)
 		{
 			case Clause.DerivedColumn(var value, var name):
@@ -2863,6 +2896,13 @@ public static class SqlWriter
 
 	static void Put(StringBuilder text, Expression expression, int least)
 	{
+		if (!SqlStack.Enough())
+		{
+			SqlStack.Deeper(text, expression, least, static (into, node, level) => Put(into, node, level));
+
+			return;
+		}
+
 		var binds = Binds(expression);
 		var wrap  = binds < least;
 

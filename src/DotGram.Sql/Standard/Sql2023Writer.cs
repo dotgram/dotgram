@@ -21,6 +21,10 @@ namespace DotGram.Sql.Ast;
 /// capitals, one space between tokens, none inside a name or a call; which of two spellings was written, the
 /// tree says and this repeats.
 /// </para>
+/// <para>
+/// <b>Any depth the parser reads is written</b>: every method that can reach a node of its own kind
+/// checks the stack first and, where it runs low, goes on on a thread of its own (<c>SqlStack</c>).
+/// </para>
 /// </remarks>
 public static partial class Sql2023Writer
 {
@@ -299,6 +303,13 @@ public static partial class Sql2023Writer
 
 		void PutType(DataType type)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, type, static (into, node) => into.PutType(node));
+
+				return;
+			}
+
 			switch (type)
 			{
 				case DataType.Character character:
@@ -532,6 +543,13 @@ public static partial class Sql2023Writer
 
 		void PutExpression(Expression expression)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, expression, static (into, node) => into.PutExpression(node));
+
+				return;
+			}
+
 			switch (expression)
 			{
 				case Expression.Literal literal:
@@ -1916,6 +1934,13 @@ public static partial class Sql2023Writer
 
 		void PutPath(JsonPathExpression path)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, path, static (into, node) => into.PutPath(node));
+
+				return;
+			}
+
 			switch (path)
 			{
 				case JsonPathExpression.Variable variable when variable.Kind == JsonPathVariableKind.Context:
@@ -1968,6 +1993,13 @@ public static partial class Sql2023Writer
 
 		void PutPathPredicate(JsonPathPredicate predicate)
 		{
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, predicate, static (into, node) => into.PutPathPredicate(node));
+
+				return;
+			}
+
 			switch (predicate)
 			{
 				case JsonPathPredicate.Exists exists:
