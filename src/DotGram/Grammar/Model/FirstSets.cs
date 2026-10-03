@@ -1426,6 +1426,14 @@ public static class FirstSets
 		First? next = First.None;
 		var done = false;
 
+		// A part that reads nothing and can refuse — a look, a guard — decides whether the
+		// pattern matches by something other than the tokens it reads, wherever it stands:
+		// `Word & ?!'{'` is not done after a word where a brace follows. Not followed, so
+		// nothing is proved.
+		for (var i = from; i < parts.Count; i++)
+			if (Silent(parts[i]) && parts[i] is not Node.Empty)
+				return (null, false);
+
 		for (var i = from; i < parts.Count; i++)
 		{
 			if (Silent(parts[i]))
@@ -1617,7 +1625,19 @@ public static class FirstSets
 		return seam is not null && node is Node.Call(var called, _) && ReferenceEquals(called, seam);
 	}
 
-	/// <summary>Whether every reading of a node consumes exactly one character.</summary>
+	/// <summary>
+	/// Whether every reading of a node consumes exactly one character, and it reads one wherever
+	/// its first set admits the character there.
+	/// </summary>
+	/// <remarks>
+	/// The second half is what a refusal of it is read for: that it refuses exactly the characters
+	/// it begins with, as <see cref="Following"/> narrows them. A part that reads nothing and can
+	/// refuse breaks it, unless it is a look in front decided by the same character, which narrows
+	/// that set exactly — <c>?!Keyword &amp; Word</c> over kinds. Anywhere else it decides by
+	/// something else: <c>?!(Word &amp; ?!'{')</c> refuses a word only where no brace follows, and
+	/// taken as refusing every word it told the rule it stood in that it could begin with nothing
+	/// but what came after the word.
+	/// </remarks>
 	static bool OneCharacter(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
 		return node switch
@@ -1625,8 +1645,7 @@ public static class FirstSets
 			Node.Literal(var text) => text.Length == 1,
 			Node.Element(_, _, _, var references) => references.Count == 0,
 			Node.Choice(var alternatives) { Selection: null } => alternatives.All(one => OneCharacter(one, graph, seen)),
-			Node.Sequence(var parts) => parts.Count(part => !Silent(part)) == 1 &&
-													   parts.All(part => Silent(part) || OneCharacter(part, graph, seen)),
+			Node.Sequence(var parts) => OneCharacter(parts, graph, seen),
 			Node.Capture(_, var held) => OneCharacter(held, graph, seen),
 			Node.Atomic(var body) => OneCharacter(body, graph, seen),
 			Node.Marked(var body, _) => OneCharacter(body, graph, seen),
@@ -1637,6 +1656,34 @@ public static class FirstSets
 													   OneCharacter(body, graph, seen),
 			_ => false,
 		};
+	}
+
+	/// <summary>
+	/// <see cref="OneCharacter(Node, RecognitionGraph, HashSet{RuleSymbol})"/> of a sequence: looks
+	/// decided by the character in front of it, then the one part that reads it.
+	/// </summary>
+	static bool OneCharacter(IReadOnlyList<Node> parts, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		var read = false;
+
+		foreach (var part in parts)
+		{
+			if (part is Node.Empty)
+				continue;
+
+			if (!read && part is Node.Lookahead(_, var looked) &&
+				OneCharacter(looked, graph, seen) && Of(looked, graph).IsKnown)
+			{
+				continue;
+			}
+
+			if (read || !OneCharacter(part, graph, seen))
+				return false;
+
+			read = true;
+		}
+
+		return read;
 	}
 
 	/// <summary>A part that reads nothing: a look, a guard, or nothing at all.</summary>

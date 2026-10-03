@@ -418,7 +418,7 @@ sealed partial class Machine
 					else if (!Scannable(parts[i], next, seen))
 						return false;
 
-					next = FollowSets.Plainly(parts[i], next, _graph);
+					next = Before(parts[i], next);
 				}
 
 				return true;
@@ -495,6 +495,30 @@ sealed partial class Machine
 			default:
 				return false;
 		}
+	}
+
+	/// <summary>
+	/// What still has to match inside the group where a part of a sequence begins, given what
+	/// has to where it ends.
+	/// </summary>
+	/// <remarks>
+	/// The tail stops being one at a part that reads nothing and can refuse: `{ ['a'..'b']+ &amp;
+	/// ?='b' }` matches `ab` by giving the `b` back, and greed, which is right where nothing can
+	/// fail after it, read both and refused. What then has to match is where the part lets the
+	/// reading through — what a positive look looks for, what a refusal of one character does
+	/// not refuse (<see cref="FirstSets.Past"/>), and anything for whatever else refuses.
+	/// Short of the tail, what reads after the part already says it, the look being only
+	/// narrower.
+	/// </remarks>
+	FirstSets.First Before(Node part, FirstSets.First after)
+	{
+		if (!after.Nothing || !FirstSets.Nullable(part, _graph) || FirstSets.Unfailing(part, _graph))
+			return FollowSets.Plainly(part, after, _graph);
+
+		return part is Node.Lookahead(true, var seen) && !FirstSets.Nullable(seen, _graph) &&
+			FirstSets.Of(seen, _graph) is { Anything: false, Nothing: false } wanted
+				? wanted
+				: FirstSets.Past(part, FirstSets.First.Stop, _graph);
 	}
 
 	/// <summary>

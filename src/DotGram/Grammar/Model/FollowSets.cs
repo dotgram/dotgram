@@ -79,6 +79,21 @@ public static class FollowSets
 		internal static readonly Continuation Stop = new(FirstSets.First.Stop, FirstSets.First.Stop, Lead.Nothing);
 
 		/// <summary>
+		/// The end of something whose first reading is the only one asked for: a look's body, an
+		/// atomic group's contents, a yielded element. Anything may stand after it, and nothing
+		/// after it can fail and ask it back for another reading, which is the stop the view says.
+		/// </summary>
+		/// <remarks>
+		/// Not <see cref="None"/>, which says that nothing can begin there. Past a part that can
+		/// refuse while reading nothing — <c>?!'{'</c> at the end of <c>?!(Word &amp; ?!'{')</c> —
+		/// that composes to what the part reads and nothing else, so a repetition before it was
+		/// taken as never giving back, and the body's shorter readings were never tried; an
+		/// optional at the end kept no way back to its skip. The stop composes past a refusal to
+		/// what the refusal lets through (<see cref="FirstSets.Past"/>).
+		/// </remarks>
+		internal static readonly Continuation Sealed = All with { View = new Split(Stop) };
+
+		/// <summary>
 		/// What the proofs that ask only whether what follows can <em>fail</em> may read instead of
 		/// this, or null where they read this.
 		/// </summary>
@@ -401,7 +416,7 @@ public static class FollowSets
 			// reading, which is the stop the view says (Continuation.View). Not `None`, which
 			// says that nothing can begin after the element: an optional at its end then kept
 			// no way back to its skip, and `'a' & ('b' & 'c')?` refused the `a` of "aba".
-			var yielded = Continuation.All with { View = new Split(Continuation.Stop) };
+			var yielded = Continuation.Sealed;
 
 			var after = publication.Kind switch
 			{
@@ -539,15 +554,16 @@ public static class FollowSets
 				case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
 				case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
 
-				// Inside, nothing follows — the atomic group's sentence, and for the same
-				// reason: a look is decided at its first match and gives back everything it
-				// read, so nothing after it can ever ask its body for a different reading.
-				// What is read again by whatever comes next follows the *look*, not its body,
-				// and that is the caller's continuation rather than anything contributed here.
-				// What follows a part inside the body is unaffected: the sequence above
-				// threads it, so `?(A* & B)` still hands B's first set to the star.
+				// Inside, the body is sealed: a look is decided at its first match and gives
+				// back everything it read, so nothing after it can ever ask its body for a
+				// different reading. What is read again by whatever comes next follows the
+				// *look*, not its body, and that is the caller's continuation rather than
+				// anything contributed here. What follows a part inside the body is unaffected:
+				// the sequence above threads it, so `?(A* & B)` still hands B's first set to the
+				// star — and `?(A* & ?!B)` hands it what the refusal lets through, which is why
+				// the end is a stop and not nothing (Continuation.Sealed).
 				case Node.Lookahead(_, var seen):
-					Contribute(seen, Continuation.None, seam);
+					Contribute(seen, Continuation.Sealed, seam);
 
 					return;
 			}

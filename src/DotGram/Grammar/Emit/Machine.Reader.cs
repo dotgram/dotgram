@@ -4590,18 +4590,18 @@ sealed partial class Machine
 				return;
 			}
 
-			// Inside, nothing follows. "Nothing after it may come back into it" is a statement
-			// about the continuation, and the group's contents are entitled to hear it: what
-			// ends the group is the seal, so a repetition standing at the end of one is never
-			// asked for a shorter reading and owes no way per turn. `trivia = { (Space |
+			// Inside, the group is sealed. "Nothing after it may come back into it" is a
+			// statement about the continuation, and the group's contents are entitled to hear
+			// it: what ends the group is the seal, so a repetition standing at the end of one is
+			// never asked for a shorter reading and owes no way per turn. `trivia = { (Space |
 			// LineComment | BlockComment)* }` is the shape this is written for, and it is in
 			// every grammar that spaces its operands: it was opening a way for every character
 			// of whitespace and sealing all of them a moment later. What follows inside the
 			// group is threaded as it always was — `{ A* & B }` still hands B's first set to
-			// the star before it.
+			// the star before it, and `{ A* & ?!B }` what the refusal lets through.
 			var segment             = _ways++;
 			var took                = $"q{_calls++}";
-			var (call, undo, opens) = Called(kept, FollowSets.Continuation.None);
+			var (call, undo, opens) = Called(kept, FollowSets.Continuation.Sealed);
 
 			// Where nothing under the group can open a way, there is nothing to take back into it
 			// and nothing to seal: the loop never went round, the seal spent nothing, and the one
@@ -4964,18 +4964,21 @@ sealed partial class Machine
 
 			var seen = $"q{_calls++}";
 
-			// Inside, nothing follows — the same continuation an atomic group hands its
+			// Inside, the body is sealed — the same continuation an atomic group hands its
 			// contents (EmitAtomic), and the same reason: a look is decided at its first
 			// match and gives back what it read, so a repetition standing at the end of its
 			// body is never asked for a shorter reading and owes no way. `?!LogSeparator`
 			// over `' '* & '|' & ' '*` was opening one for the trailing run of spaces.
-			var (call, undo, opens) = Called(inside, FollowSets.Continuation.None);
+			var (call, undo, opens) = Called(inside, FollowSets.Continuation.Sealed);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
-			// and what it captured on the way to it is not the rule's. Over the tape, what it
-			// decided is also sealed — nothing after it may reopen it, because a second
-			// reading of it can only say the same. Where nothing inside can open a way there is
-			// nothing to seal, and nothing is written about ways.
+			// and what it captured on the way to it is not the rule's. Over the tape, the body
+			// is asked for a reading until it has one, as an atomic group's contents are — a
+			// way it opened is a reading not yet tried, and `?!(Word & ?!'{')` has one wherever
+			// a shorter word is not followed by the brace — and then what it decided is sealed:
+			// nothing after it may reopen it, because a second reading of it can only say the
+			// same. Where nothing inside can open a way there is nothing to retry or seal, and
+			// nothing is written about ways.
 			var mark    = _ways++;
 			var sealing = _tape && opens;
 
@@ -4991,7 +4994,39 @@ sealed partial class Machine
 			// reader says so on the failure it carries, which every reading has, ways or not.
 			code.Line("failure.Looking++;");
 			machine._looks = true;
-			code.Line($"var {seen} = {call};");
+
+			if (sealing)
+			{
+				// Declared and not set: every way out of the loop below has just set it.
+				code.Line($"int {seen};");
+				code.Line();
+
+				using (code.Block("while (true)"))
+				{
+					code.Line($"{seen} = {call};");
+					code.Line();
+					code.Line($"if ({seen} >= 0)");
+					code.Then("break;");
+					code.Line();
+					LogBack(code, $"lm{mark}");
+					foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{mark}"))
+						code.Line(line);
+
+					if (undo.Length > 0)
+						code.Line(undo);
+
+					code.Line();
+					code.Line($"if (ways.Cursor > s{mark} && ways.Retry(s{mark}))");
+					code.Then("continue;");
+					code.Line();
+					code.Line("break;");
+				}
+			}
+			else
+			{
+				code.Line($"var {seen} = {call};");
+			}
+
 			code.Line("failure.Looking--;");
 			code.Line();
 			LogBack(code, $"lm{mark}");
