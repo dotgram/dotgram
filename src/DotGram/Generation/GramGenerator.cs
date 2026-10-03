@@ -11,6 +11,7 @@ using DotGram.Grammar.Emit;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace DotGram.Generation;
 
@@ -145,9 +146,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Positional.Off
 				: Positional.Off);
 
-		var compiled = answered.Combine(reporting).Combine(counting).Combine(positional)
-			.Select(static (input, _) => CompileSafely(
-				input.Left.Left.Left, input.Left.Left.Right, input.Left.Right, input.Right))
+		// `DotGramNoCache`: compile every grammar afresh rather than take a parser kept from an
+		// earlier compilation in this process (Compiled). `DotGramVerifyCache` is the repository's
+		// own: take it, compile afresh as well, and fail the build where the two differ.
+		var caching = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+			IsTrue(options, "build_property.DotGramNoCache") ? Caching.Off :
+			IsTrue(options, "build_property.DotGramVerifyCache") ? Caching.Verify :
+			Caching.On);
+
+		var compiled = answered.Combine(reporting).Combine(counting).Combine(positional).Combine(caching)
+			.Select(static (input, _) => CompileCached(
+				input.Left.Left.Left.Left, input.Left.Left.Left.Right, input.Left.Left.Right, input.Left.Right, input.Right))
 			.WithTrackingName(CompiledStage);
 
 		// Each parser beside where its host is written. The lookup runs for every parser whenever
@@ -279,6 +288,170 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			return new Parser(grammar.Host.Key, null, null, failed.Reports);
 		}
+	}
+
+	/// <summary>Whether a build asked for the parsers kept from earlier compilations, and how.</summary>
+	enum Caching
+	{
+		On,
+		Off,
+		Verify,
+	}
+
+	/// <summary>Everything the compile reads, as values: what a kept parser is found by.</summary>
+	/// <remarks>
+	/// Exactly the arguments of <see cref="Compile"/>: the grammar — the host, its joined text and
+	/// paths, the questions and the answers the compilation gave to them — and the three things the
+	/// build says about how to compile it. The same equality the incremental pipeline already
+	/// trusts to skip the compile within one driver, so keeping a parser across drivers adds no
+	/// second notion of "the same input". <paramref name="Generator"/> is which build of the
+	/// generator compiled it: implied already, since every loaded assembly of the generator has a
+	/// cache of its own, and written down so that nothing has to know that.
+	/// </remarks>
+	readonly record struct CompileKey(
+		Grammar                      Grammar,
+		Reporting                    Reporting,
+		(bool Counts, bool Memoises) Counting,
+		Positional                   Positional,
+		Guid                         Generator);
+
+	/// <summary>
+	/// The parsers compiled in this process, kept for the next compilation that asks for one of them.
+	/// </summary>
+	/// <remarks>
+	/// A command-line build after an edit to C# alone compiles every grammar of the project again
+	/// — the answers come out the same, but no driver is kept between two builds to know it — and
+	/// that compile is most of the generator's time: seconds for a grammar of a thousand rules. The
+	/// compiler server keeps this assembly loaded, so the parser kept here is found again.
+	/// <para>
+	/// The budget is two parsers of the largest grammar this repository has, T-SQL, whose text is
+	/// sixteen million characters — 64 MB as .NET holds it. Small on purpose: a long-lived server is
+	/// shared by every project and every checkout on the machine, and each build of the generator it
+	/// loads has a cache of its own. Two target frameworks of one project mostly compile the same
+	/// text, and hold it once (Shared). What is counted is text; the questions and answers each key
+	/// holds come on top of it, about a fifth more: the three SQL parsers of DotGram.Sql for both
+	/// of its target frameworks left 67 MB more held after a full collection than without the cache.
+	/// A generator built again in the same place does not add a second cache beside the first: when
+	/// that was measured, each build after such a change ran in a new compiler server process.
+	/// </para>
+	/// </remarks>
+	static readonly CompileCache<CompileKey, Parser> Compiled = new(
+		32L * 1024 * 1024,
+		static (key, parser) => StringsOf(key, parser),
+		static (parser, kept) => Shared(parser, kept));
+
+	static readonly Guid GeneratorBuild = typeof(GramGenerator).Assembly.ManifestModule.ModuleVersionId;
+
+	/// <summary>
+	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
+	/// same input.
+	/// </summary>
+	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional, Caching caching)
+	{
+		// No text is a grammar that never got as far as the compile, which only hands its reports on.
+		if (caching == Caching.Off || grammar.Text is null)
+			return CompileSafely(grammar, reporting, counting, positional);
+
+		var key = new CompileKey(grammar, reporting, counting, positional, GeneratorBuild);
+
+		if (Compiled.TryGet(key, out var kept))
+			return caching == Caching.Verify ? Verified(key, kept) : kept;
+
+		var parser = CompileSafely(grammar, reporting, counting, positional);
+
+		// A compile that failed inside is a defect, and is answered again next time rather than
+		// remembered: it may have been the moment and not the input.
+		if (!parser.Reports.Items.Any(static report => report.Id == Diagnostics.InternalFailure.Id))
+			Compiled.Add(key, Recalled(parser));
+
+		return parser;
+	}
+
+	/// <summary>
+	/// A kept parser held to a fresh compile of its own input: where the two differ, something the
+	/// compile reads is missing from <see cref="CompileKey"/>, and the build fails saying so.
+	/// </summary>
+	static Parser Verified(CompileKey key, Parser kept)
+	{
+		var fresh = CompileSafely(key.Grammar, key.Reporting, key.Counting, key.Positional);
+
+		if (Recalled(fresh) == kept)
+			return kept with { Summary = Recalled(kept.Summary, "cached and verified") };
+
+		Compiled.Remove(key);
+
+		var reports = ImmutableArray.CreateBuilder<Report>();
+
+		reports.AddRange(fresh.Reports.Items);
+		reports.Add(Report.Of(
+			Diagnostics.InternalFailure,
+			Site.Attribute,
+			"verifying the parser kept from an earlier compilation",
+			"DotGram.Generation.CompileCache",
+			"it differs from a fresh compile of the same input: " + Difference(kept, Recalled(fresh))));
+
+		return fresh with { Reports = Values(reports) };
+	}
+
+	/// <summary>Which part of two parsers differs, for the message that says they do.</summary>
+	static string Difference(Parser kept, Parser fresh)
+	{
+		return
+			kept.Text != fresh.Text       ? "the text" :
+			kept.Parts != fresh.Parts     ? "the parts" :
+			kept.Reports != fresh.Reports ? "the diagnostics" :
+			kept.Detail != fresh.Detail   ? "the detail of the report" :
+			"the summary or the names";
+	}
+
+	/// <summary>The parser as it is kept: the report's line says it was not compiled this time.</summary>
+	static Parser Recalled(Parser parser)
+	{
+		return parser with { Summary = Recalled(parser.Summary, "cached") };
+	}
+
+	/// <summary>
+	/// The report's line with the time the compile took replaced by <paramref name="instead"/>: that
+	/// time is the line's last item, and a parser taken from the cache took none of it.
+	/// </summary>
+	static string? Recalled(string? summary, string instead)
+	{
+		var timing = summary?.LastIndexOf(", ", StringComparison.Ordinal) ?? -1;
+
+		return timing < 0 ? summary : summary!.Substring(0, timing + 2) + instead;
+	}
+
+	/// <summary>
+	/// The parser with its text the very string a kept parser already holds, where one holds the same:
+	/// two target frameworks whose answers differ in nothing the parser spells compile the same text,
+	/// and the second keeps no copy of it.
+	/// </summary>
+	static Parser Shared(Parser parser, IEnumerable<Parser> kept)
+	{
+		if (parser.Text is not { } text)
+			return parser;
+
+		foreach (var other in kept)
+			if (other.Text is { } same && same.Length == text.Length && !ReferenceEquals(same, text) && string.Equals(same, text, StringComparison.Ordinal))
+				return parser with { Text = same };
+
+		return parser;
+	}
+
+	/// <summary>The strings of an entry that the budget counts: the grammar and what it compiled into.</summary>
+	static IEnumerable<string?> StringsOf(CompileKey key, Parser parser)
+	{
+		yield return key.Grammar.Text;
+		yield return parser.Text;
+
+		foreach (var part in parser.Parts.Items)
+			yield return part.Text;
+	}
+
+	static bool IsTrue(AnalyzerConfigOptionsProvider options, string property)
+	{
+		return options.GlobalOptions.TryGetValue(property, out var value) &&
+			string.Equals(value.Trim(), "true", StringComparison.OrdinalIgnoreCase);
 	}
 
 	static bool Recoverable(Exception exception)

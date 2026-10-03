@@ -50,9 +50,11 @@ its MSBuild target automatically; direct analyzer references need to import
 The property takes three values. `none` is the default and says nothing at all.
 `summary` prints one line per parser, at an importance a minimal build shows: the host
 (and named variant), the normalized rule count, the generated C# size in UTF-8 bytes,
-and the generation time. `full` prints, beside each of those, the actual
-lexical/character mode, the requested strategy options and the carrier of every machine
-in the grammar — at an importance `-v:normal` and above show, so a quiet build stays
+and the generation time — or `cached`, where the compiler server had compiled the same input
+in an earlier build and the parser was taken from there (`DotGramNoCache=true` turns that off; see
+[the notation](https://github.com/dotgram/dotgram/blob/main/docs/syntax.md#dotgramnocache)).
+`full` prints, beside each of those, the actual lexical/character mode, the requested
+strategy options and the carrier of every machine in the grammar — at an importance `-v:normal` and above show, so a quiet build stays
 quiet whichever is set. `true` and `false` are the older spellings of `full` and `none`.
 
 Rule counts include normalized specializations and library rules. Individual

@@ -23,6 +23,9 @@
 		     position, which makes its positional forms answer the rule's first reading and costs the
 		     whole forms some of their proofs (docs/syntax.md, §6.8). -->
 		<CompilerVisibleProperty Include="DotGramPositionalFollow" />
+		<!-- Off unless `true`: compile every grammar afresh rather than take the parser an earlier
+		     compilation in the same compiler server made of the same input (docs/syntax.md, §6.8). -->
+		<CompilerVisibleProperty Include="DotGramNoCache" />
 		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(_DotGramReport)' != 'none'" />
 	</ItemGroup>
 

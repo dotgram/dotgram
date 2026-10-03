@@ -58,6 +58,22 @@ the positional end told apart where that changes no answer (syntax.md §6.8); FI
 and reports nothing under it. `PositionalSplitWebTests` (DotGram.Tests.Slow) holds `split` to `true`
 on the shipped web grammars, in both renderings.
 
+The generator keeps the parsers it compiled in a static cache for as long as the compiler server
+that loaded it lives (syntax.md §6.8, `DotGramNoCache`), so a second build after an edit to C#
+alone reports `cached` where the generation time was. Two consequences for working here. A
+measurement of the generator's own time must not take a kept parser: the stand and
+`Gate-Generation.ps1` build with `-p:UseSharedCompilation=false`, a compiler process per
+compilation, which keeps nothing; anything else that times generation sets `-p:DotGramNoCache=true`.
+And the cache is found by every input of the compile, which is a claim a test can only sample:
+`-p:DotGramVerifyCache=true`, a property only this repository declares (`Directory.Build.targets`),
+compiles afresh every grammar it finds in the cache, holds the two parsers to each other and fails
+the build with `GRAM0001` where they differ. The `checked` job in CI builds the solution with it,
+which takes nothing from the cache (every compilation there is a first), and then rebuilds
+`DotGram.Sql` twice after touching a C# file: the first may have to compile again what the rest of
+the solution pushed out of the cache, the second takes both target frameworks' parsers from it and
+verifies them, and a report line reads `cached and verified` where that
+happened.
+
 ## The same build on Linux
 
 CI builds on Windows and on Linux, and the Linux job has caught what the Windows one

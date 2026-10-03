@@ -125,8 +125,26 @@ jobs:
 
       - run: dotnet restore DotGram.slnx
 
+      # And with the generator's cache verified (docs/development.md): a parser taken from what an
+      # earlier compilation in the compiler server kept is compiled again and held to the kept one, and
+      # a difference, which would be an input of the compile the cache's key does not hold, fails the
+      # build with GRAM0001.
       - name: Build with the invariant compiled in
-        run: dotnet build DotGram.slnx --no-restore --configuration Linux -p:DotGramChecks=true -warnaserror
+        run: dotnet build DotGram.slnx --no-restore --configuration Linux -p:DotGramChecks=true -p:DotGramVerifyCache=true -warnaserror
+
+      # The build above takes nothing from the cache: every compilation in it is a first. What a
+      # user's rebuild after an edit to C# alone does is this, on the largest grammars there are. The
+      # first rebuild compiles DotGram.Sql's parsers again wherever the rest of the solution pushed them
+      # out of the cache's small budget; the second takes both target frameworks' from the cache and
+      # verifies them. The grep is what says the check ran at all.
+      - name: The generator's cache, verified on a C#-only rebuild
+        shell: bash
+        run: |
+          for build in first second; do
+            touch src/DotGram.Sql/SqlWalker.cs
+            dotnet build src/DotGram.Sql/DotGram.Sql.csproj --no-restore --configuration Release -p:DotGramChecks=true -p:DotGramVerifyCache=true -warnaserror | tee "$RUNNER_TEMP/verify-cache-$build.log"
+          done
+          grep "cached and verified" "$RUNNER_TEMP/verify-cache-second.log"
 
       # Every suite, snapshots included. The check lines are in the generated TEXT whether or not the
       # symbol is defined — the symbol decides only whether they compile — so the baseline matches

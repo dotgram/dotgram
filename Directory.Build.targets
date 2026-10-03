@@ -5,6 +5,13 @@
 	</PropertyGroup>
 	<Import Project="src/DotGram/build/DotGram.targets"
 	        Condition="'$(_DotGramAnalyzerReferences)' != ''" />
+	<!-- The repository's own check of the generator's cache, declared here and not in the package's
+	     targets so that no consumer's build can turn it on: `-p:DotGramVerifyCache=true` compiles
+	     afresh every grammar whose parser it takes from the cache, and fails the build where the two
+	     differ. One CI job builds with it (docs/development.md). -->
+	<ItemGroup Condition="'$(_DotGramAnalyzerReferences)' != ''">
+		<CompilerVisibleProperty Include="DotGramVerifyCache" />
+	</ItemGroup>
 	<!-- A page that ships in a package links to the repository as it was when the package was made:
 	     /blob/main/ and /tree/main/ become the version's tag, v$(Version), in the copy that is packed.
 	     The source keeps main, which is right for someone reading the repository; a reader of an

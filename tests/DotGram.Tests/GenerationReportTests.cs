@@ -163,6 +163,10 @@ public sealed class GenerationReportTests
 			{
 				"build_property.DotGramReportGeneration" => level,
 				"build_property.DesignTimeBuild" => designTime.ToString(),
+
+				// These read the time the compile took, which a parser kept from another test's
+				// compilation of the same grammar did not take (CompileCacheTests).
+				"build_property.DotGramNoCache" => "true",
 				_ => "",
 			};
 			return value.Length > 0;

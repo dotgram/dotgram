@@ -2347,6 +2347,31 @@ generated shapes; what differs is the reader the generator writes. In this repos
 the readers whose rule ends behind a `when` move from the immediate carrier: the fragment form of
 JSON Pointer and the `Set-Cookie` reader.
 
+#### `DotGramNoCache`
+
+An MSBuild property like the one above, and off unless set to `true`. It changes nothing a parser
+reads or builds; it changes only whether the generator compiles a grammar it has compiled before.
+
+The generator keeps the parsers it has compiled, in memory, for as long as the process that loaded
+it lives. A command-line build runs in the compiler server, which outlives the build by some
+minutes, and the next build of the project after an edit to its C# alone — one that leaves the
+grammar, the attribute's options and every answer about the host's C# types as they were — takes the
+parser from there instead of compiling the grammar again: seconds a build for a grammar of a
+thousand rules. A parser is found by everything its compile reads, so an edit that changes any of
+it compiles afresh. What is kept is bounded, a few tens of megabytes, and a parser the compile
+failed inside of (`GRAM0001`) is not kept. A generation report says `cached` where its time would
+be.
+
+```xml
+<PropertyGroup>
+  <DotGramNoCache>true</DotGramNoCache>
+</PropertyGroup>
+```
+
+Set, every grammar is compiled afresh. `dotnet build-server shutdown` empties what is kept as
+well, with the server it lives in: either is the thing to try where a parser looks older than the
+grammar it was compiled from.
+
 #### Attributes for tooling
 
 These describe the language to editors. An editor reads them rather than executing them, and

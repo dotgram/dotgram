@@ -502,6 +502,11 @@ The traps, in the order they are usually met:
 
 - **Let C# do what C# is better at.** A guard, a constructor, an operator on the result
   type — the grammar says what the syntax is, and what a thing means is the C#'s.
+- **A parser older than its grammar?** The compiler server keeps the parsers it compiled and
+  takes one again when nothing the compile reads has changed, which is what makes a rebuild after
+  an edit to C# alone quick. If one ever looks stale, `dotnet build-server shutdown` empties it, and
+  `<DotGramNoCache>true</DotGramNoCache>` stops it keeping any; a build report that says `cached`
+  in place of a time is one that took a kept parser.
 - **On `netstandard2.0` and `net472`** add a `System.Memory` reference: the generated
   methods take `ReadOnlySpan<char>`, which those frameworks do not carry.
 - **The generated code is yours to license.** What the generator writes into your compilation
