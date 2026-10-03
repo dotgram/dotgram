@@ -7935,10 +7935,10 @@ namespace DotGram.Snapshots
 
 		/// <summary>
 		/// One line per step of the automaton, on standard error, when the build defines
-		/// <c>DOTGRAM_TRACE</c> — nothing else to configure, and when it does not, the
+		/// <c>DOTGRAM_STEPS</c> — nothing else to configure, and when it does not, the
 		/// calls are removed at their sites, arguments and all.
 		/// </summary>
-		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(string action, int state, int position, int arena)
 		{
 			global::System.Console.Error.WriteLine(
@@ -7950,7 +7950,7 @@ namespace DotGram.Snapshots
 		/// The same line with the rule it happened in and a window of the input around
 		/// the position, the caret marking the position itself.
 		/// </summary>
-		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(
 			string action, int state, int position, int arena,
 			global::System.ReadOnlySpan<char> text, string rule)

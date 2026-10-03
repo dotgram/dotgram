@@ -213,7 +213,7 @@ public sealed class CSharpEmitterTests
 		// that keeps nothing is compiled where it is called and has no call site to count,
 		// which is the test below.
 		Assert.Equal(3, source.Split(["call Name"], StringSplitOptions.None).Length - 1);
-		Assert.Contains("Conditional(\"DOTGRAM_TRACE\")", source);
+		Assert.Contains("Conditional(\"DOTGRAM_STEPS\")", source);
 		Assert.Contains("Debug.Assert", source);
 	}
 

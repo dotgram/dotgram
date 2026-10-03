@@ -4698,7 +4698,7 @@ file.Line("return spare;");
 	/// <summary>A buffer's class without the trace hook that calls the engine's, for a file with no engine.</summary>
 	static string WithoutEngineTrace(string buffered)
 	{
-		var from = buffered.IndexOf("[global::System.Diagnostics.Conditional(\"DOTGRAM_TRACE\")]", StringComparison.Ordinal);
+		var from = buffered.IndexOf("[global::System.Diagnostics.Conditional(\"DOTGRAM_STEPS\")]", StringComparison.Ordinal);
 		var to   = buffered.IndexOf("// The end of the trace hook", StringComparison.Ordinal);
 
 		return from < 0 || to < from ? buffered : buffered.Remove(from, to - from);

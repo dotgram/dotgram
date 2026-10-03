@@ -805,7 +805,7 @@ public static partial class CSharpEmitter
 				new global::System.ReadOnlySpan<char>(_buffer, at - _start, _count - at);
 		}
 
-		[global::System.Diagnostics.Conditional("DOTGRAM_TRACE")]
+		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(string action, int state, int position, int arena, BufferedText text, string rule)
 		{
 			Trace(action, state, position, arena);

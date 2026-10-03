@@ -209,9 +209,11 @@ generation.
 
 ### Diagnostics and tracing
 
-Generated development checks use `Debug.Assert`. Detailed tracing is emitted through a
-method marked `[Conditional("DOTGRAM_TRACE")]` and writes to `Debug.WriteLine`, so release
-calls and argument evaluation disappear when the symbol is absent.
+Generated development checks use `Debug.Assert`. The engine's step trace is emitted through a
+method marked `[Conditional("DOTGRAM_STEPS")]` and writes to standard error, so release
+calls and argument evaluation disappear when the symbol is absent. (It was `DOTGRAM_TRACE`
+until the grammar trace took the word: `DotGramTrace` is a build of the parser that reports
+rules to a sink, not this.)
 
 ## Fixed: an atomic group kept the ways back and dropped the derivation
 
