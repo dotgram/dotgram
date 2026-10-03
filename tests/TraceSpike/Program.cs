@@ -36,6 +36,8 @@ static class Program
 				return Time(targets, args[1].Split(','), args[2].Split(','), int.Parse(args[3]));
 			case "deep":
 				return Deep();
+			case "big":
+				return Big(targets.Single(one => one.Name == "TSql"));
 			case "corpus":
 				foreach (var target in targets)
 					Console.WriteLine($"{target.Name}\tseeds {target.Seeds.Count}\trefused {Refused(target).Count}");
@@ -253,7 +255,7 @@ static class Program
 	{
 		using var writer = new StreamWriter(output);
 
-		writer.WriteLine("grammar\tindex\tposition\texpected\tcandidates\tkept\tkeptAtMatch\tmismatched\tstacks");
+		writer.WriteLine("grammar\tindex\tposition\texpected\tcandidates\tkept\tkeptAtMatch\tmismatched\tstacks\terror");
 
 		foreach (var target in targets)
 		{
@@ -304,7 +306,7 @@ static class Program
 					: string.Join("|", kept.Select(one => string.Join(">", one.Stack.Select(rule => sinks.Rules[rule] + (sinks.Kinds[rule] == 1 ? "~" : "")))).Distinct());
 				var said = string.Join(";", sets.Select(set => string.Join(",", set)));
 
-				writer.WriteLine($"{target.Name}\t{index}\t{read.Position}\t{Clean(said)}\t{recorder.Candidates.Count}\t{kept.Count}\t{atMatch}\t{recorder.Mismatched}\t{stacks}");
+				writer.WriteLine($"{target.Name}\t{index}\t{read.Position}\t{Clean(said)}\t{recorder.Refusals}\t{kept.Count}\t{atMatch}\t{recorder.Mismatched}\t{stacks}\t{Clean(read.Error ?? "").Substring(0, Math.Min(160, (read.Error ?? "").Length))}");
 			}
 
 			Console.WriteLine($"{target.Name}: {refused.Count} refused inputs");
@@ -380,6 +382,64 @@ static class Program
 		return 0;
 	}
 
+	// --- big: GramWhy on a refused script of about 100 KB ------------------------------
+
+	static int Big(Target target)
+	{
+		var text = new StringBuilder();
+
+		foreach (var seed in target.Seeds)
+		{
+			if (text.Length > 100_000)
+				break;
+
+			// Statements only, one batch: a seed that does not read after the others is left out.
+			var next = text.Length == 0 ? seed : text + "\n;\n" + seed;
+
+			if (Matches.Read(target.TryParse(next)).Ok)
+				text.Clear().Append(next);
+		}
+
+		var script = text + "\n;\nSELECT a FROM t WHERE (b = 1;\n";
+		var sinks  = target.Sinks();
+
+		Console.WriteLine($"script {script.Length} chars, refused={!Matches.Read(target.TryParse(script)).Ok}");
+
+		foreach (var mode in new[] { "none", "why", "none", "why" })
+		{
+			if (mode == "why" && sinks is null)
+				continue;
+
+			var times = new List<double>();
+			var recorder = new Recorder { Mode = Recorder.Kind.Why };
+			object match = null!;
+
+			for (var run = 0; run < 7; run++)
+			{
+				recorder.Reset();
+				var watch = Stopwatch.StartNew();
+
+				if (mode == "why")
+				{
+					using (sinks!.Full(recorder))
+						match = target.TryParse(script);
+				}
+				else
+				{
+					match = target.TryParse(script);
+				}
+
+				times.Add(watch.Elapsed.TotalMilliseconds);
+			}
+
+			times.Sort();
+			var read = Matches.Read(match);
+			Console.WriteLine($"{mode}: median {times[3]:F1} ms, first {times[6]:F1} ms max; enters {recorder.Enters}, refusals {recorder.Refusals}, kept {recorder.Taken.Count}, at {read.Position}");
+		}
+
+		return 0;
+	}
+
 	// --- deep -----------------------------------------------------------------------------
 
 	static int Deep()
@@ -388,7 +448,7 @@ static class Program
 		var recorder = new Recorder { Mode = Recorder.Kind.Why, WatchThreads = true };
 
 		// Deep enough that the reader hands the read to a stack of its own several times over.
-		foreach (var depth in new[] { 100, 20_000, 200_000 })
+		foreach (var depth in new[] { 100, 20_000, 50_000 })
 		{
 			var json = new string('[', depth) + "1" + new string(']', depth);
 			var bad  = new string('[', depth) + "1," + new string(']', depth);
@@ -405,12 +465,12 @@ static class Program
 
 				var read = Matches.Read(match);
 				var kept = recorder.Candidates.Count(one => read.Expected is not null && ReferenceEquals(one.Expected, read.Expected));
-				var deepest = recorder.Candidates.Count == 0 ? 0 : recorder.Candidates.Max(one => one.Stack.Length);
+				var deepest = recorder.Taken.Count == 0 ? 0 : recorder.Taken.Max(one => one.Top?.Depth ?? 0);
 
 				Console.WriteLine(
 					$"json depth {depth} {label}: ok={read.Ok} at={read.Position} enters={recorder.Enters} exits={recorder.Exits} " +
 					$"mismatched={recorder.Mismatched} maxDepth={recorder.MaxDepth} open={recorder.Depth} threads={recorder.Threads.Count} " +
-					$"refusals={recorder.Candidates.Count} kept={kept} deepestStack={deepest}");
+					$"refusals={recorder.Refusals} kept={kept} deepestStack={deepest}");
 			}
 		}
 

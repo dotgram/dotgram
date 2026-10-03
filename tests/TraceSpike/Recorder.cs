@@ -34,12 +34,56 @@ sealed class Recorder
 	public long[] Failed = new long[16];
 	public long[] Ticks = new long[16];
 
-	public readonly List<(int[] Stack, int Position, string[]? Expected)> Candidates = new();
+	/// <summary>A frame of the why stack: shared by every candidate taken under it, so a refusal costs O(1).</summary>
+	public sealed class Frame
+	{
+		public readonly int Rule;
+		public readonly Frame? Parent;
+		public readonly int Depth;
+
+		public Frame(int rule, Frame? parent)
+		{
+			Rule   = rule;
+			Parent = parent;
+			Depth  = parent is null ? 1 : parent.Depth + 1;
+		}
+
+		public int[] ToArray()
+		{
+			var all = new int[Depth];
+			var at  = Depth;
+
+			for (var frame = this; frame is not null; frame = frame.Parent)
+				all[--at] = frame.Rule;
+
+			return all;
+		}
+	}
+
+	Frame? _top;
+	int _furthest = -1;
+
+	/// <summary>Only the candidates at the furthest position so far: the final failure cannot be nearer.</summary>
+	public readonly List<(Frame? Top, int Position, string[]? Expected)> Taken = new();
+
+	public IEnumerable<(int[] Stack, int Position, string[]? Expected)> Candidates
+	{
+		get
+		{
+			foreach (var (top, position, expected) in Taken)
+				yield return (top?.ToArray() ?? [], position, expected);
+		}
+	}
+
+	public long Refusals;
 
 	public void Reset()
 	{
 		_depth = 0;
-		Candidates.Clear();
+		_top = null;
+		_furthest = -1;
+		Refusals = 0;
+		Taken.Clear();
 		Enters = Exits = Mismatched = 0;
 		MaxDepth = 0;
 	}
@@ -67,6 +111,9 @@ sealed class Recorder
 
 		_depth++;
 		Enters++;
+
+		if (Mode == Kind.Why)
+			_top = new Frame(rule, _top);
 
 		if (_depth > MaxDepth)
 			MaxDepth = _depth;
@@ -108,10 +155,15 @@ sealed class Recorder
 			if (at < 0)
 				return;
 
-			_depth = at + 1;
+			while (_depth > at + 1)
+			{
+				_depth--;
+				_top = _top?.Parent;
+			}
 		}
 
 		_depth--;
+		_top = _top?.Parent;
 
 		if (Mode == Kind.Profile)
 		{
@@ -127,7 +179,18 @@ sealed class Recorder
 		if (Mode != Kind.Why)
 			return;
 
-		Candidates.Add((_rules.AsSpan(0, _depth).ToArray(), position, expected));
+		Refusals++;
+
+		if (position < _furthest)
+			return;
+
+		if (position > _furthest)
+		{
+			_furthest = position;
+			Taken.Clear();
+		}
+
+		Taken.Add((_top, position, expected));
 	}
 
 	public int Depth => _depth;
@@ -148,6 +211,8 @@ static class Matches
 		var expected = (string[]?)type.GetField("_expected", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(match);
 		var tied     = (List<string[]>?)type.GetField("_tied", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(match);
 
-		return (false, at, expected, tied, null);
+		var error = (string?)type.GetProperty("Error")?.GetValue(match);
+
+		return (false, at, expected, tied, error);
 	}
 }

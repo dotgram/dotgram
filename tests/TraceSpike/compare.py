@@ -6,7 +6,7 @@ def load(path):
     with open(path, encoding='utf-8') as f:
         next(f)
         for line in f:
-            g, i, pos, exp, cand, kept, atm, mis, stacks = line.rstrip('\n').split('\t')
+            g, i, pos, exp, cand, kept, atm, mis, stacks = line.rstrip("\n").split("\t")[:9]
             rows[(g, int(i))] = dict(pos=pos, exp=exp, cand=int(cand), kept=int(kept), atm=int(atm), mis=int(mis),
                                     stacks=[s.split('>') for s in stacks.split('|')] if stacks else [])
     return rows
