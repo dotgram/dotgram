@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+	  The trading feeds of docs/feeds.md generated at size, read by their grammars and bulk-loaded
+	  into SQLite with linq2db. Not in DotGram.slnx: it is the one project here that takes a
+	  database and an ORM, and a solution build — CI's included — has no reason to restore them.
+	  Run it on its own, from the repository root: dotnet run -c Release with this project;
+	  docs/feeds.md has the command line.
+	-->
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.FeedLoad</RootNamespace>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The grammars, and the generator that writes the feeds they read. -->
+		<ProjectReference Include="..\DotGram.Examples\DotGram.Examples.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="linq2db" />
+		<PackageReference Include="Microsoft.Data.Sqlite" />
+	</ItemGroup>
+
+</Project>
