@@ -17,7 +17,8 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The section of the repository's README about feeds written by people, run as it is written.
+/// The pages about feeds — the repository README's section on feeds written by people, and
+/// <c>docs/feeds.md</c> — run as they are written.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,17 +38,19 @@ namespace DotGram.Tests;
 /// </para>
 /// <para>
 /// The same grammars are in <c>examples/DotGram.Examples/Feeds</c>, for whoever copies an example
-/// as a file; the last test holds the two copies to one text.
+/// as a file; the last test holds the copies to one text. An example may be on both pages — the
+/// README shows the first trading feed of <c>docs/feeds.md</c> — so an example is named by its
+/// page and its class, and each page's copy is run and held to the file on its own.
 /// </para>
 /// </remarks>
 public sealed class FeedsPageTests
 {
 	[Theory]
 	[MemberData(nameof(Examples))]
-	public void An_example_prints_what_the_page_says_it_prints(string host)
+	public void An_example_prints_what_the_page_says_it_prints(string page, string host)
 	{
-		var example  = Find(host);
-		var blocks   = Blocks().Where(static one => one.Language == "csharp").Select(static one => one.Text).ToList();
+		var example  = Find(page, host);
+		var blocks   = Blocks(page).Where(static one => one.Language == "csharp").Select(static one => one.Text).ToList();
 		var declared = Substituted(ShippedPages.Inherited(blocks, example.At) + example.Declaration);
 		var uses     = Substituted(ShippedPages.Inherited(blocks, example.At + 1) + example.Use);
 		var grammar  = ShippedPages.GrammarIn(example.Declaration)!;
@@ -123,9 +126,9 @@ public sealed class FeedsPageTests
 
 	[Theory]
 	[MemberData(nameof(Examples))]
-	public void And_the_examples_project_holds_the_same_grammar(string host)
+	public void And_the_examples_project_holds_the_same_grammar(string page, string host)
 	{
-		var example = Find(host);
+		var example = Find(page, host);
 		var folder  = Path.Combine(Root, "examples", "DotGram.Examples", "Feeds");
 
 		var file = Directory
@@ -140,35 +143,39 @@ public sealed class FeedsPageTests
 			Lines(ShippedPages.GrammarIn(file)!));
 	}
 
-	/// <summary>Every example of the section, by the class its grammar is attached to.</summary>
-	public static TheoryData<string> Examples
+	/// <summary>Every example of the pages, by its page and the class its grammar is attached to.</summary>
+	public static TheoryData<string, string> Examples
 	{
 		get
 		{
-			var data = new TheoryData<string>();
+			var data = new TheoryData<string, string>();
 
-			foreach (var one in All())
-				data.Add(one.Host);
+			foreach (var page in Pages)
+				foreach (var one in All(page))
+					data.Add(page, one.Host);
 
 			return data;
 		}
 	}
 
+	/// <summary>The pages, by their path from the repository's root.</summary>
+	static readonly string[] Pages = ["README.md", "docs/feeds.md"];
+
 	/// <summary>One example: what was read, what reads it, and what that prints.</summary>
 	sealed record Example(string Host, int At, string Input, string Declaration, string Use, string Output);
 
-	static Example Find(string host)
+	static Example Find(string page, string host)
 	{
-		return All().Single(one => one.Host == host);
+		return All(page).Single(one => one.Host == host);
 	}
 
 	/// <summary>
 	/// The examples in the order the page gives them: the text block before a grammar is its input,
 	/// the C# block after it the loop, and the text block after that the output.
 	/// </summary>
-	static IEnumerable<Example> All()
+	static IEnumerable<Example> All(string page)
 	{
-		var blocks = Blocks();
+		var blocks = Blocks(page);
 		var csharp = -1;
 
 		for (var at = 0; at < blocks.Count; at++)
@@ -192,16 +199,25 @@ public sealed class FeedsPageTests
 		}
 	}
 
-	/// <summary>The fenced blocks of the section, with the language each is marked as.</summary>
-	static List<(string Language, string Text)> Blocks()
+	/// <summary>
+	/// The fenced blocks of a page, with the language each is marked as: of the README, the section
+	/// on feeds alone; of a page of its own, all of it.
+	/// </summary>
+	static List<(string Language, string Text)> Blocks(string path)
 	{
-		var page    = File.ReadAllText(Path.Combine(Root, "README.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
-		var opens   = page.IndexOf("\n" + Heading + "\n", StringComparison.Ordinal);
+		var page    = File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n", StringComparison.Ordinal);
+		var section = page;
 
-		Assert.True(opens >= 0, $"README.md has no '{Heading}'.");
+		if (path == "README.md")
+		{
+			var opens = page.IndexOf("\n" + Heading + "\n", StringComparison.Ordinal);
 
-		var closes  = page.IndexOf("\n## ", opens + Heading.Length, StringComparison.Ordinal);
-		var section = closes < 0 ? page[opens..] : page[opens..closes];
+			Assert.True(opens >= 0, $"README.md has no '{Heading}'.");
+
+			var closes = page.IndexOf("\n## ", opens + Heading.Length, StringComparison.Ordinal);
+
+			section = closes < 0 ? page[opens..] : page[opens..closes];
+		}
 
 		return Regex
 			.Matches(section, "```([a-z]*)\n(.*?)```", RegexOptions.Singleline)
