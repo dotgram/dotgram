@@ -728,6 +728,7 @@ public static partial class CSharpEmitter
 		text = Answer(text, "Quiet",      "Quiet = true",           "no reading whose failure nothing reads is emitted");
 		text = Answer(text, "Began",      "failure.Began = ",       "no reading that begins where it is told is emitted");
 		text = Answer(text, "OutOfInput", "failure.OutOfInput = ",  "every test in this grammar wants one character");
+		text = Answer(text, "Trace",      "Trace = ",               "no reading of this file is begun where a sink could be set");
 
 		return text;
 
@@ -846,7 +847,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false)
+		bool looking = false, bool quiet = false, bool began = false, bool trace = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
@@ -874,6 +875,9 @@ public static partial class CSharpEmitter
 			.Replace(
 				"\t{{quiet}}" + Lines.Ending,
 				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "")
+			.Replace(
+				"\t{{trace}}" + Lines.Ending,
+				trace ? Lines.Normalize(TraceField) + Lines.Ending : "")
 			// Whether each of these fields needs its suppression is not known here: the field is
 			// emitted where the capability is present, and the suppression is needed where nothing
 			// assigns it, which only the sites that write the assignments know. So a mark goes in,
@@ -885,7 +889,9 @@ public static partial class CSharpEmitter
 			.Replace("{{suppress:Began}}", Mark("Began", true))
 			.Replace("{{restore:Began}}", Mark("Began", false))
 			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
-			.Replace("{{restore:OutOfInput}}", Mark("OutOfInput", false));
+			.Replace("{{restore:OutOfInput}}", Mark("OutOfInput", false))
+			.Replace("{{suppress:Trace}}", Mark("Trace", true))
+			.Replace("{{restore:Trace}}", Mark("Trace", false));
 	}
 
 	/// <summary>Where a reading that begins where it is told read its value, past the trivia at it.</summary>
@@ -947,6 +953,7 @@ public static partial class CSharpEmitter
 			{{expectedMore}}
 			{{looking}}
 			{{quiet}}
+			{{trace}}
 		}
 		""";
 
@@ -2981,6 +2988,7 @@ public static partial class CSharpEmitter
 			if (failure.Looking > 0)
 				return;
 
+			/*REFUSED*/
 			/*REACH*/if (at > failure.Position)
 			{
 				failure.Position     = at;
@@ -3049,6 +3057,7 @@ public static partial class CSharpEmitter
 			if (failure.Looking > 0)
 				return;
 
+			/*REFUSED*/
 			if (at == failure.Position && !Spoke_DotGram(failure.Expected) && !Spoke_DotGram(failure.ExpectedMore))
 			{
 				if (stood < 0)

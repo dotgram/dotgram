@@ -81,7 +81,18 @@ public sealed partial class GrammarNormalizer
 			_bodies[rule] = Hoist(_bodies[rule]);
 		}
 
+		// The frames of a collapsed forwarding rule go with the node they are on; nothing else
+		// keyed by node is carried here, and nothing else needs to be (RecognitionGraph.Says).
 		Node Hoist(Node node)
+		{
+			var hoisted = Hoisted(node);
+
+			CarryFrames(node, hoisted);
+
+			return hoisted;
+		}
+
+		Node Hoisted(Node node)
 		{
 			switch (node)
 			{

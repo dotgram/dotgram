@@ -130,9 +130,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// parse options, which change when the symbols do and not on an edit.
 		// And one that defines DOTGRAM_NO_MEMO is compiled without the memo of failures, so that a
 		// test can hold the parser with it to the parser without it (GramCompilerOptions.MemoiseFailures).
-		var counting = context.ParseOptionsProvider.Select(static (options, _) =>
-			(Counts: options.PreprocessorSymbolNames.Contains(CountsSymbol),
-			Memoises: !options.PreprocessorSymbolNames.Contains(NoMemoSymbol)));
+		// And `DotGramTrace`: every grammar of the project compiled as a trace build, as if each of
+		// its readings said `Trace = true` (GramCompilerOptions.Trace). Off unless the property says
+		// `true`.
+		var tracing = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+			IsTrue(options, "build_property.DotGramTrace"));
+
+		// And one that defines DOTGRAM_NO_COLLAPSE calls every rule that only forwards another's value
+		// as written, so that a test can hold a trace build's frames of those rules to the rules
+		// themselves (GramCompilerOptions.CollapseForwarders).
+		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
+			(Counts: input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
+			Memoises: !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
+			Traces: input.Right,
+			Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol)));
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -272,6 +283,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which a test compiles a parser without the memo of failures.</summary>
 	const string NoMemoSymbol = "DOTGRAM_NO_MEMO";
 
+	/// <summary>The symbol under which a test compiles a parser that calls its forwarding rules as written.</summary>
+	const string NoCollapseSymbol = "DOTGRAM_NO_COLLAPSE";
+
 	/// <summary>What <c>DotGramPositionalFollow</c> asks for: nothing, <c>true</c> or <c>split</c>.</summary>
 	enum Positional
 	{
@@ -280,7 +294,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional)
 	{
 		try
 		{
@@ -313,11 +327,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// cache of its own, and written down so that nothing has to know that.
 	/// </remarks>
 	readonly record struct CompileKey(
-		Grammar                      Grammar,
-		Reporting                    Reporting,
-		(bool Counts, bool Memoises) Counting,
-		Positional                   Positional,
-		Guid                         Generator);
+		Grammar                                                   Grammar,
+		Reporting                                                 Reporting,
+		(bool Counts, bool Memoises, bool Traces, bool Collapses) Counting,
+		Positional                                                Positional,
+		Guid                                                      Generator);
 
 	/// <summary>
 	/// The parsers compiled in this process, kept for the next compilation that asks for one of them.
@@ -357,7 +371,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
 	/// same input.
 	/// </summary>
-	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional, Caching caching)
+	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional, Caching caching)
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
@@ -906,7 +920,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises) counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses) counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -983,6 +997,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting.Counts,
 			MemoiseFailures = counting.Memoises,
+			Trace           = host.Trace || counting.Traces,
+			CollapseForwarders = counting.Collapses,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,
@@ -1310,7 +1326,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Portable   = false,
 		bool      PerCall    = false,
 		string?   LocatedFacade = null,
-		bool      LocatedFacadeDeclared = false)
+		bool      LocatedFacadeDeclared = false,
+		bool      Trace      = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1632,7 +1649,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				SuffixDeclared: suffixDeclared,
 				LocationType: locationType,
 				Portable:   portable,
-				PerCall:    attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.PerCall)).Value.Value as bool? ?? false);
+				PerCall:    attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.PerCall)).Value.Value as bool? ?? false,
+				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
+				// takes from the first like everything else it does not say.
+				Trace:      attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.Trace)).Value.Value as bool? ?? first?.Trace ?? false);
 
 			return (host, site);
 		}

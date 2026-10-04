@@ -387,7 +387,8 @@ call came from — write nothing in them that assumes it is.
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
 	PartSize     = 60_000,               // how large a generated method may grow
 	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
-	Portable     = false)]               // do not carry the grammar text in the assembly
+	Portable     = false,                // do not carry the grammar text in the assembly
+	Trace        = true)]                // a trace build: report what is read to a sink (below)
 ```
 
 `Carrier` is the generator's to choose unless set (`GramCarrier.Auto`), and `GRAM5012` says
@@ -439,6 +440,43 @@ no reader overloads over kinds.
 **A terminal of the lexical half is not a bare `@M`** (`GRAM5011`): the lexer has no
 beginning to stop on and asks the host at the start of every token. Write what the terminal
 begins with first — `Blob = '<' & @ReadBlob` — and the host is asked only where that stands.
+
+## When a parse refuses and the message is not enough
+
+`Trace = true` on the attribute — or `<DotGramTrace>true</DotGramTrace>` for every grammar of a
+project, usually in a Debug build only — makes a trace build, and the class carries `GramWhy`,
+`GramTraceLog` and `GramProfile` beside the parser:
+
+```csharp
+using System;
+using DotGram;
+
+[Gram("""
+	Value : @int = '(' & inner: Value & ')' => @(inner) | digits: ['0'..'9']+ => @(int.Parse(digits))
+
+	parse Value
+	""", Trace = true)]
+public static partial class Nested;
+```
+
+```csharp
+var why = new Nested.GramWhy();
+
+using (Nested.Tracing(why))
+	Nested.TryParseValue("((1");
+
+Console.WriteLine(why);
+// Expected ')'. (line 1, column 4)
+// The rules below were reading there, each wanting what it names.
+//   wanted ')' in Value 1:1 > Value 1:2
+```
+
+The message is the match's own; under it are the rules that were open where the input was
+followed furthest, each with what it wanted there, or the guard that said no. `GramTraceLog`
+writes every rule entered and left to a `TextWriter`; `GramProfile` counts and times each rule,
+quiet readings apart from recording ones. A trace build answers what the parser answers, and
+without the option nothing of it is generated. `docs/syntax.md` §6.9 has the events, for a sink of
+your own.
 
 ## Diagnostics worth knowing before you meet them
 
@@ -504,6 +542,7 @@ The traps, in the order they are usually met:
   <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
   ```
 
+- **Ask a trace build why** an input is refused rather than guessing from the message (below).
 - **Let C# do what C# is better at.** A guard, a constructor, an operator on the result
   type — the grammar says what the syntax is, and what a thing means is the C#'s.
 - **A parser older than its grammar?** The compiler server keeps the parsers it compiled and

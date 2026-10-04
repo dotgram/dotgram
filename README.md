@@ -431,6 +431,27 @@ public static partial class Tags;
 The same boundary calls predicates, external recognizers and constructors. The grammar
 describes the syntax; the C# beside it does what is easier to write in C#.
 
+## Why an input was refused
+
+`Match.Error` names what would have fit where the input was followed furthest. A trace build
+says by which path the parser got there: with `Trace = true` added to the attribute above, or
+`<DotGramTrace>true</DotGramTrace>` set for a whole project,
+
+```csharp
+var why = new Tags.GramWhy();
+
+using (Tags.Tracing(why))
+	Tags.TryParseTag("<a></b>");
+
+Console.WriteLine(why);
+```
+
+It prints the match's message and, under it, the rules that were reading where the input was
+refused, each with what it wanted — or the guard that said no. Beside it come an indented log of
+every rule entered (`GramTraceLog`) and a profile of how often and how long each rule was read
+(`GramProfile`). The answers are the parser's own, and a build without the option generates
+none of it. [`docs/syntax.md`](docs/syntax.md) §6.9 has the rest.
+
 ## Grammar libraries
 
 A grammar can be written on top of another one. `[GramInclude]` names the class that hosts

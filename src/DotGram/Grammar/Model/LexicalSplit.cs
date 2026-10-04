@@ -294,6 +294,7 @@ public sealed class LexicalSplit
 				// nodes, see `_became`. A fold is keyed by rule and holds nodes inside it,
 				// so it is rebuilt rather than looked up.
 				Recoveries = Remapped(graph.Recoveries),
+				Forwarded  = Remapped(graph.Forwarded),
 				Powers     = Remapped(graph.Powers),
 				Climbing   = Kept(graph.Climbing, rules).ToDictionary(
 					one => one.Key,

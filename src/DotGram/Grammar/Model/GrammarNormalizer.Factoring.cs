@@ -336,6 +336,13 @@ public sealed partial class GrammarNormalizer
 			rewritten[at]     = CloneAndRewrite(_bodies[longer], NoTargets, [], owner.Name);
 			rewritten[at + 1] = new Node.Construct(head, new Construction.Expression("(" + name + ")"));
 
+			// Where either call stood for a collapsed forwarding rule, what replaces it does.
+			if (alternatives[at] is Node.Construct(Node.Capture(_, var longerCall), _))
+				CarryFrames(longerCall, rewritten[at]);
+
+			if (alternatives[at + 1] is Node.Construct(Node.Capture(_, var shorterCall), _))
+				CarryFrames(shorterCall, rewritten[at + 1]);
+
 			// One pair per choice. A second would be looking at alternatives this one has
 			// just replaced, and the fold that follows is what makes anything of either.
 			break;
@@ -464,13 +471,22 @@ public sealed partial class GrammarNormalizer
 	/// A body written as one construction over a choice, given to each alternative instead —
 	/// or null where it is not that shape.
 	/// </summary>
+	/// <remarks>
+	/// The choice given out is the one the construction stood over, and keeps what it stood for
+	/// where a collapsed forwarding rule made it (<see cref="CarryFrames"/>).
+	/// </remarks>
 	Node.Choice? Given(Node body)
 	{
-		return body is Node.Construct(Node.Choice(var shared) { Selection: null }, Construction.Expression(var text, _) how) &&
-		Handed(text) is { } handed &&
-		Handing(shared, handed)
-			? new Node.Choice([.. shared.Select(one => (Node)new Node.Construct(one, how))])
-			: null;
+		if (body is not Node.Construct(Node.Choice(var shared) { Selection: null } choice, Construction.Expression(var text, _) how) ||
+			Handed(text) is not { } handed ||
+			!Handing(shared, handed))
+			return null;
+
+		var given = new Node.Choice([.. shared.Select(one => (Node)new Node.Construct(one, how))]);
+
+		CarryFrames(choice, given);
+
+		return given;
 	}
 
 	/// <summary>The graph as it stands, for the sets this pass reasons with.</summary>

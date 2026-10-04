@@ -222,6 +222,37 @@ public sealed class GramCompilerOptions
 	public bool CountRules { get; set; }
 
 	/// <summary>
+	/// Whether the parser is a trace build: its readers report what they do to a sink set with
+	/// <c>Tracing(sink)</c> on the generated class, which carries the sink types and three
+	/// ready-made sinks beside the parser (docs/syntax.md, §6.9).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>[GramOptions(Trace = true)]</c> asks for it on one reading of a class, and the build
+	/// property <c>DotGramTrace</c> on every reading of a project. Off, nothing of it is written:
+	/// the parser is the same text byte for byte.
+	/// </para>
+	/// <para>
+	/// A trace build is a slightly different program from the one it observes — every return of
+	/// a rule's method reports it, so its frames are larger and a deep reading changes stacks a
+	/// little sooner — and it answers the same, refusals word for word.
+	/// </para>
+	/// </remarks>
+	public bool Trace { get; set; }
+
+	/// <summary>
+	/// Whether a call to a rule that only hands on another rule's value is compiled as the choice
+	/// of what it hands on. On by default and not offered in the attribute; off is for a test that
+	/// holds a trace build's frames of those rules to a parser that calls them as written.
+	/// </summary>
+	/// <remarks>
+	/// The generator sets it off where the compilation defines <c>DOTGRAM_NO_COLLAPSE</c>, and
+	/// nowhere else. Off, the parser is a different one, and not only slower: the order of a
+	/// refusal's expected list can differ.
+	/// </remarks>
+	public bool CollapseForwarders { get; set; } = true;
+
+	/// <summary>
 	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
 	/// answers a second entry there at once. On by default; off is for a test that holds the
 	/// parser with the memo to the parser without it.

@@ -294,6 +294,43 @@ Everything a generated parser needs is emitted into the consuming assembly as in
 There is no runtime assembly to deploy, and no generator/runtime version pair that can
 drift apart.
 
+## Why an input was refused
+
+A trace build of a grammar — `Trace = true` on `[Gram]` or `[GramOptions]`, or
+`<DotGramTrace>true</DotGramTrace>` for every grammar of a project — reports what its parser reads
+to a sink, and carries three ready-made ones in the generated class:
+
+```csharp
+using System;
+using DotGram;
+
+[Gram("""
+	Value : @int = '(' & inner: Value & ')' => @(inner) | digits: ['0'..'9']+ => @(int.Parse(digits))
+
+	parse Value
+	""", Trace = true)]
+public static partial class Nested;
+```
+
+```csharp
+var why = new Nested.GramWhy();
+
+using (Nested.Tracing(why))
+	Nested.TryParseValue("((1");
+
+Console.WriteLine(why);
+// Expected ')'. (line 1, column 4)
+// The rules below were reading there, each wanting what it names.
+//   wanted ')' in Value 1:1 > Value 1:2
+```
+
+`GramWhy` prints the match's own message and, under it, the rules that were open where the input
+was followed furthest, each with what it wanted there. `GramTraceLog` writes every rule entered and
+left to a `TextWriter`, and `GramProfile` counts and times each rule. The parser answers what it
+answers untraced, and without the option nothing of this is generated. A subclass of `GramTrace`
+receives the same events; see
+[the notation](https://github.com/dotgram/dotgram/blob/main/docs/syntax.md#69-tracing-a-grammar).
+
 ## Threads
 
 A generated parser's static methods may be called from any number of threads at once,

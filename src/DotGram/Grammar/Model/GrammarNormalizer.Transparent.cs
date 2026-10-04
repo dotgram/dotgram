@@ -53,7 +53,12 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The rules whose calls can be replaced, each with the sources it forwards to, chains resolved.</summary>
-	Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>> Transparent()
+	/// <param name="vias">
+	/// Where it is asked for, filled with what stands between each rule and each of its sources, in
+	/// the same order: the forwarding rules a resolved chain went through, outermost first.
+	/// </param>
+	Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>> Transparent(
+		Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol[]>>? vias = null)
 	{
 		// Whose calls can be replaced, and by the choice of which sources.
 		var transparent = new Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>>();
@@ -97,6 +102,8 @@ public sealed partial class GrammarNormalizer
 		foreach (var rule in transparent.Keys.ToList())
 		{
 			var resolved = new List<RuleSymbol>();
+			var through  = new List<RuleSymbol[]>();
+			var trail    = new List<RuleSymbol>();
 			var ring     = false;
 
 			void Resolve(RuleSymbol at, HashSet<RuleSymbol> path)
@@ -108,22 +115,42 @@ public sealed partial class GrammarNormalizer
 					return;
 				}
 
+				trail.Add(at);
+
 				if (transparent.TryGetValue(at, out var onward))
+				{
 					foreach (var source in onward)
 						Resolve(source, path);
+				}
 				else
+				{
 					resolved.Add(at);
+					through.Add([.. trail.Skip(1).Take(trail.Count - 2)]);
+				}
 
+				trail.RemoveAt(trail.Count - 1);
 				path.Remove(at);
 			}
 
 			Resolve(rule, []);
 
 			if (ring)
+			{
 				transparent.Remove(rule);
+			}
 			else
+			{
 				transparent[rule] = resolved;
+
+				if (vias is not null)
+					vias[rule] = through;
+			}
 		}
+
+		// A rule taken out as part of a ring is no rule's way through either.
+		if (vias is not null)
+			foreach (var rule in vias.Keys.Where(one => !transparent.ContainsKey(one)).ToList())
+				vias.Remove(rule);
 
 		return transparent;
 	}
@@ -133,7 +160,8 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	void CollapseTransparent()
 	{
-		var transparent = Transparent();
+		var vias        = new Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol[]>>();
+		var transparent = Transparent(vias);
 
 		if (transparent.Count == 0)
 			return;
@@ -165,15 +193,15 @@ public sealed partial class GrammarNormalizer
 				case Node.Capture(var name, Node.Call(var called, { Count: 0 }))
 					when transparent.TryGetValue(called, out var sources):
 					return sources.Count == 1
-						? new Node.Capture(name, CallTo(sources[0], []))
-						: new Node.Choice([
-							.. sources.Select(source => (Node)new Node.Capture(name, CallTo(source, [])))]);
+						? new Node.Capture(name, Through(called, 0))
+						: Framed(new Node.Choice([
+							.. sources.Select((_, at) => (Node)new Node.Capture(name, Through(called, at)))]), called);
 
 				case Node.Call(var called, { Count: 0 })
 					when transparent.TryGetValue(called, out var sources):
 					return sources.Count == 1
-						? CallTo(sources[0], [])
-						: new Node.Choice([.. sources.Select(source => CallTo(source, []))]);
+						? Through(called, 0)
+						: Framed(new Node.Choice([.. sources.Select((_, at) => Through(called, at))]), called);
 
 				case Node.Sequence(var parts):
 				{
@@ -233,6 +261,28 @@ public sealed partial class GrammarNormalizer
 			}
 		}
 
+		// A call to a source, framed by every forwarding rule it was reached through: what a trace
+		// reports where the forwarding rule stood (RecognitionGraph.Forwarded). Recorded for every
+		// compilation, since it costs a dictionary entry a call and changes nothing emitted; only a
+		// trace build reads it.
+		Node Through(RuleSymbol called, int at)
+		{
+			var call = CallTo(transparent[called][at], []);
+
+			_forwarded[call] = [called, .. vias[called][at]];
+
+			return call;
+		}
+
+		// The choice a call to a forwarding rule became, framed by that rule: a refusal of the
+		// choice itself — a token none of the sources begins with — is the forwarding rule's.
+		Node Framed(Node choice, RuleSymbol called)
+		{
+			_forwarded[choice] = [called];
+
+			return choice;
+		}
+
 		IReadOnlyList<Node>? Rebuilt(IReadOnlyList<Node> nodes)
 		{
 			List<Node>? rebuilt = null;
@@ -249,6 +299,22 @@ public sealed partial class GrammarNormalizer
 
 			return rebuilt;
 		}
+	}
+
+	/// <summary>
+	/// What each node a collapsed call became stands for: the forwarding rules, outermost first,
+	/// that a trace build reports around it (RecognitionGraph.Forwarded).
+	/// </summary>
+	readonly Dictionary<Node, IReadOnlyList<RuleSymbol>> _forwarded = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// A node's frames handed to the node that replaced it, by a pass that rebuilds bodies without
+	/// carrying the rest of what is keyed by node (<see cref="Carry"/>).
+	/// </summary>
+	void CarryFrames(Node from, Node to)
+	{
+		if (!ReferenceEquals(from, to) && _forwarded.TryGetValue(from, out var frames))
+			_forwarded[to] = frames;
 	}
 
 	/// <summary>Whether the expression hands the capture back and does nothing else.</summary>

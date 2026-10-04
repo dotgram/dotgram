@@ -260,6 +260,22 @@ public static class SupportEmitter
 				/// them, whose bulk is the parsers they generated.
 				/// </remarks>
 				public bool Portable { get; set; } = true;
+
+				/// <summary>
+				/// Whether this reading is a trace build: its parser reports the rules it enters,
+				/// what it refuses and why, to a sink set with <c>Tracing(sink)</c>.
+				/// </summary>
+				/// <remarks>
+				/// The sink is <c>GramTrace</c>, nested in the class beside the parser together
+				/// with three ready-made ones: <c>GramWhy</c>, which says why an input was
+				/// refused and by which rules; <c>GramTraceLog</c>, an indented log of every rule
+				/// entered; and <c>GramProfile</c>, how often each rule was entered and how long
+				/// it took. Off, nothing of it is written. The build property
+				/// <c>DotGramTrace</c> asks the same of every grammar in a project, and a
+				/// <c>[GramOptions(Suffix = "Traced", Trace = true)]</c> puts a traced reading
+				/// beside an untouched one (docs/syntax.md, §6.9).
+				/// </remarks>
+				public bool Trace { get; set; }
 			}
 
 			/// <summary>How a generated reader carries what it has read.</summary>

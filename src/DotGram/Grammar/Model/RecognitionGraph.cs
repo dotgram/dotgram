@@ -454,6 +454,22 @@ public sealed class RecognitionGraph(
 		new Dictionary<RuleSymbol, string>();
 
 	/// <summary>
+	/// The forwarding rules a node stands for, outermost first, where <c>CollapseTransparent</c>
+	/// put the node in place of a call to one: the choice of its sources, framed by the rule, and
+	/// each call to a source, framed by every forwarding rule on the way to it.
+	/// </summary>
+	/// <remarks>
+	/// Read by a trace build only, which reports a frame of the forwarding rule around the node, so
+	/// that a stack of rules shows the rule where the author wrote it. Keyed by node, and so carried
+	/// by every pass that rebuilds a body after the collapse: through <c>Carry</c> where a pass
+	/// carries everything, and on its own where a pass carries nothing else. A frame that does not
+	/// survive to the emitter on the choice survives on the calls under it, which then each report
+	/// the rule around themselves.
+	/// </remarks>
+	public IReadOnlyDictionary<Node, IReadOnlyList<RuleSymbol>> Forwarded { get; init; } =
+		new Dictionary<Node, IReadOnlyList<RuleSymbol>>();
+
+	/// <summary>
 	/// The rule synthesized for a value-returning external recognizer (§7.1's third
 	/// row), by the C# method name it wraps.
 	/// </summary>

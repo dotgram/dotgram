@@ -36,3 +36,10 @@ Term : @int
 Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
 
 parse Sum
+
+// And a third beside them, Twice.Traced.gram.g.cs: the same grammar as a trace build
+// (docs/syntax.md §6.9), in a class of its own. The parser in it is the one above; what
+// the diff shows is what tracing adds — the sink, its scope and three ready-made sinks,
+// a reading told to the sink where a publication begins one, and each rule reporting
+// where it is entered and at every return. Written below the rules, so that the lines
+// the other two files point back to stay where they are.

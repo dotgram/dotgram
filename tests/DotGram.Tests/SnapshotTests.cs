@@ -177,6 +177,16 @@ public sealed class SnapshotTests
 
 				yield return (immediate, null);
 
+				// And a third, traced (docs/syntax.md, §6.9): what a trace build adds beside the same
+				// parser — the sink, its scope, the tables and the sinks — and what it writes into the
+				// readers, every return of a rule reporting it, read against the file above it.
+				var traced = Options();
+
+				traced.Suffix = "Traced";
+				traced.Trace  = true;
+
+				yield return (traced, null);
+
 				break;
 			}
 

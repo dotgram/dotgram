@@ -265,14 +265,22 @@ sealed partial class Machine
 			$"if ({power}(uint)({index}) < (uint)memo.Length && " +
 			$"(memo[{index}] & {MemoBit(slot)}) != 0)");
 
-		if (CountsRules)
+		if (CountsRules || Tracing is not null)
 		{
 			using (file.Block(""))
 			{
-				file.Line("#if DOTGRAM_COUNTS");
-				file.Line($"{EnteredOf(rule)}++;");
-				file.Line("#endif");
-				file.Line();
+				if (CountsRules)
+				{
+					file.Line("#if DOTGRAM_COUNTS");
+					file.Line($"{EnteredOf(rule)}++;");
+					file.Line("#endif");
+					file.Line();
+				}
+
+				// Answered without being read: neither entered nor left, and said so.
+				if (Tracing is not null)
+					file.Line($"failure.Trace?.Remembered({Tracing.RuleOf(rule)}, pos);");
+
 				file.Line("return -1;");
 			}
 		}
@@ -288,14 +296,18 @@ sealed partial class Machine
 	/// A remembered rule's body: every failure goes through one place, which remembers it.
 	/// </summary>
 	/// <returns>False where the body never fails, and so has nothing to remember.</returns>
+	/// <remarks>
+	/// A trace build's body was written sending its failures here already (ReaderWriter.Fails),
+	/// each closing the frames open where it stood, and the rule is left here once.
+	/// </remarks>
 	bool MemoBody(Writer file, RuleSymbol rule, int slot, string body)
 	{
 		const string Refused = "return -1;";
 
-		if (!body.Contains(Refused, StringComparison.Ordinal))
+		if (!body.Contains(Tracing is null ? Refused : "goto Failed;", StringComparison.Ordinal))
 			return false;
 
-		file.Write(body.Replace(Refused, "goto Failed;"));
+		file.Write(Tracing is null ? body.Replace(Refused, "goto Failed;") : body);
 		file.Line();
 		file.Line("Failed:");
 
@@ -312,7 +324,7 @@ sealed partial class Machine
 		}
 
 		file.Line();
-		file.Line(Refused);
+		file.Line(Tracing is null ? Refused : $"return Exited_DotGram({Tracing.RuleOf(rule)}, pos, -1);");
 
 		return true;
 	}

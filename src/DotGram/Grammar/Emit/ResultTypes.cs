@@ -48,7 +48,11 @@ sealed class ResultTypes
 	}
 
 	/// <param name="className">The host class, as a chain — <c>Outer.Inner</c>.</param>
-	public ResultTypes(RecognitionGraph graph, string className, string? @namespace)
+	/// <param name="traced">
+	/// Whether the parser is a trace build, whose sink types stand beside the parser and take their
+	/// names the way the support types do.
+	/// </param>
+	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool traced = false)
 	{
 		_prefix = "global::" + (@namespace is null ? "" : @namespace + ".") + className + ".";
 
@@ -82,7 +86,8 @@ sealed class ResultTypes
 				name == CSharpEmitter.FailureType ||
 				name == CSharpEmitter.MatchType ||
 				name == CSharpEmitter.WindowType ||
-				name == CSharpEmitter.LinesType
+				name == CSharpEmitter.LinesType ||
+				traced && Array.IndexOf(CSharpEmitter.TraceNames, name) >= 0
 					? name + "Value"
 					: name;
 

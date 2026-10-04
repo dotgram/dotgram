@@ -141,6 +141,29 @@ namespace DotGram.Compatibility
 		}
 	}
 
+	/// <summary>A trace build over tokens: the sink types, the three ready-made sinks and the lexer's report, at the floor.</summary>
+	[Gram(
+		"trivia = { ' '* }\n" +
+		"namespace Lexical\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n" +
+		"Item : @int = n: Lexical.Name & when @(n.Length > 0) & ';' => @(n.Length)\n" +
+		"Items : @int[] = Item*\n" +
+		"parse Items", Lexical = true, Trace = true)]
+	public partial class TracedTokens
+	{
+	}
+
+	/// <summary>A trace build over characters: a find and a yield handed the sink where they are called, and recovery.</summary>
+	[Gram(
+		"Item : @int = value: ['a'..'z']+ & ';' => @(value.Length)\n" +
+		"Items : @int[] = items: Item* recover ';' => @(0) & eof => @(items)\n" +
+		"Feed : @int[] = Item*\n" +
+		"parse Items\n" +
+		"parse Feed as Lazy yield : @int\n" +
+		"find Item as Found", Trace = true)]
+	public partial class TracedCharacters
+	{
+	}
+
 	/// <summary>What the grammar above builds, filled from captures by name (§7.3).</summary>
 	public sealed class Entry
 	{

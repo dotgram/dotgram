@@ -189,7 +189,7 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false)
+		bool countRules = false, bool memoise = false, bool trace = false)
 	{
 		statics ??= [];
 
@@ -202,7 +202,12 @@ public static partial class CSharpEmitter
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
 		var scoped  = suffix is { Length: > 0 } ? className + "." + suffix : className;
-		var results = new ResultTypes(graph, scoped, @namespace);
+		var results = new ResultTypes(graph, scoped, @namespace, traced: trace);
+
+		// What a trace build numbers its events by, one table for every machine of the file; null
+		// where the build is not one, which writes nothing of it anywhere.
+		var tracing = trace && graph.Publications.Count > 0 ? new TraceTables(graph) : null;
+
 		// One machine per published rule. `parse R` and `find R` share one — the same rule,
 		// two entry states — while two publications of different rules get one each, even
 		// where both call a third rule, which is then compiled into both. `parse R with
@@ -258,6 +263,7 @@ public static partial class CSharpEmitter
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
+				Tracing     = tracing,
 
 				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
 				MemoisesFailures = memoise,
@@ -323,6 +329,7 @@ public static partial class CSharpEmitter
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
 			made.CountsRules = countRules;
+			made.Tracing = tracing;
 			made.MemoisesFailures = memoise;
 			if (!made.CanDirect(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
@@ -539,7 +546,9 @@ public static partial class CSharpEmitter
 						// over characters it reads the trivia at the position and says where it ended.
 						graph.Trivia.ContainsKey(publication.Rule) && !overKinds,
 						lexical is not null && lexical.Bare.Contains(publication.Rule),
-						compiled.Machine.UsesLocating ? locating : null);
+						compiled.Machine.UsesLocating ? locating : null,
+						tracing,
+						compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine");
 
 					file.Line();
 				}
@@ -775,6 +784,11 @@ public static partial class CSharpEmitter
 		// failure carries and its refusals keep (Refuse_DotGram): the engine's `reach`.
 		var readsRecovery = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsRecovery);
 
+		// The two fields of the failure that are written only where something writes them, which the
+		// trace's helpers read where they are there.
+		var quietField = quiets || valuing is not null;
+		var moreField  = valuing is not null || machines.Exists(static compiled => !compiled.Flat || compiled.Machine.Ties);
+
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
@@ -787,19 +801,25 @@ public static partial class CSharpEmitter
 				// The machine that reads a terminal again is an engine too, and an engine
 				// writes the ties it meets. It is not among `machines`, so a grammar whose
 				// syntax was all flat declared a failure its lexical half could not compile.
-				expectedMore: valuing is not null || machines.Exists(static compiled =>
-					!compiled.Flat || compiled.Machine.Ties),
+				expectedMore: moreField,
 				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery),
 				// A reader's refusals inside a lookahead are counted on the failure (Refuse_DotGram).
 				looking: machines.Exists(static compiled => compiled.Direct),
 				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
 				// lexer measuring or valuing a token again.
-				quiet: quiets || valuing is not null,
+				quiet: quietField,
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
 				began: graph.Trivia.Count > 0 && !overKinds &&
-					graph.Publications.Any(one => one.Kind == PublishKind.Parse)));
+					graph.Publications.Any(one => one.Kind == PublishKind.Parse),
+				trace: tracing is not null));
 			file.Line();
+
+			if (tracing is not null)
+			{
+				file.Write(TraceSupport(tracing, quietField, moreField, lexical is not null));
+				file.Line();
+			}
 		}
 
 		if (shared is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
@@ -908,6 +928,9 @@ public static partial class CSharpEmitter
 			file.Write(Region(Region(Region(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
+				// A refusal a recording reading records is told to the sink, where the build traces.
+				.Replace("\t/*REFUSED*/\r\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\r\n\r\n")
+				.Replace("\t/*REFUSED*/\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\n\n")
 				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" : "")
 				.Replace(
 					"/*REACH*/",
@@ -1669,7 +1692,7 @@ public static partial class CSharpEmitter
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
-		bool? locating = null)
+		bool? locating = null, TraceTables? tracing = null, string machine = "methods")
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1691,6 +1714,55 @@ public static partial class CSharpEmitter
 		var built  = results.QualifiedOf(publication.Rule);
 		var value  = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : built ?? "string";
 		var match  = $"{MatchType}<{value}>";
+
+		// What a reading's failure starts as: in a trace build, holding the sink the flow has set.
+		string Fresh(bool quiet)
+		{
+			var traced = tracing is null ? "" : "Trace = Tracing_DotGram.Value";
+
+			return quiet
+				? $"new {FailureType} {{ Quiet = true{(traced.Length > 0 ? ", " + traced : "")} }}"
+				: traced.Length > 0 ? $"new {FailureType} {{ {traced} }}" : $"new {FailureType}()";
+		}
+
+		// A refusal the call answers with, told to the sink on its way out in a trace build.
+		void Refusing(string line)
+		{
+			file.Line(tracing is null
+				? line
+				: "return Rejected_DotGram(" + line.Substring("return ".Length, line.Length - "return ".Length - 1) + ");");
+		}
+
+		// The reading the call makes, told to the sink as it begins: what it reads, from where, and
+		// over tokens what turns a token into a character.
+		void Begun(string start, bool windowed, bool declare = true)
+		{
+			if (tracing is null)
+				return;
+
+			var line = TraceBegin(
+				"read", name, start, machine, overKinds ? "source" : "input",
+				overKinds
+					? "starts, count, " + (windowed ? "at + length" : "tokens.Stopped >= 0 ? tokens.Stopped : source.Length")
+					: null);
+
+			file.Line(declare ? line : line.Substring("var ".Length));
+		}
+
+		// The reading itself. In a trace build it is guarded, so that a reading an exception
+		// leaves — a construction that threw — still ends for the sink, whose count of readings
+		// open would otherwise take the next call for one inside it.
+		void Reads(string call, bool declare)
+		{
+			if (tracing is null)
+			{
+				file.Line(declare ? $"var end = {call};" : $"end     = {call};");
+
+				return;
+			}
+
+			TracedRead(file, call, declare ? built : null, declare);
+		}
 
 		// A rule that builds hands its value back through the recognizer; one that does
 		// not leaves the extent it matched, and the text is cut from the input.
@@ -1763,13 +1835,13 @@ public static partial class CSharpEmitter
 
 		if (publication.Kind == PublishKind.Yield)
 		{
-			EmitYield(file, publication, hands, takes);
+			EmitYield(file, publication, hands, takes, gives, tracing, name, machine, built);
 			return;
 		}
 
 		if (publication.Kind == PublishKind.Find)
 		{
-			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes);
+			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes, gives, tracing, machine, built);
 
 			if (streams)
 			{
@@ -2009,11 +2081,10 @@ public static partial class CSharpEmitter
 								? "var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);"
 								: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
 
-				file.Line(quietFirst
-					? $"var failure = new {FailureType} {{ Quiet = true }};"
-					: $"var failure = new {FailureType}();");
+				file.Line($"var failure = {Fresh(quietFirst)};");
 				file.Line();
-				file.Line($"var end = {(positional ? reader : WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands});");
+				Begun(positional ? begins : "0", windowed);
+				Reads($"{(positional ? reader : WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands})", declare: true);
 				file.Line();
 
 				using (file.Block("if (end < 0)"))
@@ -2098,7 +2169,7 @@ public static partial class CSharpEmitter
 				if (windowed)
 				{
 					using (file.Block("if (at < 0 || length < 0 || at > input.Length - length)"))
-						file.Line(
+						Refusing(
 							$"return {match}.Failed({OutcomeType}.NoMatch, " +
 							"\"The window \" + at.ToString() + \"..\" + (at + length).ToString() + " +
 							"\" is outside the input.\", at, null, null);");
@@ -2143,7 +2214,13 @@ public static partial class CSharpEmitter
 							// — a control, the quote around it, a backslash — is shown by its code.
 							file.Line($"var stopped = {halt} < source.Length ? source[{halt}] : '\\0';");
 							file.Line();
-							file.Line(
+
+							if (tracing is not null)
+							{
+								file.Line($"Unlexed_DotGram(source, {halt});");
+								file.Line();
+							}
+							Refusing(
 								$"return {match}.Failed({OutcomeType}.NoMatch, " +
 								$"{halt} >= source.Length ? \"Expected more input.\" : " +
 								"\"Unexpected character '\" + " +
@@ -2167,7 +2244,7 @@ public static partial class CSharpEmitter
 						{
 							file.Line("Recycle_DotGram(tokens);");
 							file.Line();
-							file.Line(
+							Refusing(
 								$"return {match}.Failed({OutcomeType}.Starved, " +
 								"\"Expected more input.\", at + length, null, null);");
 						}
@@ -2187,7 +2264,7 @@ public static partial class CSharpEmitter
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
-							file.Line(
+							Refusing(
 								$"return {match}.Failed({OutcomeType}.Starved, " +
 								"\"Expected more input.\", source.Length, null, null);");
 						}
@@ -2204,7 +2281,7 @@ public static partial class CSharpEmitter
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
-							file.Line(
+							Refusing(
 								$"return {match}.Failed({OutcomeType}.NoMatch, \"Input does not match '{name}'.\", " +
 								(positional ? "at" : "starts[0] != 0 ? 0 : starts[count - 1] + lengths[count - 1]") +
 								", null, null);");
@@ -2217,7 +2294,7 @@ public static partial class CSharpEmitter
 				{
 					// The same refusal over characters, where a position is already one.
 					using (file.Block("if (at < 0 || at > input.Length)"))
-						file.Line(
+						Refusing(
 							$"return {match}.Failed({OutcomeType}.NoMatch, " +
 							"\"Position \" + at.ToString() + \" is outside the input.\", at, null, null);");
 
@@ -2250,11 +2327,10 @@ public static partial class CSharpEmitter
 				if (quietFirst && rewinds)
 					file.Line("var mark    = context.Mark();");
 
-				file.Line(quietFirst
-					? $"var failure = new {FailureType} {{ Quiet = true }};"
-					: $"var failure = new {FailureType}();");
+				file.Line($"var failure = {Fresh(quietFirst)};");
 				file.Line();
-				file.Line($"var end = {reader}(text, {begins}{hands});");
+				Begun(begins, windowed);
+				Reads($"{reader}(text, {begins}{hands})", declare: true);
 				file.Line();
 
 				// A reading that records nothing is the fast one, and most input is accepted by
@@ -2268,10 +2344,12 @@ public static partial class CSharpEmitter
 						if (rewinds)
 							file.Line("context.Rollback(mark);");
 
-						file.Line($"failure = new {FailureType}();");
-						file.Line(
-							$"end     = {reader}(text, {begins}" +
-							$"{hands.Replace("out var recognized", "out recognized")});");
+						file.Line($"failure = {Fresh(false)};");
+						Begun(begins, windowed, declare: false);
+						Reads(
+							$"{reader}(text, {begins}" +
+							$"{hands.Replace("out var recognized", "out recognized")})",
+							declare: false);
 					}
 
 					file.Line();
@@ -2323,7 +2401,7 @@ public static partial class CSharpEmitter
 						file.Line();
 					}
 
-					file.Line(
+					Refusing(
 						$"return {match}.Failed(" +
 						$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
 						"otherwise, " +
@@ -2898,23 +2976,55 @@ file.Line("return spare;");
 	/// are LINQ's rather than three more directives. The span is made where it is passed
 	/// and never held in a local, which is what lets this be an iterator at all.
 	/// </remarks>
+	/// <param name="tracing">
+	/// In a trace build, what it numbers by: the iterator is then a method of its own, handed the
+	/// sink by a method that is not one, since an iterator's body runs at the first <c>MoveNext</c>
+	/// and the sink is the one set where the call was made.
+	/// </param>
 	static void EmitFind(
 		Writer file, Publication publication, string method, string name,
 		string value, string match, string hands, Func<string, string, string> recognized,
-		string takes)
+		string takes, string gives = "", TraceTables? tracing = null, string machine = "methods", string? built = null)
 	{
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
-		using (file.Block(
-			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
+		if (tracing is not null)
+		{
+			using (file.Block(
+				$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
+			{
+				file.Line($"return {method}_DotGram(input{gives}, Tracing_DotGram.Value);");
+			}
+
+			file.Line();
+			file.Line($"/// <summary>What <c>{method}</c> enumerates, reporting to the sink that was set where it was called.</summary>");
+		}
+
+		using (file.Block(tracing is null
+			? $"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"
+			: $"static global::System.Collections.Generic.IEnumerable<{match}> {method}_DotGram(string input{takes}, GramTrace? trace)"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
-				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
+				file.Line(tracing is null
+					? $"var failure = new {FailureType} {{ Quiet = true }};"
+					: $"var failure = new {FailureType} {{ Quiet = true, Trace = trace }};");
 				file.Line();
-				file.Line(
-					$"var end = {MethodOf(publication.Rule)}(" +
-					$"global::System.MemoryExtensions.AsSpan(input), start{hands});");
+
+				var call = $"{MethodOf(publication.Rule)}(global::System.MemoryExtensions.AsSpan(input), start{hands})";
+
+				if (tracing is not null)
+				{
+					file.Line(TraceBegin("read", name, "start", machine, "input", null, finding: true));
+					TracedRead(file, call, built, declare: true);
+				}
+				else
+				{
+					file.Line(
+						$"var end = {MethodOf(publication.Rule)}(" +
+						$"global::System.MemoryExtensions.AsSpan(input), start{hands});");
+				}
+
 				file.Line();
 
 				using (file.Block("if (end < 0)"))

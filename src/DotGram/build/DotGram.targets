@@ -26,6 +26,10 @@
 		<!-- Off unless `true`: compile every grammar afresh rather than take the parser an earlier
 		     compilation in the same compiler server made of the same input (docs/syntax.md, §6.8). -->
 		<CompilerVisibleProperty Include="DotGramNoCache" />
+		<!-- Off unless `true`: compile every grammar as a trace build, whose parser reports what its
+		     readers do to a sink set with `Tracing(sink)` (docs/syntax.md, §6.9). Typically for a
+		     Debug build only: `<DotGramTrace Condition="'$(Configuration)' == 'Debug'">true</DotGramTrace>`. -->
+		<CompilerVisibleProperty Include="DotGramTrace" />
 		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" Condition="'$(_DotGramReport)' != 'none'" />
 	</ItemGroup>
 

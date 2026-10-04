@@ -130,9 +130,15 @@ public sealed partial class GrammarNormalizer
 	/// <param name="positionalSplit">
 	/// What <see cref="RecognitionGraph.PositionalSplit"/> says. Normalization does not read it either.
 	/// </param>
+	/// <param name="collapse">
+	/// Whether a call to a rule that only forwards another's value becomes the choice it forwards
+	/// (<see cref="CollapseTransparent"/>). Always, but for a test that holds a trace build's frames
+	/// of the forwarding rules to a parser that calls them as written.
+	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
-		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false)
+		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false,
+		bool collapse = true)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -209,7 +215,9 @@ public sealed partial class GrammarNormalizer
 		// What the forwarding rule said about its refusal is handed on first, as a builder:
 		// the collapse itself only changes the shape (D14).
 		normalizer.SaysThroughForwarders();
-		normalizer.CollapseTransparent();
+
+		if (collapse)
+			normalizer.CollapseTransparent();
 
 		normalizer.ComputeResults();
 
@@ -267,6 +275,7 @@ public sealed partial class GrammarNormalizer
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
 			Says       = normalizer._says,
+			Forwarded  = normalizer._forwarded,
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),

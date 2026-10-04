@@ -207,6 +207,14 @@ sealed partial class Machine
 	/// </remarks>
 	internal bool CountsRules;
 
+	/// <summary>
+	/// What the file's trace build numbers its events by, where it is one: then every rule's method
+	/// reports its entry and each of its returns, a remembered failure, a guard asked, an element
+	/// stepped over and a hand-off to another stack, and the frames of the forwarding rules the
+	/// graph collapsed (GramCompilerOptions.Trace). Null writes none of it.
+	/// </summary>
+	internal TraceTables? Tracing;
+
 	/// <summary>The counter of entries to a rule's method (<see cref="CountsRules"/>).</summary>
 	static string EnteredOf(RuleSymbol rule)
 	{
@@ -314,10 +322,14 @@ sealed partial class Machine
 
 				// A remembered rule's body is written whole first: every failure in it is sent through
 				// the one place that remembers it, and one that never fails has nothing to remember.
+				// A trace build's body sends them there itself, leaving the rule as it goes.
 				var slot = !tape && _memo.TryGetValue(rule, out var bit) ? bit : -1;
+
+				reader.Memoised = slot >= 0 && Tracing is not null;
+
 				var body = slot >= 0 ? reader.Render(_graph.Bodies[rule], FollowOf(rule)) : null;
 
-				if (body is not null && !body.Contains("return -1;", StringComparison.Ordinal))
+				if (body is not null && !body.Contains(Tracing is null ? "return -1;" : "goto Failed;", StringComparison.Ordinal))
 					slot = -1;
 
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
@@ -337,6 +349,14 @@ sealed partial class Machine
 						file.Line("#if DOTGRAM_COUNTS");
 						file.Line($"{EnteredOf(rule)}++;");
 						file.Line("#endif");
+						file.Line();
+					}
+
+					// Entered once it is read, here: a rule remembered as failing is not, and one
+					// carried onto another stack is entered there.
+					if (Tracing is not null)
+					{
+						file.Line($"failure.Trace?.Enter({Tracing.RuleOf(rule)}, pos);");
 						file.Line();
 					}
 
@@ -759,6 +779,14 @@ sealed partial class Machine
 				file.Then("throw new global::System.InsufficientExecutionStackException();");
 				file.Line();
 			}
+
+			// The sink travels with the failure, and is told before the reading moves.
+			if (Tracing is not null)
+			{
+				file.Line("failure.Trace?.Deepened(pos);");
+				file.Line();
+			}
+
 			file.Line($"var deep = Deep_DotGram{_tag}.Take();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
@@ -1217,6 +1245,9 @@ sealed partial class Machine
 			if (Probes)
 				RenderDeepening(header, state, registers);
 
+			if (Tracing is not null)
+				header.Write(Lines.Normalize(CSharpEmitter.TraceReaderMethods));
+
 			header.Line();
 			if (Carrier.ReaderMethods is { Length: > 0 } methods)
 				header.Write(methods);
@@ -1590,11 +1621,11 @@ sealed partial class Machine
 				using (code.Block($"if ({machine.NotAtEnd("p")})"))
 				{
 					code.Line(Refusal(machine.EndOfInputExpected()));
-					code.Line("return -1;");
+					code.Line(Fails());
 				}
 			}
 
-			code.Line("return p;");
+			code.Line(Succeeds("p"));
 
 			if (analyzing)
 			{
@@ -1680,6 +1711,124 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>
+		/// Whether this writer renders a remembered rule's own method in a trace build, whose
+		/// failures then go to the one place that remembers them (Machine.Memo.cs).
+		/// </summary>
+		internal bool Memoised;
+
+		/// <summary>
+		/// The frames of forwarding rules open where code is being written, innermost last: the
+		/// rule's number and the local holding where it was entered. A trace build's only.
+		/// </summary>
+		readonly List<(int Rule, string At)> _frames = [];
+
+		/// <summary>The frames open where the method this writer renders is called, which it does not close.</summary>
+		List<int> _outer = [];
+
+		int _frameLocals;
+
+		/// <summary>Whether this writer renders a rule's own method in a trace build, and so reports its returns.</summary>
+		bool Reports => machine.Tracing is not null && !_part && !_entry;
+
+		/// <summary>
+		/// What leaves this method refusing: <c>return -1;</c>, and in a trace build the frames
+		/// open here closed first and the rule's own exit reported, or the way to the place a
+		/// remembered rule's failures go.
+		/// </summary>
+		/// <remarks>
+		/// Written at every return site rather than recovered from the text afterwards: a site
+		/// knows which frames are open where it stands, and the text does not.
+		/// </remarks>
+		string Fails()
+		{
+			if (machine.Tracing is not { } tracing)
+				return "return -1;";
+
+			var leave = !Reports
+				? "return -1;"
+				: Memoised
+					? "goto Failed;"
+					: $"return Exited_DotGram({tracing.RuleOf(owner)}, pos, -1);";
+
+			if (_frames.Count == 0)
+				return leave;
+
+			var closed = new System.Text.StringBuilder("{ ");
+
+			for (var i = _frames.Count - 1; i >= 0; i--)
+				closed.Append($"failure.Trace?.Exit({_frames[i].Rule}, {_frames[i].At}, -1); ");
+
+			return closed.Append(leave).Append(" }").ToString();
+		}
+
+		/// <summary>What leaves this method having read to <paramref name="end"/>.</summary>
+		string Succeeds(string end)
+		{
+			return Reports
+				? $"return Exited_DotGram({machine.Tracing!.RuleOf(owner)}, pos, {end});"
+				: $"return {end};";
+		}
+
+		/// <summary>The rules of the frames open here, those of the caller first.</summary>
+		List<int> Open()
+		{
+			var open = new List<int>(_outer);
+
+			foreach (var (rule, _) in _frames)
+				open.Add(rule);
+
+			return open;
+		}
+
+		/// <summary>
+		/// The frames a node stands for that are not open already, outermost first: a call
+		/// under a choice that is framed by the same rule is framed only by what lies between.
+		/// </summary>
+		List<int> Unopened(Node node)
+		{
+			var chain = machine.Tracing!.FramesOf(node);
+
+			if (chain.Count == 0)
+				return [];
+
+			var ids  = chain.Select(machine.Tracing.RuleOf).ToList();
+			var open = Open();
+
+			for (var skip = Math.Min(open.Count, ids.Count); skip > 0; skip--)
+			{
+				var same = true;
+
+				for (var i = 0; i < skip && same; i++)
+					same = open[open.Count - skip + i] == ids[i];
+
+				if (same)
+					return ids.Skip(skip).ToList();
+			}
+
+			return ids;
+		}
+
+		/// <summary>
+		/// A call whose part is the call alone, framed by the forwarding rules it stands for: the
+		/// frames entered as its position is handed in and left as its end is handed back.
+		/// </summary>
+		string Framed(Node.Call call, string reader, string strength)
+		{
+			List<int> frames = machine.Tracing is null ? [] : Unopened(call);
+			var entered      = "p";
+
+			foreach (var rule in frames)
+				entered = $"Entered_DotGram({rule}, {entered})";
+
+			var framed = $"{reader}({entered}{strength})";
+
+			for (var i = frames.Count - 1; i >= 0; i--)
+				framed = $"Exited_DotGram({frames[i]}, p, {framed})";
+
+			return framed;
+		}
+
 		/// <param name="loaded">
 		/// Whether <c>c</c> already holds <c>text[p]</c> and the position is known to be in
 		/// bounds — true right after a choice's dispatch, and carried only as far as
@@ -1687,7 +1836,36 @@ sealed partial class Machine
 		/// choice used to do over again: its own bounds check and its own read of the
 		/// character the switch had just read.
 		/// </param>
+		/// <remarks>
+		/// In a trace build a node a collapsed forwarding rule stood for is framed by that rule:
+		/// entered before it, left after it where it reads, and left at every return inside it
+		/// where it refuses (<see cref="Fails"/>). What is emitted between is what it always was.
+		/// </remarks>
 		void Emit(Writer code, Node node, FollowSets.Continuation following, bool loaded = false)
+		{
+			List<int> frames = machine.Tracing is null ? [] : Unopened(node);
+
+			foreach (var rule in frames)
+			{
+				var at = $"tf{_frameLocals++}";
+
+				code.Line($"var {at} = p;");
+				code.Line($"failure.Trace?.Enter({rule}, p);");
+				_frames.Add((rule, at));
+			}
+
+			EmitInside(code, node, following, loaded);
+
+			for (var i = 0; i < frames.Count; i++)
+			{
+				var (rule, at) = _frames[_frames.Count - 1];
+
+				code.Line($"failure.Trace?.Exit({rule}, {at}, p);");
+				_frames.RemoveAt(_frames.Count - 1);
+			}
+		}
+
+		void EmitInside(Writer code, Node node, FollowSets.Continuation following, bool loaded)
 		{
 			// An alternative of a rule written with binding powers is entered only at a
 			// strength it allows. Refused without a word: what could not be entered here was
@@ -1697,7 +1875,7 @@ sealed partial class Machine
 				levels.TryGetValue(node, out var level))
 			{
 				code.Line($"if ({level} < power)");
-				code.Then("return -1;");
+				code.Then(Fails());
 				code.Line();
 			}
 
@@ -1840,7 +2018,7 @@ sealed partial class Machine
 					using (code.Block($"if (((0x{readings:X}UL >> parserReading) & 1UL) == 0UL)"))
 					{
 						code.Line(Refusal("null"));
-						code.Line("return -1;");
+						code.Line(Fails());
 					}
 
 					break;
@@ -1851,7 +2029,7 @@ sealed partial class Machine
 					using (code.Block($"if (!{machine.ExternalCall(external, "p")})"))
 					{
 						code.Line(Refusal("null"));
-						code.Line("return -1;");
+						code.Line(Fails());
 					}
 
 					break;
@@ -2105,7 +2283,7 @@ sealed partial class Machine
 					if (closing is not null)
 						RefusedRun(code, closing);
 					else
-						code.Line("return -1;");
+						code.Line(Fails());
 				}
 
 				code.Line($"p += {text.Length};");
@@ -2247,7 +2425,7 @@ sealed partial class Machine
 
 			code.Then($"p = {machine.Sharpening(texts, displays)}(text, p, ref {narrowed});");
 			code.Line(Refusal(narrowed));
-			code.Line("return -1;");
+			code.Line(Fails());
 		}
 
 		/// <summary>
@@ -2389,7 +2567,7 @@ sealed partial class Machine
 							code.Line(machine.Quiets
 								? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});"
 								: $"{Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});");
-							code.Line("return -1;");
+							code.Line(Fails());
 						}
 					}
 					else if (_refuseUnless is var (guard, without))
@@ -2408,7 +2586,7 @@ sealed partial class Machine
 			}
 			else
 			{
-				code.Line($"if ({result} < 0) return -1;");
+				code.Line($"if ({result} < 0) {Fails()}");
 			}
 
 			code.Line($"p = {result};");
@@ -3214,14 +3392,14 @@ sealed partial class Machine
 					// past its first text, where the engine, which has no way back into a run,
 					// is not asked at all: nothing is recorded.
 					code.Line($"if ({took} > {alternatives.Count - closing.Count})");
-					code.Then("return -1;");
+					code.Then(Fails());
 					code.Line();
 					RefusedRun(code, closing);
 				}
 			else
 			{
 				code.Line($"if ({tried} < 0)");
-				code.Then("return -1;");
+				code.Then(Fails());
 			}
 
 			code.Line();
@@ -3280,7 +3458,7 @@ sealed partial class Machine
 				machine.Carrier.AroundCall(owner, bare, "q") is null)
 			{
 				return (
-					$"{machine.ReaderOf(bare.Rule)}(p{machine.DirectStrengthOf(bare, bare.Rule)})",
+					Framed(bare, machine.ReaderOf(bare.Rule), machine.DirectStrengthOf(bare, bare.Rule)),
 					"",
 					machine.Opens(part));
 			}
@@ -3293,6 +3471,7 @@ sealed partial class Machine
 			var apart = new ReaderWriter(machine, owner, given, taken, _folds, analyzing);
 
 			apart._quiet = quiet ? part : null;
+			apart._outer = Open();
 
 			var written = apart.Render(part, following);
 			ObservedOpen |= apart.ObservedOpen;
@@ -3701,7 +3880,7 @@ sealed partial class Machine
 			{
 				code.Line();
 				code.Line($"if ({turns} < {min})");
-				code.Then("return -1;");
+				code.Then(Fails());
 			}
 		}
 
@@ -4065,7 +4244,7 @@ sealed partial class Machine
 					if (stood is not null)
 						code.Line($"failure.Stood = {stood}; failure.Tied = {stood}t;");
 
-					code.Line("return -1;");
+					code.Line(Fails());
 				}
 
 				code.Line();
@@ -4114,7 +4293,7 @@ sealed partial class Machine
 			using (code.Block(""))
 			{
 				code.Line($"if ({machine.Past("p")})");
-				code.Then("return -1;");
+				code.Then(Fails());
 				code.Line();
 				code.Line($"p = {Broken(read, slot, out var handed)}(p, failure.RecoveryOrdinal{handed});");
 
@@ -4231,6 +4410,11 @@ sealed partial class Machine
 			foreach (var line in machine.Carrier.Recovered(
 				read.Plan, slot, RuleOfSlot(slot), _positions, machine.MemberOfSlot(owner, slot)?.Member.Element is not null))
 				Carried(code, line);
+
+			// The element stepped over, told where the build traces: from where it began to where
+			// reading goes on, and how far it got.
+			if (machine.Tracing is { } tracing)
+				code.Line($"failure.Trace?.Recovered({tracing.RuleOf(owner)}, pos, p, reach);");
 
 			code.Line("return p;");
 
@@ -4553,7 +4737,7 @@ sealed partial class Machine
 						}
 
 						code.Line($"if ({turn} < {min})");
-						code.Then("return -1;");
+						code.Then(Fails());
 					}
 
 					code.Line();
@@ -4615,7 +4799,7 @@ sealed partial class Machine
 			{
 				code.Line($"var {took} = {call};");
 				code.Line($"if ({took} < 0)");
-				code.Then("return -1;");
+				code.Then(Fails());
 				code.Line($"p = {took};");
 
 				return;
@@ -4652,7 +4836,7 @@ sealed partial class Machine
 
 			code.Line();
 			code.Line($"if ({took} < 0)");
-			code.Then("return -1;");
+			code.Then(Fails());
 			code.Line();
 			code.Line($"ways.Seal(s{segment});");
 			code.Line($"p = {took};");
@@ -4844,7 +5028,7 @@ sealed partial class Machine
 				using (code.Indent())
 				{
 					code.Line(Refusal("null"));
-					code.Line("return -1;");
+					code.Line(Fails());
 				}
 			}
 		}
@@ -4852,13 +5036,18 @@ sealed partial class Machine
 		void EmitGuard(Writer code, Node.Guard guard, string? expected = null)
 		{
 			var call = EmitGuardCall(code, guard);
+
+			// What the guard answered, told where the build traces.
+			if (machine.Tracing is { } tracing)
+				call = $"Guarded_DotGram({tracing.GuardOf(guard)}, p, {call})";
+
 			using (code.Block($"if (!{call})"))
 			{
 				if (expected is not null)
 					machine._expectedUsed.Add(expected);
 
 				code.Line(Refusal(expected ?? "null"));
-				code.Line("return -1;");
+				code.Line(Fails());
 			}
 		}
 
@@ -4900,7 +5089,7 @@ sealed partial class Machine
 			foreach (var one in kept)
 				_guardTexts[one.Key] = one.Value;
 
-			code.Line("return -1;");
+			code.Line(Fails());
 		}
 
 		/// <summary>The guard an alternative's reading begins with, through what builds or names it.</summary>
@@ -5055,7 +5244,7 @@ sealed partial class Machine
 			if (!named)
 			{
 				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
-				code.Then("return -1;");
+				code.Then(Fails());
 
 				return;
 			}
@@ -5119,7 +5308,7 @@ sealed partial class Machine
 			machine._expectedUsed.Add(expected);
 
 			code.Line(Refusal(expected));
-			code.Line("return -1;");
+			code.Line(Fails());
 		}
 
 		/// <summary>The statement that records a refusal here, asking first where a reading may be quiet.</summary>

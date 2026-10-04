@@ -198,6 +198,9 @@ public sealed partial class GrammarNormalizer
 			Moving(_powers),
 			Moving(_recoveries),
 
+			// What a collapsed call stood for, which a trace build reports around it.
+			Moving(_forwarded),
+
 			// Keyed by rule rather than by node, and named here all the same: the *values*
 			// name nodes, so a rebuild has to reach into them. That is why the list holds a
 			// move rather than a dictionary.

@@ -50,6 +50,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.6 `[GramOptions]`, a second reading of the same grammar](#66-gramoptions-a-second-reading-of-the-same-grammar)
   - [6.7 `[GramInclude]`, a grammar built on another](#67-graminclude-a-grammar-built-on-another)
   - [6.8 Generation options](#68-generation-options)
+  - [6.9 Tracing a grammar](#69-tracing-a-grammar)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -2256,6 +2257,7 @@ of it fails a build.
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
+| `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
 
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
 `IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
@@ -2391,6 +2393,126 @@ Two more are written by the generator and never by an author. `[GramSource]` car
 grammar's text on the class it compiled, which is how an include across a project reference
 finds it (§6.7). `[GramLanguageDescriptor]` carries a versioned description of the language
 on a generated parser, for tooling to read.
+
+### 6.9 Tracing a grammar
+
+`Trace = true` on `[Gram]` or `[GramOptions]` makes a reading a **trace build**: its parser
+reports what it does — each rule it enters and leaves, each refusal and what it wanted, each
+guard it asks — to a sink the caller sets. The build property `DotGramTrace` asks the same of
+every grammar in a project, typically for a Debug build only:
+
+```xml
+<PropertyGroup>
+  <DotGramTrace Condition="'$(Configuration)' == 'Debug'">true</DotGramTrace>
+</PropertyGroup>
+```
+
+Off, nothing of it is written: the parser is the same text byte for byte as a parser built
+without the option. A traced reading may stand beside an untouched one, the way any second
+reading does (§6.6):
+
+```csharp
+[Gram("Expressions.gram")]
+[GramOptions(Suffix = "Traced", Trace = true)]
+public static partial class Expressions { }
+```
+
+`Expressions.TryParseSum` is the parser as it was, and `Expressions.Traced.TryParseSum` the
+same grammar traced.
+
+#### The sink and its scope
+
+A trace build declares, in the class its parser goes into and public when that class is, the
+abstract class `GramTrace`, whose methods do nothing until overridden, and the scope that sets
+one:
+
+```csharp
+var why = new Expressions.GramWhy();
+
+using (Expressions.Tracing(why))
+{
+    var match = Expressions.TryParseSum("1+(2+");
+}
+
+Console.WriteLine(why);
+// Expected ['(' | '0'..'9']. (line 1, column 6)
+// The rules below were reading there, each wanting what it names.
+//   wanted ['(' | '0'..'9'] in Sum 1:1 > More 1:2 > Term 1:3 > Sum 1:4 > More 1:5 > Term 1:6
+```
+
+`Tracing(sink)` reaches every reading begun in the same flow of control until the scope is
+disposed, which puts back what was set before: a reading carried onto a stack of its own
+(§6.5), a nested parse that a construction or a guard starts, a reading awaited in a task begun
+inside the scope. A `find` or a `yield` takes the sink that was set where it was called, not
+where its first element is asked for. Each traced class has a `GramTrace` of its own — two
+hosts do not share one, and a sink that serves both is an adapter over the two.
+
+What a sink is told, all of it as numbers so that nothing is allocated per event:
+
+| Method | When |
+| --- | --- |
+| `Begin(GramRead read)` | a reading begins: a `TryParse` that refuses reads quietly first and again recording, and a `find` reads at every start |
+| `End(read, end, position, expected, expectedMore)` | the reading ends where `end` says, or -1 where it refused, with the furthest refusal it recorded: the sets `Match.Error` is worded from |
+| `Enter(rule, position)` / `Exit(rule, position, end)` | a rule is entered, and leaves at `end` or fails (-1) |
+| `Remembered(rule, position)` | a rule entered where it already failed in this reading fails at once without being read (a reading over tokens remembers) |
+| `Guard(guard, position, passed)` | a guard (`when`) was asked |
+| `Refused(position, expected)` | a recording reading could not go on, wanting one of `expected`; null where the refusal names nothing. Quiet readings and lookaheads refuse without a word, as neither's refusals are ever the answer |
+| `Recovered(rule, from, to, reach)` | a repetition marked `recover` stepped over an element (§8.2) |
+| `Deepened(position)` | the reading moved to a stack of its own (§6.5) |
+| `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read |
+| `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error` |
+
+`GramRead` says what the reading is: the rule published, whether it is `Quiet`, whether it is one
+start of a `find`, which `Machine` reads it, the `Text`, the names of the rules and the C# of the
+guards by the numbers the events carry (`RuleName`, `GuardText`), and `CharacterOf`, which turns a
+position into a character of the input — a position over tokens is a token — and `Locate`, its line
+and column.
+
+#### Three sinks, ready-made
+
+- **`GramWhy`** — why the last call watched was refused. Its `Message` and `Position` are the
+  match's own, handed over by the call, and its `Paths` are the rules that were open where the input
+  was followed furthest, outermost first with where each was entered, and the part of the expected
+  set each wanted there. A refusal kept is one whose set the failure ended with, so what it explains
+  is what the message says: a set a later refusal covered, a refusal inside a lookahead and the words
+  of an `on fail` are already applied to what it is held against. A refusal that names no set is
+  explained by the rules that refused there, a guard by its C#, the end of input by the rules it
+  ended inside, a character no token begins with as such. A rule remembered as failing (above) shows
+  the path through its first caller, not through a second. A repetition marked `recover` is explained
+  element by element in `Elements`, then the refusal itself if the reading still failed. It explains
+  the parser's own answer: a host that rewrites a refusal after the parse answers in words of its own.
+  Each refusal costs it one entry however deep the reading is, so a refusal nested fifty thousand
+  deep is explained in a couple of hundred megabytes.
+- **`GramTraceLog`** — an indented log to a `TextWriter`: each rule entered with the text there,
+  each rule left, each refusal and guard. It writes up to a budget of lines (10,000 unless said) and
+  then counts the rest, and sums up the starts a `find` refused in one line.
+- **`GramProfile`** — for each rule, how often it was entered, read and failed, how often it was
+  answered from the memory of a failure, how often it was entered again at a position the same reading
+  had entered it at, the time inside it with and without what it called, and the deepest stack it was
+  entered on. Quiet readings and recording ones are counted apart: they are different programs, a quiet
+  reading not sharpening where a refusal is and not trying what only a message would need.
+
+Each is for a reading at a time, and is not to be shared by readings that run at once. A reading begun
+inside another is bracketed by its own `Begin` and `End`: the log shows it nested, the profile counts
+it, and `GramWhy` explains the outermost.
+
+#### What a trace build is
+
+A slightly different program from the one it observes. Every return of a rule's method reports it,
+so its frames are larger, a deep reading moves to a stack of its own a little sooner, and what
+`GramProfile` times is the trace build — the proportions of the parser, a little slower than it.
+What it answers is the same, refusals word for word. With no sink set a reading pays a field read
+where each event would be, and allocates nothing.
+
+A rule that only hands on another rule's value (`Operand : @T = o: Guard => @(o) | o: Quantified =>
+@(o)`) is compiled into the rules that call it, and a trace reports it where it stood all the same, as
+a frame around what it became: a stack shows the rule where the author wrote it.
+
+What is not traced yet: a reading on the engine rather than on methods — a grammar the generator does
+not read by methods — reports its beginning and its end and nothing between, and `GramWhy` says that
+the refusal came from a part of the reading that runs on the engine; a reading by `flat` methods (a
+lowered publication) is the same. The buffered and streamed forms (§6.3) report nothing. Constructions
+and the values they build are not traced.
 
 ## 7. The bond with C#
 
