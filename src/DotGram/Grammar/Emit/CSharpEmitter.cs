@@ -784,8 +784,8 @@ public static partial class CSharpEmitter
 		// failure carries and its refusals keep (Refuse_DotGram): the engine's `reach`.
 		var readsRecovery = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsRecovery);
 
-		// The two fields of the failure that are written only where something writes them, which the
-		// trace's helpers read where they are there.
+		// Two of the failure's fields exist only where something writes them, and the trace's helpers
+		// read them only where they exist.
 		var quietField = quiets || valuing is not null;
 		var moreField  = valuing is not null || machines.Exists(static compiled => !compiled.Flat || compiled.Machine.Ties);
 
@@ -2220,6 +2220,7 @@ public static partial class CSharpEmitter
 								file.Line($"Unlexed_DotGram(source, {halt});");
 								file.Line();
 							}
+
 							Refusing(
 								$"return {match}.Failed({OutcomeType}.NoMatch, " +
 								$"{halt} >= source.Length ? \"Expected more input.\" : " +

@@ -61,7 +61,6 @@ public sealed class GeneratorPageTests
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			SymbolResolver = new RoslynSymbolResolver(declared, host),
 			LineMap        = new GrammarLineMap(grammar, Path.GetFileName(page)),
-			Trace          = Traced(code),
 		});
 
 		// A page that shows a grammar the generator complains about is teaching the complaint.
@@ -126,7 +125,7 @@ public sealed class GeneratorPageTests
 		{
 			ClassName     = ShippedPages.HostIn(host)!,
 			CSharpScanner = RoslynCSharpScanner.Instance,
-			Trace         = Traced(host),
+			Trace         = Traced(blocks[block]),
 			SymbolResolver = new RoslynSymbolResolver(
 				CSharpCompilation.Create(
 					"Host",
@@ -168,13 +167,12 @@ public sealed class GeneratorPageTests
 	}
 
 	/// <summary>
-	/// Whether the block's attribute asks for a trace build, which the generator would read off it and
-	/// this harness, compiling the grammar text on its own, is told: the sinks it carries are what the
-	/// block below it names.
+	/// Whether a block uses what a trace build carries, which the page asks of the build with
+	/// <c>DotGramTrace</c> rather than of the attribute: the grammar above it is then compiled as one.
 	/// </summary>
-	static bool Traced(string code)
+	static bool Traced(string uses)
 	{
-		return code.Contains("Trace = true", StringComparison.Ordinal);
+		return uses.Contains("Tracing(", StringComparison.Ordinal);
 	}
 
 	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>

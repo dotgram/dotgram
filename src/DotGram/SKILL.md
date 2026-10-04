@@ -443,9 +443,15 @@ begins with first — `Blob = '<' & @ReadBlob` — and the host is asked only wh
 
 ## When a parse refuses and the message is not enough
 
-`Trace = true` on the attribute — or `<DotGramTrace>true</DotGramTrace>` for every grammar of a
-project, usually in a Debug build only — makes a trace build, and the class carries `GramWhy`,
-`GramTraceLog` and `GramProfile` beside the parser:
+`<DotGramTrace>true</DotGramTrace>` makes every grammar of a project a trace build — usually in a
+Debug build only — and `Trace = true` on the attribute one grammar; the class then carries
+`GramWhy`, `GramTraceLog` and `GramProfile` beside the parser:
+
+```xml
+<PropertyGroup>
+  <DotGramTrace Condition="'$(Configuration)' == 'Debug'">true</DotGramTrace>
+</PropertyGroup>
+```
 
 ```csharp
 using System;
@@ -455,7 +461,7 @@ using DotGram;
 	Value : @int = '(' & inner: Value & ')' => @(inner) | digits: ['0'..'9']+ => @(int.Parse(digits))
 
 	parse Value
-	""", Trace = true)]
+	""")]
 public static partial class Nested;
 ```
 

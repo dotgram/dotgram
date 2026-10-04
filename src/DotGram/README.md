@@ -296,9 +296,15 @@ drift apart.
 
 ## Why an input was refused
 
-A trace build of a grammar — `Trace = true` on `[Gram]` or `[GramOptions]`, or
-`<DotGramTrace>true</DotGramTrace>` for every grammar of a project — reports what its parser reads
-to a sink, and carries three ready-made ones in the generated class:
+A trace build of a grammar — `<DotGramTrace>true</DotGramTrace>` for every grammar of a project,
+or `Trace = true` on one `[Gram]` or `[GramOptions]` — reports what its parser reads to a sink, and
+carries three ready-made ones in the generated class:
+
+```xml
+<PropertyGroup>
+  <DotGramTrace Condition="'$(Configuration)' == 'Debug'">true</DotGramTrace>
+</PropertyGroup>
+```
 
 ```csharp
 using System;
@@ -308,7 +314,7 @@ using DotGram;
 	Value : @int = '(' & inner: Value & ')' => @(inner) | digits: ['0'..'9']+ => @(int.Parse(digits))
 
 	parse Value
-	""", Trace = true)]
+	""")]
 public static partial class Nested;
 ```
 
