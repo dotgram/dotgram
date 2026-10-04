@@ -2471,6 +2471,14 @@ sealed partial class Machine
 	/// no other alternative can begin there, so nothing could be revisited, and the dispatch on
 	/// that token is the form it is compiled in rather than a chain of tries.
 	/// </para>
+	/// <para>
+	/// A repetition that recovers is left as it is too. It tries what follows it before each
+	/// turn, to tell an element from where the run ends, and comes back for the turn when what
+	/// follows fails (<see cref="CompileRecoveringRepeat"/>): braces would commit that probe's
+	/// way out, and <c>Row* recover ';' &amp; eof</c> refused <c>a;</c> at 0. The probe is the
+	/// recovery's machinery and not a reading the author chose, and the turn it decides is
+	/// what the methods read.
+	/// </para>
 	/// </remarks>
 	bool Stands(Node node)
 	{
@@ -2480,7 +2488,7 @@ sealed partial class Machine
 			Node.Choice { Selection: null } or Node.Repeat when
 				!_owners.TryGetValue(node, out var owner) || owner.GivesBack => false,
 			Node.Choice(var alternatives) { Selection: null } => Predictive(alternatives) is null,
-			Node.Repeat => true,
+			Node.Repeat => !_recoveries.ContainsKey(node),
 			_ => false,
 		};
 	}

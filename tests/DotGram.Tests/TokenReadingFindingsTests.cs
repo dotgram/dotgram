@@ -572,6 +572,112 @@ public sealed class TokenReadingFindingsTests
 		}
 	}
 
+	/// <summary>
+	/// The constructs whose engine rendering tries a way out first and comes back — a recovering
+	/// repetition, followed by the end, called, and followed by what its elements begin with; a
+	/// lookahead; a fold, by recursion on the left and by
+	/// binding powers — read alike over tokens in every rendering and carrier, whole, from every
+	/// position and in windows, and as over characters where §4 does not intervene.
+	/// </summary>
+	/// <remarks>
+	/// A recovering repetition tries what follows it before each turn, and comes back for the
+	/// turn when that fails. Braced as an ordinary repetition is over kinds, the probe's way
+	/// out was committed, and <c>Row* recover ';' &amp; eof</c> refused <c>a;</c> at 0 on the
+	/// engine. The probe is the recovery's own machinery, not a reading the author chose, and
+	/// is left unbraced.
+	/// <para>
+	/// Without a factory: a recovery with one is refused in a spaced grammar (GRAM4010, the
+	/// element being the seam and the call), and a grammar without trivia is not cut. Nor a
+	/// stream: yielding with implicit trivia is refused (GRAM4027). The inputs have no spaces
+	/// where a valueless repetition's turns meet, which over characters have no seam.
+	/// </para>
+	/// <para>
+	/// Where a turn has to be recovered before what follows the repetition, the engine over
+	/// tokens refuses what the tape reads, with or without any braces: <c>aa;z</c> through
+	/// <c>Rows</c>, <c>aa;a</c> before <c>'a' &amp; eof</c>. That is not this question, and
+	/// those inputs are not asked here.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a|")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;")]
+	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b")]
+	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Lex.Num => @(left - right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 - 3|9|9 -|- 9")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Start << 1 => @(left - right) | left: Start & '*' & right: Start << 2 => @(left * right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 * 3 - 1|2 * 3|9 -|9 - 2 *")]
+	public void A_construct_that_tries_a_way_out_first_reads_alike_over_tokens(string grammar, string inputs)
+	{
+		grammar = "trivia = { ' '* }\n" + grammar;
+
+		var tokens     = OverTokens(grammar, "GRAM5005", "GRAM5007").ToArray();
+		var characters = OverCharacters(grammar).ToArray();
+
+		foreach (var input in inputs.Split('|'))
+		{
+			var expected = Read(tokens[0], input);
+
+			foreach (var assembly in tokens.Skip(1))
+				Assert.Equal(expected, Read(assembly, input));
+
+			// Over characters the same answer and value, and the same place where it is accepted:
+			// a refusal is placed by what each reading counts as where it stopped.
+			foreach (var assembly in characters)
+				Assert.Equal(Accepted(expected), Accepted(Read(assembly, input)));
+
+			if (tokens[0].GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string), typeof(int)]) is null)
+				continue;
+
+			for (var at = 0; at <= input.Length; at++)
+				foreach (var length in new int?[] { null, input.Length - at, (input.Length - at) / 2 })
+				{
+					var from = Positioned(tokens[0], input, at, length);
+
+					foreach (var assembly in tokens.Skip(1))
+						Assert.Equal(from, Positioned(assembly, input, at, length));
+				}
+		}
+
+		string Read(Assembly assembly, string input)
+		{
+			var match  = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+			var said   = match.IsSuccess
+				? $"Success {Spelled(match.Value)}"
+				: $"{EmittedCode.Outcome(assembly, "Grammar", "TryParseStart", input)} {match.Position}";
+
+			if (assembly.GetType("Grammar")!.GetMethod("Lazy", [typeof(string)]) is null)
+				return said;
+
+			try
+			{
+				return said + " / " + Spelled(EmittedCode.Streamed(assembly, "Grammar", "Lazy", input));
+			}
+			catch (TargetInvocationException thrown)
+			{
+				return said + " / " + thrown.InnerException!.GetType().Name;
+			}
+			catch (FormatException thrown)
+			{
+				return said + " / " + thrown.GetType().Name;
+			}
+		}
+
+		static string Accepted(string said)
+		{
+			return said.StartsWith("Success", StringComparison.Ordinal) ? said : "refused";
+		}
+
+		static string Spelled(object? value)
+		{
+			return value is System.Collections.IEnumerable many and not string
+				? "[" + string.Join(",", many.Cast<object?>().Select(Spelled)) + "]"
+				: value?.ToString() ?? "null";
+		}
+	}
+
+	/// <summary>A number the lexer reads, valued where a rule calls it.</summary>
+	const string Numbers = "namespace Lex\n{\n\ttrivia = none\n\tNum : @int = ['0'..'9']+ => @(int.Parse(parserText))\n}\n";
+
 	// ── A token the text ends inside of ─────────────────────────────────────────
 
 	/// <summary>
@@ -876,7 +982,7 @@ public sealed class TokenReadingFindingsTests
 	/// The renderings of a grammar read over tokens: the engine, and the direct reader on each
 	/// carrier it is read on.
 	/// </summary>
-	static IEnumerable<Assembly> OverTokens(string grammar)
+	static IEnumerable<Assembly> OverTokens(string grammar, params string[] allowed)
 	{
 		yield return Built(grammar, lexical: true, direct: false);
 
@@ -888,7 +994,7 @@ public sealed class TokenReadingFindingsTests
 
 			var result = GramCompiler.Compile(grammar, options);
 
-			EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
+			EmittedCode.Quiet(result.Diagnostics.Where(one => one.Id != GramCompiler.NotCut && !allowed.Contains(one.Id)));
 
 			yield return EmittedCode.Compile(result.Sources[0].Text);
 		}
