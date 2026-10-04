@@ -2481,8 +2481,8 @@ and column.
   the path through its first caller, not through a second. A repetition marked `recover` is explained
   element by element in `Elements`, then the refusal itself if the reading still failed. It explains
   the parser's own answer: a host that rewrites a refusal after the parse answers in words of its own.
-  Each refusal costs it one entry however deep the reading is, so a refusal nested fifty thousand
-  deep is explained in a couple of hundred megabytes.
+  Each refusal costs it one entry however deep the reading is: a JSON text opened fifty thousand
+  deep and never closed is explained by a process of about a hundred megabytes.
 - **`GramTraceLog`** — an indented log to a `TextWriter`: each rule entered with the text there,
   each rule left, each refusal and guard. It writes up to a budget of lines (10,000 unless said) and
   then counts the rest, and sums up the starts a `find` refused in one line.
