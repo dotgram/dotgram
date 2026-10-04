@@ -141,43 +141,187 @@ public sealed class TokenReadingFindingsTests
 	/// (§6.3) — not the place over tokens where the lexer met a character no token begins with.
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: over tokens <c>"a#"</c> read from 0 answers a reading of <c>a</c>,
-	/// because the tokens end at <c>#</c> and the syntactic half's end of input is the end of
-	/// the tokens. Over characters, and by §6.3, there is no <c>eof</c> there.
+	/// Over tokens <c>"a#"</c> read from 0 answered a reading of <c>a</c>: the cutting ended at
+	/// <c>#</c>, and the syntactic half took the end of the tokens for the end of the input. A
+	/// reading from a position or in a window now cuts past such a character, which becomes a
+	/// token of no kind: no terminal reads it, <c>any</c> reads it as one character, and it is
+	/// not the end of the text. Every rendering answers as the reading over characters does, in
+	/// the match forms and the ones that move <c>at</c>.
 	/// </remarks>
-	[Theory(Skip = "Open: over tokens the syntactic half's end of input is where the tokens stopped, not the end of the text.")]
-	[InlineData(null)]
-	[InlineData(2)]
-	public void Eof_over_tokens_is_not_where_the_tokens_stopped(int? length)
+	[Theory]
+	[InlineData("a#", 0, null)]
+	[InlineData("a#", 0, 2)]
+	[InlineData("a #", 0, null)]
+	[InlineData("a #", 0, 3)]
+	[InlineData("a #", 0, 2)]
+	[InlineData("a#a", 0, null)]
+	[InlineData("a#a", 2, null)]
+	[InlineData("#a", 1, null)]
+	[InlineData("#a", 1, 1)]
+	[InlineData("aa", 0, null)]
+	[InlineData("aaz", 0, null)]
+	[InlineData("a z#", 0, null)]
+	[InlineData("a z#", 0, 3)]
+	[InlineData("a b", 0, null)]
+	public void Eof_over_tokens_is_not_where_the_tokens_stopped(string input, int at, int? length)
 	{
 		const string grammar = "trivia = { ' '* }\nStart = 'a'* & ('z' | 'z' & 'q')? & eof\nOther = 'c' & 'b'\nparse Start\nparse Other\n";
 
-		Assert.False(EmittedCode.Positioned(Built(grammar, lexical: false, direct: true), "Grammar", "TryParseStart", "a#", 0, length).IsSuccess);
+		ReadsAsOverCharacters(grammar, input, at, length);
+	}
 
-		foreach (var direct in new[] { false, true })
-			Assert.False(EmittedCode.Positioned(Built(grammar, lexical: true, direct: direct), "Grammar", "TryParseStart", "a#", 0, length).IsSuccess);
+	/// <summary>
+	/// <c>any</c> over tokens reads a token, and a character no token begins with as one
+	/// character, as it reads one over characters; what follows it is still there, and
+	/// <c>eof</c> is not met until the text ends.
+	/// </summary>
+	[Theory]
+	[InlineData("a#", 0, null)]
+	[InlineData("a#", 0, 2)]
+	[InlineData("a#b", 0, null)]
+	[InlineData("a#b", 0, 2)]
+	[InlineData("a#c", 0, null)]
+	[InlineData("ac", 0, null)]
+	[InlineData("a c#", 0, 3)]
+	public void Any_over_tokens_reads_a_character_no_token_begins_with_as_one(string input, int at, int? length)
+	{
+		const string grammar = "trivia = { ' '* }\nStart = 'a' & any & eof & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+
+		ReadsAsOverCharacters(grammar, input, at, length);
+	}
+
+	/// <summary>
+	/// A complement is any item except those it names (§3.1), and over tokens a character no
+	/// token begins with is an item, as <c>any</c> reads it: <c>[^ 'b']</c> reads it, <c>?=</c>
+	/// over the complement sees it and <c>?!</c> is refused by it — as over characters, where
+	/// the same complement reads the same character.
+	/// </summary>
+	[Theory]
+	[InlineData("'a' & [^ 'b'] & eof", "a#", 0, null)]
+	[InlineData("'a' & [^ 'b'] & eof", "a#", 0, 2)]
+	[InlineData("'a' & [^ 'b'] & eof", "a#b", 0, null)]
+	[InlineData("'a' & [^ 'b'] & eof", "ab", 0, null)]
+	[InlineData("'a' & [^ 'b'] & eof", "ac", 0, null)]
+	[InlineData("'a' & [^ 'b'] & eof", "a c#", 0, 3)]
+	[InlineData("'a' & ?=[^ 'b'] & any & eof", "a#", 0, null)]
+	[InlineData("'a' & ?=[^ 'b'] & any & eof", "a#", 0, 2)]
+	[InlineData("'a' & ?=[^ 'b'] & any & eof", "ab", 0, null)]
+	[InlineData("'a' & ?![^ 'b'] & any & eof", "a#", 0, null)]
+	[InlineData("'a' & ?![^ 'b'] & any & eof", "a#", 0, 2)]
+	[InlineData("'a' & ?![^ 'b'] & any & eof", "ab", 0, null)]
+	[InlineData("'a' & ?![^ 'b'] & any & eof", "ac", 0, null)]
+	public void A_complement_over_tokens_reads_a_character_no_token_begins_with(string start, string input, int at, int? length)
+	{
+		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = ('b' | 'c')\nparse Start\nparse Other\n";
+
+		ReadsAsOverCharacters(grammar, input, at, length);
 	}
 
 	/// <summary>
 	/// A reading from a position is not refused by a character it never read (§6.3): one no
 	/// token begins with, standing before the position, leaves what follows it readable — as
-	/// the window form over the same text already reads it.
+	/// the window form over the same text reads it.
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: the form from a position cuts the whole input, the tokens end at the
-	/// <c>#</c> before <c>at</c>, no token is left at or after it, and the answer is Starved.
+	/// The form from a position cut the whole input and the cutting ended at the <c>#</c>
+	/// before <c>at</c>, so no token was left at or after it and the answer was Starved. The
+	/// cutting now goes on past it.
 	/// </remarks>
-	[Fact(Skip = "Open: the form from a position cuts the whole input, so a character no token begins with ends the tokens before the position.")]
+	[Fact]
 	public void A_character_no_token_begins_with_before_the_position_does_not_refuse_the_reading()
 	{
 		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
 
-		foreach (var direct in new[] { false, true })
+		foreach (var assembly in OverTokens(grammar))
 		{
-			var assembly = Built(grammar, lexical: true, direct: direct);
-
 			Assert.Equal((true, (string?)null, 1L, 1L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "#a", 1, 1));
 			Assert.Equal((true, (string?)null, 1L, 1L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "#a", 1));
+			Assert.Equal((true, (object?)"a", 2), EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "#a", 1));
+			Assert.Equal((true, (object?)"a", 2), EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "#a", 1, 1));
+
+			// Past a second one, and between two statements of a text read a piece at a time.
+			Assert.Equal((true, (string?)null, 4L, 3L), EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", "a#$ a z#", 4));
+			Assert.Equal((true, (object?)"a z", 7), EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "a#$ a z#", 3));
+		}
+
+		foreach (var (input, at) in new[] { ("#a", 1), ("a#$ a z#", 4), ("a#$ a z#", 3), ("a#a", 2), ("#a ", 1) })
+			ReadsAsOverCharacters(grammar, input, at, null);
+	}
+
+	/// <summary>
+	/// A reading that begins at a character no token begins with, where a token is left after
+	/// it, is answered by that character as it is over characters: a rule that must read
+	/// something is refused there (<c>NoMatch</c>), and one that can read nothing reads nothing
+	/// there. Where nothing but such characters and trivia is left, there is nothing to read
+	/// over tokens and the answer is <c>Starved</c> (§6.3), where over characters the character
+	/// answers: a rule that must read something is refused by it, and one that can read nothing
+	/// reads nothing there.
+	/// </summary>
+	/// <remarks>
+	/// The last column is the reading over characters, written out where it differs, so that the
+	/// difference §6.3 keeps is in plain sight. Where nothing but trivia is left the two are not
+	/// compared: over tokens that is <c>Starved</c> by §6.3, and over characters it depends on
+	/// whether the rule can read nothing past the trivia, which is not this question.
+	/// </remarks>
+	[Theory]
+	[InlineData("'a'", "#a", 0, null, "NoMatch 0 0", "same")]
+	[InlineData("'a'", "#a", 0, 2, "NoMatch 0 0", "same")]
+	[InlineData("'a'", " #a", 0, null, "NoMatch 1 0", "same")]
+	[InlineData("'a'", "a #a", 1, null, "NoMatch 2 0", "same")]
+	[InlineData("'a'?", "#a", 0, null, "Success 0 0", "same")]
+	[InlineData("'a'?", "#a", 0, 2, "Success 0 0", "same")]
+	[InlineData("'a'?", "a #a", 1, 3, "Success 2 0", "same")]
+	[InlineData("'a'", "#", 0, null, "Starved 1 0", "NoMatch 0 0")]
+	[InlineData("'a'", "a #", 1, 2, "Starved 3 0", "NoMatch 2 0")]
+	[InlineData("'a'?", "#", 0, null, "Starved 1 0", "Success 0 0")]
+	[InlineData("'a'?", "a# #", 1, null, "Starved 4 0", "Success 1 0")]
+	[InlineData("'a'?", "a# #a", 1, 3, "Starved 4 0", "Success 1 0")]
+	[InlineData("'a'", "a  ", 1, null, "Starved 3 0", null)]
+	[InlineData("'a'?", "a  ", 1, null, "Starved 3 0", null)]
+	[InlineData("'a'?", "a  ", 1, 2, "Starved 3 0", null)]
+	public void A_reading_that_begins_at_a_character_no_token_begins_with(
+		string start, string input, int at, int? length, string tokens, string? characters)
+	{
+		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+		var said    = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = Positioned(assembly, input, at, length);
+
+			Assert.True(tokens == $"{match.Outcome} {match.Position} {match.Length}", said + ": " + match);
+			Assert.Equal(
+				(match.Outcome == "Success", match.Outcome == "Success" ? (int)(match.Position + match.Length) : at),
+				Moved(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", input, at, length)));
+		}
+
+		if (characters is null)
+			return;
+
+		var over = Positioned(Built(grammar, lexical: false, direct: true), input, at, length);
+
+		Assert.True((characters == "same" ? tokens : characters) == $"{over.Outcome} {over.Position} {over.Length}", said + ": " + over);
+	}
+
+	/// <summary>
+	/// A position outside the input is <c>NoMatch</c> in the form that 	/// A position outside the input is <c>NoMatch</c> in the form that answers with a match
+	/// (§6.3), over tokens as over characters — and not a reading begun at the first token.
+	/// </summary>
+	[Theory]
+	[InlineData("a z", -1)]
+	[InlineData("a z", 4)]
+	[InlineData("", 1)]
+	public void A_position_outside_the_input_is_no_match_over_tokens(string input, int at)
+	{
+		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var type  = assembly.GetType("Grammar")!;
+			var match = type.GetMethod("TryParseStart", [typeof(string), typeof(int)])!.Invoke(null, [input, at])!;
+
+			Assert.Equal("NoMatch", match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString());
+			Assert.Equal((long)at, Convert.ToInt64(match.GetType().GetProperty("Position")!.GetValue(match)));
 		}
 	}
 
@@ -375,6 +519,33 @@ public sealed class TokenReadingFindingsTests
 		}
 	}
 
+	/// <summary>
+	/// Whether every rendering over tokens reads a piece of the input as the reading over
+	/// characters does: the match form and the form that moves <c>at</c>, from a position or in
+	/// a window, and the two over tokens agreeing with each other on where and how far.
+	/// </summary>
+	static void ReadsAsOverCharacters(string grammar, string input, int at, int? length)
+	{
+		var said     = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
+		var expected = EmittedCode.Positioned(Built(grammar, lexical: false, direct: true), "Grammar", "TryParseStart", input, at, length);
+		var first    = ((bool IsSuccess, string? Error, long Position, long Length)?)null;
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", input, at, length);
+			var read  = EmittedCode.Answered(assembly, "Grammar", "TryParseStart", input, at, length);
+
+			Assert.True(expected.IsSuccess == match.IsSuccess, said);
+			Assert.True(match.IsSuccess == read.Read, said);
+			Assert.True(read.At == (match.IsSuccess ? match.Position + match.Length : at), said);
+
+			if (match.IsSuccess)
+				Assert.True(match.Position == (first ?? match).Position && match.Length == (first ?? match).Length, said);
+
+			first ??= match;
+		}
+	}
+
 	static void AgreesWithTheSemantics(string grammar, bool lexical, bool direct, string inputs)
 	{
 		var assembly = Built(grammar, lexical, direct);
@@ -396,6 +567,22 @@ public sealed class TokenReadingFindingsTests
 			all.AddRange(all.Where(one => one.Length == length - 1).SelectMany(one => alphabet.Select(c => one + c)).ToList());
 
 		return all;
+	}
+
+	/// <summary>A reading from a position or in a window: its outcome, where it began and how far it read.</summary>
+	static (string Outcome, long Position, long Length) Positioned(Assembly assembly, string input, int at, int? length)
+	{
+		var type  = assembly.GetType("Grammar")!;
+		var match = length is { } seen
+			? type.GetMethod("TryParseStart", [typeof(string), typeof(int), typeof(int)])!.Invoke(null, [input, at, seen])!
+			: type.GetMethod("TryParseStart", [typeof(string), typeof(int)])!.Invoke(null, [input, at])!;
+
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
+
+		return (Read("Outcome")!.ToString()!, Convert.ToInt64(Read("Position")), Convert.ToInt64(Read("Length")));
 	}
 
 	static (bool Read, int At) Moved((bool Read, object? Value, int At) answer)

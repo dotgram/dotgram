@@ -1750,7 +1750,7 @@ public static partial class CSharpEmitter
 			var line = TraceBegin(
 				"read", name, start, machine, overKinds ? "source" : "input",
 				overKinds
-					? "starts, count, " + (windowed ? "at + length" : "tokens.Stopped >= 0 ? tokens.Stopped : source.Length")
+					? "starts, count, " + (windowed ? "at + length" : "source.Length")
 					: null);
 
 			file.Line(declare ? line : line.Substring("var ".Length));
@@ -1935,8 +1935,8 @@ public static partial class CSharpEmitter
 					: ""));
 			if (overKinds)
 			{
-				file.Line("/// the whole input does, and a character no token begins with ends the tokens");
-				file.Line("/// there rather than refusing the reading.");
+				file.Line("/// the whole input does, and a character no token begins with refuses only a");
+				file.Line("/// reading that reaches it.");
 			}
 			file.Line("/// </remarks>");
 
@@ -2000,7 +2000,7 @@ public static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length);"
+						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
 						: kept
 							? "var tokens = Tokenized_DotGram(source);"
 							: "var tokens = Tokenize_DotGram(source);");
@@ -2012,9 +2012,10 @@ public static partial class CSharpEmitter
 
 					// A whole reading has to reach the end, so a character no token begins with
 					// anywhere in the input refuses it. A reading from a position does not: the
-					// tokens end there, as they do inside a window, and what the reading needed
-					// is answered by what there is — a bad character in the last line of a script
-					// is not a reason to refuse its first statement.
+					// character is a token of no kind there, as it is inside a window, which no
+					// terminal reads and which is not the end of the text, and what the reading
+					// needed is answered by what there is — a bad character in the last line of a
+					// script is not a reason to refuse its first statement.
 					if (!positional)
 					{
 						using (file.Block("if (tokens.Stopped >= 0)"))
@@ -2032,7 +2033,7 @@ public static partial class CSharpEmitter
 					// window cut into no token at all is refused the same way: nothing is there.
 					if (positional && windowed)
 					{
-						using (file.Block("if (count == 0)"))
+						using (file.Block("if (count == 0 || (tokens.Kinds[0] == '\\0' && tokens.Unreadable(0)))"))
 						{
 							file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2047,7 +2048,7 @@ public static partial class CSharpEmitter
 						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
 
-						using (file.Block("if (from < 0)"))
+						using (file.Block("if (from < 0 || (tokens.Kinds[from] == '\\0' && tokens.Unreadable(from)))"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2184,6 +2185,18 @@ public static partial class CSharpEmitter
 					file.Line();
 				}
 
+				// And a position, over kinds as over characters: one the caller made up is
+				// nowhere in the text, and the tokens have no answer for it either (§6.3).
+				if (positional && !windowed)
+				{
+					using (file.Block("if (at < 0 || at > input.Length)"))
+						Refusing(
+							$"return {match}.Failed({OutcomeType}.NoMatch, " +
+							"\"Position \" + at.ToString() + \" is outside the input.\", at, null, null);");
+
+					file.Line();
+				}
+
 				// A split grammar reads its input twice: once into kinds and once as kinds. What
 				// the caller hands over is a string either way — the two halves are the parser's
 				// business and not theirs.
@@ -2191,7 +2204,7 @@ public static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length);"
+						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
 						: kept
 							? "var tokens = Tokenized_DotGram(source);"
 							: "var tokens = Tokenize_DotGram(source);");
@@ -2201,11 +2214,11 @@ public static partial class CSharpEmitter
 					file.Line("var count   = tokens.Count;");
 					file.Line();
 
-					// Inside a window a character no token begins with is where the tokens end:
-					// what the caller asked for is a reading of what can be read from `at`, and
-					// the piece of text after it is commonly not this language at all. From a
-					// position it means the same — the reading was never required to reach the
-					// end, so it must not be refused by a character it never read.
+					// Inside a window a character no token begins with refuses only a reading that
+					// reaches it: what the caller asked for is a reading of what can be read from
+					// `at`, and the piece of text after it is commonly not this language at all.
+					// From a position it means the same — the reading was never required to reach
+					// the end, so it must not be refused by a character it never read.
 					if (!positional)
 					{
 						using (file.Block("if (tokens.Stopped >= 0)"))
@@ -2245,10 +2258,11 @@ public static partial class CSharpEmitter
 					// named a place inside a token or past the end.
 					if (positional && windowed)
 					{
-						// A window cut into no token at all holds nothing to read either: trivia,
-						// or a character no token begins with, or nothing. The same refusal as
-						// from a position, said at the window's end.
-						using (file.Block("if (count == 0)"))
+						// A window cut into no token at all holds nothing to read either: trivia, or
+						// nothing — or nothing but characters no token begins with, each cut into a
+						// token of no kind, which is not one to read (§6.3). The same refusal as from
+						// a position, said at the window's end.
+						using (file.Block("if (count == 0 || (tokens.Kinds[0] == '\\0' && tokens.Unreadable(0)))"))
 						{
 							file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2267,8 +2281,10 @@ public static partial class CSharpEmitter
 						file.Line();
 
 						// Nothing at or after it is a token, so there is nothing there to read: the
-						// rest of the input is trivia, or there is no rest.
-						using (file.Block("if (from < 0)"))
+						// rest of the input is trivia, or there is no rest, or it holds nothing but
+						// characters no token begins with (§6.3). Where a token stands after such a
+						// character, the reading begins at the character and is answered by it.
+						using (file.Block("if (from < 0 || (tokens.Kinds[from] == '\\0' && tokens.Unreadable(from)))"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2297,16 +2313,6 @@ public static partial class CSharpEmitter
 
 						file.Line();
 					}
-				}
-				else if (positional && !windowed)
-				{
-					// The same refusal over characters, where a position is already one.
-					using (file.Block("if (at < 0 || at > input.Length)"))
-						Refusing(
-							$"return {match}.Failed({OutcomeType}.NoMatch, " +
-							"\"Position \" + at.ToString() + \" is outside the input.\", at, null, null);");
-
-					file.Line();
 				}
 
 				// Fully qualified, and as a static call rather than an extension method:
@@ -2398,12 +2404,13 @@ public static partial class CSharpEmitter
 					file.Line();
 					if (overKinds)
 					{
-						// Past the last token is where the tokens ended: where the lexer stopped —
-						// which a reading from a position is no longer refused by — or, where it
-						// did not stop, the window's edge or the end of the input.
+						// Past the last token is the window's edge or the end of the input. A
+						// character no token begins with is a token of its own to a reading from a
+						// position or in a window, and stops nothing; a whole reading never gets here
+						// past one, being refused first.
 						file.Line(
 							$"var {halt} = failure.Position < count ? starts[failure.Position] : " +
-							$"tokens.Stopped >= 0 ? tokens.Stopped : {(windowed ? "at + length" : "source.Length")};");
+							$"{(windowed ? "at + length" : "source.Length")};");
 						file.Line();
 						if (!kept) file.Line("Recycle_DotGram(tokens);");
 						file.Line();
@@ -2434,7 +2441,7 @@ public static partial class CSharpEmitter
 
 					// Read to the window's end only where every token of it was read and the lexer
 					// found nothing it could not cut before the end: a character no token begins with
-					// ends the tokens there, and the reading never looked past it.
+					// stops what can be read there, and the reading never looked past it.
 					if (locating is not null && positional && windowed)
 						file.Line("var readTo = end == count && tokens.Stopped < 0 ? at + length : over;");
 
@@ -2523,6 +2530,26 @@ public static partial class CSharpEmitter
 			file.Line("/// the guess WAS is the honest other side, and Room is where it is known.");
 			file.Line("/// </remarks>");
 			file.Line("internal int    Asked;");
+			file.Line();
+			file.Line("/// <summary>Whether no token from this one on is of a kind: nothing is left there to read.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// What a reading from a position or in a window is cut into goes on past a character no");
+			file.Line("/// token begins with, as a token of no kind. Where nothing but those and trivia is left,");
+			file.Line("/// the reading is starved rather than refused by the first of them.");
+			file.Line("/// </remarks>");
+
+			using (file.Block("internal bool Unreadable(int from)"))
+			{
+				using (file.Block("for (var at = from; at < Count; at++)"))
+				{
+					file.Line("if (Kinds[at] != '\\0')");
+					file.Then("return false;");
+				}
+
+				file.Line();
+				file.Line("return true;");
+			}
+
 			file.Line();
 
 			using (file.Block("internal void Room(int length)"))
@@ -2752,7 +2779,7 @@ file.Line("return spare;");
 			}
 
 			file.Line();
-			file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length);");
+			file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length, true);");
 			file.Line();
 			file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
 			file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
@@ -2771,7 +2798,7 @@ file.Line("return spare;");
 		}
 
 		file.Line();
-		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length);");
+		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length, false);");
 		file.Line();
 		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
 		file.Line("/// <remarks>");
@@ -2779,8 +2806,15 @@ file.Line("return spare;");
 		file.Line("/// not there for it — a token that would run over the edge ends at it — and the");
 		file.Line("/// positions are still offsets into the whole input.");
 		file.Line("/// </remarks>");
+		file.Line("/// <remarks>");
+		file.Line("/// <c>through</c> says whether the cutting goes on past a character no token begins");
+		file.Line("/// with. A whole parse is refused there and stops; a reading from a position or in a");
+		file.Line("/// window is not, and the character becomes a token of no kind, which no terminal");
+		file.Line("/// reads: it ends what such a reading can read without being taken for the end of");
+		file.Line("/// the text.");
+		file.Line("/// </remarks>");
 
-		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input, int from, int to)"))
+		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through)"))
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
@@ -2793,8 +2827,9 @@ file.Line("return spare;");
 			file.Line("var starts  = tokens.Starts;");
 			file.Line("var lengths = tokens.Lengths;");
 			file.Line();
-			file.Line("var count = 0;");
-			file.Line("var p     = from;");
+			file.Line("var count   = 0;");
+			file.Line("var p       = from;");
+			file.Line("var stopped = -1;");
 			file.Line();
 
 			using (file.Block("while (true)"))
@@ -2939,10 +2974,20 @@ file.Line("return spare;");
 
 				using (file.Block("if (kind == 0 || end <= p)"))
 				{
-					file.Line("tokens.Count   = count;");
-					file.Line("tokens.Stopped = p;");
+					using (file.Block("if (!through)"))
+					{
+						file.Line("tokens.Count   = count;");
+						file.Line("tokens.Stopped = p;");
+						file.Line();
+						file.Line("return tokens;");
+					}
+
 					file.Line();
-					file.Line("return tokens;");
+					file.Line("if (stopped < 0)");
+					file.Then("stopped = p;");
+					file.Line();
+					file.Line("kind = 0;");
+					file.Line("end  = p + 1;");
 				}
 
 				file.Line();
@@ -2967,7 +3012,7 @@ file.Line("return spare;");
 
 			file.Line();
 			file.Line("tokens.Count   = count;");
-			file.Line("tokens.Stopped = -1;");
+			file.Line("tokens.Stopped = stopped;");
 			file.Line();
 			file.Line("return tokens;");
 		}

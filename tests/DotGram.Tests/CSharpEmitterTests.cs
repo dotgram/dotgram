@@ -1288,8 +1288,14 @@ public sealed class CSharpEmitterTests
 	{
 		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
 
-		// `<` begins no token, so the whole input cannot be cut at all.
-		Assert.False(EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "q<ab cd>q", 2).IsSuccess);
+		// `<` begins no token, so the whole input cannot be read at all — and a reading from a
+		// position past it is not refused by it (§6.3): it reads what the window reads.
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", "q<ab cd>q").IsSuccess);
+
+		var positioned = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "q<ab cd>q", 2);
+
+		Assert.True(positioned.IsSuccess, positioned.Error);
+		Assert.Equal((2L, 5L), (positioned.Position, positioned.Length));
 
 		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "q<ab cd>q", 2, 5);
 

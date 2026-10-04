@@ -63,7 +63,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Program'.";
 
-				var at = failure.Position < count ? starts[failure.Position] : tokens.Stopped >= 0 ? tokens.Stopped : source.Length;
+				var at = failure.Position < count ? starts[failure.Position] : source.Length;
 
 				Recycle_DotGram(tokens);
 
@@ -127,6 +127,11 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static Match<string[]> TryParseProgram(string input, int at)
 		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string[]>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
 			var source = input;
 			var tokens = Tokenized_DotGram(source);
 
@@ -136,7 +141,7 @@ namespace DotGram.Snapshots
 
 			var from = TokenAt_DotGram(starts, count, at);
 
-			if (from < 0)
+			if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
 			{
 
 				return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
@@ -163,7 +168,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Program'.";
 
-				var halted = failure.Position < count ? starts[failure.Position] : tokens.Stopped >= 0 ? tokens.Stopped : source.Length;
+				var halted = failure.Position < count ? starts[failure.Position] : source.Length;
 
 
 				return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, failure.ExpectedMore);
@@ -196,7 +201,7 @@ namespace DotGram.Snapshots
 
 			var from = TokenAt_DotGram(starts, count, at);
 
-			if (from < 0)
+			if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
 			{
 
 				value = default!;
@@ -229,8 +234,8 @@ namespace DotGram.Snapshots
 		/// The reading begins at <paramref name="at"/> and sees no character from
 		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
 		/// says how far it got. Positions are offsets into the whole input. Only the window is cut into tokens, so a reading may begin where no token of
-		/// the whole input does, and a character no token begins with ends the tokens
-		/// there rather than refusing the reading.
+		/// the whole input does, and a character no token begins with refuses only a
+		/// reading that reaches it.
 		/// </remarks>
 		public static Match<string[]> TryParseProgram(string input, int at, int length)
 		{
@@ -240,13 +245,13 @@ namespace DotGram.Snapshots
 			}
 
 			var source = input;
-			var tokens = Tokenize_DotGram(source, at, at + length);
+			var tokens = Tokenize_DotGram(source, at, at + length, true);
 
 			var starts  = tokens.Starts;
 			var lengths = tokens.Lengths;
 			var count   = tokens.Count;
 
-			if (count == 0)
+			if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
 			{
 				Recycle_DotGram(tokens);
 
@@ -274,7 +279,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Program'.";
 
-				var halted = failure.Position < count ? starts[failure.Position] : tokens.Stopped >= 0 ? tokens.Stopped : at + length;
+				var halted = failure.Position < count ? starts[failure.Position] : at + length;
 
 				Recycle_DotGram(tokens);
 
@@ -301,13 +306,13 @@ namespace DotGram.Snapshots
 				throw new global::System.ArgumentOutOfRangeException(nameof(at));
 
 			var source = input;
-			var tokens = Tokenize_DotGram(source, at, at + length);
+			var tokens = Tokenize_DotGram(source, at, at + length, true);
 
 			var starts  = tokens.Starts;
 			var lengths = tokens.Lengths;
 			var count   = tokens.Count;
 
-			if (count == 0)
+			if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
 			{
 				Recycle_DotGram(tokens);
 
@@ -1230,6 +1235,23 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			internal int    Asked;
 
+			/// <summary>Whether no token from this one on is of a kind: nothing is left there to read.</summary>
+			/// <remarks>
+			/// What a reading from a position or in a window is cut into goes on past a character no
+			/// token begins with, as a token of no kind. Where nothing but those and trivia is left,
+			/// the reading is starved rather than refused by the first of them.
+			/// </remarks>
+			internal bool Unreadable(int from)
+			{
+				for (var at = from; at < Count; at++)
+				{
+					if (Kinds[at] != '\0')
+						return false;
+				}
+
+				return true;
+			}
+
 			internal void Room(int length)
 			{
 				Asked = length;
@@ -1441,7 +1463,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			var tokens = Tokenize_DotGram(input, 0, input.Length);
+			var tokens = Tokenize_DotGram(input, 0, input.Length, true);
 
 			inputs ??= _cutInputs = new global::System.WeakReference<string>[2];
 			kept   ??= _cutTokens = new Tokens_DotGram?[2];
@@ -1459,7 +1481,7 @@ namespace DotGram.Snapshots
 			return tokens;
 		}
 
-		static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length);
+		static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length, false);
 
 		/// <summary>The kinds between two offsets of the input, with where each one was.</summary>
 		/// <remarks>
@@ -1467,7 +1489,14 @@ namespace DotGram.Snapshots
 		/// not there for it — a token that would run over the edge ends at it — and the
 		/// positions are still offsets into the whole input.
 		/// </remarks>
-		static Tokens_DotGram Tokenize_DotGram(string input, int from, int to)
+		/// <remarks>
+		/// <c>through</c> says whether the cutting goes on past a character no token begins
+		/// with. A whole parse is refused there and stops; a reading from a position or in a
+		/// window is not, and the character becomes a token of no kind, which no terminal
+		/// reads: it ends what such a reading can read without being taken for the end of
+		/// the text.
+		/// </remarks>
+		static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through)
 		{
 			var tokens = Rented_DotGram();
 
@@ -1478,8 +1507,9 @@ namespace DotGram.Snapshots
 			var starts  = tokens.Starts;
 			var lengths = tokens.Lengths;
 
-			var count = 0;
-			var p     = from;
+			var count   = 0;
+			var p       = from;
+			var stopped = -1;
 
 			while (true)
 			{
@@ -1495,10 +1525,19 @@ namespace DotGram.Snapshots
 
 				if (kind == 0 || end <= p)
 				{
-					tokens.Count   = count;
-					tokens.Stopped = p;
+					if (!through)
+					{
+						tokens.Count   = count;
+						tokens.Stopped = p;
 
-					return tokens;
+						return tokens;
+					}
+
+					if (stopped < 0)
+						stopped = p;
+
+					kind = 0;
+					end  = p + 1;
 				}
 
 				if (count == kinds.Length)
@@ -1519,7 +1558,7 @@ namespace DotGram.Snapshots
 			}
 
 			tokens.Count   = count;
-			tokens.Stopped = -1;
+			tokens.Stopped = stopped;
 
 			return tokens;
 		}
