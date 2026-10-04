@@ -5,6 +5,7 @@
 # Taken 2026-09-20 20:33-20:40, machine quiet (8-11% CPU before it started), on THESE binaries (the first 12 hex digits of their SHA-256, which no rebase changes; the branch that carried them is not named on purpose): DotGram.Web a7c97503a5f0, DotGram.Sql a49ae42e0f56, DotGram.ExpressionLanguage 2cb67f559235, DotGram.Finance 17f5050bc747, DotGram.Examples 7217e7a803e0, DotGram.Tests.Slow 816f66500e94.
 # It holds the TAPE reading of the expression language only: the immediate reading is reachable only through internals, and the stand's audit covers it. It only ever tightens; an explosive series is never here.
 # Unstable lines: at most four (Few_series_are_held_as_unstable). Two today, both with two cliffs in the tail (the exponent is the wrong summary of a step; D67).
+# Two lines tightened 2026-10-04 by the same procedure (worst of three runs, DOTGRAM_RECORD_BASELINE, not pinned to cores) once Rfc9110 read a token to its end: `MediaType | a long subtype, then a slash` (was Quadratic) and `MediaRange.TryParseAccept | a long token, then a weight with no value` (was Superlinear) both measured Linear.
 
 UriTemplate | a literal run, then an unclosed { = Linear
 UriTemplate | literals and expressions, then an unclosed { = Linear
@@ -18,9 +19,9 @@ EmailAddress.TryParseList | an unclosed domain literal = Quadratic
 AddrSpec.TryParseStrict | a long local part, then @@ = Linear
 MediaType | parameters, then an unclosed quoted string = Quadratic
 MediaType | an unclosed quoted string = Linear
-MediaType | a long subtype, then a slash = Quadratic
+MediaType | a long subtype, then a slash = Linear
 MediaRange.TryParseAccept | ranges, then a range with no weight = Linear
-MediaRange.TryParseAccept | a long token, then a weight with no value = Superlinear
+MediaRange.TryParseAccept | a long token, then a weight with no value = Linear
 StructuredField.TryParseList | items, then an unclosed ( = Quadratic
 StructuredField.TryParseList | an unclosed string = Linear
 StructuredField.TryParseList | an inner list, unclosed = Linear
