@@ -16,8 +16,8 @@ namespace DotGram.Examples.Feeds;
 //     x2 sugar                                    <- the count on the wrong side
 //     4 x butter
 //
-// It is the repository README's second example of a feed written by people, and the same
-// grammar; the tests hold the two to one text.
+// It is an example of docs/feeds.md, among the files kept by hand, and the same grammar;
+// the tests hold the two to one text.
 //
 // The header lines are in the same sequence as the items, in the order they were read,
 // because every rule here builds a `SheetLine` and `Sheet` collects them all. The plain
