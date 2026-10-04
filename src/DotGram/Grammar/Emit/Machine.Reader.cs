@@ -3839,14 +3839,36 @@ sealed partial class Machine
 				}
 				else if (Door([body]) is { } closed)
 				{
-					code.Line($"if ({machine.Past("p")})");
-					code.Then("break;");
+					// A turn owed below the minimum and not tried for the code it would run
+					// (SaysBehindTheDoor) is the rule failing here: the reading that records says
+					// what the turn would have begun with, as EmitTurns says it.
+					var said = min > 0 && SaysBehindTheDoor(body, repeat)
+						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(machine.PredictedDisplays([body])))
+						: null;
+
+					if (said is null)
+					{
+						code.Line($"if ({machine.Past("p")})");
+						code.Then("break;");
+					}
+					else
+					{
+						using (code.Block($"if ({machine.Past("p")})"))
+						{
+							code.Line(said);
+							code.Line("break;");
+						}
+					}
+
 					code.Line();
 					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
 
 					using (code.Block($"if (!({closed}))"))
 					{
+						if (said is not null)
+							code.Line(said);
+
 						// A fold's loop ending is the operator ladder saying that what stands
 						// here continues nothing — which is what a reader is owed where the
 						// parse then fails at this very token: `x` and then `}` was told
@@ -3965,9 +3987,28 @@ sealed partial class Machine
 		/// the engine reads as a scan, nor in the seam or what it calls, which the engine reads
 		/// without recording; nor in a fold's loop, whose ending is said once for the whole ladder
 		/// (NoteTails) and not by every level of it. Nor where the turn is one character, which
-		/// the engine reads as a run and does not record either.
+		/// the engine reads as a run and does not record either. Nor where the turn would run
+		/// code of the host before its first item (RunsCodeBeforeItsFirstItem), whose effects
+		/// would outlive the turn and could change what the quiet reading answered.
 		/// </remarks>
 		bool TriesBehindTheDoor(Node body, Node.Repeat? repeat)
+		{
+			return BehindTheDoor(body, repeat) && !machine.RunsCodeBeforeItsFirstItem(body);
+		}
+
+		/// <summary>
+		/// Whether a turn behind a shut door would be tried (TriesBehindTheDoor) but for the code of
+		/// the host it would run before its first item. Where the turn is owed, below a loop's
+		/// minimum, the reading that records says what it would have begun with instead; an
+		/// optional turn or one past the minimum is left unsaid, since a first set says nothing
+		/// of the guard that would have refused it.
+		/// </summary>
+		bool SaysBehindTheDoor(Node body, Node.Repeat? repeat)
+		{
+			return BehindTheDoor(body, repeat) && machine.RunsCodeBeforeItsFirstItem(body);
+		}
+
+		bool BehindTheDoor(Node body, Node.Repeat? repeat)
 		{
 			return machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
 				machine.RunTest(body) is null && (repeat is null || !machine.IsFoldLoop(repeat));
@@ -4667,7 +4708,11 @@ sealed partial class Machine
 					// without it a parse refused past the loop said only that it did not match. Not
 					// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
 					// which the engine reads without recording what they refuse.
-					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner);
+					// Nor a turn that would run code of the host before its first item
+					// (RunsCodeBeforeItsFirstItem): what the reading that records does must not
+					// change what the quiet one answered.
+					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
+						!machine.RunsCodeBeforeItsFirstItem(body);
 
 					using (code.Block(tries ? $"if (!{open} && failure.Quiet)" : $"if (!{open})"))
 					{

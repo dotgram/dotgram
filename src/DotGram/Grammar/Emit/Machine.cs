@@ -5382,8 +5382,10 @@ sealed partial class Machine
 			// Only where nothing is recorded. A reading that records goes in anyway, so that
 			// what refused the turn is said: where what follows refuses too, the turn's
 			// refusal is half of the message — as the reader's door does (Machine.Reader.cs,
-			// EmitTurns), and not inside the seam, whose refusals neither records.
-			if (Quiets && !_lowering && !InSeam(repeatNode))
+			// EmitTurns), and not inside the seam, whose refusals neither records. Nor where the
+			// turn would run code of the host before its first item: the reading that records
+			// must answer what the quiet one did (RunsCodeBeforeItsFirstItem).
+			if (Quiets && !_lowering && !InSeam(repeatNode) && !RunsCodeBeforeItsFirstItem(body))
 				atProbe.Line($"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
 
 			atProbe.Line($"goto {Label(atProbe, next)};");
@@ -6526,6 +6528,71 @@ sealed partial class Machine
 	{
 		return node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } ||
 			node is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 };
+	}
+
+	/// <summary>
+	/// Whether reading a node may run code of the host before it has read its first item: a
+	/// guard, a condition, an external recognizer, a computed switch, a mark placed with
+	/// <c>with state</c>, a call that hands arguments, or a construction of what may be empty —
+	/// in the node itself or in a rule it begins with.
+	/// </summary>
+	/// <remarks>
+	/// The reading that records tries a turn whose door is shut, as the engine does, for what
+	/// refused it. The door being shut, no item of the turn is read: what runs is only what
+	/// stands before the first item. Where that is code of the host, its effects would outlive
+	/// the turn and could change what the quiet reading answered — so such a turn is not tried:
+	/// its refusal goes unsaid, or is said from its first items where the turn was owed. Conservative: a rule is looked into once, and anything
+	/// that is not plain recognition counts.
+	/// </remarks>
+	internal bool RunsCodeBeforeItsFirstItem(Node node)
+	{
+		return Leads(node, []);
+
+		bool Leads(Node node, HashSet<RuleSymbol> seen)
+		{
+			switch (node)
+			{
+				case Node.Guard or Node.Condition or Node.External or Node.Marked:
+					return true;
+
+				case Node.Choice choice:
+					return choice.Selection is not null || choice.Nodes.Any(one => Leads(one, seen));
+
+				case Node.Sequence(var parts):
+					foreach (var part in parts)
+					{
+						if (Leads(part, seen))
+							return true;
+
+						if (!FirstSets.Nullable(part, _graph))
+							return false;
+					}
+
+					return false;
+
+				case Node.Construct(var built, _):
+					return FirstSets.Nullable(built, _graph) || Leads(built, seen);
+
+				case Node.Repeat(var body, _, _):
+					return Leads(body, seen);
+
+				case Node.Capture(_, var captured):
+					return Leads(captured, seen);
+
+				case Node.Atomic(var body):
+					return Leads(body, seen);
+
+				case Node.Lookahead(_, var looked):
+					return Leads(looked, seen);
+
+				case Node.Call(var rule, var arguments):
+					return arguments.Count > 0 ||
+						seen.Add(rule) && _graph.Bodies.TryGetValue(rule, out var called) && Leads(called, seen);
+
+				default:
+					return false;
+			}
+		}
 	}
 
 	/// <summary>Whether a node is the end of the input: a look that refuses one item, whatever it is — <c>eof</c>'s body.</summary>

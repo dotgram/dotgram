@@ -216,6 +216,67 @@ public sealed class TokenReadingFindingsTests
 	}
 
 	/// <summary>
+	/// The reading that records answers what the quiet reading answered: a turn it tries behind a
+	/// shut door, for what refused it, runs no code of the host — no guard and no construction
+	/// that stands before the turn's first item.
+	/// </summary>
+	/// <remarks>
+	/// On <c>"a"</c> the quiet reading passes both optionals by at their doors, so the last guard
+	/// sees nothing counted and refuses. Were the reading that records to enter them, the first
+	/// would count a guard and the second a construction of what is empty, both before refusing
+	/// at the <c>a</c>, and the last guard would then let the parse through: a refusal that the
+	/// <c>Match</c> form, which reads twice, turned into an acceptance. Held on the engine, the
+	/// tape and the immediate carrier, over tokens and over characters: the <c>bool</c> form,
+	/// which only reads quietly, and the <c>Match</c> form agree on the answer and on both counts.
+	/// </remarks>
+	[Fact]
+	public void A_turn_tried_behind_a_shut_door_runs_no_code_of_the_host()
+	{
+		const string grammar = """
+			trivia = { ' '* }
+			Start = (when @(++Guards > 0) & 'z')? & (m: Made & 'y')? & 'a' & when @(Guards + Made_ == 1)
+			Made : @int = 'q'? => @(++Made_)
+			parse Start
+			""";
+
+		const string members = "public static int Guards; public static int Made_;";
+
+		foreach (var lexical in new[] { true, false })
+			foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Tape), (true, CarrierKind.Immediate) })
+			{
+				var options = Options(lexical, direct);
+
+				if (carrier is { } kind)
+					options.Carrier = kind;
+
+				var result = GramCompiler.Compile(grammar, options);
+
+				EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
+
+				var assembly = EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members);
+				var type     = assembly.GetType("Grammar")!;
+
+				(int, int) Counted()
+				{
+					var counted = ((int)type.GetField("Guards")!.GetValue(null)!, (int)type.GetField("Made_")!.GetValue(null)!);
+
+					type.GetField("Guards")!.SetValue(null, 0);
+					type.GetField("Made_")!.SetValue(null, 0);
+
+					return counted;
+				}
+
+				Counted();
+
+				var quiet = (WholeRead(assembly, "a"), Counted());
+				var both  = (Whole(assembly, "a").Outcome == "Success", Counted());
+
+				Assert.True(quiet == both, $"lexical {lexical}, direct {direct}, {carrier}: quietly {quiet}, recording {both}");
+				Assert.Equal((false, (0, 0)), quiet);
+			}
+	}
+
+	/// <summary>
 	/// <c>any</c> over tokens reads a token, and a character no token begins with as one
 	/// character, as it reads one over characters; what follows it is still there, and
 	/// <c>eof</c> is not met until the text ends.
