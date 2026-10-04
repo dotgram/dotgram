@@ -50,10 +50,12 @@ DotGram.ExpressionLanguage and DotGram.Web again with `DotGramTrace`, and
 forwards another's value as written instead of collapsing it into its callers. The tests reference
 the three builds under the aliases `plain`, `traced` and `unfolded` and read refused corpora of
 T-SQL (mutations of the ScriptDom batches, by a fixed seed), the expression language (the refused
-lines of its refusal record), JSON and URI: the trace build answers every input as the library does,
-`GramWhy`'s message and position are the match's on every row and every row is explained, every rule
-on the unfolded build's stacks is on the trace build's (the frames of the collapsed rules), and every
-rule entered is left. `TraceCostTests` holds the memory of a deep refusal (`tests/DotGram.Trace.Deep`,
+lines of its refusal record), JSON and URI, and — read by the engine — an Accept field (RFC 9110,
+whose ranges a guard checks) and a Cookie field (RFC 6265), and — by one flat method — an SQL:2023
+identifier: the trace build answers every input as the library does, `GramWhy`'s message and position
+are the match's on every row and every row is explained, every rule on the unfolded build's stacks is
+on the trace build's (the frames of the collapsed rules), and every rule entered is left, innermost
+first, every rule the engine retracts being one that read and was left. `TraceCostTests` holds the memory of a deep refusal (`tests/DotGram.Trace.Deep`,
 a process of its own: peak working set under 256 MB at fifty thousand levels) and the time of a
 profile on T-SQL (within thirty times the library, both warmed; it settles near twelve) and of
 `GramWhy` on a refused script of 100 KB (under a second). The two copies cost the solution build two

@@ -32,7 +32,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -50,7 +50,7 @@ namespace DotGram.Snapshots
 				if (end < 0)
 				{
 					failure = new Failure();
-					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0, 0);
 					try
 					{
 						end = Recognize_Sum_Whole(text, 0, ref failure, out recognized, parserWhole);
@@ -87,7 +87,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -130,7 +130,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -148,7 +148,7 @@ namespace DotGram.Snapshots
 				if (end < 0)
 				{
 					failure = new Failure();
-					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 					try
 					{
 						end = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
@@ -192,7 +192,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -238,7 +238,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -256,7 +256,7 @@ namespace DotGram.Snapshots
 				if (end < 0)
 				{
 					failure = new Failure();
-					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 					try
 					{
 						end = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
@@ -300,7 +300,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 				int recognized;
 				int end;
 
@@ -1843,8 +1843,15 @@ namespace DotGram.Snapshots
 			/// read as tokens, which <see cref="GramRead.CharacterOf"/> turns into a character. A rule
 			/// is a number, named by <see cref="GramRead.RuleName"/>; a rule that only hands on another
 			/// rule's value is compiled into the rules that call it and reports where it stood all the
-			/// same. A reading on the engine rather than on methods reports its beginning and its end
-			/// and nothing between them yet.
+			/// same. A rule compiled into the code of another reports nothing of its own: one the
+			/// engine writes into its caller, one a scanner reads within the rule it was called from,
+			/// and every rule of a reading compiled flat but the rule read.
+			/// </para>
+			/// <para>
+			/// The engine, unlike methods, can go back into a rule that has returned, and so take back
+			/// what the rule read: a rule whose success is given up that way is
+			/// <see cref="Retracted"/>, and where the engine goes on inside it, it is entered again
+			/// where it was entered before.
 			/// </para>
 			/// <para>
 			/// A trace build is a slightly different program from the one it observes: every return of
@@ -1898,6 +1905,16 @@ namespace DotGram.Snapshots
 				/// fails where that is -1, or was left by an exception where it is <see cref="Thrown"/>.
 				/// </summary>
 				public virtual void Exit(int rule, int position, int end)
+				{
+				}
+
+				/// <summary>
+				/// A rule that returned, entered at <paramref name="position"/>, has what it read taken
+				/// back: the engine went back to a way it had left open before the rule ended, or
+				/// inside it. Told after its <see cref="Exit"/>; where the engine goes on inside the
+				/// rule, an <see cref="Enter"/> at the same position follows.
+				/// </summary>
+				public virtual void Retracted(int rule, int position)
 				{
 				}
 
@@ -1966,28 +1983,39 @@ namespace DotGram.Snapshots
 				readonly int[]? _starts;
 				readonly int _count;
 				readonly int _end;
+				readonly int _offset;
 				int[]? _lines;
 				int[]? _openRules;
 				int[]? _openAt;
+				int[]? _openEntries;
 				int _open;
+
+				// The engine's calls, by the index of the entry each stands at in its arena: the rule,
+				// where it was entered, the entry of the call it was made in, and whether it is open.
+				int[]? _entryRules;
+				int[]? _entryAt;
+				int[]? _entryCallers;
+				bool[]? _entryOpen;
+				int[]? _reopened;
 
 				/// <summary>The sink this reading reports to.</summary>
 				internal readonly GramTrace Sink;
 
 				internal GramRead(
 					GramTrace sink, string publication, bool quiet, bool finding, int start, string machine, string? text,
-					int[]? starts, int count, int end)
+					int[]? starts, int count, int end, int offset)
 				{
 					Sink        = sink;
 					Publication = publication;
 					Quiet       = quiet;
 					Finding     = finding;
-					Start       = start;
+					Start       = start + offset;
 					Machine     = machine;
 					Text        = text;
 					_starts     = starts;
 					_count      = count;
 					_end        = end;
+					_offset     = offset;
 				}
 
 				/// <summary>The rule read, as the grammar publishes it.</summary>
@@ -2003,12 +2031,16 @@ namespace DotGram.Snapshots
 				/// <summary>Whether this is one of the starts a <c>find</c> tries.</summary>
 				public bool Finding { get; }
 
-				/// <summary>Where the reading begins, in its own unit.</summary>
+				/// <summary>
+				/// Where the reading begins, in its own unit. Over a reader, as every position, counted
+				/// from the beginning of the input rather than of what is held of it.
+				/// </summary>
 				public int Start { get; }
 
 				/// <summary>
-				/// What reads it: <c>methods</c>, whose rules report what they do, or <c>engine</c> or
-				/// <c>flat</c>, which report nothing between the beginning and the end yet.
+				/// What reads it: <c>methods</c>, a method a rule; <c>engine</c>, one automaton over an
+				/// arena, which can go back into a rule that has returned; or <c>flat</c>, one method
+				/// for the whole reading, which reports the rule read and what it scans.
 				/// </summary>
 				public string Machine { get; }
 
@@ -2118,22 +2150,8 @@ namespace DotGram.Snapshots
 				/// <summary>A rule is entered: kept as open, and the sink told.</summary>
 				internal void Enter(int rule, int position)
 				{
-					if (_openRules == null || _openAt == null)
-					{
-						_openRules = new int[32];
-						_openAt    = new int[32];
-					}
-					else if (_open == _openRules.Length)
-					{
-						global::System.Array.Resize(ref _openRules, _open * 2);
-						global::System.Array.Resize(ref _openAt, _open * 2);
-					}
-
-					_openRules[_open] = rule;
-					_openAt[_open]    = position;
-					_open++;
-
-					Sink.Enter(rule, position);
+					Opened(rule, position, -1);
+					Sink.Enter(rule, position + _offset);
 				}
 
 				/// <summary>The innermost rule open is left: no longer kept, and the sink told.</summary>
@@ -2142,7 +2160,7 @@ namespace DotGram.Snapshots
 					if (_open > 0)
 						_open--;
 
-					Sink.Exit(rule, position, end);
+					Sink.Exit(rule, position + _offset, end < 0 ? end : end + _offset);
 				}
 
 				/// <summary>
@@ -2156,9 +2174,14 @@ namespace DotGram.Snapshots
 					{
 						_open--;
 
+						var entry = _openEntries![_open];
+
+						if (entry >= 0)
+							_entryOpen![entry] = false;
+
 						try
 						{
-							Sink.Exit(_openRules![_open], _openAt![_open], GramTrace.Thrown);
+							Sink.Exit(_openRules![_open], _openAt![_open] + _offset, GramTrace.Thrown);
 						}
 						catch (global::System.Exception)
 						{
@@ -2166,34 +2189,222 @@ namespace DotGram.Snapshots
 					}
 				}
 
+				/// <summary>A rule kept as open, at the arena entry it stands at on the engine, or -1.</summary>
+				void Opened(int rule, int position, int entry)
+				{
+					if (_openRules == null || _openAt == null || _openEntries == null)
+					{
+						_openRules   = new int[32];
+						_openAt      = new int[32];
+						_openEntries = new int[32];
+					}
+					else if (_open == _openRules.Length)
+					{
+						global::System.Array.Resize(ref _openRules, _open * 2);
+						global::System.Array.Resize(ref _openAt, _open * 2);
+						global::System.Array.Resize(ref _openEntries, _open * 2);
+					}
+
+					_openRules[_open]   = rule;
+					_openAt[_open]      = position;
+					_openEntries[_open] = entry;
+					_open++;
+				}
+
+				/// <summary>
+				/// The engine calls a rule, or a reading on it begins, at an entry of its arena: what the
+				/// entry stands for kept, and the rule entered. A rule of -1 is a reading of no rule —
+				/// the trivia before one — which reports nothing.
+				/// </summary>
+				internal void Called(int entry, int caller, int rule, int position)
+				{
+					Noted(entry, caller, rule, position);
+
+					if (rule < 0)
+						return;
+
+					_entryOpen![entry] = true;
+					Opened(rule, position, entry);
+					Sink.Enter(rule, position + _offset);
+				}
+
+				/// <summary>
+				/// A rule the engine reads at a stretch, without a state of its own — a scanner whose
+				/// end is kept at an entry — entered and left at once.
+				/// </summary>
+				internal void Scanned(int entry, int caller, int rule, int position, int end)
+				{
+					Noted(entry, caller, rule, position);
+					Sink.Enter(rule, position + _offset);
+					Sink.Exit(rule, position + _offset, end + _offset);
+				}
+
+				/// <summary>The call at an entry returns: left, and the sink told where it ended.</summary>
+				internal void Returned(int entry, int end)
+				{
+					if (!Open(entry))
+						return;
+
+					Closed(entry);
+					Sink.Exit(_entryRules![entry], _entryAt![entry] + _offset, end + _offset);
+				}
+
+				/// <summary>
+				/// The engine, going back, takes a call's entry off its arena: a call still open failed,
+				/// and one that had returned has what it read taken back.
+				/// </summary>
+				internal void Popped(int entry)
+				{
+					if (_entryRules == null || (uint)entry >= (uint)_entryRules.Length || _entryRules[entry] < 0)
+						return;
+
+					if (Open(entry))
+					{
+						Closed(entry);
+						Sink.Exit(_entryRules[entry], _entryAt![entry] + _offset, -1);
+					}
+					else
+						Sink.Retracted(_entryRules[entry], _entryAt![entry] + _offset);
+				}
+
+				/// <summary>
+				/// The engine goes on from a way back taken in the call at <paramref name="call"/>: where
+				/// that call, or one it was made in, had returned, it is going on inside it, so each
+				/// such is retracted and entered again, outermost first.
+				/// </summary>
+				internal void Resumed(int call)
+				{
+					if (_entryRules == null)
+						return;
+
+					var count = 0;
+
+					for (var at = call; (uint)at < (uint)_entryRules.Length && !_entryOpen![at]; at = _entryCallers![at])
+					{
+						if (_entryRules[at] < 0)
+						{
+							// The reading's first entry, of no rule, is where the walk stops anyway.
+							if (at == 0)
+								break;
+
+							continue;
+						}
+
+						if (_reopened == null)
+							_reopened = new int[16];
+						else if (count == _reopened.Length)
+							global::System.Array.Resize(ref _reopened, count * 2);
+
+						_reopened[count++] = at;
+					}
+
+					while (count > 0)
+					{
+						var entry = _reopened![--count];
+						var rule  = _entryRules[entry];
+						var at    = _entryAt![entry];
+
+						Sink.Retracted(rule, at + _offset);
+
+						_entryOpen![entry] = true;
+						Opened(rule, at, entry);
+						Sink.Enter(rule, at + _offset);
+					}
+				}
+
+				bool Open(int entry)
+				{
+					return _entryOpen != null && (uint)entry < (uint)_entryOpen.Length && _entryOpen[entry] && _entryRules![entry] >= 0;
+				}
+
+				/// <summary>An open call at an entry no longer kept as open: the innermost, as calls end.</summary>
+				void Closed(int entry)
+				{
+					_entryOpen![entry] = false;
+
+					for (var at = _open - 1; at >= 0; at--)
+						if (_openEntries![at] == entry)
+						{
+							_open = at;
+
+							return;
+						}
+				}
+
+				/// <summary>What an entry of the engine's arena stands for, kept by its index.</summary>
+				/// <remarks>An index never noted stands for no rule, and is passed over.</remarks>
+				void Noted(int entry, int caller, int rule, int position)
+				{
+					if (_entryRules == null || _entryAt == null || _entryCallers == null || _entryOpen == null)
+					{
+						var size = entry < 32 ? 32 : entry * 2;
+
+						_entryRules   = new int[size];
+						_entryAt      = new int[size];
+						_entryCallers = new int[size];
+						_entryOpen    = new bool[size];
+
+						for (var at = 0; at < size; at++)
+							_entryRules[at] = -1;
+					}
+					else if (entry >= _entryRules.Length)
+					{
+						var was  = _entryRules.Length;
+						var size = entry * 2;
+
+						global::System.Array.Resize(ref _entryRules, size);
+						global::System.Array.Resize(ref _entryAt, size);
+						global::System.Array.Resize(ref _entryCallers, size);
+						global::System.Array.Resize(ref _entryOpen, size);
+
+						for (var at = was; at < size; at++)
+							_entryRules[at] = -1;
+					}
+
+					_entryRules[entry]   = rule;
+					_entryAt[entry]      = position;
+					_entryCallers[entry] = caller;
+					_entryOpen[entry]    = false;
+				}
+
 				/// <summary>A rule answered from memory, told.</summary>
 				internal void Remembered(int rule, int position)
 				{
-					Sink.Remembered(rule, position);
+					Sink.Remembered(rule, position + _offset);
 				}
 
 				/// <summary>A guard asked, told.</summary>
 				internal void Guard(int guard, int position, bool passed)
 				{
-					Sink.Guard(guard, position, passed);
+					Sink.Guard(guard, position + _offset, passed);
 				}
 
-				/// <summary>A refusal recorded, told.</summary>
+				/// <summary>
+				/// A refusal recorded, told: only by a recording reading, which a quiet one's refusals
+				/// never are — the engine records them as the methods do not, and drops them.
+				/// </summary>
 				internal void Refused(int position, string[]? expected)
 				{
-					Sink.Refused(position, expected);
+					if (!Quiet)
+						Sink.Refused(position + _offset, expected);
 				}
 
 				/// <summary>An element stepped over, told.</summary>
 				internal void Recovered(int rule, int from, int to, int reach)
 				{
-					Sink.Recovered(rule, from, to, reach);
+					Sink.Recovered(rule, from + _offset, to + _offset, reach + _offset);
 				}
 
 				/// <summary>A move to another stack, told.</summary>
 				internal void Deepened(int position)
 				{
-					Sink.Deepened(position);
+					Sink.Deepened(position + _offset);
+				}
+
+				/// <summary>Where a position the reading holds is, counted from the beginning of the input.</summary>
+				internal int Absolute(int position)
+				{
+					return position < 0 ? position : position + _offset;
 				}
 			}
 
@@ -2251,12 +2462,12 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			static GramRead? Began_DotGram(
 				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
-				int[]? starts, int count, int end)
+				int[]? starts, int count, int end, int offset)
 			{
 				if (sink == null)
 					return null;
 
-				var read = new GramRead(sink, publication, failure.Quiet, finding, start, machine, text, starts, count, end);
+				var read = new GramRead(sink, publication, failure.Quiet, finding, start, machine, text, starts, count, end, offset);
 
 				failure.Trace = read;
 
@@ -2276,7 +2487,7 @@ namespace DotGram.Snapshots
 			static void Ended_DotGram(ref Failure failure, GramRead? read, int end)
 			{
 				if (read != null)
-					read.Sink.End(read, end, failure.Position, failure.Expected, failure.ExpectedMore);
+					read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), failure.Expected, failure.ExpectedMore);
 			}
 
 			/// <summary>
@@ -2314,6 +2525,29 @@ namespace DotGram.Snapshots
 					sink.Rejected(match.Position, match.Error ?? "");
 
 				return match;
+			}
+			/// <summary>A rule read by a scanner: entered where the scan began and left where it ended, and the end handed on.</summary>
+			static int Scanned_DotGram(ref Failure failure, int rule, int pos, int end)
+			{
+				var trace = failure.Trace;
+
+				if (trace != null)
+				{
+					trace.Enter(rule, pos);
+					trace.Exit(rule, pos, end < 0 ? -1 : end);
+				}
+
+				return end;
+			}
+			/// <summary>A guard was asked: told, and its answer handed on.</summary>
+			static bool GuardAsked_DotGram(ref Failure failure, int guard, int pos, bool passed)
+			{
+				var trace = failure.Trace;
+
+				if (trace != null)
+					trace.Guard(guard, pos, passed);
+
+				return passed;
 			}
 			/// <summary>Every rule a trace names, by the number its events carry.</summary>
 			static readonly string[] TraceRules_DotGram = new string[]
@@ -2379,6 +2613,7 @@ namespace DotGram.Snapshots
 				GramRead? _pendingRead;
 				Path[]? _pendingPaths;
 				string _pendingCause = "";
+				int _unlexed = -1;
 
 				/// <summary>Whether the last call watched answered with a refusal.</summary>
 				public bool IsRefused { get; private set; }
@@ -2560,6 +2795,12 @@ namespace DotGram.Snapshots
 					_candidates.Clear();
 					_sinceCandidates.Clear();
 					_elements.Clear();
+
+					// A reading after a character no token begins with reads the tokens before it, to
+					// say which rules were reading there: what the lexer's stop said stands until then.
+					if (_unlexed >= 0)
+						return;
+
 					_pendingRead  = null;
 					_pendingPaths = null;
 					_pendingCause = "";
@@ -2689,8 +2930,13 @@ namespace DotGram.Snapshots
 
 					if (end >= 0)
 					{
-						_pendingRead  = null;
-						_pendingPaths = null;
+						// What a character no token begins with said stands where the tokens before it
+						// read whole: they refused nothing where they ran out.
+						if (_unlexed < 0)
+						{
+							_pendingRead  = null;
+							_pendingPaths = null;
+						}
 
 						return;
 					}
@@ -2725,15 +2971,31 @@ namespace DotGram.Snapshots
 							cause = "A guard refused there.";
 					}
 
-					if (paths.Count == 0 && read.Machine != "methods")
-						cause = "This reading runs on the engine, which does not report its rules yet.";
-					else if (paths.Count == 0 && !sets && _frontier != null && _frontierAt >= position)
+					if (paths.Count == 0 && !sets && _frontier != null && _frontierAt >= position)
 					{
 						paths.Add(PathOf(read, _frontier, null, -1));
 						cause = "The input ended inside the rules below.";
 					}
 					else if (paths.Count == 0)
-						cause = "Refused in a part of the reading that runs on the engine, which does not report its rules yet.";
+						cause = "No rule reported the refusal it ended with.";
+
+					// The tokens before a character none begins with, read for this: the rules reading
+					// where they ran out, where they got that far.
+					if (_unlexed >= 0)
+					{
+						if (paths.Count == 0 || read.CharacterOf(position) != _unlexed)
+						{
+							_candidates.Clear();
+							_sinceCandidates.Clear();
+							_top      = null;
+							_frontier = null;
+
+							return;
+						}
+
+						cause = "No token of the grammar begins at that character. The rules below were reading up to it" +
+							(sets ? ", each wanting what it names." : ".");
+					}
 
 					_pendingRead  = read;
 					_pendingPaths = Distinct(paths);
@@ -2751,9 +3013,10 @@ namespace DotGram.Snapshots
 					if (_depth != 0)
 						return;
 
-					_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0);
+					_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0, 0);
 					_pendingPaths = new Path[0];
 					_pendingCause = "No token of the grammar begins at that character, so no rule was read.";
+					_unlexed      = position;
 					_elements.Clear();
 					Elements      = new Element[0];
 				}
@@ -2764,6 +3027,7 @@ namespace DotGram.Snapshots
 					if (_depth != 0)
 						return;
 
+					_unlexed  = -1;
 					IsRefused = true;
 					Message   = message;
 					Position  = position;
@@ -2955,7 +3219,7 @@ namespace DotGram.Snapshots
 						Summed();
 
 					Write((read.Quiet ? "quiet" : "recording") + " reading of " + read.Publication + " at " + Where(read, read.Start) +
-						(read.Machine == "methods" ? "" : " (on the " + read.Machine + ", which reports no rules)"));
+						(read.Machine == "methods" ? "" : " (on the " + read.Machine + ")"));
 
 					_reads.Add(read);
 					_bases.Add(_depth);
@@ -3029,6 +3293,15 @@ namespace DotGram.Snapshots
 						Write(read.RuleName(rule) + " " + (end >= 0
 							? "read to " + Where(read, end)
 							: end == Thrown ? "left by an exception" : "failed"));
+				}
+
+				/// <inheritdoc/>
+				public override void Retracted(int rule, int position)
+				{
+					var read = Current;
+
+					if (read != null)
+						Write(read.RuleName(rule) + " " + Where(read, position) + " taken back");
 				}
 
 				/// <inheritdoc/>
@@ -3284,6 +3557,12 @@ namespace DotGram.Snapshots
 					/// <summary>How many entries were answered from the memory of a failure there.</summary>
 					public long Remembered { get; internal set; }
 
+					/// <summary>
+					/// How many of its successes the engine took back, going back to before the rule
+					/// ended or inside it.
+					/// </summary>
+					public long Retracted { get; internal set; }
+
 					/// <summary>How many entries were at a position the same reading had entered it at before.</summary>
 					public long Rereads { get; internal set; }
 
@@ -3389,6 +3668,13 @@ namespace DotGram.Snapshots
 				{
 					if (rule >= 0)
 						CountsOf(rule, Quiet).Remembered++;
+				}
+
+				/// <inheritdoc/>
+				public override void Retracted(int rule, int position)
+				{
+					if (rule >= 0)
+						CountsOf(rule, Quiet).Retracted++;
 				}
 
 				bool Quiet
@@ -3499,7 +3785,7 @@ namespace DotGram.Snapshots
 					});
 
 					writer.WriteLine(title + ":");
-					writer.WriteLine("rule\tentries\tread\tfailed\tremembered\treread\tinclusive ms\texclusive ms\tmax depth");
+					writer.WriteLine("rule\tentries\tread\tfailed\ttaken back\tremembered\treread\tinclusive ms\texclusive ms\tmax depth");
 
 					foreach (var row in rows)
 					{
@@ -3511,6 +3797,7 @@ namespace DotGram.Snapshots
 							counts.Entries.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 							counts.Successes.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 							counts.Failures.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
+							counts.Retracted.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 							counts.Remembered.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 							counts.Rereads.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 							counts.InclusiveMilliseconds.ToString("F3", global::System.Globalization.CultureInfo.InvariantCulture),

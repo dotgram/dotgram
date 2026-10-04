@@ -177,6 +177,10 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
 			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
 			(recovery.Recovery.YieldStep ? " + failure.RecoveryOrdinal" : "") + "));");
+		// The element stepped over, told where the build traces: from where it began to where
+		// reading goes on, and how far it got.
+		if (Tracing is not null)
+			atRecovered.Line($"failure.Trace?.Recovered({Tracing.RuleOf(recovery.Rule)}, recoveryFrom, p, recoveryReach);");
 		atRecovered.Line("var recoveredRepeat = entries[repeat];");
 		atRecovered.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +

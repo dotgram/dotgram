@@ -128,9 +128,9 @@ then quietly mean nothing.
 | a grammar cut into a lexer and a syntactic half, `Lexical = true` §4 | — | — | ✓ | ✓ | ✓ |
 | a terminal the lexer begins and a rule or the host ends, `'<' & @M` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the carrier chosen by the generator, or named, `Carrier = GramCarrier.…` | — | — | — | ✓ | ✓ |
-| a trace build, `Trace = true` or `DotGramTrace`, read by methods: the sink, its scope and three sinks §6.9 | — | — | ✓ | ✓ | ✓ |
+| a trace build, `Trace = true` or `DotGramTrace`: the sink, its scope and three sinks §6.9 | — | — | ✓ | ✓ | ✓ |
 | the same reporting a rule that only forwards where it was collapsed §6.9 | — | — | ✓ | ✓ | ✓ |
-| the same over a reading on the engine, flat, buffered or streamed §6.9 | — | — | — | ✗ | ✗ |
+| the same over a reading on the engine, flat, buffered or streamed, and a rule retracted by the engine §6.9 | — | — | — | ✓ | ✓ |
 | a `@Name` or `[@Name]` the parser cannot call, said on the grammar (`GRAM4025`) §7.1 | — | — | ✓ | — | — |
 
 **Two things this table used to carry as rows are decisions rather than gaps**, and a

@@ -480,8 +480,10 @@ Console.WriteLine(why);
 The message is the match's own; under it are the rules that were open where the input was
 followed furthest, each with what it wanted there, or the guard that said no. `GramTraceLog`
 writes every rule entered and left to a `TextWriter`; `GramProfile` counts and times each rule,
-quiet readings apart from recording ones. A trace build answers what the parser answers, and
-without the option nothing of it is generated. `docs/syntax.md` §6.9 has the events, for a sink of
+quiet readings apart from recording ones. Every reading is traced, whatever it was compiled to —
+methods, the engine, one flat method, a reader or a stream; the engine, which can go back into a
+rule that has returned, tells such a rule `Retracted`. A trace build answers what the parser
+answers, and without the option nothing of it is generated. `docs/syntax.md` §6.9 has the events, for a sink of
 your own.
 
 A sink is your own code, as a guard or a construction is: what it throws — `GramTraceLog`'s writer

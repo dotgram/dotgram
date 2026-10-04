@@ -70,6 +70,7 @@ public static partial class CSharpEmitter
 			GramRead? _pendingRead;
 			Path[]? _pendingPaths;
 			string _pendingCause = "";
+			int _unlexed = -1;
 
 			/// <summary>Whether the last call watched answered with a refusal.</summary>
 			public bool IsRefused { get; private set; }
@@ -251,6 +252,12 @@ public static partial class CSharpEmitter
 				_candidates.Clear();
 				_sinceCandidates.Clear();
 				_elements.Clear();
+
+				// A reading after a character no token begins with reads the tokens before it, to
+				// say which rules were reading there: what the lexer's stop said stands until then.
+				if (_unlexed >= 0)
+					return;
+
 				_pendingRead  = null;
 				_pendingPaths = null;
 				_pendingCause = "";
@@ -380,8 +387,13 @@ public static partial class CSharpEmitter
 
 				if (end >= 0)
 				{
-					_pendingRead  = null;
-					_pendingPaths = null;
+					// What a character no token begins with said stands where the tokens before it
+					// read whole: they refused nothing where they ran out.
+					if (_unlexed < 0)
+					{
+						_pendingRead  = null;
+						_pendingPaths = null;
+					}
 
 					return;
 				}
@@ -416,15 +428,31 @@ public static partial class CSharpEmitter
 						cause = "A guard refused there.";
 				}
 
-				if (paths.Count == 0 && read.Machine != "methods")
-					cause = "This reading runs on the engine, which does not report its rules yet.";
-				else if (paths.Count == 0 && !sets && _frontier != null && _frontierAt >= position)
+				if (paths.Count == 0 && !sets && _frontier != null && _frontierAt >= position)
 				{
 					paths.Add(PathOf(read, _frontier, null, -1));
 					cause = "The input ended inside the rules below.";
 				}
 				else if (paths.Count == 0)
-					cause = "Refused in a part of the reading that runs on the engine, which does not report its rules yet.";
+					cause = "No rule reported the refusal it ended with.";
+
+				// The tokens before a character none begins with, read for this: the rules reading
+				// where they ran out, where they got that far.
+				if (_unlexed >= 0)
+				{
+					if (paths.Count == 0 || read.CharacterOf(position) != _unlexed)
+					{
+						_candidates.Clear();
+						_sinceCandidates.Clear();
+						_top      = null;
+						_frontier = null;
+
+						return;
+					}
+
+					cause = "No token of the grammar begins at that character. The rules below were reading up to it" +
+						(sets ? ", each wanting what it names." : ".");
+				}
 
 				_pendingRead  = read;
 				_pendingPaths = Distinct(paths);
@@ -442,9 +470,10 @@ public static partial class CSharpEmitter
 				if (_depth != 0)
 					return;
 
-				_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0);
+				_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0, 0);
 				_pendingPaths = new Path[0];
 				_pendingCause = "No token of the grammar begins at that character, so no rule was read.";
+				_unlexed      = position;
 				_elements.Clear();
 				Elements      = new Element[0];
 			}
@@ -455,6 +484,7 @@ public static partial class CSharpEmitter
 				if (_depth != 0)
 					return;
 
+				_unlexed  = -1;
 				IsRefused = true;
 				Message   = message;
 				Position  = position;
@@ -646,7 +676,7 @@ public static partial class CSharpEmitter
 					Summed();
 
 				Write((read.Quiet ? "quiet" : "recording") + " reading of " + read.Publication + " at " + Where(read, read.Start) +
-					(read.Machine == "methods" ? "" : " (on the " + read.Machine + ", which reports no rules)"));
+					(read.Machine == "methods" ? "" : " (on the " + read.Machine + ")"));
 
 				_reads.Add(read);
 				_bases.Add(_depth);
@@ -720,6 +750,15 @@ public static partial class CSharpEmitter
 					Write(read.RuleName(rule) + " " + (end >= 0
 						? "read to " + Where(read, end)
 						: end == Thrown ? "left by an exception" : "failed"));
+			}
+
+			/// <inheritdoc/>
+			public override void Retracted(int rule, int position)
+			{
+				var read = Current;
+
+				if (read != null)
+					Write(read.RuleName(rule) + " " + Where(read, position) + " taken back");
 			}
 
 			/// <inheritdoc/>
@@ -975,6 +1014,12 @@ public static partial class CSharpEmitter
 				/// <summary>How many entries were answered from the memory of a failure there.</summary>
 				public long Remembered { get; internal set; }
 
+				/// <summary>
+				/// How many of its successes the engine took back, going back to before the rule
+				/// ended or inside it.
+				/// </summary>
+				public long Retracted { get; internal set; }
+
 				/// <summary>How many entries were at a position the same reading had entered it at before.</summary>
 				public long Rereads { get; internal set; }
 
@@ -1080,6 +1125,13 @@ public static partial class CSharpEmitter
 			{
 				if (rule >= 0)
 					CountsOf(rule, Quiet).Remembered++;
+			}
+
+			/// <inheritdoc/>
+			public override void Retracted(int rule, int position)
+			{
+				if (rule >= 0)
+					CountsOf(rule, Quiet).Retracted++;
 			}
 
 			bool Quiet
@@ -1190,7 +1242,7 @@ public static partial class CSharpEmitter
 				});
 
 				writer.WriteLine(title + ":");
-				writer.WriteLine("rule\tentries\tread\tfailed\tremembered\treread\tinclusive ms\texclusive ms\tmax depth");
+				writer.WriteLine("rule\tentries\tread\tfailed\ttaken back\tremembered\treread\tinclusive ms\texclusive ms\tmax depth");
 
 				foreach (var row in rows)
 				{
@@ -1202,6 +1254,7 @@ public static partial class CSharpEmitter
 						counts.Entries.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 						counts.Successes.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 						counts.Failures.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
+						counts.Retracted.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 						counts.Remembered.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 						counts.Rereads.ToString(global::System.Globalization.CultureInfo.InvariantCulture),
 						counts.InclusiveMilliseconds.ToString("F3", global::System.Globalization.CultureInfo.InvariantCulture),

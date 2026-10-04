@@ -56,6 +56,7 @@ sealed partial class Machine
 			$"ref {CSharpEmitter.FailureType} failure{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			file.Line("var p = pos;");
+			TraceFlatEntered(file, rule);
 
 			if (UsesChar)
 				file.Line("var c = '\\0';");
@@ -117,6 +118,7 @@ sealed partial class Machine
 			file.Line("Accept:");
 			if (whole)
 				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
+			TraceFlatLeft(file, rule, "p");
 			file.Line("return p;");
 
 			file.Line();
@@ -127,6 +129,7 @@ sealed partial class Machine
 				// Deterministic throughout, so there is only ever one attempt: not the
 				// max-comparison RenderEngine's Fail: makes (RecordFlatFailure).
 				RecordFlatFailure(file);
+				TraceFlatLeft(file, rule, "-1");
 				file.Line("return -1;");
 			}
 			else
@@ -151,6 +154,8 @@ sealed partial class Machine
 						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
 						".Add(expected);");
 				}
+				if (Tracing is not null)
+					file.Line("failure.Trace?.Refused(p, expected);");
 								file.Line();
 				file.Line("Resume:");
 				using (file.Block("switch (pending)"))
@@ -167,6 +172,7 @@ sealed partial class Machine
 							file.Line("goto Resume;");
 						}
 					}
+				TraceFlatLeft(file, rule, "-1");
 				file.Line("return -1;");
 			}
 		}
@@ -404,6 +410,7 @@ sealed partial class Machine
 			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			file.Line("var p = pos;");
+			TraceFlatEntered(file, rule);
 
 			if (UsesChar)
 				file.Line("var c = '\\0';");
@@ -450,6 +457,7 @@ sealed partial class Machine
 			file.Line("Accept:");
 			if (whole)
 				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
+			TraceFlatLeft(file, rule, "p");
 
 			// The constructions, deferred to here: the parse is decided, and only now
 			// does anything the author wrote run. Inner sites first — a child's id is
@@ -474,6 +482,7 @@ sealed partial class Machine
 			file.Line("Fail:");
 			file.Line("value = default!;");
 			RecordFlatFailure(file);
+			TraceFlatLeft(file, rule, "-1");
 			file.Line("return -1;");
 		}
 
@@ -501,6 +510,23 @@ sealed partial class Machine
 			if (_recordsBeforeFail && Ties)
 				file.Line("failure.ExpectedMore?.Clear();");
 		}
+
+		if (Tracing is not null)
+			file.Line("failure.Trace?.Refused(p, expected);");
+	}
+
+	/// <summary>The rule a flat method reads, entered where the build traces: the one rule it has a boundary for.</summary>
+	void TraceFlatEntered(Writer file, RuleSymbol rule)
+	{
+		if (Tracing is not null)
+			file.Line($"failure.Trace?.Enter({Tracing.RuleOf(rule)}, pos);");
+	}
+
+	/// <summary>The rule a flat method reads, left at <paramref name="end"/> where the build traces.</summary>
+	void TraceFlatLeft(Writer file, RuleSymbol rule, string end)
+	{
+		if (Tracing is not null)
+			file.Line($"failure.Trace?.Exit({Tracing.RuleOf(rule)}, pos, {end});");
 	}
 
 	/// <summary>One rule's value, from its locals — a switch on the tag where it has one.</summary>

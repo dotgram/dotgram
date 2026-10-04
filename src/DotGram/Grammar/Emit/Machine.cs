@@ -424,8 +424,10 @@ sealed partial class Machine
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables = null, bool deferCompilation = false,
-		bool quiets = false)
+		bool quiets = false, TraceTables? tracing = null)
 	{
+		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
+		Tracing = tracing;
 		_expectedTables = expectedTables;
 		Quiets = quiets;
 		BufferedInput = bufferedInput;
@@ -923,6 +925,7 @@ sealed partial class Machine
 		// Named from outside the table, so the state it names is a place the parse can begin
 		// however little of the grammar reaches it.
 		_roots.Add(_entries[root]);
+		_tracedRoots[_entries[root]] = root;
 
 		// A reading that begins where it is told reads the trivia at that place, then the rule,
 		// and stops there (§6.3). The trivia is a reading of its own so that the wrapper is told
@@ -950,6 +953,7 @@ sealed partial class Machine
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
+		_tracedRoots[_wholeEntries[root]] = root;
 	}
 
 	/// <summary>
@@ -1869,6 +1873,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
 					"0, rootRule));");
 				file.Line("call = 0;");
+				TraceRoot(file);
 				file.Line("Trace(\"enter\", state, p, entries.Count, text, \"\");");
 
 				// The hottest block there is: every return from a rule and every resumption
@@ -1956,6 +1961,8 @@ sealed partial class Machine
 				file.Line(
 					"global::System.Diagnostics.Debug.Assert(" +
 					"returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);");
+				if (Tracing is not null)
+					file.Line("failure.Trace?.Returned(call, p);");
 				file.Line("state = returned.State;");
 				if (_graph.Climbing.Count > 0)
 					file.Line("power = returned.Power;");
@@ -2066,6 +2073,11 @@ sealed partial class Machine
 					file.Then("reach = p;");
 					RecoveryReaches(file);
 				}
+				if (Tracing is not null)
+				{
+					file.Line("if (lookahead < 0)");
+					file.Then("failure.Trace?.Refused(p, expected);");
+				}
 				file.Line("Trace(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
@@ -2086,6 +2098,8 @@ sealed partial class Machine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
+						if (Tracing is not null)
+							file.Line("failure.Trace?.Resumed(call);");
 						file.Line("Trace(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
 					}
@@ -2127,6 +2141,8 @@ sealed partial class Machine
 							file.Line("atomic = entry.AtomicIndex;");
 							file.Line("repeat = entry.RepeatIndex;");
 							file.Line("lookahead = entry.LookaheadIndex;");
+							if (Tracing is not null)
+								file.Line("failure.Trace?.Resumed(call);");
 							file.Line("Trace(\"resume exit\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -2148,6 +2164,8 @@ sealed partial class Machine
 								"entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, " +
 								"entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, " +
 								"entry.LookaheadIndex, p));");
+							if (Tracing is not null)
+								file.Line("failure.Trace?.Resumed(call);");
 							file.Line("Trace(\"shorten run\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -2192,6 +2210,9 @@ sealed partial class Machine
 
 					using (file.Block("if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)"))
 					{
+						// A call still open fails here, and one that returned is taken back.
+						if (Tracing is not null)
+							file.Line("failure.Trace?.Popped(last);");
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
@@ -2239,6 +2260,8 @@ sealed partial class Machine
 								file.Line(
 									$"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
 							}
+							if (Tracing is not null)
+								file.Line("failure.Trace?.Resumed(call);");
 							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -2928,7 +2951,7 @@ sealed partial class Machine
 							? inside
 							: _graph.Bodies[rule]))
 					{
-						atScan.Line($"p = {scanner}(text, p{ScannerArguments}{reached});");
+						atScan.Line($"p = {Scanning(rule, $"{scanner}(text, p{ScannerArguments}{reached})")};");
 
 						if (reports)
 							RecordReached(atScan, node, DeclareExpected([Named(rule)]));
@@ -2937,7 +2960,7 @@ sealed partial class Machine
 					{
 						var arrayName = DeclareExpected([Named(rule)]);
 
-						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments}{reached});");
+						atScan.Line($"var scanned = {Scanning(rule, $"{scanner}(text, p{ScannerArguments}{reached})")};");
 						atScan.Line("if (scanned < 0)");
 
 						using (atScan.Block(""))
@@ -2997,6 +3020,8 @@ sealed partial class Machine
 							$"entries.Add(new ParserEntry(ParserEntry.Completed, {Resuming(writer, next)}, p, " +
 							$"call, atomic, repeat, lookahead, scalarEnd, {ValueRule(rule)}" +
 							(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
+						if (Tracing is not null)
+							writer.Line($"failure.Trace?.Scanned(completedCall, call, {Tracing.RuleOf(rule)}, p, scalarEnd);");
 						writer.Line("p = scalarEnd;");
 						writer.Line($"Trace(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 						writer.Line($"goto {Label(writer, next)};");
@@ -3008,6 +3033,8 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
 					$"lookahead, 0, {ValueRule(rule)}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
+				if (Tracing is not null)
+					writer.Line($"failure.Trace?.Called(callIndex, call, {Tracing.RuleOf(rule)}, p);");
 				writer.Line("call = callIndex;");
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
@@ -3394,9 +3421,20 @@ sealed partial class Machine
 				// `Fail:` everywhere but inside a committed choice, where a refused guard
 				// falls to the next tail rather than into the unwinder. A guard reads
 				// nothing and records nothing, so there is nothing to unwind past.
+				var guardCall = $"{method}({string.Join(", ", arguments)})";
+
 				if (dispatch)
 				{
-					using (writer.Block($"switch ({method}({string.Join(", ", arguments)}))"))
+					// What the guard chose, told as whether it let the reading on at all.
+					if (Tracing is not null)
+					{
+						writer.Line($"var chosen = {guardCall};");
+						writer.Line(
+							$"failure.Trace?.Guard({Tracing.GuardOf((Node.Guard)node)}, p, (uint)chosen < {selection.Targets.Length}u);");
+						guardCall = "chosen";
+					}
+
+					using (writer.Block($"switch ({guardCall})"))
 					{
 						for (var index = 0; index < selection.Targets.Length; index++)
 							writer.Line($"case {index}: goto {Label(writer, selection.Targets[index])};");
@@ -3404,8 +3442,13 @@ sealed partial class Machine
 					}
 					return state;
 				}
+				if (Tracing is not null)
+				{
+					Tracing.AsksGuards = true;
+					guardCall = $"GuardAsked_DotGram(ref failure, {Tracing.GuardOf((Node.Guard)node)}, p, {guardCall})";
+				}
 				writer.Line(
-					$"if (!{method}({string.Join(", ", arguments)})) " +
+					$"if (!{guardCall}) " +
 					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
@@ -4990,6 +5033,9 @@ sealed partial class Machine
 				// A lowered method carries no list of ties where nothing in it can tie.
 				if (!_lowering || Ties)
 					writer.Line("failure.ExpectedMore?.Clear();");
+
+				if (Tracing is not null)
+					writer.Line($"failure.Trace?.Refused({at}, {said});");
 			}
 
 			// How far a recovering element got is counted in every reading, the quiet one included:
@@ -5189,6 +5235,9 @@ sealed partial class Machine
 
 					atTest.Line("else if (p == failure.Position)");
 					atTest.Then($"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add({said});");
+
+					if (Tracing is not null)
+						atTest.Line($"failure.Trace?.Refused(p, {said});");
 				}
 			}
 

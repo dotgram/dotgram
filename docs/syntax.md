@@ -2461,12 +2461,13 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | `Begin(GramRead read)` | a reading begins: a `TryParse` that refuses reads quietly first and again recording, and a `find` reads at every start |
 | `End(read, end, position, expected, expectedMore)` | the reading ends where `end` says, or -1 where it refused, with the furthest refusal it recorded: the sets `Match.Error` is worded from |
 | `Enter(rule, position)` / `Exit(rule, position, end)` | a rule is entered, and leaves at `end`, fails (-1), or is left by an exception (`GramTrace.Thrown`, -2) |
+| `Retracted(rule, position)` | on the engine, a rule that returned has what it read taken back: the engine went back to a way it left open before the rule ended, or inside it — then an `Enter` at the same position follows, the rule read on from inside |
 | `Remembered(rule, position)` | a rule entered where it already failed in this reading fails at once without being read (a reading over tokens remembers) |
 | `Guard(guard, position, passed)` | a guard (`when`) was asked |
 | `Refused(position, expected)` | a recording reading could not go on, wanting one of `expected`; null where the refusal names nothing. Quiet readings and lookaheads refuse without a word, as neither's refusals are ever the answer |
 | `Recovered(rule, from, to, reach)` | a repetition marked `recover` stepped over an element (§8.2) |
 | `Deepened(position)` | the reading moved to a stack of its own (§6.5) |
-| `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read |
+| `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read; with a sink set, the tokens before it are then read once more, as a reading of its own, to tell which rules were reading where they ran out |
 | `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error` |
 
 **A sink is the host's own code**, as a guard or a construction is (§7.5): what one of its methods
@@ -2478,10 +2479,12 @@ end, and then that the reading ended, refused: every `Enter` has its `Exit` and 
 the one that goes out.
 
 `GramRead` says what the reading is: the rule published, whether it is `Quiet`, whether it is one
-start of a `find`, which `Machine` reads it, the `Text`, the names of the rules and the C# of the
-guards by the numbers the events carry (`RuleName`, `GuardText`), and `CharacterOf`, which turns a
-position into a character of the input — a position over tokens is a token — and `Locate`, its line
-and column.
+start of a `find`, which `Machine` reads it — `methods`, a method a rule; `engine`, one automaton
+over an arena; `flat`, one method for the whole reading — the `Text`, the names of the rules and the
+C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), and `CharacterOf`, which
+turns a position into a character of the input — a position over tokens is a token — and `Locate`,
+its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
+counts its positions from the beginning of the input, not of the part of it held in its buffer.
 
 #### Three sinks, ready-made
 
@@ -2492,7 +2495,10 @@ and column.
   is what the message says: a set a later refusal covered, a refusal inside a lookahead and the words
   of an `on fail` are already applied to what it is held against. A refusal that names no set is
   explained by the rules that refused there, a guard by its C#, the end of input by the rules it
-  ended inside, a character no token begins with as such. A rule remembered as failing (above) shows
+  ended inside, a character no token begins with by the rules that were reading where the tokens
+  before it ran out — where the reading got that far, and the reading writes into no context (§7.7):
+  the tokens are read once more to say it, and a context is not to be written by a reading the
+  caller did not ask for. A rule remembered as failing (above) shows
   the path through its first caller, not through a second. A repetition marked `recover` is explained
   element by element in `Elements`, then the refusal itself if the reading still failed. It explains
   the parser's own answer: a host that rewrites a refusal after the parse answers in words of its own.
@@ -2501,9 +2507,9 @@ and column.
 - **`GramTraceLog`** — an indented log to a `TextWriter`: each rule entered with the text there,
   each rule left, each refusal and guard. It writes up to a budget of lines (10,000 unless said) and
   then counts the rest, and sums up the starts a `find` refused in one line.
-- **`GramProfile`** — for each rule, how often it was entered, read and failed, how often it was
-  answered from the memory of a failure, how often it was entered again at a position the same reading
-  had entered it at, the time inside it with and without what it called, and the deepest stack it was
+- **`GramProfile`** — for each rule, how often it was entered, read and failed, how often the engine
+  took back what it read, how often it was answered from the memory of a failure, how often it was
+  entered again at a position the same reading had entered it at, the time inside it with and without what it called, and the deepest stack it was
   entered on. Quiet readings and recording ones are counted apart: they are different programs, a quiet
   reading not sharpening where a refusal is and not trying what only a message would need.
 
@@ -2526,11 +2532,25 @@ A rule that only hands on another rule's value (`Operand : @T = o: Guard => @(o)
 @(o)`) is compiled into the rules that call it, and a trace reports it where it stood all the same, as
 a frame around what it became: a stack shows the rule where the author wrote it.
 
-What is not traced yet: a reading on the engine rather than on methods — a grammar the generator does
-not read by methods — reports its beginning and its end and nothing between, and `GramWhy` says that
-the refusal came from a part of the reading that runs on the engine; a reading by `flat` methods (a
-lowered publication) is the same. The buffered and streamed forms (§6.3) report nothing. Constructions
-and the values they build are not traced.
+Every way a grammar is read is traced: by methods, on the engine, by one flat method, over a string,
+a reader, a stream or bytes, whole, from a position, in a window, as a `find`, a `yield` or a parse
+handed over a part at a time. What the reading is compiled into decides which rules report, as each
+has to be somewhere to report from:
+
+- **Methods** report every rule — a forwarding rule where it stood, as above.
+- **The engine** reports every rule it calls. A small rule it writes into its caller instead, and the
+  rules a rule read at a stretch is made of — a rule that recognizes and keeps nothing, read by a
+  scanner of its own — are code of the rule around them and report nothing of their own; a rule read
+  by a scanner is entered and left where the scan began and ended. The engine can go back into a rule
+  that has returned, which methods never do: a rule whose success is given up so is `Retracted`, once
+  its entry on the arena is taken off it. A success given up with no entry left to take — inside an
+  atomic group or a look ahead already passed — is not told.
+- **A flat method** reads a whole publication with every rule written into it, and reports the one
+  rule it reads, what it refused and the rules it scans.
+
+A parse over a reader handed over a part at a time (§6.3) reports each part it reads as a reading of
+its own; what it only asks — whether the trivia, the rest of the rule or the synchronization stands
+next — is not told. Constructions and the values they build are not traced.
 
 ## 7. The bond with C#
 

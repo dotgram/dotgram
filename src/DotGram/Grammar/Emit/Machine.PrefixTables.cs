@@ -232,6 +232,9 @@ sealed partial class Machine
 
 					helper.Line("else if (p == failure.Position)");
 					helper.Then("(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(said);");
+
+					if (Tracing is not null)
+						helper.Line("failure.Trace?.Refused(p, said);");
 				}
 			}
 

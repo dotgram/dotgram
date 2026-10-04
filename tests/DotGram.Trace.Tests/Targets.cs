@@ -7,17 +7,26 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
+using PlainAccept      = plain::DotGram.Web.Rfc9110;
+using PlainCookies     = plain::DotGram.Web.Rfc6265;
 using PlainExpressions = plain::DotGram.ExpressionLanguage.ExpressionParser;
 using PlainJson        = plain::DotGram.Web.Rfc8259;
 using PlainSql         = plain::DotGram.Sql.TransactSql.TransactSqlParser;
+using PlainStandard    = plain::DotGram.Sql.Standard.SqlStandardParser;
 using PlainUri         = plain::DotGram.Web.Rfc3986;
+using TracedAccept        = traced::DotGram.Web.Rfc9110;
+using TracedCookies       = traced::DotGram.Web.Rfc6265;
 using TracedExpressions   = traced::DotGram.ExpressionLanguage.ExpressionParser;
 using TracedJson          = traced::DotGram.Web.Rfc8259;
 using TracedSql           = traced::DotGram.Sql.TransactSql.TransactSqlParser;
+using TracedStandard      = traced::DotGram.Sql.Standard.SqlStandardParser;
 using TracedUri           = traced::DotGram.Web.Rfc3986;
+using UnfoldedAccept      = unfolded::DotGram.Web.Rfc9110;
+using UnfoldedCookies     = unfolded::DotGram.Web.Rfc6265;
 using UnfoldedExpressions = unfolded::DotGram.ExpressionLanguage.ExpressionParser;
 using UnfoldedJson        = unfolded::DotGram.Web.Rfc8259;
 using UnfoldedSql         = unfolded::DotGram.Sql.TransactSql.TransactSqlParser;
+using UnfoldedStandard    = unfolded::DotGram.Sql.Standard.SqlStandardParser;
 using UnfoldedUri         = unfolded::DotGram.Web.Rfc3986;
 
 namespace DotGram.Trace.Tests;
@@ -94,6 +103,31 @@ static class Targets
 				Recorded = Corpora.Expressions(),
 			},
 			sql with { Seeds = Corpora.Batches(text => sql.Plain(text).Ok) },
+
+			// Read by the engine: an Accept field, whose ranges a guard checks, and a Cookie field.
+			new Target(
+				"Accept",
+				text => Of(PlainAccept.TryParseAccept(text)),
+				text => Explain(typeof(TracedAccept), () => Of(TracedAccept.TryParseAccept(text))),
+				text => Explain(typeof(UnfoldedAccept), () => Of(UnfoldedAccept.TryParseAccept(text))),
+				text => Count(new AcceptCount(), sink => TracedAccept.Tracing(sink), () => Of(TracedAccept.TryParseAccept(text))),
+				Corpora.Accepts),
+			new Target(
+				"Cookie",
+				text => Of(PlainCookies.TryParseCookies(text)),
+				text => Explain(typeof(TracedCookies), () => Of(TracedCookies.TryParseCookies(text))),
+				text => Explain(typeof(UnfoldedCookies), () => Of(UnfoldedCookies.TryParseCookies(text))),
+				text => Count(new CookieCount(), sink => TracedCookies.Tracing(sink), () => Of(TracedCookies.TryParseCookies(text))),
+				Corpora.Cookies),
+
+			// Read by one flat method: an SQL identifier.
+			new Target(
+				"SQL identifier",
+				text => Of(PlainStandard.TryParseIdentifier(text)),
+				text => Explain(typeof(TracedStandard), () => Of(TracedStandard.TryParseIdentifier(text))),
+				text => Explain(typeof(UnfoldedStandard), () => Of(UnfoldedStandard.TryParseIdentifier(text))),
+				text => Count(new StandardCount(), sink => TracedStandard.Tracing(sink), () => Of(TracedStandard.TryParseIdentifier(text))),
+				Corpora.Identifiers),
 		];
 	}
 
@@ -155,6 +189,51 @@ static class Targets
 		return new Answer(match.IsSuccess, match.Error, match.Position);
 	}
 
+	static Answer Of<T>(PlainAccept.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(TracedAccept.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(UnfoldedAccept.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(PlainCookies.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(TracedCookies.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(UnfoldedCookies.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(PlainStandard.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(TracedStandard.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
+	static Answer Of<T>(UnfoldedStandard.Match<T> match)
+	{
+		return new Answer(match.IsSuccess, match.Error, match.Position);
+	}
+
 	static Answer Of<T>(PlainExpressions.Match<T> match)
 	{
 		return new Answer(match.IsSuccess, match.Error, match.Position);
@@ -209,7 +288,7 @@ static class Targets
 		return (IDisposable)host.GetMethod("Tracing", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [sink])!;
 	}
 
-	static (Answer Answer, long Enters, long Exits, long Refusals) Count<T>(T sink, Func<T, IDisposable> scope, Func<Answer> read)
+	static (Answer Answer, Tally Tally) Count<T>(T sink, Func<T, IDisposable> scope, Func<Answer> read)
 		where T : ICounted
 	{
 		Answer answer;
@@ -217,113 +296,242 @@ static class Targets
 		using (scope(sink))
 			answer = read();
 
-		return (answer, sink.Enters, sink.Exits, sink.Refusals);
+		return (answer, sink.Tally);
 	}
 
 	interface ICounted
 	{
-		long Enters { get; }
-
-		long Exits { get; }
-
-		long Refusals { get; }
+		Tally Tally { get; }
 	}
 
-	// One sink a host, each counting the same three things: a host's sink is its own type.
-
-	sealed class SqlCount : TracedSql.GramTrace, ICounted
+	/// <summary>
+	/// What a counting sink saw: rules entered and left, refusals, and rules retracted — each of
+	/// which must be one that read something, was left and was not retracted since.
+	/// </summary>
+	public sealed class Tally
 	{
+		readonly Stack<(int Rule, int At)> _open = new();
+		readonly List<(int Rule, int At)> _read = [];
+
 		public long Enters { get; private set; }
 
 		public long Exits { get; private set; }
 
 		public long Refusals { get; private set; }
 
-		public override void Enter(int rule, int position)
+		public long Retractions { get; private set; }
+
+		/// <summary>Exits that left another rule than the innermost open, and retractions of a rule that had not read.</summary>
+		public long Unmatched { get; private set; }
+
+		public void Enter(int rule, int position)
 		{
 			Enters++;
+			_open.Push((rule, position));
+		}
+
+		public void Exit(int rule, int position, int end)
+		{
+			Exits++;
+
+			if (_open.Count == 0 || _open.Pop() != (rule, position))
+				Unmatched++;
+			else if (end >= 0)
+				_read.Add((rule, position));
+		}
+
+		public void Retracted(int rule, int position)
+		{
+			Retractions++;
+
+			var at = _read.LastIndexOf((rule, position));
+
+			if (at < 0)
+				Unmatched++;
+			else
+				_read.RemoveAt(at);
+		}
+
+		public void Refused()
+		{
+			Refusals++;
+		}
+	}
+
+	// One sink a host, each handing what it is told to a tally: a host's sink is its own type.
+
+	sealed class SqlCount : TracedSql.GramTrace, ICounted
+	{
+		public Tally Tally { get; } = new();
+
+		public override void Enter(int rule, int position)
+		{
+			Tally.Enter(rule, position);
 		}
 
 		public override void Exit(int rule, int position, int end)
 		{
-			Exits++;
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
 		}
 
 		public override void Refused(int position, string[]? expected)
 		{
-			Refusals++;
+			Tally.Refused();
 		}
 	}
 
 	sealed class JsonCount : TracedJson.GramTrace, ICounted
 	{
-		public long Enters { get; private set; }
-
-		public long Exits { get; private set; }
-
-		public long Refusals { get; private set; }
+		public Tally Tally { get; } = new();
 
 		public override void Enter(int rule, int position)
 		{
-			Enters++;
+			Tally.Enter(rule, position);
 		}
 
 		public override void Exit(int rule, int position, int end)
 		{
-			Exits++;
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
 		}
 
 		public override void Refused(int position, string[]? expected)
 		{
-			Refusals++;
+			Tally.Refused();
 		}
 	}
 
 	sealed class UriCount : TracedUri.GramTrace, ICounted
 	{
-		public long Enters { get; private set; }
-
-		public long Exits { get; private set; }
-
-		public long Refusals { get; private set; }
+		public Tally Tally { get; } = new();
 
 		public override void Enter(int rule, int position)
 		{
-			Enters++;
+			Tally.Enter(rule, position);
 		}
 
 		public override void Exit(int rule, int position, int end)
 		{
-			Exits++;
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
 		}
 
 		public override void Refused(int position, string[]? expected)
 		{
-			Refusals++;
+			Tally.Refused();
 		}
 	}
 
 	sealed class ExpressionCount : TracedExpressions.GramTrace, ICounted
 	{
-		public long Enters { get; private set; }
-
-		public long Exits { get; private set; }
-
-		public long Refusals { get; private set; }
+		public Tally Tally { get; } = new();
 
 		public override void Enter(int rule, int position)
 		{
-			Enters++;
+			Tally.Enter(rule, position);
 		}
 
 		public override void Exit(int rule, int position, int end)
 		{
-			Exits++;
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
 		}
 
 		public override void Refused(int position, string[]? expected)
 		{
-			Refusals++;
+			Tally.Refused();
+		}
+	}
+
+	sealed class AcceptCount : TracedAccept.GramTrace, ICounted
+	{
+		public Tally Tally { get; } = new();
+
+		public override void Enter(int rule, int position)
+		{
+			Tally.Enter(rule, position);
+		}
+
+		public override void Exit(int rule, int position, int end)
+		{
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
+		}
+
+		public override void Refused(int position, string[]? expected)
+		{
+			Tally.Refused();
+		}
+	}
+
+	sealed class CookieCount : TracedCookies.GramTrace, ICounted
+	{
+		public Tally Tally { get; } = new();
+
+		public override void Enter(int rule, int position)
+		{
+			Tally.Enter(rule, position);
+		}
+
+		public override void Exit(int rule, int position, int end)
+		{
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
+		}
+
+		public override void Refused(int position, string[]? expected)
+		{
+			Tally.Refused();
+		}
+	}
+
+	sealed class StandardCount : TracedStandard.GramTrace, ICounted
+	{
+		public Tally Tally { get; } = new();
+
+		public override void Enter(int rule, int position)
+		{
+			Tally.Enter(rule, position);
+		}
+
+		public override void Exit(int rule, int position, int end)
+		{
+			Tally.Exit(rule, position, end);
+		}
+
+		public override void Retracted(int rule, int position)
+		{
+			Tally.Retracted(rule, position);
+		}
+
+		public override void Refused(int position, string[]? expected)
+		{
+			Tally.Refused();
 		}
 	}
 }

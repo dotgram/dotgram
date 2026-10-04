@@ -46,11 +46,19 @@ public static partial class CSharpEmitter
 	/// apart is whether the reader is finished.
 	/// </para>
 	/// </remarks>
+	/// <param name="tracing">
+	/// Where the build traces, what it numbers events by: each start is then a reading told to the
+	/// sink set where the call is made, its positions counted from the beginning of the input.
+	/// </param>
+	/// <param name="machine">What reads the rule: <c>methods</c> or <c>engine</c>.</param>
+	/// <param name="built">The type of the value the rule builds, where it builds one.</param>
 	static void EmitStreamingFind(
 		Writer file, Publication publication, string method, string name,
-		string match, string hands, bool builds, string takes)
+		string match, string hands, bool builds, string takes,
+		TraceTables? tracing = null, string machine = "engine", string? built = null)
 	{
 		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
+		var returns    = $"global::System.Collections.Generic.IEnumerable<{match}>";
 
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c> in a reader, read as it is asked for.</summary>");
 		file.Line("/// <remarks>");
@@ -58,9 +66,19 @@ public static partial class CSharpEmitter
 		file.Line($"/// occurrence being read needs and not the input (docs/syntax.md §6.3).");
 		file.Line("/// </remarks>");
 
-		using (file.Block(
-			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
-			$"global::System.IO.TextReader input{takes})"))
+		// Where the build traces, the sink set where the call is made is handed to the iterator,
+		// whose body runs at the first MoveNext.
+		if (tracing is not null)
+		{
+			using (file.Block($"{AccessOf(publication)} static {returns} {method}(global::System.IO.TextReader input{takes})"))
+				file.Line($"return {method}_DotGram(input{(takes.Length > 0 ? ", context" : "")}, Tracing_DotGram.Value);");
+
+			file.Line();
+		}
+
+		using (file.Block(tracing is null
+			? $"{AccessOf(publication)} static {returns} {method}(global::System.IO.TextReader input{takes})"
+			: $"static {returns} {method}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -70,7 +88,15 @@ public static partial class CSharpEmitter
 			{
 				file.Line($"var failure = new {FailureType}();");
 				file.Line();
-				file.Line($"var end = {MethodOf(publication.Rule)}(window.Span(), start{hands});");
+
+				if (tracing is null)
+					file.Line($"var end = {MethodOf(publication.Rule)}(window.Span(), start{hands});");
+				else
+				{
+					file.Line(TraceBegin("read", name, "start", machine, "null", null, finding: true, sink: "trace", offset: "(int)window.Offset"));
+					TracedRead(file, $"{MethodOf(publication.Rule)}(window.Span(), start{hands})", built, declare: true, sink: "trace");
+				}
+
 				file.Line();
 
 				// Reaching the end of what is held is not the same as reaching the end of the
@@ -166,15 +192,23 @@ public static partial class CSharpEmitter
 	/// more.
 	/// </para>
 	/// </remarks>
+	/// <param name="tracing">
+	/// Where the build traces, what it numbers events by: each part read is then a reading told to
+	/// the sink set where the call is made, its positions counted from the beginning of the input.
+	/// What is only asked — whether the trivia, the rest of the rule or the synchronization stands
+	/// next — is not.
+	/// </param>
 	static void EmitStreamingParse(
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
 		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
-		bool input, Func<RuleSymbol, string> recognize)
+		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null)
 	{
 		var element = graph.Types[publication.Rule];
 
 		element = element.Substring(0, element.Length - "[]".Length);
+
+		var returns = $"global::System.Collections.Generic.IEnumerable<{element}>";
 
 		file.Line($"/// <summary>Reads <c>{publication.Rule.Name}</c> from a reader, a part at a time.</summary>");
 		file.Line("/// <remarks>");
@@ -183,9 +217,19 @@ public static partial class CSharpEmitter
 		file.Line("/// is why the repetition has to be marked 'recover' (docs/syntax.md §6.3, §8.2).");
 		file.Line("/// </remarks>");
 
-		using (file.Block(
-			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{element}> " +
-			$"{publication.MethodName}(global::System.IO.TextReader input)"))
+		// Where the build traces, the sink set where the call is made is handed to the iterator,
+		// whose body runs at the first MoveNext.
+		if (tracing is not null)
+		{
+			using (file.Block($"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input)"))
+				file.Line($"return {publication.MethodName}_DotGram(input, Tracing_DotGram.Value);");
+
+			file.Line();
+		}
+
+		using (file.Block(tracing is null
+			? $"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input)"
+			: $"static {returns} {publication.MethodName}_DotGram(global::System.IO.TextReader input, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -298,7 +342,19 @@ public static partial class CSharpEmitter
 				using (file.Block("while (true)"))
 				{
 					file.Line($"failure{i} = new {FailureType}();");
-					file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
+
+					if (tracing is null)
+						file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
+					else
+					{
+						file.Line(TraceBegin(
+							$"read{i}", Named(stage), "start", "engine", "null", null, sink: "trace",
+							offset: "(int)window.Offset", failure: $"failure{i}"));
+						TracedRead(
+							file, $"{method}(window.Span(), start, {hands})", null, declare: false, sink: "trace",
+							read: $"read{i}", failure: $"failure{i}", end: $"end{i}");
+					}
+
 					file.Line();
 
 					// The same provisional rule `find` reads by: what ran into the end of the

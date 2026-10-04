@@ -259,11 +259,11 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets)
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets,
+				tracing: tracing)
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
-				Tracing     = tracing,
 
 				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
 				MemoisesFailures = memoise,
@@ -357,7 +357,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, countRules);
+			carrier, replay, carriers is not null, directAllowed, countRules, tracing);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -519,7 +519,7 @@ public static partial class CSharpEmitter
 					if (compiled.Machine.BufferedInput)
 					{
 						if (locating != true)
-							EmitBufferedPublication(file, graph, results, compiled, publication);
+							EmitBufferedPublication(file, graph, results, compiled, publication, tracing);
 						continue;
 					}
 
@@ -695,7 +695,8 @@ public static partial class CSharpEmitter
 						? probe.Name
 						: null,
 					machines.Exists(static compiled => compiled.Machine.UsesInput),
-					Recognizer);
+					Recognizer,
+					tracing);
 				file.Line();
 			}
 		}
@@ -1756,6 +1757,45 @@ public static partial class CSharpEmitter
 			file.Line(declare ? line : line.Substring("var ".Length));
 		}
 
+		// Where the lexer stopped, in a trace build with a sink set: the tokens before the stop read
+		// once more, for the sink alone, so that it is told which rules were reading where the
+		// tokens ran out. Not where the reading writes into a context, which a reading the caller
+		// did not ask for must not touch. What it throws is the sink's to have seen and nobody's to
+		// catch: the call answers with the lexer's refusal all the same.
+		void ExplainUnlexed(string halt, string reading)
+		{
+			using (file.Block("if (Tracing_DotGram.Value != null)"))
+			{
+				file.Line($"var unlexed = {Fresh(false)};");
+				file.Line("var prefix  = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);");
+
+				if (probes)
+					file.Line("var unlexedWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);");
+
+				file.Line(TraceBegin(
+					"explained", name, "0", machine, "source", $"starts, count, {halt}", failure: "unlexed"));
+				file.Line();
+
+				using (file.Block("try"))
+				{
+					var call = reading
+						.Replace("ref failure", "ref unlexed")
+						.Replace("out var recognized", "out var unlexedValue")
+						.Replace(", parserWhole", ", unlexedWhole");
+
+					TracedRead(file, call, built, declare: true, read: "explained", failure: "unlexed", end: "reached");
+				}
+
+				file.Line("catch (global::System.Exception)");
+
+				using (file.Block(""))
+				{
+				}
+			}
+
+			file.Line();
+		}
+
 		// The reading itself. In a trace build it is guarded, so that a reading an exception
 		// leaves — a construction that threw — still ends for the sink, whose count of readings
 		// open would otherwise take the next call for one inside it.
@@ -1855,7 +1895,7 @@ public static partial class CSharpEmitter
 				file.Line();
 
 				EmitStreamingFind(
-					file, publication, method, name, match, streamedHands, built is not null, takes);
+					file, publication, method, name, match, streamedHands, built is not null, takes, tracing, machine, built);
 			}
 
 			return;
@@ -2243,6 +2283,9 @@ public static partial class CSharpEmitter
 							{
 								file.Line($"Unlexed_DotGram(source, {halt});");
 								file.Line();
+
+								if (context is null)
+									ExplainUnlexed(halt, $"{reader}(prefix, 0{hands})");
 							}
 
 							Refusing(

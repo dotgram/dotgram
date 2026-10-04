@@ -45,8 +45,8 @@ public sealed class TraceGateTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// <c>GramWhy</c>'s message is the match's message and its position the match's, on every row,
-	/// and every row is explained: by the rules reading where it was refused, by a guard, by a
-	/// character no token begins with, or by saying the reading ran on the engine.
+	/// and every row is explained: by the rules reading where it was refused, by a guard, or by a
+	/// character no token begins with.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Names))]
@@ -91,7 +91,7 @@ public sealed class TraceGateTests(ITestOutputHelper output)
 
 		static bool Unread(string cause)
 		{
-			return cause.Contains("token", StringComparison.Ordinal) || cause.Contains("engine", StringComparison.Ordinal);
+			return cause.Contains("token", StringComparison.Ordinal);
 		}
 	}
 
@@ -136,30 +136,36 @@ public sealed class TraceGateTests(ITestOutputHelper output)
 		Assert.True(missing.Count == 0, string.Join(Environment.NewLine, missing.Take(30)));
 	}
 
-	/// <summary>Every rule entered is left, on every row: a return the emitter wrote without its exit would show here.</summary>
+	/// <summary>
+	/// Every rule entered is left, innermost first, on every row, and every rule the engine retracts
+	/// is one that read something: a return the emitter wrote without its exit, or an entry of the
+	/// engine's arena taken for another's, would show here.
+	/// </summary>
 	[Theory]
 	[MemberData(nameof(Names))]
 	public void Every_rule_entered_is_left(string name)
 	{
-		var target = Targets.Named(name);
-		var wrong  = new List<string>();
-		var enters = 0L;
+		var target  = Targets.Named(name);
+		var wrong   = new List<string>();
+		var enters  = 0L;
+		var retract = 0L;
 
 		foreach (var text in target.Refused.Concat(target.Seeds))
 		{
-			var counted = target.Counted(text);
+			var (answer, tally) = target.Counted(text);
 
 			// A construction that threw leaves its rules entered, which a sink is to tolerate.
-			if (counted.Answer.Thrown)
+			if (answer.Thrown)
 				continue;
 
-			enters += counted.Enters;
+			enters  += tally.Enters;
+			retract += tally.Retractions;
 
-			if (counted.Enters != counted.Exits)
-				wrong.Add($"{Shown(text)}: {counted.Enters} entered, {counted.Exits} left");
+			if (tally.Enters != tally.Exits || tally.Unmatched != 0)
+				wrong.Add($"{Shown(text)}: {tally.Enters} entered, {tally.Exits} left, {tally.Unmatched} out of order");
 		}
 
-		output.WriteLine($"{name}: {enters} rules entered");
+		output.WriteLine($"{name}: {enters} rules entered, {retract} retracted");
 
 		Assert.True(enters > 0);
 		Assert.True(wrong.Count == 0, string.Join(Environment.NewLine, wrong.Take(20)));

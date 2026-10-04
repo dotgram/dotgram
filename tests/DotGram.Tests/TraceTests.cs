@@ -76,6 +76,11 @@ public sealed class TraceTests(ITestOutputHelper output)
 				Lines.Add("exit " + Rule(rule) + " " + position + " " + end);
 			}
 
+			public override void Retracted(int rule, int position)
+			{
+				Lines.Add("retracted " + Rule(rule) + " " + position);
+			}
+
 			public override void Remembered(int rule, int position)
 			{
 				Lines.Add("remembered " + Rule(rule) + " " + position);
@@ -156,7 +161,8 @@ public sealed class TraceTests(ITestOutputHelper output)
 	/// <summary>The probes are written as the generated file is, with nullable annotations.</summary>
 	const string Nullable = "\n#nullable enable\n";
 
-	static Assembly Traced(string grammar, string? members = null, bool lexical = false, CarrierKind carrier = CarrierKind.Auto)
+	static Assembly Traced(
+		string grammar, string? members = null, bool lexical = false, CarrierKind carrier = CarrierKind.Auto, bool buffered = false)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -164,6 +170,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 			CSharpScanner = RoslynCSharpScanner.Instance,
 			Lexical       = lexical,
 			Carrier       = carrier,
+			BufferedInput = buffered,
 			Trace         = true,
 		});
 
@@ -442,7 +449,8 @@ public sealed class TraceTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// Over tokens a position is a token, and the explanation says where it is in characters; a
-	/// character no token begins with is said before any rule is read.
+	/// character no token begins with is said before any rule is read, and then the tokens before
+	/// it are read for the sink, which is told which rules were reading where they ran out.
 	/// </summary>
 	[Fact]
 	public void Over_tokens_a_position_is_said_in_characters()
@@ -459,24 +467,262 @@ public sealed class TraceTests(ITestOutputHelper output)
 
 		Assert.StartsWith($"{match.Error} (line 2, column 13)", why, StringComparison.Ordinal);
 		Assert.Contains("Statement 2:1", why, StringComparison.Ordinal);
-		Assert.Contains("No token of the grammar begins at that character", stopped, StringComparison.Ordinal);
+		Assert.StartsWith("Unexpected character '#'. (line 1, column 9)", stopped, StringComparison.Ordinal);
+		Assert.Contains("No token of the grammar begins at that character. The rules below were reading up to it", stopped, StringComparison.Ordinal);
+		Assert.Contains("in Program 1:1 > Statement 1:1", stopped, StringComparison.Ordinal);
 		Assert.Equal("unlexed 8", lines[0]);
-		Assert.DoesNotContain(lines, static line => line.StartsWith("begin ", StringComparison.Ordinal));
+		Assert.Equal("begin recording Program methods at 0", lines[1]);
+		Assert.Equal("rejected 8 Unexpected character '#'.", lines[^1]);
+		Balanced(lines);
+
+		// Where the tokens before it are refused before they run out, or read whole and so refused
+		// nothing there, the stop is all there is to say.
+		foreach (var input in new[] { "let = 1; #", "let a = 1; #" })
+		{
+			var alone = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseProgram", input));
+
+			output.WriteLine(alone);
+
+			Assert.Contains("No token of the grammar begins at that character, so no rule was read.", alone, StringComparison.Ordinal);
+		}
 	}
 
-	/// <summary>A reading on the engine reports its beginning and its end, and the explanation says it runs there.</summary>
+	/// <summary>
+	/// A reading on the engine reports the rules it calls as methods do, and the explanation names
+	/// the rules reading where it refused.
+	/// </summary>
 	[Fact]
-	public void A_reading_on_the_engine_says_so()
+	public void A_reading_on_the_engine_reports_its_rules()
 	{
 		var assembly = Traced(Snapshot("Url"));
+		var match    = Read(assembly, "TryParseUrl", "http://");
 		var why      = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseUrl", "http://"));
 		var lines    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseUrl", "http://"));
 
 		output.WriteLine(why);
+		output.WriteLine(string.Join(Environment.NewLine, lines));
 
-		Assert.Contains("runs on the engine", why, StringComparison.Ordinal);
+		Assert.StartsWith(match.Error + " (line 1, column 8)", why, StringComparison.Ordinal);
+		Assert.DoesNotContain("engine", why, StringComparison.Ordinal);
+		Assert.Contains("in Url 1:1 > Authority 1:8", why, StringComparison.Ordinal);
 		Assert.Contains(lines, static line => line.StartsWith("begin recording Url engine", StringComparison.Ordinal));
-		Assert.DoesNotContain(lines, static line => line.StartsWith("enter ", StringComparison.Ordinal));
+		Assert.Contains("enter Url 0", lines);
+		Balanced(lines);
+	}
+
+	/// <summary>A grammar the engine reads, a <c>find</c> keeping it there, whose rules return and are gone back over.</summary>
+	const string Pairs = """
+		Pair : @string
+			= left: Item & ',' & right: Item => @(left + right)
+			| only: Item & ';'               => @(only)
+
+		Item : @string = name: ['a'..'z']+ & ('(' & inner: Item & ')')? => @(name)
+
+		parse Pair
+		find Pair as AllPairs
+		""";
+
+	/// <summary>
+	/// Where the engine goes back past a rule that returned, the rule is retracted and stays left;
+	/// where it goes back into one, the rule is retracted and entered again where it was entered.
+	/// </summary>
+	[Fact]
+	public void The_engine_retracts_what_it_goes_back_over()
+	{
+		var assembly = Traced(Pairs);
+		var past     = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParsePair", "ab;"));
+		var into     = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParsePair", "a(b);"));
+
+		output.WriteLine(string.Join(Environment.NewLine, past));
+		output.WriteLine("");
+		output.WriteLine(string.Join(Environment.NewLine, into));
+
+		Assert.Equal("begin quiet Pair engine at 0", past[0]);
+
+		// Read, then given up for the second alternative, which reads it again.
+		var back = Array.IndexOf(past, "retracted Item 0");
+
+		Assert.True(back > 0);
+		Assert.Equal("exit Item 0 2", past[..back].Last(static line => line.StartsWith("exit Item", StringComparison.Ordinal)));
+		Assert.Equal("enter Item 0", past[(back + 1)..].First(static line => line.StartsWith("enter ", StringComparison.Ordinal)));
+		Balanced(past);
+		Balanced(into);
+	}
+
+	/// <summary>A refusal on the engine is explained by the rules reading where it was refused, in the match's words.</summary>
+	[Theory]
+	[InlineData("ab")]
+	[InlineData("a(;")]
+	[InlineData("a,b(")]
+	[InlineData("a(b(c)")]
+	[InlineData("")]
+	public void Why_explains_the_engine_in_the_words_of_its_message(string input)
+	{
+		var assembly = Traced(Pairs);
+		var match    = Read(assembly, "TryParsePair", input);
+		var why      = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParsePair", input));
+
+		output.WriteLine(why);
+
+		Assert.False(match.Ok);
+		Assert.StartsWith(match.Error!, why, StringComparison.Ordinal);
+		Assert.Contains(" in Pair 1:1", why, StringComparison.Ordinal);
+		Assert.Equal(Read(Untraced(Pairs), "TryParsePair", input), match);
+	}
+
+	/// <summary>
+	/// A grammar read as one flat method reports the rule it reads, what it refused and the rules
+	/// it scans, and is explained in the words of its message.
+	/// </summary>
+	[Fact]
+	public void A_flat_reading_reports_its_rule()
+	{
+		const string grammar = """
+			Word = Letter+ & '!'
+			Letter = ['a'..'z']
+			parse Word
+			""";
+
+		var assembly = Traced(grammar);
+		var match    = Read(assembly, "TryParseWord", "ab?");
+		var lines    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseWord", "ab?"));
+		var why      = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseWord", "ab?"));
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+		output.WriteLine(why);
+
+		Assert.Contains(lines, static line => line.StartsWith("begin recording Word flat at 0", StringComparison.Ordinal));
+		Assert.Contains("enter Word 0", lines);
+		Assert.Contains("exit Word 0 -1", lines);
+		Assert.StartsWith(match.Error + " (line 1, column 3)", why, StringComparison.Ordinal);
+		Assert.Contains(" in Word 1:1", why, StringComparison.Ordinal);
+		Balanced(lines);
+	}
+
+	/// <summary>
+	/// A reading over a reader is traced as the reading over a string is, by methods and on the
+	/// engine alike, and explained in the words of its message.
+	/// </summary>
+	[Theory]
+	[InlineData("Twice", "Sum", "1+(2+")]
+	[InlineData("Twice", "Sum", "1+2")]
+	[InlineData("Pairs", "Pair", "a(b(c)")]
+	[InlineData("Pairs", "Pair", "a(b);")]
+	public void A_buffered_reading_is_traced_as_the_string_is(string grammar, string rule, string input)
+	{
+		var assembly = Traced(grammar == "Twice" ? Twice : Pairs, buffered: true);
+		var answer   = default(object);
+		var lines    = Probe<string[]>(assembly, "Recorded", () => answer = Buffered(assembly, rule, input));
+		var why      = Probe<string>(assembly, "Explained", () => Buffered(assembly, rule, input));
+		var ok       = (bool)answer!.GetType().GetProperty("IsSuccess")!.GetValue(answer)!;
+		var error    = (string?)answer.GetType().GetProperty("Error")!.GetValue(answer);
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+		output.WriteLine(why);
+
+		Assert.Contains(lines, line => line.StartsWith($"begin recording {rule} ", StringComparison.Ordinal));
+		Assert.Contains($"enter {rule} 0", lines);
+		Balanced(lines);
+
+		if (ok)
+			return;
+
+		Assert.StartsWith(error!, why, StringComparison.Ordinal);
+		Assert.Contains($" in {rule} 1:1", why, StringComparison.Ordinal);
+	}
+
+	static object Buffered(Assembly assembly, string rule, string input)
+	{
+		return Invoke(assembly, "TryParse" + rule, new System.IO.StringReader(input), null, null)!;
+	}
+
+	/// <summary>
+	/// A <c>find</c> over a reader reads through a window that moves, and every position it
+	/// reports is counted from the beginning of the input, as the matches' are.
+	/// </summary>
+	[Fact]
+	public void A_streamed_find_reports_positions_in_the_whole_input()
+	{
+		const string members = """
+			public static string[] FoundInReader(string input)
+			{
+				var recorder = new Recorder();
+				global::System.Collections.Generic.IEnumerable<Match<string>> found;
+
+				using (Tracing(recorder))
+					found = FindName(new global::System.IO.StringReader(input));
+
+				foreach (var one in found)
+					recorder.Lines.Add("found " + one.Position);
+
+				return recorder.Lines.ToArray();
+			}
+			""";
+
+		var rows     = string.Concat(Enumerable.Range(0, 600).Select(static at => $"R|name{at}|{at}.25\n"));
+		var input    = "H|2026-10-04\n" + rows + "T|600\n";
+		var assembly = Traced(Snapshot("Feed"), members);
+		var lines    = (string[])Invoke(assembly, "FoundInReader", input)!;
+		var found    = lines.Where(static line => line.StartsWith("found ", StringComparison.Ordinal)).Select(static line => line[6..]).ToList();
+
+		// Each occurrence is read from where it begins, which is where the match says it is.
+		var begun = new HashSet<string>(lines
+			.Where(static line => line.StartsWith("begin ", StringComparison.Ordinal))
+			.Select(static line => line[(line.LastIndexOf(' ') + 1)..]));
+
+		Assert.Equal(2 + 600 * 3 + 2, found.Count);
+		Assert.All(found, at => Assert.Contains(at, begun));
+		Assert.Contains(found, static at => int.Parse(at, System.Globalization.CultureInfo.InvariantCulture) > 4096);
+		Balanced(lines);
+	}
+
+	/// <summary>
+	/// A <c>parse</c> over a reader reads its parts one at a time, each a reading of its own told
+	/// to the sink set where the call is made; a part the repetition steps over is refused there.
+	/// </summary>
+	[Fact]
+	public void A_streamed_parse_reports_each_part()
+	{
+		const string members = """
+			public static string[] SheetFromReader(string input)
+			{
+				var recorder = new Recorder();
+				global::System.Collections.Generic.IEnumerable<string> rows;
+
+				using (Tracing(recorder))
+					rows = ParseSheet(new global::System.IO.StringReader(input));
+
+				foreach (var one in rows)
+					recorder.Lines.Add("row " + one);
+
+				return recorder.Lines.ToArray();
+			}
+			""";
+
+		var assembly = Traced(Snapshot("Minimal"), members);
+		var lines    = (string[])Invoke(assembly, "SheetFromReader", "ab;1;cd;")!;
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+
+		Assert.Contains(lines, static line => line.StartsWith("begin recording Row engine at 0", StringComparison.Ordinal));
+		Assert.Contains(lines, static line => line.StartsWith("begin recording Row engine at 3", StringComparison.Ordinal));
+		Assert.Contains("row ab", lines);
+		Assert.Contains("row cd", lines);
+		Balanced(lines);
+	}
+
+	/// <summary>A repetition marked <c>recover</c> on the engine tells each element it steps over, as methods do.</summary>
+	[Fact]
+	public void The_engine_tells_an_element_it_steps_over()
+	{
+		var assembly = Traced(Snapshot("Minimal"));
+		var lines    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseSheet", "ab;1;cd;"));
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+
+		Assert.Contains(lines, static line => line.StartsWith("begin recording Sheet engine", StringComparison.Ordinal) || line.StartsWith("begin quiet Sheet engine", StringComparison.Ordinal));
+		Assert.Contains(lines, static line => line.StartsWith("recovered Sheet 3 5 ", StringComparison.Ordinal));
+		Balanced(lines);
 	}
 
 	/// <summary>The forms read from a position and inside a window report in offsets of the whole input.</summary>
@@ -1196,10 +1442,14 @@ public sealed class TraceTests(ITestOutputHelper output)
 		return System.IO.Path.Combine(System.IO.Path.GetDirectoryName(here)!, "..", "Snapshots");
 	}
 
-	/// <summary>Every rule entered is left: on a refusal, on an acceptance, and through every return a rule's method has.</summary>
+	/// <summary>
+	/// Every rule entered is left, innermost first, and every rule retracted is one that read
+	/// something, left and not retracted since.
+	/// </summary>
 	static void Balanced(IEnumerable<string> lines)
 	{
 		var open = new Stack<string>();
+		var read = new List<string>();
 
 		foreach (var line in lines)
 		{
@@ -1208,7 +1458,22 @@ public sealed class TraceTests(ITestOutputHelper output)
 			if (words[0] == "enter")
 				open.Push(words[1] + " " + words[2]);
 			else if (words[0] == "exit")
-				Assert.Equal(open.Pop(), words[1] + " " + words[2]);
+			{
+				var frame = words[1] + " " + words[2];
+
+				Assert.Equal(open.Pop(), frame);
+
+				if (int.Parse(words[3], System.Globalization.CultureInfo.InvariantCulture) >= 0)
+					read.Add(frame);
+			}
+			else if (words[0] == "retracted")
+			{
+				var frame = words[1] + " " + words[2];
+				var at    = read.LastIndexOf(frame);
+
+				Assert.True(at >= 0, $"{frame} retracted without having read anything");
+				read.RemoveAt(at);
+			}
 		}
 
 		Assert.Empty(open);

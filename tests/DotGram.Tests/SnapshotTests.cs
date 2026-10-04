@@ -190,6 +190,23 @@ public sealed class SnapshotTests
 				break;
 			}
 
+			// The engine traced (docs/syntax.md, §6.9): what a trace build writes into the automaton —
+			// a call entered where its entry is pushed, left at `Return:`, failed or taken back where
+			// `Fail:` pops it, a scanned rule around its scanner — read against the file above it.
+			case "Url":
+			{
+				yield return (Options(), null);
+
+				var traced = Options();
+
+				traced.Suffix = "Traced";
+				traced.Trace  = true;
+
+				yield return (traced, null);
+
+				break;
+			}
+
 			// Where a value was, and a carrier the author asked for rather than `Auto` chose — both
 			// of them the host's to ask for. The declarations beside it are the consumer's own
 			// types, so this is also the snapshot compiled under a real symbol resolver: what a

@@ -69,7 +69,8 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables,
-		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules)
+		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules,
+		TraceTables? tracing)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
@@ -99,7 +100,8 @@ public static partial class CSharpEmitter
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true,
+					tracing: tracing)
 				{
 					Reporting   = reporting,
 					CountsRules = countRules,
@@ -156,7 +158,7 @@ public static partial class CSharpEmitter
 				var memoryTag = tag + "_Memory";
 				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
-					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing)
 				{
 					InPlace   = true,
 					Reporting   = reporting,
@@ -203,7 +205,7 @@ public static partial class CSharpEmitter
 			var shared = new Machine(graph, results, lines, only: graph.Rules.Where(rules.Contains).ToArray(),
 				tag: owner.Tag, partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
 				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
-				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true)
+				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing)
 			{
 				Reporting   = reporting,
 				CountsRules = countRules,
@@ -230,11 +232,12 @@ public static partial class CSharpEmitter
 	}
 
 	static void EmitBufferedPublication(
-		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication)
+		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication,
+		TraceTables? tracing)
 	{
 		if (!compiled.Machine.BufferedBytes)
 		{
-			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.TextReader", buffered: true);
+			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.TextReader", buffered: true, tracing);
 
 			return;
 		}
@@ -242,7 +245,7 @@ public static partial class CSharpEmitter
 		// The machine for bytes held whole writes those entries and nothing else; the stream's
 		// then writes only its own (InPlace, MemoryElsewhere).
 		if (!compiled.Machine.InPlace)
-			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.Stream", buffered: true);
+			EmitBufferedForm(file, graph, results, compiled, publication, "global::System.IO.Stream", buffered: true, tracing);
 
 		if (compiled.Machine.MemoryElsewhere)
 			return;
@@ -250,12 +253,17 @@ public static partial class CSharpEmitter
 		// Bytes the caller already holds are read by the same machine over the array itself:
 		// one fill that is the whole input, and the end known at once (D7). No buffer to size,
 		// so no buffer parameters.
-		EmitBufferedForm(file, graph, results, compiled, publication, "global::System.ReadOnlyMemory<byte>", buffered: false);
+		EmitBufferedForm(file, graph, results, compiled, publication, "global::System.ReadOnlyMemory<byte>", buffered: false, tracing);
 	}
 
+	/// <param name="tracing">
+	/// Where the build traces, what it numbers events by: each reading is then told to the sink —
+	/// the one set where the call is made, a lazy form's included — with no text to show, as the
+	/// input is never held whole.
+	/// </param>
 	static void EmitBufferedForm(
 		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication,
-		string inputType, bool buffered)
+		string inputType, bool buffered, TraceTables? tracing)
 	{
 		var machine = compiled.Machine;
 		var type = results.QualifiedOf(publication.Rule);
@@ -305,12 +313,28 @@ public static partial class CSharpEmitter
 		// its arguments at the call, then hands plain ints to a private iterator.
 		var lazyConstruct = buffered ? "(input, bufferSize, maxRetained)" : construct;
 
+		// Where the build traces, the sink set where the call is made, handed to the iterator: its
+		// body runs at the first MoveNext, by when the scope may be gone.
+		var traced = tracing is null ? "" : ", GramTrace? trace";
+		var tracedArgument = tracing is null ? "" : ", Tracing_DotGram.Value";
+		var machineKind = compiled.Direct ? "methods" : "engine";
+
 		string Lazily(string returns)
 		{
-			if (!buffered)
+			var iterator = "Iterate_DotGram_" + method;
+
+			if (!buffered && tracing is null)
 				return $"{AccessOf(publication)} static {returns} {method}({inputType} input{context})";
 
-			var iterator = "Iterate_DotGram_" + method;
+			if (!buffered)
+			{
+				file.Line($"/// <summary>Reads <c>{name}</c> from bytes the caller already holds, one at a time as they are asked for.</summary>");
+
+				using (file.Block($"{AccessOf(publication)} static {returns} {method}({inputType} input{context})"))
+					file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}{tracedArgument});");
+
+				return $"private static {returns} {iterator}({inputType} input{context}{traced})";
+			}
 
 			// The overload the caller sees, in front of the iterator: what it says is what the
 			// iterator would have said, and the iterator is private.
@@ -329,10 +353,25 @@ public static partial class CSharpEmitter
 				file.Line("var limit = maxRetained ?? DefaultMaxRetained;");
 				file.Line("if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(bufferSize));");
 				file.Line("if (limit <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(maxRetained));");
-				file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}, capacity, limit);");
+				file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}, capacity, limit{tracedArgument});");
 			}
 
-			return $"private static {returns} {iterator}({inputType} input{context}, int bufferSize, int maxRetained)";
+			return $"private static {returns} {iterator}({inputType} input{context}, int bufferSize, int maxRetained{traced})";
+		}
+
+		// One reading of the input, told to the sink where the build traces: `end` declared, and
+		// the value where the call hands one out.
+		void Reads(string call, bool finding, string start, string? sink)
+		{
+			if (tracing is null)
+			{
+				file.Line($"var end = {call};");
+
+				return;
+			}
+
+			file.Line(TraceBegin("read", name, start, machineKind, "null", null, finding, sink ?? "Tracing_DotGram.Value"));
+			TracedRead(file, call, type, declare: true, sink);
 		}
 
 		if (publication.Kind == PublishKind.Yield)
@@ -348,7 +387,7 @@ public static partial class CSharpEmitter
 				using (file.Block("while (text.Peek(start, out _))"))
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
-					file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands});");
+					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", false, "start", "trace");
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
 					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
@@ -374,7 +413,7 @@ public static partial class CSharpEmitter
 				using (file.Block("while (true)"))
 				{
 					file.Line($"var failure = new {FailureType}();");
-					file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands});");
+					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", true, "start", "trace");
 					using (file.Block("if (end >= 0)"))
 						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
 					file.Line("if (end <= start && !text.Peek(start, out _)) yield break;");
@@ -391,7 +430,7 @@ public static partial class CSharpEmitter
 		{
 			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
 			file.Line($"var failure = new {FailureType}();");
-			file.Line($"var end = {BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands});");
+			Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands})", false, "0", null);
 			using (file.Block("if (end < 0)"))
 			{
 				// A reader that lets go of turns may have let go of where it refused: a place before
@@ -401,11 +440,13 @@ public static partial class CSharpEmitter
 				file.Line(machine.ReadsRecovery && !machine.InPlace
 					? "var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.End && !text.Peek(failure.Position, out _);"
 					: "var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
-				file.Line($"return {match}.Failed(starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
+				var failed = $"{match}.Failed(starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
 					// Named, as the string form names it: the two forms of one publication answer
 					// alike or the difference is one we have said out loud (BufferedInputTests).
 					$"starved ? \"Expected more input.\" : \"Input does not match '{name}'.\", " +
-					"failure.Position, failure.Expected, failure.ExpectedMore);");
+					"failure.Position, failure.Expected, failure.ExpectedMore)";
+
+				file.Line(tracing is null ? $"return {failed};" : $"return Rejected_DotGram({failed});");
 			}
 			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
 		}

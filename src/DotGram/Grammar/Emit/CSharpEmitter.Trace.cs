@@ -39,6 +39,12 @@ sealed class TraceTables
 				_forwarding.Add(rule);
 	}
 
+	/// <summary>Whether a machine calls a scanner, whose rule a trace build enters and leaves around the call.</summary>
+	public bool Scans { get; set; }
+
+	/// <summary>Whether the engine or a flat method asks a guard, which a trace build tells.</summary>
+	public bool AsksGuards { get; set; }
+
 	/// <summary>The number a rule's events carry.</summary>
 	public int RuleOf(RuleSymbol rule)
 	{
@@ -163,6 +169,12 @@ public static partial class CSharpEmitter
 		if (lexical)
 			text.Append(Lines.Normalize(TraceUnlexed));
 
+		if (tables.Scans)
+			text.Append(Lines.Normalize(TraceScanned));
+
+		if (tables.AsksGuards)
+			text.Append(Lines.Normalize(TraceGuardAsked));
+
 		text.Append(tables.Render()).Append(Lines.Ending);
 		text.Append(Lines.Normalize(TraceSinks));
 
@@ -180,18 +192,24 @@ public static partial class CSharpEmitter
 	/// <param name="text">The text it reads, as C#.</param>
 	/// <param name="tokens">Over tokens, the starts, the count and where the tokens end, as C#; null over characters.</param>
 	/// <param name="sink">The sink the reading reports to, as C#: the one the flow has set, unless said.</param>
+	/// <param name="offset">
+	/// Where what the reading holds begins in the input, as C#: a reading through a window reads
+	/// what is held of the input, and its positions are told counted from the beginning.
+	/// </param>
+	/// <param name="declare">Whether the local is declared here rather than assigned again.</param>
+	/// <param name="failure">The local the reading's failure is held in.</param>
 	static string TraceBegin(
 		string read, string name, string start, string machine, string text, string? tokens, bool finding = false,
-		string sink = "Tracing_DotGram.Value")
+		string sink = "Tracing_DotGram.Value", string offset = "0", bool declare = true, string failure = "failure")
 	{
-		return $"var {read} = Began_DotGram(ref failure, {sink}, {Quoted(name)}, {(finding ? "true" : "false")}, {start}, " +
-			$"\"{machine}\", {text}, {tokens ?? "null, 0, 0"});";
+		return $"{(declare ? "var " : "")}{read} = Began_DotGram(ref {failure}, {sink}, {Quoted(name)}, {(finding ? "true" : "false")}, {start}, " +
+			$"\"{machine}\", {text}, {tokens ?? "null, 0, 0"}, {offset});";
 	}
 
 	/// <summary>A reading ends: the line that tells the sink.</summary>
-	static string TraceEnd(string read)
+	static string TraceEnd(string read, string failure = "failure", string end = "end")
 	{
-		return $"Ended_DotGram(ref failure, {read}, end);";
+		return $"Ended_DotGram(ref {failure}, {read}, {end});";
 	}
 
 	/// <summary>
@@ -206,14 +224,22 @@ public static partial class CSharpEmitter
 	/// that a parse a guard or a construction starts reports to it too, and what was set where the
 	/// step is asked for is put back before the step hands anything out.
 	/// </param>
-	static void TracedRead(Writer file, string call, string? value, bool declare, string? sink = null)
+	/// <param name="read">The local the reading is held in.</param>
+	/// <param name="failure">The local the reading's failure is held in.</param>
+	/// <param name="end">The local the end is put in.</param>
+	static void TracedRead(
+		Writer file, string call, string? value, bool declare, string? sink = null,
+		string read = "read", string failure = "failure", string end = "end")
 	{
+		// What the call hands out through `out var`, declared ahead of the guard rather than in it.
+		var handed = System.Text.RegularExpressions.Regex.Match(call, @"out var (\w+)");
+
 		if (declare)
 		{
-			if (value is not null && call.Contains("out var recognized", StringComparison.Ordinal))
-				file.Line($"{value} recognized;");
+			if (value is not null && handed.Success)
+				file.Line($"{value} {handed.Groups[1].Value};");
 
-			file.Line("int end;");
+			file.Line($"int {end};");
 			file.Line();
 		}
 
@@ -227,9 +253,9 @@ public static partial class CSharpEmitter
 		}
 
 		using (file.Block("try"))
-			file.Line($"end = {call.Replace("out var recognized", "out recognized")};");
+			file.Line($"{end} = {(handed.Success ? call.Replace(handed.Value, "out " + handed.Groups[1].Value) : call)};");
 
-		file.Line("catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))");
+		file.Line($"catch (global::System.Exception) when (Thrown_DotGram(ref {failure}, {read}))");
 
 		using (file.Block(""))
 			file.Line("throw;");
@@ -244,6 +270,6 @@ public static partial class CSharpEmitter
 		}
 
 		file.Line();
-		file.Line(TraceEnd("read"));
+		file.Line(TraceEnd(read, failure, end));
 	}
 }

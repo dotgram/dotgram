@@ -28,7 +28,7 @@ sealed record Target(
 	Func<string, Answer> Plain,
 	Func<string, Explained> Traced,
 	Func<string, Explained> Unfolded,
-	Func<string, (Answer Answer, long Enters, long Exits, long Refusals)> Counted,
+	Func<string, (Answer Answer, Targets.Tally Tally)> Counted,
 	IReadOnlyList<string> Seeds)
 {
 	List<string>? _refused;
@@ -173,6 +173,32 @@ static class Corpora
 		"[[], {}, \"s\", -0.1, 0, 1E+2]",
 		" { \"name\" : \"value\" , \"list\" : [ 1 , 2 , 3 ] } ",
 		"\"just a string with \\\"escapes\\\" and \\n\"",
+	];
+
+	public static readonly string[] Accepts =
+	[
+		"text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8",
+		"text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.5",
+		"application/json",
+		"*/*",
+		" , audio/*; q=0.2, audio/basic",
+	];
+
+	public static readonly string[] Cookies =
+	[
+		"SID=31d4d96e407aad42; lang=en-US",
+		"a=b",
+		"name=\"quoted value\"; x=1; empty=",
+		"  theme=dark; session_id=abc123; tracking=no  ",
+	];
+
+	public static readonly string[] Identifiers =
+	[
+		"customer_name",
+		"\"Quoted \"\"Name\"\"\"",
+		"U&\"\\0041bc\"",
+		"Z9",
+		"\"x\" UESCAPE '!'",
 	];
 
 	public static readonly string[] Uris =
