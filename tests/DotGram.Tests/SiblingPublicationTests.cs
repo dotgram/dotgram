@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -103,6 +106,73 @@ public sealed class SiblingPublicationTests
 				Assert.Equal(expected.Position, actual.Position);
 				Assert.Equal(expected.Error, actual.Error);
 			}
+		}
+	}
+
+	/// <summary>
+	/// A rule streamed by more than one publication reads the same parts in each: the
+	/// recognizer of a part that is not a call is the rule's, written once and shared, not
+	/// written again for every publication under the same name.
+	/// </summary>
+	[Theory]
+	[InlineData("parse Rows|parse Rows as All stream bytes")]
+	[InlineData("parse Rows|parse Rows as Again|parse Rows as All stream bytes")]
+	[InlineData("parse Rows as Chars stream|parse Rows|parse Rows as All stream bytes")]
+	public void A_rule_streamed_by_several_publications_shares_its_parts(string publications)
+	{
+		var grammar = "A : @string = 'a' => @(\"a\")\n" +
+			"C : @string = 'c' => @(\"c\")\n" +
+			"Rows : @string[] = A* & ';' & C*\n" +
+			publications.Replace('|', '\n');
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source  = Assert.Single(result.Sources).Text;
+		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>();
+		Assert.Single(methods, m => m.Identifier.Text == "Recognize_Rows_Whole_Part1");
+		var host = EmittedCode.Compile(source).GetType("Grammar")!;
+
+		foreach (var publication in publications.Split('|'))
+		{
+			var named  = publication.IndexOf(" as ", StringComparison.Ordinal);
+			var method = named < 0 ? "ParseRows" : publication.Substring(named + 4).Split(' ')[0];
+			var forms  = new List<Func<string, string[]>>
+			{
+				input => (string[])host.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!,
+			};
+
+			// Without `stream` the reader overload is the streamed one, handing the parts back
+			// as it reads them; `stream` replaces it with a buffered one that returns the whole
+			// array, and `stream bytes` adds the same over bytes beside the streamed reader.
+			if (publication.EndsWith(" stream", StringComparison.Ordinal))
+				forms.Add(input => (string[])host.GetMethod(method, [typeof(TextReader), typeof(int?), typeof(int?)])!
+					.Invoke(null, [new StringReader(input), 1, 16])!);
+			else
+				forms.Add(input => ((IEnumerable<string>)host.GetMethod(method, [typeof(TextReader)])!
+					.Invoke(null, [new StringReader(input)])!).ToArray());
+
+			if (publication.EndsWith(" stream bytes", StringComparison.Ordinal))
+			{
+				forms.Add(input => (string[])host.GetMethod(method, [typeof(Stream), typeof(int?), typeof(int?)])!
+					.Invoke(null, [new MemoryStream(Encoding.ASCII.GetBytes(input)), 1, 16])!);
+				forms.Add(input => (string[])host.GetMethod(method, [typeof(byte[])])!
+					.Invoke(null, [Encoding.ASCII.GetBytes(input)])!);
+			}
+
+			foreach (var form in forms)
+			{
+				Assert.Equal(new[] { "a", "a", "c", "c", "c" }, form("aa;ccc"));
+				Assert.Equal(new[] { "c" }, form(";c"));
+				Assert.Empty(form(";"));
+			}
+
+			var attempt = method == "ParseRows" ? "TryParseRows" : "Try" + method;
+
+			Assert.False(EmittedCode.Match(host.Assembly, "Grammar", attempt, "a;b").IsSuccess);
+			Assert.False(EmittedCode.Match(host.Assembly, "Grammar", attempt, "aa").IsSuccess);
 		}
 	}
 }

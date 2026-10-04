@@ -1457,7 +1457,10 @@ public static partial class CSharpEmitter
 
 					}
 
-					else
+					// A part is the rule's, not the publication's: every streamed form of the
+					// rule reads the same stages, so the second publication of it reuses the
+					// recognizer the first registered rather than declaring it again.
+					else if (!streamedParts.ContainsKey((publication.Rule, stage)))
 
 					{
 
