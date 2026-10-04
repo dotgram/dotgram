@@ -55,10 +55,11 @@ whose ranges a guard checks) and a Cookie field (RFC 6265), and — by one flat 
 identifier: the trace build answers every input as the library does, `GramWhy`'s message and position
 are the match's on every row and every row is explained, every rule on the unfolded build's stacks is
 on the trace build's (the frames of the collapsed rules), and every rule entered is left, innermost
-first, every rule the engine retracts being one that read and was left. `TraceCostTests` holds the memory of a deep refusal (`tests/DotGram.Trace.Deep`,
-a process of its own: peak working set under 256 MB at fifty thousand levels) and the time of a
-profile on T-SQL (within thirty times the library, both warmed; it settles near twelve) and of
-`GramWhy` on a refused script of 100 KB (under a second). The two copies cost the solution build two
+first, every rule the engine retracts being one that read and was left. `TraceCostTests` holds the
+memory of a deep refusal (`tests/DotGram.Trace.Deep`, a process of its own: peak working set under
+256 MB at fifty thousand levels), the time of a profile on T-SQL and on an Accept field read by the
+engine (within ten times the library, both warmed; it settles near three) and that of `GramWhy` on
+a refused script of 100 KB (under a second). The two copies cost the solution build two
 more compilations of the SQL grammars, for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds
 the same over small grammars, a reading shape at a time.
 

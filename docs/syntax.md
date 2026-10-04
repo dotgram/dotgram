@@ -2468,7 +2468,7 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | `Recovered(rule, from, to, reach)` | a repetition marked `recover` stepped over an element (§8.2) |
 | `Deepened(position)` | the reading moved to a stack of its own (§6.5) |
 | `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read; with a sink set, the tokens before it are then read once more, as a reading of its own, to tell which rules were reading where they ran out |
-| `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error` |
+| `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error`. Wording the message costs a refused call more than reading it did, so a sink that does not read it overrides `HearsRejections` to say false, as `GramProfile` does, and is not told |
 
 **A sink is the host's own code**, as a guard or a construction is (§7.5): what one of its methods
 throws goes out of the call that was reading, `Try` or not, and the reading stops there. Whatever

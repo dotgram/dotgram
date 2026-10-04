@@ -165,10 +165,20 @@ public static partial class CSharpEmitter
 
 			/// <summary>
 			/// A call answered with a refusal: where, as the match says it, and the match's
-			/// message.
+			/// message. Told only where <see cref="HearsRejections"/> says so.
 			/// </summary>
 			public virtual void Rejected(long position, string message)
 			{
+			}
+
+			/// <summary>
+			/// Whether <see cref="Rejected"/> is told. The message is worded for it, which costs a
+			/// refused call more than reading it did; a sink that does not read it says false and
+			/// spares every refused call the wording.
+			/// </summary>
+			public virtual bool HearsRejections
+			{
+				get { return true; }
 			}
 		}
 
@@ -721,7 +731,7 @@ public static partial class CSharpEmitter
 		{
 			var sink = Tracing_DotGram.Value;
 
-			if (sink != null && !match.IsSuccess)
+			if (sink != null && !match.IsSuccess && sink.HearsRejections)
 				sink.Rejected(match.Position, match.Error ?? "");
 
 			return match;

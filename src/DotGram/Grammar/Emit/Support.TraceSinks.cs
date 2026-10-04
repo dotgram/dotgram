@@ -979,6 +979,12 @@ public static partial class CSharpEmitter
 			/// <summary>How many readings there were, quiet and recording.</summary>
 			public long Readings { get; private set; }
 
+			/// <summary>False: the profile reads no message, and spares a refused call the wording of one.</summary>
+			public override bool HearsRejections
+			{
+				get { return false; }
+			}
+
 			/// <summary>One rule's counts.</summary>
 			public sealed class Row
 			{

@@ -1965,10 +1965,20 @@ namespace DotGram.Snapshots
 
 				/// <summary>
 				/// A call answered with a refusal: where, as the match says it, and the match's
-				/// message.
+				/// message. Told only where <see cref="HearsRejections"/> says so.
 				/// </summary>
 				public virtual void Rejected(long position, string message)
 				{
+				}
+
+				/// <summary>
+				/// Whether <see cref="Rejected"/> is told. The message is worded for it, which costs a
+				/// refused call more than reading it did; a sink that does not read it says false and
+				/// spares every refused call the wording.
+				/// </summary>
+				public virtual bool HearsRejections
+				{
+					get { return true; }
 				}
 			}
 
@@ -2521,7 +2531,7 @@ namespace DotGram.Snapshots
 			{
 				var sink = Tracing_DotGram.Value;
 
-				if (sink != null && !match.IsSuccess)
+				if (sink != null && !match.IsSuccess && sink.HearsRejections)
 					sink.Rejected(match.Position, match.Error ?? "");
 
 				return match;
@@ -3521,6 +3531,12 @@ namespace DotGram.Snapshots
 
 				/// <summary>How many readings there were, quiet and recording.</summary>
 				public long Readings { get; private set; }
+
+				/// <summary>False: the profile reads no message, and spares a refused call the wording of one.</summary>
+				public override bool HearsRejections
+				{
+					get { return false; }
+				}
 
 				/// <summary>One rule's counts.</summary>
 				public sealed class Row

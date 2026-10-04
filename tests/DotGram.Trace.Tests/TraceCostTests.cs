@@ -11,8 +11,10 @@ using DotGram.Tests;
 
 using Xunit;
 
-using PlainSql  = plain::DotGram.Sql.TransactSql.TransactSqlParser;
-using TracedSql = traced::DotGram.Sql.TransactSql.TransactSqlParser;
+using PlainAccept  = plain::DotGram.Web.Rfc9110;
+using PlainSql     = plain::DotGram.Sql.TransactSql.TransactSqlParser;
+using TracedAccept = traced::DotGram.Web.Rfc9110;
+using TracedSql    = traced::DotGram.Sql.TransactSql.TransactSqlParser;
 
 namespace DotGram.Trace.Tests;
 
@@ -75,51 +77,54 @@ public sealed class TraceCostTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// The T-SQL corpus read with <c>GramProfile</c> attached, a timestamp at every rule's entry and
-	/// exit, takes at most thirty times what the library takes.
+	/// A corpus read with <c>GramProfile</c> attached, a timestamp at every rule's entry and exit,
+	/// takes at most ten times what the library takes: T-SQL's, the largest grammar there is, read
+	/// by methods, and an Accept field's, read by the engine, whose every call and every way back is
+	/// told — a small grammar's corpus read over and over, so that a round is long enough to time.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// <b>What it costs.</b> Twelve times, give or take one, once both builds are compiled as the JIT
-	/// finally compiles them; twenty-three where nothing is recompiled with what the run has seen
-	/// (<c>DOTNET_TieredCompilation=0</c>). Each is the least of alternating rounds on an otherwise idle
-	/// machine. A tenfold regression of the profile is over a hundred, and a doubling of its cost is
-	/// most of the way to the bound.
+	/// <b>What it costs.</b> About three times on T-SQL, once both builds are compiled as the JIT
+	/// finally compiles them, the least of alternating rounds on an otherwise idle machine; three on
+	/// the Accept field. A tenfold regression of the profile is over thirty.
 	/// </para>
 	/// <para>
-	/// <b>Why it was held to ten, and failed.</b> Timed as a median of five after one reading of each,
-	/// the library was still being compiled up from its first, unoptimized code: 80 to 95 ms a corpus
-	/// where it settles at 20, and the ratio read three. Wherever the library had been warmed first —
-	/// the rest of this assembly reads the same corpus — it read twelve, over the bound, and whether a
-	/// run failed depended on what ran before it.
+	/// <b>Why it once read twelve.</b> A refused call told every sink the match's message, and
+	/// wording it costs a refused call more than reading it did; the profile reads no message, and
+	/// says so (<c>HearsRejections</c>), so that its calls are not worded. Before that, a null sink
+	/// cost ten times the reading and the profile two more.
 	/// </para>
 	/// <para>
-	/// <b>How it is timed.</b> Both read in turn for <see cref="WarmSeconds"/> first, so that what is
-	/// compared is the code the JIT keeps; then as the scaling classes time a ratio
-	/// (<c>ScalingClock</c>): alternating rounds, the least of each, and a ratio over the bound measured
-	/// again before it is believed, so that other test assemblies running beside this one — which
-	/// <see cref="Alone"/> does not hold off — cannot decide it.
+	/// <b>Why it was read as three, and twelve.</b> Timed as a median of five after one reading of
+	/// each, the library was still being compiled up from its first, unoptimized code: 80 to 95 ms a
+	/// corpus where it settles at 20. Its largest methods are among the last the JIT recompiles, some
+	/// six seconds into a run that reads both in turn, so both are read for <see cref="WarmSeconds"/>
+	/// first; then as the scaling classes time a ratio (<c>ScalingClock</c>): alternating rounds, the
+	/// least of each, and a ratio over the bound measured again before it is believed, so that other
+	/// test assemblies running beside this one — which <see cref="Alone"/> does not hold off — cannot
+	/// decide it.
 	/// </para>
 	/// </remarks>
-	[Fact]
-	public void A_profile_of_the_largest_grammar_costs_less_than_thirty_times_the_reading()
+	[Theory]
+	[InlineData("T-SQL", 1)]
+	[InlineData("Accept", 400)]
+	public void A_profile_costs_less_than_ten_times_the_reading(string name, int passes)
 	{
-		var target = Targets.Named("T-SQL");
-		var inputs = target.Seeds.Concat(target.Refused).ToList();
+		var target  = Targets.Named(name);
+		var inputs  = Enumerable.Repeat(target.Seeds.Concat(target.Refused), passes).SelectMany(static one => one).ToList();
+		var readers = Readers(name);
 
 		void Plain()
 		{
 			foreach (var text in inputs)
-				PlainSql.TryParseSql(text);
+				readers.Plain(text);
 		}
 
 		void Profiled()
 		{
-			var profile = new TracedSql.GramProfile();
-
-			using (TracedSql.Tracing(profile))
+			using (readers.Profiling())
 				foreach (var text in inputs)
-					TracedSql.TryParseSql(text);
+					readers.Traced(text);
 		}
 
 		for (var warm = Stopwatch.StartNew(); warm.Elapsed.TotalSeconds < WarmSeconds;)
@@ -128,17 +133,34 @@ public sealed class TraceCostTests(ITestOutputHelper output)
 			Profiled();
 		}
 
-		var reading = ScalingClock.Settle(Plain, Profiled, bound: 30);
+		var reading = ScalingClock.Settle(Plain, Profiled, bound: 10);
 
 		output.WriteLine(
-			$"{inputs.Count} inputs: {reading.Shorter / 1000:F1} ms as shipped, {reading.Longer / 1000:F1} ms profiled, " +
+			$"{name}, {inputs.Count} inputs: {reading.Shorter / 1000:F1} ms as shipped, {reading.Longer / 1000:F1} ms profiled, " +
 			$"{reading.Ratio:F2}x (attempts {reading.Readings})");
 
 		Assert.True(reading.Within, $"{reading.Ratio:F2}x over {reading.Readings}");
 	}
 
 	/// <summary>How long both readings are run before either is timed, so that the JIT has recompiled what it will.</summary>
-	const double WarmSeconds = 5;
+	const double WarmSeconds = 10;
+
+	/// <summary>A target read as shipped, a scope with a fresh profile over its trace build, and the trace build read.</summary>
+	static (Action<string> Plain, Func<IDisposable> Profiling, Action<string> Traced) Readers(string name)
+	{
+		return name switch
+		{
+			"T-SQL" => (
+				static text => PlainSql.TryParseSql(text),
+				static () => TracedSql.Tracing(new TracedSql.GramProfile()),
+				static text => TracedSql.TryParseSql(text)),
+			"Accept" => (
+				static text => PlainAccept.TryParseAccept(text),
+				static () => TracedAccept.Tracing(new TracedAccept.GramProfile()),
+				static text => TracedAccept.TryParseAccept(text)),
+			_ => throw new ArgumentOutOfRangeException(nameof(name), name, null),
+		};
+	}
 
 	/// <summary>A refused T-SQL script of a hundred kilobytes is explained in under a second.</summary>
 	[Fact]

@@ -54,7 +54,7 @@ public static partial class CSharpEmitter
 					{
 						file.Line("var message = \"Invalid element at offset \" + failure.Position.ToString() + \".\";");
 						file.Line();
-						file.Line("if (trace != null)");
+						file.Line("if (trace != null && trace.HearsRejections)");
 						file.Then("trace.Rejected(failure.Position, message);");
 						file.Line();
 						file.Line("throw new global::System.FormatException(message);");
