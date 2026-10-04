@@ -1547,7 +1547,7 @@ namespace DotGram.Snapshots
 						var captured0 = values3[record0].Value;
 
 						var count1 = log[read++];
-						var captured1 = new global::DotGram.Snapshots.Feed.Row[count1];
+						var captured1 = (count1 == 0 ? global::System.Array.Empty<global::DotGram.Snapshots.Feed.Row>() : new global::DotGram.Snapshots.Feed.Row[count1]);
 
 						for (var item = 0; item < count1; item++)
 						{

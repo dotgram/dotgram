@@ -893,6 +893,38 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>A repetition that read nothing is handed over as the one empty array, on either carrier.</summary>
+	/// <remarks>
+	/// The commonest capture there is: the expression language's <c>(a)</c> hands the tail of the
+	/// tuple it is not over empty at every bracket, and an array of none allocated for each was
+	/// an object per bracket for nothing. An array of none can be neither written nor told apart
+	/// from another by what it holds, so <c>Array.Empty</c> is the same value at no cost.
+	/// </remarks>
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void An_empty_repetition_is_handed_over_as_the_empty_array(CarrierKind carrier)
+	{
+		const string Grammar =
+			"""
+			Item : @string   = t: ['a'..'z'] => @(t)
+			List : @string[] = '(' & items: Item* & ')' => @(items)
+			parse List
+			""";
+
+		var (_, assembly) = Compiled(Grammar, carrier);
+
+		var none = EmittedCode.Match(assembly, "Carried.Probe", "TryParseList", "()");
+
+		Assert.True(none.IsSuccess);
+		Assert.Same(Array.Empty<string>(), none.Value);
+
+		var some = EmittedCode.Match(assembly, "Carried.Probe", "TryParseList", "(ab)");
+
+		Assert.True(some.IsSuccess);
+		Assert.Equal(["a", "b"], (string[])some.Value!);
+	}
+
 	static string? ValueOf((bool IsSuccess, object? Value, string? Error, long Position) match)
 	{
 		return match.Value?.ToString();

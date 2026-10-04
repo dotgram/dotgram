@@ -215,7 +215,7 @@ namespace DotGram.Snapshots
 
 		/// <summary>Everything <c>Script</c> is made of, in order (§4.1 case 2).</summary>
 		static string[] Construct_Script(string[] item0) =>
-			item0 ?? new string[0];
+			item0 ?? global::System.Array.Empty<string>();
 
 		/// <summary>What <c>Command</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Command(string name, string value) =>
@@ -647,7 +647,7 @@ namespace DotGram.Snapshots
 							var candidate = entries[capturedAt0];
 							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
 						}
-						var captured0 = new string[captured0Count];
+						var captured0 = (captured0Count == 0 ? global::System.Array.Empty<string>() : new string[captured0Count]);
 						var captured0Item = captured0Count;
 						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
 						{

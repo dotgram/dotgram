@@ -342,7 +342,7 @@ namespace DotGram.Snapshots
 
 			/// <summary>Everything <c>Program</c> is made of, in order (§4.1 case 2).</summary>
 			static string[] Construct_Program(string[] item0) =>
-				item0 ?? new string[0];
+				item0 ?? global::System.Array.Empty<string>();
 
 			/// <summary>What <c>Statement</c> builds its value with (docs/syntax.md §7.3).</summary>
 			static string Construct_Statement(string name, string value) =>

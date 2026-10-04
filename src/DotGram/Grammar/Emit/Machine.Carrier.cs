@@ -1166,7 +1166,7 @@ sealed partial class Machine
 			code.Line($"var {handed}Count = 0;");
 			code.Line($"for (var at = {from}; at < ways.RefsCount; at += 3)");
 			code.Then($"if (({bits}L & (1L << ways.Refs[at])) != 0) {handed}Count++;");
-			code.Line($"var {handed} = {CSharpEmitter.NewArray(type, $"{handed}Count")};");
+			code.Line($"var {handed} = {CSharpEmitter.FilledArray(type, $"{handed}Count")};");
 			code.Line($"{handed}Count = 0;");
 
 			// Built in one walk with every element a root, not in one walk an element: each of those

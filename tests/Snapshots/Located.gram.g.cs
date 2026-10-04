@@ -215,7 +215,7 @@ namespace DotGram.Snapshots
 
 		/// <summary>Everything <c>Config</c> is made of, in order (§4.1 case 2).</summary>
 		static Entry[] Construct_Config(Entry[] item0) =>
-			item0 ?? new Entry[0];
+			item0 ?? global::System.Array.Empty<Entry>();
 
 		/// <summary>What <c>Entry</c> builds its value with (docs/syntax.md §7.3), and where it was written.</summary>
 		static Entry Construct_Entry(SourceSpan parserSpan, Place key, string value)
@@ -1067,7 +1067,7 @@ namespace DotGram.Snapshots
 							var candidate = entries[capturedAt0];
 							if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && (candidate.State == 0)) captured0Count++;
 						}
-						var captured0 = new Entry[captured0Count];
+						var captured0 = (captured0Count == 0 ? global::System.Array.Empty<Entry>() : new Entry[captured0Count]);
 						var captured0Item = captured0Count;
 						for (var capturedAt0 = linkHeads[completedAt]; capturedAt0 >= 0; capturedAt0 = linkNexts[capturedAt0])
 						{

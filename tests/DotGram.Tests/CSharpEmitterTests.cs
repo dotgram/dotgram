@@ -533,7 +533,7 @@ public sealed class CSharpEmitterTests
 
 		// One repetition and nothing else: the array the materializer built is the
 		// result, handed back without being counted into a copy of itself.
-		Assert.Contains("item0 ?? new string[0];", source);
+		Assert.Contains("item0 ?? global::System.Array.Empty<string>();", source);
 		Assert.Contains("int Recognize_DotGram(", source);
 
 		// No longer also `Assert.DoesNotContain("List<string>", source)`: every

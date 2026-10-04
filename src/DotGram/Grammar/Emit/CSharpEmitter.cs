@@ -3339,6 +3339,25 @@ file.Line("return spare;");
 		return $"new {element.Substring(0, rank)}[{length}]{element.Substring(rank)}";
 	}
 
+	/// <summary>
+	/// The expression that makes an array of <paramref name="length"/> elements of
+	/// <paramref name="element"/> to be filled and handed on, and the one empty array of that
+	/// type where there are none.
+	/// </summary>
+	/// <remarks>
+	/// A repetition that read nothing is the commonest capture there is — the expression
+	/// language's `(a)` hands its tuple's tail over empty at every bracket — and an array of
+	/// none allocated for each is an object for nothing: an array of none can be neither written
+	/// nor told apart from another by what it holds. Where the length is a constant <c>0</c> the
+	/// test is not written.
+	/// </remarks>
+	internal static string FilledArray(string element, string length)
+	{
+		var empty = $"global::System.Array.Empty<{element}>()";
+
+		return length == "0" ? empty : $"({length} == 0 ? {empty} : {NewArray(element, length)})";
+	}
+
 	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
 	{
 		if (construct.How is Construction.Expression { Text: var text, At: var at })
@@ -3635,7 +3654,7 @@ file.Line("return spare;");
 					var only = ResultTypes.ParameterOf(factory.Members[0]);
 
 					file.Line(head + " =>");
-					file.Line($"	{only} ?? {NewArray(element, "0")};");
+					file.Line($"	{only} ?? {FilledArray(element, "0")};");
 
 					break;
 				}
@@ -3645,7 +3664,7 @@ file.Line("return spare;");
 				if (factory.Members.Count == 0)
 				{
 					file.Line(head + " =>");
-					file.Line($"	{NewArray(element, "0")};");
+					file.Line($"	{FilledArray(element, "0")};");
 
 					break;
 				}
@@ -3667,7 +3686,7 @@ file.Line("return spare;");
 					}
 
 					file.Line();
-					file.Line($"var items = {NewArray(element, "count")};");
+					file.Line($"var items = {FilledArray(element, "count")};");
 					file.Line("var at    = 0;");
 					file.Line();
 

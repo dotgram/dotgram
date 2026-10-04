@@ -2182,7 +2182,7 @@ sealed partial class Machine
 			case MemberShape.Records when member.Member.Element is { } element:
 			{
 				file.Line($"var count{i} = log[read++];");
-				file.Line($"var captured{i} = {CSharpEmitter.NewArray(element, $"count{i}")};");
+				file.Line($"var captured{i} = {CSharpEmitter.FilledArray(element, $"count{i}")};");
 				file.Line();
 				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
 				{
@@ -2204,7 +2204,7 @@ sealed partial class Machine
 				var valueType = _results.ValueOf(member.Member.Rule);
 
 				file.Line($"var count{i} = log[read++];");
-				file.Line($"var captured{i} = {CSharpEmitter.NewArray(valueType, $"count{i}")};");
+				file.Line($"var captured{i} = {CSharpEmitter.FilledArray(valueType, $"count{i}")};");
 				file.Line();
 				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
 				{

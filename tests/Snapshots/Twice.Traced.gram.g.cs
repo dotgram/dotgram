@@ -1444,7 +1444,7 @@ namespace DotGram.Snapshots
 							var captured0 = values0[record0].Value;
 
 							var count1 = log[read++];
-							var captured1 = new int[count1];
+							var captured1 = (count1 == 0 ? global::System.Array.Empty<int>() : new int[count1]);
 
 							for (var item = 0; item < count1; item++)
 							{
