@@ -2511,7 +2511,9 @@ public sealed class GeneratorDriverTests
 			}
 			"""";
 
-		var built = Build(source);
+		// Neither grammar builds anything, so there is nothing for a carrier to carry, and
+		// GRAM5007 says the one asked for is not there — which is not what this test asks.
+		var built = Build(source, permittedWarning: "GRAM5007");
 
 		var hidden = built.GetType("HiddenReading+Immediate")!;
 		var shown  = built.GetType("Shown+Immediate")!;

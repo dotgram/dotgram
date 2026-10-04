@@ -13,6 +13,15 @@
 		     the grammar is a file, so the message lands in the .gram and not in any C#. -->
 		<NoWarn>$(NoWarn);GRAM5015</NoWarn>
 
+		<!-- ImmediateSqlStandard asks for that carrier over SQL:2023, which it refuses: six
+		     rules of the grammar gather two members onto one stack of the same type
+		     (Joins, JSONTablePlanTail, AlterColumnAction, Representation, Get- and
+		     SetDescriptorInformation), so the class is compiled on the tape and GRAM5007 says
+		     so. Suppressed here, by name, so that the build stays clean while the class
+		     measures what it measures; the class says the same in its remarks. Take this off
+		     once the grammar is carried, and expect GRAM5007 to say whether it is. -->
+		<NoWarn>$(NoWarn);GRAM5007</NoWarn>
+
 		<!-- The generated parser is the thing under test, so it goes on disk where it can
 		     be read next to the numbers it produced. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

@@ -171,6 +171,15 @@ namespace DotGram.ExpressionLanguage;
 //     the tape builds only what stands. `ExpressionCarrierTests` is the other half: for texts
 //     that read, the two build the same tree.
 //
+// One thing the condition does not cover, and it is said rather than guarded: a text this
+// language refuses may throw here instead. `s.Trim)` builds `s.Trim` and is told there is no
+// such property before the `)` is reached, where the tape refuses the `)`; the tape would say
+// the same of `s.Trim`. Only a construction that has a meaning to give can be guarded, and
+// what is wrong with `s.Trim` is a meaning — a guard asking it first would turn the message
+// about the member into one about the parenthesis, for the text that ends there too. So the
+// agreement test lets this carrier throw where the tape refuses, and nothing else; this copy
+// is for measuring and for that test, and the reading published to a scope is the tape's.
+//
 // What that is worth, said plainly: a search, not a proof. It says no such construction exists
 // today over the widest corpus there is, and where the language is ambiguous the grammar was
 // written so that none could. Take the suppression off if a construction is added to an
@@ -1557,10 +1566,11 @@ namespace DotGram.ExpressionLanguage;
 		// twelve. Measured by taking one way away, the base is exactly the number of ways that
 		// open `'(' & Expression`: one is flat, two is ×2.00, three is ×2.95 (2026-09-24). This
 		// is the `(A+)*` shape of D57 with the repetition spelled as alternatives, and the cure
-		// is the same one: read the shared beginning once.
-		| '(' & (named: Identifier & ':')? & first: Expression
-		  & (',' & (later: Identifier & ':')? & rest: Expression)* & ')'
-		  => @(ExpressionParser.Bracketed(first, rest, named, later))
+		// is the same one: read the shared beginning once. A rule of its own so that `later`
+		// is the only member of it gathered onto the stack of strings: beside `nameof`'s
+		// `part` in this rule, the immediate carrier would have to keep the two apart, which
+		// it does not, and the grammar would go back to the tape.
+		| b: Parenthesised => @(b)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
 		// as the `1` of an `int` and leave the letter to whatever comes next, and only
@@ -1619,6 +1629,12 @@ namespace DotGram.ExpressionLanguage;
 		| when @(context.Statics())
 		& ?!Keyword & read: Word & when @(context.Reads(read, parserSpan))
 		  => @(context.Read(read))
+
+	// `( … )` read once whichever of its forms it turns out to be, as `Primary` says above.
+	Parenthesised : @Expression
+		= '(' & (named: Identifier & ':')? & first: Expression
+		  & (',' & (later: Identifier & ':')? & rest: Expression)* & ')'
+		  => @(ExpressionParser.Bracketed(first, rest, named, later))
 
 	// The guard is what makes this rule readable speculatively, which it has to be: an
 	// assignment reads its target as a name before it knows which operator follows, and

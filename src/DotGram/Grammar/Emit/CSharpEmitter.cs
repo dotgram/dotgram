@@ -985,10 +985,12 @@ public static partial class CSharpEmitter
 
 		// A carrier the author asked for and did not get, said once per reason and said here:
 		// which carrier a machine took is settled by what it turned out to hold, and nothing
-		// before the readers are written knows. Information and not a warning: the parser
-		// that comes out is correct and is the one the tape would have written, and nothing
-		// the author did is wrong — but a carrier chosen and silently not used is a
-		// measurement about to be misread.
+		// before the readers are written knows. A warning, though the parser that comes out is
+		// correct and is the one the tape would have written: a carrier asked for by name is one
+		// somebody means to measure or rely on, and as information nothing a build prints showed
+		// it — the expression language's copy compiled to be held against the tape was the tape
+		// from 2026-09-24 to 2026-10-04, and every comparison made with it compared the tape with
+		// itself.
 		if (carrier is not (CarrierKind.Tape or CarrierKind.Auto) && diagnostics is not null)
 		{
 			// Two ways to end up on the tape after asking not to be, and only one of them
@@ -1016,7 +1018,7 @@ public static partial class CSharpEmitter
 					"The parser is the one it would have been without the request.",
 					0,
 					0,
-					GramSeverity.Info));
+					GramSeverity.Warning));
 			}
 
 			// D138. The request was honoured and the gates were never asked - asking them is what
@@ -1140,7 +1142,15 @@ public static partial class CSharpEmitter
 
 		if (carriers is not null && carrier != CarrierKind.Auto)
 		{
-			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}, the author's" + Points(graph, null));
+			// What was asked for, and whether it was given: a carrier that refused the grammar
+			// (GRAM5007) left it on the tape, and a report saying only what was asked read as the
+			// carrier the parser has.
+			var given = carrier != CarrierKind.Immediate ||
+				(machines.Exists(static one => one.Direct) &&
+					machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
+
+			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
+				Points(graph, null));
 			Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
 		}
 

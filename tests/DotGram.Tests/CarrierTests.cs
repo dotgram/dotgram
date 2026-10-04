@@ -111,7 +111,7 @@ public sealed class CarrierTests
 			CarrierKind.Immediate));
 
 		Assert.Equal(GramCompiler.CarrierRefused, told.Id);
-		Assert.Equal(GramSeverity.Info,           told.Severity);
+		Assert.Equal(GramSeverity.Warning,        told.Severity);
 		Assert.Contains("window",                 told.Message, StringComparison.Ordinal);
 	}
 

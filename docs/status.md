@@ -1485,7 +1485,7 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
 
 A carrier is what a reader — the rendering by methods — holds. Where the asked carrier
 refuses the grammar, or nothing in it is read by methods, the tape is used and `GRAM5007`
-says why, as information.
+says why, as a warning.
 
 ## What re-runs, and when
 

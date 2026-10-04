@@ -123,7 +123,9 @@ public sealed class SequenceOrderTests
 			}
 			"""";
 
-		var host = GeneratorDriverTests.Build(source).GetType("OrderProbe.P")!;
+		// A sequence gathered from several types is one the immediate carrier refuses, which
+		// leaves it on the tape and says so: asked of both carriers, the order is the same.
+		var host = GeneratorDriverTests.Build(source, permittedWarning: "GRAM5007").GetType("OrderProbe.P")!;
 
 		Assert.Equal("CircleCircleSquareCircle", Names(host, "ParseShapes", "ccsc"));
 		Assert.Equal("CircleSquareCircleSquare", Names(host, "ParsePairs", "cscs"));
@@ -516,7 +518,7 @@ public sealed class SequenceOrderTests
 		// cannot take gets none; the harness reads whatever forms there are.
 		Assert.DoesNotContain(
 			result.Diagnostics,
-			static one => one.Severity != GramSeverity.Info && one.Id is not (GramCompiler.CarrierForced or "GRAM4018" or "GRAM5001"));
+			static one => one.Severity != GramSeverity.Info && one.Id is not (GramCompiler.CarrierForced or GramCompiler.CarrierRefused or "GRAM4018" or "GRAM5001"));
 
 		return EmittedCode.Compile(
 			result.Sources[0].Text,

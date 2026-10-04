@@ -34,9 +34,7 @@ Examples	DotGram.Examples.Languages.Selectors.g.cs	CS0649 // a table nothing wri
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.SqlReadOnly.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
-ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs	CS0649 // a table nothing writes still declares the field
 ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
-Finance	DotGram.ExpressionLanguage.ExpressionParser.Immediate.g.cs	CS0649 // a table nothing writes still declares the field
 Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649

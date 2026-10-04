@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 
@@ -151,6 +152,35 @@ public sealed class ExpressionCarrierTests
 		"using System.Linq; (int[] a) => a.Select(n => { var m = n * 2; return m; }).Sum()",
 		"using System.Linq; (int[][] a) => a.Select(r => { int t = 0; foreach (var n in r) t += n; return t; }).Sum()",
 	];
+
+	/// <summary>The copy that asks for the immediate carrier is given it, and the other one is not.</summary>
+	/// <remarks>
+	/// <para>
+	/// Everything else here is worth as much as this. A carrier that refuses a grammar leaves it
+	/// on the tape and says so in GRAM5007, and from 2026-09-24 to 2026-10-04 this copy was the
+	/// tape under another name: a rule gathered two members onto one stack, the warning was
+	/// information that no build printed, and every comparison below compared the tape with
+	/// itself. GRAM5007 is a warning now and the build treats warnings as errors, so a refusal
+	/// stops the build; this is what says so where the tests are run, and says it of the
+	/// compiled code rather than of a message.
+	/// </para>
+	/// <para>
+	/// The store each carrier rents is the evidence: the immediate carrier keeps what it read in
+	/// <c>ImmediateValues</c>, and the tape's reader keeps its records in <c>DirectValues</c>. A
+	/// grammar compiled on one is never given the other's.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void The_immediate_copy_is_carried_immediately()
+	{
+		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
+
+		Assert.NotNull(typeof(ExpressionParser.Immediate).GetNestedType("ImmediateValues", Nested));
+		Assert.Null(typeof(ExpressionParser.Immediate).GetNestedType("DirectValues", Nested));
+
+		Assert.NotNull(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
+		Assert.Null(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+	}
 
 	[Theory]
 	[MemberData(nameof(Inputs))]

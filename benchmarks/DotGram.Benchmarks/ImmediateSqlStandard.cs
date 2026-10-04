@@ -23,6 +23,12 @@ namespace DotGram.Benchmarks;
 /// per derivation tried, and the tree's factories happen to be pure, which is
 /// what makes the comparison fair rather than what makes it safe.
 /// </para>
+/// <para>
+/// And today it is not immediate either: the carrier refuses SQL:2023, whose Joins, JSONTablePlanTail,
+/// AlterColumnAction, Representation and Get- and SetDescriptorInformation each gather two members
+/// onto one stack, so this class is the tape under another name and the rows that read it measure
+/// the tape. GRAM5007 says so, and the project suppresses it by name until the grammar is carried.
+/// </para>
 /// </remarks>
 [Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public static partial class ImmediateSqlStandard

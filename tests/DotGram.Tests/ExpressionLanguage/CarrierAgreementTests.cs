@@ -30,6 +30,18 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// would show here as a disagreement, and nowhere else.
 /// </para>
 /// <para>
+/// One difference is allowed, and only one: where the tape refuses the text, the immediate
+/// carrier may throw instead. A parse that fails has already run the constructions of what it
+/// read before failing on that carrier — `s.Trim)` builds `s.Trim` and is told there is no such
+/// property before the `)` refuses it, and `x &lt; 1 || x &gt;` joins `x &lt; 1` and `x` with `||`
+/// before finding nothing after the `&gt;`. The tape would throw the same for `s.Trim` and for
+/// `x &lt; 1 || x`; what differs is only that the immediate carrier gets there before it knows
+/// the parse will fail. No guard can take that back without changing what those shorter texts
+/// mean. What may not happen is anything else: a text one carrier accepts and the other does
+/// not, a different refusal, a different exception, or the immediate carrier throwing where the
+/// tape accepts.
+/// </para>
+/// <para>
 /// The second is the contract of the public surface. D137 (2026-09-24) settled that a host's
 /// exception propagates from every publication, <c>Try</c> or not; EL's own <c>TryParse</c> is a
 /// layer above that and catches its own semantic refusals, and that is what a consumer holding
@@ -42,15 +54,31 @@ public sealed class CarrierAgreementTests
 	public void The_two_carriers_answer_every_text_alike()
 	{
 		var differed = new List<string>();
+		var early    = 0;
 
 		foreach (var text in Texts())
 		{
 			var tape      = Answer(text, ExpressionParser.TryParseLambda);
 			var immediate = Answer(text, ExpressionParser.Immediate.TryParseLambda);
 
-			if (tape != immediate)
-				differed.Add($"{Escaped(text)}\n  tape:      {tape}\n  immediate: {immediate}");
+			if (tape == immediate)
+				continue;
+
+			// Refused on the tape, thrown immediately: what was read before the refusal built
+			// something that cannot be built, as the remarks say.
+			if (!tape.StartsWith(Threw, StringComparison.Ordinal) && tape != Accepted &&
+				immediate.StartsWith(Threw, StringComparison.Ordinal))
+			{
+				early++;
+				continue;
+			}
+
+			differed.Add($"{Escaped(text)}\n  tape:      {tape}\n  immediate: {immediate}");
 		}
+
+		// Not a bound: a corpus that grows grows this. That there are some says the texts reach
+		// the case the remarks allow, so that the allowance is not covering for nothing.
+		Assert.True(early > 0, "No text the tape refuses threw on the immediate carrier.");
 
 		Assert.True(differed.Count == 0,
 			$"{differed.Count} texts told the carriers apart; the first three:\n" +
@@ -108,14 +136,18 @@ public sealed class CarrierAgreementTests
 		{
 			var match = read(text, state);
 
-			return match.IsSuccess ? "accepted" : $"{match.Outcome} at {match.Position}: {match.Error}";
+			return match.IsSuccess ? Accepted : $"{match.Outcome} at {match.Position}: {match.Error}";
 		}
 		catch (Exception thrown) when (thrown is FormatException or InvalidOperationException or OverflowException ||
 			thrown is ArgumentException and not ArgumentNullException)
 		{
-			return "threw " + thrown.GetType().Name + ": " + thrown.Message;
+			return Threw + thrown.GetType().Name + ": " + thrown.Message;
 		}
 	}
+
+	const string Accepted = "accepted";
+
+	const string Threw = "threw ";
 
 	/// <summary>The text as a message can carry it, its line breaks and quotes written out.</summary>
 	static string Escaped(string input)

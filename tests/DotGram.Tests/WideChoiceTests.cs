@@ -180,7 +180,8 @@ public sealed class WideChoiceTests
 
 		Assert.DoesNotContain(
 			result.Diagnostics,
-			static one => one.Severity != GramSeverity.Info && one.Id != GramCompiler.CarrierForced);
+			static one => one.Severity != GramSeverity.Info &&
+				one.Id is not (GramCompiler.CarrierForced or GramCompiler.CarrierRefused));
 
 		return EmittedCode.Compile(
 			result.Sources[0].Text,
