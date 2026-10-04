@@ -1,0 +1,41 @@
+﻿<Project>
+	<!-- The libraries whose grammars ship, compiled again from their own sources into one assembly:
+	     DotGram.Sql, DotGram.ExpressionLanguage and DotGram.Web. What differs from the libraries is
+	     only how the generator is asked to compile the grammars, which the project importing this
+	     says. Never packed; held against the libraries themselves by DotGram.Trace.Tests. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>DotGram</RootNamespace>
+
+		<!-- The libraries' own: a public member they leave undocumented is theirs to answer for. -->
+		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="$(MSBuildThisFileDirectory)..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\**\*.cs"
+		         Exclude="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\obj\**;$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\bin\**"
+		         LinkBase="Sql" />
+		<Compile Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.ExpressionLanguage\**\*.cs"
+		         Exclude="$(MSBuildThisFileDirectory)..\..\src\DotGram.ExpressionLanguage\obj\**;$(MSBuildThisFileDirectory)..\..\src\DotGram.ExpressionLanguage\bin\**"
+		         LinkBase="ExpressionLanguage" />
+		<Compile Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Web\**\*.cs"
+		         Exclude="$(MSBuildThisFileDirectory)..\..\src\DotGram.Web\obj\**;$(MSBuildThisFileDirectory)..\..\src\DotGram.Web\bin\**"
+		         LinkBase="Web" />
+
+		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="Sql\SqlStandard.gram" />
+		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\Standard\SqlStandard92.gram" Link="Sql\SqlStandard92.gram" />
+		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\TransactSql\TransactSql.gram" Link="Sql\TransactSql.gram" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The Web formats publish their Try forms internal; the tests read the position a refusal is at. -->
+		<InternalsVisibleTo Include="DotGram.Trace.Tests" />
+		<InternalsVisibleTo Include="DotGram.Trace.Deep" />
+	</ItemGroup>
+</Project>

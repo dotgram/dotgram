@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The shipped grammars as a trace build (docs/syntax.md, §6.9): every reading reports to the
+	     sink a caller sets. DotGram.Trace.Tests holds what they answer to what the libraries answer. -->
+	<Import Project="Copied.props" />
+
+	<PropertyGroup>
+		<DotGramTrace>true</DotGramTrace>
+	</PropertyGroup>
+
+</Project>

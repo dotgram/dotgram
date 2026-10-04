@@ -101,6 +101,18 @@
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="tests/DotGram.Traced/DotGram.Traced.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Traced.Unfolded/DotGram.Traced.Unfolded.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Trace.Deep/DotGram.Trace.Deep.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Trace.Tests/DotGram.Trace.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/Snapshots/Snapshots.csproj">
 			<Build Project="false" />
 		</Project>

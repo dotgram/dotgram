@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The shipped grammars as a trace build whose rules that only forward another's value are
+	     called as written rather than collapsed into their callers (DOTGRAM_NO_COLLAPSE): the
+	     reference a trace build's frames of those rules are held to, frame for frame, by
+	     DotGram.Trace.Tests. A different parser, not only a slower one — a refusal's expected list
+	     may come out in another order — so nothing but that comparison reads it. -->
+	<Import Project="..\DotGram.Traced\Copied.props" />
+
+	<PropertyGroup>
+		<DotGramTrace>true</DotGramTrace>
+		<DefineConstants>$(DefineConstants);DOTGRAM_NO_COLLAPSE</DefineConstants>
+	</PropertyGroup>
+
+</Project>

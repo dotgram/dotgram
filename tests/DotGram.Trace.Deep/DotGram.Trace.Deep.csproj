@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- A process of its own for one measurement: GramWhy over a refused JSON text nested tens of
+	     thousands deep, and the peak working set of the process that ran it. DotGram.Trace.Tests
+	     starts it, so that the figure is this reading's and not a test host's. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DotGram.Traced\DotGram.Traced.csproj" />
+	</ItemGroup>
+
+</Project>

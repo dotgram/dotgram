@@ -43,6 +43,23 @@ changes what T-SQL reads or what `SqlWriter` prints.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
+A trace build (syntax.md §6.9) is held to what it observes by `tests/DotGram.Trace.Tests`, over the
+shipped grammars themselves: `tests/DotGram.Traced` compiles the sources of DotGram.Sql,
+DotGram.ExpressionLanguage and DotGram.Web again with `DotGramTrace`, and
+`tests/DotGram.Traced.Unfolded` the same with `DOTGRAM_NO_COLLAPSE`, which calls a rule that only
+forwards another's value as written instead of collapsing it into its callers. The tests reference
+the three builds under the aliases `plain`, `traced` and `unfolded` and read refused corpora of
+T-SQL (mutations of the ScriptDom batches, by a fixed seed), the expression language (the refused
+lines of its refusal record), JSON and URI: the trace build answers every input as the library does,
+`GramWhy`'s message and position are the match's on every row and every row is explained, every rule
+on the unfolded build's stacks is on the trace build's (the frames of the collapsed rules), and every
+rule entered is left. `TraceCostTests` holds the memory of a deep refusal (`tests/DotGram.Trace.Deep`,
+a process of its own: peak working set under 256 MB at fifty thousand levels) and the time of a
+profile on T-SQL (within ten times the library) and of `GramWhy` on a refused script of 100 KB
+(under a second). The two copies cost the solution build two more compilations of the SQL grammars,
+for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds the same over small grammars, a reading
+shape at a time.
+
 A build prints the generator's warnings and errors and not its information: `GRAM5009`, which
 says a grammar cut into kinds reads something other than it is written, is information, and so is
 every other diagnostic about what an author cannot see. `-v:detailed` prints them —

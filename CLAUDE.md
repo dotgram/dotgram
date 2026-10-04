@@ -105,6 +105,13 @@ tests/
 	                      Finance.Tests so that the ordinary tests build in seconds (D12)
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
+	DotGram.Traced/       the sources of DotGram.Sql, DotGram.ExpressionLanguage and
+	                      DotGram.Web compiled again as one trace build (DotGramTrace)
+	DotGram.Traced.Unfolded/ the same, its forwarding rules called as written
+	                      (DOTGRAM_NO_COLLAPSE): the reference for the trace's frames
+	DotGram.Trace.Tests/  the trace build held to the libraries over corpora of refused
+	                      input: answers, explanations, frames, balance, memory, time
+	DotGram.Trace.Deep/   one process for the memory a deep refusal is explained in
 	DotGram.PackageSmoke/ the packed package asked what it promises, under the oldest
 	                      Roslyn it supports. Not in the solution; CI runs it after packing
 	DotGram.Finance.PackageSmoke/ the same for the FIX package, on both frameworks it

@@ -76,6 +76,7 @@ Since 0.1.0. Lambdas whose parameters say no types, read where the types are kno
 		<InternalsVisibleTo Include="DotGram.Tests.Slow" />
 		<InternalsVisibleTo Include="DotGram.Benchmarks" />
 		<InternalsVisibleTo Include="DotGram.Handwritten" />
+		<InternalsVisibleTo Include="DotGram.Trace.Tests" />
 	</ItemGroup>
 
 </Project>
