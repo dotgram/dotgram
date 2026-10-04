@@ -899,8 +899,11 @@ public static partial class CSharpEmitter
 		/// </remarks>
 		public sealed class GramProfile : GramTrace
 		{
-			readonly global::System.Collections.Generic.Dictionary<int, Row> _rows =
-				new global::System.Collections.Generic.Dictionary<int, Row>();
+			// By the rule's number, which the tables of the grammar number densely from nought.
+			Row?[] _rows = new Row?[TraceRules_DotGram.Length];
+			int[] _active = new int[TraceRules_DotGram.Length];
+			readonly global::System.Collections.Generic.List<Row> _entered =
+				new global::System.Collections.Generic.List<Row>();
 			readonly global::System.Collections.Generic.List<Open_DotGram> _open =
 				new global::System.Collections.Generic.List<Open_DotGram>();
 			readonly global::System.Collections.Generic.List<GramRead> _reads =
@@ -909,13 +912,11 @@ public static partial class CSharpEmitter
 				new global::System.Collections.Generic.List<int>();
 			readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>> _seen =
 				new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>>();
-			readonly global::System.Collections.Generic.Dictionary<int, int> _active =
-				new global::System.Collections.Generic.Dictionary<int, int>();
 
-			/// <summary>Every rule entered, with its counts.</summary>
+			/// <summary>Every rule entered, with its counts, in the order they were first entered.</summary>
 			public global::System.Collections.Generic.IReadOnlyCollection<Row> Rows
 			{
-				get { return _rows.Values; }
+				get { return _entered; }
 			}
 
 			/// <summary>How many readings there were, quiet and recording.</summary>
@@ -1022,10 +1023,8 @@ public static partial class CSharpEmitter
 				if (depth > counts.MaxDepth)
 					counts.MaxDepth = depth;
 
-				int active;
-
-				_active.TryGetValue(rule, out active);
-				_active[rule] = active + 1;
+				Room(rule);
+				_active[rule]++;
 
 				var open = new Open_DotGram();
 
@@ -1086,11 +1085,7 @@ public static partial class CSharpEmitter
 
 				counts.ExclusiveMilliseconds += Milliseconds(took - open.Children);
 
-				var active = _active[open.Rule] - 1;
-
-				_active[open.Rule] = active;
-
-				if (active == 0)
+				if (--_active[open.Rule] == 0)
 					counts.InclusiveMilliseconds += Milliseconds(took);
 
 				if (last > 0)
@@ -1104,9 +1099,11 @@ public static partial class CSharpEmitter
 
 			Counts CountsOf(int rule, bool quiet)
 			{
-				Row? row;
+				Room(rule);
 
-				if (!_rows.TryGetValue(rule, out row))
+				var row = _rows[rule];
+
+				if (row == null)
 				{
 					var read = _reads.Count > 0 ? _reads[_reads.Count - 1] : null;
 
@@ -1114,9 +1111,20 @@ public static partial class CSharpEmitter
 						? read.RuleName(rule)
 						: (uint)rule < (uint)TraceRules_DotGram.Length ? TraceRules_DotGram[rule] : "#" + rule.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
 					_rows[rule] = row;
+					_entered.Add(row);
 				}
 
 				return quiet ? row.Quiet : row.Recording;
+			}
+
+			/// <summary>Room for a rule's number past the tables, which only a sink shared by mistake can hand in.</summary>
+			void Room(int rule)
+			{
+				if (rule < _rows.Length)
+					return;
+
+				global::System.Array.Resize(ref _rows, rule + 1);
+				global::System.Array.Resize(ref _active, rule + 1);
 			}
 
 			static double Milliseconds(long ticks)
@@ -1145,7 +1153,7 @@ public static partial class CSharpEmitter
 			{
 				var rows = new global::System.Collections.Generic.List<Row>();
 
-				foreach (var row in _rows.Values)
+				foreach (var row in _entered)
 					if ((quiet ? row.Quiet : row.Recording).Entries > 0 || (quiet ? row.Quiet : row.Recording).Remembered > 0)
 						rows.Add(row);
 
