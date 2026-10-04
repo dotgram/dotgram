@@ -28,7 +28,7 @@ then a feed, then an expression language, then one of the larger ones.
 
 ## Feeds
 
-Record-oriented input: four ways over one line-oriented format, then files that people write by hand.
+Record-oriented input: four ways over one line-oriented format, then files that people write by hand, then the trading feeds of [`docs/feeds.md`](../docs/feeds.md).
 
 | | |
 | --- | --- |
@@ -39,6 +39,10 @@ Record-oriented input: four ways over one line-oriented format, then files that 
 | [`PriceListExample.cs`](DotGram.Examples/Feeds/PriceListExample.cs) | a price list kept by hand, read lazily from a `TextReader` — `stream yield`, and a typo arriving in its place with its line and offset |
 | [`OrderSheetExample.cs`](DotGram.Examples/Feeds/OrderSheetExample.cs) | an order sheet — header lines, items and free-form remarks in one typed sequence, and a line that is none of them |
 | [`LogbookExample.cs`](DotGram.Examples/Feeds/LogbookExample.cs) | a maintenance logbook — entries as themselves, and a bad line reported through `OnRecovered` when it is read |
+| [`EodTradesExample.cs`](DotGram.Examples/Feeds/EodTradesExample.cs) | a broker's end-of-day trades between pipes — a header and a trailer as typed records, and a rejected line naming the field it broke in |
+| [`CorporateActionsExample.cs`](DotGram.Examples/Feeds/CorporateActionsExample.cs) | a vendor's corporate actions as CSV — quoted fields with commas and doubled quotes, and a quote left open costing one line |
+| [`ConfirmationsExample.cs`](DotGram.Examples/Feeds/ConfirmationsExample.cs) | a custodian's settlement confirmations in fixed width — fields by column, implied decimals, a line of the wrong length |
+| [`TradingFeedGenerator.cs`](DotGram.Examples/Feeds/TradingFeedGenerator.cs) | not a parser: writes the three trading feeds at any size with a given number of bad lines, for the loader below and the tests |
 
 ## Expressions
 
@@ -63,6 +67,12 @@ Record-oriented input: four ways over one line-oriented format, then files that 
 | [`LexemeLibraryExample.cs`](DotGram.Examples/Languages/LexemeLibraryExample.cs) | one grammar written to be built on and two written on it — `[GramInclude]`, and why the names cannot collide |
 | [`ScopedExpressionExample.cs`](DotGram.Examples/Languages/ScopedExpressionExample.cs) | a language where a name must be declared before it is used — `context`, and what a `when` can do that a `=>` cannot |
 | [`CaseRegionExample.cs`](DotGram.Examples/Languages/CaseRegionExample.cs) | a region that changes what the same rule builds inside it — `state`, `with state`, and the nearest mark winning |
+
+## A feed into a database
+
+| | |
+| --- | --- |
+| [`DotGram.FeedLoad`](DotGram.FeedLoad/) | a console program: a trading feed written at size — ten million records by default — read by its grammar and bulk-loaded into SQLite with linq2db, the bad lines into a table of their own. The one project here that takes packages, and so not in `DotGram.slnx`; [`docs/feeds.md`](../docs/feeds.md) has how to run it and what it measured |
 
 ## Taking one
 

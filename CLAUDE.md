@@ -27,6 +27,8 @@ docs/
 	README.md             the index: what authority each document carries, and when it
 	                      is expected to be out of date. Read it before believing one
 	syntax.md             the language: notation and its bond with C#
+	feeds.md              a guide: feeds in pipes, CSV and fixed width, and one loaded into a
+	                      database; every example run by FeedsPageTests
 	status.md             what this version does, held against that specification
 	diagnostics.md        every message the generator reports, by identifier
 	implementation.md     engine plan
@@ -86,6 +88,8 @@ examples/
 	                      framework and no scaffolding — DotGram.Tests runs them.
 	                      Grouped by what they read: Formats/, Feeds/, Expressions/,
 	                      Languages/, each its own namespace under DotGram.Examples
+	DotGram.FeedLoad/     a trading feed generated at size and bulk-loaded into SQLite with
+	                      linq2db, from NuGet. Not in the solution; run on its own (docs/feeds.md)
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer
