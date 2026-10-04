@@ -203,6 +203,7 @@ public static partial class CSharpEmitter
 		var scope   = new Stack<IDisposable>();
 		var scoped  = suffix is { Length: > 0 } ? className + "." + suffix : className;
 		var results = new ResultTypes(graph, scoped, @namespace, traced: trace);
+		SpikeScoped = (@namespace is null ? "" : @namespace + ".") + scoped + (trace ? ".trace" : "");
 
 		// What a trace build numbers its events by, one table for every machine of the file; null
 		// where the build is not one, which writes nothing of it anywhere.
@@ -350,6 +351,78 @@ public static partial class CSharpEmitter
 		HashSet<RuleSymbol> Rules(Compiled compiled)
 		{
 			return new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
+		}
+
+		// SPIKE (contained joining): a machine whose rules another final machine already holds,
+		// all but a few the guest's own publications reach alone, is read by that machine. The
+		// host keeps its publication list and the guest's are appended after it, so the host's
+		// rules are visited first by every walk that starts from the publications.
+		if (SpikeContained())
+			Contained();
+
+		void Contained()
+		{
+			reached = machines.ToDictionary(compiled => compiled, Rules);
+			var hosts = new HashSet<Compiled>();
+			foreach (var guestOne in machines.OrderBy(one => reached[one].Count).ToList())
+			{
+				if (!machines.Contains(guestOne) || hosts.Contains(guestOne) || !Eligible(guestOne)) continue;
+				var mineR = reached[guestOne];
+				Compiled? best = null;
+				HashSet<RuleSymbol>? bestX = null;
+				foreach (var hostOne in machines)
+				{
+					if (ReferenceEquals(hostOne, guestOne) || !Eligible(hostOne) ||
+						hostOne.Machine.BuildsDuringRecognition != guestOne.Machine.BuildsDuringRecognition ||
+						mineR.Count > reached[hostOne].Count)
+						continue;
+					var x = new HashSet<RuleSymbol>(mineR.Where(rule => !reached[hostOne].Contains(rule)));
+					if (bestX is null || x.Count < bestX.Count) { best = hostOne; bestX = x; }
+				}
+				if (best is null || bestX is null) continue;
+				var guestRules = new HashSet<RuleSymbol>(guestOne.Publications.Select(publication => publication.Rule));
+				var limit = SpikeLimit() ?? Math.Max(4, mineR.Count * 2 / 100);
+				SpikeLog($"{scoped}: guest {guestOne.Publications[0].MethodName} ({guestOne.Publications.Count} publications, {mineR.Count} rules) -> host {best.Publications[0].MethodName} ({best.Publications.Count} publications, {reached[best].Count} rules); X = {bestX.Count}, limit {limit}");
+				foreach (var rule in graph.Rules.Where(bestX.Contains))
+				{
+					var why = guestRules.Contains(rule) ? "guest publication rule" : "reached through: " +
+						string.Join(", ", guestOne.Publications.Where(publication => bestX.Contains(publication.Rule) && Reaches(graph, publication.Rule).Contains(rule)).Select(publication => publication.Rule.Name).Distinct());
+					var body = graph.Bodies[rule].ToString();
+					if (body.Length > 200) body = body.Substring(0, 200) + "...";
+					SpikeLog($"    X {rule.Name}: {why}; body {body}");
+				}
+				if (bestX.Count > limit)
+				{
+					SpikeLog("    not joined: over the limit");
+					continue;
+				}
+
+				var union = new HashSet<RuleSymbol>(reached[best]);
+				union.UnionWith(bestX);
+				var publications = best.Publications.Concat(guestOne.Publications).ToList();
+				var made = new Machine(
+					graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
+					best.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
+					replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets);
+				made.Anchor = best.Machine.Anchor;
+				made.Reporting = carriers is not null;
+				made.CountsRules = countRules;
+				made.Tracing = tracing;
+				made.MemoisesFailures = memoise;
+				if (!made.CanDirect(publications))
+				{
+					SpikeLog($"{scoped}: {guestOne.Publications[0].MethodName} -> {best.Publications[0].MethodName}: CanDirect refused");
+					continue;
+				}
+				SpikeLog("    joined");
+				var index = machines.IndexOf(best);
+				var joined = best with { Machine = made, Publications = publications };
+				machines[index] = joined;
+				machines.Remove(guestOne);
+				reached.Remove(best);
+				reached[joined] = union;
+				hosts.Add(joined);
+			}
 		}
 
 		foreach (var compiled in machines)
@@ -1403,6 +1476,7 @@ public static partial class CSharpEmitter
 		if (compiled.Direct)
 		{
 			file.Methods(machine.RenderReader(compiled.Publications));
+			SpikeDump(SpikeScoped ?? "", compiled);
 
 			return;
 		}
