@@ -73,10 +73,10 @@ public enum SettlementStatus
 
 	Confirmation : @ConfirmLine = 'D' & reference: Column(12) & isin: Column(12) & settles: Digit{8} & direction: Way
 	                            & quantity: Digit{12} & amount: Digit{15} & currency: ['A'..'Z']{3} & status: Status & eol
-	                           => @(new Confirmation(reference.Trim(), isin, settles, direction, Number(quantity), Number(amount) / 100m, currency, status))
+	                           => @(new Confirmation(reference.Trim(), isin, settles, direction, Number(quantity), Cents(amount), currency, status))
 
 	Trailer      : @ConfirmLine = 'T' & count: Digit{9} & amount: Digit{18} & eol
-	                           => @(new ConfirmTrailer(Number(count), Number(amount) / 100m))
+	                           => @(new ConfirmTrailer(Number(count), Cents(amount)))
 
 	Way    : @Direction        = 'R' => @(Direction.Receive) | 'D' => @(Direction.Deliver)
 	Status : @SettlementStatus = 'S' => @(SettlementStatus.Settled) | 'P' => @(SettlementStatus.Pending) | 'F' => @(SettlementStatus.Failed)
@@ -98,6 +98,12 @@ public static partial class Confirmations
 	static long Number(string digits)
 	{
 		return long.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	// Two implied decimals: 000000027302400 is 273,024.00, and keeps its two places.
+	static decimal Cents(string digits)
+	{
+		return Number(digits) * 0.01m;
 	}
 
 	/// <summary>The field a column of a confirmation falls in, read off the layout.</summary>

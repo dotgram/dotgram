@@ -671,6 +671,163 @@ public sealed class ExampleTests
 		}
 	}
 
+	// ── Trading feeds: pipes, CSV, fixed width ───────────────────────────────────
+
+	const string EodText =
+		"H|EOD-TRADES|2026-10-02|NORTHBRIDGE SECURITIES\n" +
+		"D|T-0101|2026-10-02|2026-10-05|US0378331005|BUY|1200|227.52|USD\n" +
+		"D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP\n" +
+		"D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD\n" +
+		"D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR\n" +
+		"D|T-0106|2026-10-02|2026-10-05|US88160R1014|SELL|600|243.85|USD|X\n" +
+		"T|5|4140\n";
+
+	[Fact]
+	public void An_end_of_day_file_reads_its_trades_and_names_the_field_a_bad_line_broke_in()
+	{
+		Assert.Equal(
+			[
+				new EodHeader("EOD-TRADES", "2026-10-02", "NORTHBRIDGE SECURITIES"),
+				new EodTrade("T-0101", "2026-10-02", "2026-10-05", "US0378331005", Side.Buy, 1200, 227.52m, "USD"),
+				new EodReject(3, 50, "Quantity",  "D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP",     "Expected '|' at 3:50."),
+				new EodReject(4, 54, "Price",     "D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD",            "Expected Digit at 4:54."),
+				new EodReject(5, 16, "TradeDate", "D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR",       "Expected Date at 5:16."),
+				new EodReject(6, 64, "(extra)",   "D|T-0106|2026-10-02|2026-10-05|US88160R1014|SELL|600|243.85|USD|X", "Expected \"\\r\\n\", '\\n' or '\\r' at 6:64."),
+				new EodTrailer(5, 4140),
+			],
+			EodTrades.Read(new StringReader(EodText)));
+	}
+
+	[Fact]
+	public void And_hands_over_the_header_before_it_has_read_the_trades()
+	{
+		using var reader = new StringReader(EodText);
+		using var lines  = EodTrades.Read(reader).GetEnumerator();
+
+		Assert.True(lines.MoveNext());
+		Assert.IsType<EodHeader>(lines.Current);
+
+		// The array overload reads the whole file and keeps it; the reader's is lazy.
+		Assert.Equal(7, EodTrades.Read(EodText).Length);
+	}
+
+	[Fact]
+	public void A_corporate_actions_file_unquotes_its_fields_and_loses_one_line_to_an_open_quote()
+	{
+		const string Text =
+			"H,CORPORATE ACTIONS,2026-10-02,Meridian Data Services\n" +
+			"D,CA-88121,DE0007236101,\"Siemens AG, Reg.\",DIV,2027-02-06,2027-02-10,5.20,EUR\n" +
+			"D,CA-88122,US02079K3059,\"Alphabet Inc. \"\"Class A\"\"\",SPLIT,2026-11-03,2026-11-03,20,\n" +
+			"D,CA-88123,GB00BP6MXD84,\"Shell plc,DIV,2026-11-13,2026-12-22,0.358,USD\n" +
+			"D,CA-88124,NL0010273215,ASML Holding,DIV,2026-10-28,2026-11-05,1.6O,EUR\n" +
+			"D,CA-88126,US0378331005,Apple Inc.,DIV,2026-11-10,2026-11-13,0.26,USD\n" +
+			"T,5\n";
+
+		Assert.Equal(
+			[
+				new ActionHeader("CORPORATE ACTIONS", "2026-10-02", "Meridian Data Services"),
+				new CorporateAction("CA-88121", "DE0007236101", "Siemens AG, Reg.", ActionKind.Dividend, "2027-02-06", "2027-02-10", 5.20m, "EUR"),
+				new CorporateAction("CA-88122", "US02079K3059", "Alphabet Inc. \"Class A\"", ActionKind.Split, "2026-11-03", "2026-11-03", 20m, ""),
+				new ActionReject(4, 71, "Issuer", "D,CA-88123,GB00BP6MXD84,\"Shell plc,DIV,2026-11-13,2026-12-22,0.358,USD", "Expected Character or '\"' at 4:71."),
+				new ActionReject(5, 67, "Rate",   "D,CA-88124,NL0010273215,ASML Holding,DIV,2026-10-28,2026-11-05,1.6O,EUR",     "Expected ',' at 5:67."),
+				new CorporateAction("CA-88126", "US0378331005", "Apple Inc.", ActionKind.Dividend, "2026-11-10", "2026-11-13", 0.26m, "USD"),
+				new ActionTrailer(5),
+			],
+			CorporateActions.Read(new StringReader(Text)));
+	}
+
+	[Fact]
+	public void A_confirmation_file_reads_its_columns_and_refuses_a_line_of_the_wrong_length()
+	{
+		const string Text =
+			"HSETTLCONF 20261002NORTH HARBOUR CUSTODY SERVICES\n" +
+			"DT-0101      US037833100520261005R000000001200000000027302400USDS\n" +
+			"DT-0102      DE000716460020261006D000000000350000000007434000EURP\n" +
+			"DT-0104      US594918104520261005D000000000800000000041625600USD\n" +
+			"DT-0105      NL001027321520261006R000000000040000000002448400EURSS\n" +
+			"T000000004000000000078810400\n";
+
+		var lines = Confirmations.Read(new StringReader(Text)).ToList();
+
+		Assert.Equal(
+			[
+				new ConfirmHeader("SETTLCONF", "20261002", "NORTH HARBOUR CUSTODY SERVICES"),
+				new Confirmation("T-0101", "US0378331005", "20261005", Direction.Receive, 1200, 273024.00m, "USD", SettlementStatus.Settled),
+				new Confirmation("T-0102", "DE0007164600", "20261006", Direction.Deliver, 350,  74340.00m,  "EUR", SettlementStatus.Pending),
+				new ConfirmReject(4, 65, "Status",  "DT-0104      US594918104520261005D000000000800000000041625600USD",   "Expected ['S' | 'P' | 'F'] at 4:65."),
+				new ConfirmReject(5, 66, "(extra)", "DT-0105      NL001027321520261006R000000000040000000002448400EURSS", "Expected \"\\r\\n\", '\\n' or '\\r' at 5:66."),
+				new ConfirmTrailer(4, 788104.00m),
+			],
+			lines);
+
+		// The implied decimals are kept: 273024.00, not 273024.
+		Assert.Equal("273024.00", ((Confirmation)lines[1]).Amount.ToString(CultureInfo.InvariantCulture));
+	}
+
+	[Theory]
+	[InlineData(FeedFormat.Pipe)]
+	[InlineData(FeedFormat.Csv)]
+	[InlineData(FeedFormat.FixedWidth)]
+	public void A_generated_feed_reads_back_into_what_was_written(FeedFormat format)
+	{
+		const int Records = 3_000;
+		const int Bad     = 60;
+
+		using var writer = new StringWriter();
+
+		var written = TradingFeedGenerator.Write(writer, format, Records, Bad, seed: 7);
+		var lines   = format switch
+		{
+			FeedFormat.Pipe => EodTrades.Read(new StringReader(writer.ToString())).Cast<object>(),
+			FeedFormat.Csv  => CorporateActions.Read(new StringReader(writer.ToString())),
+			_               => Confirmations.Read(new StringReader(writer.ToString())),
+		};
+
+		var details  = 0L;
+		var rejected = new System.Collections.Generic.Dictionary<string, long>(StringComparer.Ordinal);
+		var trailer  = -1L;
+
+		foreach (var line in lines)
+		{
+			switch (line)
+			{
+				case EodTrade or CorporateAction or Confirmation:
+					details++;
+					break;
+
+				case EodReject     reject: Count(TradingFeedGenerator.Categorize(reject.Field, reject.Column, reject.Text)); break;
+				case ActionReject  reject: Count(TradingFeedGenerator.Categorize(reject.Field, reject.Column, reject.Text)); break;
+				case ConfirmReject reject: Count(TradingFeedGenerator.Categorize(reject.Field, reject.Column, reject.Text)); break;
+
+				case EodTrailer     end: trailer = end.Count; Assert.Equal(written.Quantity, end.Quantity); break;
+				case ActionTrailer  end: trailer = end.Count;                                               break;
+				case ConfirmTrailer end: trailer = end.Count; Assert.Equal(written.Amount, end.Amount);     break;
+			}
+		}
+
+		void Count(string category)
+		{
+			rejected[category] = rejected.GetValueOrDefault(category) + 1;
+		}
+
+		Assert.Equal(Records, trailer);
+		Assert.Equal(Records, details + rejected.Values.Sum());
+		Assert.Equal(Bad,     rejected.Values.Sum());
+		Assert.Equal(written.BadByCategory.OrderBy(static one => one.Key), rejected.OrderBy(static one => one.Key));
+	}
+
+	[Fact]
+	public void And_the_same_seed_writes_the_same_file()
+	{
+		using var first  = new StringWriter();
+		using var second = new StringWriter();
+
+		TradingFeedGenerator.Write(first,  FeedFormat.Csv, 500, 10, seed: 3);
+		TradingFeedGenerator.Write(second, FeedFormat.Csv, 500, 10, seed: 3);
+
+		Assert.Equal(first.ToString(), second.ToString());
+	}
+
 	// ── The feed that logs its rejections instead ────────────────────────────────
 
 	[Fact]

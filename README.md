@@ -135,139 +135,162 @@ becomes, and the names it uses are filled in by the parser: `parserLine` is the 
 opens the file at, and `parserMessage` says where reading the line stopped, as a line and a
 column, and what would have fit there — the comma, and the letter O typed for a zero.
 
-An order sheet a wholesaler's clerk fills in from a phone call, `order.txt` — two header
-lines, then items and remarks in any order:
+A trading feed is the same thing at another scale: a broker's back-office system sends a fund
+the day's trades every evening, `trades.txt`, one record to a line, fields between pipes, a
+header first and a trailer last with the number of trades and their quantities added up. Four
+of these eight trades are wrong — a thousands separator, a price left out, a letter O in a
+date, a side the file does not know:
 
 ```text
-Order for: Hill Street Cafe
-Deliver: Monday, before 8
-12 x milk 1l
-3 x oat milk, the barista one
-# the croissants were stale last week, ask
-x2 sugar
-4 x butter
+H|EOD-TRADES|2026-10-02|NORTHBRIDGE SECURITIES
+D|T-0101|2026-10-02|2026-10-05|US0378331005|BUY|1200|227.52|USD
+D|T-0102|2026-10-02|2026-10-06|DE0007164600|SELL|350|212.40|EUR
+D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP
+D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD
+D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR
+D|T-0106|2026-10-02|2026-10-05|US88160R1014|BUY|600|243.85|USD
+D|T-0107|2026-10-02|2026-10-05|US0378331005|HOLD|100|227.60|USD
+D|T-0108|2026-10-02|2026-10-05|US0231351067|SELL|250|186.20|USD
+T|8|4840
 ```
 
 ```csharp
-public abstract record SheetLine;
-public sealed record Customer(string Name) : SheetLine;
-public sealed record Delivery(string When) : SheetLine;
-public sealed record Ordered(int Quantity, string Product) : SheetLine;
-public sealed record Remark(string Text) : SheetLine;
-public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
+public abstract record EodLine;
+
+public sealed record EodHeader(string Feed, string BusinessDate, string Sender) : EodLine;
+
+public sealed record EodTrade(
+	string Id, string TradeDate, string SettlementDate, string Isin,
+	Side Side, long Quantity, decimal Price, string Currency) : EodLine;
+
+public sealed record EodTrailer(long Count, long Quantity) : EodLine;
+
+public sealed record EodReject(int Line, int Column, string Field, string Text, string Message) : EodLine;
+
+public enum Side
+{
+	Buy,
+	Sell,
+}
 
 [Gram("""
-	Sheet : @SheetLine[] = Customer & Delivery
-	                     & Line* recover eol => @(new Unclear(parserLine, parserText, parserMessage))
-	                     & eof
+	EodFile : @EodLine[] = Header
+	                     & Trade* recover eol
+	                         => @(new EodReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
+	                     & Trailer & eof
 
-	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eol => @(new Customer(name))
-	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
+	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eol
+	                  => @(new EodHeader(feed, day, sender))
 
-	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
-	Item   : @SheetLine = quantity: Digit+ & ' '* & 'x' & ' '+ & product: Rest & eol
-	                   => @(new Ordered(Number(quantity), product))
-	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
+	Trade   : @EodLine = "D|" & id: Text & '|' & traded: Date & '|' & settles: Date & '|' & isin: Isin
+	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eol
+	                  => @(new EodTrade(id, traded, settles, isin, side, quantity, price, currency))
 
-	Rest  = [^ '\r' | '\n']+
-	Digit = ['0'..'9']
+	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eol
+	                  => @(new EodTrailer(count, total))
 
-	parse Sheet
+	BuySell  : @Side     = "BUY" => @(Side.Buy) | "SELL" => @(Side.Sell)
+	Quantity : @long     = Digit{1,15} => @(Number(parserText))
+	Price    : @decimal  = Digit{1,12} & ('.' & Digit{1,6})? => @(Amount(parserText))
+
+	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
+	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
+	Currency = ['A'..'Z']{3}
+	Text     = [^ '|' | '\r' | '\n']+
+	Digit    = ['0'..'9']
+
+	parse EodFile as Read
 	""")]
-public static partial class OrderSheet
+public static partial class EodTrades
 {
-	static int Number(string digits)
+	static readonly string[] Fields =
+		["Record", "Id", "TradeDate", "SettlementDate", "Isin", "Side", "Quantity", "Price", "Currency"];
+
+	static long Number(string digits)
 	{
-		return int.Parse(digits, CultureInfo.InvariantCulture);
+		return long.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	static decimal Amount(string text)
+	{
+		return decimal.Parse(text, CultureInfo.InvariantCulture);
+	}
+
+	public static string FieldAt(string line, int column)
+	{
+		var pipes = 0;
+
+		for (var at = 0; at < column - 1 && at < line.Length; at++)
+			if (line[at] == '|')
+				pipes++;
+
+		// A pipe where the line should have ended: one field more than a trade has.
+		if (pipes == Fields.Length - 1 && column - 1 < line.Length && line[column - 1] == '|')
+			return "(extra)";
+
+		return pipes < Fields.Length ? Fields[pipes] : "(extra)";
 	}
 }
 ```
 
 ```csharp
-using var sheet = File.OpenText("order.txt");
+using var feed = File.OpenText("trades.txt");
 
-foreach (var line in OrderSheet.ParseSheet(sheet))
-	Console.WriteLine(line);
-```
+var trades   = 0;
+var rejected = 0;
 
-```text
-Customer { Name = Hill Street Cafe }
-Delivery { When = Monday, before 8 }
-Ordered { Quantity = 12, Product = milk 1l }
-Ordered { Quantity = 3, Product = oat milk, the barista one }
-Remark { Text = the croissants were stale last week, ask }
-Unclear { Line = 6, Text = x2 sugar, Message = Expected ['0'..'9' | '#'] at 6:1. }
-Ordered { Quantity = 4, Product = butter }
-```
-
-The header lines are part of the same sequence, in the order they were read. They are also
-required: a sheet without them is refused with a `FormatException`, thrown by the loop at the
-first record, because nothing is read before the loop asks. Recovery is for the lines that
-repeat; the frame around them still has to be there.
-
-A maintenance logbook the people who run the machines fill in by hand on the shop floor,
-`log.txt`, where the third entry has a day of one digit:
-
-```text
-2026-10-01 07:55 press-4 oil topped up
-2026-10-01 09:10 press-2 belt replaced
-2026-10-1 11:30 press-4 noise from the bearing
-2026-10-01 14:05 lathe-1 calibrated
-```
-
-```csharp
-public sealed record LogEntry(DateTime At, string Machine, string Note);
-
-[Gram("""
-	Log   : @LogEntry[] = Entry* recover eol
-
-	Entry : @LogEntry = at: Stamp & ' '+ & machine: Name & ' '+ & note: Rest & eol
-	                 => @(new LogEntry(ToTime(at), machine, note))
-
-	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
-	Name  = [^ ' ' | '\r' | '\n']+
-	Rest  = [^ '\r' | '\n']+
-	Digit = ['0'..'9']
-
-	parse Log as Read stream yield
-	""")]
-public static partial class Logbook
+foreach (var line in EodTrades.Read(feed))
 {
-	static DateTime ToTime(string text)
+	switch (line)
 	{
-		return DateTime.ParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
-	}
+		case EodHeader header:
+			Console.WriteLine($"{header.Feed} {header.BusinessDate} from {header.Sender}");
+			break;
 
-	static partial void OnRecovered(
-		string rule, string text, long position, int line, int column, int ordinal, string message)
-	{
-		Console.Error.WriteLine($"line {line}: {message} ({text})");
+		case EodTrade trade:
+			trades++;
+			Console.WriteLine($"{trade.Id} {trade.Side} {trade.Quantity} {trade.Isin} at {trade.Price} {trade.Currency}");
+			break;
+
+		case EodReject reject:
+			rejected++;
+			Console.WriteLine($"line {reject.Line}, {reject.Field}: {reject.Message}");
+			break;
+
+		case EodTrailer trailer:
+			var check = trades + rejected == trailer.Count ? "OK" : "MISMATCH";
+			Console.WriteLine($"read {trades}, rejected {rejected}; trailer: expected {trailer.Count} — {check}");
+			break;
 	}
 }
 ```
 
-```csharp
-using var log = File.OpenText("log.txt");
-
-foreach (var entry in Logbook.Read(log))
-	Console.WriteLine($"{entry.At.TimeOfDay} {entry.Machine}: {entry.Note}");
-```
-
 ```text
-07:55:00 press-4: oil topped up
-09:10:00 press-2: belt replaced
-line 3: Expected ['0'..'9'] at 3:10. (2026-10-1 11:30 press-4 noise from the bearing)
-14:05:00 lathe-1: calibrated
+EOD-TRADES 2026-10-02 from NORTHBRIDGE SECURITIES
+T-0101 Buy 1200 US0378331005 at 227.52 USD
+T-0102 Sell 350 DE0007164600 at 212.40 EUR
+line 4, Quantity: Expected '|' at 4:50.
+line 5, Price: Expected Digit at 5:54.
+line 6, TradeDate: Expected Date at 6:16.
+T-0106 Buy 600 US88160R1014 at 243.85 USD
+line 8, Side: Expected ['B' | 'S'] at 8:45.
+T-0108 Sell 250 US0231351067 at 186.20 USD
+read 4, rejected 4; trailer: expected 8 — OK
 ```
 
-Here the `recover` has no `=>`, so a bad line is dropped and the records come back as
-themselves, `IEnumerable<LogEntry>`, with nothing to filter out. What was dropped goes to
-`OnRecovered`, a `partial void` the generated class declares; left unimplemented, the compiler
-removes every call to it and the parse pays nothing for it. The report lands between the
-second entry and the fourth because that is when the third line was read.
+The header and the trailer are typed records of the same sequence, so they arrive in their
+places, and the trailer is checked by a loop that holds nothing: by the time it arrives, the
+count is known. `parserFailureColumn` is where reading the line stopped, and `FieldAt`, plain
+C# of the class, turns it into the name of the field. The parser tells you where the text does
+not fit; what the values mean is yours — a date is four digits, a dash, two and two, and
+whether that month has a 31st is business logic, so dates stay text here.
 
+[`docs/feeds.md`](docs/feeds.md) has the rest: corporate actions in CSV with quoted fields,
+settlement confirmations in fixed width, an order sheet and a logbook kept by hand, and a
+console program that writes ten million trades, reads them with this grammar and bulk-loads
+them into SQLite, the rejected lines into a table of their own.
 [`docs/syntax.md`](docs/syntax.md) §8.2 has what `recover` promises and every name it fills
-in, and §8.3 the ways a rejection can be handed back. The three examples are also in
+in, and §8.3 the ways a rejection can be handed back. Every example is also in
 [`examples/DotGram.Examples/Feeds`](examples/DotGram.Examples/Feeds/).
 
 ## One grammar, three parsers

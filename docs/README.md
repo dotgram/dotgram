@@ -40,6 +40,17 @@ and it is out of date from the first change to the grammar until it is run again
 `-p:DotGramReportGeneration=full` leaves, nobody edits it, and it is a run behind main by
 construction. A change meant to move a grammar off the tape is measured by its difference.
 
+## Guides — worked examples, run as written
+
+| Document | |
+| --- | --- |
+| [`feeds.md`](feeds.md) | Feeds: trading files in pipes, CSV and fixed width with a header and a trailer, files kept by hand, and a feed bulk-loaded into a database ten million records at a time. |
+
+Every example of a guide is compiled and run by a test, its output held to the page's, so a
+guide that disagrees with the code is a failing test rather than a stale page. The figures it
+quotes from a measurement are the exception: they are what one run on one machine answered,
+dated by the commit that wrote them.
+
 ## Repository conventions
 
 | Document | |

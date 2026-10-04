@@ -12,8 +12,8 @@ namespace DotGram.Examples.Feeds;
 //     2026-10-1 11:30 press-4 noise from the bearing     <- a day of one digit
 //     2026-10-01 14:05 lathe-1 calibrated
 //
-// It is the repository README's third example of a feed written by people, and the same
-// grammar; the tests hold the two to one text.
+// It is an example of docs/feeds.md, among the files kept by hand, and the same grammar;
+// the tests hold the two to one text.
 //
 // The `recover` here has no `=>`, which is the difference from PriceListExample. A bad
 // line is dropped from the sequence instead of arriving in it, so the entries come back
@@ -47,7 +47,7 @@ public static partial class Logbook
 {
 	/// <summary>Where the lines the logbook could not read are reported, or null to drop them.</summary>
 	/// <remarks>
-	/// The README writes them to <c>Console.Error</c>. An example meant to be called from
+	/// The page writes them to <c>Console.Error</c>. An example meant to be called from
 	/// anywhere, tests included, cannot own the console, so this one is told where to write.
 	/// </remarks>
 	[ThreadStatic]

@@ -1,4 +1,4 @@
-﻿---
+---
 name: dotgram
 description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked in so many words for a parser written in .Gram. Not for reading a format in C# generally: a regular expression, System.Text.Json or a hand-written reader is often the right answer, and this says nothing about them.
 ---
@@ -435,9 +435,12 @@ fail the file. Write the record rule, mark its repetition `recover eol`, and pub
 `stream yield` for a lazy `IEnumerable<T>` over a `TextReader` — or a plain `parse` of the
 sequence rule when header lines are to arrive in the same sequence. Then either give the
 `recover` a `=>` that builds a rejection of the same element type from `parserLine`,
-`parserText` and `parserMessage`, or leave it off and implement `OnRecovered`. The
-repository README's [Feeds written by people](https://github.com/dotgram/dotgram#feeds-written-by-people)
-has three complete examples.
+`parserText` and `parserMessage` (`parserFailureColumn` says where in the line reading
+stopped, which names the field), or leave it off and implement `OnRecovered`. The repository
+README's [Feeds written by people](https://github.com/dotgram/dotgram#feeds-written-by-people)
+has two complete examples, and [docs/feeds.md](https://github.com/dotgram/dotgram/blob/main/docs/feeds.md)
+the rest: trading feeds in pipes, CSV and fixed width with a header and a trailer, and one
+loaded into a database ten million records at a time.
 
 `Lexical = true` on the attribute compiles the grammar over tokens instead of characters:
 a lexical half makes them, and the half above decides each choice by the token in front of

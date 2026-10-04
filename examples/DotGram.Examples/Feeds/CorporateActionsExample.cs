@@ -21,7 +21,9 @@ namespace DotGram.Examples.Feeds;
 // A quoted field may not run past the end of its line here. CSV in general allows it; a feed
 // whose records are lines does not, and saying so in the grammar is what keeps a quote left
 // open from swallowing the records after it: the line is rejected where it ends, and the
-// next one is read as if nothing had happened.
+// next one is read as if nothing had happened. `Character` is a rule of its own so that the
+// refusal can name it — "Expected Character or '"'" — rather than spell out every character
+// a quoted field may hold.
 //
 // The currency of a split is empty — a split pays nothing — so `Currency` is three letters
 // or nothing at all, and the comma before it is still required: a line one field short is
@@ -67,16 +69,18 @@ public enum ActionKind
 
 	Trailer : @ActionLine = "T," & count: Count & eol => @(new ActionTrailer(count))
 
-	Text     : @string     = '"' & body: ([^ '"' | '\r' | '\n'] | '"' & '"')* & '"' => @(Unquote(body))
-	                       | plain: [^ ',' | '"' | '\r' | '\n']*                  => @(plain)
+	Text     : @string     = quoted: Quoted                        => @(Unquote(quoted))
+	                       | plain: [^ ',' | '"' | '\r' | '\n']* => @(plain)
 	Kind     : @ActionKind = "DIV" => @(ActionKind.Dividend) | "SPLIT" => @(ActionKind.Split) | "RIGHTS" => @(ActionKind.Rights)
 	Rate     : @decimal    = Digit{1,12} & ('.' & Digit{1,8})? => @(Amount(parserText))
 	Count    : @long       = Digit{1,15} => @(Number(parserText))
 
-	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
-	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
-	Currency = ['A'..'Z']{3} | none
-	Digit    = ['0'..'9']
+	Date      = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
+	Isin      = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
+	Currency  = ['A'..'Z']{3} | none
+	Quoted    = '"' & Character* & '"'
+	Character = [^ '"' | '\r' | '\n'] | "\"\""
+	Digit     = ['0'..'9']
 
 	parse ActionFile as Read
 	""")]
@@ -85,9 +89,9 @@ public static partial class CorporateActions
 	static readonly string[] Fields =
 		["Record", "Id", "Isin", "Issuer", "Kind", "ExDate", "PayDate", "Rate", "Currency"];
 
-	static string Unquote(string body)
+	static string Unquote(string quoted)
 	{
-		return body.Replace("\"\"", "\"", StringComparison.Ordinal);
+		return quoted[1..^1].Replace("\"\"", "\"", StringComparison.Ordinal);
 	}
 
 	static long Number(string digits)
