@@ -30,9 +30,9 @@ namespace DotGram.Snapshots
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, 0, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -49,8 +49,8 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Trace = Tracing_DotGram.Value };
-					read = Began_DotGram(ref failure, "Sum", false, 0, "methods", input, null, 0, 0);
+					failure = new Failure();
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
 					try
 					{
 						end = Recognize_Sum_Whole(text, 0, ref failure, out recognized, parserWhole);
@@ -85,9 +85,9 @@ namespace DotGram.Snapshots
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, 0, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -128,9 +128,9 @@ namespace DotGram.Snapshots
 
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -147,8 +147,8 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Trace = Tracing_DotGram.Value };
-					read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+					failure = new Failure();
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 					try
 					{
 						end = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
@@ -190,9 +190,9 @@ namespace DotGram.Snapshots
 
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -236,9 +236,9 @@ namespace DotGram.Snapshots
 
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -255,8 +255,8 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Trace = Tracing_DotGram.Value };
-					read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+					failure = new Failure();
+					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 					try
 					{
 						end = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
@@ -298,9 +298,9 @@ namespace DotGram.Snapshots
 
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
-				var failure = new Failure { Quiet = true, Trace = Tracing_DotGram.Value };
+				var failure = new Failure { Quiet = true };
 
-				var read = Began_DotGram(ref failure, "Sum", false, at, "methods", input, null, 0, 0);
+				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0);
 				int recognized;
 				int end;
 
@@ -1808,8 +1808,8 @@ namespace DotGram.Snapshots
 				/// </summary>
 				public bool Quiet;
 
-				/// <summary>The sink this reading reports to, taken where it began; null where none is set.</summary>
-				public GramTrace? Trace;
+				/// <summary>The reading the sink was told began, which every event goes through; null where no sink is set.</summary>
+				public GramRead? Trace;
 			}
 
 			/// <summary>
@@ -1833,9 +1833,25 @@ namespace DotGram.Snapshots
 			/// A trace build is a slightly different program from the one it observes: every return of
 			/// a rule reports it, so what is timed is the trace build. What it answers is the same.
 			/// </para>
+			/// <para>
+			/// A sink is the host's own code, as a guard or a construction is: what one of its methods
+			/// throws goes out of the call that was reading, and the reading stops there. Whatever
+			/// leaves a reading by an exception — a sink, a guard, a construction — the sink is told
+			/// all the same that every rule it was told was entered is left, innermost first, with
+			/// <see cref="Thrown"/> for an end, and then that the reading ended, refused. So every
+			/// <see cref="Enter"/> has its <see cref="Exit"/> and every <see cref="Begin"/> its
+			/// <see cref="End"/>. What a sink throws while it is told this is not let out: the
+			/// exception that left the reading is.
+			/// </para>
 			/// </remarks>
 			public abstract class GramTrace
 			{
+				/// <summary>
+				/// The end <see cref="Exit"/> is told for a rule an exception left: neither read nor
+				/// failed, abandoned.
+				/// </summary>
+				public const int Thrown = -2;
+
 				/// <summary>
 				/// A reading begins. A call may read more than once: a <c>TryParse</c> that refuses
 				/// reads quietly first and again recording, and a <c>find</c> reads at every start.
@@ -1860,7 +1876,10 @@ namespace DotGram.Snapshots
 				{
 				}
 
-				/// <summary>The rule entered at <paramref name="position"/> ends at <paramref name="end"/>, or fails where that is -1.</summary>
+				/// <summary>
+				/// The rule entered at <paramref name="position"/> ends at <paramref name="end"/>, or
+				/// fails where that is -1, or was left by an exception where it is <see cref="Thrown"/>.
+				/// </summary>
 				public virtual void Exit(int rule, int position, int end)
 				{
 				}
@@ -1920,17 +1939,29 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One reading of an input, as a sink is told it began.</summary>
+			/// <remarks>
+			/// The reading's own bookkeeping as well: every event goes through it to the sink, and it
+			/// keeps the rules entered and not yet left, so that an exception that leaves the reading
+			/// can leave them for the sink.
+			/// </remarks>
 			public sealed class GramRead
 			{
 				readonly int[]? _starts;
 				readonly int _count;
 				readonly int _end;
 				int[]? _lines;
+				int[]? _openRules;
+				int[]? _openAt;
+				int _open;
+
+				/// <summary>The sink this reading reports to.</summary>
+				internal readonly GramTrace Sink;
 
 				internal GramRead(
-					string publication, bool quiet, bool finding, int start, string machine, string? text,
+					GramTrace sink, string publication, bool quiet, bool finding, int start, string machine, string? text,
 					int[]? starts, int count, int end)
 				{
+					Sink        = sink;
 					Publication = publication;
 					Quiet       = quiet;
 					Finding     = finding;
@@ -2066,6 +2097,87 @@ namespace DotGram.Snapshots
 					line   = low + 1;
 					column = character - _lines[low] + 1;
 				}
+
+				/// <summary>A rule is entered: kept as open, and the sink told.</summary>
+				internal void Enter(int rule, int position)
+				{
+					if (_openRules == null || _openAt == null)
+					{
+						_openRules = new int[32];
+						_openAt    = new int[32];
+					}
+					else if (_open == _openRules.Length)
+					{
+						global::System.Array.Resize(ref _openRules, _open * 2);
+						global::System.Array.Resize(ref _openAt, _open * 2);
+					}
+
+					_openRules[_open] = rule;
+					_openAt[_open]    = position;
+					_open++;
+
+					Sink.Enter(rule, position);
+				}
+
+				/// <summary>The innermost rule open is left: no longer kept, and the sink told.</summary>
+				internal void Exit(int rule, int position, int end)
+				{
+					if (_open > 0)
+						_open--;
+
+					Sink.Exit(rule, position, end);
+				}
+
+				/// <summary>
+				/// An exception leaves the reading: every rule still open is left, innermost first, as
+				/// thrown. What the sink throws meanwhile is dropped, the exception leaving being the
+				/// one that is let out.
+				/// </summary>
+				internal void Unwind()
+				{
+					while (_open > 0)
+					{
+						_open--;
+
+						try
+						{
+							Sink.Exit(_openRules![_open], _openAt![_open], GramTrace.Thrown);
+						}
+						catch (global::System.Exception)
+						{
+						}
+					}
+				}
+
+				/// <summary>A rule answered from memory, told.</summary>
+				internal void Remembered(int rule, int position)
+				{
+					Sink.Remembered(rule, position);
+				}
+
+				/// <summary>A guard asked, told.</summary>
+				internal void Guard(int guard, int position, bool passed)
+				{
+					Sink.Guard(guard, position, passed);
+				}
+
+				/// <summary>A refusal recorded, told.</summary>
+				internal void Refused(int position, string[]? expected)
+				{
+					Sink.Refused(position, expected);
+				}
+
+				/// <summary>An element stepped over, told.</summary>
+				internal void Recovered(int rule, int from, int to, int reach)
+				{
+					Sink.Recovered(rule, from, to, reach);
+				}
+
+				/// <summary>A move to another stack, told.</summary>
+				internal void Deepened(int position)
+				{
+					Sink.Deepened(position);
+				}
 			}
 
 			/// <summary>The sink readings in this flow of control report to, where one is set.</summary>
@@ -2111,18 +2223,20 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>A reading begins: the sink is told, and handed what it may ask of the reading.</summary>
+			/// <summary>
+			/// A reading begins: where a sink is set, the sink is told, and the failure carries the
+			/// reading, through which every event of it goes.
+			/// </summary>
 			static GramRead? Began_DotGram(
-				ref Failure failure, string publication, bool finding, int start, string machine, string? text,
+				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
 				int[]? starts, int count, int end)
 			{
-				var sink = failure.Trace;
-
 				if (sink == null)
 					return null;
 
-				var read = new GramRead(publication, failure.Quiet, finding, start, machine, text, starts, count, end);
+				var read = new GramRead(sink, publication, failure.Quiet, finding, start, machine, text, starts, count, end);
 
+				failure.Trace = read;
 				sink.Begin(read);
 
 				return read;
@@ -2131,19 +2245,32 @@ namespace DotGram.Snapshots
 			/// <summary>A reading ends: the sink is told where, and what the failure recorded.</summary>
 			static void Ended_DotGram(ref Failure failure, GramRead? read, int end)
 			{
-				var sink = failure.Trace;
-
-				if (read != null && sink != null)
-					sink.End(read, end, failure.Position, failure.Expected, failure.ExpectedMore);
+				if (read != null)
+					read.Sink.End(read, end, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
 
 			/// <summary>
-			/// A reading an exception leaves ends all the same, for the sink: told as a refusal, and the
-			/// exception let through untouched.
+			/// A reading an exception leaves ends all the same, for the sink: every rule open left as
+			/// thrown, then the reading told as a refusal, and the exception let through untouched.
 			/// </summary>
+			/// <remarks>
+			/// Asked as the exception's filter, before anything between here and where it was thrown
+			/// is unwound; what the sink throws here is dropped, the runtime would drop it anyway.
+			/// </remarks>
 			static bool Thrown_DotGram(ref Failure failure, GramRead? read)
 			{
-				Ended_DotGram(ref failure, read, -1);
+				if (read == null)
+					return false;
+
+				read.Unwind();
+
+				try
+				{
+					Ended_DotGram(ref failure, read, -1);
+				}
+				catch (global::System.Exception)
+				{
+				}
 
 				return false;
 			}
@@ -2520,9 +2647,11 @@ namespace DotGram.Snapshots
 					GramRead read, int end, int position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
-					_depth--;
+					// An end it was not told the beginning of leaves its count where it was.
+					if (_depth > 0)
+						_depth--;
 
-					if (_depth != 0 || !ReferenceEquals(read, _read))
+					if (_depth != 0 || read == null || !ReferenceEquals(read, _read))
 						return;
 
 					_read    = null;
@@ -2592,7 +2721,7 @@ namespace DotGram.Snapshots
 					if (_depth != 0)
 						return;
 
-					_pendingRead  = new GramRead("", false, false, 0, "methods", text, null, 0, 0);
+					_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0);
 					_pendingPaths = new Path[0];
 					_pendingCause = "No token of the grammar begins at that character, so no rule was read.";
 					_elements.Clear();
@@ -2743,8 +2872,15 @@ namespace DotGram.Snapshots
 			/// entered and left, each refusal and what it wanted, each guard asked.
 			/// </summary>
 			/// <remarks>
+			/// <para>
 			/// Written as it happens, up to a budget of lines and then counted. The starts a
 			/// <c>find</c> tries and refuses are summed up in one line rather than written each.
+			/// </para>
+			/// <para>
+			/// The writer is the caller's, and what it throws — a writer disposed before the scope
+			/// is — goes out of the reading as anything a sink throws does: give it one that lives
+			/// as long as the scope.
+			/// </para>
 			/// </remarks>
 			public sealed class GramTraceLog : GramTrace
 			{
@@ -2809,10 +2945,11 @@ namespace DotGram.Snapshots
 						_bases.RemoveAt(last);
 					}
 
-					Write(end >= 0
-						? "read to " + Where(read, end)
-						: "refused, the furthest refusal at " + Where(read, position) +
-							(expected != null ? ": " + Wanted(expected) : ""));
+					if (read != null)
+						Write(end >= 0
+							? "read to " + Where(read, end)
+							: "refused, the furthest refusal at " + Where(read, position) +
+								(expected != null ? ": " + Wanted(expected) : ""));
 
 					if (_reads.Count > 0)
 						return;
@@ -2821,7 +2958,7 @@ namespace DotGram.Snapshots
 
 					_held = null;
 
-					if (held != null && end < 0)
+					if (held != null && end < 0 && read != null)
 					{
 						if (_refusedStarts++ == 0)
 							_firstRefused = read.Start;
@@ -2859,7 +2996,9 @@ namespace DotGram.Snapshots
 					var read = Current;
 
 					if (read != null)
-						Write(read.RuleName(rule) + " " + (end >= 0 ? "read to " + Where(read, end) : "failed"));
+						Write(read.RuleName(rule) + " " + (end >= 0
+							? "read to " + Where(read, end)
+							: end == Thrown ? "left by an exception" : "failed"));
 				}
 
 				/// <inheritdoc/>
@@ -3168,6 +3307,9 @@ namespace DotGram.Snapshots
 				/// <inheritdoc/>
 				public override void Enter(int rule, int position)
 				{
+					if (rule < 0)
+						return;
+
 					var quiet  = Quiet;
 					var counts = CountsOf(rule, quiet);
 
@@ -3205,7 +3347,8 @@ namespace DotGram.Snapshots
 							while (_open.Count - 1 > at)
 								Close(-1, false);
 
-							Close(end, true);
+							// A rule an exception left neither read nor failed: timed, and not counted.
+							Close(end, end != Thrown);
 
 							return;
 						}
@@ -3214,7 +3357,8 @@ namespace DotGram.Snapshots
 				/// <inheritdoc/>
 				public override void Remembered(int rule, int position)
 				{
-					CountsOf(rule, Quiet).Remembered++;
+					if (rule >= 0)
+						CountsOf(rule, Quiet).Remembered++;
 				}
 
 				bool Quiet

@@ -2444,7 +2444,9 @@ Console.WriteLine(why);
 disposed, which puts back what was set before: a reading carried onto a stack of its own
 (§6.5), a nested parse that a construction or a guard starts, a reading awaited in a task begun
 inside the scope. A `find` or a `yield` takes the sink that was set where it was called, not
-where its first element is asked for. Each traced class has a `GramTrace` of its own — two
+where its first element is asked for: each step it reads reports there, and so does a parse a guard
+or a construction starts during the step, the sink set where the step is asked for being put back
+before the element is handed out. Each traced class has a `GramTrace` of its own — two
 hosts do not share one, and a sink that serves both is an adapter over the two.
 
 What a sink is told, all of it as numbers so that nothing is allocated per event:
@@ -2453,7 +2455,7 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | --- | --- |
 | `Begin(GramRead read)` | a reading begins: a `TryParse` that refuses reads quietly first and again recording, and a `find` reads at every start |
 | `End(read, end, position, expected, expectedMore)` | the reading ends where `end` says, or -1 where it refused, with the furthest refusal it recorded: the sets `Match.Error` is worded from |
-| `Enter(rule, position)` / `Exit(rule, position, end)` | a rule is entered, and leaves at `end` or fails (-1) |
+| `Enter(rule, position)` / `Exit(rule, position, end)` | a rule is entered, and leaves at `end`, fails (-1), or is left by an exception (`GramTrace.Thrown`, -2) |
 | `Remembered(rule, position)` | a rule entered where it already failed in this reading fails at once without being read (a reading over tokens remembers) |
 | `Guard(guard, position, passed)` | a guard (`when`) was asked |
 | `Refused(position, expected)` | a recording reading could not go on, wanting one of `expected`; null where the refusal names nothing. Quiet readings and lookaheads refuse without a word, as neither's refusals are ever the answer |
@@ -2461,6 +2463,14 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | `Deepened(position)` | the reading moved to a stack of its own (§6.5) |
 | `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read |
 | `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error` |
+
+**A sink is the host's own code**, as a guard or a construction is (§7.5): what one of its methods
+throws goes out of the call that was reading, `Try` or not, and the reading stops there. Whatever
+leaves a reading by an exception — a sink, a guard, a construction — the sink is told all the same
+that each rule it was told was entered is left, innermost first, with `GramTrace.Thrown` for an
+end, and then that the reading ended, refused: every `Enter` has its `Exit` and every `Begin` its
+`End`. What a sink throws while it is told this is dropped; the exception that left the reading is
+the one that goes out.
 
 `GramRead` says what the reading is: the rule published, whether it is `Quiet`, whether it is one
 start of a `find`, which `Machine` reads it, the `Text`, the names of the rules and the C# of the
@@ -2492,7 +2502,10 @@ and column.
   entered on. Quiet readings and recording ones are counted apart: they are different programs, a quiet
   reading not sharpening where a refusal is and not trying what only a message would need.
 
-Each is for a reading at a time, and is not to be shared by readings that run at once. A reading begun
+None of the three throws for what it is told, whatever the order of the events; what `GramTraceLog`
+writes to is the caller's writer, and what that throws — a writer disposed before the scope is —
+goes out of the reading as anything a sink throws does. Each is for a reading at a time, and is not
+to be shared by readings that run at once. A reading begun
 inside another is bracketed by its own `Begin` and `End`: the log shows it nested, the profile counts
 it, and `GramWhy` explains the outermost.
 

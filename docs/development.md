@@ -60,6 +60,12 @@ profile on T-SQL (within ten times the library) and of `GramWhy` on a refused sc
 for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds the same over small grammars, a reading
 shape at a time.
 
+The engine's own step trace — one line on standard error per step of the automaton, for working on
+the generator, not for grammar authors — is compiled where the build defines `DOTGRAM_STEPS`. It was
+`DOTGRAM_TRACE` until the trace build came; a consumer that defined `DOTGRAM_TRACE` gets no step lines
+from a parser generated since and has to define `DOTGRAM_STEPS` instead (the release notes say so).
+The rename keeps the symbol a `DotGramTrace` user would guess from flooding standard error.
+
 A build prints the generator's warnings and errors and not its information: `GRAM5009`, which
 says a grammar cut into kinds reads something other than it is written, is information, and so is
 every other diagnostic about what an author cannot see. `-v:detailed` prints them —

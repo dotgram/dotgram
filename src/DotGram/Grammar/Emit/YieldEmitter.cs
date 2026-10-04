@@ -46,9 +46,9 @@ public static partial class CSharpEmitter
 				}
 				else
 				{
-					file.Line($"var failure = new {FailureType} {{ Trace = trace" + (publication.YieldRecovery ? ", RecoveryOrdinal = ordinal++ };" : " };"));
-					file.Line(TraceBegin("read", name, "start", machine, "input", null));
-					TracedRead(file, $"{MethodOf(publication.Rule)}(global::System.MemoryExtensions.AsSpan(input), start{hands})", built, declare: true);
+					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
+					file.Line(TraceBegin("read", name, "start", machine, "input", null, sink: "trace"));
+					TracedRead(file, $"{MethodOf(publication.Rule)}(global::System.MemoryExtensions.AsSpan(input), start{hands})", built, declare: true, sink: "trace");
 
 					using (file.Block("if (end <= start)"))
 					{

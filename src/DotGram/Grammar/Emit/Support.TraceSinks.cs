@@ -20,6 +20,12 @@ public static partial class CSharpEmitter
 	/// taking the place of a set — has already been applied to what it is held against.
 	/// </para>
 	/// <para>
+	/// None of them throws for what it is told, in whatever order: an exit with no entry, an end
+	/// with no beginning and a number past the tables are kept or passed over. What they write
+	/// to — <c>GramTraceLog</c>'s writer — is the caller's, and what it throws goes out of the
+	/// reading as anything a sink throws does.
+	/// </para>
+	/// <para>
 	/// Each is written for a reading at a time and is not safe to share between readings that
 	/// run at once. A reading begun inside another — a construction that parses again — is
 	/// bracketed by its own beginning and end; the log shows it nested, the profile counts it,
@@ -362,9 +368,11 @@ public static partial class CSharpEmitter
 				GramRead read, int end, int position, string[]? expected,
 				global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
-				_depth--;
+				// An end it was not told the beginning of leaves its count where it was.
+				if (_depth > 0)
+					_depth--;
 
-				if (_depth != 0 || !ReferenceEquals(read, _read))
+				if (_depth != 0 || read == null || !ReferenceEquals(read, _read))
 					return;
 
 				_read    = null;
@@ -434,7 +442,7 @@ public static partial class CSharpEmitter
 				if (_depth != 0)
 					return;
 
-				_pendingRead  = new GramRead("", false, false, 0, "methods", text, null, 0, 0);
+				_pendingRead  = new GramRead(this, "", false, false, 0, "methods", text, null, 0, 0);
 				_pendingPaths = new Path[0];
 				_pendingCause = "No token of the grammar begins at that character, so no rule was read.";
 				_elements.Clear();
@@ -585,8 +593,15 @@ public static partial class CSharpEmitter
 		/// entered and left, each refusal and what it wanted, each guard asked.
 		/// </summary>
 		/// <remarks>
+		/// <para>
 		/// Written as it happens, up to a budget of lines and then counted. The starts a
 		/// <c>find</c> tries and refuses are summed up in one line rather than written each.
+		/// </para>
+		/// <para>
+		/// The writer is the caller's, and what it throws — a writer disposed before the scope
+		/// is — goes out of the reading as anything a sink throws does: give it one that lives
+		/// as long as the scope.
+		/// </para>
 		/// </remarks>
 		public sealed class GramTraceLog : GramTrace
 		{
@@ -651,10 +666,11 @@ public static partial class CSharpEmitter
 					_bases.RemoveAt(last);
 				}
 
-				Write(end >= 0
-					? "read to " + Where(read, end)
-					: "refused, the furthest refusal at " + Where(read, position) +
-						(expected != null ? ": " + Wanted(expected) : ""));
+				if (read != null)
+					Write(end >= 0
+						? "read to " + Where(read, end)
+						: "refused, the furthest refusal at " + Where(read, position) +
+							(expected != null ? ": " + Wanted(expected) : ""));
 
 				if (_reads.Count > 0)
 					return;
@@ -663,7 +679,7 @@ public static partial class CSharpEmitter
 
 				_held = null;
 
-				if (held != null && end < 0)
+				if (held != null && end < 0 && read != null)
 				{
 					if (_refusedStarts++ == 0)
 						_firstRefused = read.Start;
@@ -701,7 +717,9 @@ public static partial class CSharpEmitter
 				var read = Current;
 
 				if (read != null)
-					Write(read.RuleName(rule) + " " + (end >= 0 ? "read to " + Where(read, end) : "failed"));
+					Write(read.RuleName(rule) + " " + (end >= 0
+						? "read to " + Where(read, end)
+						: end == Thrown ? "left by an exception" : "failed"));
 			}
 
 			/// <inheritdoc/>
@@ -1010,6 +1028,9 @@ public static partial class CSharpEmitter
 			/// <inheritdoc/>
 			public override void Enter(int rule, int position)
 			{
+				if (rule < 0)
+					return;
+
 				var quiet  = Quiet;
 				var counts = CountsOf(rule, quiet);
 
@@ -1047,7 +1068,8 @@ public static partial class CSharpEmitter
 						while (_open.Count - 1 > at)
 							Close(-1, false);
 
-						Close(end, true);
+						// A rule an exception left neither read nor failed: timed, and not counted.
+						Close(end, end != Thrown);
 
 						return;
 					}
@@ -1056,7 +1078,8 @@ public static partial class CSharpEmitter
 			/// <inheritdoc/>
 			public override void Remembered(int rule, int position)
 			{
-				CountsOf(rule, Quiet).Remembered++;
+				if (rule >= 0)
+					CountsOf(rule, Quiet).Remembered++;
 			}
 
 			bool Quiet

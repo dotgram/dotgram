@@ -179,10 +179,12 @@ public static partial class CSharpEmitter
 	/// <param name="machine">What reads it: <c>methods</c>, <c>engine</c> or <c>flat</c>.</param>
 	/// <param name="text">The text it reads, as C#.</param>
 	/// <param name="tokens">Over tokens, the starts, the count and where the tokens end, as C#; null over characters.</param>
+	/// <param name="sink">The sink the reading reports to, as C#: the one the flow has set, unless said.</param>
 	static string TraceBegin(
-		string read, string name, string start, string machine, string text, string? tokens, bool finding = false)
+		string read, string name, string start, string machine, string text, string? tokens, bool finding = false,
+		string sink = "Tracing_DotGram.Value")
 	{
-		return $"var {read} = Began_DotGram(ref failure, {Quoted(name)}, {(finding ? "true" : "false")}, {start}, " +
+		return $"var {read} = Began_DotGram(ref failure, {sink}, {Quoted(name)}, {(finding ? "true" : "false")}, {start}, " +
 			$"\"{machine}\", {text}, {tokens ?? "null, 0, 0"});";
 	}
 
@@ -198,7 +200,13 @@ public static partial class CSharpEmitter
 	/// </summary>
 	/// <param name="value">The value's type, declared ahead where the call hands one out; null where it does not.</param>
 	/// <param name="declare">Whether <c>end</c> is declared here rather than assigned again.</param>
-	static void TracedRead(Writer file, string call, string? value, bool declare)
+	/// <param name="sink">
+	/// Where the reading runs later than the call that set its sink — a step of a <c>find</c> or a
+	/// <c>yield</c> — the local holding that sink: it is set for the flow while the step reads, so
+	/// that a parse a guard or a construction starts reports to it too, and what was set where the
+	/// step is asked for is put back before the step hands anything out.
+	/// </param>
+	static void TracedRead(Writer file, string call, string? value, bool declare, string? sink = null)
 	{
 		if (declare)
 		{
@@ -209,6 +217,15 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		if (sink is not null)
+		{
+			file.Line("var asked = Tracing_DotGram.Value;");
+			file.Line();
+			file.Line($"if (!object.ReferenceEquals(asked, {sink}))");
+			file.Then($"Tracing_DotGram.Value = {sink};");
+			file.Line();
+		}
+
 		using (file.Block("try"))
 			file.Line($"end = {call.Replace("out var recognized", "out recognized")};");
 
@@ -216,6 +233,15 @@ public static partial class CSharpEmitter
 
 		using (file.Block(""))
 			file.Line("throw;");
+
+		if (sink is not null)
+		{
+			using (file.Block("finally"))
+			{
+				file.Line($"if (!object.ReferenceEquals(asked, {sink}))");
+				file.Then("Tracing_DotGram.Value = asked;");
+			}
+		}
 
 		file.Line();
 		file.Line(TraceEnd("read"));

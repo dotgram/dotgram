@@ -98,7 +98,12 @@ public sealed partial class GrammarNormalizer
 			return transparent;
 
 		// A transparent rule may forward to another. Resolve the chains up front, and a
-		// ring — which forwarding alone cannot make terminate — drops out whole.
+		// ring — which forwarding alone cannot make terminate — drops out whole. A rule
+		// resolved already forwards straight to its sources, so what it went through is
+		// taken from what was recorded for it: the chain is the same in any order the
+		// rules are declared in.
+		var chains = new Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol[]>>();
+
 		foreach (var rule in transparent.Keys.ToList())
 		{
 			var resolved = new List<RuleSymbol>();
@@ -117,7 +122,17 @@ public sealed partial class GrammarNormalizer
 
 				trail.Add(at);
 
-				if (transparent.TryGetValue(at, out var onward))
+				if (chains.TryGetValue(at, out var known))
+				{
+					var onward = transparent[at];
+
+					for (var i = 0; i < onward.Count; i++)
+					{
+						resolved.Add(onward[i]);
+						through.Add([.. trail.Skip(1), .. known[i]]);
+					}
+				}
+				else if (transparent.TryGetValue(at, out var onward))
 				{
 					foreach (var source in onward)
 						Resolve(source, path);
@@ -141,6 +156,7 @@ public sealed partial class GrammarNormalizer
 			else
 			{
 				transparent[rule] = resolved;
+				chains[rule]      = through;
 
 				if (vias is not null)
 					vias[rule] = through;
@@ -274,11 +290,20 @@ public sealed partial class GrammarNormalizer
 			return call;
 		}
 
-		// The choice a call to a forwarding rule became, framed by that rule: a refusal of the
-		// choice itself — a token none of the sources begins with — is the forwarding rule's.
+		// The choice a call to a forwarding rule became, framed by that rule and by the rules
+		// every source was reached through: a refusal of the choice itself — a token none of
+		// the sources begins with — is the innermost rule's that all of them stood under.
 		Node Framed(Node choice, RuleSymbol called)
 		{
-			_forwarded[choice] = [called];
+			var shared = vias[called][0].AsEnumerable();
+
+			foreach (var via in vias[called].Skip(1))
+				shared = shared.Zip(via, static (one, other) => (one, other))
+					.TakeWhile(static pair => Equals(pair.one, pair.other))
+					.Select(static pair => pair.one)
+					.ToList();
+
+			_forwarded[choice] = [called, .. shared];
 
 			return choice;
 		}

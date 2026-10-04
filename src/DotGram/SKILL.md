@@ -484,6 +484,12 @@ quiet readings apart from recording ones. A trace build answers what the parser 
 without the option nothing of it is generated. `docs/syntax.md` §6.9 has the events, for a sink of
 your own.
 
+A sink is your own code, as a guard or a construction is: what it throws — `GramTraceLog`'s writer
+disposed under it, say — goes out of the parse call, valid input or not. Whatever leaves a reading
+by an exception, the sink is still told every rule it entered is left (`Exit` with
+`GramTrace.Thrown` for the end) and the reading ended, so its stream stays balanced. The ready-made
+sinks never throw on their own account.
+
 ## Diagnostics worth knowing before you meet them
 
 | | |

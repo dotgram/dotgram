@@ -1715,14 +1715,11 @@ public static partial class CSharpEmitter
 		var value  = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : built ?? "string";
 		var match  = $"{MatchType}<{value}>";
 
-		// What a reading's failure starts as: in a trace build, holding the sink the flow has set.
+		// What a reading's failure starts as. In a trace build the reading is handed the sink as it
+		// begins (Begun), which puts itself on the failure.
 		string Fresh(bool quiet)
 		{
-			var traced = tracing is null ? "" : "Trace = Tracing_DotGram.Value";
-
-			return quiet
-				? $"new {FailureType} {{ Quiet = true{(traced.Length > 0 ? ", " + traced : "")} }}"
-				: traced.Length > 0 ? $"new {FailureType} {{ {traced} }}" : $"new {FailureType}()";
+			return quiet ? $"new {FailureType} {{ Quiet = true }}" : $"new {FailureType}()";
 		}
 
 		// A refusal the call answers with, told to the sink on its way out in a trace build.
@@ -3007,17 +3004,15 @@ file.Line("return spare;");
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
-				file.Line(tracing is null
-					? $"var failure = new {FailureType} {{ Quiet = true }};"
-					: $"var failure = new {FailureType} {{ Quiet = true, Trace = trace }};");
+				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
 				file.Line();
 
 				var call = $"{MethodOf(publication.Rule)}(global::System.MemoryExtensions.AsSpan(input), start{hands})";
 
 				if (tracing is not null)
 				{
-					file.Line(TraceBegin("read", name, "start", machine, "input", null, finding: true));
-					TracedRead(file, call, built, declare: true);
+					file.Line(TraceBegin("read", name, "start", machine, "input", null, finding: true, sink: "trace"));
+					TracedRead(file, call, built, declare: true, sink: "trace");
 				}
 				else
 				{

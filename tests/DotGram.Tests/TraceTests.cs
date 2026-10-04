@@ -387,21 +387,6 @@ public sealed class TraceTests(ITestOutputHelper output)
 		// Where the refusal is inside what the forwarding rule stood for, it is on the path.
 		if (input != "1)")
 			Assert.Contains(" > Operand 1:1", said, StringComparison.Ordinal);
-
-		static Assembly TracedAsWritten(string grammar)
-		{
-			var result = GramCompiler.Compile(grammar, new GramCompilerOptions
-			{
-				ClassName          = "Grammar",
-				CSharpScanner      = RoslynCSharpScanner.Instance,
-				Trace              = true,
-				CollapseForwarders = false,
-			});
-
-			EmittedCode.Quiet(result.Diagnostics);
-
-			return EmittedCode.Compile(result.Sources[0].Text, "Grammar", declarationMembers: Nullable + Probes);
-		}
 	}
 
 	/// <summary>
@@ -747,6 +732,353 @@ public sealed class TraceTests(ITestOutputHelper output)
 
 		Assert.Equal(lines.Count(static line => line.StartsWith("begin ", StringComparison.Ordinal)), lines.Count(static line => line.StartsWith("end ", StringComparison.Ordinal)));
 		Assert.StartsWith(match.Error!, why, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// An exception leaves every rule it was thrown inside, for the sink: each rule entered and
+	/// each frame of a forwarding rule is left, innermost first, as thrown, and the reading ends.
+	/// A guard that throws is asked while the rules are open on every carrier; a construction
+	/// that throws is, on the immediate carrier, and the tape builds once the reading is done.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape, "[7!]")]
+	[InlineData(CarrierKind.Tape, "[8!]")]
+	[InlineData(CarrierKind.Immediate, "[7!]")]
+	[InlineData(CarrierKind.Immediate, "[8!]")]
+	public void An_exception_leaves_every_rule_it_was_thrown_inside(CarrierKind carrier, string input)
+	{
+		const string grammar = """
+			Top   : @int = '[' & v: Inner & ']' => @(v)
+			Inner : @int = v: Leaf => @(v)
+			Leaf  : @int = d: ['0'..'9']+ & when @(Asked(d)) & '!' => @(Built(d))
+			parse Top
+			""";
+
+		const string members = """
+			static bool Asked(string digits)
+			{
+				if (digits == "7")
+					throw new global::System.InvalidOperationException("Asked about seven.");
+
+				return true;
+			}
+
+			static int Built(string digits)
+			{
+				if (digits == "8")
+					throw new global::System.InvalidOperationException("Built eight.");
+
+				return digits.Length;
+			}
+			""";
+
+		var assembly = Traced(grammar, members, carrier: carrier);
+		var lines    = Probe<string[]>(assembly, "Recorded", () =>
+		{
+			Assert.Throws<TargetInvocationException>(() => Read(assembly, "TryParseTop", input));
+
+			return null;
+		});
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+
+		Balanced(lines);
+		Assert.Equal(
+			lines.Count(static line => line.StartsWith("begin ", StringComparison.Ordinal)),
+			lines.Count(static line => line.StartsWith("end ", StringComparison.Ordinal)));
+
+		// Where the guard throws, the rules and the frame around it are still open, and are left as thrown.
+		if (input == "[7!]" || carrier == CarrierKind.Immediate)
+		{
+			Assert.Contains("exit Leaf 1 -2", lines);
+			Assert.Contains("exit Inner 1 -2", lines);
+			Assert.Contains("exit Top 0 -2", lines);
+		}
+	}
+
+	/// <summary>
+	/// A sink is the host's own code: what it throws goes out of the call, as what a guard throws
+	/// does, and the sink is still told that every rule it was told of is left and the reading ends.
+	/// </summary>
+	[Fact]
+	public void What_a_sink_throws_leaves_the_call_and_the_sink_is_told_the_reading_ended()
+	{
+		const string members = """
+			public sealed class Throwing : GramTrace
+			{
+				public int Enters, Exits, Begins, Ends;
+				int _left = 3;
+
+				public override void Begin(GramRead read)
+				{
+					Begins++;
+				}
+
+				public override void End(GramRead read, int end, int position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
+				{
+					Ends++;
+				}
+
+				public override void Enter(int rule, int position)
+				{
+					Enters++;
+
+					if (--_left == 0)
+						throw new global::System.InvalidOperationException("The sink threw.");
+				}
+
+				public override void Exit(int rule, int position, int end)
+				{
+					Exits++;
+				}
+			}
+
+			public static string Thrower(string input)
+			{
+				var sink = new Throwing();
+
+				try
+				{
+					using (Tracing(sink))
+						TryParseSum(input);
+
+					return "nothing thrown";
+				}
+				catch (global::System.InvalidOperationException caught)
+				{
+					return caught.Message + " " + sink.Enters + "/" + sink.Exits + " " + sink.Begins + "/" + sink.Ends;
+				}
+			}
+			""";
+
+		var assembly = Traced(Twice, members);
+
+		Assert.Equal("The sink threw. 3/3 1/1", Invoke(assembly, "Thrower", "1+2"));
+	}
+
+	/// <summary>
+	/// The ready-made sinks keep their books whatever they are told: an exit with no entry, an end
+	/// with no beginning, a number no rule has throw nothing, and the next call is read as its own.
+	/// </summary>
+	[Fact]
+	public void The_ready_made_sinks_are_not_thrown_by_what_they_are_told()
+	{
+		const string members = """
+			public static string Odd(string input)
+			{
+				var why     = new GramWhy();
+				var profile = new GramProfile();
+				var writer  = new global::System.IO.StringWriter();
+				var log     = new GramTraceLog(writer);
+
+				foreach (var sink in new GramTrace[] { why, profile, log })
+				{
+					sink.Exit(0, 0, 1);
+					sink.Exit(-1, 0, -2);
+					sink.End(null!, -1, 0, null, null);
+					sink.Enter(-1, 0);
+					sink.Enter(100000, 0);
+					sink.Exit(100000, 0, GramTrace.Thrown);
+					sink.Remembered(-7, 0);
+					sink.Recovered(-7, 0, 1, 1);
+					sink.Guard(-3, 0, false);
+					sink.Refused(-1, null);
+					sink.Deepened(-1);
+					sink.Rejected(-1, "");
+					sink.End(null!, 5, 0, null, null);
+				}
+
+				using (Tracing(why))
+					TryParseSum(input);
+
+				profile.ToString();
+
+				return why.ToString();
+			}
+			""";
+
+		var assembly = Traced(Twice, members);
+		var match    = Read(assembly, "TryParseSum", "1+(2+");
+		var why      = (string)Invoke(assembly, "Odd", "1+(2+")!;
+
+		output.WriteLine(why);
+
+		Assert.StartsWith(match.Error + " (line 1, column 6)", why, StringComparison.Ordinal);
+		Assert.Contains("in Sum 1:1 > More 1:2 > Term 1:3 > Sum 1:4 > More 1:5 > Term 1:6", why, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A <c>find</c> enumerated under another sink than the one set where it was called reports
+	/// every reading it begins to the first — a parse a guard starts as well — and leaves the
+	/// second set where it is enumerated.
+	/// </summary>
+	[Fact]
+	public void A_find_enumerated_elsewhere_reports_nested_readings_to_its_own_sink()
+	{
+		const string grammar = """
+			Item = t: ['a'..'z']+ & when @(Inner(t)) & ';'
+			Word = ['a'..'z']+ & 'x'
+			find Item as Items
+			parse Word
+			""";
+
+		const string members = """
+			static bool Inner(string text)
+			{
+				return TryParseWord(text).IsSuccess;
+			}
+
+			public static string[] Elsewhere(string input)
+			{
+				var called     = new Recorder();
+				var enumerated = new Recorder();
+				global::System.Collections.IEnumerable found;
+
+				using (Tracing(called))
+					found = Items(input);
+
+				using (Tracing(enumerated))
+				{
+					foreach (var one in found)
+					{
+					}
+
+					TryParseWord("ax");
+				}
+
+				return new[] { string.Join("|", called.Lines), string.Join("|", enumerated.Lines) };
+			}
+			""";
+
+		var assembly = Traced(grammar, members);
+		var lines    = (string[])Invoke(assembly, "Elsewhere", "ax; bx; c;")!;
+
+		output.WriteLine(lines[0]);
+		output.WriteLine(lines[1]);
+
+		Assert.Contains("begin quiet Word", lines[0], StringComparison.Ordinal);
+		Assert.Contains("begin quiet Item", lines[0], StringComparison.Ordinal);
+
+		// What the scope it was enumerated in saw is the parse made there after the loop, and only that.
+		Assert.StartsWith("begin quiet Word", lines[1], StringComparison.Ordinal);
+		Assert.Single(lines[1].Split('|'), static line => line.StartsWith("begin ", StringComparison.Ordinal));
+	}
+
+	/// <summary>A <c>yield</c> does the same as a <c>find</c>: its nested readings go to the sink set where it was called.</summary>
+	[Fact]
+	public void A_yield_enumerated_elsewhere_reports_nested_readings_to_its_own_sink()
+	{
+		const string grammar = """
+			Item : @int = value: ['a'..'z']+ & when @(Inner(value)) & ';' => @(value.Length)
+			Feed : @int[] = Item*
+			Word = ['a'..'z']+ & 'x'
+			parse Feed as Lazy yield : @int
+			parse Word
+			""";
+
+		const string members = """
+			static bool Inner(string text)
+			{
+				return TryParseWord(text).IsSuccess;
+			}
+
+			public static string[] Elsewhere(string input)
+			{
+				var called     = new Recorder();
+				var enumerated = new Recorder();
+				global::System.Collections.Generic.IEnumerable<int> found;
+
+				using (Tracing(called))
+					found = Lazy(input);
+
+				using (Tracing(enumerated))
+				{
+					foreach (var one in found)
+					{
+					}
+
+					TryParseWord("ax");
+				}
+
+				return new[] { string.Join("|", called.Lines), string.Join("|", enumerated.Lines) };
+			}
+			""";
+
+		var assembly = Traced(grammar, members);
+		var lines    = (string[])Invoke(assembly, "Elsewhere", "ax;bx;")!;
+
+		output.WriteLine(lines[0]);
+		output.WriteLine(lines[1]);
+
+		Assert.Contains("begin quiet Word", lines[0], StringComparison.Ordinal);
+		Assert.Contains("begin recording Item", lines[0], StringComparison.Ordinal);
+		Assert.StartsWith("begin quiet Word", lines[1], StringComparison.Ordinal);
+		Assert.Single(lines[1].Split('|'), static line => line.StartsWith("begin ", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// A chain of forwarding rules is framed whole whatever order its rules are declared in: the
+	/// paths are those of a parser that calls every one of them as written.
+	/// </summary>
+	[Theory]
+	[InlineData("A", "B", "C")]
+	[InlineData("A", "C", "B")]
+	[InlineData("B", "A", "C")]
+	[InlineData("B", "C", "A")]
+	[InlineData("C", "A", "B")]
+	[InlineData("C", "B", "A")]
+	public void A_chain_of_forwarding_rules_is_framed_whole_in_any_order(string first, string second, string third)
+	{
+		var rules = new Dictionary<string, string>
+		{
+			["A"] = "A    : @int = v: B => @(v)",
+			["B"] = "B    : @int = v: C => @(v)",
+			["C"] = "C    : @int = v: Leaf => @(v) | w: Name => @(w)",
+		};
+
+		var grammar = string.Join("\n",
+			"Top  : @int = '[' & v: A & ']' => @(v)",
+			rules[first],
+			rules[second],
+			rules[third],
+			"Leaf : @int = d: ['0'..'9']+ & '!' => @(d.Length) | '(' & v: A & ')' => @(v)",
+			"Name : @int = n: ['a'..'z']+ & '?' => @(n.Length)",
+			"parse Top");
+
+		var collapsed = Traced(grammar);
+		var written   = TracedAsWritten(grammar);
+
+		foreach (var input in new[] { "[1", "[a", "[", "[1!", "[(1", "[(a?" })
+		{
+			var said   = Probe<string>(collapsed, "Explained", () => Read(collapsed, "TryParseTop", input));
+			var wanted = Probe<string>(written, "Explained", () => Read(written, "TryParseTop", input));
+
+			output.WriteLine(said);
+
+			Assert.Equal(wanted, said);
+			Balanced(Probe<string[]>(collapsed, "Recorded", () => Read(collapsed, "TryParseTop", input)));
+		}
+
+		Assert.Contains(
+			"Top 1:1 > A 1:2 > B 1:2 > C 1:2 > Leaf 1:2 > A 1:3 > B 1:3 > C 1:3 > Leaf 1:3",
+			Probe<string>(collapsed, "Explained", () => Read(collapsed, "TryParseTop", "[(1")),
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>A grammar compiled with its forwarding rules called as written: the reference for the frames a trace reports.</summary>
+	static Assembly TracedAsWritten(string grammar)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName          = "Grammar",
+			CSharpScanner      = RoslynCSharpScanner.Instance,
+			Trace              = true,
+			CollapseForwarders = false,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		return EmittedCode.Compile(result.Sources[0].Text, "Grammar", declarationMembers: Nullable + Probes);
 	}
 
 	/// <summary>The log is cut at its budget, and says how much it did not write.</summary>
