@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- What the SQL parsers say about the corpus, as text: every outcome, position and refusal
+	     message, and every tree written back. Run on two commits and compared with diff, it is
+	     the oracle for a change to how a refusal is recorded or worded. Not part of the solution,
+	     as DotGram.CodeSize is not. -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
+	</ItemGroup>
+
+</Project>
