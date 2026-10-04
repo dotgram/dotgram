@@ -2652,7 +2652,13 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
-				if (_prefixTables && !OverKinds && PrefixPlan(alternatives) is { } prefixes)
+				// The engine's alone: a miss is recorded as the engine's `Fail:` records one,
+				// outside a lookahead and with its ties, and a lowered method has neither the
+				// lookahead count nor, unless something else in it can tie, a list of ties. Its
+				// failures may also leave by a door rather than `Fail:`, which the miss knows
+				// nothing of. There the choice is compiled as below, dispatched on its first
+				// character where the alternatives' first characters tell them apart.
+				if (_prefixTables && !OverKinds && !_lowering && PrefixPlan(alternatives) is { } prefixes)
 					return CompilePrefixChoice(alternatives, prefixes, next, following);
 
 				if (Predictive(alternatives) is { } predicted)
