@@ -4268,13 +4268,14 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileChainedChoice(
 		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
-		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null)
+		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null,
+		Dictionary<Node, int>? bodies = null)
 	{
 		var last   = alternatives.Count - 1;
 		var run    = LiteralGroup(alternatives, last, following.Taught.Plain);
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
-			: Compile(alternatives[last], next, following);
+			: CompileAlternative(alternatives[last], next, following, bodies);
 		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
@@ -4296,7 +4297,7 @@ sealed partial class Machine
 				continue;
 			}
 
-			var first = Compile(alternatives[i], next, following);
+			var first = CompileAlternative(alternatives[i], next, following, bodies);
 			if (prefixHeads is not null) prefixHeads[alternatives[i]] = first;
 			var mine  = Decidable(alternatives[i]);
 			var state = Reserve(out var writer);
@@ -4394,6 +4395,32 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// One alternative of a chain, compiled once however many chains it is a member of.
+	/// </summary>
+	/// <remarks>
+	/// The groups of a dispatched choice overlap: an alternative that can begin with two
+	/// characters the switch tells apart is a member of both groups, and each group is a chain
+	/// of its own. What the chain writes around an alternative depends on the group — the tests
+	/// that skip it, the way back to the next member — but the alternative itself does not: it
+	/// is the same node, continuing at the same state, against the same follow. Compiled again
+	/// for every group it was a copy, and a copy of everything inside it, so a choice nested in
+	/// a choice nested in a choice, each dispatched over overlapping groups, multiplied its
+	/// alternatives level by level — a grammar of a few lines wrote a method of ten thousand.
+	/// Shared, the chains jump into one body, and what a choice costs is its alternatives once
+	/// and a link per membership.
+	/// </remarks>
+	int CompileAlternative(Node alternative, int next, FollowSets.Continuation following, Dictionary<Node, int>? bodies)
+	{
+		if (bodies is null)
+			return Compile(alternative, next, following);
+
+		if (!bodies.TryGetValue(alternative, out var state))
+			bodies[alternative] = state = Compile(alternative, next, following);
+
+		return state;
+	}
+
+	/// <summary>
 	/// A choice entered through a switch on its first character.
 	/// </summary>
 	/// <remarks>
@@ -4425,10 +4452,11 @@ sealed partial class Machine
 		int next,
 		FollowSets.Continuation following, Dictionary<Node, int>? prefixHeads = null)
 	{
-		var heads = new int[groups.Count];
+		var heads  = new int[groups.Count];
+		var bodies = new Dictionary<Node, int>(NodeIdentity.Instance);
 
 		for (var i = 0; i < groups.Count; i++)
-			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set, prefixHeads);
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set, prefixHeads, bodies);
 
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected([.. alternatives.SelectMany(Displays).Distinct()]);
