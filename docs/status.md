@@ -50,6 +50,7 @@ then quietly mean nothing.
 | rule types naming another rule §4.1 case 3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same with several operands in one repetition, in the order read §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
 | guards `when` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `when` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -1094,6 +1095,17 @@ elements and an optional operand contributes none.
 The capture goes *inside* a repetition, not around it, which is where one the author
 wrote ends up: `rows: Row*` parses as `(rows: Row)*` (§10). The other way round the slot
 holds the text of the whole run.
+
+**A repetition's operands arrive as one sequence, in the order they were read.** Each
+operand's capture collects an array of its own, so `(Circle | Square)+` once handed the
+construction every circle and then every square, and `(A & B)*` every `A` and then every
+`B`: `csc` read as circle, circle, square. The grammar is still rewritten exactly as before,
+one capture per operand; what changed is only how the values are put together. The captures
+of such a repetition are one member of the rule's result, whose slots are gathered in the
+order their records were written — the walk over the tape reads them in that order already,
+and a reader by methods logs each record with the slot it came from, which says whose table
+holds it when the operands' types differ. The immediate carrier keeps one stack per type and
+so cannot order across them; a rule gathering several types is carried on the tape instead.
 
 **Assignability is a question for the host**, so `ISymbolResolver` gained `IsAssignable`
 — the third thing the grammar half asked about C#, alongside "does this type exist" and
