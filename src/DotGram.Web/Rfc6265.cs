@@ -336,7 +336,10 @@ public static class CookieDate
 
 	Ows   = [' ' | '\t']*
 	Tchar = ['!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^' | '_' | '`' | '|' | '~' | '0'..'9' | 'a'..'z' | 'A'..'Z']
-	Token = Tchar+
+	// A token reads to its end and never hands a character back: nothing that may follow one begins with a
+	// tchar (only `=` follows a name), so a shorter reading can never lead anywhere. Without the braces a refused field tried every
+	// shorter one, each try with the choice state the longer reading had left behind.
+	Token = { Tchar+ }
 
 	// ── §5.1.1 ───────────────────────────────────────────────────────────────────
 

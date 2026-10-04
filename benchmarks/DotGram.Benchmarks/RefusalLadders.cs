@@ -154,16 +154,21 @@ internal static class RefusalLadders
 
 		yield return R("ForwardedElement.TryParseField", "elements, then for= with no value", "elements", 4096, n => Copies("for=192.0.2.1;proto=https, ", n) + "for=", static t => ForwardedElement.TryParseField(t, out _));
 		yield return R("ForwardedElement.TryParseField", "an unclosed quoted string", "characters", 4096, n => "for=" + quote + new string('a', n), static t => ForwardedElement.TryParseField(t, out _));
+		yield return R("ForwardedElement.TryParseField", "a long token, then a control character", "characters", 4096, n => "for=" + new string('a', n) + cut, static t => ForwardedElement.TryParseField(t, out _));
 		yield return R("WebLink.TryParseField", "links, then an unclosed <", "links", 4096, n => Copies("<https://example.com/1>; rel=" + quote + "next" + quote + ", ", n) + "<https://x", static t => WebLink.TryParseField(t, out _));
 		yield return R("WebLink.TryParseField", "an unclosed URI reference", "characters", 4096, n => "<https://example.com/" + new string('a', n), static t => WebLink.TryParseField(t, out _));
 		yield return R("WebLink.TryParseField", "parameters, then an unclosed quoted string", "parameters", 4096, n => "<https://x>" + Copies("; a=1", n) + "; b=" + quote, static t => WebLink.TryParseField(t, out _));
+		yield return R("WebLink.TryParseField", "a long parameter name, then a control character", "characters", 4096, n => "<https://x>; " + new string('a', n) + cut, static t => WebLink.TryParseField(t, out _));
+		yield return R("WebLink.TryParseField", "a long parameter value, then a control character", "characters", 4096, n => "<https://x>; rel=" + new string('a', n) + cut, static t => WebLink.TryParseField(t, out _));
 
 		yield return R("CookiePair.TryParseField", "pairs, then a control character", "pairs", 4096, n => Copies("a=1; ", n) + "b=" + cut, static t => CookiePair.TryParseField(t, out _));
+		yield return R("CookiePair.TryParseField", "a long name, then a control character", "characters", 4096, n => new string('a', n) + cut, static t => CookiePair.TryParseField(t, out _));
 
 		yield return R("LanguageTag", "variants, then a bare hyphen", "variants", 4096, n => "sl" + Copies("-1994", n) + "-", static t => LanguageTag.TryParse(t, out _));
 		yield return R("LanguageTag", "extension subtags, then a doubled hyphen", "subtags", 4096, n => "en-u" + Copies("-abcd", n) + "--", static t => LanguageTag.TryParse(t, out _));
 		yield return R("ContentDisposition", "parameters, then an unclosed quoted string", "parameters", 4096, n => "attachment" + Copies("; a=1", n) + "; b=" + quote + "x", static t => ContentDisposition.TryParse(t, out _));
 		yield return R("ContentDisposition", "an extended value, then a cut percent-encoding", "octets", 4096, n => "attachment; filename*=UTF-8''" + Copies("%41", n) + "%4", static t => ContentDisposition.TryParse(t, out _));
+		yield return R("ContentDisposition", "a long token, then a control character", "characters", 4096, n => "attachment; filename=" + new string('a', n) + cut, static t => ContentDisposition.TryParse(t, out _));
 
 		yield return R("JsonPointer", "segments, then a bad escape", "segments", 4096, n => Copies("/a", n) + "~", static t => JsonPointer.TryParse(t, out _));
 		yield return R("JsonPointer", "escapes, then a bad escape", "escapes", 4096, n => "/" + Copies("~0", n) + "~", static t => JsonPointer.TryParse(t, out _));

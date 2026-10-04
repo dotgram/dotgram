@@ -133,7 +133,10 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	Ows   = [' ' | '\t']*
 	Tchar = ['!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^' | '_' | '`' | '|' | '~' | '0'..'9' | 'a'..'z' | 'A'..'Z']
-	Token = Tchar+
+	// A token reads to its end and never hands a character back: nothing that may follow one begins with a
+	// tchar (whitespace, `;`, `,`, `=` or the end follow a token), so a shorter reading can never lead anywhere. Without the braces a refused field tried every
+	// shorter one, each try with the choice state the longer reading had left behind.
+	Token = { Tchar+ }
 
 	// qdtext and quoted-pair; obs-text is any octet from 0x80.
 	QuotedString = '"' & ([' ' | '\t' | '!' | '#'..'[' | ']'..'~' | '\u0080'..'\u00FF'] | '\\' & [' ' | '\t' | '!'..'~' | '\u0080'..'\u00FF'])* & '"'

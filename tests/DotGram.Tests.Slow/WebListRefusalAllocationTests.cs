@@ -109,12 +109,80 @@ public sealed class WebListRefusalAllocationTests
 			Assert.False(MediaRange.TryParseAccept(AcceptRefusal(size), out _), $"a subtype of {size} characters was read.");
 	}
 
+	/// <summary>A long token in a link parameter, refused, allocates a few bytes a character — it did 192 — and takes no more than a linear time.</summary>
+	/// <remarks>
+	/// A token reads to its end in every Web grammar: nothing that can follow one begins with a token
+	/// character, so a refusal after a long one has no shorter reading to try. A link parameter's name and
+	/// value gave the token back a character at a time, with the choice state of the longer reading each
+	/// try left behind: 192 bytes a character at every size, and 181 ms at 16,384 characters, which
+	/// is more than four times what 4,096 took. The bytes were flat, so the ceiling is what catches it.
+	/// </remarks>
+	[Fact]
+	public void A_refused_Link_parameter_allocates_a_few_bytes_a_token_character_at_every_size()
+	{
+		AssertLinear(LinkNameRefusal, text => WebLink.TryParseField(text, out _), ceiling: 16);
+		AssertLinear(LinkValueRefusal, text => WebLink.TryParseField(text, out _), ceiling: 16);
+	}
+
+	[Fact]
+	public void A_refused_Forwarded_token_allocates_about_as_many_bytes_a_character_at_every_size()
+	{
+		AssertLinear(ForwardedTokenRefusal, text => ForwardedElement.TryParseField(text, out _), ceiling: 16);
+	}
+
+	[Fact]
+	public void A_refused_Content_Disposition_token_allocates_about_as_many_bytes_a_character_at_every_size()
+	{
+		AssertLinear(DispositionTokenRefusal, text => ContentDisposition.TryParse(text, out _), ceiling: 16);
+		AssertLinear(DispositionNameRefusal, text => ContentDisposition.TryParse(text, out _), ceiling: 16);
+	}
+
+	[Fact]
+	public void A_refused_Cookie_name_allocates_about_as_many_bytes_a_character_at_every_size()
+	{
+		AssertLinear(CookieNameRefusal, text => CookiePair.TryParseField(text, out _), ceiling: 16);
+	}
+
+	[Fact]
+	public void A_refused_token_still_refuses_at_every_size()
+	{
+		foreach (var size in Sizes)
+		{
+			Assert.False(WebLink.TryParseField(LinkNameRefusal(size), out _), $"a link parameter name of {size} characters was read.");
+			Assert.False(WebLink.TryParseField(LinkValueRefusal(size), out _), $"a link parameter value of {size} characters was read.");
+			Assert.False(ForwardedElement.TryParseField(ForwardedTokenRefusal(size), out _), $"a forwarded value of {size} characters was read.");
+			Assert.False(ContentDisposition.TryParse(DispositionTokenRefusal(size), out _), $"a disposition value of {size} characters was read.");
+			Assert.False(ContentDisposition.TryParse(DispositionNameRefusal(size), out _), $"a disposition parameter name of {size} characters was read.");
+			Assert.False(CookiePair.TryParseField(CookieNameRefusal(size), out _), $"a cookie name of {size} characters was read.");
+		}
+	}
+
+	/// <summary>The same tokens, read to the end, are accepted and keep their values.</summary>
+	[Fact]
+	public void A_long_token_is_still_read_whole()
+	{
+		var token = new string('a', 1024);
+
+		Assert.True(WebLink.TryParseField("<https://x>; " + token + "=" + token, out var links));
+		Assert.Equal(token, links[0].Parameters[0].Name);
+		Assert.Equal(token, links[0].Parameters[0].Value);
+
+		Assert.True(ForwardedElement.TryParseField(token + "=" + token, out var elements));
+		Assert.Equal(token, elements[0].Pairs[0].Name);
+
+		Assert.True(ContentDisposition.TryParse(token + "; " + token + "=" + token, out var disposition));
+		Assert.Equal(token, disposition.Type);
+
+		Assert.True(CookiePair.TryParseField(token + "=" + token, out var pairs));
+		Assert.Equal(token, pairs[0].Name);
+	}
+
 	/// <summary>
 	/// Asserts bytes an element stay within 15% of one another at every doubling in <see cref="Sizes"/>. A
 	/// quadratic allocator doubles bytes an element at every doubling in the count; this catches that at
 	/// each of three steps rather than only between the first and the last.
 	/// </summary>
-	static void AssertLinear(Func<int, string> textFor, Func<string, bool> parse)
+	static void AssertLinear(Func<int, string> textFor, Func<string, bool> parse, double ceiling = double.PositiveInfinity)
 	{
 		var texts = Sizes.Select(textFor).ToArray();
 
@@ -127,6 +195,10 @@ public sealed class WebListRefusalAllocationTests
 
 		for (var i = 0; i < Sizes.Length; i++)
 			perElement[i] = Allocated(texts[i], parse) / (double)Sizes[i];
+
+		Assert.True(
+			perElement[^1] <= ceiling,
+			$"At {Sizes[^1]} characters a refusal allocated {perElement[^1]:F1} bytes each, where more than {ceiling:F0} means a token was given back a character at a time.");
 
 		for (var i = 1; i < Sizes.Length; i++)
 			Assert.True(
@@ -172,6 +244,38 @@ public sealed class WebListRefusalAllocationTests
 	static string AcceptRefusal(int characters)
 	{
 		return "text/" + new string('a', characters) + ";q=";
+	}
+
+	/// <summary>A link whose parameter name is <paramref name="characters"/> long, then a control character.</summary>
+	static string LinkNameRefusal(int characters)
+	{
+		return "<https://x>; " + new string('a', characters) + "\u0001";
+	}
+
+	/// <summary>A link whose parameter value is <paramref name="characters"/> long, then a control character.</summary>
+	static string LinkValueRefusal(int characters)
+	{
+		return "<https://x>; rel=" + new string('a', characters) + "\u0001";
+	}
+
+	static string ForwardedTokenRefusal(int characters)
+	{
+		return "for=" + new string('a', characters) + "\u0001";
+	}
+
+	static string DispositionTokenRefusal(int characters)
+	{
+		return "attachment; filename=" + new string('a', characters) + "\u0001";
+	}
+
+	static string DispositionNameRefusal(int characters)
+	{
+		return "attachment; " + new string('a', characters) + "=";
+	}
+
+	static string CookieNameRefusal(int characters)
+	{
+		return new string('a', characters) + "=\u0001";
 	}
 
 	/// <summary><paramref name="links"/> valid link-values, then one whose target is never closed.</summary>

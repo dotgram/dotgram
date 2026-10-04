@@ -6,6 +6,7 @@
 # It holds the TAPE reading of the expression language only: the immediate reading is reachable only through internals, and the stand's audit covers it. It only ever tightens; an explosive series is never here.
 # Unstable lines: at most four (Few_series_are_held_as_unstable). Two today, both with two cliffs in the tail (the exponent is the wrong summary of a step; D67).
 # Two lines tightened 2026-10-04 by the same procedure (worst of three runs, DOTGRAM_RECORD_BASELINE, not pinned to cores) once Rfc9110 read a token to its end: `MediaType | a long subtype, then a slash` (was Quadratic) and `MediaRange.TryParseAccept | a long token, then a weight with no value` (was Superlinear) both measured Linear.
+# Five series added 2026-10-04, one long token before a control character in each of the Forwarded, Link (name and value), Cookie and Content-Disposition readers, once those read a token to its end. The two Link series measured Quadratic before it (time, not bytes: 192 bytes a character at every size) and Linear after; the other three Linear both before and after.
 
 UriTemplate | a literal run, then an unclosed { = Linear
 UriTemplate | literals and expressions, then an unclosed { = Linear
@@ -29,14 +30,19 @@ StructuredField.TryParseDictionary | members, then an unclosed string = Quadrati
 StructuredField.TryParseItem | parameters, then a parameter with no value = Linear
 ForwardedElement.TryParseField | elements, then for= with no value = Quadratic
 ForwardedElement.TryParseField | an unclosed quoted string = Linear
+ForwardedElement.TryParseField | a long token, then a control character = Linear
 WebLink.TryParseField | links, then an unclosed < = Quadratic
 WebLink.TryParseField | an unclosed URI reference = Linear
 WebLink.TryParseField | parameters, then an unclosed quoted string = Quadratic
+WebLink.TryParseField | a long parameter name, then a control character = Linear
+WebLink.TryParseField | a long parameter value, then a control character = Linear
 CookiePair.TryParseField | pairs, then a control character = Linear
+CookiePair.TryParseField | a long name, then a control character = Linear
 LanguageTag | variants, then a bare hyphen = Quadratic
 LanguageTag | extension subtags, then a doubled hyphen = Quadratic
 ContentDisposition | parameters, then an unclosed quoted string = Quadratic
 ContentDisposition | an extended value, then a cut percent-encoding = Linear
+ContentDisposition | a long token, then a control character = Linear
 JsonPointer | segments, then a bad escape = Linear
 JsonPointer | escapes, then a bad escape = Linear
 JsonPatch | operations, then a cut one = Linear
