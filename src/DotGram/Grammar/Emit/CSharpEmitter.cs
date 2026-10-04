@@ -548,7 +548,8 @@ public static partial class CSharpEmitter
 						lexical is not null && lexical.Bare.Contains(publication.Rule),
 						compiled.Machine.UsesLocating ? locating : null,
 						tracing,
-						compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine");
+						compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine",
+						tracing is not null && RunsNothingOfTheAuthors(graph));
 
 					file.Line();
 				}
@@ -1698,12 +1699,40 @@ public static partial class CSharpEmitter
 
 	const string PerCallClass = "static partial class " + ReadingClass + "<TLocating> where TLocating : struct";
 
+	/// <summary>
+	/// Whether no reading of the grammar can run code its author wrote: no construction in C#, no
+	/// constructor or initializer of a type, no guard and no recovery factory — only the values the
+	/// generator builds itself, a sequence or an operand handed on.
+	/// </summary>
+	/// <remarks>
+	/// What a trace build may read for its sink alone and nobody asked for (the tokens before a
+	/// lexer stop, read once more) is read only where this holds: a construction or a guard run by
+	/// that reading is one the host would see run with a sink and not without. Every rule is looked
+	/// at, reached or not, which errs on the side of reading nothing.
+	/// </remarks>
+	static bool RunsNothingOfTheAuthors(RecognitionGraph graph)
+	{
+		if (graph.Recoveries.Values.Any(static one => one.Factory is not null))
+			return false;
+
+		foreach (var node in NodeWalk.Descendants(graph.Bodies.Values.Concat(graph.Trivia.Values)))
+		{
+			if (node is Node.Guard)
+				return false;
+
+			if (node is Node.Construct { How: not (Construction.Sequence or Construction.Operand) })
+				return false;
+		}
+
+		return true;
+	}
+
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
-		bool? locating = null, TraceTables? tracing = null, string machine = "methods")
+		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1760,7 +1789,9 @@ public static partial class CSharpEmitter
 		// Where the lexer stopped, in a trace build with a sink set: the tokens before the stop read
 		// once more, for the sink alone, so that it is told which rules were reading where the
 		// tokens ran out. Not where the reading writes into a context, which a reading the caller
-		// did not ask for must not touch. What it throws is the sink's to have seen and nobody's to
+		// did not ask for must not touch, and not where it could run anything the grammar's author
+		// wrote (`inert`): a trace build must not change what the host's code sees, and without a
+		// sink nothing is read at all. What it throws is the sink's to have seen and nobody's to
 		// catch: the call answers with the lexer's refusal all the same.
 		void ExplainUnlexed(string halt, string reading)
 		{
@@ -2269,8 +2300,16 @@ public static partial class CSharpEmitter
 						{
 							file.Line($"var {halt} = tokens.Stopped;");
 							file.Line();
-							if (!kept) file.Line("Recycle_DotGram(tokens);");
-							file.Line();
+
+							// In a trace build the tokens are given back only after the sink has been
+							// told and the tokens before the stop read again for it, below: whatever
+							// the sink does when it is told — read another text, with this parser —
+							// would otherwise be handed these tokens and write over them.
+							if (tracing is null)
+							{
+								if (!kept) file.Line("Recycle_DotGram(tokens);");
+								file.Line();
+							}
 
 							// The lexer stopped where no token begins, and the character standing
 							// there is what there is to say: the syntactic half never ran, so it has
@@ -2284,8 +2323,14 @@ public static partial class CSharpEmitter
 								file.Line($"Unlexed_DotGram(source, {halt});");
 								file.Line();
 
-								if (context is null)
+								if (context is null && inert)
 									ExplainUnlexed(halt, $"{reader}(prefix, 0{hands})");
+
+								if (!kept)
+								{
+									file.Line("Recycle_DotGram(tokens);");
+									file.Line();
+								}
 							}
 
 							Refusing(

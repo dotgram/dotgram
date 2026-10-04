@@ -106,9 +106,15 @@ public sealed class TraceTests(ITestOutputHelper output)
 				Lines.Add("deepened " + position);
 			}
 
+			/// <summary>Run when the sink is told of a lexer stop: what a sink may do there, read another text.</summary>
+			public global::System.Action? WhenUnlexed;
+
 			public override void Unlexed(string text, int position)
 			{
 				Lines.Add("unlexed " + position);
+
+				if (WhenUnlexed != null)
+					WhenUnlexed();
 			}
 
 			public override void Rejected(long position, string message)
@@ -120,6 +126,22 @@ public sealed class TraceTests(ITestOutputHelper output)
 		public static string[] Recorded(global::System.Func<object?> read)
 		{
 			var recorder = new Recorder();
+
+			using (Tracing(recorder))
+				read();
+
+			return recorder.Lines.ToArray();
+		}
+
+		public static string[] RecordedNesting(global::System.Func<object?> read, global::System.Func<object?> nested)
+		{
+			var recorder = new Recorder();
+
+			recorder.WhenUnlexed = () =>
+			{
+				using (Tracing(null))
+					nested();
+			};
 
 			using (Tracing(recorder))
 				read();
@@ -450,14 +472,43 @@ public sealed class TraceTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// The grammar of the Lexical snapshot with nothing of its author's to run: no construction and
+	/// no guard, so that the tokens before a lexer stop may be read again for a sink.
+	/// </summary>
+	const string Inert = """
+		wordboundary = ['a'..'z'] | ['0'..'9'] | '_'
+
+		trivia = { (' ' | '\t' | '\r' | '\n' | Token.Comment)* }
+
+		namespace Token
+		{
+			trivia = none
+
+			Comment = "--" & [^ '\n']*
+
+			Name    = (['a'..'z'] | '_') & (['a'..'z'] | ['0'..'9'] | '_')*
+			Number  = ['0'..'9']+
+		}
+
+		Program   = Statement* & eof
+
+		Statement = "let" & Token.Name & '=' & Expression & ';'
+
+		Expression = Token.Number & '+' & Token.Number | Token.Number | Token.Name
+
+		parse Program
+		""";
+
+	/// <summary>
 	/// Over tokens a position is a token, and the explanation says where it is in characters; a
-	/// character no token begins with is said before any rule is read, and then the tokens before
-	/// it are read for the sink, which is told which rules were reading where they ran out.
+	/// character no token begins with is said before any rule is read, and then — in a grammar that
+	/// runs nothing of its author's — the tokens before it are read for the sink, which is told
+	/// which rules were reading where they ran out.
 	/// </summary>
 	[Fact]
 	public void Over_tokens_a_position_is_said_in_characters()
 	{
-		var assembly = Traced(Snapshot("Lexical"), lexical: true);
+		var assembly = Traced(Inert, lexical: true);
 		var refused  = "let a = 1;\nlet b = 2 + ;";
 		var match    = Read(assembly, "TryParseProgram", refused);
 		var why      = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseProgram", refused));
@@ -487,6 +538,80 @@ public sealed class TraceTests(ITestOutputHelper output)
 
 			Assert.Contains("No token of the grammar begins at that character, so no rule was read.", alone, StringComparison.Ordinal);
 		}
+	}
+
+	/// <summary>
+	/// A lexer stop is not read again for a sink where the reading would run what the grammar's
+	/// author wrote: a construction or a guard counts the same with a sink as without one, whatever
+	/// the sink.
+	/// </summary>
+	[Theory]
+	[InlineData("let a = 1; #")]
+	[InlineData("let a = 1; let b = #;")]
+	[InlineData("let a = #;")]
+	[InlineData("let a = 1;\nlet b = 2 + ;")]
+	[InlineData("let a = 1;")]
+	public void A_sink_runs_nothing_of_the_authors(string input)
+	{
+		var counting = Snapshot("Lexical")
+			.Replace("=> @(name + \"=\" + value)", "& when @(Asked()) => @(Bump(name) + \"=\" + value)", StringComparison.Ordinal);
+
+		Assert.Contains("Bump(name)", counting, StringComparison.Ordinal);
+
+		var assembly = Traced(counting, """
+			public static int Counted;
+
+			static string Bump(string name)
+			{
+				Counted++;
+
+				return name;
+			}
+
+			static bool Asked()
+			{
+				Counted++;
+
+				return true;
+			}
+			""", lexical: true);
+
+		var counted = assembly.GetType("Grammar")!.GetField("Counted")!;
+
+		int Counting(Action read)
+		{
+			counted.SetValue(null, 0);
+			read();
+
+			return (int)counted.GetValue(null)!;
+		}
+
+		var alone = Counting(() => Read(assembly, "TryParseProgram", input));
+
+		Assert.Equal(alone, Counting(() => Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseProgram", input))));
+		Assert.Equal(alone, Counting(() => Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseProgram", input))));
+		Assert.Equal(alone, Counting(() => Probe<string>(assembly, "Profiled", () => Read(assembly, "TryParseProgram", input))));
+	}
+
+	/// <summary>
+	/// The tokens a lexer stop is explained over are the call's own until the explanation is over:
+	/// a sink that reads another text when it is told of the stop does not have its tokens written
+	/// over by that reading.
+	/// </summary>
+	[Fact]
+	public void A_sink_reading_at_a_lexer_stop_leaves_the_stopped_tokens_alone()
+	{
+		var assembly = Traced(Inert, lexical: true);
+		var alone    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseProgram", "let a = #;"));
+		var nesting  = (string[])Invoke(
+			assembly, "RecordedNesting",
+			(Func<object?>)(() => Read(assembly, "TryParseProgram", "let a = #;")),
+			(Func<object?>)(() => Read(assembly, "TryParseProgram", "let = 1;")))!;
+
+		output.WriteLine(string.Join(Environment.NewLine, nesting));
+
+		Assert.Contains("begin recording Program methods at 0", alone);
+		Assert.Equal(alone, nesting);
 	}
 
 	/// <summary>

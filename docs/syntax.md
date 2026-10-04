@@ -2467,7 +2467,7 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | `Refused(position, expected)` | a recording reading could not go on, wanting one of `expected`; null where the refusal names nothing. Quiet readings and lookaheads refuse without a word, as neither's refusals are ever the answer |
 | `Recovered(rule, from, to, reach)` | a repetition marked `recover` stepped over an element (§8.2) |
 | `Deepened(position)` | the reading moved to a stack of its own (§6.5) |
-| `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read; with a sink set, the tokens before it are then read once more, as a reading of its own, to tell which rules were reading where they ran out |
+| `Unlexed(text, position)` | over tokens, no token begins at a character, so the input was refused before any rule was read; with a sink set, and where the grammar runs nothing of its author's (below), the tokens before it are then read once more, as a reading of its own, to tell which rules were reading where they ran out |
 | `Rejected(position, message)` | the call answered with a refusal: the match's position and its `Error`. Wording the message costs a refused call more than reading it did, so a sink that does not read it overrides `HearsRejections` to say false, as `GramProfile` does, and is not told |
 
 **A sink is the host's own code**, as a guard or a construction is (§7.5): what one of its methods
@@ -2496,9 +2496,11 @@ counts its positions from the beginning of the input, not of the part of it held
   of an `on fail` are already applied to what it is held against. A refusal that names no set is
   explained by the rules that refused there, a guard by its C#, the end of input by the rules it
   ended inside, a character no token begins with by the rules that were reading where the tokens
-  before it ran out — where the reading got that far, and the reading writes into no context (§7.7):
-  the tokens are read once more to say it, and a context is not to be written by a reading the
-  caller did not ask for. A rule remembered as failing (above) shows
+  before it ran out — where the reading got that far, the reading writes into no context (§7.7), and
+  the grammar has no construction in C#, no constructor or initializer of a type, no guard and no
+  recovery factory: the tokens are read once more to say it, and neither a context nor the host's
+  code is to see a reading the caller did not ask for, which happens only with a sink. Elsewhere the
+  stop is said alone. A rule remembered as failing (above) shows
   the path through its first caller, not through a second. A repetition marked `recover` is explained
   element by element in `Elements`, then the refusal itself if the reading still failed. It explains
   the parser's own answer: a host that rewrites a refusal after the parse answers in words of its own.
