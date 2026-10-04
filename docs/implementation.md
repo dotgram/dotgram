@@ -636,8 +636,10 @@ language; no rule carrying trivia; trivia that is not a scanner; a published rul
 no token of its own over tokens; or a published terminal that builds a value. Over kinds,
 `FirstSets.Committed` asks the soundness question again, since an overlap there is settled
 by the reading that fits rather than by backtracking; and a machine the reader refuses is
-reported as `GRAM5005`, because the engine it falls back on backtracks into a rule the
-notation promises will stand.
+reported as `GRAM5005`, because the engine it falls back on still revisits a choice or a
+repetition inside a rule that the notation promises is committed. At a rule's boundary it
+does not: over kinds the engine compiles each call as if braced, so a rule's answer stands
+there on both renderings.
 
 ## 9. Operator precedence
 

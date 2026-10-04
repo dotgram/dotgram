@@ -2422,6 +2422,9 @@ sealed partial class Machine
 		return CompileUnguarded(node, next, following);
 	}
 
+	/// <summary>The calls being compiled inside the braces a call over kinds stands in.</summary>
+	readonly HashSet<Node> _standing = NodeWalk.ByIdentity([]);
+
 	int CompileUnguarded(Node node, int next, FollowSets.Continuation following)
 	{
 		switch (node)
@@ -2887,6 +2890,24 @@ sealed partial class Machine
 				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
+			}
+
+			case Node.Call when OverKinds && !_lowering && _standing.Add(node):
+			{
+				// Over kinds a rule's answer stands (docs/syntax.md §4): once it has answered,
+				// nothing that fails after it sends the parse back into it — not even into a rule
+				// marked `?`, which gives back inside itself and not at its boundary. The engine
+				// reopens what a call left behind as it reopens anything else, so each call is
+				// read as if braced, and what it opened is put out the moment it answers. Where
+				// it leaves nothing to reopen the braces cost nothing (`Silent`).
+				try
+				{
+					return CompileUnguarded(new Node.Atomic(node), next, following);
+				}
+				finally
+				{
+					_standing.Remove(node);
+				}
 			}
 
 			case Node.Call(var rule, _):

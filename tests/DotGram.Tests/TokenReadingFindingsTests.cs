@@ -183,22 +183,62 @@ public sealed class TokenReadingFindingsTests
 
 	/// <summary>
 	/// The engine and the direct reader are two renderings of one grammar read over tokens, and
-	/// answer the same whole input the same.
+	/// answer the same input the same — where a rule's answer stands (§4).
 	/// </summary>
 	/// <remarks>
-	/// Red, and not new: over tokens the engine reads <c>b</c> (it gives the <c>b</c> that
-	/// <c>R2</c> read back to <c>'b'</c>, as §11 does over characters) and the direct reader
-	/// refuses it (<c>R2</c>'s answer stands, as §4 says it does over kinds). By §4 the direct
-	/// reader is the one that is right.
+	/// The engine gave back into a called rule over tokens as it does over characters (§11):
+	/// <c>R2</c> read the <c>b</c>, <c>'b'</c> after it failed, and the engine took the
+	/// <c>b</c> back from <c>R2</c> and read it again. The direct reader refused, as §4 says:
+	/// once a rule has answered, nothing that fails after it sends the parse back into it. A
+	/// rule marked <c>?</c> gives back inside itself and not at its boundary, so it stands there
+	/// too. The engine now reads each call over kinds as if braced.
 	/// </remarks>
-	[Theory(Skip = "Open: over kinds the engine still gives back what a rule read, where the direct reader lets the rule's answer stand.")]
-	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'b')\nR2 = 'b'?\nparse R1\n", "TryParseR1", "b")]
-	[InlineData("trivia = { ' '* }\nR1 = ('c' | R2 & ['a'..'b'])\nR2 = ('b' | 'a')?\nparse R1\n", "TryParseR1", "b")]
-	public void The_engine_and_the_direct_reader_over_tokens_agree(string grammar, string method, string input)
+	[Theory]
+	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'b')\nR2 = 'b'?\nparse R1\n", "TryParseR1", "b|bb|bbb|")]
+	[InlineData("trivia = { ' '* }\nR1 = ('c' | R2 & ['a'..'b'])\nR2 = ('b' | 'a')?\nparse R1\n", "TryParseR1", "b|a|ab|ba|c|")]
+	[InlineData("trivia = { ' '* }\nR1 = 'a' & R2 & 'b'\nR2 = 'b'?\nparse R1\n", "TryParseR1", "ab|abb|a b|abbb")]
+	[InlineData("trivia = { ' '* }\nR1 = R2 & 'b'\nR2? = 'a' & 'b'?\nparse R1\n", "TryParseR1", "ab|abb|a|")]
+	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'c' | 'a' & 'b' & 'd')\nR2 = ('a' & 'b' | 'a')\nparse R1\n", "TryParseR1", "abc|ac|abd|ab")]
+	public void The_engine_and_the_direct_reader_over_tokens_agree(string grammar, string method, string inputs)
 	{
-		Assert.Equal(
-			EmittedCode.Match(Built(grammar, lexical: true, direct: true), "Grammar", method, input).IsSuccess,
-			EmittedCode.Match(Built(grammar, lexical: true, direct: false), "Grammar", method, input).IsSuccess);
+		var renderings = OverTokens(grammar).ToArray();
+
+		foreach (var input in inputs.Split('|'))
+		{
+			var expected = EmittedCode.Match(renderings[0], "Grammar", method, input);
+
+			foreach (var assembly in renderings.Skip(1))
+			{
+				var match = EmittedCode.Match(assembly, "Grammar", method, input);
+
+				Assert.True(expected.IsSuccess == match.IsSuccess, $"\"{input}\":\n{grammar}");
+				Assert.True(expected.Position == match.Position, $"\"{input}\":\n{grammar}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// A called rule over tokens has the answer it gives on its own: where it read what its
+	/// caller wanted next, the caller refuses, in every rendering and every carrier, from a
+	/// position and in a window too.
+	/// </summary>
+	[Theory]
+	[InlineData("b", 0, null, false)]
+	[InlineData("bb", 0, null, true)]
+	[InlineData("x b", 1, null, false)]
+	[InlineData("x b", 1, 2, false)]
+	[InlineData("x bb", 1, 3, true)]
+	[InlineData("x bb", 1, 2, false)]
+	public void A_called_rule_over_tokens_is_not_sent_back_into(string input, int at, int? length, bool read)
+	{
+		const string grammar = "trivia = { ' '* }\nR1 = R2 & 'b' & ('z' | 'z' & 'q')?\nR2 = 'b'?\nOther = 'x'\nparse R1\nparse Other\n";
+
+		var answers = OverTokens(grammar)
+			.Select(assembly => EmittedCode.Positioned(assembly, "Grammar", "TryParseR1", input, at, length))
+			.ToArray();
+
+		Assert.All(answers, one => Assert.Equal(answers[0], one));
+		Assert.Equal(read, answers[0].IsSuccess);
 	}
 
 	// ── Choices a scanner reads ─────────────────────────────────────────────────
@@ -311,6 +351,28 @@ public sealed class TokenReadingFindingsTests
 		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
 
 		return EmittedCode.Compile(result.Sources[0].Text);
+	}
+
+	/// <summary>
+	/// The renderings of a grammar read over tokens: the engine, and the direct reader on each
+	/// carrier it is read on.
+	/// </summary>
+	static IEnumerable<Assembly> OverTokens(string grammar)
+	{
+		yield return Built(grammar, lexical: true, direct: false);
+
+		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		{
+			var options = Options(lexical: true, direct: true);
+
+			options.Carrier = carrier;
+
+			var result = GramCompiler.Compile(grammar, options);
+
+			EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
+
+			yield return EmittedCode.Compile(result.Sources[0].Text);
+		}
 	}
 
 	static void AgreesWithTheSemantics(string grammar, bool lexical, bool direct, string inputs)
