@@ -376,7 +376,9 @@ public sealed class GeneratorDriverTests
 				.ToString() +
 				// The base, which the file imports statically and this harness does not declare.
 				"\npublic partial class Lexemes { }\n",
-			className: "Reader");
+			className: "Reader",
+			// Generated for the newest C# (RunGenerator), so compiled at a version that reads it.
+			utf8Literals: true);
 
 		Assert.Equal(
 			"abc",
@@ -2650,6 +2652,12 @@ public sealed class GeneratorDriverTests
 	/// So the heap of user strings is the same size whichever form the tables take, and the
 	/// parsers read the same either way.
 	/// </para>
+	/// <para>
+	/// But for one thing, stated here: the numbers the sets a refusal names are written in
+	/// (<c>ExpectedSet_DotGram</c>) are a UTF-8 literal from C# 11 and an ordinary string
+	/// below it, where an array would cost the compiler what the lexer's table did. Below C# 11
+	/// the heap holds those strings, and nothing else, more.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void Several_lexical_grammars_keep_their_tables_out_of_the_heap_of_user_strings()
@@ -2670,7 +2678,16 @@ public sealed class GeneratorDriverTests
 		var cells = latest.Sources.Sum(static source => Cells(source));
 
 		Assert.True(cells > 4 * 10_000, $"{cells} cells: too few for the heap to show them.");
-		Assert.Equal(floor.UserStrings, latest.UserStrings);
+
+		// The sets' numbers: a UTF-8 literal in every class at the one, a string at the other,
+		// and those strings are the whole of the difference, each once however many classes
+		// spell it (the heap holds a string once, and is padded to four bytes).
+		Assert.Equal(4, latest.Sources.Count(static source => source.Contains("\"u8;", StringComparison.Ordinal)));
+		Assert.Equal(4, floor.Sources.Count(static source => Sets(source) is not null));
+
+		var sets = floor.Sources.Select(static source => Sets(source)).OfType<string>().Distinct(StringComparer.Ordinal).Sum(static data => Heap(data));
+
+		Assert.InRange(floor.UserStrings - latest.UserStrings, sets - 3, sets + 3);
 
 		for (var grammar = 0; grammar < 4; grammar++)
 		{
@@ -2687,6 +2704,24 @@ public sealed class GeneratorDriverTests
 			var match = assembly.GetType($"Words{grammar}")!.GetMethod("TryParseProgram", [typeof(string)])!.Invoke(null, [input])!;
 
 			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		// The string the sets' numbers are written in, as the source spells it.
+		static string? Sets(string source)
+		{
+			var data = System.Text.RegularExpressions.Regex.Match(source, @"var data = ""([^""]*)"";");
+
+			return data.Success ? data.Groups[1].Value : null;
+		}
+
+		// What it takes in the heap of user strings: its length, then two bytes a character, then
+		// one more.
+		static int Heap(string spelled)
+		{
+			var length = System.Text.RegularExpressions.Regex.Replace(spelled, @"\\u[0-9A-F]{4}", "-").Length;
+			var bytes  = length * 2 + 1;
+
+			return bytes + (bytes < 0x80 ? 1 : bytes < 0x4000 ? 2 : 4);
 		}
 
 		// How many cells a table written as a UTF-8 literal holds: the count its decoder is

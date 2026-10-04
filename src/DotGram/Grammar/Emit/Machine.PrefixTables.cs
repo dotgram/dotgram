@@ -185,20 +185,24 @@ sealed partial class Machine
 				helper.Line($"new int[] {{ {string.Join(", ", row)} }},");
 		helper.Line(";");
 
-		// By a switch rather than an array of arrays: the expected arrays are static fields
-		// of this class too, and initializers across its files run in no order it can rely on.
-		using (helper.Block($"private static string[] {name}_Expected(int alternative)"))
+		// The number of the set each alternative refuses with, which the miss below hands to the
+		// class's sets: a number is all a refusal site passes. Past the last alternative, -1,
+		// which no row names.
+		using (helper.Block($"private static int {name}_Expected(int alternative)"))
 		{
 			using (helper.Block("switch (alternative)"))
 				for (var i = 0; i < alternatives.Count; i++)
 				{
 					var array = DeclareExpected(Displays(PrefixLiteral(alternatives[i])!));
 
+					if (!ExpectedSets.TryId(array, out var id))
+						throw new InvalidOperationException($"'{array}' is not a call to the class's sets.");
+
 					_expectedUsed.Add(array);
-					helper.Line($"case {i}: return {array};");
+					helper.Line($"case {i}: return {id};");
 				}
 
-			helper.Line("return null!;");
+			helper.Line("return -1;");
 		}
 	}
 
@@ -220,7 +224,7 @@ sealed partial class Machine
 
 				using (helper.Block("for (var tie = 0; tie < missed.Length - 1; tie++)"))
 				{
-					helper.Line($"var said = {name}_Expected(missed[tie]);");
+					helper.Line($"var said = {ExpectedSets.Accessor}({name}_Expected(missed[tie]));");
 					helper.Line("if (p > failure.Position)");
 
 					using (helper.Block(""))
@@ -238,7 +242,7 @@ sealed partial class Machine
 				}
 			}
 
-			helper.Line($"expected = {name}_Expected(missed[missed.Length - 1]);");
+			helper.Line($"expected = {ExpectedSets.Accessor}({name}_Expected(missed[missed.Length - 1]));");
 			helper.Line("return true;");
 		}
 	}

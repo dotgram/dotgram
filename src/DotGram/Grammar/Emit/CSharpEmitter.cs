@@ -219,11 +219,16 @@ public static partial class CSharpEmitter
 		var groups   = Published(graph);
 		var machines = new List<Compiled>();
 		// Exact ordered diagnostic lists may be shared by sibling machines in this scope.
-		// Single-machine parsers retain their existing names and need no shared registry.
+		// A single machine needs no shared registry: it looks its sets up in its own.
 		var expectedTables = groups.Count > 1 || bufferedInput || bufferedBytes ||
 			graph.Publications.Any(static one => one.BufferedInput || one.BufferedBytes)
-			? new Dictionary<string, (string Name, string Declaration)>(StringComparer.Ordinal)
+			? new Dictionary<string, int>(StringComparer.Ordinal)
 			: null;
+
+		// And the sets themselves, one list of items and one numbering for every machine the class
+		// holds, the ones with a table of their own included (ExpectedSets): each machine still
+		// numbers by its own table, so no two sets become one.
+		var expectedSets = new ExpectedSets();
 
 		// A machine's tag names everything it writes, and two machines sharing one write the same
 		// names twice. The two the file keeps for itself — the second read of a terminal's value
@@ -260,7 +265,7 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
 				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets,
-				tracing: tracing)
+				tracing: tracing, expectedSets: expectedSets)
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
@@ -324,7 +329,8 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
-				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets);
+				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
+				expectedSets: expectedSets);
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
@@ -357,7 +363,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, countRules, tracing);
+			carrier, replay, carriers is not null, directAllowed, countRules, tracing, expectedSets);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -374,7 +380,8 @@ public static partial class CSharpEmitter
 				lines,
 				only: Rereads(lexical),
 				tag: "_Value",
-				quiets: true)
+				quiets: true,
+				expectedSets: expectedSets)
 			: null;
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
@@ -703,12 +710,10 @@ public static partial class CSharpEmitter
 		}
 
 		// Every machine's, not one machine's: a materializer and its guards belong to the
-		// machine that named them, and a file has one set per machine. Identical expected
-		// arrays have shared names and are emitted once, by the first machine that uses them.
-		var writtenExpected = expectedTables is null ? null : new HashSet<string>(StringComparer.Ordinal);
-
+		// machine that named them, and a file has one set per machine. The sets a refusal
+		// names are the class's, and written once at its end (ExpectedSets).
 		foreach (var compiled in machines)
-			foreach (var extra in compiled.Machine.Extras(writtenExpected))
+			foreach (var extra in compiled.Machine.Extras())
 			{
 				file.Write(extra);
 				file.Line();
@@ -908,7 +913,7 @@ public static partial class CSharpEmitter
 		// calls the same one.
 		if (lexical is not null)
 		{
-			file.Write(Lexical(lexical, valuing, utf8Literals));
+			file.Write(Lexical(lexical, valuing, utf8Literals, expectedSets));
 			file.Line();
 		}
 
@@ -1154,6 +1159,14 @@ public static partial class CSharpEmitter
 			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
 				Points(graph, null));
 			Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
+		}
+
+		// The sets every machine's refusals name, last: what a machine writes a call to is known
+		// only once all of them are written, the lexical half's included.
+		if (expectedSets.Render(utf8Literals) is { Length: > 0 } sets)
+		{
+			file.Line();
+			file.Write(sets);
 		}
 
 		while (scope.Count > 0)
@@ -2600,14 +2613,14 @@ public static partial class CSharpEmitter
 	/// of every other pattern, and it ran for ten minutes without finishing.
 	/// </para>
 	/// </remarks>
-	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals)
+	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals, ExpectedSets expectedSets)
 	{
 		var file = new Writer(0);
 
 		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
 		file.Line();
 
-		var seam     = Seam(lexical);
+		var seam     = Seam(lexical, expectedSets);
 		var skipping = lexical.Trivia
 			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
 			.FirstOrDefault(one => one.Name is not null);
@@ -4959,7 +4972,7 @@ file.Line("return spare;");
 	/// wrote, and the generator failed on the first grammar whose trivia called a lexeme of
 	/// its own.
 	/// </remarks>
-	internal static Machine Seam(LexicalSplit lexical)
+	internal static Machine Seam(LexicalSplit lexical, ExpectedSets? expectedSets = null)
 	{
 		return new(
 			lexical.Source,
@@ -4969,7 +4982,8 @@ file.Line("return spare;");
 			// Tagged, because everything a machine emits is named after its tag and this one
 			// stands in a file another machine has already filled: without it the seam's
 			// character tables collide with the syntax's, name for name.
-			tag: "_Seam");
+			tag: "_Seam",
+			expectedSets: expectedSets);
 	}
 
 	/// <summary>The rules that measure the rest of a terminal the lexer only begins, each once.</summary>

@@ -5183,7 +5183,7 @@ sealed partial class Machine
 			using (code.Block(machine.Quiets ? "if (!failure.Quiet)" : ""))
 			{
 				var call  = EmitGuardCall(code, guard);
-				var named = $"{call} ? {expected} : {without}";
+				var named = ExpectedEither(call, expected, without);
 
 				code.Line(covered is not { } over
 					? $"{Refusing}(ref failure, p, {named});"

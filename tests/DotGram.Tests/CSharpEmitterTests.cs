@@ -1976,15 +1976,16 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void A_terminal_failure_site_records_its_own_display_before_jumping()
 	{
-		// Not pinned to a specific Recognize_DotGram_ExpectedN index: which number a
-		// given occurrence gets depends on how many terminals were visited compiling the
-		// rest of the grammar first, which is an implementation detail this test has no
-		// business caring about.
+		// Not pinned to a specific set number: which number a given occurrence gets depends on
+		// how many terminals were visited compiling the rest of the grammar first, which is an
+		// implementation detail this test has no business caring about.
 		var source = Emit("Start = 'x'\nparse Start");
+		var site   = System.Text.RegularExpressions.Regex.Match(source, @"expected = ExpectedSet_DotGram\((\d+)\);");
 
-		Assert.Matches(
-			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] \{ ""'x'"" \}, null\)", source);
-		Assert.Matches(@"expected = Recognize_DotGram_Expected\d+;", source);
+		Assert.True(site.Success);
+		Assert.Equal(
+			["'x'"],
+			ExpectedTablesTests.SetsOf(source)[int.Parse(site.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)]!);
 	}
 
 	[Fact]
@@ -2055,8 +2056,7 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("""Start = "http"i""");
 
-		Assert.Matches(
-			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] \{ ""\\""http\\""i"" \}, null\)", source);
+		Assert.Contains(ExpectedTablesTests.SetsOf(source), static set => set is not null && set.SequenceEqual(["\"http\"i"]));
 
 		// One slice, each character tested against the literal's own cases: the runtime's
 		// ordinal folding is not used, whose answer beyond ASCII depends on the runtime.
@@ -2099,10 +2099,9 @@ public sealed class CSharpEmitterTests
 		// "http"i sits outside that run entirely, on its own case-folded site.
 		var source = Emit("""Start = "http"i | "https" | "httpx" """);
 
-		Assert.Matches(
-			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] " +
-			@"\{ ""\\""https\\"""", ""\\""httpx\\"""" \}, null\)",
-			source);
+		Assert.Contains(
+			ExpectedTablesTests.SetsOf(source),
+			static set => set is not null && set.SequenceEqual(["\"https\"", "\"httpx\""]));
 		Assert.Contains("AsSpan(\"http\")", source);
 
 		// The case-folded site is its own, and it reads one slice rather than four characters.
@@ -2667,14 +2666,16 @@ public sealed class CSharpEmitterTests
 	/// <remarks>
 	/// `Left` reaches nothing of `Right` and neither reaches the other, so one machine over
 	/// either would compile a grammar the other's entry state is not in. The tagged pair is
-	/// what that has always produced and what it must go on producing.
+	/// what that has always produced and what it must go on producing. Each captures, so that
+	/// neither is lowered to a method named by its publication: a machine's tag is in the names
+	/// of its recognizer, and the sets that used to carry it too are the class's now.
 	/// </remarks>
 	[Fact]
 	public void Two_publications_that_do_not_reach_each_other_get_one_each()
 	{
 		var source = Emit("""
-			Left  = 'a'+
-			Right = 'b'+
+			Left  = x: 'a'+
+			Right = y: 'b'+
 			parse Left
 			parse Right
 			""");

@@ -548,22 +548,22 @@ namespace DotGram.Snapshots
 			new int[] { 9 },
 		}
 		;
-		private static string[] Prefix_DotGram_0_Expected(int alternative)
+		private static int Prefix_DotGram_0_Expected(int alternative)
 		{
 			switch (alternative)
 			{
-				case 0: return Recognize_DotGram_Expected7;
-				case 1: return Recognize_DotGram_Expected8;
-				case 2: return Recognize_DotGram_Expected4;
-				case 3: return Recognize_DotGram_Expected16;
-				case 4: return Recognize_DotGram_Expected14;
-				case 5: return Recognize_DotGram_Expected10;
-				case 6: return Recognize_DotGram_Expected9;
-				case 7: return Recognize_DotGram_Expected15;
-				case 8: return Recognize_DotGram_Expected11;
-				case 9: return Recognize_DotGram_Expected5;
+				case 0: return 7;
+				case 1: return 8;
+				case 2: return 4;
+				case 3: return 16;
+				case 4: return 14;
+				case 5: return 10;
+				case 6: return 9;
+				case 7: return 15;
+				case 8: return 11;
+				case 9: return 5;
 			}
-			return null!;
+			return -1;
 		}
 		private static bool Prefix_DotGram_0_Miss(global::System.ReadOnlySpan<char> text, ref int p, int row, int lookahead, ref Failure failure, out string[] expected)
 		{
@@ -575,7 +575,7 @@ namespace DotGram.Snapshots
 				p += Prefix_DotGram_0_Depth[row];
 				for (var tie = 0; tie < missed.Length - 1; tie++)
 				{
-					var said = Prefix_DotGram_0_Expected(missed[tie]);
+					var said = ExpectedSet_DotGram(Prefix_DotGram_0_Expected(missed[tie]));
 					if (p > failure.Position)
 					{
 						failure.Position = p;
@@ -586,7 +586,7 @@ namespace DotGram.Snapshots
 						(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(said);
 				}
 			}
-			expected = Prefix_DotGram_0_Expected(missed[missed.Length - 1]);
+			expected = ExpectedSet_DotGram(Prefix_DotGram_0_Expected(missed[missed.Length - 1]));
 			return true;
 		}
 
@@ -828,69 +828,6 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
-
-		static string[]? Recognize_DotGram_Expected0_Built;
-		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "';'" }, null) ?? Recognize_DotGram_Expected0_Built!;
-
-		static string[]? Recognize_DotGram_Expected1_Built;
-		static string[] Recognize_DotGram_Expected1 => Recognize_DotGram_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected1_Built, new string[] { "')'" }, null) ?? Recognize_DotGram_Expected1_Built!;
-
-		static string[]? Recognize_DotGram_Expected2_Built;
-		static string[] Recognize_DotGram_Expected2 => Recognize_DotGram_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected2_Built, new string[] { "['a'..'z']" }, null) ?? Recognize_DotGram_Expected2_Built!;
-
-		static string[]? Recognize_DotGram_Expected3_Built;
-		static string[] Recognize_DotGram_Expected3 => Recognize_DotGram_Expected3_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected3_Built, new string[] { "'('" }, null) ?? Recognize_DotGram_Expected3_Built!;
-
-		static string[]? Recognize_DotGram_Expected4_Built;
-		static string[] Recognize_DotGram_Expected4 => Recognize_DotGram_Expected4_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected4_Built, new string[] { "\"call\"" }, null) ?? Recognize_DotGram_Expected4_Built!;
-
-		static string[]? Recognize_DotGram_Expected5_Built;
-		static string[] Recognize_DotGram_Expected5 => Recognize_DotGram_Expected5_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected5_Built, new string[] { "\"halt\"" }, null) ?? Recognize_DotGram_Expected5_Built!;
-
-		static string[]? Recognize_DotGram_Expected6_Built;
-		static string[] Recognize_DotGram_Expected6 => Recognize_DotGram_Expected6_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected6_Built, new string[] { "'='" }, null) ?? Recognize_DotGram_Expected6_Built!;
-
-		static string[]? Recognize_DotGram_Expected7_Built;
-		static string[] Recognize_DotGram_Expected7 => Recognize_DotGram_Expected7_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected7_Built, new string[] { "\"let\"" }, null) ?? Recognize_DotGram_Expected7_Built!;
-
-		static string[]? Recognize_DotGram_Expected8_Built;
-		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "\"print\"" }, null) ?? Recognize_DotGram_Expected8_Built!;
-
-		static string[]? Recognize_DotGram_Expected9_Built;
-		static string[] Recognize_DotGram_Expected9 => Recognize_DotGram_Expected9_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected9_Built, new string[] { "\"raise\"" }, null) ?? Recognize_DotGram_Expected9_Built!;
-
-		static string[]? Recognize_DotGram_Expected10_Built;
-		static string[] Recognize_DotGram_Expected10 => Recognize_DotGram_Expected10_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected10_Built, new string[] { "\"return\"" }, null) ?? Recognize_DotGram_Expected10_Built!;
-
-		static string[]? Recognize_DotGram_Expected11_Built;
-		static string[] Recognize_DotGram_Expected11 => Recognize_DotGram_Expected11_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected11_Built, new string[] { "\"skip\"" }, null) ?? Recognize_DotGram_Expected11_Built!;
-
-		static string[]? Recognize_DotGram_Expected12_Built;
-		static string[] Recognize_DotGram_Expected12 => Recognize_DotGram_Expected12_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected12_Built, new string[] { "'}'" }, null) ?? Recognize_DotGram_Expected12_Built!;
-
-		static string[]? Recognize_DotGram_Expected13_Built;
-		static string[] Recognize_DotGram_Expected13 => Recognize_DotGram_Expected13_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected13_Built, new string[] { "'{'" }, null) ?? Recognize_DotGram_Expected13_Built!;
-
-		static string[]? Recognize_DotGram_Expected14_Built;
-		static string[] Recognize_DotGram_Expected14 => Recognize_DotGram_Expected14_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected14_Built, new string[] { "\"unless\"" }, null) ?? Recognize_DotGram_Expected14_Built!;
-
-		static string[]? Recognize_DotGram_Expected15_Built;
-		static string[] Recognize_DotGram_Expected15 => Recognize_DotGram_Expected15_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected15_Built, new string[] { "\"wait\"" }, null) ?? Recognize_DotGram_Expected15_Built!;
-
-		static string[]? Recognize_DotGram_Expected16_Built;
-		static string[] Recognize_DotGram_Expected16 => Recognize_DotGram_Expected16_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected16_Built, new string[] { "\"while\"" }, null) ?? Recognize_DotGram_Expected16_Built!;
-
-		static string[]? Recognize_DotGram_Expected17_Built;
-		static string[] Recognize_DotGram_Expected17 => Recognize_DotGram_Expected17_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected17_Built, new string[] { "\"let\"", "\"print\"", "\"call\"", "\"while\"", "\"unless\"", "\"return\"", "\"raise\"", "\"wait\"", "\"skip\"", "\"halt\"" }, null) ?? Recognize_DotGram_Expected17_Built!;
-
-		static string[]? Recognize_DotGram_Expected18_Built;
-		static string[] Recognize_DotGram_Expected18 => Recognize_DotGram_Expected18_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected18_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected18_Built!;
-
-		static string[]? Recognize_DotGram_Expected19_Built;
-		static string[] Recognize_DotGram_Expected19 => Recognize_DotGram_Expected19_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected19_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected19_Built!;
-
-		static string[]? Recognize_DotGram_Expected20_Built;
-		static string[] Recognize_DotGram_Expected20 => Recognize_DotGram_Expected20_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected20_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected20_Built!;
 
 		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
@@ -1831,6 +1768,98 @@ namespace DotGram.Snapshots
 				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
 				" state=" + state.ToString() + " at " + position.ToString() +
 				" \"" + window + "\" arena=" + arena.ToString());
+		}
+
+		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the
+		// type's initializer, and then the same array for as long as the process lives, because refusals
+		// tell sets apart by reference.
+		static string[]?[]? ExpectedBuilt_DotGram;
+		static string[]? ExpectedItems_DotGram;
+		static int[]? ExpectedStarts_DotGram;
+
+		static string[] ExpectedSet_DotGram(int id)
+		{
+			var built = ExpectedBuilt_DotGram;
+
+			if (built != null)
+			{
+				var set = built[id];
+
+				if (set != null)
+					return set;
+			}
+
+			return ExpectedDecoded_DotGram(id);
+		}
+
+		static string[] ExpectedDecoded_DotGram(int id)
+		{
+			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaNaPaRBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQKHIEQOKJPLFBRBSBT";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[21], null) ?? ExpectedBuilt_DotGram!;
+			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
+				{
+					"';'",
+					"')'",
+					"['a'..'z']",
+					"'('",
+					"\"call\"",
+					"\"halt\"",
+					"'='",
+					"\"let\"",
+					"\"print\"",
+					"\"raise\"",
+					"\"return\"",
+					"\"skip\"",
+					"'}'",
+					"'{'",
+					"\"unless\"",
+					"\"wait\"",
+					"\"while\"",
+					"['0'..'9']",
+					"end of input",
+					"[^ ]",
+				}, null) ?? ExpectedItems_DotGram!;
+			var starts = ExpectedStarts_DotGram;
+			var at = 0;
+			int value;
+
+			if (starts == null)
+			{
+				starts = new int[21];
+
+				for (var i = 0; i < starts.Length; i++)
+				{
+					value = 0;
+					while (data[at] >= 0x60)
+						value = value << 5 | data[at++] & 0x1F;
+					value = (value << 5 | data[at++] & 0x1F) - 1;
+					starts[i] = value;
+				}
+
+				for (var i = 0; i < starts.Length; i++)
+					starts[i] += at;
+
+				starts = global::System.Threading.Interlocked.CompareExchange(ref ExpectedStarts_DotGram, starts, null) ?? starts;
+			}
+
+			at = starts[id];
+			value = 0;
+			while (data[at] >= 0x60)
+				value = value << 5 | data[at++] & 0x1F;
+			value = (value << 5 | data[at++] & 0x1F) - 1;
+
+			var set = new string[value];
+
+			for (var i = 0; i < set.Length; i++)
+			{
+				value = 0;
+				while (data[at] >= 0x60)
+					value = value << 5 | data[at++] & 0x1F;
+				value = (value << 5 | data[at++] & 0x1F) - 1;
+				set[i] = items[value];
+			}
+
+			return global::System.Threading.Interlocked.CompareExchange(ref built[id], set, null) ?? set;
 		}
 	}
 }

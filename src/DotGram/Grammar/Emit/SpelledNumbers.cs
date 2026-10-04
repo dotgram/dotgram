@@ -66,6 +66,17 @@ public static class SpelledNumbers
 			line.Append("u8");
 	}
 
+	/// <summary>How many bytes <paramref name="number"/> is spelled in.</summary>
+	public static int Width(int number)
+	{
+		var width = 1;
+
+		for (var value = (uint)(number + 1) >> Bits; value != 0; value >>= Bits)
+			width++;
+
+		return width;
+	}
+
 	static void Byte(StringBuilder line, int value)
 	{
 		if (value is '@' or >= 'A' and <= 'Z' or >= 'a' and <= 'z')

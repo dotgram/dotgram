@@ -68,9 +68,9 @@ public static partial class CSharpEmitter
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
-		Dictionary<string, (string Name, string Declaration)>? expectedTables,
+		Dictionary<string, int>? expectedTables,
 		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules,
-		TraceTables? tracing)
+		TraceTables? tracing, ExpectedSets expectedSets)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
@@ -101,7 +101,7 @@ public static partial class CSharpEmitter
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
 					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true,
-					tracing: tracing)
+					tracing: tracing, expectedSets: expectedSets)
 				{
 					Reporting   = reporting,
 					CountsRules = countRules,
@@ -158,7 +158,7 @@ public static partial class CSharpEmitter
 				var memoryTag = tag + "_Memory";
 				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
-					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing)
+					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing, expectedSets: expectedSets)
 				{
 					InPlace   = true,
 					Reporting   = reporting,
@@ -205,7 +205,7 @@ public static partial class CSharpEmitter
 			var shared = new Machine(graph, results, lines, only: graph.Rules.Where(rules.Contains).ToArray(),
 				tag: owner.Tag, partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
 				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
-				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing)
+				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing, expectedSets: expectedSets)
 			{
 				Reporting   = reporting,
 				CountsRules = countRules,

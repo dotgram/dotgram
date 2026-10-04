@@ -1696,6 +1696,15 @@ parser's first call 5.0 ms). Steady state within 2.6% everywhere, allocation ide
 is now a net gain on the first call too; FIX's first-call gap to the hand parser is 2.5 ms and
 lies elsewhere than the type initializer.
 
+**2026-10-04: the sets as numbers.** A set is no longer a property of its own: a site calls
+`ExpectedSet_DotGram(n)`, and the class holds every item its sets name once, in one array, and every
+set as the numbers of its items, in one literal (UTF-8 from C# 11, an ordinary string below it, spelled
+as the lexer's cells are). Still built where a refusal first asks, still one array per number for the
+life of the process. A number is given by the table a set is looked up in, as the name was, so the
+machines that kept their own sets (a token's second reading, the seam) keep their own numbers: two
+sets that were two references are two references still. DotGram.Sql's generated source is 3.9 MB
+smaller (26.4 to 22.5), its DLL 2.3 MB; every refusal message over the SQL corpus is the same text.
+
 **FIX's first call by phase (sql-39, 2026-09-18, fresh process, three runs; the answer to D13's
 question about initialization).** Load 1 ms and the initializers under 1 ms on both sides; the
 first parse is JIT: generated 86 methods, 25.7 KB IL, 12.6-13.7 ms; hand 40 methods, 18.2 KB,

@@ -253,18 +253,20 @@ sealed partial class Machine
 	readonly Dictionary<RuleSymbol, int> _leadEntries = [];
 	readonly List<string> _extra = [];
 
-	/// <summary>Every array declared, by name, in the order they were asked for.</summary>
-	readonly List<(string Name, string Declaration)> _expected = [];
+	/// <summary>The sets of the parser class this machine writes into, which number and write them.</summary>
+	readonly ExpectedSets _expectedSets;
 
-	/// <summary>The names something actually wrote into a state.</summary>
-	readonly HashSet<string> _expectedUsed = [];
+	/// <summary>Whether the sets are this machine's alone, and so written among its <see cref="Extras"/>.</summary>
+	readonly bool _ownsExpectedSets;
 
-	/// <summary>One name per distinct set, so the same list is not written out twice.</summary>
+	/// <summary>The calls something actually wrote into a state, for every machine of the class.</summary>
+	readonly HashSet<string> _expectedUsed;
+
+	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
 	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
-	int _expectedCount;
 
 	// Shared only by sibling machines emitted into the same parser class.
-	readonly Dictionary<string, (string Name, string Declaration)>? _expectedTables;
+	readonly Dictionary<string, int>? _expectedTables;
 
 	/// <summary>The character classes read from a table rather than written out.</summary>
 	readonly List<(string Name, string Declaration)> _classes = [];
@@ -423,12 +425,15 @@ sealed partial class Machine
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
-		Dictionary<string, (string Name, string Declaration)>? expectedTables = null, bool deferCompilation = false,
-		bool quiets = false, TraceTables? tracing = null)
+		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
+		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null)
 	{
 		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
 		Tracing = tracing;
 		_expectedTables = expectedTables;
+		_expectedSets = expectedSets ?? new ExpectedSets();
+		_ownsExpectedSets = expectedSets is null;
+		_expectedUsed = _expectedSets.Used;
 		Quiets = quiets;
 		BufferedInput = bufferedInput;
 		_bufferedFind = bufferedFind;
@@ -768,17 +773,17 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// What the machine needs beside its methods — helper methods, and the arrays a
-	/// terminal failure names.
+	/// What the machine needs beside its methods — helper methods, and the sets a
+	/// terminal failure names where no class writes them for it.
 	/// </summary>
 	/// <remarks>
-	/// An array is written only where something reached <see cref="EmitTerminalFailure"/>
-	/// with its name. A site may declare one and then not fail that way — a shared-prefix
+	/// A set is written only where something reached <see cref="EmitTerminalFailure"/>
+	/// with its call. A site may declare one and then not fail that way — a shared-prefix
 	/// run that turns out settled writes neither the later texts nor the catch-all — and
 	/// what it left behind was a static field, allocated when the type is first touched and
 	/// held for the life of the program. In the URL grammar that was 564 of 1,137.
 	/// </remarks>
-	public IReadOnlyList<string> Extras(HashSet<string>? writtenExpected = null)
+	public IReadOnlyList<string> Extras()
 	{
 		var kept = new List<string>(_extra);
 
@@ -795,9 +800,8 @@ sealed partial class Machine
 			kept.Add(offers);
 
 
-		foreach (var (name, declaration) in _expected)
-			if (_expectedUsed.Contains(name) && (writtenExpected is null || writtenExpected.Add(name)))
-				kept.Add(declaration);
+		if (_ownsExpectedSets && _expectedSets.Render(utf8: false) is { Length: > 0 } sets)
+			kept.Add(sets);
 
 		foreach (var (name, declaration) in _classes)
 			if (_classesUsed.Contains(name))
@@ -6795,25 +6799,35 @@ sealed partial class Machine
 		if (_expectedByItems.TryGetValue(items, out var already))
 			return already;
 
-		if (_expectedTables is null || !_expectedTables.TryGetValue(items, out var entry))
+		// Numbered by the list this machine looks sets up in, which sibling machines share and
+		// a machine of its own does not: the same items in two lists are two numbers, and so
+		// two arrays at run time, as they were two fields before (ExpectedSets). Built where a
+		// refusal first asks for it, not by the type's initializer: only the recording reading
+		// of a refused input reads a set, and a grammar read over kinds has a thousand of them,
+		// hundreds naming every keyword, which the first call of any parse paid for in the
+		// initializer's JIT (D17).
+		if (_expectedTables is null || !_expectedTables.TryGetValue(items, out var id))
 		{
-			var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
-
-			// Built where a refusal first asks for it, not by the type's initializer: only the
-			// recording reading of a refused input reads a set, and a grammar read over kinds has
-			// a thousand of them, hundreds naming every keyword, which the first call of any
-			// parse paid for in the initializer's JIT (D17). One instance still, since a refusal
-			// tells two sets apart by reference.
-			entry = (name,
-				$"static string[]? {name}_Built;\n" +
-				$"static string[] {name} => {name}_Built ?? global::System.Threading.Interlocked.CompareExchange(ref {name}_Built, new string[] {{ {items} }}, null) ?? {name}_Built!;");
-			_expectedTables?.Add(items, entry);
+			id = _expectedSets.Add([.. display.Select(static d => EscapeExpected(Said(d)))]);
+			_expectedTables?.Add(items, id);
 		}
 
-		_expectedByItems[items] = entry.Name;
-		_expected.Add(entry);
+		var call = ExpectedSets.Call(id);
 
-		return entry.Name;
+		_expectedByItems[items] = call;
+
+		return call;
+	}
+
+	/// <summary>
+	/// The set named where <paramref name="condition"/> holds, <paramref name="whenTrue"/>, or
+	/// where it does not, <paramref name="whenFalse"/>: one call, with the number chosen.
+	/// </summary>
+	internal static string ExpectedEither(string condition, string whenTrue, string whenFalse)
+	{
+		return ExpectedSets.TryId(whenTrue, out var first) && ExpectedSets.TryId(whenFalse, out var second)
+			? $"{ExpectedSets.Accessor}({condition} ? {first} : {second})"
+			: $"{condition} ? {whenTrue} : {whenFalse}";
 	}
 
 	/// <summary>
