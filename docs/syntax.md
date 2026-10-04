@@ -2424,14 +2424,14 @@ same grammar traced.
 
 A trace build declares, in the class its parser goes into and public when that class is, the
 abstract class `GramTrace`, whose methods do nothing until overridden, and the scope that sets
-one:
+one — here in `Expressions.Traced`, with the sink that says why an input was refused:
 
 ```csharp
-var why = new Expressions.GramWhy();
+var why = new Expressions.Traced.GramWhy();
 
-using (Expressions.Tracing(why))
+using (Expressions.Traced.Tracing(why))
 {
-    var match = Expressions.TryParseSum("1+(2+");
+    var match = Expressions.Traced.TryParseSum("1+(2+");
 }
 
 Console.WriteLine(why);
