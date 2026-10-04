@@ -279,6 +279,15 @@ public sealed class NullableTypeTests
 	}
 
 	[Fact]
+	public void Is_followed_by_a_char_literal_reads_the_ternary()
+	{
+		var compiled = Both.Compile<Func<object, char>>("(object x) => x is int ? 'c' : 'd'");
+
+		Assert.Equal('c', compiled(5));
+		Assert.Equal('d', compiled("not an int"));
+	}
+
+	[Fact]
 	public void Is_followed_by_a_verbatim_string_reads_the_ternary()
 	{
 		Assert.Equal("n", Both.Compile<Func<object, string>>("(object x) => x is int ? @\"n\" : \"m\"")(5));
