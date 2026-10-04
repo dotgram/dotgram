@@ -233,7 +233,10 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 
 	Ows   = [' ' | '\t']*
 	Tchar = ['!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^' | '_' | '`' | '|' | '~' | '0'..'9' | 'a'..'z' | 'A'..'Z']
-	Token = Tchar+
+	// A token reads to its end and never hands a character back: nothing that may follow one begins with a
+	// tchar, so a shorter reading can never lead anywhere. Without the braces a refused field tried every
+	// shorter one, and each try ran the range's guard again on a fresh copy of the subtype: quadratic.
+	Token = { Tchar+ }
 
 	QuotedString = '"' & ([' ' | '\t' | '!' | '#'..'[' | ']'..'~' | '\u0080'..'\u00FF'] | '\\' & [' ' | '\t' | '!'..'~' | '\u0080'..'\u00FF'])* & '"'
 

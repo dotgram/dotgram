@@ -87,6 +87,28 @@ public sealed class WebListRefusalAllocationTests
 		AssertLinear(LinkRefusal, text => WebLink.TryParseField(text, out _));
 	}
 
+	/// <summary>Four times the characters in a range's subtype, and what a refusal allocates grows by about four — not sixteen.</summary>
+	/// <remarks>
+	/// The same square from another place. An Accept range is a token, a slash and a token, and then a
+	/// guard over the three it has read. A field refused after a long subtype (<c>text/aaa…a;q=</c>) gave
+	/// the subtype back one character at a time, and every shorter reading ran the guard again on a
+	/// fresh copy of what was left of it: 4.3 GB and 239 ms at 65,536 characters, four times as much at
+	/// every doubling. A token reads to its end — nothing that can follow one begins with a token
+	/// character — so the rule commits it, and the same refusal allocates 262 KB.
+	/// </remarks>
+	[Fact]
+	public void A_refused_Accept_field_allocates_about_as_many_bytes_a_subtype_character_at_every_size()
+	{
+		AssertLinear(AcceptRefusal, text => MediaRange.TryParseAccept(text, out _));
+	}
+
+	[Fact]
+	public void A_refused_Accept_field_still_refuses_at_every_size()
+	{
+		foreach (var size in Sizes)
+			Assert.False(MediaRange.TryParseAccept(AcceptRefusal(size), out _), $"a subtype of {size} characters was read.");
+	}
+
 	/// <summary>
 	/// Asserts bytes an element stay within 15% of one another at every doubling in <see cref="Sizes"/>. A
 	/// quadratic allocator doubles bytes an element at every doubling in the count; this catches that at
@@ -144,6 +166,12 @@ public sealed class WebListRefusalAllocationTests
 	static string GoodElement(int index)
 	{
 		return "for=192.0." + (index / 250 % 250) + "." + (index % 250 + 1);
+	}
+
+	/// <summary>A range whose subtype is <paramref name="characters"/> long, then a weight with no value.</summary>
+	static string AcceptRefusal(int characters)
+	{
+		return "text/" + new string('a', characters) + ";q=";
 	}
 
 	/// <summary><paramref name="links"/> valid link-values, then one whose target is never closed.</summary>
