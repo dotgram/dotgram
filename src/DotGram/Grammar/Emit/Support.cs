@@ -1764,13 +1764,20 @@ public static partial class CSharpEmitter
 		text.Append("\t\t\t(_deeper ??= new ").Append(type).Append("?[").Append(DeeperSpares).Append("])[_deeperCount++] = ").Append(store).Append(";\n");
 	}
 
+	/// <summary>How a store whose walk keeps an index grows it: the index is carried over, the pending list need not be.</summary>
+	const string IndexedGrowth =
+		"\t\t\tvar starts = new int[Live.Length];\n" +
+		"\t\t\tglobal::System.Array.Copy(Starts, starts, Starts.Length);\n" +
+		"\t\t\tStarts  = starts;\n" +
+		"\t\t\tPending = new int[Live.Length];\n";
+
 	/// <summary>
 	/// And the longest of the arrays indexed by record — the flags and the maps every walk reads —
 	/// which are as long as the log, not as the values of one type.
 	/// </summary>
 	const int RecordsKept = 1048576;
 
-	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool markPositions = false)
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool markPositions = false, bool indexed = false)
 	{
 		var text = new StringBuilder();
 
@@ -1787,6 +1794,17 @@ public static partial class CSharpEmitter
 		text.Append("\tinternal bool[] Live   = new bool[16];\n");
 		text.Append("\tinternal int[]  Starts = new int[16];\n");
 		text.Append("\tinternal bool[] Built  = new bool[16];\n");
+
+		// Where a walk follows the references down from its root rather than listing the log
+		// (Machine.Direct.Values.cs): `Starts` is then where every record begins, by its number,
+		// kept from one walk to the next for the records below `Indexed`, and `Pending` is the
+		// records the walk has reached and is to build.
+		if (indexed)
+		{
+			text.Append("\tinternal int[]  Pending = new int[16];\n");
+			text.Append("\tinternal int Indexed;\n");
+			text.Append("\tinternal int IndexedAt;\n");
+		}
 
 		if (stateType is not null)
 		{
@@ -1816,6 +1834,8 @@ public static partial class CSharpEmitter
 			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length", "values.Tables" }
 			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
 				.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
+		if (indexed)
+			capacities.Add("values.Pending.Length");
 		if (stateType is not null)
 			capacities.Add("values.MarkState.Length");
 		if (stateType is not null && markPositions)
@@ -1847,6 +1867,12 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
 
 		text.Append("\t\tvalues._used = 0;\n");
+
+		if (indexed)
+		{
+			text.Append("\t\tvalues.Indexed   = 0;\n");
+			text.Append("\t\tvalues.IndexedAt = 0;\n");
+		}
 
 		// After the tables are emptied and not before. The branch below returns, so a store
 		// that goes past the bound never reaches any line after it - and a store parked with
@@ -1884,9 +1910,13 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
 		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(", int from = 0)\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
 		if (dense)
-			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse if (live && count > from) global::System.Array.Clear(Live, from, count - from);\n");
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive = new bool[global::System.Math.Max(count, Live.Length * 2)];\n")
+				.Append(indexed ? IndexedGrowth : "\t\t\tStarts = new int[Live.Length];\n")
+				.Append("\t\t}\n\t\telse if (live && count > from) global::System.Array.Clear(Live, from, count - from);\n");
 		else
-			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live && count > from)\n\t\t\tglobal::System.Array.Clear(Live, from, count - from);\n");
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n")
+				.Append(indexed ? IndexedGrowth : "\t\t\tStarts = new int[Live.Length];\n")
+				.Append("\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live && count > from)\n\t\t\tglobal::System.Array.Clear(Live, from, count - from);\n");
 
 		if (dense)
 		{

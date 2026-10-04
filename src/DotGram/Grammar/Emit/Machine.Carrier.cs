@@ -882,6 +882,9 @@ sealed partial class Machine
 		internal bool DenseStore;
 		internal bool AdaptiveStore => machine._adaptiveStore;
 
+		/// <summary>Whether a machine sharing the store walks by the index of where records begin.</summary>
+		internal bool IndexedStore;
+
 		/// <remarks>
 		/// The tables where a guard builds; the tokens where a guard or a glue asks about
 		/// text over kinds; the context where a guard names it or builds a value whose
@@ -1217,7 +1220,7 @@ sealed partial class Machine
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
 		{
-			return CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, NamesMarks(machine._graph));
+			return CSharpEmitter.DirectValuesClass(valueTypes, stateType, DenseStore, AdaptiveStore, NamesMarks(machine._graph), IndexedStore);
 		}
 
 		public override string? Refuses()

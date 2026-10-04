@@ -38,7 +38,9 @@ public sealed class GuardMaterializationTests
 		});
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
-		Assert.Equal(large, source.Contains("MemoryExtensions.IndexOf"));
+		// The large grammar divides its walk, and a divided walk follows references over an index of
+		// the log kept between walks — which a give-back has to cut, and this is where it is tested.
+		Assert.Equal(large, source.Contains("values.Indexed", StringComparison.Ordinal));
 		var assembly = EmittedCode.Compile(source, declarationMembers: """
 			public static int Calls;
 			static int Next() => ++Calls;

@@ -685,6 +685,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool _denseStore;
 
+	/// <summary>Whether this machine's walk follows references down from its root over an index of the log.</summary>
+	/// <remarks>Set where the walk is rendered, and read by the store, which is rendered after it.</remarks>
+	bool _indexedWalk;
+
 	/// <summary>Many types justify dense indexing when no guard can materialize and rewind records.</summary>
 	/// <remarks>Starts becomes the record-to-value map after the reachability pass has finished.</remarks>
 	bool DenseDirectValues => _valueStorage == ValueStorageKind.Auto &&
@@ -694,8 +698,12 @@ sealed partial class Machine
 	{
 		var readers = machines.Where(machine => machine.Carrier is TapeCarrier).ToArray();
 		var dense = readers.Any(machine => machine.DenseDirectValues);
+		var indexed = readers.Any(machine => machine._indexedWalk);
 		foreach (var reader in readers)
+		{
 			((TapeCarrier)reader.Carrier).DenseStore = dense;
+			((TapeCarrier)reader.Carrier).IndexedStore = indexed;
+		}
 	}
 
 	internal static void ShareAdaptiveStores(IEnumerable<Machine> machines, ValueStorageKind storage)
@@ -830,6 +838,9 @@ sealed partial class Machine
 			// Small materializers retain their straight walk. Large split methods can
 			// amortize selection; marks still need every record visited in order.
 			var selected = twice && strays && !UsesMarks && parts.Count > 1;
+			// Rendered whole first and in parts only where that is too large, so the last rendering
+			// is the one kept, and what it says is what the store is written for.
+			_indexedWalk = selected;
 			// Whether the arms are methods of their own (CallDirectArm): wherever the walk is
 			// divided, and where it holds enough of them that their locals are a frame worth zeroing.
 			var alone = parts.Count > 1 || parts[0].Count >= AloneArms;
@@ -881,17 +892,40 @@ sealed partial class Machine
 			// Only for a single root, and never past it: a root below `first` would fall through every
 			// test that asks `root >= first` and reach the walk with nothing to do. It is built, so that
 			// answers correctly, but it answers by doing the whole walk to build nothing.
-			file.Line("if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)");
-			using (file.Block(""))
+			//
+			// A walk that follows references (`selected`, below) starts nowhere: what it reads is what
+			// its root reaches. Nor does anything there raise the watermark.
+			if (!selected)
 			{
-				file.Line("first = ways.AllBuilt;");
-				file.Line("from  = ways.AllBuiltAt;");
+				file.Line("if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)");
+				using (file.Block(""))
+				{
+					file.Line("first = ways.AllBuilt;");
+					file.Line("from  = ways.AllBuiltAt;");
+				}
+				file.Line();
 			}
-			file.Line();
+
+			// THE INDEX STANDS FOR NOTHING THAT WAS PUT BACK. Where each record begins is kept from one
+			// walk to the next, and a give-back that discarded records lowers `ways.Built` to the first
+			// it discarded (UnwindRecords) — so before anything here raises `Built` again, the index is
+			// cut to it. The record at the cut is still where it was: everything below it is untouched,
+			// and it begins where the one before it ends.
+			if (selected)
+			{
+				file.Line("if (values.Indexed > ways.Built)");
+				using (file.Block(""))
+				{
+					file.Line("values.Indexed   = ways.Built;");
+					file.Line("values.IndexedAt = values.Starts[ways.Built];");
+				}
+				file.Line();
+			}
 
 			// Only what this walk reads is cleared: a guard walks from its own rule's mark, and
 			// clearing from the start of the log each time was a pass over every record before it.
-			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
+			// A walk that follows references reads no flags of liveness, and clears none.
+			file.Line($"values.Room(ways.Records{(strays && !selected ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
 			file.Line("#if DOTGRAM_CHECKS");
 			file.Line("Ways.CheckRecords = ways.Records;");
 			file.Line("#endif");
@@ -904,7 +938,7 @@ sealed partial class Machine
 				_recoveryArms.ContainsKey(read.Plan.Id) && (read.Plan.Recovery.Locates || read.Plan.Recovery.Words)))
 				file.Line("var located = default(Located_DotGram);");
 
-			if (strays)
+			if (strays && !selected)
 				file.Line("var live  = values.Live;");
 
 			if (twice)
@@ -921,7 +955,12 @@ sealed partial class Machine
 				// mark and marking what it reaches. That every record since the mark is built says
 				// its children are, the children of a record being written before it and after
 				// the mark. Where one is not, or marks stand over the walk, it walks.
-				if (alone && strays && !UsesMarks && _recoveryReads.Count == 0)
+				//
+				// Not where the walk follows references (`selected`): that walk reaches the root, finds
+				// every record it holds built, and builds the root alone, which is what this does — and
+				// this one's proof is a scan of the flags from the rule's mark to the root, which on a nest
+				// is the whole nest below, at every level: the square of the depth again.
+				if (alone && strays && !UsesMarks && _recoveryReads.Count == 0 && !selected)
 				{
 					file.Line();
 					file.Line("if (roots < 0 && root >= first && root < ways.Records && built[root])");
@@ -1016,7 +1055,9 @@ sealed partial class Machine
 
 			// What the root reaches, and nothing else: a valued rule that matched without being
 			// captured is in the log, and its factory must not run (docs/syntax.md §7.2).
-			if (strays)
+			if (selected)
+				DirectReach(file, rules, parts.Count);
+			else if (strays)
 			{
 				file.Line("var starts = values.Starts;");
 				file.Line("var listed = 0;");
@@ -1150,20 +1191,15 @@ sealed partial class Machine
 			}
 
 			using (file.Block(selected
-				? "for (var slot = first; slot < ways.Records; slot++)"
+				? "for (var next = 0; next < count; next++)"
 				: "for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)"))
 			{
 				if (selected)
 				{
-					// Starts already indexes the current window. Scan the compact live map
-					// only across holes, instead of rereading the tape for built subtrees.
-					using (file.Block("if (!live[slot])"))
-					{
-						file.Line("var next = global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(live, slot, ways.Records - slot), true);");
-						file.Line("if (next < 0) break;");
-						file.Line("slot += next;");
-					}
-					file.Line("var at = starts[slot - first];");
+					// What the root reached and was not built, in the order of the log, which puts
+					// every record after the records it holds.
+					file.Line("var slot = pending[next];");
+					file.Line("var at   = starts[slot];");
 					file.Line();
 				}
 				if (UsesMarks)
@@ -1196,7 +1232,8 @@ sealed partial class Machine
 				file.Line($"var read  = at + {HeadLength(rules, placed)};");
 				file.Line();
 
-				if (twice)
+				// A walk that follows references flagged each record as it reached it.
+				if (twice && !selected)
 				{
 					file.Line("built[slot] = true;");
 					file.Line();
@@ -1269,12 +1306,12 @@ sealed partial class Machine
 
 					using (file.Block(
 						$"static bool {DirectMaterializer}_Reaches{part}(" +
-						"int[] log, bool[] live, int kind, int read)"))
+						(selected ? "int[] log, bool[] built, int[] pending, ref int count, int kind, int read)" : "int[] log, bool[] live, int kind, int read)")))
 					{
 						using (file.Block("switch (kind)"))
 						{
 							foreach (var (rule, factory) in parts[part])
-								MarkDirectArm(file, rule, factory);
+								MarkDirectArm(file, rule, factory, selected ? $"{DirectMaterializer}_Reach" : null);
 
 							file.Line("default: return false;");
 						}
@@ -1283,6 +1320,24 @@ sealed partial class Machine
 						file.Line("return true;");
 					}
 				}
+
+			// One record reached: taken where it is not built yet, and flagged at once, so that a
+			// record two others name is taken once.
+			if (selected)
+			{
+				// A local function like the rest, so no attribute: those need C# 9, and the generated
+				// code is held to C# 8. It is small enough for the JIT to inline unasked.
+				file.Line();
+
+				using (file.Block($"static void {DirectMaterializer}_Reach(bool[] built, int[] pending, ref int count, int slot)"))
+				{
+					file.Line("if (built[slot])");
+					file.Then("return;");
+					file.Line();
+					file.Line("built[slot] = true;");
+					file.Line("pending[count++] = slot;");
+				}
+			}
 
 			// Whether a record between two places in the log hands its factory the marks.
 			if (_marksAsked is { } arms)
@@ -1314,6 +1369,145 @@ sealed partial class Machine
 
 		return file.ToString();
 	}
+
+	/// <summary>
+	/// What the root reaches and is not built yet, found by following its references down, and
+	/// put in the order of the log for the walk to build.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <b>Why not the list and the pass back over it.</b> That walk listed every record from the
+	/// guard's mark to the end of the log, and stepped back over all of them to see which the root
+	/// reached. A guard at every level of a nest asks for the level's whole subtree, nearly all of it
+	/// built for the guards inside — so each walk paid for the whole nest below it, and the nest paid
+	/// the square of its depth: ten thousand <c>CASE … ELSE CASE …</c> in SQL:2023 took twenty-five
+	/// seconds, with the reader's own work flat in the depth. Here a walk reads a record twice at most
+	/// over a whole parse: once to index it, where it begins, and once when something reaches it
+	/// unbuilt — after which it is built, and the next walk stops at it.
+	/// </para>
+	/// <para>
+	/// <b>The index</b> is kept in the store between walks, so that the log is listed once rather than
+	/// from the guard's mark at every walk; the cut that keeps it true across a give-back is at the
+	/// top of the walk. <b>The order</b> is the log's, sorted out of what was reached, because a
+	/// record's factory reads the values of the records it holds, and those were written before it.
+	/// </para>
+	/// </remarks>
+	void DirectReach(Writer file, IReadOnlyList<RuleSymbol> rules, int parts)
+	{
+		file.Line("var starts  = values.Starts;");
+		file.Line("var pending = values.Pending;");
+		file.Line("var listed  = values.Indexed;");
+		file.Line();
+		file.Line("for (var at = values.IndexedAt; at < ways.LogCount; at += log[at])");
+		file.Then("starts[listed++] = at;");
+		file.Line("#if DOTGRAM_CHECKS");
+		file.Line("if (listed != ways.Records) throw new global::System.InvalidOperationException(\"the index of the log lists \" + listed + \" records where it holds \" + ways.Records);");
+		file.Line("#endif");
+		file.Line("#if DOTGRAM_COUNTS");
+		file.Line("Ways.CountListed += listed - values.Indexed;");
+		file.Line("#endif");
+		file.Line("values.Indexed   = listed;");
+		file.Line("values.IndexedAt = ways.LogCount;");
+		file.Line();
+		file.Line("var count = 0;");
+		file.Line();
+		// One root, or every record gathered for the slots asked since `roots`: a guard handed a
+		// list builds all of it in one walk (TapeCarrier.Gathered), not one walk an element.
+		file.Line("if (roots < 0)");
+		file.Then($"{DirectMaterializer}_Reach(built, pending, ref count, root);");
+		file.Line("else");
+
+		using (file.Block(""))
+		{
+			file.Line("for (var at = roots; at < ways.RefsCount; at += 3)");
+			file.Then($"if ((rootSlots & (1L << ways.Refs[at])) != 0) {DirectMaterializer}_Reach(built, pending, ref count, ways.Refs[at + 1]);");
+		}
+
+		file.Line();
+
+		using (file.Block("for (var next = 0; next < count; next++)"))
+		{
+			file.Line("var at   = starts[pending[next]];");
+			file.Line($"var read = at + {HeadLength(rules, DirectPositions(rules))};");
+			file.Line("var kind = log[at + 1];");
+			file.Line();
+
+			for (var part = 0; part < parts; part++)
+				file.Line(
+					(part < parts - 1 ? "if (!" : "	") +
+					$"{DirectMaterializer}_Reaches{part}(log, built, pending, ref count, kind, read)" +
+					(part < parts - 1 ? ")" : ";"));
+		}
+
+		file.Line();
+		// Two counters a materializer, never one a rule: what a count gate reads, and nothing a
+		// consumer compiles (D144). Listed here is what was indexed since the last walk and what
+		// this one reached, which between them are everything the walk read.
+		file.Line("#if DOTGRAM_COUNTS");
+		file.Line("Ways.CountListed += count;");
+		file.Line("Ways.CountWalks++;");
+		file.Line("#endif");
+		file.Line();
+
+		// Into the order of the log. Where what was reached is most of the stretch of the log it lies
+		// in — the walk at the end of a parse, which reaches nearly every record — by flagging each and
+		// reading the flags across the stretch, which is what the walk before this did and costs the
+		// stretch; a sort there cost a fifth of a long statement's reading. Where it is a few records
+		// strewn over a long stretch — a guard at every level of a nest, whose stretch is the nest
+		// below — by sorting them, which costs only what was reached. The flags are `Live`, which
+		// nothing else in this walk reads, cleared across the stretch first: a walk of another machine
+		// sharing the store leaves its own flags standing, and one left here would be built unreached.
+		using (file.Block("if (count > 1)"))
+		{
+			file.Line("var low  = pending[0];");
+			file.Line("var high = low;");
+			file.Line();
+
+			using (file.Block("for (var next = 1; next < count; next++)"))
+			{
+				file.Line("var slot = pending[next];");
+				file.Line();
+				file.Line("if (slot < low)");
+				file.Then("low = slot;");
+				file.Line("else if (slot > high)");
+				file.Then("high = slot;");
+			}
+
+			file.Line();
+
+			using (file.Block($"if (high - low < count * {DenseReach})"))
+			{
+				file.Line("var live = values.Live;");
+				file.Line();
+				file.Line("global::System.Array.Clear(live, low, high - low + 1);");
+				file.Line();
+				file.Line("for (var next = 0; next < count; next++)");
+				file.Then("live[pending[next]] = true;");
+				file.Line();
+				file.Line("var placed = 0;");
+				file.Line();
+
+				using (file.Block("for (var slot = low; slot <= high; slot++)"))
+				{
+					file.Line("if (live[slot])");
+					file.Then("pending[placed++] = slot;");
+				}
+			}
+			file.Line("else");
+			file.Then("global::System.Array.Sort(pending, 0, count);");
+		}
+	}
+
+	/// <summary>
+	/// How many records of the log a walk may read across for each record it reached, before it sorts
+	/// what it reached rather than reading its flags across the stretch.
+	/// </summary>
+	/// <remarks>
+	/// Sixteen, so that either way a walk costs a small multiple of what it reached: a sort of n costs
+	/// some n log n, and a stretch sixteen times n read flag by flag about as much at the sizes a
+	/// statement reaches. Its exact value only moves where the line falls; neither side is a square.
+	/// </remarks>
+	const int DenseReach = 16;
 
 	/// <summary>Arms with this many or more are methods of their own even where the walk is not divided.</summary>
 	const int AloneArms = 16;
@@ -1616,7 +1810,11 @@ sealed partial class Machine
 	}
 
 	/// <summary>Marks what one arm's record names as reached, given that the record itself is.</summary>
-	void MarkDirectArm(Writer file, RuleSymbol rule, int factory)
+	/// <param name="reach">
+	/// The method a record reached is handed to, where the walk follows references; where it
+	/// is <see langword="null"/>, the record's flag of liveness is raised instead.
+	/// </param>
+	void MarkDirectArm(Writer file, RuleSymbol rule, int factory, string? reach = null)
 	{
 		using (file.Block($"case {DirectArm(rule, factory)}:"))
 		{
@@ -1627,12 +1825,12 @@ sealed partial class Machine
 					file.Line("#if DOTGRAM_CHECKS");
 					file.Line($"if (log[read] >= Ways.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException(\"a step of {rule.Name} follows a reference to record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
 					file.Line("#endif");
-					file.Line("live[log[read]] = true;");
+					file.Line(Reached(reach, "log[read]"));
 					file.Line("read++;");
 				}
 
 				foreach (var member in DirectMembers(rule, factory))
-					MarkMember(file, member);
+					MarkMember(file, member, reach);
 			}
 
 			file.Line("break;");
@@ -1640,7 +1838,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>Steps over one member of a record, marking what it names as reached.</summary>
-	void MarkMember(Writer file, DirectMember member)
+	void MarkMember(Writer file, DirectMember member, string? reach)
 	{
 		// An extent stands for its own record and is never built, so its liveness is
 		// nobody's question — and what the log holds for it is a place, not a number.
@@ -1662,7 +1860,7 @@ sealed partial class Machine
 					file.Line("#if DOTGRAM_CHECKS");
 					file.Line($"if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException(\"{member.Member.Name} names record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
 					file.Line("#endif");
-					file.Line("if (log[read] >= 0) live[log[read]] = true;");
+					file.Line("if (log[read] >= 0) " + Reached(reach, "log[read]"));
 				}
 
 				file.Line("read++;");
@@ -1684,13 +1882,21 @@ sealed partial class Machine
 						file.Line("#if DOTGRAM_CHECKS");
 						file.Line($"if (log[read + 1 + item] >= Ways.CheckRecords || log[read + 1 + item] < 0) throw new global::System.InvalidOperationException(\"{member.Member.Name}[\" + item + \"] names record \" + log[read + 1 + item] + \" of \" + Ways.CheckRecords + \", at \" + read);");
 						file.Line("#endif");
-						file.Line("live[log[read + 1 + item]] = true;");
+						file.Line(Reached(reach, "log[read + 1 + item]"));
 					}
 				}
 
 				file.Line("read += 1 + log[read];");
 				break;
 		}
+	}
+
+	/// <summary>The statement that says the record <paramref name="record"/> names is reached.</summary>
+	static string Reached(string? reach, string record)
+	{
+		return reach is null
+			? $"live[{record}] = true;"
+			: $"{reach}(built, pending, ref count, {record});";
 	}
 
 	/// <summary>Reads one member out of the record into <c>captured{i}</c>.</summary>

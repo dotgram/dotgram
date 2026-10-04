@@ -25,9 +25,10 @@ namespace DotGram.Tests;
 /// written again to the same text.
 /// </para>
 /// <para>
-/// SQL:2023 is read here only in the shapes it reads in time linear in their depth. Its nested
-/// <c>CASE</c>, <c>COALESCE</c> and <c>IN (SELECT …)</c> are read in time that grows with the square of
-/// the depth, which is a cost and not a crash, and ten thousand levels of them take half a minute.
+/// SQL:2023's nested <c>CASE</c>, <c>COALESCE</c> and <c>IN (SELECT …)</c> were left out of it while
+/// they took the square of their depth — half a minute at ten thousand levels, the values built for
+/// the guard at each level walking the whole nest below it. That is linear now, and counted in
+/// <c>DeepNestingCountTests</c>; here they are held, like every other shape, to a verdict.
 /// </para>
 /// </remarks>
 public sealed class DeepTreeSweepTests
@@ -114,6 +115,10 @@ public sealed class DeepTreeSweepTests
 	[InlineData("signs on brackets", "SELECT ",          "-(",                    "1",     ")",          " FROM t")]
 	[InlineData("calls",             "SELECT ",          "ABS(",                  "1",     ")",          " FROM t")]
 	[InlineData("CASE operand",      "SELECT ",          "CASE ",                 "1",     " WHEN 1 THEN 1 END", " FROM t")]
+	[InlineData("CASE in ELSE",      "SELECT ",          "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END",     " FROM t")]
+	[InlineData("CASE in THEN",      "SELECT ",          "CASE WHEN 1 = 1 THEN ", "1",     " END",       " FROM t")]
+	[InlineData("COALESCE",          "SELECT ",          "COALESCE(1, ",          "1",     ")",          " FROM t")]
+	[InlineData("IN (SELECT …)",     "SELECT 1 FROM t WHERE ", "1 IN (SELECT 1 FROM t WHERE ", "1 = 1", ")", "")]
 	[InlineData("CAST",              "SELECT ",          "CAST(",                 "1",     " AS INTEGER)", " FROM t")]
 	[InlineData("+",                 "SELECT ",          "1 + ",                  "1",     "",           " FROM t")]
 	[InlineData("||",                "SELECT ",          "'a' || ",               "'a'",   "",           " FROM t")]
