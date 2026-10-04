@@ -73,12 +73,32 @@ public sealed class NullableTypeTests
 	}
 
 	[Fact]
+	public void A_nullable_annotated_array_reads_as_the_same_array()
+	{
+		// `string[]?` is a nullable-REFERENCE annotation on the ARRAY itself, not on its
+		// element: the array is a reference type whichever way, so this is `string[]`.
+		Assert.Equal(typeof(string[]), Both.Parse(Using + "(string[]? a) => a").Parameters[0].Type);
+	}
+
+	[Fact]
+	public void A_mark_at_either_level_may_be_stacked_in_any_order()
+	{
+		// `string?[]?[]`: an array of (a nullable-annotated array of nullable `string`). Every
+		// `?` is a reference annotation here except the one right after `string`, so the
+		// runtime type is `string[][]` regardless of how many of them are written.
+		Assert.Equal(typeof(string[][]), Both.Parse(Using + "(string?[]?[] a) => a").Parameters[0].Type);
+	}
+
+	[Fact]
 	public void A_reference_type_is_the_same_type_with_or_without_the_mark()
 	{
 		// `?` on a reference type is a nullable-REFERENCE annotation in C#, erased by the time
 		// anything runs: `string?` and `string` are one `Type`. Nothing here tracks the
-		// annotation, so there is nothing for it to mean beyond the type already written.
-		Assert.Equal(typeof(string), Both.Compile<Func<Type>>("() => typeof(string?)")());
+		// annotation, so there is nothing for it to mean beyond the type already written — in
+		// every position C# lets it stand at all; `Typeof_of_a_nullable_reference_type_is_refused`
+		// and its neighbours below are the ones that do not.
+		Assert.Equal("a", Both.Compile<Func<object, string>>(Using + "(object x) => (string?)x")("a"));
+		Assert.Equal(typeof(string), Both.Parse(Using + "(string? x) => x").Parameters[0].Type);
 	}
 
 	[Fact]
@@ -88,6 +108,44 @@ public sealed class NullableTypeTests
 
 		Assert.False(result.IsSuccess);
 		Assert.Contains("is already nullable", result.Error, StringComparison.Ordinal);
+	}
+
+	// ── Where C# refuses the erasure instead of making it (CS8639, CS8628, CS8650, CS8651) ──
+
+	[Fact]
+	public void Typeof_of_a_nullable_reference_type_is_refused()
+	{
+		var result = Both.TryParse(Using + "() => typeof(string?)");
+
+		Assert.False(result.IsSuccess);
+		Assert.Contains("not legal to use nullable reference type", result.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_constructor_call_on_a_nullable_reference_type_is_refused()
+	{
+		var result = Both.TryParse("() => new object?()");
+
+		Assert.False(result.IsSuccess);
+		Assert.Contains("not legal to use nullable reference type", result.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void An_object_initializer_with_no_parentheses_on_a_nullable_reference_type_is_refused()
+	{
+		var result = Both.TryParse(Using + "() => new List<int>? { 1 }");
+
+		Assert.False(result.IsSuccess);
+		Assert.Contains("not legal to use nullable reference type", result.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Default_and_a_cast_still_erase_the_mark_rather_than_refuse_it()
+	{
+		// `typeof`, `new` and `is`/`as` refuse it; a declaration, `default` and a cast do not —
+		// the same split C# makes (CS8639/CS8628/CS8650/CS8651 against none of these).
+		Assert.Null(Both.Compile<Func<string?>>(Using + "() => default(string?)")());
+		Assert.Equal("a", Both.Compile<Func<object, string?>>(Using + "(object x) => (string?)x")("a"));
 	}
 
 	// ── `is` and `as`, where C#'s `?:` also reads a `?` ─────────────────────────
@@ -152,5 +210,44 @@ public sealed class NullableTypeTests
 	public void Is_nullable_closed_by_a_parenthesis_reads_as_nullable()
 	{
 		Assert.True(Both.Compile<Func<object, bool>>("(object x) => (x is int?)")(5));
+	}
+
+	[Fact]
+	public void As_nullable_may_be_an_array_of_the_nullable_type()
+	{
+		var made = Both.Compile<Func<object, int?[]>>("(object x) => x as int?[]");
+
+		Assert.Equal([1, null], made(new int?[] { 1, null }));
+		Assert.Null(made("not an array"));
+	}
+
+	[Fact]
+	public void Is_nullable_may_be_an_array_of_the_nullable_type()
+	{
+		Assert.True(Both.Compile<Func<object, bool>>("(object x) => x is int?[]")(new int?[] { 1 }));
+	}
+
+	[Fact]
+	public void As_nullable_followed_by_the_coalesce_operator_keeps_the_mark()
+	{
+		// A SEPARATE `?` right after the nullable one is never this one's other half (that pair
+		// is lexically one token, `??`, and never reaches this far) — so it is read as the
+		// coalesce operator's own, exactly as `x as int? < 5` above reads a separate `<`.
+		var made = Both.Compile<Func<object, int>>("(object x) => x as int? ?? 5");
+
+		Assert.Equal(1, made(1));
+		Assert.Equal(5, made("not an int"));
+	}
+
+	[Fact]
+	public void As_int_followed_immediately_by_the_coalesce_operator_is_still_refused()
+	{
+		// `int??5` is one token, `??`, before any of this is asked — the lexer never hands
+		// `Tested` a `?` to keep or let go of, so this reads as `(x as int) ?? 5` and refuses on
+		// `as` needing a reference or nullable type, as it did with none of this nearby at all.
+		var result = Both.TryParse("(object x) => x as int??5");
+
+		Assert.False(result.IsSuccess);
+		Assert.Contains("reference or nullable type", result.Error, StringComparison.Ordinal);
 	}
 }

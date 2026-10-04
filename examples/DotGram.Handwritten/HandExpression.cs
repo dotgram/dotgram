@@ -2269,36 +2269,80 @@ public static class HandExpression
 			if (at < 0)
 				return -1;
 
-			// `int?` is `Nullable<int>`, read where C#'s `?:` has no `?` of its own to be
-			// confused with (every place but `is`/`as`, which `Tested` reads instead) — before
-			// the brackets, since `?` binds to what stands right before them and not to the
-			// array: `int?[]` is an array of nullable `int`.
-			if (Kind(at) == Question)
+			// `int?` is `Nullable<int>`, and `int[]?` an array annotated the same way C# erases
+			// it — read at every place C#'s `?:` has no `?` of its own here to be confused with
+			// (every rule but `Tested`, which reads is/as), and at every level a `[]` adds a
+			// rank, in whichever order the author wrote them: `string?[]?[]` is three readings of
+			// this same loop, not six of some once-each version.
+			while (true)
 			{
-				if (build)
-					type = Nulled(type);
+				if (Kind(at) == Question)
+				{
+					if (build)
+						type = Nulled(type);
 
-				at++;
+					at++;
+					continue;
+				}
+
+				if (Kind(at) == Brackets)
+				{
+					type = type?.MakeArrayType();
+					at++;
+					continue;
+				}
+
+				return at;
 			}
+		}
 
-			while (Kind(at) == Brackets)
+		/// <summary>
+		/// The same loop as `Type`, for `typeof` — the one place besides `is`/`as` that refuses
+		/// a nullable reference annotation's erasure instead of making it (CS8639): `NulledStrict`
+		/// in place of `Nulled`, and no guard on the `?`, since `typeof(…)`'s own `)` is nothing
+		/// a `?:` could be confused with here.
+		/// </summary>
+		int StrictType(int i, out Type? type, bool build)
+		{
+			var at = Core(i, out type, build);
+
+			if (at < 0)
+				return -1;
+
+			while (true)
 			{
-				type = type?.MakeArrayType();
-				at++;
-			}
+				if (Kind(at) == Question)
+				{
+					if (build)
+						type = NulledStrict(type);
 
-			return at;
+					at++;
+					continue;
+				}
+
+				if (Kind(at) == Brackets)
+				{
+					type = type?.MakeArrayType();
+					at++;
+					continue;
+				}
+
+				return at;
+			}
 		}
 
 		/// <summary>
 		/// The same, for `is` and `as`, where C#'s `?:` also reads a `?`: `x is int ? 1 : 2` is
 		/// `(x is int) ? 1 : 2`, not `x is (int?)` with nothing after it. A bare `?` is read as
 		/// nullable only where what follows it could not be the start of a new expression — a
-		/// name, a keyword, a digit, a quote, `(`, or a unary `+ - ! ~` all open one, so none of
-		/// them stands here. `NullableFollows` says the tokens that close an enclosing construct
-		/// or continue with an operator that is never a prefix, among the tokens this grammar
-		/// reaches from here; the lexer's own `?` and `??` are already two tokens (`Question` and
-		/// `Coalesce`), so a `?` run into another never reaches this check at all.
+		/// name, a keyword, a number, a string, `(`, or a unary `+ - ! ~ ++ --` all open one, so
+		/// none of them stands here (`OpensValue`, below `Type`'s own loop). What closes an
+		/// enclosing construct, continues with an operator that is never a prefix, opens the
+		/// array rank `[]`, or is a second, separated `?` or `??` — the real conditional or
+		/// coalesce, now that this one kept its mark — all answer the other way, and the loop
+		/// reads on: `x as int? ?? 5`, `x as int? < 5` and `x is int? ? 1 : 2` all keep it, where
+		/// `x as int??5` — one token, `Coalesce`, the lexer never hands this a `Question` to ask
+		/// about — and `x is int ? 1 : 2` do not.
 		/// </summary>
 		int Tested(int i, out Type? type, bool build)
 		{
@@ -2307,21 +2351,26 @@ public static class HandExpression
 			if (at < 0)
 				return -1;
 
-			if (Kind(at) == Question && NullableFollows(Kind(at + 1)))
+			while (true)
 			{
-				if (build)
-					type = Nulled(type);
+				if (Kind(at) == Question && !OpensValue(Kind(at + 1)))
+				{
+					if (build)
+						type = NulledStrict(type);
 
-				at++;
+					at++;
+					continue;
+				}
+
+				if (Kind(at) == Brackets)
+				{
+					type = type?.MakeArrayType();
+					at++;
+					continue;
+				}
+
+				return at;
 			}
-
-			while (Kind(at) == Brackets)
-			{
-				type = type?.MakeArrayType();
-				at++;
-			}
-
-			return at;
 		}
 
 		static Type? Nulled(Type? type)
@@ -2329,10 +2378,24 @@ public static class HandExpression
 			return type is null ? null : ExpressionParser.Nulled(type);
 		}
 
-		static bool NullableFollows(byte kind)
+		static Type? NulledStrict(Type? type)
 		{
-			return kind is RightParen or RightBracket or RightBrace or Semicolon or Comma or Colon
-				or Equal or NotEqual or LessEq or GreaterEq or End;
+			return type is null ? null : ExpressionParser.NulledStrict(type);
+		}
+
+		/// <summary>Whether that token could open a new value — the one question standing
+		/// between a nullable mark `Tested` may keep and the conditional operator's own `?`.</summary>
+		/// <remarks>
+		/// A quoted or interpolated string's own first token is not asked here, matching the
+		/// generated grammar's own `OpensValue`: a character class built over strings and `@`/`$`
+		/// this far from where tokens are made cost the syntactic half its own error reporting
+		/// elsewhere (`Unexpected character '@'` stopped saying so once this reached for it), so
+		/// the generated side settled for the narrower, string-free set this mirrors.
+		/// </remarks>
+		static bool OpensValue(byte kind)
+		{
+			return IsWord(kind) || kind is >= Number and <= RealM
+				|| kind is LeftParen or Plus or Minus or Not or Tilde or Increment or Decrement;
 		}
 
 		int Core(int i, out Type? type, bool build)
@@ -4212,13 +4275,16 @@ public static class HandExpression
 			}
 
 			// A type where a value is wanted, and what a type defaults to: the same reading
-			// twice over, told apart by which word opened it.
+			// twice over, told apart by which word opened it — except that `typeof` is one of
+			// the places C# refuses a nullable reference annotation's erasure instead of making
+			// it (CS8639), as `StrictType` does and `Type` does not; `default` keeps erasing it.
 			if (kind == KwTypeof || kind == KwDefault)
 			{
 				if (Kind(i + 1) != LeftParen)
 					return -1;
 
-				var read = Type(i + 2, out var type, _build);
+				Type? type;
+				var read = kind == KwTypeof ? StrictType(i + 2, out type, _build) : Type(i + 2, out type, _build);
 
 				if (read < 0 || Kind(read) != RightParen)
 					return -1;
@@ -4454,8 +4520,16 @@ public static class HandExpression
 
 			var after = Initializer(arguments, out var fields, out var elements);
 
+			// A constructor call or an object/collection initializer is one of the places C#
+			// refuses a nullable reference annotation's erasure instead of making it (CS8628),
+			// which `Type`'s own first, lenient reading above already made — so built again here,
+			// `StrictType` in its place, only where the answer is kept.
 			if (_build)
-				node = ExpressionParser.Made(type, args!, fields, elements, _context.Reach);
+			{
+				StrictType(i + 1, out type, build: true);
+
+				node = ExpressionParser.Made(type!, args!, fields, elements, _context.Reach);
+			}
 
 			return after;
 		}

@@ -359,6 +359,24 @@ public static partial class ExpressionParser
 			: throw new FormatException($"'{type.Name}?' is not a type: '{type.Name}' is already nullable.");
 	}
 
+	/// <summary>The same, where C# refuses the erasure instead of making it: `typeof`, and the two
+	/// `new` forms that build one value rather than an array.</summary>
+	/// <remarks>
+	/// A reference type's `?` is an annotation with nothing under it once the reading it annotates
+	/// is gone — `typeof` answers with a `Type` the annotation never reaches, and `new` hands back
+	/// an instance that is never null to begin with — so C# refuses it there rather than erasing it
+	/// (CS8639, CS8628), in the same words it refuses `is`/`as` reading one (CS8650, CS8651).
+	/// </remarks>
+	internal static Type NulledStrict(Type type)
+	{
+		if (type.IsValueType)
+			return Nulled(type);
+
+		throw new FormatException(
+			$"It is not legal to use nullable reference type '{type.Name}?' here; use the underlying type " +
+			$"'{type.Name}' instead.");
+	}
+
 	static bool CanBeNull(Type type)
 	{
 		return !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;

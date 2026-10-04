@@ -244,6 +244,19 @@ namespace DotGram.ExpressionLanguage;
 		HexDigit = ['0'..'9' | 'a'..'f' | 'A'..'F']
 		BinDigit = ['0' | '1']
 
+		// What else opens a value, beside a word (`Word`) and a digit (`Digit`) — a parenthesis
+		// and a unary prefix. Named so `TestedMarked` can ask `?!(Word | Digit | OpensValue)` in
+		// one lookahead rather than an inline character class there, which the generator cannot
+		// build this far from where tokens are made over a mix of a Unicode category and a
+		// handful of literals (§4.5). A quoted or interpolated string's own first character is
+		// left out for the same reason and one more: `'"' | '\'' | '@' | '$'` read here cost the
+		// syntactic half's OWN error reporting elsewhere — `x @ 1` stopped saying "Unexpected
+		// character '@'" and started listing operators once a lookahead this far from the lexer
+		// asked about '@' at all. A text that puts a string right after such a `?` — `x as T ?
+		// "a" : "b"` — reads as nullable here rather than as the ternary C# would make of it;
+		// narrower than C#, and the trade this grammar makes rather than that report.
+		OpensValue on fail "a value" = ['(' | '+' | '-' | '!' | '~']
+
 		// A separator stands between digits and is no part of the value, so every rule
 		// below hands back the digits with them taken out: `long.Parse` reads a number,
 		// not a number and an underscore.
@@ -604,46 +617,68 @@ namespace DotGram.ExpressionLanguage;
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
 	// rather than a switch over strings refusing it at run time.
-	// A type is a name for one, then `?` where C# writes a nullable value type over it, and
-	// then as many `[]` as the author wrote — `int?[]` is an array of nullable `int`, read as
-	// one type and not two, since `?` binds to what stands right before the `[]` and not to
-	// the array. Left recursive, so `int[][]` is read once and folded rather than started over.
+	// A type is a name for one, then `?` where C# writes nullable over it, and then as many
+	// `[]` as the author wrote — `int?[]` is an array of nullable `int`, and `int[]?` a
+	// nullable-annotated array, each `?` binding to whatever stands right before it, which is
+	// why the mark is read at both places this rule can stand: right after `Core`, and right
+	// after the fold adds a rank. Left recursive, so `int[][]` is read once and folded rather
+	// than started over, and so is a `?` at either level: `string?[]?[]` is three readings, not
+	// six.
 	//
-	// Written here rather than as a fourth thing `[]` may stand on: every place this rule is
-	// read — a declaration, a cast, `typeof`, `default`, a generic argument, `foreach`, `catch`
-	// — has nothing else a bare `?` could mean right there, so it is always nullable. `Tested`,
-	// below, is the one place that is not true.
+	// `Nulled` erases the mark where it falls on a reference type, as C# erases it at run time —
+	// `string?` is `string` everywhere this rule is read. `Strict`, below, is the same shape
+	// over the same `Core` for the few places C# refuses that erasure instead (`typeof`, a
+	// constructor or object initializer): there the mark says something C# has no answer for,
+	// rather than nothing C# needs an answer to.
 	Type : @Type on fail "Expected a type."
-		= t: Type & "[]" => @(t.MakeArrayType())
+		= t: Type & "[]" & nulled: Marked?
+		  => @(nulled == true ? ExpressionParser.Nulled(t.MakeArrayType()) : t.MakeArrayType())
 		| c: Core & nulled: Marked?
 		  => @(nulled == true ? ExpressionParser.Nulled(c) : c)
 
-	// A bare `?`, built apart from `Type` and `Tested` because a nested group takes its result
-	// type from the rule around it (§3.7) — inside either of those, declared `@Type`, `=> @(true)`
-	// would have to be a `Type` instead of the `bool` it is.
+	// A bare `?`, built apart from `Type`, `Strict` and `Tested` because a nested group takes
+	// its result type from the rule around it (§3.7) — inside any of those, declared `@Type`,
+	// `=> @(true)` would have to be a `Type` instead of the `bool` it is.
 	Marked : @bool = '?' => @(true)
+
+	// `typeof`, and the two `new` forms that make one value rather than an array — a
+	// constructor call and an object or collection initializer — are where C# refuses the
+	// erasure `Type` makes, CS8639 and CS8628: there is no running value for `typeof` to answer
+	// with, and no instance for `new` to hand back, that a nullable ANNOTATION — erased before
+	// either runs — could possibly be about. Same shape as `Type`, since neither of these
+	// readings is the conditional operator's `?` to be confused with; only `Nulled` becomes
+	// `NulledStrict`.
+	Strict : @Type on fail "Expected a type."
+		= t: Strict & "[]" & nulled: Marked?
+		  => @(nulled == true ? ExpressionParser.NulledStrict(t.MakeArrayType()) : t.MakeArrayType())
+		| c: Core & nulled: Marked?
+		  => @(nulled == true ? ExpressionParser.NulledStrict(c) : c)
 
 	// `is` and `as` read a type where C#'s `?:` also reads one — `x is int ? 1 : 2` is `(x is
 	// int) ? 1 : 2`, not `x is (int?)` with nothing after it — so here, unlike in `Type`, a bare
 	// `?` is read as nullable only where what follows it could not be the start of a new
-	// expression, the same question C#'s own grammar note about this ambiguity asks: a name, a
-	// keyword, a digit, a quote, `(`, or a unary `+ - ! ~` all open one, so none of them stands
-	// here; what closes an enclosing construct, or continues with an operator that is never a
-	// prefix, does not, and is read as nullable. `TestedMarked` says the closing and continuing
-	// tokens this language has rather than everything C#'s does, because `Tested` is the only
-	// rule that reads this far and the ones it has not read are not reached from here: `&&`,
-	// `||`, `|`, `^`, `&`, `*`, `/`, `%`, `<<` and `>>` after such a `?` are read as the ternary's
-	// `?`, as they were before `Tested` existed, rather than a nullable type's. One rule and not
-	// `Type` itself, because every OTHER place `Type` is read has nothing else a `?` could mean,
-	// and a guard that cost them all a lookahead for an ambiguity none of them have would be the
-	// wrong place to put it.
+	// expression: a name, a keyword, a digit, `(`, or a unary `+ - ! ~` all open one (a string
+	// does too, in C#; `OpensValue` says why this reads one as nullable instead), so none of
+	// them stands here. Closing an enclosing construct, continuing with an operator that is
+	// never a prefix (`==`, `<`, `&&`, …), opening the array rank `[]`, or a second `?` that is not this one's own
+	// other half — the real conditional, or the coalesce operator once what is between them is
+	// a token in its own right (`??`) rather than two apart — all answer the other way, and are
+	// read as nullable: `x as int? ?? 5`, `x as int? < 5` and `x is int? ? 1 : 2` all keep it,
+	// where `x as int??5` and `x is int ? 1 : 2` — this one with no mark to keep at all — do
+	// not. A literal two-character `"??"` is checked for first and apart from the rest, since
+	// nothing later in the alternative can un-write a `?` already taken to be this one's own
+	// once a general lookahead has read past it. `is`/`as` also refuse the erasure `Type` makes,
+	// CS8650/CS8651, for the reason `Strict` does: a runtime type check or conversion has no
+	// answer for an annotation that carries none.
 	Tested : @Type on fail "Expected a type."
-		= t: Tested & "[]" => @(t.MakeArrayType())
+		= t: Tested & "[]" & nulled: TestedMarked?
+		  => @(nulled == true ? ExpressionParser.NulledStrict(t.MakeArrayType()) : t.MakeArrayType())
 		| c: Core & nulled: TestedMarked?
-		  => @(nulled == true ? ExpressionParser.Nulled(c) : c)
+		  => @(nulled == true ? ExpressionParser.NulledStrict(c) : c)
 
 	TestedMarked : @bool
-		= '?' & ?=(')' | ']' | '}' | ';' | ',' | ':' | "==" | "!=" | "<=" | ">=" | eof) => @(true)
+		= ?!"??" & '?' & ?!(Word | Digit | OpensValue)
+		  => @(true)
 
 	Core : @Type = "sbyte"   => @(typeof(sbyte))
 	             | "byte"    => @(typeof(byte))
@@ -844,6 +879,22 @@ namespace DotGram.ExpressionLanguage;
 	ImplicitArray : @Expression
 		= "new" & "[]" & '{' & (first: Expression & (',' & rest: Expression)* & ','?)? & '}'
 		=> @(ExpressionParser.Implicit(ExpressionParser.Listed(first, rest)))
+
+	// `typeof`, and the two `new` forms that make one value rather than an array (a constructor
+	// call, and an object or collection initializer with the parentheses left out), read `Strict`
+	// rather than `Type` — the one difference being CS8639/CS8628, above where `Strict` is
+	// declared. A rule of its own rather than three more alternatives of `Primary`, for the
+	// reason `ImplicitArray` is one: `Primary` is read by methods, and asking it to commit to a
+	// different type-reading rule than every other alternative there reaches for is a reading
+	// those methods cannot commit to (GRAM5005).
+	Instanced : @Expression
+		= "new" & type: Strict & args: Arguments
+		  & (fields: Bindings | '{' & items: Elements & '}')?
+		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Reach))
+		| "new" & type: Strict & when @(type is { IsArray: false })
+		  & (fields: Bindings | '{' & items: Elements & '}')
+		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
+		| "typeof" & '(' & type: Strict & ')' => @(Expression.Constant(type, typeof(Type)))
 
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
@@ -1446,29 +1497,13 @@ namespace DotGram.ExpressionLanguage;
 		// alternatives, for the reason `Conditional` gives above — three alternatives read
 		// the arguments three times before finding out which they are, and the arguments
 		// hold whole expressions. Nine nested `new`s took a second that way.
-		| "new" & type: Type & args: Arguments
-		  & (fields: Bindings | '{' & items: Elements & '}')?
-		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Reach))
+		//
 		// The parentheses may be left out when an initializer follows, which is C#'s rule:
 		// `new List<int> { 448 }` is `new List<int>() { 448 }`. Not on their own — `new T` with
-		// neither tail is no constructor call here, as it is none in C#, and this alternative
-		// wants the brace.
-		//
-		// A second alternative rather than `Arguments?` with a guard on the one above, and the
-		// reason is what a truncated text answers. Written as `Arguments?`, `new T(x, 1` — the
-		// text one character short of its closing brace — stops being STARVED and becomes a
-		// plain no-match, because absent arguments are then a shape the rule allows rather than
-		// input that ran out. The hand-written parser's agreement check found it on exactly
-		// that text. `Type` is read twice on this path, which is the price of keeping the
-		// difference between "not this" and "not yet".
-		//
-		// Not of an array type, whose braces are the array initializer's above: read here as
-		// well, an initializer that way refused was read again as a collection's — twice a
-		// level, so `new object[] { new object[] { … x` never closed doubled with every `new`.
-		// Nothing was lost by it: a collection initializer of an array type constructs an array
-		// with `new`, which there is no such thing as.
-		| "new" & type: Type & when @(type is { IsArray: false }) & (fields: Bindings | '{' & items: Elements & '}')
-		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
+		// neither tail is no constructor call here, as it is none in C#. Not of an array type
+		// either, whose braces are the array initializer's above — both the reading `Strict`
+		// rather than `Type`, which `Instanced` says why, and both of it below.
+		| made: Instanced => @(made)
 		| made: ImplicitArray => @(made)
 		| made: TargetNew     => @(made)
 
@@ -1492,11 +1527,6 @@ namespace DotGram.ExpressionLanguage;
 		// arithmetic below asks what it stands under.
 		| "checked"   & '(' & inner: Expression with state @(Reading.Checked)   & ')' => @(inner)
 		| "unchecked" & '(' & inner: Expression with state @(Reading.Unchecked) & ')' => @(inner)
-
-		// A type where a value is wanted, which is what `Type` already reads: the constant is
-		// the `Type` object itself, as C#'s is. `Type` names the keywords and resolves a name
-		// through the text's `using`s, so `typeof(int[])` and `typeof(List<int>)` come free.
-		| "typeof" & '(' & type: Type & ')' => @(Expression.Constant(type, typeof(Type)))
 
 		// `Expression.Default` is the API's own word for it. Only the written form: C# types a
 		// bare `default` by what it stands against, and target typing is the pass this
