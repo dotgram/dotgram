@@ -45,11 +45,18 @@ namespace DotGram.Tests;
 /// bound is a statement about the run and not about the reader — the same argument
 /// <see cref="ReaderScalingTests"/> makes for its own "no block at all" row and
 /// <see cref="StockCountScalingTests"/> for its all-good count. It is measured once per process,
-/// cached, and retried up to <see cref="Attempts"/> times if a reading exceeds <see cref="Bound"/>;
+/// cached, and retried up to <see cref="ScalingClock.Attempts"/> times if a reading exceeds <see cref="Bound"/>;
 /// the first clean reading is trusted. If none of those is clean, every row of the theory and the
 /// batch-reading fact are both skipped as inconclusive, naming the control's readings: a control
 /// that only ever says "the machine was noisy" should not then fail CI on exactly that noise, and
 /// the other readings of that same noisy run are not trustworthy either.
+/// </para>
+/// </para>
+/// <para>
+/// <b>Each row also reads its own ratio robustly</b> (see <see cref="ScalingClock"/>): every timing
+/// covers at least a few tens of milliseconds, the two sizes are timed in alternating rounds, and a
+/// reading over the bound is repeated before it is believed, so a scheduler pause that lands on one
+/// size cannot decide a row on a loaded machine while a real square still fails every attempt.
 /// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
@@ -60,8 +67,8 @@ public sealed class SqlScriptScalingTests
 
 	const double Bound = 2.0;
 
-	/// <summary>How many times the control is measured before a reading over its bound is believed.</summary>
-	const int Attempts = 3;
+	/// <summary>The bound on the ratio of the large script's time to the small one's: <see cref="Bound"/> for four times the size.</summary>
+	static readonly double Limit = Math.Pow(4.0, Bound);
 
 	public static TheoryData<string> Shapes()
 	{
@@ -84,7 +91,7 @@ public sealed class SqlScriptScalingTests
 	{
 		var control = Control.Value;
 
-		if (control.Inconclusive)
+		if (!control.Within)
 		{
 			Assert.Skip(InconclusiveMessage(control));
 
@@ -94,8 +101,8 @@ public sealed class SqlScriptScalingTests
 		if (shape == ControlShape)
 		{
 			Assert.True(
-				control.Exponent <= Bound,
-				$"With {shape}, four times the script took an exponent of {control.Exponent:F2} against {Bound:F2}.");
+				control.Within,
+				$"With {shape}, four times the script took an exponent of {control.Exponent(4.0):F2} against {Bound:F2}.");
 
 			return;
 		}
@@ -103,15 +110,13 @@ public sealed class SqlScriptScalingTests
 		var small = Make[shape](25_000);
 		var large = Make[shape](100_000);
 
-		var shorter = Best(() => SqlScript.Read(small));
-		var longer  = Best(() => SqlScript.Read(large));
-
-		var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+		var reading = ScalingClock.Settle(() => SqlScript.Read(small), () => SqlScript.Read(large), Limit);
 
 		Assert.True(
-			exponent <= Bound,
-			$"With {shape}, four times the script took {longer / shorter:F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
+			reading.Within,
+			$"With {shape}, four times the script took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs), an exponent of {reading.Exponent(4.0):F2}, " +
+			$"on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
 	}
 
 	[Fact]
@@ -119,7 +124,7 @@ public sealed class SqlScriptScalingTests
 	{
 		var control = Control.Value;
 
-		if (control.Inconclusive)
+		if (!control.Within)
 		{
 			Assert.Skip(InconclusiveMessage(control));
 
@@ -129,67 +134,37 @@ public sealed class SqlScriptScalingTests
 		var small = Batches(500);
 		var large = Batches(2_000);
 
-		var shorter = Best(() => TransactSqlParser.TryParseScript(small));
-		var longer  = Best(() => TransactSqlParser.TryParseScript(large));
-
-		var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+		var reading = ScalingClock.Settle(
+			() => TransactSqlParser.TryParseScript(small),
+			() => TransactSqlParser.TryParseScript(large),
+			Limit);
 
 		Assert.True(
-			exponent <= Bound,
-			$"Four times the batches took {longer / shorter:F1} times as long to read " +
-			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
+			reading.Within,
+			$"Four times the batches took {reading.Ratio:F1} times as long to read " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs), an exponent of {reading.Exponent(4.0):F2}, " +
+			$"on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
 	}
 
 	/// <summary>What to tell xunit when the control never read clean; see the class remarks.</summary>
-	static string InconclusiveMessage(ControlReading control)
+	static string InconclusiveMessage(ScalingClock.Reading control)
 	{
 		return
-			$"The control row (\"{ControlShape}\") read an exponent of {control.Exponent:F2} against its " +
-			$"bound of {Bound:F2} on every one of {Attempts} measurements ({control.Readings}); the machine " +
+			$"The control row (\"{ControlShape}\") read an exponent of {control.Exponent(4.0):F2} against its " +
+			$"bound of {Bound:F2} on every one of {ScalingClock.Attempts} measurements ({control.Readings}); the machine " +
 			"is noisy and nothing in this class can be trusted this run.";
 	}
 
 	/// <summary>
-	/// The control's own exponent for the whole process: measured once, retried up to
-	/// <see cref="Attempts"/> times while it reads over <see cref="Bound"/>, and shared by every row
-	/// of the theory and by the batch-reading fact so that a noisy control can skip the class instead
-	/// of failing it.
+	/// The control's own reading for the whole process: measured once, shared by every row of the
+	/// theory and by the batch-reading fact so that a noisy control can skip the class instead of
+	/// failing it.
 	/// </summary>
-	static readonly Lazy<ControlReading> Control = new(MeasureControl);
-
-	static ControlReading MeasureControl()
-	{
-		var readings = new List<double>();
-
-		for (var attempt = 1; attempt <= Attempts; attempt++)
-		{
-			var shorter  = Best(() => SqlScript.Read(Make[ControlShape](25_000)));
-			var longer   = Best(() => SqlScript.Read(Make[ControlShape](100_000)));
-			var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
-
-			readings.Add(exponent);
-
-			if (exponent <= Bound)
-				return new ControlReading(exponent, readings, false);
-		}
-
-		return new ControlReading(readings[^1], readings, true);
-	}
-
-	/// <summary>What <see cref="MeasureControl"/> found: the trusted exponent, every attempt, and whether all of them were over the bound.</summary>
-	sealed class ControlReading
-	{
-		public ControlReading(double exponent, List<double> attempts, bool inconclusive)
-		{
-			Exponent     = exponent;
-			Inconclusive = inconclusive;
-			Readings     = string.Join(", ", attempts.Select(static one => one.ToString("F2")));
-		}
-
-		public double Exponent { get; }
-		public bool Inconclusive { get; }
-		public string Readings { get; }
-	}
+	static readonly Lazy<ScalingClock.Reading> Control = new(
+		static () => ScalingClock.Settle(
+			static () => SqlScript.Read(Make[ControlShape](25_000)),
+			static () => SqlScript.Read(Make[ControlShape](100_000)),
+			Limit));
 
 	static string Batches(int count)
 	{
@@ -198,27 +173,5 @@ public sealed class SqlScriptScalingTests
 		Assert.Equal(count, TransactSqlParser.ParseScript(text).Length);
 
 		return text;
-	}
-
-	/// <summary>The fastest of several runs of <paramref name="read"/>, in microseconds.</summary>
-	static double Best(Func<object> read)
-	{
-		read();
-
-		GC.Collect();
-		GC.WaitForPendingFinalizers();
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 7; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			read();
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
 	}
 }

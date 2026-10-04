@@ -32,7 +32,7 @@ namespace DotGram.Tests;
 /// lines at all: it never asks the grammar to recover, so it cannot be made quadratic by the
 /// defect above, and a reading of it over bound is a statement about the run and not about the
 /// reader — the same argument <c>ReaderScalingTests</c> makes for its own "no block at all" row.
-/// It is measured once per process, cached, and retried up to <see cref="Attempts"/> times if a
+/// It is measured once per process, cached, and retried up to <see cref="ScalingClock.Attempts"/> times if a
 /// reading exceeds <see cref="Linear"/>; the first clean reading is trusted. If none of those is
 /// clean, both tests of the class are skipped as inconclusive, naming the control's readings: a
 /// control that only ever says "the machine was noisy" should not then fail CI on exactly that
@@ -59,14 +59,12 @@ public sealed class StockCountScalingTests
 	const double Linear = 30;
 
 	/// <summary>How many times the control is measured before a reading over its bound is believed.</summary>
-	const int Attempts = 3;
-
 	[Fact]
 	public void A_count_with_broken_lines_reads_in_time_linear_in_its_length_from_a_string()
 	{
 		var control = Control.Value;
 
-		if (control.Inconclusive)
+		if (!control.Within)
 		{
 			Assert.Skip(InconclusiveMessage(control));
 
@@ -76,7 +74,10 @@ public sealed class StockCountScalingTests
 		var shorter = Count(1_000);
 		var longer  = Count(10_000);
 
-		AssertLinear(Best(() => StockCountReader.Read(shorter)), Best(() => StockCountReader.Read(longer)));
+		CheckBroken(shorter);
+		CheckBroken(longer);
+
+		AssertLinear(ScalingClock.Settle(() => StockCountReader.Read(shorter), () => StockCountReader.Read(longer), Linear));
 	}
 
 	[Fact]
@@ -84,7 +85,7 @@ public sealed class StockCountScalingTests
 	{
 		var control = Control.Value;
 
-		if (control.Inconclusive)
+		if (!control.Within)
 		{
 			Assert.Skip(InconclusiveMessage(control));
 
@@ -94,107 +95,63 @@ public sealed class StockCountScalingTests
 		var shorter = Count(1_000);
 		var longer  = Count(10_000);
 
-		AssertLinear(
-			Best(() => StockCountReader.Read(new StringReader(shorter))),
-			Best(() => StockCountReader.Read(new StringReader(longer))));
+		CheckBroken(shorter);
+		CheckBroken(longer);
+
+		AssertLinear(ScalingClock.Settle(
+			() => StockCountReader.Read(new StringReader(shorter)),
+			() => StockCountReader.Read(new StringReader(longer)),
+			Linear));
 	}
 
 	/// <summary>What to tell xunit when the control never read clean; see the class remarks.</summary>
-	static string InconclusiveMessage(ControlReading control)
+	static string InconclusiveMessage(ScalingClock.Reading control)
 	{
 		return
 			$"The control row (a count with no broken lines) read {control.Readings} against a bound " +
-			$"of {Linear} on every one of {Attempts} measurements; the machine is noisy and neither of " +
+			$"of {Linear} on every one of {ScalingClock.Attempts} measurements; the machine is noisy and neither of " +
 			"this class's tests can be trusted this run.";
 	}
 
-	static void AssertLinear(double shorter, double longer)
+	static void AssertLinear(ScalingClock.Reading reading)
 	{
 		Assert.True(
-			longer / shorter < Linear,
-			$"Ten times the lines took {longer / shorter:F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs), against a bound of {Linear}.");
+			reading.Within,
+			$"Ten times the lines took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs), against a bound of {Linear}, " +
+			$"on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
 	}
 
 	/// <summary>
-	/// The control's own ratio for the whole process: measured once, retried up to
-	/// <see cref="Attempts"/> times while it reads over <see cref="Linear"/>, and shared by both
-	/// tests of the class so that a noisy control can skip the class instead of failing it.
+	/// The control's own reading for the whole process: measured once and shared by both tests so
+	/// that a noisy control can skip the class instead of failing it.
 	/// </summary>
-	static readonly Lazy<ControlReading> Control = new(MeasureControl);
-
-	static ControlReading MeasureControl()
-	{
-		var readings = new List<double>();
-
-		for (var attempt = 1; attempt <= Attempts; attempt++)
+	static readonly Lazy<ScalingClock.Reading> Control = new(
+		static () =>
 		{
-			var shorter = BestControl(() => StockCountReader.Read(CountAllGood(1_000)));
-			var longer  = BestControl(() => StockCountReader.Read(CountAllGood(10_000)));
-			var ratio   = longer / shorter;
+			var shorter = CountAllGood(1_000);
+			var longer  = CountAllGood(10_000);
 
-			readings.Add(ratio);
+			CheckAllGood(shorter);
+			CheckAllGood(longer);
 
-			if (ratio < Linear)
-				return new ControlReading(ratio, readings, false);
-		}
+			return ScalingClock.Settle(() => StockCountReader.Read(shorter), () => StockCountReader.Read(longer), Linear);
+		});
 
-		return new ControlReading(readings[^1], readings, true);
-	}
-
-	/// <summary>What <see cref="MeasureControl"/> found: the trusted ratio, every attempt, and whether all of them were over the bound.</summary>
-	sealed class ControlReading
+	static void CheckBroken(string text)
 	{
-		public ControlReading(double ratio, List<double> attempts, bool inconclusive)
-		{
-			Ratio        = ratio;
-			Inconclusive = inconclusive;
-			Readings     = string.Join(", ", attempts.Select(static one => one.ToString("F1")));
-		}
-
-		public double Ratio { get; }
-		public bool Inconclusive { get; }
-		public string Readings { get; }
-	}
-
-	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
-	static double Best(Func<StockCount> read)
-	{
-		var count = read();
+		var count = StockCountReader.Read(text);
 
 		Assert.Equal(count.Lines.Count / 10, count.Lines.Count - count.Total);
-
-		return Time(read);
 	}
 
-	/// <summary>The fastest of several reads of the control's all-good count, in microseconds.</summary>
-	static double BestControl(Func<StockCount> read)
+	static void CheckAllGood(string text)
 	{
-		var count = read();
+		var count = StockCountReader.Read(text);
 
 		Assert.Equal(count.Lines.Count, count.Total);
-
-		return Time(read);
 	}
 
-	/// <summary>The fastest of several further reads of what was already read once, in microseconds.</summary>
-	static double Time(Func<StockCount> read)
-	{
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 7; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			read();
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
-	}
-
-	/// <summary>A count of so many lines, every tenth of them broken, and its closing line.</summary>
 	static string Count(int lines)
 	{
 		var text = new StringBuilder();

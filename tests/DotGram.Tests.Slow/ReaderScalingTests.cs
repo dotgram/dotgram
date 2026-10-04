@@ -75,7 +75,7 @@ namespace DotGram.Tests;
 /// <para>
 /// <b>Since 2026-10-02 the control also gates the class, rather than failing the build on its own
 /// noise.</b> It is measured once per process, cached for every row, and retried up to
-/// <see cref="Attempts"/> times if a reading exceeds 2.0; the first clean reading is trusted. If none
+/// <see cref="ScalingClock.Attempts"/> times if a reading exceeds 2.0; the first clean reading is trusted. If none
 /// of those is clean, every row in the class is skipped as inconclusive, naming the control's exponent
 /// on each attempt: a control that only ever says "the machine was noisy" should not then fail CI on
 /// exactly that noise, and the other rows of that same noisy run are not trustworthy either.
@@ -89,6 +89,11 @@ namespace DotGram.Tests;
 /// compiles its own parser from the same grammar with it set — which counts what the shipped parser
 /// would, being the same grammar and the same generator.
 /// </para>
+/// <para>
+/// <b>Every row also reads its own ratio robustly</b> (see <see cref="ScalingClock"/>): each timing
+/// covers tens of milliseconds, the two sizes alternate, and a reading over the bound is repeated
+/// before it is believed, so a pause landing on one size does not decide a row on a loaded machine.
+/// </para>
 /// </remarks>
 [Collection(nameof(Alone))]
 public sealed class ReaderScalingTests
@@ -101,8 +106,6 @@ public sealed class ReaderScalingTests
 	const double Bound = 2.0;
 
 	/// <summary>How many times the control is measured before a reading over its bound is believed.</summary>
-	const int Attempts = 3;
-
 	[Theory]
 	[InlineData("the same name in every block", "{{ var i = {0}; System.Math.Abs(i); }}", Bound)]
 	[InlineData("a name apiece", "{{ var v{0} = {0}; System.Math.Abs(v{0}); }}", Bound)]
@@ -112,11 +115,11 @@ public sealed class ReaderScalingTests
 	{
 		var control = Control.Value;
 
-		if (control.Inconclusive)
+		if (!control.Within)
 		{
 			Assert.Skip(
-				$"The control row (\"{ControlWhat}\") read an exponent of {control.Exponent:F2} against its " +
-				$"bound of {bound:F2} on every one of {Attempts} measurements ({control.Readings}); the machine " +
+				$"The control row (\"{ControlWhat}\") read an exponent of {control.Exponent(4.0):F2} against its " +
+				$"bound of {bound:F2} on every one of {ScalingClock.Attempts} measurements ({control.Readings}); the machine " +
 				"is noisy and none of this class's rows can be trusted this run.");
 
 			return;
@@ -125,86 +128,56 @@ public sealed class ReaderScalingTests
 		if (what == ControlWhat)
 		{
 			Assert.True(
-				control.Exponent <= bound,
-				$"With {what}, four times the blocks took an exponent of {control.Exponent:F2} against {bound:F2}.");
+				control.Within,
+				$"With {what}, four times the blocks took an exponent of {control.Exponent(4.0):F2} against {bound:F2}.");
 
 			return;
 		}
 
-		var shorter = Best(50, block);
-		var longer  = Best(200, block);
+		var shorter = Text(50, block);
+		var longer  = Text(200, block);
 
-		var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+		var reading = ScalingClock.Settle(() => Parse(shorter), () => Parse(longer), Limit(bound));
 
 		Assert.True(
-			exponent <= bound,
-			$"With {what}, four times the blocks took {longer / shorter:F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2} against {bound:F2}.");
+			reading.Within,
+			$"With {what}, four times the blocks took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs), an exponent of {reading.Exponent(4.0):F2} " +
+			$"against {bound:F2}, on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
 	}
 
 	/// <summary>
-	/// The control's own exponent for the whole process: measured once, retried up to
-	/// <see cref="Attempts"/> times while it reads over <see cref="Bound"/>, and shared by every row
-	/// of the theory so that a noisy control can skip the class instead of failing it.
+	/// The control's own reading for the whole process: measured once and shared by every row of the
+	/// theory so that a noisy control can skip the class instead of failing it.
 	/// </summary>
-	static readonly Lazy<ControlReading> Control = new(MeasureControl);
-
-	static ControlReading MeasureControl()
-	{
-		var readings = new List<double>();
-
-		for (var attempt = 1; attempt <= Attempts; attempt++)
+	static readonly Lazy<ScalingClock.Reading> Control = new(
+		static () =>
 		{
-			var shorter  = Best(50, ControlBlock);
-			var longer   = Best(200, ControlBlock);
-			var exponent = Math.Log(longer / shorter) / Math.Log(4.0);
+			var shorter = Text(50, ControlBlock);
+			var longer  = Text(200, ControlBlock);
 
-			readings.Add(exponent);
+			return ScalingClock.Settle(() => Parse(shorter), () => Parse(longer), Limit(Bound));
+		});
 
-			if (exponent <= Bound)
-				return new ControlReading(exponent, readings, false);
-		}
-
-		return new ControlReading(readings[^1], readings, true);
+	/// <summary>The bound on the ratio of the large text's time to the small one's: <paramref name="bound"/> for four times the blocks.</summary>
+	static double Limit(double bound)
+	{
+		return Math.Pow(4.0, bound);
 	}
 
-	/// <summary>What <see cref="MeasureControl"/> found: the trusted exponent, every attempt, and whether all of them were over the bound.</summary>
-	sealed class ControlReading
+	static object Parse(string text)
 	{
-		public ControlReading(double exponent, List<double> attempts, bool inconclusive)
-		{
-			Exponent     = exponent;
-			Inconclusive = inconclusive;
-			Readings     = string.Join(", ", attempts.Select(static one => one.ToString("F2")));
-		}
-
-		public double Exponent { get; }
-		public bool Inconclusive { get; }
-		public string Readings { get; }
+		return ExpressionParser.TryParse(text, typeof(ReaderScalingTests).Assembly);
 	}
 
-	/// <summary>The fastest of several readings of a text of that many blocks, in microseconds.</summary>
-	static double Best(int blocks, string block)
+	/// <summary>A text of that many blocks, checked to read.</summary>
+	static string Text(int blocks, string block)
 	{
 		var text = "(int x) => { " +
 			string.Concat(Enumerable.Range(0, blocks).Select(one => string.Format(block, one) + " ")) + "x }";
 
 		Assert.True(ExpressionParser.TryParse(text, typeof(ReaderScalingTests).Assembly).IsSuccess, text);
 
-		GC.Collect();
-		GC.WaitForPendingFinalizers();
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 7; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			ExpressionParser.TryParse(text, typeof(ReaderScalingTests).Assembly);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
+		return text;
 	}
 }
