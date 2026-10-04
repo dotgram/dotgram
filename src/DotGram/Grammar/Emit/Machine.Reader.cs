@@ -4228,7 +4228,8 @@ sealed partial class Machine
 			if (machine.Carrier is TapeCarrier && read.Plan.Recovery.Explains)
 				code.Line($"{Keep("ways")}[ways.LogCount] = expecting;");
 
-			foreach (var line in machine.Carrier.Recovered(read.Plan, slot, RuleOfSlot(slot), _positions))
+			foreach (var line in machine.Carrier.Recovered(
+				read.Plan, slot, RuleOfSlot(slot), _positions, machine.MemberOfSlot(owner, slot)?.Member.Element is not null))
 				Carried(code, line);
 
 			code.Line("return p;");

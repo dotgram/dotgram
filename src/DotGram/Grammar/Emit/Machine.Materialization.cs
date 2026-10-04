@@ -833,12 +833,16 @@ sealed partial class Machine
 
 						var element = _results.ValueOf(member);
 						var recovered = new List<string>();
+						var plans     = new List<RecoveryPlan>();
 
 						foreach (var plan in _recoveryPlans)
 							if (plan.Rule == rule && plan.Recovery.Factory is not null)
 								foreach (var slot in member.Slots)
 									if (plan.Slot == offset + slot)
+									{
 										recovered.Add($"candidate.Kind == ParserEntry.Recovery && candidate.State == {plan.Id}");
+										plans.Add(plan);
+									}
 
 						var accepted =
 							$"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
@@ -868,7 +872,21 @@ sealed partial class Machine
 
 							using (file.Block($"if ({collected})"))
 							{
-								if (recovered.Count > 0)
+								if (recovered.Count > 0 && member.Element is not null)
+								{
+									// Gathered from operands of several types: a rejection's value is in the
+									// table of the type its factory makes, and a read element's in its slot's.
+									var rejected = $"default({element})!";
+
+									foreach (var plan in Enumerable.Reverse(plans))
+										rejected = $"candidate.State == {plan.Id} ? ({element}){ValueFrom(RecoveredType(plan), $"capturedAt{memberIndex}")} : {rejected}";
+
+									file.Line(
+										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
+										$"candidate.Kind == ParserEntry.Recovery ? {rejected} : " +
+										Gathered(offset, member, element, "candidate.Position") + ";");
+								}
+								else if (recovered.Count > 0)
 								{
 									file.Line($"var capturedValueAt = candidate.Kind == ParserEntry.Recovery ? capturedAt{memberIndex} : candidate.Position;");
 									file.Line(

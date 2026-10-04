@@ -381,6 +381,64 @@ public sealed class SequenceOrderTests
 		Assert.DoesNotContain(graph.Results.Values.SelectMany(static members => members), static member => member.Joins.Count > 0);
 	}
 
+	/// <summary>
+	/// A recovering repetition among the operands of a joined repetition: what it read and what
+	/// its failure factory made arrive in their places, of whichever type each is — on turns
+	/// that recover and on turns that do not.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Recoveries))]
+	public void A_recovery_inside_a_joined_repetition_keeps_its_place(string carrier, string grammar, string input, string expected)
+	{
+		var host = Compile(grammar, carrier, types: false, buffered: false);
+
+		Assert.Equal(expected, Objects(host, input));
+	}
+
+	public static TheoryData<string, string, string, string> Recoveries()
+	{
+		const string Mixed = """
+			A : @int = 'a' => @(1)
+			B : @string = 'b' => @("b")
+			parse Rows
+			""";
+		const string Same = """
+			A : @int = 'a' => @(1)
+			B : @int = 'b' => @(2)
+			parse Rows
+			""";
+
+		var cases = new (string Grammar, string Input, string Expected)[]
+		{
+			// The inner repetition recovers with a factory; the outer one joins it with B.
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Mixed, "ab",      "1,b"),
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Mixed, "aabab",   "1,1,b,1,b"),
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Mixed, "a;b",     "1,0,b"),
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Mixed, "ab;bab",  "1,b,0,b,1,b"),
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Same,  "ab",      "1,2"),
+			("Rows : @object[] = ((A* recover ';' => @(0)) & B)+\n" + Same,  "a;bab",   "1,0,2,1,2"),
+			("Rows : @int[] = ((A* recover ';' => @(0)) & B)+\n" + Same,     "a;bab",   "1,0,2,1,2"),
+
+			// The same with the recovering repetition second in the turn.
+			("Rows : @object[] = (B & (A* recover ';' => @(0)))+\n" + Mixed, "bab;ba",  "b,1,b,0,b,1"),
+
+			// Recovering without a factory drops what it could not read.
+			("Rows : @object[] = ((A* recover ';') & B)+\n" + Mixed,         "a;bab",   "1,b,1,b"),
+
+			// The outer, joined repetition recovers; a factory there needs one rule, so none.
+			("Rows : @object[] = (A | B)* recover ';'\n" + Mixed,            "abx;ba",  "1,b,b,1"),
+			("Rows : @object[] = (A | B)* recover ';'\n" + Same,             "abx;ba",  "1,2,2,1"),
+		};
+
+		var data = new TheoryData<string, string, string, string>();
+
+		foreach (var carrier in new[] { "engine", "tape", "immediate" })
+			foreach (var (grammar, input, expected) in cases)
+				data.Add(carrier, grammar, input, expected);
+
+		return data;
+	}
+
 	/// <summary>An alternative of a sequence result that reads no element contributes none.</summary>
 	[Theory]
 	[InlineData("engine")]
@@ -481,7 +539,7 @@ public sealed class SequenceOrderTests
 
 		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!, $"\"{input}\" was refused");
 
-		return string.Join(",", (object[])match.GetType().GetProperty("Value")!.GetValue(match)!);
+		return string.Join(",", ((Array)match.GetType().GetProperty("Value")!.GetValue(match)!).Cast<object>());
 	}
 
 	/// <summary>The values an <c>int[]</c> rule reads the whole input as.</summary>

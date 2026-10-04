@@ -764,7 +764,11 @@ sealed partial class Machine
 		/// synchronization began (<c>to</c>), how far the element got (<c>reach</c>) and how many
 		/// elements came before it (<c>ordinal</c>) — the element, gathered where its siblings are.
 		/// </summary>
-		public abstract IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions);
+		/// <param name="tagged">
+		/// Whether the slot's member gathers values of several types, so that the rejection is
+		/// kept with its slot as a read element is (<see cref="PushTagged"/>).
+		/// </param>
+		public abstract IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions, bool tagged);
 
 		// ---- building -----------------------------------------------------------------------
 
@@ -1112,7 +1116,7 @@ sealed partial class Machine
 		}
 
 		/// <remarks>A record of its own, under its own arm, which the walk builds (Machine.MaterializeRecoveryArm).</remarks>
-		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions)
+		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions, bool tagged)
 		{
 			yield return positions
 				? $"ways.Begin({machine.RecoveryArm(plan)}, pos, to);"
@@ -1123,7 +1127,7 @@ sealed partial class Machine
 
 			// A yield's step keeps its element as the item it hands out, gathering nothing.
 			if (!plan.Recovery.YieldStep)
-				yield return PushRecord(slot, element);
+				yield return tagged ? PushTagged(slot) : PushRecord(slot, element);
 		}
 
 		public override string Materialize(string record, string sinceMark)

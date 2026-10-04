@@ -691,7 +691,7 @@ sealed partial class Machine
 		/// tape's record would hold, named as the walk names them (Machine.RecoverySupplied): past
 		/// the turn it stands in, nothing takes it back (Commit, the turn's point).
 		/// </remarks>
-		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions)
+		public override IEnumerable<string> Recovered(RecoveryPlan plan, int slot, RuleSymbol element, bool positions, bool tagged)
 		{
 			if (plan.Recovery.Asks.Count > 0)
 				yield return "var recovered = (Position: pos, Value: to, AtomicIndex: reach, RuleIndex: ordinal);";
