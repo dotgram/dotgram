@@ -210,10 +210,8 @@ generator carries its own table of those mappings rather than asking the runtime
 hosted on (whose answer depends on its ICU, on invariant globalization mode, and on
 .NET Framework's NLS in an editor), so the parser it writes does not depend on the build
 machine. The generated parser tests the characters named here rather than folding at run
-time, with one exception: a literal of two or more ASCII characters is one call to the
-runtime's ordinal ignore-case comparison, which on .NET 5 and later never pairs a
-character beyond ASCII with an ASCII one and so is exactly this rule; on an older
-runtime (.NET Framework, Mono) that comparison is the runtime's own. It attaches to the literal
+time, on every runtime: a letter of an ASCII literal is tested by setting bit 0x20 of the
+input character and comparing it with the lower-case letter. It attaches to the literal
 alone — `"text"i & X` folds only the literal's own case, not whatever `X` is.
 
 Square brackets in an expression are always an element set, testing **one** input

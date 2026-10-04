@@ -2014,8 +2014,8 @@ public sealed class CSharpEmitterTests
 	// ── Case-insensitive literals ─────────────────────────────────────────────────
 
 	/// <summary>
-	/// A case-insensitive literal of ASCII is one comparison, like a case-sensitive one,
-	/// and works out which character differed only where it has already failed.
+	/// A case-insensitive literal of ASCII reads one slice, as a case-sensitive one is one
+	/// comparison, and works out which character differed only where it has already failed.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -2027,7 +2027,9 @@ public sealed class CSharpEmitterTests
 	/// <para>
 	/// Measured before it was believed, because a span method that is not folded into
 	/// register compares the way <c>SequenceEqual</c> is could have cost more than the
-	/// chain it replaces. Nanoseconds a call on a seven-character word:
+	/// chain it replaces. Nanoseconds a call on a seven-character word, with the runtime's own
+	/// ordinal ignore-case comparison as "folded" (since replaced by a test of each character
+	/// over one slice, which does not depend on the runtime's folding beyond ASCII):
 	/// </para>
 	/// <code>
 	///                          chain   folded   exact
@@ -2050,11 +2052,13 @@ public sealed class CSharpEmitterTests
 		Assert.Matches(
 			@"static string\[\] Recognize_DotGram_Expected\d+ => .* new string\[\] \{ ""\\""http\\""i"" \}, null\)", source);
 
+		// One slice, each character tested against the literal's own cases: the runtime's
+		// ordinal folding is not used, whose answer beyond ASCII depends on the runtime.
 		Assert.Contains(
-			"global::System.MemoryExtensions.Equals(text.Slice(p, 4), " +
-			"global::System.MemoryExtensions.AsSpan(\"http\"), " +
-			"global::System.StringComparison.OrdinalIgnoreCase)",
+			"text.Slice(p, 4) is var folded0 && ((folded0[0] | 0x20) != 'h' || (folded0[1] | 0x20) != 't' || " +
+			"(folded0[2] | 0x20) != 't' || (folded0[3] | 0x20) != 'p')",
 			source, StringComparison.Ordinal);
+		Assert.DoesNotContain("OrdinalIgnoreCase", source, StringComparison.Ordinal);
 
 		// And the per-character work is on the failing branch, folded there too: the two
 		// cases of an ASCII letter in one test.
@@ -2095,8 +2099,8 @@ public sealed class CSharpEmitterTests
 			source);
 		Assert.Contains("AsSpan(\"http\")", source);
 
-		// The case-folded site is its own, and it is one comparison rather than four.
-		Assert.Contains("OrdinalIgnoreCase", source, StringComparison.Ordinal);
+		// The case-folded site is its own, and it reads one slice rather than four characters.
+		Assert.Contains("(folded0[0] | 0x20) != 'h'", source, StringComparison.Ordinal);
 	}
 
 	// ── A rule that scans ──────────────────────────────────────────────────
@@ -2899,7 +2903,7 @@ public sealed class CSharpEmitterTests
 
 		// From there to the word itself nothing asks again. The literal's own length check
 		// stays — that is about what follows the first character, which nothing has proven.
-		var group = source[head..source.IndexOf("AsSpan(", head, StringComparison.Ordinal)];
+		var group = source[head..source.IndexOf(" is var folded", head, StringComparison.Ordinal)];
 
 		Assert.DoesNotContain("(uint)p", group, StringComparison.Ordinal);
 		Assert.DoesNotContain("ToUpperInvariant", group, StringComparison.Ordinal);

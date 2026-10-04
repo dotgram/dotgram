@@ -64,6 +64,7 @@ public sealed class CaseFoldTests
 		("μs",      ["ΜS", "μs"],             ["µs", "μſ"]),
 		("σς", ["ΣΣ", "σς"],   ["ςσ", "σσ"]),
 		("a1",           ["A1", "a1"],                       ["A!", "à1"]),
+		("skin",         ["SKIN", "sKiN"],                   ["s\u212Ain", "sk\u0131n", "sk\u0130n", "\u017Fkin"]),
 	];
 
 	public static TheoryData<int> Rows()
@@ -132,8 +133,9 @@ public sealed class CaseFoldTests
 	}
 
 	/// <summary>
-	/// Ordinal folding, which compares an ASCII keyword in one call, is the rule there: it pairs
-	/// an ASCII character with nothing beyond ASCII, on the runtime the tests run on.
+	/// The runtime's ordinal folding is the rule on an ASCII literal on the runtime the tests run
+	/// on (.NET 5 and later); the generated parser does not rely on it, and this pins what it
+	/// would have done there.
 	/// </summary>
 	[Fact]
 	public void Ordinal_folding_agrees_with_the_rule_on_every_ascii_literal()
@@ -216,6 +218,12 @@ public sealed class CaseFoldTests
 		Assert.Contains("Read_R0_", direct.Source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Read_R0_", engine.Source, StringComparison.Ordinal);
 		Assert.Contains("Tokenize_DotGram(", lexical.Source, StringComparison.Ordinal);
+
+		// No literal is left to the runtime's own folding, which on .NET Framework and Mono may
+		// pair a character beyond ASCII with an ASCII one: what the generated code asks of the
+		// runtime here is not what the rule says anywhere else.
+		foreach (var source in new[] { engine.Source, direct.Source, lexical.Source })
+			Assert.DoesNotContain("OrdinalIgnoreCase", source, StringComparison.Ordinal);
 
 		var failures = new List<string>();
 

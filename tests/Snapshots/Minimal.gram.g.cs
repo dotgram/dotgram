@@ -4859,7 +4859,7 @@ namespace DotGram.Snapshots
 					expected = Recognize_DotGram_Ci_Expected0;
 					goto Fail;
 				}
-				if (!global::System.MemoryExtensions.Equals(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("go"), global::System.StringComparison.OrdinalIgnoreCase))
+				if (text.Slice(p, 2) is var folded1 && ((folded1[0] | 0x20) != 'g' || (folded1[1] | 0x20) != 'o'))
 				{
 					if ((text[p] | 0x20) == 'g')
 						p += 1;

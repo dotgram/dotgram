@@ -2446,20 +2446,18 @@ sealed partial class Machine
 				// branches with an order that is observable, and only what the JIT
 				// recognizes as one comparison is emitted as one.
 				//
-				// Case-insensitive goes the same way where the text is ASCII, and that is
-				// where the comment here used to stop: "not the comparison any span method
-				// makes" was wrong — `MemoryExtensions.Equals` with `OrdinalIgnoreCase` is
-				// exactly it, is vectorized, and is on the netstandard2.0 floor through
-				// System.Memory, which the emitted code already needs for the span itself.
+				// Case-insensitive goes the same way where the text is ASCII: the slice is
+				// read once into a local and each character is tested against the literal's
+				// own cases (`CSharpEmitter.FoldedDiffers`), which for a letter is one OR and
+				// one compare. It is not `MemoryExtensions.Equals` with `OrdinalIgnoreCase`,
+				// which is the runtime's own folding: on .NET Framework and Mono it may pair
+				// U+0131 with `I` or the Kelvin sign with `k`, so `"is"i` would read what
+				// `'i'i` refuses, and the parser would depend on the runtime it runs on.
 				//
-				// Only where the literal is ASCII, because only there is ordinal folding the
-				// literal's own (`CaseFold`): it pairs an ASCII letter with its other case and
-				// with nothing beyond ASCII — not U+017F with `s`, not the Kelvin sign with
-				// `k` — which a test pins against every character. Beyond ASCII the two part
-				// company (ordinal folding ties the micro sign to `μ`, final sigma to `σ`),
-				// so a literal that reaches there keeps the chain, which tests the
-				// characters `CaseFold` names. Every keyword of every language this is likely
-				// to meet is ASCII; what is not is a literal in someone's own alphabet.
+				// Only where the literal is ASCII, because the span's one local suits what a
+				// keyword list is made of. Beyond ASCII a literal keeps the chain, which tests
+				// the characters `CaseFold` names. Every keyword of every language this is
+				// likely to meet is ASCII; what is not is a literal in someone's own alphabet.
 				//
 				// What it saves is the shape a keyword list is made of. Standard SQL writes
 				// 192 case-insensitive literals averaging seven characters, and each was
@@ -2481,9 +2479,7 @@ sealed partial class Machine
 					writer.Line(BufferedBytes
 						? $"if (!text.Matches(p, {Quoted(value)}))"
 						: ignoreCase
-						? "if (!global::System.MemoryExtensions.Equals(" +
-						  $"text.Slice(p, {value.Length}), {Spanned(value)}, " +
-						  "global::System.StringComparison.OrdinalIgnoreCase))"
+						? $"if ({FoldedDiffers($"text.Slice(p, {value.Length})", value)})"
 						: "if (!global::System.MemoryExtensions.SequenceEqual(" +
 						  $"text.Slice(p, {value.Length}), {Spanned(value)}))");
 
@@ -5807,6 +5803,14 @@ sealed partial class Machine
 
 	/// <summary>Whether every character is ASCII, which is where ordinal folding agrees
 	/// with <see cref="CaseFold"/>.</summary>
+	int _foldings;
+
+	/// <summary><see cref="CSharpEmitter.FoldedDiffers"/> with a local of its own: no other in the file is named alike.</summary>
+	internal string FoldedDiffers(string span, string value)
+	{
+		return CSharpEmitter.FoldedDiffers(span, value, $"folded{_foldings++}");
+	}
+
 	static bool Ascii(string value)
 	{
 		foreach (var character in value)

@@ -2321,16 +2321,15 @@ sealed partial class Machine
 			// Bytes compare with a literal written in characters one by one, which the buffer does
 			// where it holds them (byte literals are case-sensitive values below 256).
 			// A span made and dropped inside the one comparison: nothing fills between (the span
-			// contract at Machine.Cut). Ordinal folding only for an ASCII literal, as the engine
-			// (Machine.CompileUnguarded): beyond ASCII it is not the literal's own, and each
-			// character is tested for what it accepts.
+			// contract at Machine.Cut). An ASCII literal is read from one slice, as the engine
+			// does (Machine.CompileUnguarded); beyond ASCII each character is tested for what it
+			// accepts, with the characters in place.
 			var comparison = machine.BufferedBytes
 				? $"!text.Matches(p, {Quoted(text)})"
 				: folded && !Ascii(text)
 				? string.Join(" || ", text.Select((one, i) => CSharpEmitter.Differs(machine.ReadAt(i == 0 ? "p" : $"p + {i}"), one, true)))
 				: folded
-				? $"!global::System.MemoryExtensions.Equals(text.Slice(p, {text.Length}), " +
-					$"{Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase)"
+				? machine.FoldedDiffers($"text.Slice(p, {text.Length})", text)
 				: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
 			// As the engine answers, so that the renderings of one grammar name one place: input

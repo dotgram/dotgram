@@ -5102,6 +5102,24 @@ file.Line("return spare;");
 			: $"({string.Join(" && ", cases.Select(one => $"{read} != {Char(one)}"))})";
 	}
 
+	/// <summary>
+	/// The test that <paramref name="span"/>, as long as the ASCII <paramref name="value"/>, differs
+	/// from it ignoring case: <see cref="Differs"/> for each character, over one slice.
+	/// </summary>
+	/// <remarks>
+	/// Not the runtime's ordinal ignore-case comparison, whose folding on .NET Framework and Mono
+	/// may pair a character beyond ASCII with an ASCII one; this is the rule of <see cref="Differs"/>
+	/// on every runtime. The slice is bound once, so the characters are read without a bounds
+	/// check each, and the first that differs ends the test. <paramref name="name"/> is the slice's
+	/// local, which scopes over the statement it is in and so must not be one an enclosing
+	/// statement of the same method has taken.
+	/// </remarks>
+	internal static string FoldedDiffers(string span, string value, string name)
+	{
+		return $"{span} is var {name} && (" +
+			string.Join(" || ", value.Select((one, i) => Differs($"{name}[{i}]", one, true))) + ")";
+	}
+
 	/// <summary>The test that <paramref name="read"/> is one; <see cref="Differs"/> turned round.</summary>
 	internal static string Agrees(string read, char value, bool ignoreCase)
 	{
