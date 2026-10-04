@@ -418,10 +418,10 @@ public static class LexerEmitter
 
 				using (text.Braces("for (var i = 0; i < cells.Length; i++)"))
 				{
-					text.Line($"value = value << {SpelledBits} | cells[i] & {(1 << SpelledBits) - 1};");
+					text.Line($"value = value << {SpelledNumbers.Bits} | cells[i] & {(1 << SpelledNumbers.Bits) - 1};");
 					text.Line();
 
-					using (text.Braces($"if (cells[i] < 0x{SpelledMore:X2})"))
+					using (text.Braces($"if (cells[i] < 0x{SpelledNumbers.More:X2})"))
 					{
 						text.Line(Wide ? "decoded[at++] = value - 1;" : "decoded[at++] = (short)(value - 1);");
 						text.Line("value = 0;");
@@ -465,61 +465,21 @@ public static class LexerEmitter
 	/// </remarks>
 	[ThreadStatic] static bool Utf8;
 
-	/// <summary>How many bits of a cell one byte of its spelling carries.</summary>
-	const int SpelledBits = 5;
-
-	/// <summary>
-	/// The bytes that say more of the cell follows: <c>0x60</c> to <c>0x7F</c>. The last byte
-	/// of a cell is <c>0x40</c> to <c>0x5F</c>.
-	/// </summary>
-	const int SpelledMore = 0x60;
-
 	/// <summary>
 	/// The cells as one UTF-8 string literal, each the cell plus one in groups of
-	/// <see cref="SpelledBits"/> bits, the highest first, and then how many cells there are.
+	/// <see cref="SpelledNumbers.Bits"/> bits, the highest first, and then how many cells there are.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// Exact for every cell, narrow or wide: a cell is at least <c>-1</c>, so what is written
-	/// is never negative, and as many groups are written as it takes. <c>-1</c>, the commonest,
-	/// is one byte, <c>'@'</c>; a state below a thousand is two.
-	/// </para>
-	/// <para>
-	/// Every byte is ASCII, so the literal's UTF-8 is the bytes themselves. Letters and
-	/// <c>'@'</c> are written as themselves and everything else as <c>\u00XX</c>, never as
-	/// punctuation or a space: the size estimates read the emitted text
-	/// (<c>Machine.Branches</c>), and a <c>"||"</c> or a <c>"case "</c> spelled by the cells
-	/// would be counted as code of the method above them.
-	/// </para>
+	/// The spelling is <see cref="SpelledNumbers"/>'s: exact for every cell, narrow or wide.
 	/// </remarks>
 	static void Spell(Writer text, List<int> cells)
 	{
-		var line   = text.OpenLine().Append('"');
-		var groups = new Stack<int>();
+		var line = text.OpenLine();
 
-		foreach (var cell in cells)
-		{
-			for (var value = (uint)(cell + 1); groups.Count == 0 || value != 0; value >>= SpelledBits)
-				groups.Push((int)(value & ((1 << SpelledBits) - 1)));
+		SpelledNumbers.Append(line, cells, utf8: true);
 
-			while (groups.Count > 0)
-			{
-				var group = groups.Pop();
-
-				Byte(line, group | (groups.Count > 0 ? SpelledMore : 0x40));
-			}
-		}
-
-		line.Append("\"u8, ").Append(cells.Count.ToString(CultureInfo.InvariantCulture)).Append(");");
+		line.Append(", ").Append(cells.Count.ToString(CultureInfo.InvariantCulture)).Append(");");
 		text.CloseLine();
-
-		static void Byte(StringBuilder line, int value)
-		{
-			if (value is '@' or >= 'A' and <= 'Z' or >= 'a' and <= 'z')
-				line.Append((char)value);
-			else
-				line.Append("\\u").Append(value.ToString("X4", CultureInfo.InvariantCulture));
-		}
 	}
 
 	/// <summary>
