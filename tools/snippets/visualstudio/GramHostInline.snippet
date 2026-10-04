@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Gram-attributed host class (inline)</Title>
+      <Shortcut>gram-host-inline</Shortcut>
+      <Description>A C# host class with an inline grammar</Description>
+      <Author>DotGram</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>Rule</ID>
+          <ToolTip>Name of the entry point rule</ToolTip>
+          <Default>Rule</Default>
+        </Literal>
+        <Literal>
+          <ID>RuleBody</ID>
+          <ToolTip>Body of the rule</ToolTip>
+          <Default>...</Default>
+        </Literal>
+        <Literal>
+          <ID>ClassName</ID>
+          <ToolTip>Name of the host class</ToolTip>
+          <Default>MyGrammar</Default>
+        </Literal>
+        <Literal>
+          <ID>Comment</ID>
+          <ToolTip>Comment about generated methods</ToolTip>
+          <Default>// Generated methods: Parse{Rule}, TryParse{Rule}</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="csharp"><![CDATA[using DotGram;
+
+[Gram("""
+	trivia = Std.Spacing?
+
+	$Rule$ = $RuleBody$
+
+	parse $Rule$
+	""")]
+public static partial class $ClassName$
+{
+	$Comment$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Delimited list (first &amp; rest)</Title>
+      <Shortcut>delimited-list</Shortcut>
+      <Description>An idiomatic delimited list using first &amp; rest pattern</Description>
+      <Author>DotGram</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>ListName</ID>
+          <ToolTip>Name of the list rule</ToolTip>
+          <Default>Items</Default>
+        </Literal>
+        <Literal>
+          <ID>ItemRule</ID>
+          <ToolTip>Name of the item rule</ToolTip>
+          <Default>Item</Default>
+        </Literal>
+        <Literal>
+          <ID>Delimiter</ID>
+          <ToolTip>Delimiter character</ToolTip>
+          <Default>,</Default>
+        </Literal>
+        <Literal>
+          <ID>HelperMethod</ID>
+          <ToolTip>Helper method to build the list</ToolTip>
+          <Default>MakeList</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="gram"><![CDATA[$ListName$ = first: $ItemRule$ & rest: ('$Delimiter$' & $ItemRule$)*
+	     => @($HelperMethod$(first, rest))]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

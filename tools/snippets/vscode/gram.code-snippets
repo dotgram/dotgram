@@ -1,0 +1,120 @@
+{
+	"Grammar skeleton": {
+		"scope": "gram",
+		"prefix": "gram",
+		"body": [
+			"@using ${1:System};",
+			"",
+			"trivia = Std.Spacing?",
+			"",
+			"${2:Rule} = ${3:'a'}",
+			"",
+			"parse ${2:Rule}"
+		],
+		"description": "Basic grammar skeleton with nullable trivia and parse publication"
+	},
+	"Typed rule with factory": {
+		"scope": "gram",
+		"prefix": "typed-rule",
+		"body": [
+			"${1:Rule} : @${2:ResultType} = value: ${3:SomeRule} => @(${4:Factory}(value))"
+		],
+		"description": "A rule with explicit type, captured value, and factory construction"
+	},
+	"Rule with value construction": {
+		"scope": "gram",
+		"prefix": "rule-construct",
+		"body": [
+			"${1:Rule} : @${2:ResultType} = left: ${3:Operand} & op: ${4:Operator} & right: ${3:Operand} => @(new ${2:ResultType}(left, op, right))"
+		],
+		"description": "A rule that constructs a value from captured pieces"
+	},
+	"Choice rule": {
+		"scope": "gram",
+		"prefix": "choice",
+		"body": [
+			"${1:Rule} = ${2:OptionA}",
+			"       | ${3:OptionB}",
+			"       | ${4:OptionC}"
+		],
+		"description": "A choice between multiple alternatives"
+	},
+	"Delimited list (first & rest)": {
+		"scope": "gram",
+		"prefix": "delimited-list",
+		"body": [
+			"${1:Items} : @${2:Item}[] = first: ${2:Item} & rest: ('${3:,}' & ${2:Item})* => @(${4:MakeList}(first, rest))"
+		],
+		"description": "An idiomatic delimited list using first & rest pattern with type annotation"
+	},
+	"Recover for error handling": {
+		"scope": "gram",
+		"prefix": "recover",
+		"body": [
+			"${1:Rows} = ${2:Row}* recover ${3:eol} & eof"
+		],
+		"description": "Error recovery: repetition with resynchronization after delimiter (e.g., eol)"
+	},
+	"Guard with when": {
+		"scope": "gram",
+		"prefix": "guard",
+		"body": [
+			"${1:Rule} : @${2:ResultType} = value: ${3:Capture} & when @(${4:Validate}(value)) => @(${5:Create}(value))"
+		],
+		"description": "A rule with a guard condition checking captured values"
+	},
+	"On fail message": {
+		"scope": "gram",
+		"prefix": "on-fail",
+		"body": [
+			"${1:Rule} on fail \"${2:expected description}\" = ${3:pattern}"
+		],
+		"description": "Rule with custom error message, placed between name and pattern"
+	},
+	"Namespace with no trivia": {
+		"scope": "gram",
+		"prefix": "namespace-notrivia",
+		"body": [
+			"namespace ${1:Tokens}",
+			"{",
+			"    trivia = none",
+			"    ",
+			"    ${2:Rule} = ${3:'a'}",
+			"}"
+		],
+		"description": "A grammar namespace with no trivia for tight token recognition"
+	},
+	"Gram-attributed host class (inline)": {
+		"scope": "csharp",
+		"prefix": "gram-host-inline",
+		"body": [
+			"using DotGram;",
+			"",
+			"[Gram(\"\"\"",
+			"    trivia = Std.Spacing?",
+			"    ",
+			"    ${1:Rule} = ${2:...}",
+			"    ",
+			"    parse ${1:Rule}",
+			"    \"\"\")]",
+			"public static partial class ${3:MyGrammar}",
+			"{",
+			"}"
+		],
+		"description": "A C# host class with an inline grammar (C# 11+)"
+	},
+	"Gram-attributed host class (AdditionalFile)": {
+		"scope": "csharp",
+		"prefix": "gram-host-file",
+		"body": [
+			"using DotGram;",
+			"",
+			"// Add to .csproj: <AdditionalFiles Include=\"${1:MyGrammar}.gram\" />",
+			"[Gram(\"${1:MyGrammar}.gram\")]",
+			"public static partial class ${1:MyGrammar}",
+			"{",
+			"}"
+		],
+		"description": "A C# host class using a separate .gram file (any C#)"
+	}
+}

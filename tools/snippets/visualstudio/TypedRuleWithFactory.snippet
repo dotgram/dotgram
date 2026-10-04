@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Typed rule with factory</Title>
+      <Shortcut>typed-rule</Shortcut>
+      <Description>A rule that produces a typed result through a factory method</Description>
+      <Author>DotGram</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>RuleName</ID>
+          <ToolTip>Name of the rule</ToolTip>
+          <Default>Rule</Default>
+        </Literal>
+        <Literal>
+          <ID>ResultType</ID>
+          <ToolTip>Result type of the rule</ToolTip>
+          <Default>ResultType</Default>
+        </Literal>
+        <Literal>
+          <ID>InnerRule</ID>
+          <ToolTip>Inner rule name to capture</ToolTip>
+          <Default>SomeRule</Default>
+        </Literal>
+        <Literal>
+          <ID>Factory</ID>
+          <ToolTip>Factory method or constructor call</ToolTip>
+          <Default>Factory</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="gram"><![CDATA[$RuleName$ : @$ResultType$ = value: $InnerRule$ => @($Factory$(value))]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
