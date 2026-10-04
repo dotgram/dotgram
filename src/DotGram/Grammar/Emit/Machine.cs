@@ -6353,6 +6353,12 @@ sealed partial class Machine
 		if (node is Node.Sequence { Nodes: [Node.Lookahead(false, var excluded), var one] } && IsAny(one))
 			return ["anything but " + excluded];
 
+		// No item at all is the end of the input, which is what `eof` is, and over kinds
+		// it is what `eof` became: the built-in is rewritten through to its body there, so its
+		// name is gone and the look was said as written, `?![^ ]`.
+		if (leading && IsEndOfInput(node))
+			return ["eof"];
+
 		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
 			return leading && Leading(node) is { Count: > 0 } items ? items : [node.ToString()];
 
@@ -6516,10 +6522,16 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a node is one item, whatever it is: <c>any</c>, called or written out.</summary>
-	static bool IsAny(Node node)
+	internal static bool IsAny(Node node)
 	{
 		return node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } ||
 			node is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 };
+	}
+
+	/// <summary>Whether a node is the end of the input: a look that refuses one item, whatever it is — <c>eof</c>'s body.</summary>
+	internal static bool IsEndOfInput(Node node)
+	{
+		return node is Node.Lookahead(false, var looked) && IsAny(looked);
 	}
 
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>

@@ -3373,17 +3373,10 @@ public static class HandExpression
 
 				while (true)
 				{
-					// A label that is not there where the next would begin is where the labels end,
-					// not where the text went wrong: the accounting Statements gives below.
-					var before = _furthest;
-
+					// Where the labels end, another could still have stood: the accounting
+					// Statements gives below.
 					if (Kind(at) != KwCase)
-					{
-						if (_furthest == at && before < at)
-							_furthest = before;
-
 						break;
-					}
 
 					var test = Pattern(at + 1, out var tests);
 
@@ -3435,10 +3428,9 @@ public static class HandExpression
 		/// <summary>One statement at least, and as many after it as there are.</summary>
 		/// <remarks>
 		/// A statement that is not there where the next one would begin is where the list ends,
-		/// not where the text went wrong — and so is the first one missing, which is how the
-		/// generated parser counts a repetition: a turn that fails where it began is no refusal.
-		/// That is its accounting and not the language's; it shows only here, where nothing after
-		/// the list looks at the same token again.
+		/// and what stands there is still refused for not beginning one — and so is the first one
+		/// missing. The generated parser counts a repetition so: the reading that records tries the
+		/// turn that cannot begin, and what refused it is said beside what refuses after the list.
 		/// </remarks>
 		int Statements(int i, out Expression[]? statements)
 		{
@@ -3450,16 +3442,10 @@ public static class HandExpression
 
 			while (true)
 			{
-				var before = _furthest;
-				var one    = Statement(at, out var statement);
+				var one = Statement(at, out var statement);
 
 				if (one < 0)
-				{
-					if (_furthest == at && before < at)
-						_furthest = before;
-
 					break;
-				}
 
 				if (_build)
 					Push(statement!);

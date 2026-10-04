@@ -4583,7 +4583,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Sheet_Expected3;
+						expected = Recognize_DotGram_Sheet_Expected2;
 						goto S27;
 					}
 					p++;
@@ -4591,7 +4591,7 @@ namespace DotGram.Snapshots
 
 				{
 					p = turn0;
-					expected = Recognize_DotGram_Sheet_Expected2;
+					expected = Recognize_DotGram_Sheet_Expected0;
 					goto Fail;
 				}
 
@@ -5865,10 +5865,7 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Sheet_Expected1 => Recognize_DotGram_Sheet_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected1_Built, new string[] { "';'" }, null) ?? Recognize_DotGram_Sheet_Expected1_Built!;
 
 		static string[]? Recognize_DotGram_Sheet_Expected2_Built;
-		static string[] Recognize_DotGram_Sheet_Expected2 => Recognize_DotGram_Sheet_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected2_Built, new string[] { "?![^ ]" }, null) ?? Recognize_DotGram_Sheet_Expected2_Built!;
-
-		static string[]? Recognize_DotGram_Sheet_Expected3_Built;
-		static string[] Recognize_DotGram_Sheet_Expected3 => Recognize_DotGram_Sheet_Expected3_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected3_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Sheet_Expected3_Built!;
+		static string[] Recognize_DotGram_Sheet_Expected2 => Recognize_DotGram_Sheet_Expected2_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Sheet_Expected2_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Sheet_Expected2_Built!;
 
 		static string[]? Recognize_DotGram_Ci_Expected0_Built;
 		static string[] Recognize_DotGram_Ci_Expected0 => Recognize_DotGram_Ci_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Ci_Expected0_Built, new string[] { "\"go\"i" }, null) ?? Recognize_DotGram_Ci_Expected0_Built!;

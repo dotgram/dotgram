@@ -38,18 +38,25 @@ namespace DotGram.Tests;
 /// <code>
 ///   T-SQL
 ///   a nest of conditions, accepted        1,050    2,050    4,050    8,050   n
-///   a nest of conditions, never closed    2,100    4,100    8,100   16,100   n
+///   a nest of conditions, never closed    2,122    4,122    8,122   16,122   n
 ///   values nested in a predicate            178      328      628    1,228   n
-///   values nested, the predicate cut      9,896   34,746  129,446  498,846   n^2
+///   values nested, the predicate cut     15,302   55,552  211,052  822,052   n^2
 ///   conditions around values (25..200)      825    1,600    3,150    6,250   n
-///   a value nest never closed               822    1,622    3,222    6,422   n
-///   subqueries in FROM (25..200)            578    1,128    2,228    4,428   n
+///   a value nest never closed               829    1,629    3,229    6,429   n
+///   subqueries in FROM (25..200)            826    1,601    3,151    6,251   n
 ///   SQL:2023
-///   a value nest in SELECT, never closed  1,682    3,282    6,482   12,882   n
-///   a nest of conditions, never closed    1,696    3,296    6,496   12,896   n
-///   a bracketed sum, never closed         1,692    3,292    6,492   12,892   n
-///   subqueries in FROM (25..200)            846    1,646    3,246    6,446   n
+///   a value nest in SELECT, never closed  1,738    3,388    6,688   13,288   n
+///   a nest of conditions, never closed    1,755    3,405    6,705   13,305   n
+///   a bracketed sum, never closed         1,749    3,399    6,699   13,299   n
+///   subqueries in FROM (25..200)            884    1,709    3,359    6,659   n
 /// </code>
+/// <para>
+/// A refused nest costs more than it did before the reading that records tried an optional's or
+/// a loop's turn behind a shut door, as the engine does, so that what refused the turn is said:
+/// at every level of the nest that is a rule entered at the token where the parse stops. The
+/// predicate cut read 9,896 to 498,846 before, and subqueries in FROM 578 to 4,428 — the same
+/// class, a larger constant. A parse that is accepted is not read twice and does not pay it.
+/// </para>
 /// <para>
 /// <b>Beside what.</b> The counters are static, and <c>DeepNestingCountTests</c> reads the same
 /// variants; it is in <see cref="Alone"/>, which runs after this class and every other parallel one,
@@ -71,10 +78,10 @@ public sealed class FailureMemoCountTests(ITestOutputHelper output)
 	[InlineData("a nest of conditions, accepted",       2, 22)]
 	[InlineData("a nest of conditions, never closed",   2, 44)]
 	[InlineData("values nested in a predicate",         2, 4)]
-	[InlineData("values nested, the predicate cut",     4, 210)]
+	[InlineData("values nested, the predicate cut",     4, 300)]
 	[InlineData("conditions around values",             2, 34)]
 	[InlineData("a value nest never closed",            2, 17)]
-	[InlineData("subqueries in FROM",                   2, 23)]
+	[InlineData("subqueries in FROM",                   2, 32)]
 	public void A_TSql_nest_costs_no_more_than_its_class(string shape, int growth, int perLevel)
 	{
 		var parser = SqlVariants.Parser(SqlVariants.TransactSql, counts: true);

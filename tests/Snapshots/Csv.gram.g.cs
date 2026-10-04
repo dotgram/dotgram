@@ -429,7 +429,7 @@ namespace DotGram.Snapshots
 				S28:
 				{
 					p = turn0;
-					expected = Recognize_DotGram_Expected8;
+					expected = Recognize_DotGram_Expected0;
 					goto Fail;
 				}
 
@@ -437,7 +437,7 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = Recognize_DotGram_Expected9;
+						expected = Recognize_DotGram_Expected8;
 						goto S27;
 					}
 					p++;
@@ -891,10 +891,7 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Expected7 => Recognize_DotGram_Expected7_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected7_Built, new string[] { "['A'..'Z' | 'a'..'z']" }, null) ?? Recognize_DotGram_Expected7_Built!;
 
 		static string[]? Recognize_DotGram_Expected8_Built;
-		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "?![^ ]" }, null) ?? Recognize_DotGram_Expected8_Built!;
-
-		static string[]? Recognize_DotGram_Expected9_Built;
-		static string[] Recognize_DotGram_Expected9 => Recognize_DotGram_Expected9_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected9_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected9_Built!;
+		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected8_Built!;
 
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure

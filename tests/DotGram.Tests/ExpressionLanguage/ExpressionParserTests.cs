@@ -279,7 +279,7 @@ public sealed class ExpressionParserTests
 	/// tokens that could stand there — says what the list should call it.
 	/// </remarks>
 	[Theory]
-	[InlineData("int x => x", "Expected '('.")]
+	[InlineData("int x => x", "Expected \"using\" or '('.")]
 	[InlineData("(int x) x", "Expected \"=>\".")]
 	[InlineData("(int x) => x @ 1", "Unexpected character '@'.")]
 

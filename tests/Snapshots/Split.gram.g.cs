@@ -887,13 +887,10 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Expected18 => Recognize_DotGram_Expected18_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected18_Built, new string[] { "['0'..'9']" }, null) ?? Recognize_DotGram_Expected18_Built!;
 
 		static string[]? Recognize_DotGram_Expected19_Built;
-		static string[] Recognize_DotGram_Expected19 => Recognize_DotGram_Expected19_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected19_Built, new string[] { "?![^ ]" }, null) ?? Recognize_DotGram_Expected19_Built!;
+		static string[] Recognize_DotGram_Expected19 => Recognize_DotGram_Expected19_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected19_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected19_Built!;
 
 		static string[]? Recognize_DotGram_Expected20_Built;
 		static string[] Recognize_DotGram_Expected20 => Recognize_DotGram_Expected20_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected20_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected20_Built!;
-
-		static string[]? Recognize_DotGram_Expected21_Built;
-		static string[] Recognize_DotGram_Expected21 => Recognize_DotGram_Expected21_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected21_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected21_Built!;
 
 		static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 

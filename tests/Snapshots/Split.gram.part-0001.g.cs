@@ -1429,7 +1429,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected21; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected19; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)

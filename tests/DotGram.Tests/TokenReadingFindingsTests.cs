@@ -171,6 +171,51 @@ public sealed class TokenReadingFindingsTests
 	}
 
 	/// <summary>
+	/// A refusal at the end says the same in every rendering over tokens — the engine, and the
+	/// direct reader on the tape and the immediate carrier — in the whole form, from a position
+	/// and in a window: the same place and the same message, naming the end of the input as
+	/// over characters.
+	/// </summary>
+	/// <remarks>
+	/// Over kinds <c>eof</c> is rewritten through to its body, <c>?!any</c>, and its name went
+	/// with it: the engine said <c>?![^ ]</c>, and the reader, which records nothing inside a
+	/// rule's own look, said only that the input did not match, at the position it began. Nor
+	/// did the reader say the optional before it: it does not try a turn whose door is shut,
+	/// and the reading that records now tries it, as the engine does, so that what refused it
+	/// is half of the message. On <c>"a b"</c> every rendering now refuses at the <c>b</c>,
+	/// wanting <c>'z'</c> or the end of the input.
+	/// <para>
+	/// Over characters the same, where the place is the same: <c>'a'*</c> there is a run of
+	/// characters, and the space between two of them ends it. The two alternatives' <c>'z'</c>
+	/// is printed as the class it is read as there, <c>['z']</c>, but by the engine where the end
+	/// is written in place, which is not what this holds.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("a b",   null, null, "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("a b",   0,    null, "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("a b",   0,    3,    "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("a b",   1,    null, "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("a b",   1,    2,    "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("a b",   0,    2,    "accepted",                                    null)]
+	[InlineData("a a b", 0,    null, "NoMatch at 4: Expected 'z' or end of input.", "NoMatch at 2: Expected 'z' or end of input.")]
+	[InlineData("a c b", 2,    null, "NoMatch at 2: Expected 'z' or end of input.", null)]
+	[InlineData("ab z",  null, null, "NoMatch at 1: Expected 'z' or end of input.", null)]
+	public void A_refusal_at_the_end_over_tokens_is_said_alike_in_every_rendering(string input, int? at, int? length, string said, string? saidOverCharacters)
+	{
+		foreach (var end in new[] { "eof", "?!any" })
+		{
+			var grammar = $"trivia = {{ ' '* }}\nStart = 'a'* & ('z' | 'z' & 'q')? & {end}\nOther = 'c' & 'b'\nparse Start\nparse Other\n";
+
+			foreach (var assembly in OverTokens(grammar))
+				Assert.Equal(said, Refusal(assembly, input, at, length));
+
+			foreach (var assembly in OverCharacters(grammar))
+				Assert.Equal(saidOverCharacters ?? said, Refusal(assembly, input, at, length).Replace("['z']", "'z'"));
+		}
+	}
+
+	/// <summary>
 	/// <c>any</c> over tokens reads a token, and a character no token begins with as one
 	/// character, as it reads one over characters; what follows it is still there, and
 	/// <c>eof</c> is not met until the text ends.
@@ -705,6 +750,47 @@ public sealed class TokenReadingFindingsTests
 
 			yield return EmittedCode.Compile(result.Sources[0].Text);
 		}
+	}
+
+	/// <summary>The renderings of a grammar read over characters: the engine, and the direct reader on each carrier.</summary>
+	static IEnumerable<Assembly> OverCharacters(string grammar)
+	{
+		yield return Built(grammar, lexical: false, direct: false);
+
+		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		{
+			var options = Options(lexical: false, direct: true);
+
+			options.Carrier = carrier;
+
+			var result = GramCompiler.Compile(grammar, options);
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			yield return EmittedCode.Compile(result.Sources[0].Text);
+		}
+	}
+
+	/// <summary>
+	/// What a reading of <c>Start</c> said: the whole input where no position is given, from the
+	/// position or in the window where one is — its outcome, where and why, or that it accepted.
+	/// </summary>
+	static string Refusal(Assembly assembly, string input, int? at, int? length)
+	{
+		if (at is not { } from)
+		{
+			var whole = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			return whole.IsSuccess
+				? "accepted"
+				: $"{EmittedCode.Outcome(assembly, "Grammar", "TryParseStart", input)} at {whole.Position}: {whole.Error}";
+		}
+
+		var match = Positioned(assembly, input, from, length);
+
+		return match.Outcome == "Success"
+			? "accepted"
+			: $"{match.Outcome} at {match.Position}: {EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", input, from, length).Error}";
 	}
 
 	/// <summary>

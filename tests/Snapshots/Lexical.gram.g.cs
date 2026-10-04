@@ -442,12 +442,15 @@ namespace DotGram.Snapshots
 				var rb_1 = values.Count1;
 				while (true)
 				{
-					if ((uint)p >= (uint)text.Length)
-						break;
+					var open0 = (uint)p < (uint)text.Length;
 
-					c = text[p];
+					if (open0)
+					{
+						c = text[p];
+						open0 = c == '\u0001';
+					}
 
-					if (!(c == '\u0001'))
+					if (!open0 && failure.Quiet)
 					{
 						break;
 					}
@@ -472,7 +475,10 @@ namespace DotGram.Snapshots
 				values.Count1 = rr1_1;
 
 				if (q1 >= 0)
+				{
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Expected0);
 					return -1;
+				}
 				last0 = Construct_Program(values.Take1(rb_1)!);
 				return p;
 			}
@@ -632,7 +638,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Expected9);
+					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Expected0);
 					return -1;
 				}
 				return p;
@@ -776,7 +782,7 @@ namespace DotGram.Snapshots
 			}
 
 		static string[]? Recognize_DotGram_Expected0_Built;
-		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "?![^ ]" }, null) ?? Recognize_DotGram_Expected0_Built!;
+		static string[] Recognize_DotGram_Expected0 => Recognize_DotGram_Expected0_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected0_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected0_Built!;
 
 		static string[]? Recognize_DotGram_Expected1_Built;
 		static string[] Recognize_DotGram_Expected1 => Recognize_DotGram_Expected1_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected1_Built, new string[] { "Name", "Number", "'='", "';'", "'+'" }, null) ?? Recognize_DotGram_Expected1_Built!;
@@ -801,9 +807,6 @@ namespace DotGram.Snapshots
 
 		static string[]? Recognize_DotGram_Expected8_Built;
 		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "Name", "Number" }, null) ?? Recognize_DotGram_Expected8_Built!;
-
-		static string[]? Recognize_DotGram_Expected9_Built;
-		static string[] Recognize_DotGram_Expected9 => Recognize_DotGram_Expected9_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected9_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected9_Built!;
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome

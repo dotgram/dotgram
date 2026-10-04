@@ -133,11 +133,15 @@ public sealed class PaddedRunProofTests
 	/// the same as it did. The parse is refused either way; the reason it gives is what moved, and
 	/// only for a grammar whose tail refuses silently. Accepted as the existing lead proof accepts it.
 	/// </para>
+	/// <para>
+	/// The end of the input written in place, <c>?!any</c>, is no longer such a tail: the reader
+	/// records it as it records <c>eof</c>, and both renderings name it where the engine always did.
+	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(true,  "?!any",       "Input does not match 'Item'.", 0)]
+	[InlineData(true,  "?!any",       "Expected end of input.",       6)]
 	[InlineData(true,  "?='q' & 'q'", "Input does not match 'Item'.", 0)]
-	[InlineData(false, "?!any",       "Expected ?!any.",              6)]
+	[InlineData(false, "?!any",       "Expected end of input.",       6)]
 	[InlineData(false, "?='q' & 'q'", "Expected ?='q'.",              6)]
 	public void A_tail_that_refuses_silently_leaves_the_rule_to_be_named(bool direct, string tail, string error, long position)
 	{

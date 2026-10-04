@@ -1565,6 +1565,9 @@ sealed partial class Machine
 		int _marks;
 		int _turns;
 
+		/// <summary>Doors a reading that records goes through shut (TriesBehindTheDoor), counted apart so that naming them moves no other local.</summary>
+		int _doors;
+
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
 		bool _records;
 
@@ -3811,7 +3814,30 @@ sealed partial class Machine
 				// refusal recorded at the token, and — nine levels of a ladder each asking
 				// for their operator at the same token — a tie between them, which
 				// allocates. This is the door the rendering beside this one has always had.
-				if (Door([body]) is { } door)
+				if (Door([body]) is { } door && TriesBehindTheDoor(body, repeat))
+				{
+					// The reading that records tries the turn anyway, as EmitTurns does and for
+					// the same reason: where the loop ends and what follows it refuses too, the
+					// turn's refusal is half of the message.
+					var open = $"open{_doors++}";
+
+					code.Line($"var {open} = {machine.Within("p")};");
+					code.Line();
+
+					using (code.Block($"if ({open})"))
+					{
+						code.Line($"c = {machine.ReadAt("p")};");
+						code.Line($"{open} = {door};");
+					}
+
+					code.Line();
+
+					using (code.Block($"if (!{open} && failure.Quiet)"))
+						code.Line("break;");
+
+					code.Line();
+				}
+				else if (Door([body]) is { } closed)
 				{
 					code.Line($"if ({machine.Past("p")})");
 					code.Then("break;");
@@ -3819,7 +3845,7 @@ sealed partial class Machine
 					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
 
-					using (code.Block($"if (!({door}))"))
+					using (code.Block($"if (!({closed}))"))
 					{
 						// A fold's loop ending is the operator ladder saying that what stands
 						// here continues nothing — which is what a reader is owed where the
@@ -3930,6 +3956,23 @@ sealed partial class Machine
 			_scanned = null;
 		}
 
+		/// <summary>
+		/// Whether the reading that records tries a turn its door has closed on, as the engine
+		/// does, so that what refused the turn is said beside what refuses after the loop.
+		/// </summary>
+		/// <remarks>
+		/// Only where a quiet reading comes first, which stops at the door as before. Not in a rule
+		/// the engine reads as a scan, nor in the seam or what it calls, which the engine reads
+		/// without recording; nor in a fold's loop, whose ending is said once for the whole ladder
+		/// (NoteTails) and not by every level of it. Nor where the turn is one character, which
+		/// the engine reads as a run and does not record either.
+		/// </remarks>
+		bool TriesBehindTheDoor(Node body, Node.Repeat? repeat)
+		{
+			return machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
+				machine.RunTest(body) is null && (repeat is null || !machine.IsFoldLoop(repeat));
+		}
+
 		/// <summary>The repetition <see cref="EmitScan"/> is writing the loop of.</summary>
 		Node.Repeat? _scanned;
 
@@ -3946,14 +3989,33 @@ sealed partial class Machine
 		{
 			var scopes = new Stack<IDisposable>();
 
-			if (Door([body]) is { } door)
+			if (Door([body]) is { } door && TriesBehindTheDoor(body, null))
+			{
+				// The reading that records tries the turn anyway (EmitRepeat's loop says why).
+				var open = $"open{_doors++}";
+
+				_character = true;
+
+				code.Line($"var {open} = {machine.Within("p")};");
+				code.Line();
+
+				using (code.Block($"if ({open})"))
+				{
+					code.Line($"c = {machine.ReadAt("p")};");
+					code.Line($"{open} = {door};");
+				}
+
+				code.Line();
+				scopes.Push(code.Block($"if ({open} || !failure.Quiet)"));
+			}
+			else if (Door([body]) is { } closed)
 			{
 				_character = true;
 
 				scopes.Push(code.Block($"if ({machine.Within("p")})"));
 				code.Line($"c = {machine.ReadAt("p")};");
 				code.Line();
-				scopes.Push(code.Block($"if ({door})"));
+				scopes.Push(code.Block($"if ({closed})"));
 			}
 
 			var turn = $"q{_calls++}";
@@ -5239,6 +5301,22 @@ sealed partial class Machine
 			var named = _graph.Bodies.TryGetValue(owner, out var body) &&
 				body is Node.Lookahead(_, var looked) && ReferenceEquals(looked, inside) &&
 				machine.ScannerOf(owner) is not null;
+
+			// The end of the input written in place is said as the rule would be. Over kinds
+			// every `eof` is: the built-in is rewritten through to its body there, and a parse
+			// refused at the end after an optional said only that the input did not match,
+			// where the engine names the end. Not in a rule the engine reads as a scan, nor in
+			// the seam or what it calls, which the engine reads without recording.
+			var ends = !positive && Machine.IsAny(inside) &&
+				machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner);
+
+			if (ends)
+			{
+				using (code.Block($"if ({seen} >= 0)"))
+					Refused(code, machine.EndOfInputExpected());
+
+				return;
+			}
 
 			if (!named)
 			{

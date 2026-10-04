@@ -672,7 +672,7 @@ namespace DotGram.Snapshots
 				goto Dispatch;
 
 				Accept:
-				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected8; goto Fail; }
+				if (whole && p != text.Length) { expected = Recognize_DotGram_Expected6; goto Fail; }
 				if (materialize)
 				{
 					if (rootRule >= 0)
@@ -1226,13 +1226,10 @@ namespace DotGram.Snapshots
 		static string[] Recognize_DotGram_Expected5 => Recognize_DotGram_Expected5_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected5_Built, new string[] { "['a'..'z']" }, null) ?? Recognize_DotGram_Expected5_Built!;
 
 		static string[]? Recognize_DotGram_Expected6_Built;
-		static string[] Recognize_DotGram_Expected6 => Recognize_DotGram_Expected6_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected6_Built, new string[] { "?![^ ]" }, null) ?? Recognize_DotGram_Expected6_Built!;
+		static string[] Recognize_DotGram_Expected6 => Recognize_DotGram_Expected6_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected6_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected6_Built!;
 
 		static string[]? Recognize_DotGram_Expected7_Built;
 		static string[] Recognize_DotGram_Expected7 => Recognize_DotGram_Expected7_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected7_Built, new string[] { "[^ ]" }, null) ?? Recognize_DotGram_Expected7_Built!;
-
-		static string[]? Recognize_DotGram_Expected8_Built;
-		static string[] Recognize_DotGram_Expected8 => Recognize_DotGram_Expected8_Built ?? global::System.Threading.Interlocked.CompareExchange(ref Recognize_DotGram_Expected8_Built, new string[] { "end of input" }, null) ?? Recognize_DotGram_Expected8_Built!;
 
 		/// <summary>
 		/// Half-open range of the input: [Start, End).
