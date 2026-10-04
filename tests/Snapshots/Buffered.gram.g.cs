@@ -3236,6 +3236,18 @@ namespace DotGram.Snapshots
 			{
 				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
+
+			/// <summary>
+			/// This refusal, said of another reading: at <paramref name="position"/>, of another type,
+			/// and with <paramref name="otherwise"/> where it had nothing of its own to say. What it
+			/// says is still built where <c>Error</c> is asked for, and not here: a reading made of
+			/// others — a whole made of parts, each read where it lies — refuses with the refusal of
+			/// the part it stopped at, and a caller that only wants to know pays for none of it.
+			/// </summary>
+			internal Match<TOther> Refusal<TOther>(long position, string otherwise)
+			{
+				return Match<TOther>.Failed(Outcome, _otherwise ?? otherwise, position, _expected, _tied);
+			}
 		}
 
 		/// <summary>Where a match got before it gave up, and why.</summary>

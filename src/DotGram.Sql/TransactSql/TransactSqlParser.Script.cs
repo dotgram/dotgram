@@ -697,8 +697,7 @@ public abstract partial class TransactSqlParser
 			if (alone.IsSuccess)
 				return match;
 
-			return Match<Statement[]>.Failed(
-				alone.Outcome, alone.Error ?? "Input does not match 'Sql'.", alone.Position + batch.At, null, null);
+			return alone.Refusal<Statement[]>(alone.Position + batch.At, "Input does not match 'Sql'.");
 		}
 
 		/// <summary>
@@ -739,7 +738,7 @@ public abstract partial class TransactSqlParser
 					if (refusal is { } earlier && earlier.Position <= at)
 						return earlier;
 
-					return Match<Batch[]>.Failed(match.Outcome, match.Error ?? "Input does not match 'Sql'.", at, null, null);
+					return match.Refusal<Batch[]>(at, "Input does not match 'Sql'.");
 				}
 
 				batches[i] = new Batch(SqlList.Own(match.Value), Go(batch)) { Source = batch };
