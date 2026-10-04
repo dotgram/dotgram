@@ -2386,15 +2386,17 @@ public static class HandExpression
 		/// <summary>Whether that token could open a new value — the one question standing
 		/// between a nullable mark `Tested` may keep and the conditional operator's own `?`.</summary>
 		/// <remarks>
-		/// A quoted or interpolated string's own first token is not asked here, matching the
-		/// generated grammar's own `OpensValue`: a character class built over strings and `@`/`$`
-		/// this far from where tokens are made cost the syntactic half its own error reporting
-		/// elsewhere (`Unexpected character '@'` stopped saying so once this reached for it), so
-		/// the generated side settled for the narrower, string-free set this mirrors.
+		/// Asked over token KINDS, which is what lets a quoted, verbatim, interpolated or raw
+		/// string's own first token stand here same as a number's: `x is int ? "a" : "b"` and
+		/// `x as T ? 'a' : 'b'` read as the ternary over a string or a char, exactly as C# reads
+		/// them. The generated grammar asks the same question by the rule that reads each string
+		/// form (`Text`, `Verbatim`, …) rather than by the quotes, `@` or `$` that open it taken
+		/// as a bare character, for the reason `Tested`'s own comment gives; a check over kinds
+		/// the lexer already made has no reason to tell the two apart.
 		/// </remarks>
 		static bool OpensValue(byte kind)
 		{
-			return IsWord(kind) || kind is >= Number and <= RealM
+			return IsWord(kind) || kind is >= Number and <= RawLong
 				|| kind is LeftParen or Plus or Minus or Not or Tilde or Increment or Decrement;
 		}
 

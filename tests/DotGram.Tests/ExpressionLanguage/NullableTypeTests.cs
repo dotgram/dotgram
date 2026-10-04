@@ -250,4 +250,64 @@ public sealed class NullableTypeTests
 		Assert.False(result.IsSuccess);
 		Assert.Contains("reference or nullable type", result.Error, StringComparison.Ordinal);
 	}
+
+	// ── A string, a char, or any of their other spellings right after such a `?` ───
+	//
+	// Every one of these opens a value in C# too, so none of them ever reaches a mark to keep:
+	// `is`/`as` read a plain, unmarked type, and the `?` is the ternary's own — confirmed against
+	// Roslyn for each shape before writing the test, not assumed from the plain-string case alone.
+
+	[Theory]
+	[InlineData("(object x, string a, string b) => x is int ? \"a\" : \"b\"", 5, "a")]
+	[InlineData("(object x, string a, string b) => x is int ? \"a\" : \"b\"", "not an int", "b")]
+	public void Is_followed_by_a_quoted_string_reads_the_ternary(string text, object argument, string expected)
+	{
+		Assert.Equal(expected, Both.Compile<Func<object, string, string, string>>(text)(argument, "a", "b"));
+	}
+
+	[Fact]
+	public void As_followed_by_a_char_reads_the_ternary()
+	{
+		// `x as string` on a non-string is simply null, which is falsy here only through the
+		// ternary's own test needing a `bool` — so this is really exercising that the `?` after
+		// `string` was left for the conditional and not folded into `as string?`, which would
+		// make the whole thing a `char?` and refuse to compile against a `bool` test at all.
+		var result = Both.TryParse("(object x, char a, char b) => x as string ? a : b");
+
+		Assert.False(result.IsSuccess);
+		Assert.Contains("must be boolean", result.Error, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public void Is_followed_by_a_verbatim_string_reads_the_ternary()
+	{
+		Assert.Equal("n", Both.Compile<Func<object, string>>("(object x) => x is int ? @\"n\" : \"m\"")(5));
+	}
+
+	[Fact]
+	public void Is_followed_by_an_interpolated_string_reads_the_ternary()
+	{
+		Assert.Equal("5", Both.Compile<Func<object, string>>("(object x) => x is int ? $\"{x}\" : \"m\"")(5));
+	}
+
+	[Fact]
+	public void Is_followed_by_a_verbatim_interpolated_string_reads_the_ternary()
+	{
+		Assert.Equal("5", Both.Compile<Func<object, string>>("(object x) => x is int ? $@\"{x}\" : \"m\"")(5));
+		Assert.Equal("5", Both.Compile<Func<object, string>>("(object x) => x is int ? @$\"{x}\" : \"m\"")(5));
+	}
+
+	[Fact]
+	public void Is_followed_by_a_raw_string_reads_the_ternary()
+	{
+		Assert.Equal(
+			"raw",
+			Both.Compile<Func<object, string>>("(object x) => x is int ? \"\"\"raw\"\"\" : \"m\"")(5));
+	}
+
+	[Fact]
+	public void Is_followed_by_a_raw_interpolated_string_reads_the_ternary()
+	{
+		Assert.Equal("5", Both.Compile<Func<object, string>>("(object x) => x is int ? $\"\"\"{x}\"\"\" : \"m\"")(5));
+	}
 }

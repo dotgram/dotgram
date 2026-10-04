@@ -173,10 +173,14 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
   braces, `new List<int> { }`, as in C#), generic types, casts, `is`, `as`, `?.`, `??`, `?:`,
   `checked(…)` and `unchecked(…)`, `typeof(T)`, `default(T)`, `nameof(…)`.
 - **`T?`:** the nullable value type `System.Nullable<T>`, read anywhere a type is — a cast, a
-  declaration, a generic argument, `typeof`, `default`, `is`, `as` — as C# reads it. `is` and
-  `as` are the one place `?` is also the conditional operator, so there a bare `?` is read as
-  nullable only where what follows it could not be the start of a new expression: `x is int ? 1
-  : 2` is `(x is int) ? 1 : 2`, not `x is (int?)` with nothing after it, exactly as C# reads it.
+  declaration, a generic argument, `typeof`, `default`, `is`, `as`, an array element or the
+  array itself (`int?[]`, `string[]?`, stacked any number of times, `string?[]?[]`) — as C#
+  reads it, erasing the mark where it falls on a reference type the way C# erases it at run
+  time. `is`, `as`, `typeof` and `new` refuse that erasure instead (CS8650/CS8651/CS8639/
+  CS8628): `x as string?` is refused the way `x as string` is not. `is` and `as` are also the
+  one place `?` is also the conditional operator, so there a bare `?` is read as nullable only
+  where what follows it could not be the start of a new expression: `x is int ? 1 : 2` is
+  `(x is int) ? 1 : 2`, not `x is (int?)` with nothing after it, exactly as C# reads it.
 - **`x with { A = 1 }`:** a copy of a record or a struct with those members set, as in C#;
   `with` stays a name everywhere else.
 - **Tuples:** `(a, b)`, of any number of elements and nested, which is a `ValueTuple` as it
@@ -221,8 +225,6 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
 - A lambda written INSIDE a text that says no types and is handed to no call is refused, as
   C# refuses it (CS8917). The outermost one is different: `Compile<TDelegate>` types it.
 - An inner block may declare a name an outer one already has; the nearer one wins.
-- `?` after an array type (`int[]?`, a nullable-REFERENCE annotation in C#, erased at run time
-  and so a no-op even there) is not read; write `int?[]`, an array of nullable `int`, which is.
 
 ## Mistakes to avoid
 

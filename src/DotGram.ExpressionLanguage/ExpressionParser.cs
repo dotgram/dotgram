@@ -244,19 +244,6 @@ namespace DotGram.ExpressionLanguage;
 		HexDigit = ['0'..'9' | 'a'..'f' | 'A'..'F']
 		BinDigit = ['0' | '1']
 
-		// What else opens a value, beside a word (`Word`) and a digit (`Digit`) — a parenthesis
-		// and a unary prefix. Named so `TestedMarked` can ask `?!(Word | Digit | OpensValue)` in
-		// one lookahead rather than an inline character class there, which the generator cannot
-		// build this far from where tokens are made over a mix of a Unicode category and a
-		// handful of literals (§4.5). A quoted or interpolated string's own first character is
-		// left out for the same reason and one more: `'"' | '\'' | '@' | '$'` read here cost the
-		// syntactic half's OWN error reporting elsewhere — `x @ 1` stopped saying "Unexpected
-		// character '@'" and started listing operators once a lookahead this far from the lexer
-		// asked about '@' at all. A text that puts a string right after such a `?` — `x as T ?
-		// "a" : "b"` — reads as nullable here rather than as the ternary C# would make of it;
-		// narrower than C#, and the trade this grammar makes rather than that report.
-		OpensValue on fail "a value" = ['(' | '+' | '-' | '!' | '~']
-
 		// A separator stands between digits and is no part of the value, so every rule
 		// below hands back the digits with them taken out: `long.Parse` reads a number,
 		// not a number and an underscore.
@@ -657,19 +644,29 @@ namespace DotGram.ExpressionLanguage;
 	// `is` and `as` read a type where C#'s `?:` also reads one — `x is int ? 1 : 2` is `(x is
 	// int) ? 1 : 2`, not `x is (int?)` with nothing after it — so here, unlike in `Type`, a bare
 	// `?` is read as nullable only where what follows it could not be the start of a new
-	// expression: a name, a keyword, a digit, `(`, or a unary `+ - ! ~` all open one (a string
-	// does too, in C#; `OpensValue` says why this reads one as nullable instead), so none of
-	// them stands here. Closing an enclosing construct, continuing with an operator that is
-	// never a prefix (`==`, `<`, `&&`, …), opening the array rank `[]`, or a second `?` that is not this one's own
-	// other half — the real conditional, or the coalesce operator once what is between them is
-	// a token in its own right (`??`) rather than two apart — all answer the other way, and are
-	// read as nullable: `x as int? ?? 5`, `x as int? < 5` and `x is int? ? 1 : 2` all keep it,
-	// where `x as int??5` and `x is int ? 1 : 2` — this one with no mark to keep at all — do
-	// not. A literal two-character `"??"` is checked for first and apart from the rest, since
-	// nothing later in the alternative can un-write a `?` already taken to be this one's own
-	// once a general lookahead has read past it. `is`/`as` also refuse the erasure `Type` makes,
-	// CS8650/CS8651, for the reason `Strict` does: a runtime type check or conversion has no
-	// answer for an annotation that carries none.
+	// expression: a name, a keyword, a digit, a quoted, verbatim, interpolated or raw string or
+	// character, `(`, or a unary `+ - ! ~` all open one. `x is int ? "a" : "b"`, `x as T ?
+	// $"{x}" : @"n"` and `x as T ? 'a' : 'b'` all read as the ternary over a string or a char
+	// exactly as C# reads them, and no mark is even asked about there, since `is`/`as` were
+	// given a plain `int`/`T` to begin with; what follows a mark that IS kept — closing an
+	// enclosing construct, continuing with an operator that is never a prefix, opening the
+	// array rank `[]`, or a second `?` that is not this one's own other half (the real
+	// conditional, or the coalesce operator once what is between them is a token in its own
+	// right rather than two apart) — answers the other way: `x as int? ?? 5`, `x as int? < 5`
+	// and `x is int? ? 1 : 2` all keep it, where `x as int??5` and `x is int ? 1 : 2` do not.
+	// Each string and character form is asked for by the rule that already reads it (`Text`,
+	// `Verbatim`, `Interpolated`, the raw forms, …) rather than the quotes, `@` or `$` that
+	// open them read as bare characters: that cost the generated parser's own position tracking
+	// elsewhere once any of the three stood in a lookahead this far from the lexer (a malformed
+	// string many characters away answered one position short of where the hand-written carrier
+	// did), the same way `Word` and `Digit` are asked for by name rather than by `\p{L}`/
+	// `\p{Nd}` written out here, which cost the build outright (GRAM5004). A literal `"??"` is
+	// excluded first and apart from the rest, checked immediately after this `?` rather than
+	// past whatever trivia follows it, since that pair is the coalesce operator's own token
+	// before either grammar reads a character of it, and nothing later in the alternative can
+	// undo a `?` already taken to be this one's. `is`/`as` also refuse the erasure `Type`
+	// makes, CS8650/CS8651, for the reason `Strict` does: a runtime type check or conversion has
+	// no answer for an annotation that carries none.
 	Tested : @Type on fail "Expected a type."
 		= t: Tested & "[]" & nulled: TestedMarked?
 		  => @(nulled == true ? ExpressionParser.NulledStrict(t.MakeArrayType()) : t.MakeArrayType())
@@ -677,7 +674,11 @@ namespace DotGram.ExpressionLanguage;
 		  => @(nulled == true ? ExpressionParser.NulledStrict(c) : c)
 
 	TestedMarked : @bool
-		= ?!"??" & '?' & ?!(Word | Digit | OpensValue)
+		= ?!"??" & '?'
+		  & ?!(Word | Digit | Text | Char | Verbatim | Interpolated | VerbatimInterpolated
+		     | RawText3 | RawText4 | RawText5 | RawByHand
+		     | RawInterpolated3 | RawInterpolated4 | RawInterpolated5
+		     | RawDoubled3 | RawDoubled4 | RawDoubled5 | '(' | '+' | '-' | '!' | '~')
 		  => @(true)
 
 	Core : @Type = "sbyte"   => @(typeof(sbyte))
