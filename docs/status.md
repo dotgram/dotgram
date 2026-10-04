@@ -1443,11 +1443,11 @@ parser.
 
 What is different over kinds is said too. `GRAM5005`: a rule of the syntactic half that the
 methods cannot read — a `find`, a captured lookahead, a guard handed what a reader cannot
-give it, a rule called with arguments — runs on the shared engine, where a choice or a
-repetition that matched inside a rule can still be revisited, so the committed reading §4
-promises over kinds is not what runs there. At a rule's boundary it is: since 2026-10-04 the
-engine reads each call over kinds as if braced, and a rule's answer stands there as it does
-on the methods. A recovery and a stream were on that list until the buffered rendering learned
+give it, a rule called with arguments — runs on the shared engine, the slower rendering. It
+reads what the methods read: since 2026-10-04 the engine, and the flat method lowered from it,
+read each call over kinds as if braced, and each choice and repetition of a rule not marked `?`
+too, so a rule's answer stands and what matched inside it is revisited only in a rule marked
+`?`, as §4 says. A recovery and a stream were on that list until the buffered rendering learned
 to read both: over a buffer the methods carry a `recover` and step a `yield` one element at
 a time, and what runs then is the reader's committed reading, not the engine's. `GRAM5009`: an optional or a repetition that can take,
 in one token, what follows it, which over kinds nothing gives back.

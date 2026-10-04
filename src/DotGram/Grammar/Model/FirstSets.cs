@@ -451,7 +451,7 @@ public static class FirstSets
 
 				reported.Add(new GramDiagnostic(
 					Swallows,
-					$"In '{rule.Name}', '{parts[i]}' can take {Spelled(taken, inventory)}, which is " +
+					$"In '{rule.Name}', '{Said(parts[i], inventory)}' can take {Spelled(taken, inventory)}, which is " +
 					"what follows it — and over kinds a reading that fits is the one that stands " +
 					"(docs/syntax.md §4), so nothing gives it back and the rule fails one token past " +
 					"what it ate. Say what it may not take: a lookahead in front of it naming the " +
@@ -474,6 +474,52 @@ public static class FirstSets
 
 		foreach (var child in Children(node))
 			Swallowed(child, rule, declaration, reported, graph, inventory, inside, follow);
+	}
+
+	/// <summary>An operand said with its tokens named, where they can be looked up.</summary>
+	/// <remarks>
+	/// Over kinds a terminal is a kind, held as a character of the kind's number, and the
+	/// node's own spelling printed that character: <c>Lex.Text*</c> came out as a control
+	/// character between quotes. The shapes an optional or a repetition is written in are said
+	/// here with each kind named as <see cref="Spelled"/> names it; anything else as it prints.
+	/// </remarks>
+	static string Said(Node node, TerminalInventory? inventory)
+	{
+		if (inventory is null)
+			return node.ToString();
+
+		switch (node)
+		{
+			case Node.Literal(var text) when text.Length == 1:
+				return Spelled(First.Chars([new CharRange(text[0], text[0])]), inventory);
+
+			case Node.Element(false, var ranges, { Count: 0 }, { Count: 0 }):
+				return Spelled(First.Chars(ranges), inventory);
+
+			case Node.Sequence(var parts):
+				return string.Join(" & ", parts.Select(part => Said(part, inventory)));
+
+			case Node.Choice(var alternatives) { Selection: null }:
+				return $"({string.Join(" | ", alternatives.Select(one => Said(one, inventory)))})";
+
+			case Node.Repeat(var body, var min, var max):
+			{
+				var repeated = body is Node.Sequence ? $"({Said(body, inventory)})" : Said(body, inventory);
+
+				return (min, max) switch
+				{
+					(0, 1) => $"{repeated}?",
+					(0, null) => $"{repeated}*",
+					(1, null) => $"{repeated}+",
+					var (least, most) when least == most => $"{repeated}{{{least}}}",
+					(var least, null) => $"{repeated}{{{least},}}",
+					var (least, most) => $"{repeated}{{{least},{most}}}",
+				};
+			}
+
+			default:
+				return node.ToString();
+		}
 	}
 
 	/// <summary>The overlap said as the words it stands for, where they can be looked up.</summary>

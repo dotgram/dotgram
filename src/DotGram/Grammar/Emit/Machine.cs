@@ -2449,8 +2449,41 @@ sealed partial class Machine
 		return CompileUnguarded(node, next, following);
 	}
 
-	/// <summary>The calls being compiled inside the braces a call over kinds stands in.</summary>
+	/// <summary>The nodes being compiled, or asked about, inside the braces they stand in over kinds.</summary>
 	readonly HashSet<Node> _standing = NodeWalk.ByIdentity([]);
+
+	/// <summary>
+	/// Whether a node is read over kinds as if braced, and is not already inside its braces.
+	/// </summary>
+	/// <remarks>
+	/// Over kinds a rule's answer stands (docs/syntax.md §4): once it has answered, nothing that
+	/// fails after it sends the parse back into it — not even into a rule marked <c>?</c>, which
+	/// gives back inside itself and not at its boundary. Inside a rule a choice is decided by the
+	/// token in front of it and never revisited, and a repetition or an optional keeps what it
+	/// read; only in a rule marked <c>?</c> is either revisited when something later in the rule
+	/// fails. The engine, and the flat method lowered from it, revisit anything that matched, as
+	/// they do over characters, so every call, and every choice and repetition of a rule not
+	/// marked <c>?</c>, is read as if braced. Where what is braced leaves nothing to reopen the
+	/// braces cost nothing (<see cref="Silent"/>). <see cref="Silent"/> asks the same question
+	/// as the compile, so a node proved silent is compiled silent.
+	/// <para>
+	/// A choice the token in front of it decides (<see cref="Predictive"/>) is left as it is:
+	/// no other alternative can begin there, so nothing could be revisited, and the dispatch on
+	/// that token is the form it is compiled in rather than a chain of tries.
+	/// </para>
+	/// </remarks>
+	bool Stands(Node node)
+	{
+		return OverKinds && !_standing.Contains(node) && node switch
+		{
+			Node.Call => true,
+			Node.Choice { Selection: null } or Node.Repeat when
+				!_owners.TryGetValue(node, out var owner) || owner.GivesBack => false,
+			Node.Choice(var alternatives) { Selection: null } => Predictive(alternatives) is null,
+			Node.Repeat => true,
+			_ => false,
+		};
+	}
 
 	int CompileUnguarded(Node node, int next, FollowSets.Continuation following)
 	{
@@ -2667,6 +2700,22 @@ sealed partial class Machine
 				}
 
 				return target;
+			}
+
+			case Node.Call or Node.Choice or Node.Repeat when Stands(node):
+			{
+				// Read as if braced over kinds (`Stands`), and what the braces opened is put out
+				// the moment they close.
+				_standing.Add(node);
+
+				try
+				{
+					return CompileUnguarded(new Node.Atomic(node), next, following);
+				}
+				finally
+				{
+					_standing.Remove(node);
+				}
 			}
 
 			case Node.Choice(var alternatives) { Selection: { } selected }:
@@ -2917,24 +2966,6 @@ sealed partial class Machine
 				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
-			}
-
-			case Node.Call when OverKinds && !_lowering && _standing.Add(node):
-			{
-				// Over kinds a rule's answer stands (docs/syntax.md §4): once it has answered,
-				// nothing that fails after it sends the parse back into it — not even into a rule
-				// marked `?`, which gives back inside itself and not at its boundary. The engine
-				// reopens what a call left behind as it reopens anything else, so each call is
-				// read as if braced, and what it opened is put out the moment it answers. Where
-				// it leaves nothing to reopen the braces cost nothing (`Silent`).
-				try
-				{
-					return CompileUnguarded(new Node.Atomic(node), next, following);
-				}
-				finally
-				{
-					_standing.Remove(node);
-				}
 			}
 
 			case Node.Call(var rule, _):

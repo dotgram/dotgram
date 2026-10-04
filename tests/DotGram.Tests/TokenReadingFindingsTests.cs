@@ -491,6 +491,87 @@ public sealed class TokenReadingFindingsTests
 		Assert.Equal(read, answers[0].IsSuccess);
 	}
 
+	/// <summary>
+	/// Inside a rule over tokens a repetition, an optional or a choice that has read what fits
+	/// keeps it, and what the rule wanted after it is not there any more — in every rendering
+	/// and every carrier, whole, from a position and in a window. Over characters each gives
+	/// back, and a rule marked <c>?</c> gives back over tokens too.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over kinds a choice is decided by the token in front of it and never revisited, and only
+	/// inside a rule marked <c>?</c> is a choice or a repetition revisited when something later
+	/// in the same rule fails (§4); GRAM5009 is the warning for the shape. The direct reader read
+	/// it so. The engine braced each call over kinds but revisited what matched inside a rule, so
+	/// <c>Lex.Text* &amp; Lex.Text</c> read <c>"bc"</c> on the engine and was starved on the
+	/// reader; and the flat method lowered from the engine, which a rule as small as
+	/// <c>Choice</c> is read by in every rendering, braced nothing, so it went back into a choice
+	/// and into a call alike. Both now read each call, and each choice and repetition of a rule
+	/// not marked <c>?</c>, as if braced.
+	/// </para>
+	/// <para>
+	/// A rule marked <c>?</c> gives back inside itself and stands at its boundary: <c>Given</c>
+	/// reads two texts by giving the last turn back to its own terminal, and a terminal after
+	/// <c>Given</c> does not get one back from it.
+	/// </para>
+	/// <para>
+	/// Starved, where the refusal is at the end of the text: the repetition's next turn wanted
+	/// more (§7.5), as <c>{ Lex.Text* } &amp; Lex.Text</c> is starved over characters.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("Lex.Text* & Lex.Text",       "\"bc\"",           null, null, "Starved 4 0",  "Success 0 4")]
+	[InlineData("Lex.Text* & Lex.Text",       "\"a\" \"bc\"",     null, null, "Starved 8 0",  "Success 0 8")]
+	[InlineData("Lex.Text* & Lex.Text",       "x \"a\" \"bc\"",   2,    null, "Starved 10 0", "Success 2 8")]
+	[InlineData("Lex.Text* & Lex.Text",       "\"a\" \"bc\" x",   0,    8,    "Starved 8 0",  "Success 0 8")]
+	[InlineData("Lex.Text* & Lex.Text",       "x \"a\" \"bc\" x", 2,    8,    "Starved 10 0", "Success 2 8")]
+	[InlineData("Lex.Text+ & Lex.Text",       "\"a\" \"bc\"",     null, null, "Starved 8 0",  "Success 0 8")]
+	[InlineData("Lex.Text{1,3} & Lex.Text",   "\"a\" \"bc\"",     null, null, "Starved 8 0",  "Success 0 8")]
+	[InlineData("Lex.Text? & Lex.Text",       "\"bc\"",           null, null, "Starved 4 0",  "Success 0 4")]
+	[InlineData("Lex.Text? & Lex.Text",       "x \"bc\" x",       2,    4,    "Starved 6 0",  "Success 2 4")]
+	[InlineData("Lex.Text? & Lex.Text",       "\"a\" \"bc\"",     null, null, "Success 0 8",  "same")]
+	[InlineData("Choice",                     "\"a\" \"b\"",          null, null, "Success 0 7",  "same")]
+	[InlineData("Choice",                     "\"a\" \"b\" \"c\"",     null, null, "NoMatch 8 0",  "Success 0 11")]
+	[InlineData("Pair & Lex.Text",            "\"a\" \"b\"",          null, null, "Starved 7 0",  "Success 0 7")]
+	[InlineData("Pair & Lex.Text",            "\"a\" \"b\" \"c\"",     null, null, "Success 0 11", "same")]
+	[InlineData("Given",                      "\"a\" \"bc\"",         null, null, "Success 0 8",  "same")]
+	[InlineData("Given",                      "x \"a\" \"bc\" x",     2,    8,    "Success 2 8",  "same")]
+	[InlineData("Given & Lex.Text",           "\"bc\" \"d\"",         null, null, "Starved 8 0",  "Success 0 8")]
+	public void A_repetition_inside_a_rule_over_tokens_keeps_what_it_read(
+		string start, string input, int? at, int? length, string tokens, string characters)
+	{
+		var grammar =
+			"trivia = { ' '* }\n" +
+			"namespace Lex\n{\n\ttrivia = none\n\tText = '\"' & ['a'..'z']* & '\"'\n}\n" +
+			$"Start = {start}\n" +
+			(start.Contains("Given", StringComparison.Ordinal) ? "Given? = Lex.Text* & Lex.Text\n" : "") +
+			(start.Contains("Choice", StringComparison.Ordinal) ? "Choice = (Lex.Text | Lex.Text & Lex.Text) & Lex.Text\n" : "") +
+			(start.Contains("Pair", StringComparison.Ordinal) ? "Pair = (Lex.Text & Lex.Text | Lex.Text)\n" : "") +
+			"parse Start\n";
+
+		foreach (var assembly in OverTokens(grammar))
+			Assert.Equal(tokens, Answer(assembly));
+
+		foreach (var assembly in OverCharacters(grammar))
+			Assert.Equal(characters == "same" ? tokens : characters, Answer(assembly));
+
+		string Answer(Assembly assembly)
+		{
+			if (at is { } from)
+			{
+				var (outcome, position, read) = Positioned(assembly, input, from, length);
+
+				return $"{outcome} {position} {read}";
+			}
+
+			var whole = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			return whole.IsSuccess
+				? $"Success {whole.Position} {input.Length}"
+				: $"{Whole(assembly, input).Outcome} {whole.Position} 0";
+		}
+	}
+
 	// ── A token the text ends inside of ─────────────────────────────────────────
 
 	/// <summary>

@@ -211,8 +211,8 @@ and a guard handed a value whose construction asks for the input. A publication 
 a stream and a recovery were refused with them until the buffered rendering: over a buffer
 the reader carries a `recover`, and steps a `yield` one element at a time, the step being
 a repetition of exactly one turn whose continuation is the next step the driver asks for. It records the refusal
-in words (`Refusal`); over kinds, where it changes what the grammar means, that is said as
-`GRAM5005` (§8). §6 describes the reader.
+in words (`Refusal`); over kinds, where the grammar was cut in two to be read by methods,
+that is said as `GRAM5005` (§8). §6 describes the reader.
 
 **The engine** takes whatever is left. It served every stream and every recovery on its
 own until the buffered rendering, which is the reader reading over a buffer: what is left
@@ -636,10 +636,11 @@ language; no rule carrying trivia; trivia that is not a scanner; a published rul
 no token of its own over tokens; or a published terminal that builds a value. Over kinds,
 `FirstSets.Committed` asks the soundness question again, since an overlap there is settled
 by the reading that fits rather than by backtracking; and a machine the reader refuses is
-reported as `GRAM5005`, because the engine it falls back on still revisits a choice or a
-repetition inside a rule that the notation promises is committed. At a rule's boundary it
-does not: over kinds the engine compiles each call as if braced, so a rule's answer stands
-there on both renderings.
+reported as `GRAM5005`, because the engine it falls back on is the slower rendering. It
+reads the same committed reading: over kinds the engine, and the flat method lowered from it,
+compile each call, and each choice and repetition of a rule not marked `?`, as if braced, so a
+rule's answer stands and what matched inside it is revisited only where the rule says `?`, in
+every rendering.
 
 ## 9. Operator precedence
 

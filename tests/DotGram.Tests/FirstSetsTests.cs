@@ -459,6 +459,37 @@ public sealed class FirstSetsTests
 		Assert.Contains(reported, one => one.Id == FirstSets.Swallows);
 	}
 
+	/// <summary>
+	/// A repetition of a terminal followed by the same terminal is said too, and the message
+	/// names the terminal rather than the kind it stands for.
+	/// </summary>
+	/// <remarks>
+	/// <c>Lex.Text* &amp; Lex.Text</c> reads nothing over kinds: the repetition takes every
+	/// text and the last one is not there for the terminal after it. The operand was printed as
+	/// the node prints, where a kind is a character of its number — a control character between
+	/// quotes.
+	/// </remarks>
+	[Fact]
+	public void A_repetition_that_takes_the_terminal_after_it_is_said_with_its_name()
+	{
+		var reported = Split(
+			"""
+			trivia = { ' '* }
+			namespace Lex
+			{
+				trivia = none
+				Text = '"' & ['a'..'z']* & '"'
+			}
+			Start = Lex.Text* & Lex.Text
+			parse Start
+			""");
+
+		var swallows = Assert.Single(reported, one => one.Id == FirstSets.Swallows);
+
+		Assert.Contains("In 'Start', 'Text*' can take Text,", swallows.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain(swallows.Message, char.IsControl);
+	}
+
 	/// <summary>And not said where the optional cannot finish on that token.</summary>
 	/// <remarks>
 	/// The line between a warning worth reading and sixty of them. `Class?` begins with a

@@ -66,10 +66,10 @@ sealed partial class Machine
 	/// it, in words a grammar's author can act on. Null where they were.
 	/// </summary>
 	/// <remarks>
-	/// Kept because the answer matters beyond the emitter's own choice. Over kinds the
-	/// language says a rule's answer stands (docs/syntax.md §4), and it is the methods
-	/// that say it: a machine that falls back to the engine backtracks as it always did,
-	/// so the grammar is told (GRAM5005) rather than left to differ silently.
+	/// Kept because the answer matters beyond the emitter's own choice. A grammar cut in two
+	/// is cut to be read by methods, and a machine that falls back to the engine — which over
+	/// kinds reads the same committed reading (docs/syntax.md §4), more slowly — is told so
+	/// (GRAM5005) rather than left to run there silently.
 	/// </remarks>
 	public (RuleSymbol? Rule, string Why)? Refusal { get; private set; }
 

@@ -74,6 +74,21 @@ sealed partial class Machine
 	/// </remarks>
 	bool Silent(Node node, FollowSets.Continuation following)
 	{
+		// Over kinds the node is compiled inside braces (`Stands`), and asked about there.
+		if (Stands(node))
+		{
+			_standing.Add(node);
+
+			try
+			{
+				return Silent(new Node.Atomic(node), following);
+			}
+			finally
+			{
+				_standing.Remove(node);
+			}
+		}
+
 		return !(_owners.TryGetValue(node, out var owner) && _graph.Climbing.ContainsKey(owner)) &&
 		node switch
 		{

@@ -60,7 +60,9 @@ public sealed partial class CaseFoldAttackTests
 	[InlineData("k\u03BC", "K\u00B5", false)]
 	public void A_literal_reads_what_its_own_characters_fold_to_in_every_rendering(string literal, string input, bool expected)
 	{
-		var grammar = $"trivia = {{ ' '* }}\nStart = \"{literal}\"i | '(' & \"{literal}\"i & ')' | \"{literal}\"i & \"{literal}\"i\nparse Start\n";
+		// The pair first: over tokens a choice takes the first alternative that matches and is
+		// not revisited (docs/syntax.md §4), so a lone literal before it would answer a pair.
+		var grammar = $"trivia = {{ ' '* }}\nStart = \"{literal}\"i & \"{literal}\"i | \"{literal}\"i | '(' & \"{literal}\"i & ')'\nparse Start\n";
 		var failures = new List<string>();
 
 		foreach (var (name, options) in Modes())
