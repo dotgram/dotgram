@@ -162,7 +162,8 @@ public sealed class TraceTests(ITestOutputHelper output)
 	const string Nullable = "\n#nullable enable\n";
 
 	static Assembly Traced(
-		string grammar, string? members = null, bool lexical = false, CarrierKind carrier = CarrierKind.Auto, bool buffered = false)
+		string grammar, string? members = null, bool lexical = false, CarrierKind carrier = CarrierKind.Auto, bool buffered = false,
+		int? partSize = null)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -171,6 +172,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 			Lexical       = lexical,
 			Carrier       = carrier,
 			BufferedInput = buffered,
+			PartSize      = partSize,
 			Trace         = true,
 		});
 
@@ -568,6 +570,100 @@ public sealed class TraceTests(ITestOutputHelper output)
 		Assert.StartsWith(match.Error!, why, StringComparison.Ordinal);
 		Assert.Contains(" in Pair 1:1", why, StringComparison.Ordinal);
 		Assert.Equal(Read(Untraced(Pairs), "TryParsePair", input), match);
+	}
+
+	/// <summary>
+	/// A refusal ten thousand calls deep on the engine is explained with every call open there,
+	/// and every call entered is left: nothing the engine keeps for the trace walks its arena twice.
+	/// </summary>
+	[Fact]
+	public void A_deep_refusal_on_the_engine_is_explained_whole()
+	{
+		const string members = """
+			public static string DeepWhy(string input, out long enters, out long exits)
+			{
+				var counted = new Counted();
+
+				using (Tracing(counted))
+					TryParsePair(input);
+
+				enters = counted.Enters;
+				exits  = counted.Exits;
+
+				var why = new GramWhy();
+
+				using (Tracing(why))
+					TryParsePair(input);
+
+				var deepest = 0;
+
+				foreach (var path in why.Paths)
+					if (path.Rules.Count > deepest)
+						deepest = path.Rules.Count;
+
+				return why.Message + "|" + deepest.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+			}
+
+			public sealed class Counted : GramTrace
+			{
+				public long Enters;
+				public long Exits;
+
+				public override void Enter(int rule, int position)
+				{
+					Enters++;
+				}
+
+				public override void Exit(int rule, int position, int end)
+				{
+					Exits++;
+				}
+			}
+			""";
+
+		var assembly = Traced(Pairs, members);
+		var input    = string.Concat(Enumerable.Repeat("a(", 10_000)) + "b";
+		var method   = assembly.GetType("Grammar")!.GetMethod("DeepWhy")!;
+		var said     = new object?[] { input, 0L, 0L };
+		var answer   = ((string)method.Invoke(null, said)!).Split('|');
+		var match    = Read(assembly, "TryParsePair", input);
+
+		output.WriteLine(string.Join(" ", answer));
+
+		Assert.Equal(match.Error, answer[0]);
+		Assert.True(int.Parse(answer[1], System.Globalization.CultureInfo.InvariantCulture) > 10_000, answer[1]);
+		Assert.Equal(said[1], said[2]);
+	}
+
+	/// <summary>
+	/// An engine written in parts reports from every part, and a reading that begins with the
+	/// trivia before its rule — a reading of no rule — reports nothing of it.
+	/// </summary>
+	[Theory]
+	[InlineData("let a = b; print c;")]
+	[InlineData("let a = ; print c;")]
+	[InlineData("call f(x) ; wait 12 ; halt")]
+	public void An_engine_in_parts_reports_from_every_part(string input)
+	{
+		var assembly = Traced(Snapshot("Split"), partSize: 400);
+		var match    = Read(assembly, "TryParseScript", input);
+		var lines    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseScript", input));
+		var why      = Probe<string>(assembly, "Explained", () => Read(assembly, "TryParseScript", input));
+		var from     = Probe<string[]>(assembly, "Recorded", () => Invoke(assembly, "TryParseScript", "  " + input, 1));
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+		output.WriteLine(why);
+
+		Assert.Contains("enter Script 0", lines);
+		Assert.Contains(lines, static line => line.StartsWith("enter Command ", StringComparison.Ordinal));
+		Balanced(lines);
+		Balanced(from);
+
+		if (!match.Ok)
+		{
+			Assert.StartsWith(match.Error!, why, StringComparison.Ordinal);
+			Assert.Contains(" in Script 1:1 > Command ", why, StringComparison.Ordinal);
+		}
 	}
 
 	/// <summary>
@@ -1040,6 +1136,54 @@ public sealed class TraceTests(ITestOutputHelper output)
 			Assert.Contains("exit Inner 1 -2", lines);
 			Assert.Contains("exit Top 0 -2", lines);
 		}
+	}
+
+	/// <summary>
+	/// On the engine as by methods: a guard that throws leaves every rule the engine has open as
+	/// thrown, and the reading ends; the next reading is told only what it does.
+	/// </summary>
+	[Fact]
+	public void An_exception_on_the_engine_leaves_every_rule_it_was_thrown_inside()
+	{
+		const string grammar = """
+			Top  : @int = '[' & v: Item & ']' => @(v)
+			Item : @int = d: ['0'..'9']+ & when @(Asked(d)) & ('(' & inner: Item & ')')? => @(d.Length)
+			parse Top
+			find Top as Tops
+			""";
+
+		const string members = """
+			static bool Asked(string digits)
+			{
+				if (digits == "7")
+					throw new global::System.InvalidOperationException("Asked about seven.");
+
+				return true;
+			}
+			""";
+
+		var assembly = Traced(grammar, members);
+		var lines    = Probe<string[]>(assembly, "Recorded", () =>
+		{
+			Assert.Throws<TargetInvocationException>(() => Read(assembly, "TryParseTop", "[1(2(7))]"));
+
+			return null;
+		});
+		var after    = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseTop", "[1(2)]"));
+
+		output.WriteLine(string.Join(Environment.NewLine, lines));
+
+		Assert.Contains(lines, static line => line.StartsWith("begin quiet Top engine", StringComparison.Ordinal));
+		Assert.Contains("exit Item 5 -2", lines);
+		Assert.Contains("exit Item 3 -2", lines);
+		Assert.Contains("exit Item 1 -2", lines);
+		Assert.Contains("exit Top 0 -2", lines);
+		Assert.Equal(
+			lines.Count(static line => line.StartsWith("begin ", StringComparison.Ordinal)),
+			lines.Count(static line => line.StartsWith("end ", StringComparison.Ordinal)));
+		Balanced(lines);
+		Balanced(after);
+		Assert.DoesNotContain(after, static line => line.EndsWith(" -2", StringComparison.Ordinal));
 	}
 
 	/// <summary>
