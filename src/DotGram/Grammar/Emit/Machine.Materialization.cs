@@ -385,6 +385,24 @@ sealed partial class Machine
 	/// said.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// A slot's value, as a member that gathers from several slots holds it: read from the
+	/// table of the type its own rule builds, where those types differ
+	/// (<see cref="ResultMember.Element"/>).
+	/// </summary>
+	string Gathered(int offset, ResultMember member, string element, string index)
+	{
+		if (member.Element is null)
+			return ValueFrom(element, index);
+
+		var read = $"default({element})!";
+
+		foreach (var slot in member.Slots.Reverse())
+			read = $"candidate.State == {offset + slot} ? ({element}){ValueFrom(_results.ValueOf(_slotRules[offset + slot]), index)} : {read}";
+
+		return read;
+	}
+
 	string ValueFrom(string type, string index)
 	{
 		return type == "SourceSpan"
@@ -813,7 +831,7 @@ sealed partial class Machine
 						foreach (var slot in member.Slots)
 							slots.Add($"candidate.State == {offset + slot}");
 
-						var element = _results.ValueOf(member.Rule);
+						var element = _results.ValueOf(member);
 						var recovered = new List<string>();
 
 						foreach (var plan in _recoveryPlans)
@@ -860,7 +878,7 @@ sealed partial class Machine
 								else
 									file.Line(
 										$"captured{memberIndex}[--captured{memberIndex}Item] = " +
-										ValueFrom(element, "candidate.Position") + ";");
+										Gathered(offset, member, element, "candidate.Position") + ";");
 							}
 						}
 

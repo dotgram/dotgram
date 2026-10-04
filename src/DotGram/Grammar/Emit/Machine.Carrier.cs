@@ -745,6 +745,16 @@ sealed partial class Machine
 		/// <summary>One record pushed for a member gathered across turns.</summary>
 		public abstract string PushRecord(int slot, RuleSymbol rule);
 
+		/// <summary>
+		/// The same for a member gathered from operands of several types
+		/// (<see cref="ResultMember.Element"/>): the record kept with the slot it was read in,
+		/// which is what says whose table holds it.
+		/// </summary>
+		public virtual string PushTagged(int slot)
+		{
+			throw new InvalidOperationException("This carrier does not gather values of several types into one sequence.");
+		}
+
 		/// <summary>A §7.8 mark, opened or closed, at the position.</summary>
 		public abstract string Mark(int kind, int site);
 
@@ -1089,6 +1099,11 @@ sealed partial class Machine
 		public override string PushRecord(int slot, RuleSymbol rule)
 		{
 			return $"ways.Push({slot}, ways.Last, -1);";
+		}
+
+		public override string PushTagged(int slot)
+		{
+			return $"ways.Push({slot}, ways.Last, {slot});";
 		}
 
 		public override string Mark(int kind, int site)

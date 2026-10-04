@@ -1544,7 +1544,7 @@ sealed partial class Machine
 			file.Line("var accumulated = log[read++];");
 
 		foreach (var member in shaped)
-			ReadMember(file, member);
+			ReadMember(file, member, rule);
 
 		if (factory < 0)
 		{
@@ -1668,6 +1668,13 @@ sealed partial class Machine
 				file.Line("read++;");
 				break;
 
+			// Each record with the slot it was read in (ReadMember).
+			case MemberShape.Records when member.Member.Element is not null:
+				file.Line("for (var item = 0; item < log[read]; item++)");
+				file.Then("live[log[read + 1 + item * 2]] = true;");
+				file.Line("read += 1 + log[read] * 2;");
+				break;
+
 			case MemberShape.Records:
 				if (!extent)
 				{
@@ -1687,7 +1694,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>Reads one member out of the record into <c>captured{i}</c>.</summary>
-	void ReadMember(Writer file, DirectMember member)
+	void ReadMember(Writer file, DirectMember member, RuleSymbol owner)
 	{
 		var i        = member.Index;
 		var optional = member.Member.IsOptional;
@@ -1801,6 +1808,28 @@ sealed partial class Machine
 					optional
 						? $"{valueType}? captured{i} = record{i} < 0 ? default({valueType}?) : {RecordValue(valueType, $"record{i}")};"
 						: $"var captured{i} = {RecordValue(valueType, $"record{i}")};");
+				break;
+			}
+
+			// Gathered from operands of several types (ResultMember.Element): each record comes
+			// with the slot it was read in, which says whose table holds it.
+			case MemberShape.Records when member.Member.Element is { } element:
+			{
+				file.Line($"var count{i} = log[read++];");
+				file.Line($"var captured{i} = {CSharpEmitter.NewArray(element, $"count{i}")};");
+				file.Line();
+				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
+				{
+					file.Line($"var record{i} = log[read++];");
+					file.Line($"var slot{i}   = log[read++];");
+
+					var value = $"default({element})!";
+
+					foreach (var slot in member.Slots.Reverse())
+						value = $"slot{i} == {slot} ? ({element}){RecordValue(_results.ValueOf(RuleAt(owner, slot)), $"record{i}")} : {value}";
+
+					file.Line($"captured{i}[item] = {value};");
+				}
 				break;
 			}
 

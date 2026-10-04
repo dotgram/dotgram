@@ -1940,7 +1940,9 @@ sealed partial class Machine
 
 				case MemberShape.Records:
 					Emit(code, held, following, loaded);
-					Carried(code, machine.Carrier.PushRecord(slot, RuleOfSlot(slot)));
+					Carried(code, member.Member.Element is null
+						? machine.Carrier.PushRecord(slot, RuleOfSlot(slot))
+						: machine.Carrier.PushTagged(slot));
 					break;
 
 				default:
@@ -2010,7 +2012,7 @@ sealed partial class Machine
 						member, First("a", "a", member.Slots), First("a", "b", member.Slots),
 						_guardTexts.TryGetValue(member.Member.Name, out var cut) ? cut : null),
 					MemberShape.Pieces  => machine.Carrier.Collect(member, Refs, true),
-					MemberShape.Records => machine.Carrier.Collect(member, Refs, false),
+					MemberShape.Records => machine.Carrier.Collect(member, Refs, member.Member.Element is not null),
 					_                   => machine.Carrier.PutRecord(
 						member, machine.Carrier.FirstRecord(member.Slots, member.Member.Rule!)),
 				});

@@ -204,6 +204,9 @@ sealed partial class Machine
 	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
 	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
 	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
+
+	/// <summary>The rule whose value each slot holds, or null where it holds text.</summary>
+	readonly Dictionary<int, RuleSymbol?> _slotRules = [];
 	readonly Dictionary<Node, RuleSymbol> _owners = new(NodeIdentity.Instance);
 	readonly HashSet<int> _textCaptures = [];
 
@@ -468,6 +471,7 @@ sealed partial class Machine
 					var slot = _captures + layout.SlotOf(node);
 
 					_captureSlots[node] = slot;
+					_slotRules[slot]    = layout.Slots[layout.SlotOf(node)].Rule;
 
 					if (node is not Node.Capture(_, Node.Lookahead) &&
 						(node is not Node.Capture(_, Node.Call(var called, _)) ||

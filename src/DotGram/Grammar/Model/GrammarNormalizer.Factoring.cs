@@ -37,7 +37,7 @@ public sealed partial class GrammarNormalizer
 					source.Results.TryGetValue(called, out var members) && members.Count != 0).Slots;
 			results[rule] = results[rule].Select(member => member with
 			{
-				Slots = slots.Where(slot => slot.Name == member.Name).Select(slot => slot.Index).ToList(),
+				Slots = slots.Where(slot => member.Takes(slot.Name)).Select(slot => slot.Index).ToList(),
 			}).ToList();
 		}
 

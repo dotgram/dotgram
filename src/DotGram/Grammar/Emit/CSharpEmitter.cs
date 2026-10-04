@@ -3398,7 +3398,7 @@ file.Line("return spare;");
 		foreach (var member in factory.Members)
 			if (member.Name != "parserText" && member.Name != factory.Accumulator)
 				parameters.Add(
-					(spanCaptures && member.Rule is null ? captureType : results.ValueOf(member.Rule)) +
+					(spanCaptures && member.Rule is null ? captureType : results.ValueOf(member)) +
 
 					// A fold step's members already say what the step is handed (BuildFactories).
 					(member.IsSequence ? "[]" :
@@ -3512,12 +3512,23 @@ file.Line("return spare;");
 				// One repetition and nothing else means the array handed in already is the
 				// result, fresh from the materializer and shared with nobody: hand it back
 				// rather than counting it into a copy of itself.
-				if (factory.Members.Count == 1 && factory.Members[0].IsSequence)
+				if (factory.Members.Count == 1 && factory.Members[0].IsSequence &&
+					results.ValueOf(factory.Members[0]) == element)
 				{
 					var only = ResultTypes.ParameterOf(factory.Members[0]);
 
 					file.Line(head + " =>");
 					file.Line($"	{only} ?? {NewArray(element, "0")};");
+
+					break;
+				}
+
+				// An alternative that reads no element — a separator written beside the
+				// elements — contributes none, and needs no counting to say so.
+				if (factory.Members.Count == 0)
+				{
+					file.Line(head + " =>");
+					file.Line($"	{NewArray(element, "0")};");
 
 					break;
 				}

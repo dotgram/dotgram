@@ -272,7 +272,27 @@ public sealed class CaptureLayout
 /// <c>(a: X | a: Y)</c> is one member filled from whichever alternative matched.
 /// </remarks>
 public sealed record ResultMember(
-	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots);
+	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots)
+{
+	/// <summary>
+	/// The other captures whose slots this member gathers, in the order they were read:
+	/// operands of one repetition joining a sequence result (§4.1 case 2). Empty for a
+	/// member that is one capture's.
+	/// </summary>
+	public IReadOnlyList<string> Joins { get; init; } = [];
+
+	/// <summary>
+	/// The type the member holds where its slots hold values of different types — the
+	/// sequence's element — or null where it holds what <see cref="Rule"/> builds.
+	/// </summary>
+	public string? Element { get; init; }
+
+	/// <summary>Whether a slot of this name is one of this member's.</summary>
+	public bool Takes(string capture)
+	{
+		return capture == Name || Joins.Contains(capture);
+	}
+}
 
 /// <summary>
 /// What a repetition marked <c>recover</c> was told (§8.2): where to resume after a

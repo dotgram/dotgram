@@ -781,6 +781,13 @@ sealed partial class Machine
 			if (machine.RecoveryRefusal() is { } recovers)
 				return recovers;
 
+			// A sequence gathered from operands of several types in the order they were read
+			// would take them off as many stacks as there are types, and the order between the
+			// stacks is not kept. The tape keeps every record in order.
+			foreach (var rule in machine._rules)
+				if (machine._graph.Results[rule].Any(static member => member.Element is not null))
+					return $"'{rule.Name}' gathers values of several types into one sequence";
+
 			// An extent is carried: its value is the two positions the reader already has.
 			// Collecting one is not, and for a reason worth saying rather than hiding — the
 			// stack to collect on would be a stack of spans, and there is no table for one

@@ -473,10 +473,14 @@ public sealed partial class GrammarNormalizer
 
 			var rewritten = new List<Node>();
 			var taken     = 0;
+			var joined    = new List<List<string>>();
 
 			foreach (var alternative in ValueAlternatives(_bodies[rule]))
 				rewritten.Add(new Node.Construct(
-					Gather(alternative, element, ref taken), Construction.Sequence.Instance));
+					Gather(alternative, element, ref taken, joined, null), Construction.Sequence.Instance));
+
+			if (joined.Count > 0)
+				_joined[rule] = (element, joined);
 
 			if (taken == 0)
 			{
@@ -598,8 +602,18 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node Gather(Node node, string element, ref int taken)
 	{
+		return Gather(node, element, ref taken, null, null);
+	}
+
+	/// <param name="joined">
+	/// Where the captures of a repetition that collects through more than one are listed,
+	/// for <see cref="ComputeResults"/> to make them one member; null where nothing is.
+	/// </param>
+	/// <param name="group">The list of the repetition this node stands in, where it stands in one.</param>
+	Node Gather(Node node, string element, ref int taken, List<List<string>>? joined, List<string>? group)
+	{
 		if (Fits(node, element))
-			return Collected(node, ref taken);
+			return Collected(node, ref taken, group);
 
 		switch (node)
 		{
@@ -608,7 +622,7 @@ public sealed partial class GrammarNormalizer
 				var built = new List<Node>(parts.Count);
 
 				foreach (var part in parts)
-					built.Add(Gather(part, element, ref taken));
+					built.Add(Gather(part, element, ref taken, joined, group));
 
 				return new Node.Sequence(built);
 			}
@@ -618,14 +632,24 @@ public sealed partial class GrammarNormalizer
 				var built = new List<Node>(alternatives.Count);
 
 				foreach (var alternative in alternatives)
-					built.Add(Gather(alternative, element, ref taken));
+					built.Add(Gather(alternative, element, ref taken, joined, group));
 
 				return ((Node.Choice)node).Rebuild(built);
 			}
 
 			case Node.Repeat(var body, var min, var max):
 			{
-				var inner = Gather(body, element, ref taken);
+				// A repetition that collects through more than one capture: each collects an
+				// array of its own, and the order between them — which §4.1 promises — is kept
+				// by listing them together, for one member to gather all their slots in the
+				// order they were read. The grammar is left as it is.
+				if (group is null && joined is not null && max != 1 && Sites(body, element) > 1)
+				{
+					group = [];
+					joined.Add(group);
+				}
+
+				var inner = Gather(body, element, ref taken, joined, group);
 
 				return ReferenceEquals(inner, body)
 					? node
@@ -634,14 +658,14 @@ public sealed partial class GrammarNormalizer
 
 			case Node.Atomic(var body):
 			{
-				var inner = Gather(body, element, ref taken);
+				var inner = Gather(body, element, ref taken, joined, group);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
 			}
 
 			case Node.Marked(var body, var text):
 			{
-				var inner = Gather(body, element, ref taken);
+				var inner = Gather(body, element, ref taken, joined, group);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
@@ -660,12 +684,16 @@ public sealed partial class GrammarNormalizer
 	/// binds tighter than a quantifier (§10). Written the other way round the slot holds
 	/// the text of the whole run instead of collecting the values.
 	/// </remarks>
-	Node Collected(Node part, ref int taken)
+	Node Collected(Node part, ref int taken, List<string>? group)
 	{
-		if (part is not Node.Repeat(var body, var min, var max))
-			return new Node.Capture("item" + taken++, part);
+		var name = "item" + taken++;
 
-		return Repeated(part, new Node.Repeat(new Node.Capture("item" + taken++, body), min, max));
+		group?.Add(name);
+
+		if (part is not Node.Repeat(var body, var min, var max))
+			return new Node.Capture(name, part);
+
+		return Repeated(part, new Node.Repeat(new Node.Capture(name, body), min, max));
 	}
 
 	/// <summary>
@@ -773,8 +801,62 @@ public sealed partial class GrammarNormalizer
 					Slots = slots[members[i].Name].Select(slot => slot.Index).ToList(),
 				};
 
-			_results[rule] = members;
+			_results[rule] = _joined.TryGetValue(rule, out var joined) ? Joined(members, joined.Element, joined.Groups) : members;
 		}
+	}
+
+	/// <summary>
+	/// The captures of each repetition that collects through more than one (<see cref="Gather"/>),
+	/// made one member that gathers their slots in the order they were read.
+	/// </summary>
+	/// <remarks>
+	/// The captures stay in the grammar as they are, so nothing about what is read changes;
+	/// what changes is only that their values arrive as one sequence. Where the operands build
+	/// values of different types the member holds the sequence's element, which each of them is.
+	/// </remarks>
+	List<ResultMember> Joined(List<ResultMember> members, string element, IReadOnlyList<List<string>> groups)
+	{
+		foreach (var group in groups)
+		{
+			var found = members.Where(member => group.Contains(member.Name) && member is { IsSequence: true, Rule: not null }).ToList();
+
+			if (found.Count < 2)
+				continue;
+
+			var types  = found.Select(member => _types[member.Rule!]).Distinct(StringComparer.Ordinal).Count();
+			var joined = found[0] with
+			{
+				Slots   = [.. found.SelectMany(static member => member.Slots).OrderBy(static slot => slot)],
+				Joins   = [.. found.Skip(1).Select(static member => member.Name)],
+				Element = types == 1 ? null : element,
+			};
+
+			members[members.IndexOf(found[0])] = joined;
+			members.RemoveAll(member => found.Skip(1).Contains(member));
+		}
+
+		return members;
+	}
+
+	/// <summary>The captures <see cref="Gather"/> listed together, per rule, with the sequence's element.</summary>
+	readonly Dictionary<RuleSymbol, (string Element, List<List<string>> Groups)> _joined = [];
+
+	/// <summary>How many operands of this node would be collected into the sequence.</summary>
+	/// <remarks>An inner repetition of one counts once: it collects in order by itself.</remarks>
+	int Sites(Node node, string element)
+	{
+		if (Fits(node, element))
+			return 1;
+
+		return node switch
+		{
+			Node.Sequence(var parts)       => parts.Sum(part => Sites(part, element)),
+			Node.Choice(var alternatives)  => alternatives.Sum(alternative => Sites(alternative, element)),
+			Node.Repeat(var body, _, _)    => Sites(body, element),
+			Node.Atomic(var body)          => Sites(body, element),
+			Node.Marked(var body, _)       => Sites(body, element),
+			_                              => 0,
+		};
 	}
 
 	/// <remarks>

@@ -123,6 +123,15 @@ sealed class ResultTypes
 		return rule is null ? "string" : QualifiedOf(rule) ?? "string";
 	}
 
+	/// <summary>
+	/// The type of what a member holds: its rule's value, or the sequence's element where it
+	/// gathers values of several types (<see cref="ResultMember.Element"/>).
+	/// </summary>
+	public string ValueOf(ResultMember member)
+	{
+		return member.Element ?? ValueOf(member.Rule);
+	}
+
 	/// <summary>The innermost class, without its type parameters.</summary>
 	static string SimpleNameOf(string className)
 	{
