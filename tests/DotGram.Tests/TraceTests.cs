@@ -857,6 +857,84 @@ public sealed class TraceTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// A sink whose <c>Begin</c> throws is told the reading ended all the same, and what it threw
+	/// leaves the call: for the outermost reading, and for one a guard begins inside another,
+	/// where the reading outside is left as well.
+	/// </summary>
+	[Theory]
+	[InlineData(1, "The sink threw. 1/1 0/0")]
+	[InlineData(2, "The sink threw. 2/2 1/1")]
+	public void A_sink_whose_beginning_throws_is_told_the_reading_ended(int throwAt, string expected)
+	{
+		const string grammar = """
+			Item = t: ['a'..'z']+ & when @(Inner(t)) & ';'
+			Word = ['a'..'z']+ & 'x'
+			parse Item
+			parse Word
+			""";
+
+		const string members = """
+			static bool Inner(string text)
+			{
+				return TryParseWord(text).IsSuccess;
+			}
+
+			public sealed class Throwing : GramTrace
+			{
+				public int Enters, Exits, Begins, Ends;
+				readonly int _throwAt;
+
+				public Throwing(int throwAt)
+				{
+					_throwAt = throwAt;
+				}
+
+				public override void Begin(GramRead read)
+				{
+					if (++Begins == _throwAt)
+						throw new global::System.InvalidOperationException("The sink threw.");
+				}
+
+				public override void End(GramRead read, int end, int position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
+				{
+					Ends++;
+				}
+
+				public override void Enter(int rule, int position)
+				{
+					Enters++;
+				}
+
+				public override void Exit(int rule, int position, int end)
+				{
+					Exits++;
+				}
+			}
+
+			public static string BeginThrows(string input, int throwAt)
+			{
+				var sink = new Throwing(throwAt);
+
+				try
+				{
+					using (Tracing(sink))
+						TryParseItem(input);
+
+					return "nothing thrown";
+				}
+				catch (global::System.InvalidOperationException caught)
+				{
+					return caught.Message + " " + sink.Begins + "/" + sink.Ends + " " + sink.Enters + "/" + sink.Exits;
+				}
+			}
+			""";
+
+		var assembly = Traced(grammar, members);
+
+		Assert.Equal(expected, Invoke(assembly, "BeginThrows", "ax;", throwAt));
+	}
+
+	/// <summary>
 	/// The ready-made sinks keep their books whatever they are told: an exit with no entry, an end
 	/// with no beginning, a number no rule has throw nothing, and the next call is read as its own.
 	/// </summary>

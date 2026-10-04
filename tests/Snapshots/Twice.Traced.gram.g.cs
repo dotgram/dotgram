@@ -2227,6 +2227,11 @@ namespace DotGram.Snapshots
 			/// A reading begins: where a sink is set, the sink is told, and the failure carries the
 			/// reading, through which every event of it goes.
 			/// </summary>
+			/// <remarks>
+			/// A sink whose <c>Begin</c> throws has begun the reading as far as it knows, so it is told
+			/// the reading ended before what it threw leaves the call, as for any exception that
+			/// leaves a reading.
+			/// </remarks>
 			static GramRead? Began_DotGram(
 				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
 				int[]? starts, int count, int end)
@@ -2237,7 +2242,15 @@ namespace DotGram.Snapshots
 				var read = new GramRead(sink, publication, failure.Quiet, finding, start, machine, text, starts, count, end);
 
 				failure.Trace = read;
-				sink.Begin(read);
+
+				try
+				{
+					sink.Begin(read);
+				}
+				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
+				{
+					throw;
+				}
 
 				return read;
 			}
