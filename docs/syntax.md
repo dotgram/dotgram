@@ -1989,7 +1989,14 @@ position, or in the window — holds only characters no token begins with: over 
 is nothing there to read, where over characters a rule that can read nothing reads it there.
 A published rule of a namespace without trivia reads none over tokens either: trivia before
 its first token, or after its last where the end is asked for, refuses it as it does over
-characters. A character no token begins with ends
+characters. A token the text or the window ends inside of — an unclosed string, a comment the
+syntax reads, half an operator — is not such a character: more input could finish it, so a
+reading that reaches it, a whole reading among them, is `Starved` whether it is refused there or
+reads it, as over characters, where the reading of that token runs out of input (§7.5). A
+complete token the window's end leaves room to lengthen is read as it stands, and a comment that
+is trivia is skipped rather than cut, so one left unclosed is read as whatever tokens its
+characters make, or refused at the first no token begins with. A
+character no token begins with ends
 the tokens rather than refusing the reading — in all of these forms, since none of them is
 required to reach the end of the input, and a reading must not be refused by what it never
 read: one character the language does not know in the last line of a script leaves the

@@ -997,6 +997,7 @@ public static class LexerEmitter
 		// the cuts: what a part costs is what its bodies come to, and the bodies are made
 		// once here for both.
 		var chain = Chained(machine, lows);
+		var parts = chain.Count;
 
 		text.Line("/// <summary>");
 		text.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
@@ -1019,42 +1020,9 @@ public static class LexerEmitter
 			text.Line("var p     = pos;");
 			text.Line();
 
-			var parts = chain.Count;
-
 			using (text.Braces("while (p < text.Length)", ""))
 			{
-				text.Line("var c    = text[p];");
-				text.Line($"var row  = Scan{tag}_States[state];");
-				text.Line("var at   = c - (int)(row >> 32);");
-				text.Line("int next;");
-				text.Line();
-
-				// One compare against a constant, because every row is the same width — what
-				// varies is where it starts, and that is the half of the descriptor worth
-				// loading. What falls outside is what the chains were always for: a Unicode
-				// category, and the gap on either side of what one state admits. Both are off
-				// the path an ordinary input takes.
-				text.Line($"if ((uint)at < {Reach}u)");
-
-				using (text.Indent())
-					text.Line(
-						Class is null
-							? $"next = Scan{tag}_Cells[(int)row + at];"
-							: $"next = Scan{tag}_Cells[(int)row + Scan{tag}_Class[at]];");
-
-				text.Line("else");
-
-				using (text.Braces())
-				{
-					text.Line("next =");
-
-					using (text.Indent())
-						for (var part = 0; part < parts; part++)
-							text.Line(
-								part == parts - 1
-									? $"Scan{tag}_Part{part}(state, c);"
-									: $"state <= {chain[part].Last} ? Scan{tag}_Part{part}(state, c) :");
-				}
+				Step();
 
 				text.Line();
 				text.Line("if (next < 0)");
@@ -1117,6 +1085,80 @@ public static class LexerEmitter
 			text.Line("kind = found;");
 			text.Line();
 			text.Line("return end;");
+		}
+
+		// Asked only where Scan found nothing, so the loop above is not touched: what it costs is
+		// paid once, at the end of a text that ends inside a token, and never per character.
+		text.Line();
+		text.Line("/// <summary>");
+		text.Line("/// Whether the text ends inside a token: the machine, run from <paramref name=\"pos\"/>,");
+		text.Line("/// is still on its way to one where the characters run out.");
+		text.Line("/// </summary>");
+		text.Line("/// <remarks>");
+		text.Line("/// Asked where <c>Scan</c> found no token, to tell a character no token begins with from");
+		text.Line("/// one whose token is cut short by the end of the text or the window: an unclosed string");
+		text.Line("/// or a half-written operator, which more input could still complete. Every state the");
+		text.Line("/// machine reaches leads on to an accepting one, so being in one at the end is enough.");
+		text.Line("/// </remarks>");
+
+		using (text.Braces($"static bool Scan{tag}_RunsOut(global::System.ReadOnlySpan<char> text, int pos)"))
+		{
+			text.Line("var state = 0;");
+			text.Line();
+
+			using (text.Braces("for (var p = pos; p < text.Length; p++)", ""))
+			{
+				Step();
+
+				text.Line();
+				text.Line("if (next < 0)");
+
+				using (text.Indent())
+					text.Line("return false;");
+
+				text.Line();
+				text.Line("state = next;");
+			}
+
+			text.Line();
+			text.Line("return true;");
+		}
+
+		// One transition: where `state` goes on `text[p]`, into `next`.
+		void Step()
+		{
+			text.Line("var c    = text[p];");
+			text.Line($"var row  = Scan{tag}_States[state];");
+			text.Line("var at   = c - (int)(row >> 32);");
+			text.Line("int next;");
+			text.Line();
+
+			// One compare against a constant, because every row is the same width — what
+			// varies is where it starts, and that is the half of the descriptor worth
+			// loading. What falls outside is what the chains were always for: a Unicode
+			// category, and the gap on either side of what one state admits. Both are off
+			// the path an ordinary input takes.
+			text.Line($"if ((uint)at < {Reach}u)");
+
+			using (text.Indent())
+				text.Line(
+					Class is null
+						? $"next = Scan{tag}_Cells[(int)row + at];"
+						: $"next = Scan{tag}_Cells[(int)row + Scan{tag}_Class[at]];");
+
+			text.Line("else");
+
+			using (text.Braces())
+			{
+				text.Line("next =");
+
+				using (text.Indent())
+					for (var part = 0; part < parts; part++)
+						text.Line(
+							part == parts - 1
+								? $"Scan{tag}_Part{part}(state, c);"
+								: $"state <= {chain[part].Last} ? Scan{tag}_Part{part}(state, c) :");
+			}
 		}
 
 		for (var part = 0; part < chain.Count; part++)

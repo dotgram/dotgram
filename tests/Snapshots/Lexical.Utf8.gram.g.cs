@@ -59,6 +59,13 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (tokens.Cut && failure.Position >= count - 1)
+					{
+						Recycle_DotGram(tokens);
+
+						return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
+					}
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -70,6 +77,13 @@ namespace DotGram.Snapshots
 					Recycle_DotGram(tokens);
 
 					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, at, failure.Expected, failure.ExpectedMore);
+				}
+
+				if (tokens.Cut && end == count)
+				{
+					Recycle_DotGram(tokens);
+
+					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
 				}
 
 				var whole = recognized;
@@ -93,7 +107,7 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
-				if (tokens.Stopped >= 0)
+				if (tokens.Stopped >= 0 || tokens.Cut)
 				{
 					Recycle_DotGram(tokens);
 
@@ -164,6 +178,12 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (tokens.Cut && failure.Position >= count - 1)
+					{
+
+						return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
+					}
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -174,6 +194,12 @@ namespace DotGram.Snapshots
 
 
 					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, failure.ExpectedMore);
+				}
+
+				if (tokens.Cut && end == count)
+				{
+
+					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
 				}
 
 				var whole = recognized;
@@ -215,7 +241,7 @@ namespace DotGram.Snapshots
 
 				var end = Recognize_Program(text, from, ref failure, out var recognized, source, starts, lengths);
 
-				if (end < 0)
+				if (end < 0 || (tokens.Cut && end == count))
 				{
 
 					value = default!;
@@ -275,6 +301,13 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (tokens.Cut && failure.Position >= count - 1)
+					{
+						Recycle_DotGram(tokens);
+
+						return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", at + length, null, null);
+					}
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -286,6 +319,13 @@ namespace DotGram.Snapshots
 					Recycle_DotGram(tokens);
 
 					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, failure.ExpectedMore);
+				}
+
+				if (tokens.Cut && end == count)
+				{
+					Recycle_DotGram(tokens);
+
+					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", at + length, null, null);
 				}
 
 				var whole = recognized;
@@ -327,7 +367,7 @@ namespace DotGram.Snapshots
 
 				var end = Recognize_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
 
-				if (end < 0)
+				if (end < 0 || (tokens.Cut && end == count))
 				{
 					Recycle_DotGram(tokens);
 
@@ -1158,6 +1198,44 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			/// <summary>
+			/// Whether the text ends inside a token: the machine, run from <paramref name="pos"/>,
+			/// is still on its way to one where the characters run out.
+			/// </summary>
+			/// <remarks>
+			/// Asked where <c>Scan</c> found no token, to tell a character no token begins with from
+			/// one whose token is cut short by the end of the text or the window: an unclosed string
+			/// or a half-written operator, which more input could still complete. Every state the
+			/// machine reaches leads on to an accepting one, so being in one at the end is enough.
+			/// </remarks>
+			static bool Scan_RunsOut(global::System.ReadOnlySpan<char> text, int pos)
+			{
+				var state = 0;
+
+				for (var p = pos; p < text.Length; p++)
+				{
+					var c    = text[p];
+					var row  = Scan_States[state];
+					var at   = c - (int)(row >> 32);
+					int next;
+
+					if ((uint)at < 128u)
+						next = Scan_Cells[(int)row + at];
+					else
+					{
+						next =
+							Scan_Part0(state, c);
+					}
+
+					if (next < 0)
+						return false;
+
+					state = next;
+				}
+
+				return true;
+			}
+
 			/// <summary>Where states 0 to 10 go, or -1 for nowhere.</summary>
 			static int Scan_Part0(int state, char c)
 			{
@@ -1228,6 +1306,14 @@ namespace DotGram.Snapshots
 				internal int    Count;
 				internal int    Stopped;
 
+				/// <summary>Whether the text ends inside the last token, which is then of no kind.</summary>
+				/// <remarks>
+				/// An unclosed string, a comment that is a token, half an operator, at the end of the text
+				/// or of the window: not a character no token begins with, but a token more input could
+				/// finish. A reading that reaches it is starved, whether it refused there or read it.
+				/// </remarks>
+				internal bool   Cut;
+
 				/// <summary>What the last parse asked of this buffer: its room, in its own unit.</summary>
 				/// <remarks>
 				/// The arrays are sized from a GUESS at the token count, so their length is not a
@@ -1241,7 +1327,8 @@ namespace DotGram.Snapshots
 				/// <remarks>
 				/// What a reading from a position or in a window is cut into goes on past a character no
 				/// token begins with, as a token of no kind. Where nothing but those and trivia is left,
-				/// the reading is starved rather than refused by the first of them.
+				/// the reading is starved rather than refused by the first of them. A token the text
+				/// ends inside of is one to read: the reading meets it, and is starved there.
 				/// </remarks>
 				internal bool Unreadable(int from)
 				{
@@ -1251,7 +1338,7 @@ namespace DotGram.Snapshots
 							return false;
 					}
 
-					return true;
+					return !Cut;
 				}
 
 				internal void Room(int length)
@@ -1502,6 +1589,8 @@ namespace DotGram.Snapshots
 			{
 				var tokens = Rented_DotGram();
 
+				tokens.Cut = false;
+
 				tokens.Room((to - from) / 4 + 16);
 
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, to);
@@ -1527,19 +1616,28 @@ namespace DotGram.Snapshots
 
 					if (kind == 0 || end <= p)
 					{
-						if (!through)
+						if (Scan_RunsOut(text, p))
+						{
+							tokens.Cut = true;
+
+							kind = 0;
+							end  = text.Length;
+						}
+						else if (!through)
 						{
 							tokens.Count   = count;
 							tokens.Stopped = p;
 
 							return tokens;
 						}
+						else
+						{
+							if (stopped < 0)
+								stopped = p;
 
-						if (stopped < 0)
-							stopped = p;
-
-						kind = 0;
-						end  = p + 1;
+							kind = 0;
+							end  = p + 1;
+						}
 					}
 
 					if (count == kinds.Length)

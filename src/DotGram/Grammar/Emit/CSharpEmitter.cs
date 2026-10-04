@@ -2015,10 +2015,12 @@ public static partial class CSharpEmitter
 					// character is a token of no kind there, as it is inside a window, which no
 					// terminal reads and which is not the end of the text, and what the reading
 					// needed is answered by what there is — a bad character in the last line of a
-					// script is not a reason to refuse its first statement.
+					// script is not a reason to refuse its first statement. Nor is a whole reading
+					// one where the text ends inside a token (Tokens_DotGram.Cut): it would have to
+					// read that token to reach the end, and nothing reads one unfinished.
 					if (!positional)
 					{
-						using (file.Block("if (tokens.Stopped >= 0)"))
+						using (file.Block("if (tokens.Stopped >= 0 || tokens.Cut)"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2095,7 +2097,9 @@ public static partial class CSharpEmitter
 				Reads($"{(positional ? reader : WholeOf(publication.Rule))}(text, {(positional ? begins : "0")}{hands})", declare: true);
 				file.Line();
 
-				using (file.Block("if (end < 0)"))
+				// A reading from a position that read the token the text ends inside of read
+				// something unfinished, and is refused as the match form is starved.
+				using (file.Block(overKinds && positional ? "if (end < 0 || (tokens.Cut && end == count))" : "if (end < 0)"))
 				{
 					if (overKinds)
 					{
@@ -2382,6 +2386,25 @@ public static partial class CSharpEmitter
 				file.Line("if (end < 0)");
 				using (file.Block(""))
 				{
+					// Refused at a token the text ends inside of, or past it: what the reading wanted
+					// there is what that token would have been once finished, so it is starved, as the
+					// reading over characters is where the text ends inside a string it is reading
+					// (§7.5). What the machine expected of the token is not said: the token is already
+					// under way, and the end of the text is where more is wanted.
+					if (overKinds)
+					{
+						using (file.Block("if (tokens.Cut && failure.Position >= count - 1)"))
+						{
+							if (!kept) file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							Refusing(
+								$"return {match}.Failed({OutcomeType}.Starved, \"Expected more input.\", " +
+								$"{(windowed ? "at + length" : "source.Length")}, null, null);");
+						}
+
+						file.Line();
+					}
+
 					// Nothing is built here. What the arrays recorded is handed over as it
 					// stands, and `Match<T>.Error` merges and words it if anybody asks —
 					// a caller that only wants to know whether the input matched pays for
@@ -2432,6 +2455,19 @@ public static partial class CSharpEmitter
 				file.Line();
 				if (overKinds)
 				{
+					// A reading that read the token the text ends inside of read something unfinished:
+					// what it is depends on what comes next, so the reading is starved, not answered.
+					using (file.Block("if (tokens.Cut && end == count)"))
+					{
+						if (!kept) file.Line("Recycle_DotGram(tokens);");
+						file.Line();
+						Refusing(
+							$"return {match}.Failed({OutcomeType}.Starved, \"Expected more input.\", " +
+							$"{(windowed ? "at + length" : "source.Length")}, null, null);");
+					}
+
+					file.Line();
+
 					// Both read the arrays, so both are worked out before the set goes back.
 					file.Line($"var whole = {Recognized(begins, begins == "0" ? "end" : $"end - {begins}")};");
 					// Where the reading stopped: the end of the last token it read, or where it
@@ -2522,6 +2558,14 @@ public static partial class CSharpEmitter
 			file.Line("internal int    Count;");
 			file.Line("internal int    Stopped;");
 			file.Line();
+			file.Line("/// <summary>Whether the text ends inside the last token, which is then of no kind.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// An unclosed string, a comment that is a token, half an operator, at the end of the text");
+			file.Line("/// or of the window: not a character no token begins with, but a token more input could");
+			file.Line("/// finish. A reading that reaches it is starved, whether it refused there or read it.");
+			file.Line("/// </remarks>");
+			file.Line("internal bool   Cut;");
+			file.Line();
 			file.Line("/// <summary>What the last parse asked of this buffer: its room, in its own unit.</summary>");
 			file.Line("/// <remarks>");
 			file.Line("/// The arrays are sized from a GUESS at the token count, so their length is not a");
@@ -2535,7 +2579,8 @@ public static partial class CSharpEmitter
 			file.Line("/// <remarks>");
 			file.Line("/// What a reading from a position or in a window is cut into goes on past a character no");
 			file.Line("/// token begins with, as a token of no kind. Where nothing but those and trivia is left,");
-			file.Line("/// the reading is starved rather than refused by the first of them.");
+			file.Line("/// the reading is starved rather than refused by the first of them. A token the text");
+			file.Line("/// ends inside of is one to read: the reading meets it, and is starved there.");
 			file.Line("/// </remarks>");
 
 			using (file.Block("internal bool Unreadable(int from)"))
@@ -2547,7 +2592,7 @@ public static partial class CSharpEmitter
 				}
 
 				file.Line();
-				file.Line("return true;");
+				file.Line("return !Cut;");
 			}
 
 			file.Line();
@@ -2818,6 +2863,8 @@ file.Line("return spare;");
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
+			file.Line("tokens.Cut = false;");
+			file.Line();
 			// A quarter of the characters is a fair first guess at how many tokens there
 			// are, and being wrong costs a doubling rather than a document's worth of array.
 			file.Line("tokens.Room((to - from) / 4 + 16);");
@@ -2907,8 +2954,22 @@ file.Line("return spare;");
 								$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, end, ref failure{output}" +
 								$"{(valuing!.UsesInput ? ", input" : "")});");
 							file.Line();
-							file.Line("if (measured < 0)");
-							file.Then("kind = 0;");
+
+							// The quiet measuring writes down no position, so where it refused it is
+							// asked again, recording, whether it ran out of text: a string the text
+							// ends inside of is cut short rather than refused (-1, below). Paid only
+							// where the token did not close.
+							using (file.Block("if (measured < 0)"))
+							{
+								file.Line($"var again = new {FailureType}();");
+								file.Line();
+								file.Line(
+									$"Measure_{IdentifierOf(rule)}_DotGram(text, end, ref again{output}" +
+									$"{(valuing!.UsesInput ? ", input" : "")});");
+								file.Line();
+								file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
+							}
+
 							file.Line("else");
 							file.Then("end = measured;");
 						}
@@ -2972,9 +3033,25 @@ file.Line("return spare;");
 				if (continued > 0)
 					file.Line();
 
-				using (file.Block("if (kind == 0 || end <= p)"))
+				// A continuation measured by a rule says -1 where the text ended inside it.
+				var cutShort = lexical.Inventory.Continued.Any(one => MeasuredBy(lexical, one.Tail) is not null);
+
+				using (file.Block($"if (kind {(cutShort ? "<=" : "==")} 0 || end <= p)"))
 				{
-					using (file.Block("if (!through)"))
+					// No token here, and two reasons for it. The text — or the window — may end
+					// inside one: an unclosed string, a comment that is a token, half an operator,
+					// which more input could still complete. That is the last token, of no kind, and the reading that
+					// reaches it is starved rather than refused (§7.5), as it is over characters.
+					// Otherwise no token begins with this character at all.
+					using (file.Block($"if ({(cutShort ? "kind < 0 || " : "")}Scan_RunsOut(text, p))"))
+					{
+						file.Line("tokens.Cut = true;");
+						file.Line();
+						file.Line("kind = 0;");
+						file.Line("end  = text.Length;");
+					}
+
+					using (file.Block("else if (!through)"))
 					{
 						file.Line("tokens.Count   = count;");
 						file.Line("tokens.Stopped = p;");
@@ -2982,12 +3059,14 @@ file.Line("return spare;");
 						file.Line("return tokens;");
 					}
 
-					file.Line();
-					file.Line("if (stopped < 0)");
-					file.Then("stopped = p;");
-					file.Line();
-					file.Line("kind = 0;");
-					file.Line("end  = p + 1;");
+					using (file.Block("else"))
+					{
+						file.Line("if (stopped < 0)");
+						file.Then("stopped = p;");
+						file.Line();
+						file.Line("kind = 0;");
+						file.Line("end  = p + 1;");
+					}
 				}
 
 				file.Line();

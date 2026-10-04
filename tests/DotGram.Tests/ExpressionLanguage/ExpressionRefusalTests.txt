@@ -209,18 +209,18 @@
 "(stri" | Starved at 5: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)" | Starved at 10: Expected "=>". Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s) => s" | accepted | same
-"(string s) => s ?? \"" | NoMatch at 19: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => s ?? \"" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => s ?? \"none\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> s ?? \"none\"" | accepted | same
 "(string s) => s ? \"none\"" | Starved at 24: Expected ':'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(string s) => s ?? \"none" | NoMatch at 19: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => s ?? \"none" | Starved at 24: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s, string t) => s ?? t ?? \"none\"" | accepted | same
 "(string s," | Starved at 10: Expected a type. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s, stri" | Starved at 15: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s, string t)" | Starved at 20: Expected "=>". Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s, string t) => s" | accepted | same
 "(string s, string t) => s ?? t" | accepted | same
-"(string s, string t) => s ?? t ?? \"" | NoMatch at 34: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s, string t) => s ?? t ?? \"" | Starved at 35: Expected more input. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s, string t) => s ?? t ?? \"none\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s,string t) => s ?? t ?? \"none\"" | accepted | same
 "(string s, stringt) => s ?? t ?? \"none\"" | NoMatch at 18: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1114,33 +1114,33 @@
 "(string s)=> null" | accepted | same
 "(string s) => nul" | Starved at 17: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 14, Refusal = nothing named 'nul' is declared here., Deferred = False } | same
 "(string s) => \"text\"" | accepted | same
-"(string s) => \"" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => \"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => \"text\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> \"text\"" | accepted | same
 "(string s) => \"tet\"" | accepted | same
 "(string s) => \"a\\tb\\n\"" | accepted | same
-"(string s) => \"a\\tb\\" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => \"a\\tb\\" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => \"a\\tb\\n\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> \"a\\tb\\n\"" | accepted | same
 "(string s) => \"a\\b\\n\"" | accepted | same
 "(string s) => \"\\u0041\"" | accepted | same
-"(string s) => \"\\u004" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => \"\\u004" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => \"\\u0041\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> \"\\u0041\"" | accepted | same
 "(string s) => \"\\u041\"" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s) => @\"a\"\"b\"" | accepted | same
-"(string s) => @" | NoMatch at 14: Unexpected character '@'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(string s) => @\"a\"\"b" | NoMatch at 18: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => @" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => @\"a\"\"b" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => @\"a\"\"b\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> @\"a\"\"b\"" | accepted | same
-"(string s) => @\"a\"b\"" | NoMatch at 19: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => @\"a\"b\"" | NoMatch at 18: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(char c) => 'a'" | accepted | same
 "(char" | Starved at 5: Expected a name. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(char c) =" | NoMatch at 9: Expected "=>". Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(chr c) => 'a'" | NoMatch at 5: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(char c) = 'a'" | NoMatch at 9: Expected "=>". Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(char c) => '\\n'" | accepted | same
-"(char c) => '\\n" | NoMatch at 12: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(char c) => '\\n" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(chr c) => '\\n'" | NoMatch at 5: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(char c) = '\\n'" | NoMatch at 9: Expected "=>". Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using System; (int x) => { try { x += 1; } catch (Exception e) { x = 0; } x }" | accepted | same
@@ -1208,7 +1208,7 @@
 "using System; (int x) => { if (x < 0) throw n" | Starved at 45: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 44, Refusal = nothing named 'n' is declared here., Deferred = False } | same
 "using System; (int x) => { if (x < 0) throw new Ex" | Starved at 50: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using System; (int x) => { if (x < 0) throw new Excepti" | Starved at 55: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"using System; (int x) => { if (x < 0) throw new Exception(\"n" | NoMatch at 58: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"using System; (int x) => { if (x < 0) throw new Exception(\"n" | Starved at 60: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using System; (int x) => { if (x < 0) throw new Exception(\"no\"); " | Starved at 65: Expected '}'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "usig System; (int x) => { if (x < 0) throw new Exception(\"no\"); x }" | NoMatch at 0: Expected '('. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using Systm; (int x) => { if (x < 0) throw new Exception(\"no\"); x }" | NoMatch at 13: Input does not match 'Lambda'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 0, Refusal = The type or namespace name 'Systm' could not be found., Deferred = False } | same
@@ -1254,7 +1254,7 @@
 "(int x) => new System.Collections.Generic.Dictionary<int, st" | Starved at 60: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.Collections.Generic.Dictionary<int, string>" | Starved at 65: Expected '[', '(' or '{'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.Collections.Generic.Dictionary<int, string> { { " | Starved at 70: Expected an expression. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a" | NoMatch at 73: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a" | Starved at 75: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }" | accepted | same
 "(int x) => new Sytem.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1265,7 +1265,7 @@
 "(int x) => new System.Collections.Generic.Dictionaryint, string> { { x, \"a\" } }" | NoMatch at 55: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.Collections.Generic.Dictionary<int, sring> { { x, \"a\" } }" | NoMatch at 63: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.Collections.Generic.Dictionary<int, string>  { x, \"a\" } }" | NoMatch at 78: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | threw InvalidOperationException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False }
-"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, a\" } }" | NoMatch at 74: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, a\" } }" | Starved at 79: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 73, Refusal = nothing named 'a' is declared here., Deferred = False } | same
 "(int x) => new System.Text.StringBuilder { Capacity = x }" | accepted | same
 "(int x) => new System.Tex" | Starved at 25: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.Text.Str" | Starved at 30: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1458,7 +1458,7 @@
 "(in x) => new[] { x, \"a\" }" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>new[] { x, \"a\" }" | threw InvalidOperationException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new[]  x, \"a\" }" | NoMatch at 18: Expected '{'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => new[] { x, \"a }" | NoMatch at 22: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => new[] { x, \"a }" | Starved at 26: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.ValueTuple<int, int>(x, 1) with { Item2 = x, } with { }" | accepted | same
 "(int x) => new System.Val" | Starved at 25: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => new System.ValueTup" | Starved at 30: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1724,37 +1724,37 @@
 "(int iff) => { int returned = if; returned }" | NoMatch at 32: Expected '('. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int iff) => { int returned = iff; retrned }" | NoMatch at 43: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 35, Refusal = nothing named 'retrned' is declared here., Deferred = False } | same
 "(int x) => \"\\x41g\"" | accepted | same
-"(int x) => \"\\x4" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\x4" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\\x41g\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\x41g\"" | accepted | same
-"(int x) => \"\\x41g" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\x41g" | Starved at 17: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\\x41424\"" | accepted | same
 "(in x) => \"\\x41424\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\x41424\"" | accepted | same
 "(int x) => \"\\x4144\"" | accepted | same
 "(int x) => \"\\U0001F600\"" | accepted | same
-"(int x) => \"\\U0" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\\U0001F6" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\U0" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\U0001F6" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\\U0001F600\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\U0001F600\"" | accepted | same
 "(int x) => \"\\U000F600\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\\U0011FFFF\"" | threw ArgumentOutOfRangeException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\\U0011FF" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\U0011FF" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\\U0011FFFF\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\U0011FFFF\"" | threw ArgumentOutOfRangeException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\\U001FFFF\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => '\\u0041'" | accepted | same
-"(int x) => '\\u0" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => '\\u0" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => '\\u0041'" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>'\\u0041'" | accepted | same
 "(int x) => '\\u004'" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => '\\x41'" | accepted | same
-"(int x) => '\\x4" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => '\\x4" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => '\\x41'" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>'\\x41'" | accepted | same
 "(int x) => '\\U0001F600'" | accepted | same
-"(int x) => '\\U0" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => '\\U0001F6" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => '\\U0" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => '\\U0001F6" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => '\\U0001F600'" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>'\\U0001F600'" | accepted | same
 "(int x) => '\\U000F600'" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1762,7 +1762,7 @@
 "(in x) => \"\\q\"" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\q\"" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\\u41\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\\u4" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\\u4" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\\u41\"" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\\u41\"" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\\x\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1774,13 +1774,13 @@
 "(int x) => ''" | NoMatch at 11: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => ''" | NoMatch at 10: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>''" | NoMatch at 10: Unexpected character '\u0027'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"abc" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(in x) => \"abc" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>\"abc" | NoMatch at 10: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => @\"a\"\"" | NoMatch at 15: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"abc" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => \"abc" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>\"abc" | Starved at 14: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => @\"a\"\"" | Starved at 16: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => @\"a\"" | accepted | same
-"(in x) => @\"a\"\"" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>@\"a\"\"" | NoMatch at 14: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => @\"a\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>@\"a\"\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => 1_" | NoMatch at 12: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => 1_" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>1_" | NoMatch at 11: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1815,23 +1815,23 @@
 "(in x) => 0xFFFFFFFFFFFFFFFFFF" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>0xFFFFFFFFFFFFFFFFFF" | threw OverflowException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"a{x}b\"" | accepted | same
-"(int x) => $\"a{" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"a{" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"a{x}b\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"a{x}b\"" | accepted | same
 "(int x) => $\"a{x}\"" | accepted | same
 "(int x) => $\"{x,5:D3}\"" | accepted | same
-"(int x) => $\"{x" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{x,5:D3" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x,5:D3" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{x,5:D3}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{x,5:D3}\"" | accepted | same
 "(int x) => $\"{x,5D3}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{x:}\"" | accepted | same
 "(in x) => $\"{x:}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{x:}\"" | accepted | same
-"(int x) => $\"{x:}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x:}" | Starved at 17: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{{{x}}}\"" | accepted | same
-"(int x) => $\"{{" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{{{x}}}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{{" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{{{x}}}" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{{{x}}}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{{{x}}}\"" | accepted | same
 "(int x) => $\"{{{x}}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1839,8 +1839,8 @@
 "(in x) => $\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"\"" | accepted | same
 "(int x) => $\"a\\tb{x}\"" | accepted | same
-"(int x) => $\"a\\" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"a\\tb{x}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"a\\" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"a\\tb{x}" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"a\\tb{x}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"a\\tb{x}\"" | accepted | same
 "(int x) => $\"a\\tbx}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1849,84 +1849,84 @@
 "(int x) =>$\"a\\{x}\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"a\\{x\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $@\"a\"\"{x}\\\"" | accepted | same
-"(int x) => $@\"a" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $@\"a\"\"{x}" | NoMatch at 16: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $@\"a" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $@\"a\"\"{x}" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $@\"a\"\"{x}\\\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$@\"a\"\"{x}\\\"" | accepted | same
-"(int x) => $@\"a\"\"x}\\\"" | NoMatch at 16: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $@\"a\"\"x}\\\"" | Starved at 21: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => @$\"{x}\\n\"" | accepted | same
-"(int x) => @$\"{" | NoMatch at 11: Unexpected character '@'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => @$\"{" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => @$\"{x}\\n\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>@$\"{x}\\n\"" | accepted | same
 "(int x) => @$\"{x}n\"" | accepted | same
 "(string s) => $\"{s.Length:x}\"" | accepted | same
-"(string s) => $" | NoMatch at 14: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(string s) => $\"{s.L" | NoMatch at 14: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(string s) => $\"{s.Length" | NoMatch at 14: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => $" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => $\"{s.L" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(string s) => $\"{s.Length" | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(sting s) => $\"{s.Length:x}\"" | NoMatch at 7: Expected '.' or '<'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s)=> $\"{s.Length:x}\"" | accepted | same
 "(string s) => $\"{.Length:x}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(string s) => $\"{s.Lengt:x}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{(x > 0 ? 1 : 2)}\"" | accepted | same
-"(int x) => $\"{(" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{(x > 0" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{(x > 0 ? 1 " | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{(x > 0 ? 1 : 2)}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{(" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{(x > 0" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{(x > 0 ? 1 " | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{(x > 0 ? 1 : 2)}" | Starved at 30: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{(x > 0 ? 1 : 2)}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{(x > 0 ? 1 : 2)}\"" | accepted | same
 "(int x) => $\"{(x  0 ? 1 : 2)}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{(x > 0 ? 1: 2)}\"" | accepted | same
 "(int x) => $\"{x > 0 ? 1 : 2}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{x > 0 " | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{x > 0 ? 1 :" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x > 0 " | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x > 0 ? 1 :" | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{x > 0 ? 1 : 2}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{x > 0 ? 1 : 2}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{x >0 ? 1 : 2}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{x > 0 ? 1  2}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{$\"{x}\"}\"" | accepted | same
-"(int x) => $\"{$" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{$\"{x}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{$" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{$\"{x}\"" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{$\"{x}\"}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{$\"{x}\"}\"" | accepted | same
 "(int x) => $\"{$\"{}\"}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{\"a\" + x}\"" | accepted | same
-"(int x) => $\"{\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{\"a\" + " | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{\"a\" + " | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{\"a\" + x}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{\"a\" + x}\"" | accepted | same
 "(int x) => $\"{\"a\"+ x}\"" | accepted | same
 "(int x) => $\"{'a'}{@\"b\"}\"" | accepted | same
-"(int x) => $\"{'" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{'a'}{@" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{'" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{'a'}{@" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{'a'}{@\"b\"}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{'a'}{@\"b\"}\"" | accepted | same
-"(int x) => $\"{'a'{@\"b\"}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{'a'}{@\"b\"}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{'a'{@\"b\"}\"" | Starved at 24: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{'a'}{@\"b\"}" | Starved at 24: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{new int[] { x }[0]}\"" | accepted | same
-"(int x) => $\"{n" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{new in" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{new int[] {" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{new int[] { x }[" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{n" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{new in" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{new int[] {" | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{new int[] { x }[" | Starved at 30: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{new int[] { x }[0]}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{new int[] { x }[0]}\"" | accepted | same
 "(int x) => $\"{newint[] { x }[0]}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 14, Refusal = nothing named 'newint' is declared here., Deferred = False } | same
 "(int x) => $\"{new int[]  x }[0]}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{new int[] { x }[0}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{x\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(in x) => $\"{x\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>$\"{x\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x\"" | Starved at 16: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => $\"{x\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>$\"{x\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"a}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"a}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"a}" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"a}\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"a}\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{y}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 14, Refusal = nothing named 'y' is declared here., Deferred = False } | same
-"(int x) => $\"{y" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{y" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{y}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{y}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 13, Refusal = nothing named 'y' is declared here., Deferred = False } | same
 "(int x) => $\"{x +}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{x +}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{x +}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"{x +\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"{x +\"" | Starved at 18: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"{x, y}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"{x, y}\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"{x, y}\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1940,12 +1940,12 @@
 "(int x) => $\"a{x}\" +" | Starved at 20: Expected an expression. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"a{x}\" + \"b\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"a{x}\" + \"b\"" | accepted | same
-"(int x) => $\"a{x} + \"b\"" | NoMatch at 22: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"a{x} + \"b\"" | NoMatch at 21: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"abc\"\"\"" | accepted | same
-"(int x) => \"\"\"a" | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"a" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"abc\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"abc\"\"\"" | accepted | same
-"(int x) => \"\"\"abc\"\"" | NoMatch at 18: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"abc\"\"" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"a\"b\"\"c\"\"\"" | accepted | same
 "(int x) => \"\"\"a\"b\"\"c" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"a\"b\"\"c\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -1953,7 +1953,7 @@
 "(int x) => \"\"\"a\"b\"c\"\"\"" | accepted | same
 "(int x) => \"\"\"\"a\"\"\"b\"\"\"\"" | accepted | same
 "(int x) => \"\"\"\"" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\"\"\"a\"\"\"b" | NoMatch at 18: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\"a\"\"\"b" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"\"a\"\"\"b\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"\"a\"\"\"b\"\"\"\"" | accepted | same
 "(int x) => \"\"\"\"a\"\"b\"\"\"\"" | accepted | same
@@ -1961,62 +1961,62 @@
 "(int x) => \"\"\"\"\"a\"\"\"" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"\"\"a\"\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"\"\"a\"\"\"\"\"" | accepted | same
-"(int x) => \"\"\"\"\"a\"\"\"\"" | NoMatch at 20: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\"\"a\"\"\"\"" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"\"\"\"a\"\"\"\"\"\"" | accepted | same
 "(int x) => \"\"\"\"\"\"a\"\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"\"\"\"a\"\"\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"\"\"\"a\"\"\"\"\"\"" | accepted | same
-"(int x) => \"\"\"\"\"\"\"\"\"\"\"\"" | NoMatch at 11: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\"\"\"\"\"\"\"\"\"" | Starved at 23: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"\n    a\n      b\n    \"\"\"" | accepted | same
-"(int x) => \"\"\"\n" | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\"\"\n    a" | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\"\"\n    a\n    " | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\"\"\n    a\n      b\n " | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => \"\"\"\n    a\n      b\n    \"\"" | NoMatch at 34: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n    a" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n    a\n    " | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n    a\n      b\n " | Starved at 30: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n    a\n      b\n    \"\"" | NoMatch at 13: Expected '.', '?', '[', "is", "as", '+', '-', '<', '>', "||", "&&", '|', '^', '&', "==", "!=", "<=", ">=", '*', '/', '%' or end of input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"\n    a\n      b\n    \"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"\n    a\n      b\n    \"\"\"" | accepted | same
 "(int x) => \"\"\"\n   a\n      b\n    \"\"\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"\n    a\n     b\n    \"\"\"" | accepted | same
 "(int x) => \"\"\"\n    a\n      b\n   \"\"\"" | accepted | same
 "(int x) => \"\"\"\n  a\n \"\"\"" | accepted | same
-"(int x) => \"\"\"\n  a\n " | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"\n  a\n " | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => \"\"\"\n  a\n \"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>\"\"\"\n  a\n \"\"\"" | accepted | same
 "(int x) => \"\"\"\n  \n \"\"\"" | accepted | same
-"(int x) => \"\"\"a\"\"\"\"" | NoMatch at 18: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(in x) => \"\"\"a\"\"\"\"" | NoMatch at 17: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>\"\"\"a\"\"\"\"" | NoMatch at 17: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"a\"\"\"\"" | Starved at 19: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => \"\"\"a\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>\"\"\"a\"\"\"\"" | Starved at 18: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => \"\"\"a\"\"\"" | accepted | same
-"(int x) => \"\"\"abc" | NoMatch at 13: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(in x) => \"\"\"abc" | NoMatch at 12: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>\"\"\"abc" | NoMatch at 12: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => \"\"\"abc" | Starved at 17: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => \"\"\"abc" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>\"\"\"abc" | Starved at 16: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"\"\"{x}\"\"\"" | accepted | same
-"(int x) => $\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"\"\"{x}\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"{x}\"\"" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"\"\"{x}\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"\"\"{x}\"\"\"" | accepted | same
-"(int x) => $\"\"\"{x\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"{x\"\"\"" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"\"\"\"{x}\"\"\"\"" | accepted | same
-"(int x) => $\"\"\"\"{x}\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"\"{x}\"" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"\"\"\"{x}\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"\"\"\"{x}\"\"\"\"" | accepted | same
 "(int x) => $\"\"\"\"{}\"\"\"\"" | threw FormatException Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $$\"\"\"{x} {{x}}\"\"\"" | accepted | same
-"(int x) => $$\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $$\"\"\"{x} " | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $$\"\"\"{x} {{x}}" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$\"\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$\"\"\"{x} " | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$\"\"\"{x} {{x}}" | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $$\"\"\"{x} {{x}}\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$$\"\"\"{x} {{x}}\"\"\"" | accepted | same
 "(int x) => $$\"\"\"{} {{x}}\"\"\"" | accepted | same
 "(int x) => $$\"\"\"{x} {{x}\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $$\"\"\"{{{x}}}\"\"\"" | accepted | same
-"(int x) => $$\"\"\"{{{x" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $$\"\"\"{{{x}}}\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$\"\"\"{{{x" | Starved at 20: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$\"\"\"{{{x}}}\"\"" | Starved at 25: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $$\"\"\"{{{x}}}\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$$\"\"\"{{{x}}}\"\"\"" | accepted | same
 "(int x) => $$\"\"\"{{x}}}\"\"\"" | accepted | same
 "(int x) => $$$\"\"\"{{{x}}} {x}\"\"\"" | accepted | same
-"(int x) => $$$\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $$$\"" | Starved at 15: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $$$\"\"\"{{{" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $$$\"\"\"{{{x}}} " | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $$$\"\"\"{{{x}}} {x}\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -2029,15 +2029,15 @@
 "(int x) => $\"\"\"\"\"\"{x}\"\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"\"\"\"\"\"{x}\"\"\"\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"\"\"\"\"\"{x}\"\"\"\"\"\"" | accepted | same
-"(int x) => $\"\"\"\"\"{x}\"\"\"\"\"\"" | NoMatch at 25: Unexpected character '"'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"\"\"{x}\"\"\"\"\"\"" | Starved at 26: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"\"\"\"\"\"{x}\"\"\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"\"\"a}\"\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(in x) => $\"\"\"a}\"\"\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) =>$\"\"\"a}\"\"\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "(int x) => $\"\"\"a}\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(in x) => $\"\"\"{x\"\"\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) =>$\"\"\"{x\"\"\"" | NoMatch at 10: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
-"(int x) => $\"\"\"{x\"\"" | NoMatch at 11: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(in x) => $\"\"\"{x\"\"\"" | NoMatch at 1: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) =>$\"\"\"{x\"\"\"" | Starved at 19: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"(int x) => $\"\"\"{x\"\"" | Starved at 19: Expected more input. Checkpoint { Scopes = 0, Declared = 1, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using System.Linq; (int[] a) => a.Select(n => n * 2).Sum()" | accepted | same
 "using System.Li" | Starved at 15: Expected ';'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
 "using System.Linq; (" | Starved at 20: Expected ')'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
@@ -2156,7 +2156,7 @@
 "using System.Linq; (int[][] a) => a.Select(r => { int t = 0; foreach (var n in r) t += n; retun t; }).Sum()" | NoMatch at 96: Expected '.' or '<'. Checkpoint { Scopes = 1, Declared = 4, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 90, Refusal = nothing named 'retun' is declared here., Deferred = False } | threw FormatException Checkpoint { Scopes = 1, Declared = 4, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 90, Refusal = nothing named 'retun' is declared here., Deferred = False }
 "using System.Linq; (int[][] a) => a.Select(r => { int t = 0; foreach (var n in r) t += n; return t; }.Sum()" | Starved at 107: Expected ')'. Checkpoint { Scopes = 3, Declared = 4, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 43, Refusal = nothing named 'r' is declared here., Deferred = False } | threw InvalidOperationException Checkpoint { Scopes = 3, Declared = 4, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 43, Refusal = nothing named 'r' is declared here., Deferred = True }
 "using System.Linq; (int[] a) => a.Select(n => $\"{n}\").First()" | accepted | same
-"using System.Linq; (int[] a) => a.Select(n => $\"{n" | NoMatch at 46: Unexpected character '$'. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same
+"using System.Linq; (int[] a) => a.Select(n => $\"{n" | Starved at 50: Expected more input. Checkpoint { Scopes = 0, Declared = 2, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 41, Refusal = nothing named 'n' is declared here., Deferred = False } | threw FormatException Checkpoint { Scopes = 0, Declared = 2, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 41, Refusal = nothing named 'n' is declared here., Deferred = False }
 "using System.Linq; (int[] a) => a.Select(n => $\"{n}\").F" | threw FormatException Checkpoint { Scopes = 1, Declared = 2, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 41, Refusal = nothing named 'n' is declared here., Deferred = True } | same
 "using System.Linq; (int[] a) => a.Select(n => $\"{n}\").First(" | Starved at 60: Expected ')'. Checkpoint { Scopes = 1, Declared = 2, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 41, Refusal = nothing named 'n' is declared here., Deferred = False } | threw FormatException Checkpoint { Scopes = 1, Declared = 2, Unsettled = 1, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = 41, Refusal = nothing named 'n' is declared here., Deferred = True }
 "usig System.Linq; (int[] a) => a.Select(n => $\"{n}\").First()" | NoMatch at 0: Expected '('. Checkpoint { Scopes = 0, Declared = 0, Unsettled = 0, Imports = 0, Aliases = 0, Statics = 0, RefusedAt = -1, Refusal = , Deferred = False } | same

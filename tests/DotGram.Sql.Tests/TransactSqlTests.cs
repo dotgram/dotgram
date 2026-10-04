@@ -16285,4 +16285,77 @@ public sealed class TransactSqlTests
 		Assert.False(match.IsSuccess, input);
 		Assert.InRange(match.Position, 0, input.Length);
 	}
+
+	/// <summary>
+	/// A statement the text ends inside a token of — an unclosed string or bracketed name, a
+	/// money sign with no amount — wants more input: the whole reading is starved, and so is one
+	/// from a position or in a window that reaches that token, where a host reading a script as
+	/// it is typed waits rather than reports a mistake (§7.5).
+	/// </summary>
+	/// <remarks>
+	/// The lexer stopped at such a token as at a character no token begins with, and every one
+	/// of these was <c>NoMatch</c> at its first character. A reading from a position need not
+	/// reach the end, so where the statement can end before that token it does: the last column.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT 'abc", "Starved")]
+	[InlineData("SELECT 'it''", "Success")]
+	[InlineData("SELECT [abc", "Starved")]
+	[InlineData("SELECT \"abc", "Starved")]
+	[InlineData("SELECT $", "Starved")]
+	[InlineData("SELECT a FROM t WHERE b = 'x", "Success")]
+	public void A_statement_the_text_ends_inside_a_token_of_is_starved(string input, string positioned)
+	{
+		var whole = TransactSqlParser.TryParseStatement(input);
+
+		Assert.Equal(TransactSqlParser.Outcome.Starved, whole.Outcome);
+		Assert.Equal(input.Length, whole.Position);
+		Assert.False(TransactSqlParser.TryParseStatement(input, out _));
+
+		var script = "SELECT 1; " + input;
+		var from   = TransactSqlParser.TryParseStatement(script, 10);
+		var window = TransactSqlParser.TryParseStatement(input + "' FROM u", 0, input.Length);
+
+		Assert.Equal(positioned, from.Outcome.ToString());
+		Assert.Equal(positioned, window.Outcome.ToString());
+
+		if (from.IsSuccess)
+		{
+			Assert.True(from.Position + from.Length < script.Length);
+			Assert.True(window.Length < input.Length);
+		}
+		else
+		{
+			Assert.Equal(script.Length, from.Position);
+			Assert.Equal(input.Length, window.Position);
+		}
+	}
+
+	/// <summary>
+	/// A token the end of a window leaves complete is read as it stands, though more of the text
+	/// would have made it longer; and a character no token begins with is still refused where it
+	/// stands.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 'abc'", "c")]
+	[InlineData("SELECT ab", "c")]
+	[InlineData("SELECT 12", "3")]
+	public void A_statement_the_text_ends_after_is_read_as_it_stands(string input, string more)
+	{
+		Assert.True(TransactSqlParser.TryParseStatement(input).IsSuccess);
+
+		var window = TransactSqlParser.TryParseStatement(input + more + " FROM t", 0, input.Length);
+
+		Assert.True(window.IsSuccess);
+		Assert.Equal(input.Length, window.Length);
+	}
+
+	[Fact]
+	public void A_character_no_token_begins_with_is_still_refused_where_it_stands()
+	{
+		var match = TransactSqlParser.TryParseStatement("SELECT 1 ` 2");
+
+		Assert.Equal(TransactSqlParser.Outcome.NoMatch, match.Outcome);
+		Assert.Equal(9, match.Position);
+	}
 }

@@ -1599,6 +1599,42 @@ public sealed class ExpressionParserTests
 		Assert.False(Both.TryParse("() => \"abc").IsSuccess);
 	}
 
+	/// <summary>
+	/// And it is not yet one: the text ends inside it, and more text could finish it, so the
+	/// reading is starved rather than refused (§7.5) — a string of every kind, a character, the
+	/// hole of an interpolated one, and the beginning of one.
+	/// </summary>
+	[Theory]
+	[InlineData("() => \"abc")]
+	[InlineData("() => \"a\\u00")]
+	[InlineData("() => '\\")]
+	[InlineData("() => @\"a\"\"")]
+	[InlineData("() => $\"{1 + ")]
+	[InlineData("() => $\"a}")]
+	[InlineData("() => $$\"\"\"{{1}")]
+	[InlineData("() => \"\"\"\nabc")]
+	[InlineData("() => \"\"\"\"\"\"\"")]
+	[InlineData("() => $")]
+	[InlineData("() => @")]
+	public void And_a_string_the_text_ends_inside_of_is_starved(string text)
+	{
+		Assert.Equal(ExpressionParser.Outcome.Starved, Both.TryParse(text).Outcome);
+	}
+
+	/// <summary>
+	/// But one that could not be finished is refused where it went wrong: an escape C# does not
+	/// have, a brace closing nothing, a character no token begins with.
+	/// </summary>
+	[Theory]
+	[InlineData("() => \"\\q")]
+	[InlineData("() => $\"\"\"a}x\"")]
+	[InlineData("() => 'ab")]
+	[InlineData("() => 1 #")]
+	public void But_a_string_that_cannot_be_finished_is_refused(string text)
+	{
+		Assert.Equal(ExpressionParser.Outcome.NoMatch, Both.TryParse(text).Outcome);
+	}
+
 	[Fact]
 	public void A_comparison_answers_bool()
 	{

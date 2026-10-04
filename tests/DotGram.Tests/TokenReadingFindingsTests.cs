@@ -385,6 +385,126 @@ public sealed class TokenReadingFindingsTests
 		Assert.Equal(read, answers[0].IsSuccess);
 	}
 
+	// ── A token the text ends inside of ─────────────────────────────────────────
+
+	/// <summary>
+	/// The tokens of the next two tests: a name, a string, an operator of three characters and a
+	/// comment the syntax reads, each of which the text can end inside of.
+	/// </summary>
+	const string CutShort =
+		"trivia = { ' '* }\n" +
+		"namespace Lex\n{\n\ttrivia = none\n" +
+		"\tName  = ['a'..'z']+\n" +
+		"\tText  = '\"' & [^ '\"']* & '\"'\n" +
+		"\tArrow = \"<=>\"\n" +
+		"\tNote  = \"{-\" & (?!\"-}\" & any)* & \"-}\"\n}\n" +
+		"Item  = (Lex.Name | Lex.Text | Lex.Arrow | Lex.Note)\n" +
+		"Other = 'c'\n" +
+		"parse Start\nparse Other\n";
+
+	/// <summary>
+	/// A text that ends inside a token — an unclosed string or comment, half an operator — is
+	/// starved where a reading reaches that token, from a position and in a window as over
+	/// characters (§7.5): more input could finish it. The lexer used to stop there as at a
+	/// character no token begins with, and the answer was <c>NoMatch</c>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A token the end of the window leaves complete is read, though more input would make it
+	/// longer: <c>ab c</c> is two names. A character no token begins with is still refused as
+	/// one, before the unfinished token or without one.
+	/// </para>
+	/// <para>
+	/// The last column is the reading over characters, written out where it differs. A literal
+	/// that wants more characters than remain is starved there where it begins, and over tokens
+	/// at the end of the text, as every token cut short is. A position inside a token begins
+	/// over tokens at the next one, of which there is none here. And a reading that ends in an
+	/// optional that read nothing counts the space before it over characters, which is not this
+	/// question.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("Item & Item", "a \"bc", 0, null, "Starved 5 0", "same")]
+	[InlineData("Item & Item", "a \"bc\"", 0, 4, "Starved 4 0", "same")]
+	[InlineData("Item & Item", "a <=", 0, null, "Starved 4 0", "Starved 2 0")]
+	[InlineData("Item & Item", "a <=>", 0, 4, "Starved 4 0", "Starved 2 0")]
+	[InlineData("Item & Item", "a {- x", 0, null, "Starved 6 0", "same")]
+	[InlineData("Item & Item", "a {- x -}", 0, 6, "Starved 6 0", "same")]
+	[InlineData("Item & Item", "a \"bc", 2, null, "Starved 5 0", "same")]
+	[InlineData("Item & Item", "a \"bc", 2, 2, "Starved 4 0", "same")]
+	[InlineData("Item & Item", "a \"bc", 3, null, "Starved 5 0", "Success 3 2")]
+	[InlineData("Item & Item", "ab cd", 0, 4, "Success 0 4", "same")]
+	[InlineData("Item & Item", "ab c", 0, null, "Success 0 4", "same")]
+	[InlineData("Item & Item", "a #", 0, null, "NoMatch 2 0", "same")]
+	[InlineData("Item & Item", "# \"bc", 0, null, "NoMatch 0 0", "same")]
+	[InlineData("Item & Item", "a # \"bc", 0, null, "NoMatch 2 0", "same")]
+	[InlineData("Item & Item?", "a \"bc", 0, null, "Success 0 1", "Success 0 2")]
+	[InlineData("Item & Item?", "a \"bc", 0, 5, "Success 0 1", "Success 0 2")]
+	[InlineData("Item & Item?", "a \"bc\" d", 0, 4, "Success 0 1", "Success 0 2")]
+	[InlineData("Item & Item?", "a \"bc\" d", 0, 6, "Success 0 6", "same")]
+	[InlineData("Item? & Lex.Name", "a \"bc", 2, null, "Starved 5 0", "same")]
+	[InlineData("Item", "a \"bc", 0, null, "Success 0 1", "Success 0 2")]
+	[InlineData("Item", "a \"bc", 0, 4, "Success 0 1", "Success 0 2")]
+	public void A_reading_that_reaches_a_token_the_text_ends_inside_of_is_starved(
+		string start, string input, int at, int? length, string tokens, string characters)
+	{
+		var grammar = $"{CutShort}Start = {start} & ('!' | '!' & '?')?\n";
+		var said    = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = Positioned(assembly, input, at, length);
+
+			Assert.True(tokens == $"{match.Outcome} {match.Position} {match.Length}", said + ", over tokens: " + match);
+			Assert.Equal(
+				(match.Outcome == "Success", match.Outcome == "Success" ? (int)(match.Position + match.Length) : at),
+				Moved(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", input, at, length)));
+		}
+
+		var over = Positioned(Built(grammar, lexical: false, direct: true), input, at, length);
+
+		Assert.True((characters == "same" ? tokens : characters) == $"{over.Outcome} {over.Position} {over.Length}", said + ", over characters: " + over);
+	}
+
+	/// <summary>
+	/// A whole reading of a text that ends inside a token is starved, in every rendering and as
+	/// over characters, and its <c>bool</c> form refuses it; a character no token begins with
+	/// still refuses it as one.
+	/// </summary>
+	/// <remarks>
+	/// Where the reading is refused by the end it needs, at the unfinished token, it is starved
+	/// over tokens too, since what the token would have been is not known until it ends; over
+	/// characters the end is refused by the token's first character (the last row).
+	/// </remarks>
+	[Theory]
+	[InlineData("Item & Item?", "a \"bc", "Starved 5", "same")]
+	[InlineData("Item & Item?", "\"bc", "Starved 3", "same")]
+	[InlineData("Item & Item?", "a <=", "Starved 4", "Starved 2")]
+	[InlineData("Item & Item?", "a {- x", "Starved 6", "same")]
+	[InlineData("Item & Item?", "a {- x -", "Starved 8", "same")]
+	[InlineData("Item & Item?", "a {- x -}", "Success 0", "same")]
+	[InlineData("Item & Item?", "ab", "Success 0", "same")]
+	[InlineData("Item & Item?", "a #", "NoMatch 2", "same")]
+	[InlineData("Item & Item?", "# \"bc", "NoMatch 0", "same")]
+	[InlineData("Item & Item", "a \"bc", "Starved 5", "same")]
+	[InlineData("Item", "a \"bc", "Starved 5", "NoMatch 2")]
+	public void A_whole_reading_of_a_text_that_ends_inside_a_token_is_starved(string start, string input, string tokens, string characters)
+	{
+		var grammar = $"{CutShort}Start = {start} & ('!' | '!' & '?')?\n";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = Whole(assembly, input);
+
+			Assert.True(tokens == $"{match.Outcome} {match.Position}", $"\"{input}\", over tokens: {match}");
+			Assert.Equal(match.Outcome == "Success", WholeRead(assembly, input));
+		}
+
+		var over = Whole(Built(grammar, lexical: false, direct: true), input);
+
+		Assert.True((characters == "same" ? tokens : characters) == $"{over.Outcome} {over.Position}", $"\"{input}\", over characters: {over}");
+	}
+
 	// ── Choices a scanner reads ─────────────────────────────────────────────────
 
 	/// <summary>
@@ -583,6 +703,28 @@ public sealed class TokenReadingFindingsTests
 		}
 
 		return (Read("Outcome")!.ToString()!, Convert.ToInt64(Read("Position")), Convert.ToInt64(Read("Length")));
+	}
+
+	/// <summary>A whole reading: its outcome and where it stopped.</summary>
+	static (string Outcome, long Position) Whole(Assembly assembly, string input)
+	{
+		var match = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!;
+
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
+
+		return (Read("Outcome")!.ToString()!, Convert.ToInt64(Read("Position")));
+	}
+
+	/// <summary>The whole reading's <c>bool</c> form: only whether it read.</summary>
+	static bool WholeRead(Assembly assembly, string input)
+	{
+		var found = assembly.GetType("Grammar")!.GetMethods().Single(one =>
+			one.Name == "TryParseStart" && one.GetParameters() is { Length: 2 } taken && taken[1].IsOut);
+
+		return (bool)found.Invoke(null, [input, null])!;
 	}
 
 	static (bool Read, int At) Moved((bool Read, object? Value, int At) answer)

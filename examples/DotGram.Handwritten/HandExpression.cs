@@ -146,13 +146,17 @@ public static class HandExpression
 
 	const byte Identifier = 69;
 
+	// What is left of a token the text ends inside of — an unclosed string, a `$` with nothing
+	// after it: not a token yet, and nothing reads it. The last token there is, where it is one.
+	const byte Unfinished = 70;
+
 	// A word the ASCII reading does not take: it is one token all the same, since the letters
 	// that end it are what C# would read as one, and it is no name and no keyword.
-	const byte Foreign = 70;
+	const byte Foreign = 71;
 
 	// The keywords, in the order the language reserves them (the grammar's `Keyword`). A word
 	// that is one of these is never a name, which is the whole of what makes it a keyword.
-	const byte FirstWord = 71;
+	const byte FirstWord = 72;
 
 	static readonly string[] Words =
 	[
@@ -451,11 +455,12 @@ public static class HandExpression
 			if (end == tokens.Count)
 				return ExpressionParser.Match<LambdaExpression>.Success(lambda!, 0, Over(tokens, end));
 
-			// A lambda that ends before the text does is refused where it ends.
+			// A lambda that ends before the text does is refused where it ends. Where the text ends
+			// inside its last token, a reading that got as far as that token wants more input.
 			if (end > furthest)
 				furthest = end;
 
-			return furthest < tokens.Count
+			return furthest < tokens.Count - (tokens.Cut ? 1 : 0)
 				? ExpressionParser.Match<LambdaExpression>.Failed(
 					ExpressionParser.Outcome.NoMatch, "Input does not match 'Lambda'.", tokens.Starts[furthest], null, null)
 				: ExpressionParser.Match<LambdaExpression>.Failed(
@@ -514,7 +519,7 @@ public static class HandExpression
 			if (end >= 0)
 				return Match.Success(value!, at, end == 0 ? -at : Over(tokens, end) - at);
 
-			return furthest < tokens.Count
+			return furthest < tokens.Count - (tokens.Cut ? 1 : 0)
 				? Match.Failed(ExpressionParser.Outcome.NoMatch, "Input does not match.", tokens.Starts[furthest], null, null)
 				: Match.Failed(ExpressionParser.Outcome.Starved, "Expected more input.", stopped >= 0 ? stopped : at + length, null, null);
 		}
@@ -558,6 +563,9 @@ public static class HandExpression
 		public int[]     Lengths = new int[64];
 		public string?[] Words   = new string?[64];
 		public int       Count;
+
+		/// <summary>Whether the text ends inside the last token, which is then <see cref="Unfinished"/>.</summary>
+		public bool Cut;
 
 		public Expression[] Values = new Expression[32];
 		public int[]        Taken  = new int[16];
@@ -632,6 +640,7 @@ public static class HandExpression
 
 		into.Room((to - from) / 3 + 16);
 		into.Count = 0;
+		into.Cut   = false;
 
 		var kinds   = into.Kinds;
 		var starts  = into.Starts;
@@ -747,23 +756,28 @@ public static class HandExpression
 					break;
 
 				case '"':
-					p = Quoted(s, p, out kind);
+					_short = false;
+					p      = Quoted(s, p, out kind);
 					break;
 
 				case '\'':
-					kind = Character;
-					p    = CharacterEnd(s, p);
+					_short = false;
+					kind   = Character;
+					p      = CharacterEnd(s, p);
 					break;
 
+				// `@` and `@$` are where `@"` and `@$"` begin, so the text ending there ends inside one.
 				case '@':
-					kind = Next(s, p) == '"' ? Verbatim : Interpolated;
-					p    = Next(s, p) == '"' ? VerbatimEnd(s, p + 2)
+					_short = p + 1 >= s.Length || s[p + 1] == '$' && p + 2 >= s.Length;
+					kind   = Next(s, p) == '"' ? Verbatim : Interpolated;
+					p      = Next(s, p) == '"' ? VerbatimEnd(s, p + 2)
 						: Next(s, p) == '$' && p + 2 < s.Length && s[p + 2] == '"' ? InterpolatedEnd(s, p + 3, verbatim: true, null)
 						: -1;
 					break;
 
 				case '$':
-					p = Dollars(s, p, out kind);
+					_short = false;
+					p      = Dollars(s, p, out kind);
 					break;
 
 				default:
@@ -796,6 +810,16 @@ public static class HandExpression
 					break;
 			}
 
+			// Where the text ends inside the token, more of it could finish the token: it is the last
+			// one, of no kind, and a reading that reaches it wants more input rather than refusing
+			// it — as the generated lexer cuts it. Anything else no token begins with stops here.
+			if (p < 0 && kind != End && _short)
+			{
+				into.Cut = true;
+				kind     = Unfinished;
+				p        = s.Length;
+			}
+
 			if (p < 0)
 			{
 				stopped = start;
@@ -821,6 +845,23 @@ public static class HandExpression
 		into.Count = count;
 
 		return stopped;
+	}
+
+	/// <summary>Whether the measuring of the last string refused for want of text: it reached the end wanting more.</summary>
+	/// <remarks>
+	/// Set by every measure below that runs into the end of the text, whether or not that was the way
+	/// that refused last, as the generated lexer counts the furthest any way through reached; cleared
+	/// before each string the lexer measures, and read only where it found no token.
+	/// </remarks>
+	[ThreadStatic]
+	static bool _short;
+
+	/// <summary>A refusal for want of text: <see cref="_short"/>, and -1.</summary>
+	static int Short()
+	{
+		_short = true;
+
+		return -1;
 	}
 
 	static char Next(ReadOnlySpan<char> s, int p)
@@ -985,7 +1026,7 @@ public static class HandExpression
 		{
 			kind = RawLong;
 
-			return LongRawEnd(s, p + quotes, 0, quotes);
+			return LongRaw(s, p + quotes, 0, quotes);
 		}
 
 		if (quotes >= 3 && RawTextEnd(s, p, quotes) is var raw && raw >= 0)
@@ -1018,7 +1059,7 @@ public static class HandExpression
 		{
 			kind = RawLong;
 
-			return LongRawEnd(s, after + quotes, dollars, quotes);
+			return LongRaw(s, after + quotes, dollars, quotes);
 		}
 
 		if (quotes >= 3)
@@ -1030,7 +1071,27 @@ public static class HandExpression
 
 		kind = Interpolated;
 
-		return dollars == 1 && quotes >= 1 ? InterpolatedEnd(s, after + 1, verbatim: false, null) : -1;
+		if (dollars == 1 && quotes >= 1)
+			return InterpolatedEnd(s, after + 1, verbatim: false, null);
+
+		// Dollars and quotes to the end, or `$@`: the beginning of a string the text ends inside of.
+		return after + quotes >= s.Length || dollars == 1 && quotes == 0 && s[after] == '@' && after + 1 >= s.Length
+			? Short()
+			: -1;
+	}
+
+	/// <summary>
+	/// A raw string longer than the grammar writes out, measured as the language's host measures
+	/// one: where the host refuses it, the text ends inside it only where it ends inside its
+	/// beginning — the host says nothing of why it refused, so nothing else of it is asked.
+	/// </summary>
+	static int LongRaw(ReadOnlySpan<char> s, int at, int dollars, int quotes)
+	{
+		var end = LongRawEnd(s, at, dollars, quotes);
+
+		_short = end < 0 && at >= s.Length;
+
+		return end;
 	}
 
 	static int Count(ReadOnlySpan<char> s, int p, char what)
@@ -1064,7 +1125,7 @@ public static class HandExpression
 				return -1;
 		}
 
-		return -1;
+		return Short();
 	}
 
 	/// <summary>Past a character literal: one character or one escape between two quotes.</summary>
@@ -1072,12 +1133,18 @@ public static class HandExpression
 	{
 		var at = p + 1;
 
-		if (at >= s.Length || s[at] == '\'')
+		if (at >= s.Length)
+			return Short();
+
+		if (s[at] == '\'')
 			return -1;
 
 		at = s[at] == '\\' ? EscapeEnd(s, at) : at + 1;
 
-		return at >= 0 && at < s.Length && s[at] == '\'' ? at + 1 : -1;
+		if (at >= s.Length)
+			return Short();
+
+		return at >= 0 && s[at] == '\'' ? at + 1 : -1;
 	}
 
 	/// <summary>Past a verbatim string, where a doubled quote is a quote and nothing else is special.</summary>
@@ -1105,7 +1172,7 @@ public static class HandExpression
 			at   += 2;
 		}
 
-		return ended;
+		return ended >= 0 ? ended : Short();
 	}
 
 	/// <summary>Past an escape, or -1 where what follows the backslash is none C# has.</summary>
@@ -1116,7 +1183,7 @@ public static class HandExpression
 	static int EscapeEnd(ReadOnlySpan<char> s, int at)
 	{
 		if (at + 1 >= s.Length)
-			return -1;
+			return Short();
 
 		switch (s[at + 1])
 		{
@@ -1124,19 +1191,30 @@ public static class HandExpression
 				return at + 2;
 
 			case 'u':
-				return HexDigits(s, at + 2, 4) == 4 ? at + 6 : -1;
+				return Digits(s, at, 4) == 4 ? at + 6 : -1;
 
 			case 'U':
-				return HexDigits(s, at + 2, 8) == 8 ? at + 10 : -1;
+				return Digits(s, at, 8) == 8 ? at + 10 : -1;
 
 			case 'x':
-				var width = HexDigits(s, at + 2, 4);
+				var width = Digits(s, at, 4);
 
 				return width > 0 ? at + 2 + width : -1;
 
 			default:
 				return -1;
 		}
+	}
+
+	/// <summary>The hexadecimal digits of an escape, short of <paramref name="most"/> where the text ends first.</summary>
+	static int Digits(ReadOnlySpan<char> s, int at, int most)
+	{
+		var width = HexDigits(s, at + 2, most);
+
+		if (width < most && at + 2 + width >= s.Length)
+			_short = true;
+
+		return width;
 	}
 
 	static int HexDigits(ReadOnlySpan<char> s, int at, int most)
@@ -1204,8 +1282,9 @@ public static class HandExpression
 					continue;
 				}
 
+				// A brace the text ends at may be the first of two.
 				if (c == '}')
-					return ended;
+					return at + 1 >= s.Length ? Ended(ended) : ended;
 
 				var close = HoleEnd(s, at + 1, parts);
 
@@ -1251,6 +1330,15 @@ public static class HandExpression
 			parts?.Add(Segment.Of(s.Slice(from, at - from).ToString()));
 		}
 
+		return Ended(ended);
+	}
+
+	/// <summary>Where a string ended before the text did, or a refusal for want of text where it did not.</summary>
+	static int Ended(int ended)
+	{
+		if (ended < 0)
+			_short = true;
+
 		return ended;
 	}
 
@@ -1280,7 +1368,10 @@ public static class HandExpression
 			format = s.Slice(run + 1, close - run - 1).ToString();
 		}
 
-		if (close >= s.Length || s[close] != '}')
+		if (close >= s.Length)
+			return Short();
+
+		if (s[close] != '}')
 			return -1;
 
 		parts?.Add(Segment.Hole(at, run - at).Formatted(format));
@@ -1303,6 +1394,9 @@ public static class HandExpression
 				case '(' or '[' or '{':
 					var close  = c == '(' ? ')' : c == '[' ? ']' : '}';
 					var nested = HoleRunEnd(s, at + 1, inside: true);
+
+					if (nested >= s.Length)
+						_short = true;
 
 					if (nested >= s.Length || s[nested] != close)
 						return at;
@@ -1411,7 +1505,10 @@ public static class HandExpression
 	{
 		var at = p + quotes;
 
-		if (at >= s.Length || s[at] == '"')
+		if (at >= s.Length)
+			return Short();
+
+		if (s[at] == '"')
 			return -1;
 
 		at++;
@@ -1433,7 +1530,7 @@ public static class HandExpression
 			at += run;
 		}
 
-		return -1;
+		return Short();
 	}
 
 	/// <summary>
@@ -1447,9 +1544,18 @@ public static class HandExpression
 	/// </remarks>
 	static int RawHolesEnd(ReadOnlySpan<char> s, int at, int dollars, int quotes, List<Segment>? parts)
 	{
+		// Where the piece before this one began: the grammar gives the pieces back one at a time
+		// and asks for the closing quotes where each began, so whether a refusal is one for want
+		// of text is decided by the last of those asks.
+		var last = -1;
+		var here = -1;
+
 		while (at < s.Length)
 		{
 			var c = s[at];
+
+			last = here;
+			here = at;
 
 			if (c == '"')
 			{
@@ -1475,8 +1581,15 @@ public static class HandExpression
 				var width = dollars;
 				var close = HoleEnd(s, at + width, parts);
 
-				if (close < 0 || Count(s, close, '}') < width)
+				if (close < 0)
 					return -1;
+
+				// Fewer closing braces than the hole wants, where the text ends after them, are a hole
+				// the text ends inside of.
+				var braces = Count(s, close, '}');
+
+				if (braces < width)
+					return close + braces >= s.Length ? Short() : -1;
 
 				at = close + width;
 
@@ -1493,7 +1606,10 @@ public static class HandExpression
 					continue;
 				}
 
-				return -1;
+				// The closing quotes are asked for here next, and then where each piece before began:
+				// where fewer characters are left than they take at this place and not at the last
+				// piece's, the string wanted more text than there was.
+				return s.Length - at < quotes && (last < 0 || s.Length - last >= quotes) ? Short() : -1;
 			}
 
 			var from = at;
@@ -1504,7 +1620,7 @@ public static class HandExpression
 			parts?.Add(Segment.Of(s.Slice(from, at - from).ToString()));
 		}
 
-		return -1;
+		return Short();
 	}
 
 	/// <summary>
