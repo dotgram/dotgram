@@ -18,7 +18,7 @@ namespace DotGram.Tests;
 /// thousands of nodes alive while other tests allocate slows every collection they set off, and in that
 /// project these two rows took the run from twelve seconds to more than a minute.
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class DeepTreeHandOffTests
 {
 	/// <summary>The size of thread a host gets without asking.</summary>

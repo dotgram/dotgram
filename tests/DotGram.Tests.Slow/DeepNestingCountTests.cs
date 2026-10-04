@@ -47,7 +47,7 @@ namespace DotGram.Tests;
 ///   T-SQL IN (SELECT …)       1,534     3,034     6,034    12,034
 /// </code>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class DeepNestingCountTests(ITestOutputHelper output)
 {
 	/// <summary>How much more than twice a doubling may add, for what the ends of the text cost.</summary>

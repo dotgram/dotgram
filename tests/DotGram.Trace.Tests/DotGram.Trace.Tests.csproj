@@ -20,6 +20,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- How a ratio of two timings is read so that a loaded machine cannot decide it: written for the scaling classes. -->
+		<Compile Include="..\DotGram.Tests.Slow\ScalingClock.cs" Link="Shared\ScalingClock.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- As shipped. -->
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" Aliases="plain" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" Aliases="plain" />

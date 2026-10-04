@@ -39,7 +39,7 @@ namespace DotGram.Tests;
 /// is.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class ReaderCountTests
 {
 	/// <summary>

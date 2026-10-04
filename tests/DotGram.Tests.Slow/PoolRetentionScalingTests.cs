@@ -39,7 +39,7 @@ namespace DotGram.Tests;
 /// side.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class PoolRetentionScalingTests
 {
 	/// <summary>

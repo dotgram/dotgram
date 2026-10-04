@@ -38,7 +38,7 @@ namespace DotGram.Tests;
 /// that is reported. A figure of 1.72 once reached the queue with none of that, and when it was looked into there was nothing to go back to.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
 {
 	static readonly Lazy<Dictionary<string, RefusalLadders.Class>> Baseline = new(ReadBaseline);

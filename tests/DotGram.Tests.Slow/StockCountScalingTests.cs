@@ -39,7 +39,7 @@ namespace DotGram.Tests;
 /// noise, and the two real readings of that same noisy run are not trustworthy either.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class StockCountScalingTests
 {
 	/// <summary>What ten times the lines may take, as a multiple of what one tenth of them takes.</summary>

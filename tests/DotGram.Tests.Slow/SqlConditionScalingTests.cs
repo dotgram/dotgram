@@ -35,7 +35,7 @@ namespace DotGram.Tests;
 /// honestly. If the walk comes back, nothing in this suite will say so.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class SqlConditionScalingTests
 {
 	[Fact]

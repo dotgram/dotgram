@@ -33,7 +33,7 @@ namespace DotGram.Tests;
 /// seconds, and everything healthy costs microseconds.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class WebRefusalSweepTests
 {
 	static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(1_500);

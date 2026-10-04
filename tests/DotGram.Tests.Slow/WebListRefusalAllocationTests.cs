@@ -50,7 +50,7 @@ namespace DotGram.Tests;
 /// repeated runs of the process.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class WebListRefusalAllocationTests
 {
 	/// <summary>Doubling sizes; the note's own worst case (1,024) is the top rung.</summary>

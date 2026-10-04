@@ -28,7 +28,7 @@ namespace DotGram.Tests;
 /// there. Timed alone, the best of several runs.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class ScriptScalingTests
 {
 	[Fact]

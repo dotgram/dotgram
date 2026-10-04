@@ -44,7 +44,7 @@ namespace DotGram.Tests;
 /// a spare core for a minute is affordable.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class WebRefusalScalingTests
 {
 	/// <summary>Twelve more characters is four thousand times the work if the run can be re-cut.</summary>

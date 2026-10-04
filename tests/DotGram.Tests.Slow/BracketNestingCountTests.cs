@@ -54,7 +54,7 @@ namespace DotGram.Tests;
 ///   a nest of conditions, never closed    1,122    2,122    4,122    8,122   n
 /// </code>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class BracketNestingCountTests
 {
 	/// <summary>Four depths, a doubling apart.</summary>

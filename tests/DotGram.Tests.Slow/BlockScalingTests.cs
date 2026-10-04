@@ -40,7 +40,7 @@ namespace DotGram.Tests;
 /// reported there.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class BlockScalingTests
 {
 	/// <summary>Four times the blocks, and the places a reading looks at grow by about four.</summary>

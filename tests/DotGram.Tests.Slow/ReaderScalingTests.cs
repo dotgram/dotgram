@@ -95,7 +95,7 @@ namespace DotGram.Tests;
 /// before it is believed, so a pause landing on one size does not decide a row on a loaded machine.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class ReaderScalingTests
 {
 	/// <summary>The row that is linear by construction and gates the class; see the class remarks.</summary>

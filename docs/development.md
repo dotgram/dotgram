@@ -55,10 +55,10 @@ lines of its refusal record), JSON and URI: the trace build answers every input 
 on the unfolded build's stacks is on the trace build's (the frames of the collapsed rules), and every
 rule entered is left. `TraceCostTests` holds the memory of a deep refusal (`tests/DotGram.Trace.Deep`,
 a process of its own: peak working set under 256 MB at fifty thousand levels) and the time of a
-profile on T-SQL (within ten times the library) and of `GramWhy` on a refused script of 100 KB
-(under a second). The two copies cost the solution build two more compilations of the SQL grammars,
-for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds the same over small grammars, a reading
-shape at a time.
+profile on T-SQL (within thirty times the library, both warmed; it settles near twelve) and of
+`GramWhy` on a refused script of 100 KB (under a second). The two copies cost the solution build two
+more compilations of the SQL grammars, for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds
+the same over small grammars, a reading shape at a time.
 
 The engine's own step trace — one line on standard error per step of the automaton, for working on
 the generator, not for grammar authors — is compiled where the build defines `DOTGRAM_STEPS`. It was

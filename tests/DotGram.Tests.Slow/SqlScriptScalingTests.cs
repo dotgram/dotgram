@@ -59,7 +59,7 @@ namespace DotGram.Tests;
 /// size cannot decide a row on a loaded machine while a real square still fails every attempt.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class SqlScriptScalingTests
 {
 	/// <summary>The row that is linear by construction and gates the class; see the class remarks.</summary>

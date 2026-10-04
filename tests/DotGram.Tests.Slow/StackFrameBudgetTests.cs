@@ -59,7 +59,7 @@ namespace DotGram.Tests;
 /// and not the operating system's, and is taken as the same.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class StackFrameBudgetTests
 {
 	/// <summary>What one probe to the next may cost, in KiB, before the guard can be stepped over.</summary>

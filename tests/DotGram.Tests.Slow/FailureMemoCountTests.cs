@@ -50,6 +50,13 @@ namespace DotGram.Tests;
 ///   a bracketed sum, never closed         1,692    3,292    6,492   12,892   n
 ///   subqueries in FROM (25..200)            846    1,646    3,246    6,446   n
 /// </code>
+/// <para>
+/// <b>Beside what.</b> The counters are static, and <c>DeepNestingCountTests</c> reads the same
+/// variants; it is in <see cref="Alone"/>, which runs after this class and every other parallel one,
+/// so none of its entries is counted here. Asked for by name rather than by type, that collection was
+/// an ordinary one, and its readings landed in these counts: 4,185 entries at 100 levels where a
+/// reading alone makes 3,246.
+/// </para>
 /// </remarks>
 public sealed class FailureMemoCountTests(ITestOutputHelper output)
 {

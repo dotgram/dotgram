@@ -51,7 +51,7 @@ namespace DotGram.Tests;
 /// matters is the one this test asks for, not the one the runner would have handed it.
 /// </para>
 /// </remarks>
-[Collection(nameof(Alone))]
+[Collection(typeof(Alone))]
 public sealed class StackDepthTests
 {
 	/// <summary>
