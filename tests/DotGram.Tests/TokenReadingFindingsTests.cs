@@ -505,6 +505,74 @@ public sealed class TokenReadingFindingsTests
 		Assert.True((characters == "same" ? tokens : characters) == $"{over.Outcome} {over.Position}", $"\"{input}\", over characters: {over}");
 	}
 
+	/// <summary>
+	/// A token the automaton only begins and a rule measures is cut short where the rule ran out
+	/// of text at the furthest it got, however far it then gave back: the rule here reads every
+	/// <c>a</c> and gives them back one at a time to find <c>abc</c>, asking for <c>abc</c> again
+	/// at each, where the room left is more each time.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The last of those asks used to be the one remembered, so <c>@aab</c> — which a <c>c</c>
+	/// finishes — was refused as a character no token begins with, and over characters, where the
+	/// same rule is read by the same machine, it was refused at the <c>b</c>.
+	/// </para>
+	/// <para>
+	/// The columns: from the position or in the window over tokens, the whole reading over tokens,
+	/// and both over characters, which say the same. Over characters a literal wanting more than is
+	/// left is starved where it begins, over tokens at the end. Over tokens <c>@aabx</c> from a
+	/// position is nothing but characters no token begins with, which is starved (§6.3).
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("@aab", 0, null, "Starved 4", "Starved 4", "Starved 3")]
+	[InlineData("@aaab", 0, null, "Starved 5", "Starved 5", "Starved 4")]
+	[InlineData("@aaaab", 0, null, "Starved 6", "Starved 6", "Starved 5")]
+	[InlineData("@ab", 0, null, "Starved 3", "Starved 3", "Starved 2")]
+	[InlineData("@aa", 0, null, "Starved 3", "Starved 3", "Starved 3")]
+	[InlineData("@", 0, null, "Starved 1", "Starved 1", "Starved 1")]
+	[InlineData("@aabc", 0, 4, "Starved 4", null, "Starved 3")]
+	[InlineData("@aaabc !", 0, 5, "Starved 5", null, "Starved 4")]
+	[InlineData("@aabc", 0, null, "Success 0", "Success 0", "Success 0")]
+	[InlineData("@aabx", 0, null, "Starved 5", "NoMatch 0", "NoMatch 4")]
+	[InlineData("@aabcz", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 3")]
+	public void A_token_a_rule_measures_is_cut_short_where_the_rule_ran_out_furthest(
+		string input, int at, int? length, string tokens, string? whole, string characters)
+	{
+		const string grammar =
+			"trivia = { ' '* }\n" +
+			"namespace Lex\n{\n\ttrivia = none\n\tT = '@' & Tail\n\tTail = 'a'* & \"abc\" & ?!'z'\n}\n" +
+			"Start = Lex.T & ('!' | '!' & '?')?\nOther = 'c'\nparse Start\nparse Other\n";
+
+		var said = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = Positioned(assembly, input, at, length);
+
+			Assert.True(tokens == $"{match.Outcome} {match.Position}", said + ", over tokens: " + match);
+
+			if (whole is not null)
+			{
+				var read = Whole(assembly, input);
+
+				Assert.True(whole == $"{read.Outcome} {read.Position}", said + ", whole, over tokens: " + read);
+			}
+		}
+
+		var chars = Built(grammar, lexical: false, direct: true);
+		var over  = Positioned(chars, input, at, length);
+
+		Assert.True(characters == $"{over.Outcome} {over.Position}", said + ", over characters: " + over);
+
+		if (whole is not null)
+		{
+			var read = Whole(chars, input);
+
+			Assert.True(characters == $"{read.Outcome} {read.Position}", said + ", whole, over characters: " + read);
+		}
+	}
+
 	// ── Choices a scanner reads ─────────────────────────────────────────────────
 
 	/// <summary>

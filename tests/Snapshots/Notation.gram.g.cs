@@ -3659,7 +3659,7 @@ namespace DotGram.Snapshots
 				r0 = ways.Last;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					failure.OutOfInput = p + 1;
+					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
@@ -3725,7 +3725,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					failure.OutOfInput = p + 1;
+					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0);
 					return -1;
 				}
@@ -4671,6 +4671,11 @@ namespace DotGram.Snapshots
 			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
 			/// the automaton's own unwinding is untouched — which is why this costs a
 			/// store on a failure path and nothing anywhere else.
+			/// </para>
+			/// <para>
+			/// The furthest such place, and not the last: backtracking asks the same test again
+			/// further back, where it may lack room too, and a later write of a smaller place
+			/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
 			/// </para>
 			/// <para>
 			/// One past, because a zeroed struct has to mean "nowhere" and zero is a

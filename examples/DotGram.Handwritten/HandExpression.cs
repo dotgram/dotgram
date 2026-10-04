@@ -1544,18 +1544,9 @@ public static class HandExpression
 	/// </remarks>
 	static int RawHolesEnd(ReadOnlySpan<char> s, int at, int dollars, int quotes, List<Segment>? parts)
 	{
-		// Where the piece before this one began: the grammar gives the pieces back one at a time
-		// and asks for the closing quotes where each began, so whether a refusal is one for want
-		// of text is decided by the last of those asks.
-		var last = -1;
-		var here = -1;
-
 		while (at < s.Length)
 		{
 			var c = s[at];
-
-			last = here;
-			here = at;
 
 			if (c == '"')
 			{
@@ -1606,10 +1597,9 @@ public static class HandExpression
 					continue;
 				}
 
-				// The closing quotes are asked for here next, and then where each piece before began:
-				// where fewer characters are left than they take at this place and not at the last
-				// piece's, the string wanted more text than there was.
-				return s.Length - at < quotes && (last < 0 || s.Length - last >= quotes) ? Short() : -1;
+				// The closing quotes are asked for here next, and where fewer characters are left than
+				// they take, the string wanted more text than there was.
+				return s.Length - at < quotes ? Short() : -1;
 			}
 
 			var from = at;

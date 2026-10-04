@@ -2475,7 +2475,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
-						writer.Line("failure.OutOfInput = p + 1;");
+						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
@@ -2553,7 +2553,7 @@ sealed partial class Machine
 						if (_starves)
 							writer.Line("failure.Starved = true;");
 
-						writer.Line("failure.OutOfInput = p + 1;");
+						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
@@ -2577,7 +2577,7 @@ sealed partial class Machine
 						// room exactly at the end of the input, and the boundary reads
 						// that off the position itself (§7.5).
 						if (i == 0 && room is not null && value.Length > 1)
-							writer.Line($"if ({room}) failure.OutOfInput = p + 1;");
+							writer.Line($"if (({room}) && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -4031,7 +4031,7 @@ sealed partial class Machine
 				if (_starves)
 					writer.Line("failure.Starved = true;");
 
-				writer.Line("failure.OutOfInput = p + 1;");
+				writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 

@@ -1021,6 +1021,11 @@ namespace DotGram.Snapshots
 				/// store on a failure path and nothing anywhere else.
 				/// </para>
 				/// <para>
+				/// The furthest such place, and not the last: backtracking asks the same test again
+				/// further back, where it may lack room too, and a later write of a smaller place
+				/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
+				/// </para>
+				/// <para>
 				/// One past, because a zeroed struct has to mean "nowhere" and zero is a
 				/// position. Only a test wanting more than one character writes it: one
 				/// wanting a single character can only fail for want of room at the very end

@@ -774,7 +774,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					failure.OutOfInput = p + 1;
+					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3);
 					return -1;
 				}
@@ -1008,7 +1008,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						failure.OutOfInput = p + 1;
+						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = Recognize_DotGram_Feed_Expected7;
 						goto Fail;
 					}
@@ -1024,7 +1024,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						failure.OutOfInput = p + 1;
+						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = Recognize_DotGram_Feed_Expected5;
 						goto Fail;
 					}
@@ -1051,7 +1051,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						failure.OutOfInput = p + 1;
+						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = Recognize_DotGram_Feed_Expected5;
 						goto Fail;
 					}
@@ -1085,7 +1085,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						failure.OutOfInput = p + 1;
+						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = Recognize_DotGram_Feed_Expected10;
 						goto Fail;
 					}
@@ -1636,7 +1636,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					failure.OutOfInput = p + 1;
+					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3);
 					return -1;
 				}
@@ -2197,7 +2197,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					failure.OutOfInput = p + 1;
+					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected3);
 					return -1;
 				}
@@ -3273,6 +3273,11 @@ namespace DotGram.Snapshots
 			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
 			/// the automaton's own unwinding is untouched — which is why this costs a
 			/// store on a failure path and nothing anywhere else.
+			/// </para>
+			/// <para>
+			/// The furthest such place, and not the last: backtracking asks the same test again
+			/// further back, where it may lack room too, and a later write of a smaller place
+			/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
 			/// </para>
 			/// <para>
 			/// One past, because a zeroed struct has to mean "nowhere" and zero is a

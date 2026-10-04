@@ -2338,7 +2338,7 @@ sealed partial class Machine
 			// beginning read on the failing branch alone (Machine.Sharpen).
 			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
 			{
-				code.Line("failure.OutOfInput = p + 1;");
+				code.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 				Refused(code, name);
 			}
 
@@ -2409,7 +2409,7 @@ sealed partial class Machine
 			if (shared.Length > 1)
 				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
 				{
-					code.Line("failure.OutOfInput = p + 1;");
+					code.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 					Refused(code, all);
 				}
 
