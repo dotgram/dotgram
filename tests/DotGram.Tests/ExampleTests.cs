@@ -701,14 +701,20 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_hands_over_the_header_before_it_has_read_the_trades()
 	{
-		using var reader = new StringReader(EodText);
+		using var writer = new StringWriter();
+
+		TradingFeedGenerator.Write(writer, FeedFormat.Pipe, 5_000, 0, seed: 1);
+
+		var text = writer.ToString();
+
+		using var reader = new StringReader(text);
 		using var lines  = EodTrades.Read(reader).GetEnumerator();
 
 		Assert.True(lines.MoveNext());
 		Assert.IsType<EodHeader>(lines.Current);
 
-		// The array overload reads the whole file and keeps it; the reader's is lazy.
-		Assert.Equal(7, EodTrades.Read(EodText).Length);
+		// Most of the file is still in the reader: the trades are read as they are walked.
+		Assert.True(reader.ReadToEnd().Length > text.Length / 2);
 	}
 
 	[Fact]
