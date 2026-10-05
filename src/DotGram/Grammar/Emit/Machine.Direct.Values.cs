@@ -709,9 +709,12 @@ sealed partial class Machine
 	internal static void ShareAdaptiveStores(IEnumerable<Machine> machines, ValueStorageKind storage)
 	{
 		// Plan storage without resolving carriers: Auto must keep its later choice. A
-		// fallback tape reads these flags.
+		// fallback tape reads these flags, so a machine asked for the immediate carrier
+		// that the carrier would refuse is planned as the tape it will become; one it
+		// would carry has no store of this kind and stays out of the plan.
 		var all = machines.ToArray();
-		var readers = all.Where(machine => machine._carrierKind is CarrierKind.Tape or CarrierKind.Auto).ToArray();
+		var readers = all.Where(static machine => machine._carrierKind is CarrierKind.Tape or CarrierKind.Auto ||
+			machine._carrierKind == CarrierKind.Immediate && machine.WouldRefuse(CarrierKind.Immediate) is not null).ToArray();
 		var dense = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
 		var adaptive = !dense && readers.Any(machine => machine._directBuilds && machine._valueTypes.Count >= 32);
 		foreach (var machine in all)

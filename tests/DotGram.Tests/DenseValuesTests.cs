@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -120,6 +121,65 @@ public sealed class DenseValuesTests
 			Assert.True(match.IsSuccess, match.Error);
 			Assert.Equal(string.Join("|", Enumerable.Repeat("2", count)), match.Value);
 		}
+	}
+
+	/// <summary>
+	/// An immediate carrier the grammar is refused falls back to the tape, and the tape's store is
+	/// planned for it: the same store as one asked for as a tape, not the plain one that clears
+	/// every table up to the rows used on each parse. Guards that build values and many types are
+	/// what make the tape's store adaptive, so that is the grammar here.
+	/// </summary>
+	[Fact]
+	public void A_refused_immediate_carrier_falls_back_to_the_store_the_tape_would_have()
+	{
+		var types = Enumerable.Range(0, 40).ToArray();
+		var grammar = string.Concat(types.Select(i => $"T{i} : @T{i} = 'a' => @(new T{i}())\n")) +
+			"Row : @string = " + string.Join(" & ", types.Select(i => $"t{i}: T{i}")) + " & a: T0* & ';' & b: T0* => @(\"\")\n" +
+			"Start : @string = rows: Row+ & when @(rows.Length > 0) => @(\"\")\n" +
+			"parse Start\n";
+
+		var tape = Source(grammar, CarrierKind.Tape);
+		var asked = Source(grammar, CarrierKind.Immediate, out var refusals);
+
+		Assert.Contains("struct ValueTable<T>", tape);
+		Assert.Contains(refusals, static one => one.Message.Contains("onto one stack", StringComparison.Ordinal));
+		Assert.Equal(StoreOf(tape), StoreOf(asked));
+	}
+
+	/// <summary>An immediate carrier that is given rents no tape store, so none of it is planned.</summary>
+	[Fact]
+	public void An_immediate_carrier_that_is_given_holds_no_dense_store()
+	{
+		var source = Source(Grammar, CarrierKind.Immediate);
+
+		Assert.DoesNotContain("dense: true", source);
+	}
+
+	static string Source(string grammar, CarrierKind carrier)
+	{
+		return Source(grammar, carrier, out _);
+	}
+
+	static string Source(string grammar, CarrierKind carrier, out IReadOnlyList<GramDiagnostic> diagnostics)
+	{
+		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		diagnostics = compiled.Diagnostics;
+
+		return Assert.Single(compiled.Sources).Text;
+	}
+
+	/// <summary>The direct store's class and everything after it.</summary>
+	static string StoreOf(string source)
+	{
+		var from = source.IndexOf("sealed class DirectValues", StringComparison.Ordinal);
+
+		Assert.True(from >= 0, "No direct store was emitted.");
+
+		return source[from..];
 	}
 
 	static (Assembly Assembly, string Source) Compile(bool lexical, string grammar = Grammar, ValueStorageKind storage = ValueStorageKind.Auto)
