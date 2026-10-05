@@ -3967,6 +3967,40 @@ file.Line("return spare;");
 	/// <inheritdoc cref="WantsText(Machine.Factory)"/>
 	internal static bool WantsText(RecognitionGraph? graph, Machine.Factory factory)
 	{
+		// Asked at every site that writes the factory, and the question hashes the construction's
+		// whole text to find its free names: answered once per factory and kept beside it. The
+		// answer depends on the graph as well, so it is kept for the graph it was given; a factory
+		// is built for one graph and asked with that one, and any other is answered afresh.
+		var kept = Wanted.GetValue(factory, static _ => new WantsTextAnswer());
+
+		if (graph is null)
+			return kept.Spelled ??= WantsTextNow(null, factory);
+
+		if (kept.Graph is null)
+		{
+			kept.OfGraph = WantsTextNow(graph, factory);
+			kept.Graph   = graph;
+		}
+		else if (!ReferenceEquals(kept.Graph, graph))
+		{
+			return WantsTextNow(graph, factory);
+		}
+
+		return kept.OfGraph;
+	}
+
+	/// <summary>What <see cref="WantsText(RecognitionGraph?, Machine.Factory)"/> answered for one factory.</summary>
+	sealed class WantsTextAnswer
+	{
+		public RecognitionGraph? Graph;
+		public bool              OfGraph;
+		public bool?             Spelled;
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Machine.Factory, WantsTextAnswer> Wanted = new();
+
+	static bool WantsTextNow(RecognitionGraph? graph, Machine.Factory factory)
+	{
 		if (factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 			Uses(graph, text, "parserText"))
 			return true;

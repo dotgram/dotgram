@@ -6070,9 +6070,9 @@ sealed partial class Machine
 
 	int Reserve(out Writer writer)
 	{
-		writer = new Writer(0);
+		writer = new Writer(0) { State = _states.Count };
 		_states.Add(writer);
-		_edges.Add(writer, new Edges());
+		_edges.Add(new Edges());
 
 		return _states.Count - 1 + First;
 	}

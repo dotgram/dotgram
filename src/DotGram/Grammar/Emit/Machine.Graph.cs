@@ -40,15 +40,23 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// The edges of each state, by the writer that is its body.
+	/// The edges of each state, by its index, beside <see cref="_states"/>.
 	/// </summary>
 	/// <remarks>
 	/// A state's body is one writer and is never composed from others, so the writer is the
-	/// state as far as recording goes. Anything else written to — the file, a header — is not
-	/// in the table and is absent here, which is what makes a lookup that finds nothing the
-	/// right answer rather than a missed edge.
+	/// state as far as recording goes, and it carries its index so that finding its edges is not
+	/// a hash of the writer. Anything else written to — the file, a header — is not a state and
+	/// finds nothing here, which is the right answer rather than a missed edge.
 	/// </remarks>
-	readonly Dictionary<Writer, Edges> _edges = [];
+	readonly List<Edges> _edges = [];
+
+	/// <summary>The edges of the state a writer is the body of, or nothing where it is not one.</summary>
+	Edges? EdgesOf(Writer at)
+	{
+		return at.State >= 0 && at.State < _states.Count && ReferenceEquals(_states[at.State], at)
+			? _edges[at.State]
+			: null;
+	}
 
 	/// <summary>
 	/// The label of a state, written as a mark rather than as the name it will have.
@@ -64,8 +72,7 @@ sealed partial class Machine
 	/// </remarks>
 	string Label(Writer at, int state)
 	{
-		if (_edges.TryGetValue(at, out var edges))
-			edges.Jumps.Add(state);
+		EdgesOf(at)?.Jumps.Add(state);
 
 		return Mark(Jumps, state);
 	}
@@ -75,8 +82,7 @@ sealed partial class Machine
 	/// </summary>
 	string Resuming(Writer at, int state)
 	{
-		if (_edges.TryGetValue(at, out var edges))
-			edges.Resumes.Add(state);
+		EdgesOf(at)?.Resumes.Add(state);
 
 		return Mark(Lands, state);
 	}
@@ -157,8 +163,8 @@ sealed partial class Machine
 	/// <summary>What the state at an index recorded, which is nothing where it wrote nothing.</summary>
 	Edges Recorded(int index)
 	{
-		return index >= 0 && index < _states.Count && _edges.TryGetValue(_states[index], out var edges)
-			? edges
+		return index >= 0 && index < _edges.Count
+			? _edges[index]
 			: None;
 	}
 

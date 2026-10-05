@@ -257,11 +257,25 @@ public static class Retention
 
 	static IEnumerable<Node> Everything(Node node)
 	{
-		yield return node;
+		// Iterative, in the order the recursive form gave: a node, then each child's subtree in
+		// turn. Nested iterators handed every node up through one level per depth, which on the
+		// SQL grammars was a visible share of the generator's time.
+		var pending = new Stack<Node>();
 
-		foreach (var child in Children(node))
-			foreach (var inside in Everything(child))
-				yield return inside;
+		pending.Push(node);
+
+		while (pending.Count > 0)
+		{
+			var current = pending.Pop();
+
+			yield return current;
+
+			var below    = Children(current);
+			var children = below as IReadOnlyList<Node> ?? [.. below];
+
+			for (var i = children.Count - 1; i >= 0; i--)
+				pending.Push(children[i]);
+		}
 	}
 
 	/// <summary>

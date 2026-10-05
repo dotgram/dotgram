@@ -736,13 +736,20 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string Suppressed(string text)
 	{
-		text = Answer(text, "Looking",    "failure.Looking++",      "no reading of this grammar holds a lookahead");
-		text = Answer(text, "Quiet",      "Quiet = true",           "no reading whose failure nothing reads is emitted");
-		text = Answer(text, "Began",      "failure.Began = ",       "no reading that begins where it is told is emitted");
-		text = Answer(text, "OutOfInput", "failure.OutOfInput = ",  "every test in this grammar wants one character");
-		text = Answer(text, "Trace",      "Trace = ",               "no reading of this file is begun where a sink could be set");
+		// One pass over the lines for every statement, and one copy of the text for every mark:
+		// the file is megabytes, and a split into lines and a rebuild per mark were seconds of
+		// the generator's time on the SQL grammars.
+		var fields = new (string Field, string Statement, string Why)[]
+		{
+			("Looking",    "failure.Looking++",     "no reading of this grammar holds a lookahead"),
+			("Quiet",      "Quiet = true",          "no reading whose failure nothing reads is emitted"),
+			("Began",      "failure.Began = ",      "no reading that begins where it is told is emitted"),
+			("OutOfInput", "failure.OutOfInput = ", "every test in this grammar wants one character"),
+			("Trace",      "Trace = ",              "no reading of this file is begun where a sink could be set"),
+		};
 
-		return text;
+		var assigned = new bool[fields.Length];
+		var ending   = Lines.Ending;
 
 		// Asked of the finished text, because that is the compiler's own question: CS0649 fires
 		// where no assignment to the field occurs in the compilation, so what decides the
@@ -750,57 +757,86 @@ public static partial class CSharpEmitter
 		// over-reports: compiling writes into scratch that a discarded branch never lands, and a
 		// suppression dropped where nothing assigns is CS0649 in somebody else's build - the one
 		// direction this change must never take. That version failed thirteen tests here first.
-		static string Answer(string text, string field, string statement, string why)
-		{
-			var assigned = Writes(text, statement);
-
-			text = At(text, Mark(field, true), assigned ? null :
-				"// Nothing assigns this here: " + why + "." + Lines.Ending +
-				"// A field nothing assigns is CS0649 in somebody else's build, which for one" + Lines.Ending +
-				"// that treats warnings as errors is a broken compilation of a file they did" + Lines.Ending +
-				"// not write." + Lines.Ending +
-				"#pragma warning disable 0649");
-
-			return At(text, Mark(field, false), assigned ? null : "#pragma warning restore 0649");
-		}
-
 		// A comment is not an assignment, and the generator writes comments naming these very
 		// fields right beside them.
-		static bool Writes(string text, string statement)
+		for (var at = 0; at < text.Length;)
 		{
-			foreach (var line in text.Split([Lines.Ending], StringSplitOptions.None))
-			{
-				var code = line.Trim();
+			var end  = text.IndexOf(ending, at, StringComparison.Ordinal);
+			var from = at;
+			var to   = end < 0 ? text.Length : end;
 
-				if (!code.StartsWith("//", StringComparison.Ordinal) &&
-					code.Contains(statement, StringComparison.Ordinal))
-					return true;
+			// The line trimmed as string.Trim would, without making the string.
+			while (from < to && char.IsWhiteSpace(text[from]))
+				from++;
+
+			while (to > from && char.IsWhiteSpace(text[to - 1]))
+				to--;
+
+			if (!(to - from >= 2 && text[from] == '/' && text[from + 1] == '/'))
+				for (var i = 0; i < fields.Length; i++)
+					if (!assigned[i] && text.IndexOf(fields[i].Statement, from, to - from, StringComparison.Ordinal) >= 0)
+						assigned[i] = true;
+
+			at = end < 0 ? text.Length : end + ending.Length;
+		}
+
+		// Every mark's line, in the order the marks stand: the mark is alone on its line, so an
+		// answer of nothing takes the line with it rather than leaving an indented blank one, and
+		// every line of an answer takes the mark's indent. Each mark is the first of its spelling,
+		// as when the text was searched again for each.
+		var marks = new List<(int At, string? Answer)>();
+
+		for (var i = 0; i < fields.Length; i++)
+		{
+			var openAt  = text.IndexOf(Mark(fields[i].Field, true), StringComparison.Ordinal);
+			var closeAt = text.IndexOf(Mark(fields[i].Field, false), StringComparison.Ordinal);
+
+			if (openAt >= 0)
+				marks.Add((openAt, assigned[i] ? null :
+					"// Nothing assigns this here: " + fields[i].Why + "." + ending +
+					"// A field nothing assigns is CS0649 in somebody else's build, which for one" + ending +
+					"// that treats warnings as errors is a broken compilation of a file they did" + ending +
+					"// not write." + ending +
+					"#pragma warning disable 0649"));
+
+			if (closeAt >= 0)
+				marks.Add((closeAt, assigned[i] ? null : "#pragma warning restore 0649"));
+		}
+
+		if (marks.Count == 0)
+			return text;
+
+		marks.Sort(static (a, b) => a.At.CompareTo(b.At));
+
+		var built  = new StringBuilder(text.Length);
+		var copied = 0;
+
+		foreach (var (at, answer) in marks)
+		{
+			var opened = text.LastIndexOf(ending, at, StringComparison.Ordinal);
+			var begins = opened < 0 ? 0 : opened + ending.Length;
+			var closed = text.IndexOf(ending, at, StringComparison.Ordinal);
+			var ends   = closed < 0 ? text.Length : closed + ending.Length;
+
+			// A second mark on a line already taken went with it.
+			if (begins < copied)
+				continue;
+
+			built.Append(text, copied, begins - copied);
+
+			if (answer is not null)
+			{
+				var indent = text.Substring(begins, at - begins);
+
+				built.Append(indent).Append(answer.Replace(ending, ending + indent)).Append(ending);
 			}
 
-			return false;
+			copied = ends;
 		}
 
-		// The mark is alone on its line, so an answer of nothing takes the line with it rather
-		// than leaving an indented blank one; and every line of an answer takes the mark's indent.
-		static string At(string text, string mark, string? answer)
-		{
-			var at = text.IndexOf(mark, StringComparison.Ordinal);
+		built.Append(text, copied, text.Length - copied);
 
-			if (at < 0)
-				return text;
-
-			var opened = text.LastIndexOf(Lines.Ending, at, StringComparison.Ordinal);
-			var begins = opened < 0 ? 0 : opened + Lines.Ending.Length;
-			var closed = text.IndexOf(Lines.Ending, at, StringComparison.Ordinal);
-			var ends   = closed < 0 ? text.Length : closed + Lines.Ending.Length;
-			var indent = text.Substring(begins, at - begins);
-
-			return text.Substring(0, begins) +
-				(answer is null
-					? ""
-					: indent + answer.Replace(Lines.Ending, Lines.Ending + indent) + Lines.Ending) +
-				text.Substring(ends);
-		}
+		return built.ToString();
 	}
 
 	internal sealed class Assigned

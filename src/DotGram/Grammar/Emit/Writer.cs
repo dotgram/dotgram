@@ -10,6 +10,13 @@ sealed class Writer(int depth)
 
 	int _depth = depth;
 
+	/// <summary>
+	/// Which state of its machine this writer is the body of, or -1 where it is not one: the
+	/// index the machine keeps its states by, so that a state's edges are found by number rather
+	/// than by hashing the writer (Machine.Graph).
+	/// </summary>
+	internal int State = -1;
+
 	readonly string? _observing;
 
 	/// <summary>Observes a substring within written lines without retaining their text.</summary>
