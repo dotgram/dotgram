@@ -601,16 +601,24 @@ public sealed class TokenReadingFindingsTests
 	/// valueless repetition's turns meet, which over characters have no seam.
 	/// </para>
 	/// <para>
-	/// Where a turn has to be recovered before what follows the repetition, the engine over tokens
-	/// refuses what it reads over characters, with or without any braces: <c>aa;z</c> through
-	/// <c>Rows</c>, <c>aa;a</c> before <c>'a' &amp; eof</c>. That is not this question, and those
-	/// inputs are not asked here.
+	/// Where a turn has to be recovered before what follows the repetition can read — <c>aa;z</c>
+	/// through <c>Rows</c>, <c>aa;a</c> before <c>'a' &amp; eof</c> — the engine over tokens
+	/// refused what it reads over characters: the split carried the synchronization across as
+	/// written, so the engine tested the kinds for the character <c>;</c> and resumed at the end
+	/// of the input. The rows read it as a literal, a rule, a choice, two tokens, and a mark no
+	/// element names; called, called inside a call, and at the end of the input.
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a|", "engine")]
-	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;", "engine")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a||aa|a;aa", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;|aa;z|a a ;z|aa ; z|aa;aa;z", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;|aa;a|aa;aa;a", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'z' & eof\nparse Start\n", "aa;z|a;z|z|aa|aa;", "engine")]
+	[InlineData("Row = 'a' & ';'\nSep = ';'\nStart = Row* recover Sep & 'z' & eof\nparse Start\n", "aa;z|a;z|z|aa", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover (';' | '#') & 'z' & eof\nparse Start\n", "aa#z|aa;z|a;a#z|#z|z", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ('x' & 'y') & 'z' & eof\nparse Start\n", "aa;xyz|aa;x yz|a;xyz|xyz|z|aa;x", "engine")]
+	[InlineData("Row = 'a' & 'b'\nStart = Row* recover '#' & eof\nparse Start\n", "ab|aab#ab|ab#|a#|#|a", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nBlock = '[' & Rows & ']'\nStart = Block & 'z' & eof\nparse Start\n", "[aa;]z|[a;]z|[]z|[aa;a;]z|[aa]z|[a;aa", "engine")]
 	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';' & 'z'\nStart = ?=Rows & 'a' & ';' & 'z' & eof\nparse Start\n", "a;z|z|a;a;z", "engine")]
 	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b", "flat")]
 	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a", "flat")]

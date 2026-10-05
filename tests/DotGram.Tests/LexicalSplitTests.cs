@@ -394,6 +394,40 @@ public sealed class LexicalSplitTests
 	}
 
 	/// <summary>
+	/// What a repetition marked <c>recover</c> synchronizes on is read over kinds as the rest
+	/// of the syntactic half is, and a separator only the synchronization names is a token.
+	/// </summary>
+	/// <remarks>
+	/// The inventory walked a repetition's body and not what <c>recover</c> names, and the
+	/// rewrite carried the synchronization across as written. The engine over kinds then tested
+	/// the kinds for the character <c>;</c>, never found it, and every recovery resumed at the
+	/// end of the input: <c>Row* recover ';' &amp; 'z'</c> refused <c>aa;z</c>, which it reads
+	/// over characters.
+	/// </remarks>
+	[Fact]
+	public void A_recovery_synchronizes_on_kinds()
+	{
+		var split = LexicalSplit.Of(Graph(
+			"""
+			trivia = ' '*
+			Row   = 'a' & ';'
+			Start = Row* recover '#' & eof
+			parse Start
+			"""));
+
+		Assert.NotNull(split);
+		Assert.Empty(split.Blocked);
+
+		var start    = split.Syntax.Rules.Single(rule => rule.Name == "Start");
+		var recovery = Assert.Single(split.Syntax.Recoveries);
+		var mark     = split.Inventory.PatternOf("#", false);
+
+		Assert.NotNull(mark);
+		Assert.Contains(Descendants(split.Syntax.Bodies[start]), node => ReferenceEquals(node, recovery.Key));
+		Assert.Equal(new Node.Literal(((char)Assert.Single(split.Inventory.KindsOf(mark)).From).ToString()), recovery.Value.Sync);
+	}
+
+	/// <summary>
 	/// And what a rule left recursive over kinds folds into is still what it folded into.
 	/// </summary>
 	/// <remarks>

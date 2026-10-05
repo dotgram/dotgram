@@ -293,7 +293,7 @@ public sealed class LexicalSplit
 				// Keyed by node — said again in the terms of the graph that now holds those
 				// nodes, see `_became`. A fold is keyed by rule and holds nodes inside it,
 				// so it is rebuilt rather than looked up.
-				Recoveries = Remapped(graph.Recoveries),
+				Recoveries = Resynced(graph.Recoveries),
 				Forwarded  = Remapped(graph.Forwarded),
 				Powers     = Remapped(graph.Powers),
 				Climbing   = Kept(graph.Climbing, rules).ToDictionary(
@@ -438,6 +438,24 @@ public sealed class LexicalSplit
 			return into;
 		}
 
+		/// <summary>
+		/// Each recovery whose repetition survived, keyed by what the repetition became and
+		/// synchronizing on kinds (<c>_resynced</c>, written as the repetition is rewritten).
+		/// </summary>
+		Dictionary<Node, Recovery> Resynced(IReadOnlyDictionary<Node, Recovery> from)
+		{
+			var into = new Dictionary<Node, Recovery>(from.Count, NodeIdentity.Instance);
+
+			foreach (var one in from)
+				if (_became.TryGetValue(one.Key, out var became))
+					into[became] = _resynced.TryGetValue(one.Key, out var resynced) ? resynced : one.Value;
+
+			return into;
+		}
+
+		/// <summary>Each recovery with its synchronization said in kinds, by the repetition as the graph held it.</summary>
+		readonly Dictionary<Node, Recovery> _resynced = new(NodeIdentity.Instance);
+
 		Node Rewritten(Node node, RuleSymbol owner, List<string> blocked)
 		{
 			switch (node)
@@ -542,9 +560,20 @@ public sealed class LexicalSplit
 				// while looking like a triumph. A repetition of nothing is milder and still
 				// wrong: it made the emitter allocate a turn local it had not counted.
 				case Node.Repeat(var body, var min, var max):
-					return Rewrite(body, owner, blocked) is var repeated && repeated is Node.Empty
-						? Node.Empty.Instance
-						: new Node.Repeat(repeated, min, max);
+				{
+					if (Rewrite(body, owner, blocked) is var repeated && repeated is Node.Empty)
+						return Node.Empty.Instance;
+
+					// What a repetition marked `recover` synchronizes on is read by the same
+					// machine as its body, so it is said in kinds too — a literal as its kind, a
+					// seam woven into it as nothing. Carried across as written, the engine tested
+					// the kinds for a character, never found it, and every recovery resumed at
+					// the end of the input.
+					if (graph.Recoveries.TryGetValue(node, out var recovery))
+						_resynced[node] = recovery with { Sync = Rewrite(recovery.Sync, owner, blocked) };
+
+					return new Node.Repeat(repeated, min, max);
+				}
 
 				case Node.Lookahead(var positive, var seen):
 					return Rewrite(seen, owner, blocked) is var watched && watched is Node.Empty

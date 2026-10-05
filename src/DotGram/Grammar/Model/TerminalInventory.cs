@@ -538,8 +538,13 @@ public sealed class TerminalInventory
 
 					return;
 
+				// A repetition marked `recover` reads what it synchronizes on as much as its body
+				// (§8.2), and a separator only the synchronization names is a token of its own.
 				case Node.Repeat(var repeated, _, _):
 					Walk(repeated, owner);
+
+					if (graph.Recoveries.TryGetValue(node, out var recovery))
+						Walk(recovery.Sync, owner);
 
 					return;
 
