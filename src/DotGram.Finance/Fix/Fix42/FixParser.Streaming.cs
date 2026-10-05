@@ -109,10 +109,8 @@ public static partial class FixParser
 			return true;
 		}
 
-		// The shortest frame header, 8=X, the separator and 9=, and the longest BeginString: a value no
-		// longer than any version's name; what is not one is not a frame.
-		const int MinHeader      = 6;
-		const int MaxBeginString = 16;
+		// The shortest frame header: 8=X, the separator and 9=.
+		const int MinHeader = 6;
 
 		public bool TryRead(out Frame wire, out FixParseError? error)
 		{
@@ -138,6 +136,10 @@ public static partial class FixParser
 
 			while (true)
 			{
+				// The BeginString is bounded as the whole message is, not by a length of its own.
+				if (at >= _maximum)
+					return Fail(at, FixTag.BeginString, null, "Message exceeds maxMessageLength.", out error);
+
 				if (!ReadTo(at + 1))
 					return Fail(_count, FixTag.BeginString, null, "Truncated FIX header.", out error);
 
@@ -146,7 +148,7 @@ public static partial class FixParser
 				if (c == _separator && at > 2)
 					break;
 
-				if (c == _separator || at - 2 >= MaxBeginString)
+				if (c == _separator)
 					return Fail(at, FixTag.BeginString, null, "Expected BeginString followed by BodyLength.", out error);
 
 				at++;

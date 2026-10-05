@@ -645,7 +645,8 @@ public static partial class FixParser
 
 		message = null;
 
-		var separator = (context?.Framing ?? FixFraming.Wire).Separator();
+		var framing   = context?.Framing ?? FixFraming.Wire;
+		var separator = framing.Separator();
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -667,7 +668,7 @@ public static partial class FixParser
 
 			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
 				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
-				!IsTerminator(source.AsSpan(field.ValuePosition + field.Length, terminator), separator))
+				!IsTerminator(source.AsSpan(field.ValuePosition + field.Length, terminator), separator, framing == FixFraming.Log))
 			{
 				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
 			}
@@ -703,7 +704,8 @@ public static partial class FixParser
 		message = null;
 
 		var octets    = source.Span;
-		var separator = (byte)(context?.Framing ?? FixFraming.Wire).Separator();
+		var framing   = context?.Framing ?? FixFraming.Wire;
+		var separator = (byte)framing.Separator();
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -723,7 +725,7 @@ public static partial class FixParser
 
 			if (field.ValuePosition - position < 2 || octets[field.ValuePosition - 1] != (byte)'=' ||
 				!IsTag(octets.Slice(position, field.ValuePosition - 1 - position), field.Tag) ||
-				!IsTerminator(octets.Slice(field.ValuePosition + field.Length, terminator), separator))
+				!IsTerminator(octets.Slice(field.ValuePosition + field.Length, terminator), separator, framing == FixFraming.Log))
 			{
 				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
 			}
@@ -742,10 +744,12 @@ public static partial class FixParser
 		return true;
 	}
 
-	// One separator and nothing but spaces about it: all a wire's terminator is, and what a log's
-	// separator is made of.
-	static bool IsTerminator(ReadOnlySpan<char> text, char separator)
+	// A wire's terminator is the separator alone; a log's is one separator and spaces about it.
+	static bool IsTerminator(ReadOnlySpan<char> text, char separator, bool padded)
 	{
+		if (!padded)
+			return text.Length == 1 && text[0] == separator;
+
 		var separators = 0;
 
 		foreach (var c in text)
@@ -759,8 +763,11 @@ public static partial class FixParser
 		return separators == 1;
 	}
 
-	static bool IsTerminator(ReadOnlySpan<byte> text, byte separator)
+	static bool IsTerminator(ReadOnlySpan<byte> text, byte separator, bool padded)
 	{
+		if (!padded)
+			return text.Length == 1 && text[0] == separator;
+
 		var separators = 0;
 
 		foreach (var c in text)

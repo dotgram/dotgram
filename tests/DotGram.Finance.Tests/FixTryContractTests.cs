@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 
@@ -187,5 +187,34 @@ public sealed class FixTryContractTests
 		Assert.Throws<ArgumentNullException>(() => FixParser.BuildMessage((string)null!, fields));
 		Assert.Throws<ArgumentNullException>(() => FixParser.BuildMessage(wire, null!));
 		Assert.Throws<ArgumentNullException>(() => FixParser.BuildMessage(new ReadOnlyMemory<byte>([1]), null!));
+	}
+
+	[Fact]
+	public void Padding_is_a_log_framings_alone_the_wires_terminator_is_the_separator()
+	{
+		var log   = "8=FIX.4.4 | 9=5 | 35=0 | 10=000 | ";
+		var wire  = log.Replace('|', '\u0001');
+		var bare  = "8=FIX.4.4|9=5|35=0|10=000|";
+		var logs  = Fix44Context.WithLogFraming;
+		var fields = FixParser.ParseFields(log, logs);
+
+		// Fields read as a log, a source that is the same text with SOH for the pipes: not a wire.
+		Assert.False(FixParser.TryBuildMessage(wire, fields, out _, out _));
+		Assert.False(FixParser.TryBuildMessage(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(wire)), fields, out _, out _));
+		Assert.False(FixParser.TryParseMessage(wire, out _, out _));
+
+		// A wire's fields built from the wire, and a log's from the log, bare or padded, in both forms.
+		var plain = bare.Replace('|', '\u0001');
+		var wireFields = FixParser.ParseFields(plain);
+
+		Assert.True(FixParser.TryBuildMessage(plain, wireFields, out _, out _));
+		Assert.True(FixParser.TryBuildMessage(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(plain)), wireFields, out _, out _));
+		Assert.True(FixParser.TryBuildMessage(log, fields, out _, out _, logs));
+		Assert.True(FixParser.TryBuildMessage(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(log)), fields, out _, out _, logs));
+		Assert.True(FixParser.TryBuildMessage(bare, FixParser.ParseFields(bare, logs), out _, out _, logs));
+
+		// Fields that carry a padded terminator, built under wire framing.
+		Assert.False(FixParser.TryBuildMessage(log, fields, out _, out _));
+		Assert.False(FixParser.TryBuildMessage(new ReadOnlyMemory<byte>(Encoding.Latin1.GetBytes(log)), fields, out _, out _));
 	}
 }

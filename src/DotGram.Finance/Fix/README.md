@@ -162,9 +162,11 @@ var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 
 `ReadMessage`, `TryReadMessage` and `ReadMessages` take a `TextReader` or a `Stream` and cut it into
 messages by their `BodyLength`, 16 MiB each at most unless given. A frame begins with a BeginString
-and BodyLength, and any BeginString is cut as the one the version knows: another version's message
-comes back built as this version's, and `Validate` says its BeginString is not this version's, as it
-does for a buffer. They are synchronous, read lazily
+and BodyLength, and whatever BeginString it names is read as the one the version knows, as a buffer
+reads it: another version's message comes back built as this version's, and `Validate` says its
+BeginString is not this version's. Only `maxMessageLength` bounds it. A frame is cut by a BodyLength
+that is present, decimal digits and within that limit; one that is missing or malformed ends the
+stream with a diagnostic, since without it there is no telling where the message ends. They are synchronous, read lazily
 and leave the input open; enumerate once. Clean EOF ends `ReadMessages`, and EOF inside a frame is
 an error. A failed read may have consumed input: there is no resynchronization.
 
@@ -208,7 +210,9 @@ foreach (var item in FixParser.ReadMessages(logReader, context))
 `WithLogFraming` reads a bare `|`, a spaced ` | `, or a mixture; spaces inside values are kept, and
 positions refer to the log as it was given. A log may pad its pipes: BodyLength and CheckSum are
 measured over the fields as the wire had them. Streamed messages, cut by their BodyLength, want a
-bare `|`. Only structural separators may be rendered as pipes; a log that rewrites raw-data octets
+bare `|`: a log padded with spaces cannot be streamed, only read whole.
+`BuildMessage` takes a log's padded terminators only under log framing; for the wire the terminator
+is the separator alone. Only structural separators may be rendered as pipes; a log that rewrites raw-data octets
 is not lossless and needs its own decoding.
 
 ## Validation

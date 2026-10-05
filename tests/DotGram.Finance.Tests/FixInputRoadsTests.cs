@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -151,7 +151,6 @@ public sealed class FixInputRoadsTests
 	[InlineData("9=5\u000135=0\u0001")]
 	[InlineData("8=\u00019=5\u000135=0\u0001")]
 	[InlineData("8=FIX.4.4\u000135=0\u00019=5\u0001")]
-	[InlineData("8=ABCDEFGHIJKLMNOPQRSTUVWXYZ\u00019=5\u000135=0\u0001")]
 	[InlineData("8=FIX.4.4\u0001")]
 	public void A_frame_that_does_not_begin_with_a_BeginString_and_a_BodyLength_is_refused(string wire)
 	{
@@ -162,5 +161,33 @@ public sealed class FixInputRoadsTests
 		Assert.False(Fix44.FixParser.TryReadMessage(new MemoryStream(Encoding.Latin1.GetBytes(wire)), out message, out error));
 		Assert.Null(message);
 		Assert.NotEmpty(error.Reason);
+	}
+
+	[Fact]
+	public void A_long_BeginString_is_read_by_a_buffer_and_a_stream_alike()
+	{
+		var wire   = WireOf("ABCDEFGHIJKLMNOPQ");
+		var octets = Encoding.Latin1.GetBytes(wire);
+
+		Assert.True(Fix44.FixParser.TryParseMessage(wire, out var buffer, out _));
+		Assert.True(Fix44.FixParser.TryReadMessage(new StringReader(wire), out var chars, out _));
+		Assert.True(Fix44.FixParser.TryReadMessage(new MemoryStream(octets), out var bytes, out _));
+
+		foreach (var message in new[] { buffer, chars, bytes })
+		{
+			Assert.False(message.Validate(Fix44.Fix44Context.Default));
+			Assert.Contains(message.InvalidFindings!, IsBeginStringFinding);
+		}
+	}
+
+	[Fact]
+	public void A_BeginString_that_never_ends_is_bounded_by_maxMessageLength()
+	{
+		var wire = "8=" + new string('A', 5000);
+
+		Assert.False(Fix44.FixParser.TryReadMessage(new StringReader(wire), out _, out var error, maxMessageLength: 64));
+		Assert.Contains("maxMessageLength", error.Reason, StringComparison.Ordinal);
+		Assert.False(Fix44.FixParser.TryReadMessage(new MemoryStream(Encoding.Latin1.GetBytes(wire)), out _, out error, maxMessageLength: 64));
+		Assert.Contains("maxMessageLength", error.Reason, StringComparison.Ordinal);
 	}
 }
