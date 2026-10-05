@@ -24,10 +24,12 @@ namespace DotGram.Benchmarks;
 /// what makes the comparison fair rather than what makes it safe.
 /// </para>
 /// <para>
-/// And today it is not immediate either: the carrier refuses SQL:2023, whose Joins, JSONTablePlanTail,
-/// AlterColumnAction, Representation and Get- and SetDescriptorInformation each gather two members
-/// onto one stack, so this class is the tape under another name and the rows that read it measure
-/// the tape. GRAM5007 says so, and the project suppresses it by name until the grammar is carried.
+/// It is carried whole. Joins, JoinOperandTail, JSONTablePlanTail, AlterColumnAction,
+/// Representation and Get- and SetDescriptorInformation each gather two members of one type,
+/// but in alternatives with a construction each, which never see each other's turns; the carrier
+/// refused them until it asked one construction at a time, and this class was the tape under
+/// another name until then. GRAM5007 is no longer suppressed here: should the carrier refuse the
+/// grammar again, the build says so rather than the rows quietly measuring the tape.
 /// </para>
 /// </remarks>
 [Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
