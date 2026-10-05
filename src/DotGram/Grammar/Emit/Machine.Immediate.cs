@@ -254,7 +254,12 @@ sealed partial class Machine
 		{
 			get
 			{
-				foreach (var type in machine._valueTypes)
+				// This machine's own types, not the file's: the tables are numbered over every
+				// machine's union, but a register is read only by rules of this machine, and a
+				// reader is a struct the entry constructs — and so zeroes — on every parse. With
+				// the union, SQL:2023's one-token readers carried three hundred registers,
+				// three kilobytes written to nothing on each call.
+				foreach (var type in machine.MaterializationTypes)
 					yield return (type, "last" + TableName(type));
 
 				// A span is not one of the tables — nothing stores one, the tape reading an
