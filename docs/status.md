@@ -1450,8 +1450,10 @@ too, so a rule's answer stands and what matched inside it is revisited only in a
 `?`, as §4 says. What holds a repetition marked `recover` is left open: the repetition tries the
 complete continuation after it before each turn (§8.2), past the end of its rule. What it
 synchronizes on is read in kinds as its body is (since 2026-10-05), and a separator only the
-synchronization names is a token of its own: carried across as written, the engine tested the
-kinds for a character, never found it, and resumed every recovery at the end of the input. A recovery and a stream were on that list until the buffered rendering learned
+synchronization names is a token of its own, by the same rule as a body's: longest match, so
+`recover ";;"` makes `;;` one token that `';' & ';'` cannot read, as `";;"` in a body would
+(§4.5). Carried across as written, the engine tested the kinds for a character, never found
+it, and resumed every recovery at the end of the input. A recovery and a stream were on that list until the buffered rendering learned
 to read both: over a buffer the methods carry a `recover` and step a `yield` one element at
 a time, and what runs then is the reader's committed reading, not the engine's. `GRAM5009`: an optional or a repetition that can take,
 in one token, what follows it, which over kinds nothing gives back.

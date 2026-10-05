@@ -619,6 +619,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("Row = 'a' & ';'\nStart = Row* recover ('x' & 'y') & 'z' & eof\nparse Start\n", "aa;xyz|aa;x yz|a;xyz|xyz|z|aa;x", "engine")]
 	[InlineData("Row = 'a' & 'b'\nStart = Row* recover '#' & eof\nparse Start\n", "ab|aab#ab|ab#|a#|#|a", "engine")]
 	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nBlock = '[' & Rows & ']'\nStart = Block & 'z' & eof\nparse Start\n", "[aa;]z|[a;]z|[]z|[aa;a;]z|[aa]z|[a;aa", "engine")]
+	[InlineData("Cell = 'a' & ','\nRow = '[' & Cell* recover ',' & ']' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "[a,];|[aa,];|[a,[;|[a,];[;[a,];|[a,a,];|;|[a,]|[a,];[", "engine")]
 	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';' & 'z'\nStart = ?=Rows & 'a' & ';' & 'z' & eof\nparse Start\n", "a;z|z|a;a;z", "engine")]
 	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b", "flat")]
 	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a", "flat")]
@@ -712,8 +713,81 @@ public sealed class TokenReadingFindingsTests
 		}
 	}
 
+	/// <summary>
+	/// What a repetition marked <c>recover</c> synchronizes on is a terminal of the lexer as a
+	/// body's terminal is, and by the same rule: the inventory is the same whether a literal is
+	/// written in the synchronization or in a body, and so is every answer over tokens.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A literal is a token and longest match decides it (§4.5: a token cannot be half spent),
+	/// so <c>recover ";;"</c> makes <c>;;</c> one token that <c>';' &amp; ';'</c> cannot read,
+	/// exactly as <c>";;"</c> in a body does — not what the parse would read over characters,
+	/// which is what the same literal in a body is not either. Before the synchronization was
+	/// walked, <c>;;</c> was two tokens here and the synchronization matched nothing.
+	/// </para>
+	/// <para>
+	/// A word in the synchronization is a keyword, and a keyword is an identifier too: a class
+	/// that would have matched it stands for its kind as well, so <c>Lex.Name</c> reads
+	/// <c>end</c> whether <c>"end"</c> is what a repetition synchronizes on or an operand.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(
+		"Row = 'a' & ';'\nRows = Row* recover \";;\"\nStart = ';' & ';' & Rows & eof\nparse Start\n",
+		"Row = 'a' & ';'\nRows = Row* recover ';'\nStart = ';' & ';' & Rows & \";;\"? & eof\nparse Start\n",
+		";;|; ;|; ; ;;|; ; a;|; ; aa;;|;;;;|; ; a;a;;;|; ;a")]
+	[InlineData(
+		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover \"end\" & eof\nparse Start\n",
+		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover ';' & \"end\"? & eof\nparse Start\n",
+		"a;|end;|a end;|aend;|enda;|a;end|end|a end|ab cd;end")]
+	public void A_synchronization_is_lexed_as_a_body_is(string synced, string bodied, string inputs)
+	{
+		synced = "trivia = { ' '* }\n" + synced;
+		bodied = "trivia = { ' '* }\n" + bodied;
+
+		var ofSynced = TerminalInventory.Of(Graph(synced));
+		var ofBodied = TerminalInventory.Of(Graph(bodied));
+
+		Assert.Equal(Kinds(ofBodied), Kinds(ofSynced));
+
+		var overSynced = OverTokens(synced, "GRAM5005", "GRAM5007").ToArray();
+		var overBodied = OverTokens(bodied, "GRAM5005", "GRAM5007").ToArray();
+
+		foreach (var input in inputs.Split('|'))
+		{
+			var expected = Answer(overBodied[0], input);
+
+			foreach (var assembly in overBodied.Skip(1).Concat(overSynced))
+				Assert.Equal(expected, Answer(assembly, input));
+		}
+
+		static RecognitionGraph Graph(string grammar)
+		{
+			return GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance)).File));
+		}
+
+		static string Kinds(TerminalInventory inventory)
+		{
+			return string.Join(
+				"; ",
+				inventory.Patterns.Select(pattern =>
+					pattern + " = " + string.Join(",", inventory.KindsOf(pattern).Select(one => $"{one.From}..{one.To}"))));
+		}
+
+		static string Answer(Assembly assembly, string input)
+		{
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			return match.IsSuccess
+				? $"Success {match.Value}"
+				: $"{EmittedCode.Outcome(assembly, "Grammar", "TryParseStart", input)} {match.Position}";
+		}
+	}
+
 	/// <summary>A number the lexer reads, valued where a rule calls it.</summary>
-	const string Numbers = "namespace Lex\n{\n\ttrivia = none\n\tNum : @int = ['0'..'9']+ => @(int.Parse(parserText))\n}\n";
+	const string Numbers ="namespace Lex\n{\n\ttrivia = none\n\tNum : @int = ['0'..'9']+ => @(int.Parse(parserText))\n}\n";
 
 	// ── A token the text ends inside of ─────────────────────────────────────────
 
