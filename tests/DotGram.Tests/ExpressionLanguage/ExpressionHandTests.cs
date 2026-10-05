@@ -30,23 +30,6 @@ public sealed class ExpressionHandTests
 		Both.Agree(text);
 	}
 
-	[Theory]
-	[MemberData(nameof(Shapes))]
-	public void And_alike_where_a_name_is_spelled_in_ASCII(string text)
-	{
-		Both.Agree(text, typeof(Both).Assembly, ascii: true);
-	}
-
-	[Theory]
-	[InlineData("(int caf\u00e9) => caf\u00e9")]
-	[InlineData("(int x\u00e9) => 1")]
-	[InlineData("(int x) => $\"{\u00e9}\"")]
-	[InlineData("using System.Linq; (int[] a) => a.Select(\u00e9 => \u00e9).Sum()")]
-	public void A_word_outside_ASCII_is_refused_alike_by_the_narrower_reading(string text)
-	{
-		Both.Agree(text, typeof(Both).Assembly, ascii: true);
-	}
-
 	[Fact]
 	public void And_alike_on_every_text_one_character_short_of_a_shape()
 	{

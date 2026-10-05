@@ -33,22 +33,21 @@ static class Both
 
 	/// <summary>The two answering the same about a text: the tree, or how and where it was refused.</summary>
 	/// <summary>The same for an assembly, which is the scope its own compilation would have.</summary>
-	public static void Agree(string text, Assembly caller, bool ascii = false, bool withText = true)
+	public static void Agree(string text, Assembly caller, bool withText = true)
 	{
-		Agree(text, ResolutionScope.Around(caller), ascii, withText);
+		Agree(text, ResolutionScope.Around(caller), withText);
 	}
 
-	public static void Agree(string text, ResolutionScope caller, bool ascii = false, bool withText = true)
+	public static void Agree(string text, ResolutionScope caller, bool withText = true)
 	{
 		var generated = ExpressionCorpus.Answer(
-			text, ascii ? ExpressionParser.TryParseAsciiLambda : ExpressionParser.TryParseLambda, State(text, caller, withText));
+			text, ExpressionParser.TryParseLambda, State(text, caller, withText));
 		var hand = ExpressionCorpus.Answer(
-			text, ascii ? HandExpression.TryParseAsciiLambda : HandExpression.TryParseLambda, State(text, caller, withText));
+			text, HandExpression.TryParseLambda, State(text, caller, withText));
 
 		if (generated != hand)
 			Assert.Fail(
-				$"The generated parser and the hand-written one disagree about \"{text}\"" +
-				(ascii ? " read in ASCII" : "") + ".\n" +
+				$"The generated parser and the hand-written one disagree about \"{text}\".\n" +
 				$"generated:\n{generated}\n" +
 				$"by hand:\n{hand}");
 	}
@@ -107,13 +106,6 @@ static class Both
 		Agree(text, state.Reach, withText: state.Text is not null);
 
 		return ExpressionParser.TryParseLambda(text, state);
-	}
-
-	public static ExpressionParser.Match<LambdaExpression> TryParseAsciiLambda(string text, ExpressionParser.State state)
-	{
-		Agree(text, state.Reach, ascii: true, withText: state.Text is not null);
-
-		return ExpressionParser.TryParseAsciiLambda(text, state);
 	}
 
 	static ExpressionParser.State State(string text, ResolutionScope caller, bool withText)

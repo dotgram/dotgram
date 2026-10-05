@@ -1456,7 +1456,7 @@ private parse Assignment as ParseHole
 internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
 ```
 
-`ParseAsciiLambda` reads the holes of its strings with ASCII words too. Where the author
+Read so, `ParseAsciiLambda` reads the holes of its strings with ASCII words too. Where the author
 publishes the same rule under the same substitution, the name is that publication; where
 nobody does, the generator publishes it privately. A name the substitution changes nothing
 for is left as it is, and so is one written after a dot: `Owner.TryParseHole` is somebody

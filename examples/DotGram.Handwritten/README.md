@@ -123,9 +123,9 @@ is between two readings of one language and not between two languages:
 `DotGram.Handwritten.HandExpression` reads the language `ExpressionParser` reads, as its
 grammar stands (docs/design/architecture-decisions.md, D1 and D8).
 
-- **The same publications**: `TryParseLambda` and `TryParseAsciiLambda`, answering with the
-  generated parser's own `Match`, and the two it reads again over a window of the text — a
-  hole of an interpolated string and the body of a lambda that says no types.
+- **The same publications**: `TryParseLambda`, answering with the generated parser's own
+  `Match`, and the two it reads again over a window of the text — a hole of an interpolated
+  string and the body of a lambda that says no types.
 - **The same answers**: the tree, down to what the API prints for a debugger; a refusal at the
   same position, with the same outcome and the same name refused in the state; the same
   exception where the API refuses what the text asked for. The wording of a message is no

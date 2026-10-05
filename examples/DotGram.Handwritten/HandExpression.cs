@@ -150,10 +150,6 @@ public static class HandExpression
 	// after it: not a token yet, and nothing reads it. The last token there is, where it is one.
 	const byte Unfinished = 70;
 
-	// A word the ASCII reading does not take: it is one token all the same, since the letters
-	// that end it are what C# would read as one, and it is no name and no keyword.
-	const byte Foreign = 71;
-
 	// The keywords, in the order the language reserves them (the grammar's `Keyword`). A word
 	// that is one of these is never a name, which is the whole of what makes it a keyword.
 	const byte FirstWord = 72;
@@ -171,9 +167,8 @@ public static class HandExpression
 		"while",
 	];
 
-	// A word that is not in the list would be `FirstWord - 1`, which is `Foreign`, and a
-	// parser that reads every keyword as a foreign word refuses everything. Said here, where
-	// the word is known, rather than found later as a parser that reads nothing.
+	// A word that is not in the list is refused here, where the word is known, rather than
+	// found later as a parser that reads nothing.
 	static byte Of(string word)
 	{
 		var at = Array.IndexOf(Words, word);
@@ -331,13 +326,7 @@ public static class HandExpression
 	/// <summary>The whole text as a lambda, answering as the grammar's <c>TryParseLambda</c> does.</summary>
 	internal static ExpressionParser.Match<LambdaExpression> TryParseLambda(string text, State context)
 	{
-		return Whole(text, context, ascii: false);
-	}
-
-	/// <summary>The same, with a name spelled in ASCII alone, as <c>TryParseAsciiLambda</c> reads one.</summary>
-	internal static ExpressionParser.Match<LambdaExpression> TryParseAsciiLambda(string text, State context)
-	{
-		return Whole(text, context, ascii: true);
+		return Whole(text, context);
 	}
 
 	/// <summary>Whether the whole text reads as a lambda, building nothing of it.</summary>
@@ -352,10 +341,10 @@ public static class HandExpression
 
 		try
 		{
-			if (Lex(text, 0, text.Length, tokens, ascii: false) >= 0)
+			if (Lex(text, 0, text.Length, tokens) >= 0)
 				return false;
 
-			var reader = new Reader(tokens, text, context, ascii: false, build: false);
+			var reader = new Reader(tokens, text, context, build: false);
 
 			return reader.Lambda(0, out _) == tokens.Count;
 		}
@@ -372,7 +361,7 @@ public static class HandExpression
 
 		try
 		{
-			return Lex(text, 0, text.Length, tokens, ascii: false) < 0 ? tokens.Count : -1;
+			return Lex(text, 0, text.Length, tokens) < 0 ? tokens.Count : -1;
 		}
 		finally
 		{
@@ -381,29 +370,18 @@ public static class HandExpression
 	}
 
 	// What a hole of an interpolated string and the body of a lambda that said no types are
-	// read with, over a window of the text: the grammar's `ParseHole` and `ParseBody`, and the
-	// same two under the ASCII reading.
+	// read with, over a window of the text: the grammar's `ParseHole` and `ParseBody`.
 	static Match Hole(string input, int at, int length, State context)
 	{
-		return Window(input, at, length, context, ascii: false, body: false);
-	}
-
-	static Match AsciiHole(string input, int at, int length, State context)
-	{
-		return Window(input, at, length, context, ascii: true, body: false);
+		return Window(input, at, length, context, body: false);
 	}
 
 	static Match Body(string input, int at, int length, State context)
 	{
-		return Window(input, at, length, context, ascii: false, body: true);
+		return Window(input, at, length, context, body: true);
 	}
 
-	static Match AsciiBody(string input, int at, int length, State context)
-	{
-		return Window(input, at, length, context, ascii: true, body: true);
-	}
-
-	static ExpressionParser.Match<LambdaExpression> Whole(string text, State context, bool ascii)
+	static ExpressionParser.Match<LambdaExpression> Whole(string text, State context)
 	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
@@ -416,7 +394,7 @@ public static class HandExpression
 			// stands, because the generated lexer cuts the whole text into tokens first. That is
 			// how the generator reads, not what the language says: a lexer that made tokens as
 			// they were asked for would stop at the first mistake the reading met instead.
-			var stopped = Lex(text, 0, text.Length, tokens, ascii);
+			var stopped = Lex(text, 0, text.Length, tokens);
 
 			if (stopped >= 0)
 				return ExpressionParser.Match<LambdaExpression>.Failed(
@@ -430,7 +408,7 @@ public static class HandExpression
 
 			try
 			{
-				var reader = new Reader(tokens, text, context, ascii, build: true);
+				var reader = new Reader(tokens, text, context, build: true);
 
 				end      = reader.Lambda(0, out lambda);
 				furthest = reader.Furthest;
@@ -441,7 +419,7 @@ public static class HandExpression
 				// text before building any of it, so what the text owes is what reading alone says.
 				context.Rollback(from);
 
-				var reader = new Reader(tokens, text, context, ascii, build: false);
+				var reader = new Reader(tokens, text, context, build: false);
 
 				end      = reader.Lambda(0, out _);
 				furthest = reader.Furthest;
@@ -478,7 +456,7 @@ public static class HandExpression
 	/// rather than refusing the reading. The state is the reading's that asked, so the names the
 	/// text around the window declared are names here — which is what a hole and a body are for.
 	/// </remarks>
-	static Match Window(string input, int at, int length, State context, bool ascii, bool body)
+	static Match Window(string input, int at, int length, State context, bool body)
 	{
 		if (at < 0 || length < 0 || at > input.Length - length)
 			return Match.Failed(ExpressionParser.Outcome.NoMatch, "The window is outside the input.", at, null, null);
@@ -487,7 +465,7 @@ public static class HandExpression
 
 		try
 		{
-			var stopped = Lex(input, at, at + length, tokens, ascii);
+			var stopped = Lex(input, at, at + length, tokens);
 			var from    = context.Mark();
 
 			Expression? value;
@@ -496,7 +474,7 @@ public static class HandExpression
 
 			try
 			{
-				var reader = new Reader(tokens, input, context, ascii, build: true);
+				var reader = new Reader(tokens, input, context, build: true);
 
 				end      = body ? reader.HeldBody(0, out value) : reader.Assignment(0, out value);
 				furthest = reader.Furthest;
@@ -505,7 +483,7 @@ public static class HandExpression
 			{
 				context.Rollback(from);
 
-				var reader = new Reader(tokens, input, context, ascii, build: false);
+				var reader = new Reader(tokens, input, context, build: false);
 
 				end      = body ? reader.HeldBody(0, out _) : reader.Assignment(0, out _);
 				furthest = reader.Furthest;
@@ -634,7 +612,7 @@ public static class HandExpression
 	/// Nothing past <paramref name="to"/> is looked at, so a token that would run over the end
 	/// of a window is no token. Positions are offsets into the whole text all the same.
 	/// </remarks>
-	static int Lex(string text, int from, int to, Tokens into, bool ascii)
+	static int Lex(string text, int from, int to, Tokens into)
 	{
 		var s = text.AsSpan(0, to);
 
@@ -796,17 +774,12 @@ public static class HandExpression
 						break;
 					}
 
-					var plain = c < 128;
-
 					p++;
 
 					while (p < s.Length && IsPart(s[p]))
-					{
-						plain &= s[p] < 128;
 						p++;
-					}
 
-					kind = ascii && !plain ? Foreign : Keyword(s.Slice(start, p - start));
+					kind = Keyword(s.Slice(start, p - start));
 					break;
 			}
 
@@ -1889,7 +1862,7 @@ public static class HandExpression
 	/// the end and not at `y` — is how the generated parser counts, not a rule of the language.
 	/// </para>
 	/// </remarks>
-	ref struct Reader(Tokens tokens, string text, State context, bool ascii, bool build)
+	ref struct Reader(Tokens tokens, string text, State context, bool build)
 	{
 		readonly byte[] _kinds   = tokens.Kinds;
 		readonly int[]  _starts  = tokens.Starts;
@@ -1899,7 +1872,6 @@ public static class HandExpression
 		readonly Tokens   _tokens  = tokens;
 		readonly string   _text    = text;
 		readonly State    _context = context;
-		readonly bool     _ascii   = ascii;
 
 		bool _build = build;
 		int  _furthest;
@@ -2355,7 +2327,7 @@ public static class HandExpression
 			{
 				var held = Span(arrow + 1, body);
 
-				node = _context.Deferred(parameters, new ExpressionParser.Held(held.Start, held.Length), _ascii ? AsciiBody : Body);
+				node = _context.Deferred(parameters, new ExpressionParser.Held(held.Start, held.Length), Body);
 			}
 
 			return body;
@@ -5000,7 +4972,7 @@ public static class HandExpression
 				return Expression.Constant(ExpressionParser.Raw(Cut(i), Count(_text.AsSpan(0, _starts[i] + _lengths[i]), _starts[i], '"')));
 
 			if (kind >= Interpolated)
-				return ExpressionParser.Interpolation(Pieces(i, kind), _context, _ascii ? AsciiHole : Hole);
+				return ExpressionParser.Interpolation(Pieces(i, kind), _context, Hole);
 
 			var digits = Digits(i, kind);
 
