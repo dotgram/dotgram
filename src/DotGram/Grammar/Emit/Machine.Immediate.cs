@@ -776,17 +776,23 @@ sealed partial class Machine
 			return ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph));
 		}
 
+		/// <remarks>
+		/// Every reason, not the first: a machine refused for one rule was reported as refused for
+		/// that rule alone, and lifting it showed the next one only on the next build.
+		/// </remarks>
 		public override string? Refuses()
 		{
+			var reasons = new List<string>();
+
 			if (machine.RecoveryRefusal() is { } recovers)
-				return recovers;
+				reasons.Add(recovers);
 
 			// A sequence gathered from operands of several types in the order they were read
 			// would take them off as many stacks as there are types, and the order between the
 			// stacks is not kept. The tape keeps every record in order.
 			foreach (var rule in machine._rules)
 				if (machine._graph.Results[rule].Any(static member => member.Element is not null))
-					return $"'{rule.Name}' gathers values of several types into one sequence";
+					reasons.Add($"'{rule.Name}' gathers values of several types into one sequence");
 
 			// An extent is carried: its value is the two positions the reader already has.
 			// Collecting one is not, and for a reason worth saying rather than hiding — the
@@ -794,7 +800,7 @@ sealed partial class Machine
 			// because nothing else ever stores a span.
 			foreach (var rule in machine._rules)
 				if (machine.IsExtent(rule) && machine.Gathered(rule))
-					return $"'{rule.Name}' is an extent collected across turns";
+					reasons.Add($"'{rule.Name}' is an extent collected across turns");
 
 			// A member gathered across turns takes what its rule pushed onto the stack of its type
 			// since the rule began, so two members of one rule on one stack would take each other's:
@@ -802,19 +808,41 @@ sealed partial class Machine
 			// tape, whose references carry the slot they were pushed for.
 			foreach (var rule in machine._rules)
 				if (SharedStack(rule) is { } shared)
-					return $"'{rule.Name}' gathers two members onto one stack ({shared})";
+					reasons.Add($"'{rule.Name}' gathers two members onto one stack ({shared})");
+
+			return reasons.Count == 0 ? null : string.Join("; ", reasons);
+		}
+
+		/// <summary>The stack two gathered members of one factory would share, or null where none is shared.</summary>
+		/// <remarks>
+		/// Asked a factory at a time. Each factory's record collects its own members from where the
+		/// rule began, and an alternative that fails gives back what it pushed before the next is
+		/// read, so two members on one stack meet only where one factory takes both — in one
+		/// alternative, or in alternatives grouped under one construction. Members of two
+		/// alternatives with a factory each never see each other's turns, and asking across all of
+		/// them refused seven rules of standard SQL that were read correctly.
+		/// </remarks>
+		string? SharedStack(RuleSymbol owner)
+		{
+			var factories = machine._factories.TryGetValue(owner, out var made) ? made.Count : 0;
+
+			if (factories == 0)
+				return SharedStack(owner, -1);
+
+			for (var factory = 0; factory < factories; factory++)
+				if (SharedStack(owner, factory) is { } shared)
+					return shared;
 
 			return null;
 		}
 
-		/// <summary>The stack two gathered members of the rule would share, or null where none is shared.</summary>
-		/// <remarks>What <see cref="GatheredStacks"/> answers, asked without requiring the stacks.</remarks>
-		string? SharedStack(RuleSymbol owner)
+		/// <remarks>What <see cref="GatheredStacks"/> answers, asked of one factory without requiring the stacks.</remarks>
+		string? SharedStack(RuleSymbol owner, int factory)
 		{
 			var seen  = new HashSet<string>(StringComparer.Ordinal);
 			var steps = machine.DirectStepSlots(owner);
 
-			foreach (var member in machine.DirectMembers(owner))
+			foreach (var member in machine.DirectMembers(owner, factory))
 			{
 				if (member.Slots.All(steps.Contains))
 					continue;
