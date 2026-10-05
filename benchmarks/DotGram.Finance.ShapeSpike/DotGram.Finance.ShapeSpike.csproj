@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<!-- SPIKE (not for merging): the exposure shapes of the FIX lists, measured as a consumer sees them.
+	     DotGram.Finance is not a project reference: each column is a build of it with one shape, kept in
+	     ColumnsDir/<column>/<asset>/, and the job of a column picks its own through the property FixShape.
+	     net10.0 binds the net10.0 asset, net8.0 the netstandard2.0 one, which is what a net8 or net9 consumer gets. -->
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<FixShape Condition="'$(FixShape)' == ''">A</FixShape>
+		<ColumnsDir Condition="'$(ColumnsDir)' == ''">/ramdisk/build/dotgram/fix-h1-spike/columns</ColumnsDir>
+		<FinanceAsset Condition="'$(TargetFramework)' == 'net10.0'">net10.0</FinanceAsset>
+		<FinanceAsset Condition="'$(TargetFramework)' != 'net10.0'">netstandard2.0</FinanceAsset>
+		<DefineConstants>$(DefineConstants);FIX_SHAPE_$(FixShape)</DefineConstants>
+		<NoWarn>$(NoWarn);CA1822</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" />
+
+		<Reference Include="DotGram.Finance">
+			<HintPath>$(ColumnsDir)/$(FixShape)/$(FinanceAsset)/DotGram.Finance.dll</HintPath>
+		</Reference>
+		<Reference Include="DotGram.ExpressionLanguage">
+			<HintPath>$(ColumnsDir)/$(FixShape)/$(FinanceAsset)/DotGram.ExpressionLanguage.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup Condition="'$(FinanceAsset)' == 'netstandard2.0'">
+		<!-- What the package's own dependencies are for a consumer on net8.0. -->
+		<PackageReference Include="Portable.System.DateTimeOnly" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(FixShape)' == 'D'">
+		<PackageReference Include="System.Collections.Immutable" VersionOverride="9.0.0" Condition="'$(FinanceAsset)' == 'netstandard2.0'" />
+	</ItemGroup>
+</Project>

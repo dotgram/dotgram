@@ -539,6 +539,104 @@ sealed class Model
 
 static class Fx
 {
+	// SPIKE (not for merging): the exposure shape of the lists, chosen by FIX_SHAPE.
+	//   A  List<T>                       (today)
+	//   B  IReadOnlyList<T> over List<T>
+	//   C  FixList<T>, a struct over List<T>
+	//   D  ImmutableArray<T> over an exact-size array
+	//   F  FixList<T>, a sealed class that is the storage
+	public static readonly string Shape  = Environment.GetEnvironmentVariable("FIX_SHAPE") ?? "A";
+	public static string FieldsType => Shape == "F" ? "FixList<FixField>" : "List<FixField>";
+	public static string ShapeTemplate(string name, string text)
+	{
+		if (Shape == "A")
+			return text;
+
+		string Swap(string from, string to)
+		{
+			if (!text.Contains(from))
+				throw new GeneratorException($"{name}: shape spike expected '{from}'");
+
+			return text.Replace(from, to);
+		}
+
+		if (name == "FixMessage.cs.in")
+		{
+			if (Shape == "F")
+			{
+				text = Swap("List<FixField>", "FixList<FixField>");
+				text = Swap("public List<FixFinding>? InvalidFindings { get; private set; }", "public FixList<FixFinding>? InvalidFindings { get; private set; }");
+				text = Swap("(InvalidFindings ??= []).Add(finding);", "(InvalidFindings ??= new()).Add(finding);");
+				return text;
+			}
+
+			text = Swap("\t\tFields      = fields;", "\t\tFieldList   = fields;");
+			text = Swap("\tpublic List<FixField> Fields      { get; private protected set; }", Shape switch
+			{
+				"B" => "\tpublic IReadOnlyList<FixField> Fields => FieldList;\n\tinternal List<FixField> FieldList;",
+				"C" => "\tpublic FixList<FixField> Fields => new(FieldList);\n\tinternal List<FixField> FieldList;",
+				_   => "\tpublic ImmutableArray<FixField> Fields\n\t{\n\t\tget\n\t\t{\n\t\t\tif (_fields.IsDefault)\n\t\t\t\t_fields = ImmutableCollectionsMarshal.AsImmutableArray(FieldList.ToArray());\n\n\t\t\treturn _fields;\n\t\t}\n\t}\n\tinternal List<FixField> FieldList;\n\tImmutableArray<FixField> _fields;",
+			});
+			text = Swap("\tpublic List<FixFinding>? InvalidFindings { get; private set; }", Shape switch
+			{
+				"B" => "\tpublic IReadOnlyList<FixFinding>? InvalidFindings => FindingList;\n\tinternal List<FixFinding>? FindingList;",
+				"C" => "\tpublic FixList<FixFinding> InvalidFindings => new(FindingList);\n\tinternal List<FixFinding>? FindingList;",
+				_   => "\tpublic ImmutableArray<FixFinding> InvalidFindings => FindingList is null ? ImmutableArray<FixFinding>.Empty : ImmutableCollectionsMarshal.AsImmutableArray(FindingList.ToArray());\n\tinternal List<FixFinding>? FindingList;",
+			});
+			text = Swap("IsValid => InvalidFindings is null;", "IsValid => FindingList is null;");
+			text = Swap("(InvalidFindings ??= []).Add(finding);", "(FindingList ??= []).Add(finding);");
+		}
+		else if (name == "FixCustomMessage.cs.in")
+		{
+			text = Shape == "F" ? Swap("List<FixField>", "FixList<FixField>") : Swap("\t\tFields      = fields;", "\t\tFieldList   = fields;");
+		}
+		else if (name == "FixParser.Messages.cs.in")
+		{
+			text = Shape == "F" ? Swap("new List<FixField>(", "new FixList<FixField>(") : Swap("message.Fields", "message.FieldList");
+		}
+		else if (name == "Validator.Header.cs.in")
+		{
+			if (Shape != "F")
+				text = Swap("message.Fields", "message.FieldList");
+		}
+
+		return text;
+	}
+
+	public static bool Stored => Shape is "B" or "C" or "D";
+
+	public static string Store(Group g)
+	{
+		return Stored ? g.List + "Store" : g.List;
+	}
+
+	public static string ListType(string element)
+	{
+		return Shape switch
+		{
+			"B" => $"IReadOnlyList<{element}>?",
+			"C" => $"FixList<{element}>",
+			"D" => $"ImmutableArray<{element}>",
+			"F" => $"FixList<{element}>?",
+			_   => $"List<{element}>?",
+		};
+	}
+
+	public static string StoreType(string element)
+	{
+		return Shape switch { "D" => $"FixBuffer<{element}>", "F" => $"FixList<{element}>", _ => $"List<{element}>" };
+	}
+
+	public static string View(string element, string store)
+	{
+		return Shape switch
+		{
+			"B" => store,
+			"C" => $"new({store})",
+			_   => $"FixBuffer<{element}>.View({store})",
+		};
+	}
+
 	// The repository's notice lets portions of the specification be extracted into other work provided the
 	// origin is referenced and the specification is said to be Copyright FIX Protocol Limited; every table
 	// written here is such a portion. It says where the data came from and changes nothing about the
@@ -859,7 +957,15 @@ sealed class Writer
 				var group = (Group)m;
 
 				outLines.Add($"{pad}/// <summary>{ListDoc(group)}</summary>");
-				outLines.Add($"{pad}public List<{group.Entry.TypeName}>? {group.List} {{ get; {setter}; }}");
+				if (!Fx.Stored)
+				{
+					outLines.Add($"{pad}public {Fx.ListType(group.Entry.TypeName)} {group.List} {{ get; {setter}; }}");
+				}
+				else
+				{
+					outLines.Add($"{pad}public {Fx.ListType(group.Entry.TypeName)} {group.List} => {Fx.View(group.Entry.TypeName, Fx.Store(group))};");
+					outLines.Add($"{pad}internal {Fx.StoreType(group.Entry.TypeName)}? {Fx.Store(group)};");
+				}
 			}
 
 			outLines.Add("");
@@ -955,12 +1061,13 @@ sealed class Writer
 						Place(group.Counter);
 
 					var opener = group.Entry.Opener;
-					var target = $"{holder}{group.List}";
+					var target = $"{holder}{Fx.Store(group)}";
 
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
 					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, {group.Counter.Const}, field.Position, field, -1));";
-					var add       = $"({target} ??= []).Add(new () {{ {opener.Name} = ({opener.TypeName})field }});";
+					var create    = Fx.Shape switch { "D" => $"new(FixBuffer.Size({holder}{group.Counter.Name}))", "F" => "new()", _ => "[]" };
+					var add       = $"({target} ??= {create}).Add(new () {{ {opener.Name} = ({opener.TypeName})field }});";
 
 					if (lists.Count == 0)
 					{
@@ -1004,7 +1111,7 @@ sealed class Writer
 			$"\t/// <summary>{_v.Title} {msg.Name}, MsgType {msg.MsgType}.</summary>",
 			head,
 			"\t{",
-			$"\t\tinternal {msg.Name}(List<FixField> fields) : base(\"{msg.MsgType}\", fields)",
+			$"\t\tinternal {msg.Name}({Fx.FieldsType} fields) : base(\"{msg.MsgType}\", fields)",
 			"\t\t{",
 			"\t\t\tforeach (var field in fields)",
 			"\t\t\t{",
@@ -1068,7 +1175,7 @@ sealed class Writer
 				outLines.Add($"\t{group.Counter.TypeName}? {group.Counter.Name} {{ get; }}");
 				outLines.Add("");
 				outLines.Add($"\t/// <summary>{ListDoc(group)}</summary>");
-				outLines.Add($"\tList<{group.Entry.TypeName}>? {group.List} {{ get; }}");
+				outLines.Add($"\t{Fx.ListType(group.Entry.TypeName)} {group.List} {{ get; }}");
 				outLines.Add("");
 			}
 		}
@@ -1092,6 +1199,7 @@ sealed class Writer
 	public List<string> CheckBody(List<Member> members, string subject, Field? entryOpener = null)
 	{
 		var outLines = new List<string>();
+		var groups   = 0;
 
 		foreach (var mm in members)
 		{
@@ -1118,10 +1226,46 @@ sealed class Writer
 				var group = (Group)mm;
 
 				FieldCheck(group.Counter, outLines, subject, entryOpener);
-				outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {subject}.{group.List});");
-				outLines.Add($"\t\tif ({subject}.{group.List} is not null)");
-				outLines.Add($"\t\t\tfor (var i = 0; i < {subject}.{group.List}.Count; i++)");
-				outLines.Add($"\t\t\t\tcontext.Validators.{group.Entry.Slot}(context, message, {subject}.{group.List}[i], i);");
+				if (Fx.Shape == "A")
+				{
+					outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {subject}.{group.List});");
+					outLines.Add($"\t\tif ({subject}.{group.List} is not null)");
+					outLines.Add($"\t\t\tfor (var i = 0; i < {subject}.{group.List}.Count; i++)");
+					outLines.Add($"\t\t\t\tcontext.Validators.{group.Entry.Slot}(context, message, {subject}.{group.List}[i], i);");
+				}
+				else
+				{
+					// A spike column reads the group through its internal storage where it can: a message and an
+					// entry hold it, a component's interface only has the public type.
+					var local = $"g{++groups}";
+					var slot  = $"context.Validators.{group.Entry.Slot}(context, message, {local}[i], i);";
+					var count = $"{local}?.Count ?? 0";
+
+					if (subject == "block")
+					{
+						if (Fx.Shape == "D")
+						{
+							outLines.Add($"\t\tvar {local} = block.{group.List};");
+							outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {local}.Length);");
+							outLines.Add($"\t\tfor (var i = 0; i < {local}.Length; i++)");
+							outLines.Add($"\t\t\t{slot}");
+							continue;
+						}
+
+						var read = Fx.Shape switch { "B" => $"FixStore.Of(block.{group.List})", "C" => $"block.{group.List}.Raw", _ => $"block.{group.List}" };
+
+						outLines.Add($"\t\tvar {local} = {read};");
+					}
+					else
+					{
+						outLines.Add($"\t\tvar {local} = {subject}.{Fx.Store(group)};");
+					}
+
+					outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {count});");
+					outLines.Add($"\t\tif ({local} is not null)");
+					outLines.Add($"\t\t\tfor (var i = 0; i < {local}.Count; i++)");
+					outLines.Add($"\t\t\t\t{slot}");
+				}
 			}
 		}
 
@@ -1191,7 +1335,7 @@ sealed class Writer
 			empties.Add($"\t/// <summary>Whether a carrier of the {v.Title} {i.Name} has none of its fields.</summary>");
 			empties.Add($"\tinternal static bool Empty({i.TypeName} block)");
 			empties.Add("\t{");
-			empties.Add("\t\treturn " + string.Join(" &&\n\t\t\t", props.Select(p => p is Field pf ? $"block.{pf.Name} is null" : $"block.{((Group)p).List} is null")) + ";");
+			empties.Add("\t\treturn " + string.Join(" &&\n\t\t\t", props.Select(p => p is Field pf ? $"block.{pf.Name} is null" : Fx.Shape switch { "C" => $"block.{((Group)p).List}.Count == 0", "D" => $"block.{((Group)p).List}.IsEmpty", _ => $"block.{((Group)p).List} is null" })) + ";");
 			empties.Add("\t}");
 			empties.Add("");
 		}
@@ -1612,7 +1756,9 @@ sealed class Writer
 
 		var outLines = new List<string> { "" };
 
-		outLines.AddRange(groups.Select(g => $"\t\tCounted(message, message.{g.Counter.Name}, message.{g.List});"));
+		outLines.AddRange(groups.Select(g => Fx.Shape == "A"
+			? $"\t\tCounted(message, message.{g.Counter.Name}, message.{g.List});"
+			: $"\t\tCounted(message, message.{g.Counter.Name}, message.{Fx.Store(g)}?.Count ?? 0);"));
 		outLines.Add("");
 
 		return outLines;
@@ -1654,6 +1800,8 @@ sealed class Writer
 
 		foreach (var (token, tableLines) in tables)
 			text = text.Replace($"@@{token}@@", string.Join("\n", tableLines));
+
+		text = Fx.ShapeTemplate(name, text);
 
 		var left = Regex.Matches(text, @"@@\w+@@").Select(m => m.Value).ToList();
 

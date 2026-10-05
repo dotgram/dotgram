@@ -46,4 +46,14 @@ abstract partial class FixValidator
 		if (!counter.IsValid || counter.Value != (entries?.Count ?? 0))
 			message.AddFinding(new FixFinding(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter, -1));
 	}
+
+	// SPIKE (not for merging): the same, for a column whose group is not a List<T>.
+	internal static void Counted(IFixFindings message, FixField.Typed<long>? counter, int count)
+	{
+		if (counter is null)
+			return;
+
+		if (!counter.IsValid || counter.Value != count)
+			message.AddFinding(new FixFinding(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter, -1));
+	}
 }

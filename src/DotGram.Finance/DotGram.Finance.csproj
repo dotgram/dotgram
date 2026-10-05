@@ -15,6 +15,10 @@
 		<DebugType>embedded</DebugType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+		<!-- SPIKE (not for merging): the exposure shape of the lists, one build a column of the benchmark. -->
+		<FixShape Condition="'$(FixShape)' == ''">A</FixShape>
+		<DefineConstants Condition="'$(FixShape)' != 'A'">$(DefineConstants);FIX_SHAPE_$(FixShape)</DefineConstants>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
 	</PropertyGroup>
 	<ItemGroup>
@@ -44,8 +48,12 @@
 		<!-- The public surface, held to PublicAPI.*.txt beside this file. What only one framework
 		     has is in PublicAPI/<framework>/: a record's clone returns its own type on net10.0 and
 		     the base type on netstandard2.0, which has no covariant returns. -->
-		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
-		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" />
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" Condition="'$(FixShape)' == 'A'" />
+		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" Condition="'$(FixShape)' == 'A'" />
+
+		<Using Include="System.Collections.Immutable" Condition="'$(FixShape)' == 'D'" />
+		<Using Include="System.Runtime.InteropServices" Condition="'$(FixShape)' == 'D'" />
+		<PackageReference Include="System.Collections.Immutable" VersionOverride="9.0.0" Condition="'$(FixShape)' == 'D' and '$(TargetFramework)' == 'netstandard2.0'" />
 
 		<AdditionalFiles Include="Fix/**/*.gram" />
 
