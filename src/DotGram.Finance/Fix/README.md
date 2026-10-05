@@ -122,7 +122,7 @@ if (FixParser.TryParseMessage(wire, out var message, out var error))
 }
 else
 {
-    Console.WriteLine($"{error!.Position}: tag {error.Tag}, " +
+    Console.WriteLine($"{error.Position}: tag {error.Tag}, " +
                       $"MsgType {error.MessageType}: {error.Reason}");
 }
 ```
@@ -140,7 +140,13 @@ order, the fields of every group included.
 `ParseMessage` reads one complete message and throws `FormatException` where it cannot;
 `TryParseMessage` returns false with a `FixParseError` saying where and why. `ParseMessages` reads a
 buffer of several. `BuildMessage(source, fields)` builds the message from fields `ParseFields`
-already returned, without reading the input again.
+already returned, without reading the input again; the source is the string or the octets
+(`ReadOnlyMemory<byte>`) they were read from, a log with padded separators included, and
+`TryBuildMessage` answers with a diagnostic where it cannot.
+
+The `Try` calls are annotated for nullable flow: after one returns true `message` is not null, and
+after it returns false `error` is not null, with no `!`. A null input is a programming error for every
+one of them, an `ArgumentNullException` rather than a diagnostic.
 
 ## Streams and input
 
@@ -155,7 +161,10 @@ var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `ReadMessage`, `TryReadMessage` and `ReadMessages` take a `TextReader` or a `Stream` and cut it into
-messages by their `BodyLength`, 16 MiB each at most unless given. They are synchronous, read lazily
+messages by their `BodyLength`, 16 MiB each at most unless given. A frame begins with a BeginString
+and BodyLength, and any BeginString is cut as the one the version knows: another version's message
+comes back built as this version's, and `Validate` says its BeginString is not this version's, as it
+does for a buffer. They are synchronous, read lazily
 and leave the input open; enumerate once. Clean EOF ends `ReadMessages`, and EOF inside a frame is
 an error. A failed read may have consumed input: there is no resynchronization.
 

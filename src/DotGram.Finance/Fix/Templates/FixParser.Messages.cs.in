@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
@@ -116,7 +117,8 @@ public static partial class FixParser
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	public static bool TryParseMessage(string input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	public static bool TryParseMessage(string input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -127,7 +129,7 @@ public static partial class FixParser
 
 
 	/// <summary>Puts one message together from fields already read, in the order they were read.</summary>
-	internal static bool TryParseMessage(IEnumerable<FixField> input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
+	internal static bool TryParseMessage(IEnumerable<FixField> input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
 	{
 		message = null;
 
@@ -175,19 +177,16 @@ public static partial class FixParser
 	}
 
 	/// <summary>Reads one message from octets; a malformed one answers with a diagnostic.</summary>
-	/// <param name="input">The whole message, as the octets that came off the wire; null is refused with a diagnostic.</param>
+	/// <param name="input">The whole message, as the octets that came off the wire.</param>
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
 	/// <remarks><see cref="ParseMessage(byte[], @@Context@@)"/> says what the octet road is for.</remarks>
-	public static bool TryParseMessage(byte[]? input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
+	public static bool TryParseMessage(byte[] input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
 	{
-		if (input == null)
-		{
-			message = null;
-			return Fail(0, null, null, "Input is null.", out error);
-		}
+		if (input == null) throw new ArgumentNullException(nameof(input));
 
 		return TryParseBytes(input, out message, out error, context);
 	}
@@ -199,7 +198,7 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
 	/// <remarks>The octets are read where they lie, with no copy.</remarks>
-	public static bool TryParseMessage(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
+	public static bool TryParseMessage(ReadOnlyMemory<byte> input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
 	{
 		return TryParseBytes(input, out message, out error, context);
 	}
@@ -305,7 +304,8 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(TextReader input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	public static bool TryReadMessage(TextReader input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -315,10 +315,9 @@ public static partial class FixParser
 
 		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
 
-		if (!reader.TryRead(out var wire, out error))
+		if (!reader.TryRead(out var wire, out var failure))
 		{
-			if (error == null)
-				Fail(0, null, null, "Expected a FIX message.", out error);
+			error = failure ?? new FixParseError(0, null, null, "Expected a FIX message.");
 			return false;
 		}
 
@@ -332,7 +331,8 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
-	public static bool TryReadMessage(Stream input, out FixMessage? message, out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	public static bool TryReadMessage(Stream input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null, int maxMessageLength = DefaultMaxMessageLength)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
@@ -342,10 +342,9 @@ public static partial class FixParser
 
 		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
 
-		if (!reader.TryRead(out var wire, out error))
+		if (!reader.TryRead(out var wire, out var failure))
 		{
-			if (error == null)
-				Fail(0, null, null, "Expected a FIX message.", out error);
+			error = failure ?? new FixParseError(0, null, null, "Expected a FIX message.");
 			return false;
 		}
 
@@ -384,21 +383,43 @@ public static partial class FixParser
 	/// <param name="source">The source those fields were read from.</param>
 	/// <param name="fields">The fields, in the order they were read.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="fields"/> is null.</exception>
 	/// <exception cref="FormatException">The fields are not one readable message of that source.</exception>
 	/// <remarks>
 	/// Its own verb because its own act: nothing is read and nothing is consumed — the reading
 	/// happened in <see cref="ParseFields(string, @@Context@@)"/>, and this puts a message
-	/// together from what came back.
+	/// together from what came back. A log's separator, padded with spaces, is as long as the fields
+	/// say it was.
 	/// </remarks>
 	public static FixMessage BuildMessage(string source, FixField[] fields, @@Context@@? context = null)
 	{
 		if (TryBuildMessage(source, fields, out var message, out var error, context))
-			return message!;
+			return message;
 
-		throw new FormatException(error!.ToString());
+		throw new FormatException(error.ToString());
 	}
 
-	static bool TryParseText(string? input, out FixMessage? message, out FixParseError? error, @@Context@@? context)
+	/// <summary>
+	/// Builds one message from fields already read from those exact octets, without reading them again.
+	/// </summary>
+	/// <param name="source">The octets those fields were read from.</param>
+	/// <param name="fields">The fields, in the order they were read.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
+	/// <exception cref="ArgumentNullException"><paramref name="fields"/> is null.</exception>
+	/// <exception cref="FormatException">The fields are not one readable message of those octets.</exception>
+	/// <remarks>
+	/// <see cref="BuildMessage(string, FixField[], @@Context@@)"/> says what the call is for; this is
+	/// the octet road's, over what <see cref="ParseFields(ReadOnlyMemory{byte}, @@Context@@)"/> read.
+	/// </remarks>
+	public static FixMessage BuildMessage(ReadOnlyMemory<byte> source, FixField[] fields, @@Context@@? context = null)
+	{
+		if (TryBuildMessage(source, fields, out var message, out var error, context))
+			return message;
+
+		throw new FormatException(error.ToString());
+	}
+
+	static bool TryParseText(string? input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context)
 	{
 		message = null;
 		error   = null;
@@ -416,7 +437,7 @@ public static partial class FixParser
 		return true;
 	}
 
-	static bool TryParseBytes(ReadOnlyMemory<byte> input, out FixMessage? message, out FixParseError? error, @@Context@@? context)
+	static bool TryParseBytes(ReadOnlyMemory<byte> input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context)
 	{
 		var fields = FixParser.ParseFields(input, context);
 
@@ -490,18 +511,23 @@ public static partial class FixParser
 	}
 
 	/// <summary>
-	/// <see cref="BuildMessage"/>, answering with a diagnostic rather than throwing.
+	/// <see cref="BuildMessage(string, FixField[], @@Context@@)"/>, answering with a diagnostic rather than throwing.
 	/// </summary>
+	/// <param name="source">The source those fields were read from.</param>
+	/// <param name="fields">The fields, in the order they were read.</param>
+	/// <param name="message">The message built, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
-	internal static bool TryBuildMessage(string source, FixField[] fields, out FixMessage? message, out FixParseError? error, @@Context@@? context = null)
+	/// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="fields"/> is null.</exception>
+	public static bool TryBuildMessage(string source, FixField[] fields, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
 	{
 		if (source == null) throw new ArgumentNullException(nameof(source));
 		if (fields == null) throw new ArgumentNullException(nameof(fields));
 
 		message = null;
 
-		var framing   = context?.Framing ?? FixFraming.Wire;
-		var separator = framing.Separator();
+		var separator = (context?.Framing ?? FixFraming.Wire).Separator();
 
 		if (!CheckSyntax(fields, out error))
 			return false;
@@ -510,21 +536,25 @@ public static partial class FixParser
 
 		foreach (var field in fields)
 		{
-			if (field == null || field.Position != position || field.Length < 0 ||
+			// The terminator is as long as the field says it was: one separator for the wire, and for a
+			// log the separator and the spaces about it.
+			var terminator = field?.TerminatorLength ?? 0;
+
+			if (field == null || field.Position != position || field.Length < 0 || terminator < 1 ||
 				field.ValuePosition < position || field.ValuePosition > source.Length - 1 ||
-				field.Length >= source.Length - field.ValuePosition)
+				field.Length > source.Length - field.ValuePosition - terminator)
 			{
 				return Fail(position, null, null, "Field locations do not cover the supplied source.", out error);
 			}
 
 			if (field.ValuePosition - position < 2 || source[field.ValuePosition - 1] != '=' ||
 				!IsTag(source.AsSpan(position, field.ValuePosition - 1 - position), field.Tag) ||
-				source[field.ValuePosition + field.Length] != separator)
+				!IsTerminator(source.AsSpan(field.ValuePosition + field.Length, terminator), separator))
 			{
 				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
 			}
 
-			position = field.ValuePosition + field.Length + 1;
+			position = field.ValuePosition + field.Length + terminator;
 		}
 
 		if (position != source.Length)
@@ -536,6 +566,94 @@ public static partial class FixParser
 		Measure(message!, source.AsSpan());
 
 		return true;
+	}
+
+	/// <summary>
+	/// <see cref="BuildMessage(ReadOnlyMemory{byte}, FixField[], @@Context@@)"/>, answering with a diagnostic rather than throwing.
+	/// </summary>
+	/// <param name="source">The octets those fields were read from.</param>
+	/// <param name="fields">The fields, in the order they were read.</param>
+	/// <param name="message">The message built, or null.</param>
+	/// <param name="error">The first problem found, or null.</param>
+	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
+	/// <returns>False with the first problem found in <paramref name="error"/>.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="fields"/> is null.</exception>
+	public static bool TryBuildMessage(ReadOnlyMemory<byte> source, FixField[] fields, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, @@Context@@? context = null)
+	{
+		if (fields == null) throw new ArgumentNullException(nameof(fields));
+
+		message = null;
+
+		var octets    = source.Span;
+		var separator = (byte)(context?.Framing ?? FixFraming.Wire).Separator();
+
+		if (!CheckSyntax(fields, out error))
+			return false;
+
+		var position = 0;
+
+		foreach (var field in fields)
+		{
+			var terminator = field?.TerminatorLength ?? 0;
+
+			if (field == null || field.Position != position || field.Length < 0 || terminator < 1 ||
+				field.ValuePosition < position || field.ValuePosition > octets.Length - 1 ||
+				field.Length > octets.Length - field.ValuePosition - terminator)
+			{
+				return Fail(position, null, null, "Field locations do not cover the supplied source.", out error);
+			}
+
+			if (field.ValuePosition - position < 2 || octets[field.ValuePosition - 1] != (byte)'=' ||
+				!IsTag(octets.Slice(position, field.ValuePosition - 1 - position), field.Tag) ||
+				!IsTerminator(octets.Slice(field.ValuePosition + field.Length, terminator), separator))
+			{
+				return Fail(position, field.Tag, null, "Field locations do not match the supplied source.", out error);
+			}
+
+			position = field.ValuePosition + field.Length + terminator;
+		}
+
+		if (position != octets.Length)
+			return Fail(position, null, null, "Field locations do not cover the supplied source.", out error);
+
+		if (!FixParser.TryParseMessage(fields, out message, out error, context))
+			return false;
+
+		Measure(message!, octets);
+
+		return true;
+	}
+
+	// One separator and nothing but spaces about it: all a wire's terminator is, and what a log's
+	// separator is made of.
+	static bool IsTerminator(ReadOnlySpan<char> text, char separator)
+	{
+		var separators = 0;
+
+		foreach (var c in text)
+		{
+			if (c == separator)
+				separators++;
+			else if (c != ' ')
+				return false;
+		}
+
+		return separators == 1;
+	}
+
+	static bool IsTerminator(ReadOnlySpan<byte> text, byte separator)
+	{
+		var separators = 0;
+
+		foreach (var c in text)
+		{
+			if (c == separator)
+				separators++;
+			else if (c != (byte)' ')
+				return false;
+		}
+
+		return separators == 1;
 	}
 
 	static bool IsTag(ReadOnlySpan<char> text, int tag)
@@ -554,7 +672,23 @@ public static partial class FixParser
 		return false;
 	}
 
-	static bool CheckSyntax(FixField[] fields, out FixParseError? error)
+	static bool IsTag(ReadOnlySpan<byte> text, int tag)
+	{
+		for (var i = text.Length - 1; i >= 0; i--)
+		{
+			if (text[i] != (byte)('0' + tag % 10))
+				return false;
+
+			tag /= 10;
+
+			if (tag == 0)
+				return i == 0;
+		}
+
+		return false;
+	}
+
+	static bool CheckSyntax(FixField[] fields, [NotNullWhen(false)] out FixParseError? error)
 	{
 		foreach (var field in fields)
 			// Skipped input stops the message; a tag nothing builds a field of is a field of it, out of scope.
@@ -566,7 +700,7 @@ public static partial class FixParser
 		return true;
 	}
 
-	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
+	static bool Fail(int position, int? tag, string? type, string reason, [NotNullWhen(false)] out FixParseError? error)
 	{
 		error = new FixParseError(position, tag, type, reason);
 		return false;

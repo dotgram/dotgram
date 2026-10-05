@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable InconsistentNaming
@@ -44,7 +45,7 @@ public abstract class FixField : IFixLocation
 		IsValid = isValid;
 	}
 
-	int TerminatorLength => _terminatorLength == byte.MaxValue ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
+	internal int TerminatorLength => _terminatorLength == byte.MaxValue ? Wide.GetValue(this, NewWide).Terminator : _terminatorLength;
 
 	/// <summary>Whether a separator ends the field, rather than the end of the input.</summary>
 	internal bool Terminated => TerminatorLength > 0;
@@ -149,12 +150,12 @@ public abstract class FixField : IFixLocation
 	/// </para>
 	/// <para>
 	/// A tag neither the version nor a dictionary loaded into the context defines keeps its tag and its
-	/// value: <see cref="RawBytes"/> is the value's octets, from character input as from byte input,
-	/// and the extent is the field's as any field's is.
+	/// value, in the representation it was read in: <see cref="RawText"/> from character input,
+	/// <see cref="RawBytes"/> from byte input, and the extent is the field's as any field's is.
 	/// </para>
 	/// <para>
-	/// <see cref="IsValid"/> is false either way. Character and byte input retain their original
-	/// representation.
+	/// <see cref="IsValid"/> is false either way. <see cref="IsByteInput"/> says which of the two
+	/// holds the value.
 	/// </para>
 	/// </remarks>
 	public sealed class Invalid : FixField
@@ -162,8 +163,8 @@ public abstract class FixField : IFixLocation
 		// A tag nothing defines: its value, kept as it was read.
 		internal Invalid(int tag, ReadOnlySpan<char> value) : base(tag, false)
 		{
-			RawBytes = FixConvert.ToData(value).Value;
-			Message  = Unknown(tag);
+			RawText = value.ToString();
+			Message = Unknown(tag);
 		}
 
 		internal Invalid(int tag, ReadOnlySpan<byte> value) : base(tag, false)
@@ -221,15 +222,16 @@ public abstract class FixField : IFixLocation
 		}
 
 		/// <summary>
-		/// Gets the skipped character input, or a tag's value read as characters; null when the source was bytes.
+		/// Gets the skipped character input, or the value of a tag nothing defines read as characters; null when the source was bytes.
 		/// </summary>
 		public string?              RawText { get; }
 		/// <summary>
-		/// Gets an owned copy of the skipped bytes, or of a tag's value read as bytes; empty memory when the source was characters.
+		/// Gets an owned copy of the skipped bytes, or of the value of a tag nothing defines read as bytes; empty memory when the source was characters.
 		/// </summary>
 		public ReadOnlyMemory<byte> RawBytes { get; }
 		/// <summary>
-		/// Gets whether this recovery field was created from bytes, including an empty byte span.
+		/// Gets whether this field was created from bytes, including an empty byte span: the value is
+		/// in <see cref="RawBytes"/>, otherwise in <see cref="RawText"/>.
 		/// </summary>
 		public bool                 IsByteInput => RawText == null;
 		/// <summary>
@@ -285,7 +287,7 @@ public abstract class FixField : IFixLocation
 		/// as a successfully parsed value; it is still assigned and is not guaranteed to be default.
 		/// </param>
 		/// <returns>The value of <see cref="IsValid"/>.</returns>
-		public bool TryGetValue(out T result)
+		public bool TryGetValue([MaybeNullWhen(false)] out T result)
 		{
 			result = _value;
 			return IsValid;

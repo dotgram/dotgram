@@ -321,7 +321,7 @@ public sealed class FixOctetRoadTests
 		Assert.Contains("CheckSum", error!.ToString(), StringComparison.Ordinal);
 	}
 
-	/// <summary>Null octets are refused by the call, and by the trying door with a diagnostic.</summary>
+	/// <summary>Null octets are refused by every call, the trying door included.</summary>
 	[Fact]
 	public void Null_octets_are_refused_at_the_door()
 	{
@@ -329,8 +329,6 @@ public sealed class FixOctetRoadTests
 		Assert.Throws<ArgumentNullException>(() => FixParser.ParseMessages((byte[])null!));
 		Assert.Throws<ArgumentNullException>(() => FixParser.ParseFields((byte[])null!));
 
-		Assert.False(FixParser.TryParseMessage((byte[]?)null, out var message, out var error));
-		Assert.Null(message);
-		Assert.NotNull(error);
+		Assert.Throws<ArgumentNullException>(() => FixParser.TryParseMessage((byte[])null!, out _, out _));
 	}
 }

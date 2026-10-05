@@ -90,7 +90,13 @@ public sealed class FixCustomFieldsTests
 
 			Assert.Equal(28905, invalid.Tag);
 			Assert.False(invalid.IsValid);
+			Assert.Equal("20261231", invalid.RawText);
+			Assert.False(invalid.IsByteInput);
+
+			invalid = Assert.IsType<FixField.Invalid>(Assert.Single(FixParser.ParseFields(Encoding.Latin1.GetBytes("28905=20261231|"), context)));
+
 			Assert.Equal("20261231", Encoding.Latin1.GetString(invalid.RawBytes.Span));
+			Assert.True(invalid.IsByteInput);
 		}
 	}
 

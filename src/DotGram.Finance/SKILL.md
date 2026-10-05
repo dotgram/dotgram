@@ -15,8 +15,8 @@ The examples here are FIX 4.4's. There is no runtime to deploy, nothing to confi
 to initialize.
 
 **Pick the namespace by the BeginString of the data.** Each version's `FixParser` reads the other's
-messages too, since the framing is the same, but builds its own classes and holds them to its own
-version: a 4.2 order read through `Fix44` is told its BeginString is wrong and meets 4.4's fields.
+messages too, from a buffer or a stream, since the framing is the same, but builds its own classes and
+holds them to its own version: a 4.2 order read through `Fix44` is told its BeginString is wrong and meets 4.4's fields.
 
 The [FIX README][readme] is the reference. This is the order to decide
 things in, and the mistakes that are easy to make.
@@ -44,7 +44,9 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
 `Read` consumes a reader or a stream and leaves it open. The plural says how many come back.
 
 `FixParser.BuildMessage(source, fields)` joins the two: it builds the message from fields
-`ParseFields` already returned, without reading the input again.
+`ParseFields` already returned, without reading the input again. The source is the string or the
+`ReadOnlyMemory<byte>` they were read from, and a log's padded separators are fine;
+`TryBuildMessage` is the answering form.
 
 ## Input
 
@@ -161,7 +163,8 @@ switch (message)
 - The standard header and trailer are properties of every message, and `Fields` is the whole
   message in wire order, the fields of every group included.
 - `ParseMessage` throws `FormatException`; `TryParseMessage` returns false with a
-  `FixParseError` saying where and why. The same pair for readers and streams is
+  `FixParseError` saying where and why, and the compiler knows `message` is not null after true and
+  `error` after false. A null argument throws `ArgumentNullException` from every call. The same pair for readers and streams is
   `ReadMessage` and `TryReadMessage`.
 
 ## Binary data

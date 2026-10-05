@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -42,7 +43,7 @@ public static partial class FixParser
 		public byte[]? Bytes { get; }
 	}
 
-	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, Fix42Context? context)
+	static bool TryParseFrame(Frame frame, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, Fix42Context? context)
 	{
 		return frame.Bytes != null
 			? TryParseBytes(frame.Bytes, out message, out error, context)
@@ -51,7 +52,6 @@ public static partial class FixParser
 
 	sealed class FrameReader
 	{
-		readonly string      _prefix;
 		readonly char        _separator;
 		readonly TextReader? _textInput;
 		readonly Stream?     _byteInput;
@@ -64,7 +64,6 @@ public static partial class FixParser
 		{
 			_textInput = input;
 			_separator = separator;
-			_prefix    = "8=FIX.4.2" + separator + "9=";
 			_maximum   = maximum;
 			_buffer    = new char[Math.Min(4096, maximum)];
 		}
@@ -73,7 +72,6 @@ public static partial class FixParser
 		{
 			_byteInput  = input;
 			_separator  = separator;
-			_prefix     = "8=FIX.4.2" + separator + "9=";
 			_maximum    = maximum;
 			_byteBuffer = new byte[Math.Min(4096, maximum)];
 		}
@@ -111,6 +109,11 @@ public static partial class FixParser
 			return true;
 		}
 
+		// The shortest frame header, 8=X, the separator and 9=, and the longest BeginString: a value no
+		// longer than any version's name; what is not one is not a frame.
+		const int MinHeader      = 6;
+		const int MaxBeginString = 16;
+
 		public bool TryRead(out Frame wire, out FixParseError? error)
 		{
 			wire   = default;
@@ -120,15 +123,40 @@ public static partial class FixParser
 			if (!ReadTo(1))
 				return false;
 
-			if (_maximum < _prefix.Length)
+			if (_maximum < MinHeader)
 				return Fail(_count, FixTag.BodyLength, null, "Message exceeds maxMessageLength.", out error);
 
-			if (!ReadTo(_prefix.Length))
+			// Whatever BeginString the frame names: it is cut by BodyLength as any other, and a version
+			// not this one's is a finding of Validate, as it is for a buffer.
+			if (!ReadTo(2))
 				return Fail(_count, FixTag.BeginString, null, "Truncated FIX header.", out error);
 
-			for (var i = 0; i < _prefix.Length; i++)
-				if (At(i) != _prefix[i])
-					return Fail(i, FixTag.BeginString, null, "Expected BeginString FIX.4.2 followed by BodyLength.", out error);
+			if (At(0) != '8' || At(1) != '=')
+				return Fail(0, FixTag.BeginString, null, "Expected BeginString followed by BodyLength.", out error);
+
+			var at = 2;
+
+			while (true)
+			{
+				if (!ReadTo(at + 1))
+					return Fail(_count, FixTag.BeginString, null, "Truncated FIX header.", out error);
+
+				var c = At(at);
+
+				if (c == _separator && at > 2)
+					break;
+
+				if (c == _separator || at - 2 >= MaxBeginString)
+					return Fail(at, FixTag.BeginString, null, "Expected BeginString followed by BodyLength.", out error);
+
+				at++;
+			}
+
+			if (!ReadTo(at + 3))
+				return Fail(_count, FixTag.BodyLength, null, "Truncated FIX header.", out error);
+
+			if (At(at + 1) != '9' || At(at + 2) != '=')
+				return Fail(at + 1, FixTag.BodyLength, null, "Expected BeginString followed by BodyLength.", out error);
 
 			var length = 0;
 			var digits = 0;

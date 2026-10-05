@@ -543,6 +543,11 @@ public abstract class FixFieldReaderTests
 
 	static string Describe(FixField field)
 	{
+		// A tag nothing defines keeps its value as it was read, characters or octets; here the two
+		// roads are held to the same value, not to the same representation.
+		if (field is FixField.Invalid invalid)
+			return $"Invalid:{invalid.Tag}:{invalid.Position}:{invalid.Length}:{invalid.Message}:{invalid.RawText ?? Encoding.Latin1.GetString(invalid.RawBytes.Span)}";
+
 		return field.GetType().Name + JsonSerializer.Serialize(field, field.GetType());
 	}
 
