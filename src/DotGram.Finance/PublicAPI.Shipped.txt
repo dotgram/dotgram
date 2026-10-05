@@ -37886,11 +37886,13 @@ DotGram.Finance.Fix.FixDictionaryComponent
 DotGram.Finance.Fix.FixDictionaryComponent.FixDictionaryComponent(string! name) -> void
 DotGram.Finance.Fix.FixDictionaryComponent.Members.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixDictionaryMember!>!
 DotGram.Finance.Fix.FixDictionaryComponent.Name.get -> string!
+DotGram.Finance.Fix.FixDictionaryComponent.Name.set -> void
 DotGram.Finance.Fix.FixDictionaryField
 DotGram.Finance.Fix.FixDictionaryField.Codes.get -> System.Collections.Generic.List<string!>!
-DotGram.Finance.Fix.FixDictionaryField.FixDictionaryField(string! name, string? type = null) -> void
+DotGram.Finance.Fix.FixDictionaryField.FixDictionaryField(int tag, string! name, string? type = null) -> void
 DotGram.Finance.Fix.FixDictionaryField.Name.get -> string!
 DotGram.Finance.Fix.FixDictionaryField.Name.set -> void
+DotGram.Finance.Fix.FixDictionaryField.Tag.get -> int
 DotGram.Finance.Fix.FixDictionaryField.Type.get -> string?
 DotGram.Finance.Fix.FixDictionaryField.Type.set -> void
 DotGram.Finance.Fix.FixDictionaryMember

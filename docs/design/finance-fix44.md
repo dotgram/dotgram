@@ -1,36 +1,33 @@
-# DotGram.Finance: FIX 4.4 parser
+# DotGram.Finance: FIX 4.4 parser — design (outdated)
 
-An assessment written against the package as it stood, and `design/` holds proposals
-rather than descriptions — so the names below are the names of that day. Several have
-since moved: there is no `ParseLog` (framing is a value, `FixFieldOptions.Log`), no
-`FixOptions`, and no Strict and Lenient modes (reading and validating are two calls).
-A supplied length/data dictionary adds to the standard's pairs rather than replacing
-them. What the package does today is in [the FIX document](../../src/DotGram.Finance/Fix/README.md)
-and the SKILL beside its package overview; this file is kept for the reasoning, the coverage
-matrix and the measurements, which are dated by what they measured.
+An assessment written at an earlier stage of the package; this file is **not** the
+current design. The package's public surface is described in
+[the FIX README](../../src/DotGram.Finance/Fix/README.md), the SKILL, and the
+XML documentation of the public API. This file is kept for its reasoning about
+the grammar strategy, the coverage matrix and the historical measurements.
 
-## Flat parser and explicit semantics
+## Flat parser and explicit semantics (outdated naming)
 
-`FixParser.Parse` returns `FixField[]` for contiguous inputs and lazy
-`IEnumerable<FixField>` for `TextReader` and native byte `Stream` inputs. The
-generated buffered machine yields each complete field, releases consumed input,
-and preserves global locations. The explicit `yield : @FixField` publication
-returns fields incrementally. `recover Separator` produces `FixField.Invalid`
-with the rejected input, position and error, then resumes after the separator.
-The syntax path uses no message schema or envelope validator. Length fields
-provide raw-data boundaries; the parser checks the configured length/data tag pair.
-`FixParser.Parse` reads SOH and `ParseLog` reads pipes with optional surrounding
-ASCII spaces. `FixOptions` supplies an optional replacement pair dictionary.
+The parser today is `FixParser`. It returns `FixField[]` for contiguous inputs and
+an `IEnumerable<FixField>` for `TextReader` and byte `Stream` inputs via
+`ParseFields` and `ReadFields`. Messages are built separately with `ParseMessage`
+and `ReadMessage`, and validated with `message.Validate(context)`. Framing is a
+context value (`context with { Framing = FixFraming.Log }`), not a parameter.
+Length fields provide raw-data boundaries; the parser checks the configured length/data
+tag pair. `recover Separator` produces `FixField.Invalid` with the rejected input,
+position and error, then resumes after the separator. The syntax path uses no message
+schema or envelope validator during parsing.
 
 The public API and shared types live in `DotGram.Finance.Fix`, with production sources
 in `src/DotGram.Finance/Fix`. The reference parser lives in
 `examples/DotGram.Examples/Finance/Fix44`, within the existing examples project,
 and is excluded from the Finance package.
 
-`FixMessages` owns framing, message/group assembly and validation. Call
-`FixMessages.Build(source, fields)` to validate an already parsed field array, or
-`FixMessages.Parse` / `ReadMessages` to combine parsing with semantic processing.
-The historical measurements below include semantics, not only field recognition.
+Message assembly and validation use `FixParser.ParseMessage` / `ReadMessage` or
+`FixParser.ParseMessages` / `ReadMessages` to combine parsing with semantic processing,
+and `message.Validate(context)` to check schema membership, required fields and code sets.
+The historical measurements below were taken at an earlier stage and mix parsing and
+semantic validation.
 
 ## Scope
 
@@ -76,19 +73,18 @@ that their payload is UTF-8. Native byte input uses the same field model and pre
 
 ## Validation contract
 
-`FixMessages` exposes Strict and Lenient modes. Both require unambiguous field
-boundaries, complete input and valid framing; recovered syntax errors are rejected.
-Strict additionally checks schema membership, required presence, primitive syntax,
-code sets, duplicate fields, group counts and group order. Optional components
-activate their required children only when present. Message body field order is
-otherwise free; header/body/trailer boundaries and the first three fields are not.
-Lenient preserves unknown fields and values. Unknown repeating-group structure
-cannot be inferred from tag numbers: vendor definitions are needed to interpret it.
-No silent loss of extensions is acceptable.
+The parser recognizes fields with unambiguous field boundaries, complete input and valid
+framing; recovered syntax errors are rejected. Schema membership, required presence,
+primitive syntax, code sets, duplicate fields, group counts and group order are checked
+by message validation, not parsing. Optional components activate their required children
+only when present. Message body field order is otherwise free; header/body/trailer
+boundaries and the first three fields are not. Unknown fields and vendor repeating-group
+structures are preserved; vendor definitions are needed to interpret them.
 
 Parse failures expose source offset, known tag, known MsgType and a reason.
-`FixMessages.TryParse` checks recovered fields for syntax errors; the flat
-`FixParser` exposes only `Parse` methods and returns errors as `FixField.Invalid`.
+`FixParser.TryParseMessage` checks recovered fields for syntax errors; the flat
+`FixParser.ParseFields` exposes only `Parse` methods and returns errors as
+`FixField.Invalid`. Message validation is done separately with `message.Validate(context)`.
 
 ## Implemented grammar strategy
 

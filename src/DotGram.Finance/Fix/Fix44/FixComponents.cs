@@ -15,6 +15,7 @@ namespace DotGram.Finance.Fix.Fix44;
 // in the interface: IInstrument.NoSecurityAltIDGroup.
 
 /// <summary>The FIX 4.4 CommissionData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ICommissionData
 {
 	/// <summary>The FIX Commission, tag 12.</summary>
@@ -31,6 +32,7 @@ public interface ICommissionData
 }
 
 /// <summary>The FIX 4.4 DiscretionInstructions block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IDiscretionInstructions
 {
 	/// <summary>The FIX DiscretionInst, tag 388.</summary>
@@ -56,6 +58,7 @@ public interface IDiscretionInstructions
 }
 
 /// <summary>The FIX 4.4 FinancingDetails block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IFinancingDetails
 {
 	/// <summary>The FIX AgreementDesc, tag 913.</summary>
@@ -87,6 +90,7 @@ public interface IFinancingDetails
 }
 
 /// <summary>The FIX 4.4 Instrument block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrument
 {
 	/// <summary>The FIX Symbol, tag 55.</summary>
@@ -252,6 +256,7 @@ public interface IInstrument
 }
 
 /// <summary>The FIX 4.4 InstrumentExtension block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrumentExtension
 {
 	/// <summary>The FIX DeliveryForm, tag 668.</summary>
@@ -278,6 +283,7 @@ public interface IInstrumentExtension
 }
 
 /// <summary>The FIX 4.4 InstrumentLeg block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrumentLeg
 {
 	/// <summary>The FIX LegSymbol, tag 600.</summary>
@@ -421,6 +427,7 @@ public interface IInstrumentLeg
 }
 
 /// <summary>The FIX 4.4 LegBenchmarkCurveData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ILegBenchmarkCurveData
 {
 	/// <summary>The FIX LegBenchmarkCurveCurrency, tag 676.</summary>
@@ -440,6 +447,7 @@ public interface ILegBenchmarkCurveData
 }
 
 /// <summary>The FIX 4.4 LegStipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ILegStipulations
 {
 	/// <summary>The FIX NoLegStipulations, tag 683.</summary>
@@ -460,6 +468,7 @@ public interface ILegStipulations
 }
 
 /// <summary>The FIX 4.4 NestedParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties
 {
 	/// <summary>The FIX NoNestedPartyIDs, tag 539.</summary>
@@ -499,6 +508,7 @@ public interface INestedParties
 }
 
 /// <summary>The FIX 4.4 NestedParties2 repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties2
 {
 	/// <summary>The FIX NoNested2PartyIDs, tag 756.</summary>
@@ -538,6 +548,7 @@ public interface INestedParties2
 }
 
 /// <summary>The FIX 4.4 NestedParties3 repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties3
 {
 	/// <summary>The FIX NoNested3PartyIDs, tag 948.</summary>
@@ -577,6 +588,7 @@ public interface INestedParties3
 }
 
 /// <summary>The FIX 4.4 OrderQtyData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IOrderQtyData
 {
 	/// <summary>The FIX OrderQty, tag 38.</summary>
@@ -596,6 +608,7 @@ public interface IOrderQtyData
 }
 
 /// <summary>The FIX 4.4 Parties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IParties
 {
 	/// <summary>The FIX NoPartyIDs, tag 453.</summary>
@@ -635,6 +648,7 @@ public interface IParties
 }
 
 /// <summary>The FIX 4.4 PegInstructions block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPegInstructions
 {
 	/// <summary>The FIX PegOffsetValue, tag 211.</summary>
@@ -657,6 +671,7 @@ public interface IPegInstructions
 }
 
 /// <summary>The FIX 4.4 PositionAmountData repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPositionAmountData
 {
 	/// <summary>The FIX NoPosAmt, tag 753.</summary>
@@ -677,6 +692,7 @@ public interface IPositionAmountData
 }
 
 /// <summary>The FIX 4.4 PositionQty repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPositionQty
 {
 	/// <summary>The FIX NoPositions, tag 702.</summary>
@@ -709,6 +725,7 @@ public interface IPositionQty
 }
 
 /// <summary>The FIX 4.4 SettlInstructionsData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISettlInstructionsData
 {
 	/// <summary>The FIX SettlDeliveryType, tag 172.</summary>
@@ -747,6 +764,7 @@ public interface ISettlInstructionsData
 }
 
 /// <summary>The FIX 4.4 SettlParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISettlParties
 {
 	/// <summary>The FIX NoSettlPartyIDs, tag 781.</summary>
@@ -786,6 +804,7 @@ public interface ISettlParties
 }
 
 /// <summary>The FIX 4.4 SpreadOrBenchmarkCurveData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISpreadOrBenchmarkCurveData
 {
 	/// <summary>The FIX Spread, tag 218.</summary>
@@ -814,6 +833,7 @@ public interface ISpreadOrBenchmarkCurveData
 }
 
 /// <summary>The FIX 4.4 Stipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IStipulations
 {
 	/// <summary>The FIX NoStipulations, tag 232.</summary>
@@ -834,6 +854,7 @@ public interface IStipulations
 }
 
 /// <summary>The FIX 4.4 TrdRegTimestamps repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ITrdRegTimestamps
 {
 	/// <summary>The FIX NoTrdRegTimestamps, tag 768.</summary>
@@ -857,6 +878,7 @@ public interface ITrdRegTimestamps
 }
 
 /// <summary>The FIX 4.4 UnderlyingInstrument block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUnderlyingInstrument : IUnderlyingStipulations
 {
 	/// <summary>The FIX UnderlyingSymbol, tag 311.</summary>
@@ -1012,6 +1034,7 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 }
 
 /// <summary>The FIX 4.4 UnderlyingStipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUnderlyingStipulations
 {
 	/// <summary>The FIX NoUnderlyingStips, tag 887.</summary>
@@ -1032,6 +1055,7 @@ public interface IUnderlyingStipulations
 }
 
 /// <summary>The FIX 4.4 YieldData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IYieldData
 {
 	/// <summary>The FIX YieldType, tag 235.</summary>

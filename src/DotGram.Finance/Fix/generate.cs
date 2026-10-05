@@ -1050,6 +1050,7 @@ sealed class Writer
 		var outLines = new List<string>
 		{
 			$"/// <summary>The {_v.Title} {i.Name} {kind}, wherever it is carried.</summary>",
+			"/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>",
 			head,
 			"{",
 		};

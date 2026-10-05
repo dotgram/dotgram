@@ -26,8 +26,9 @@ namespace DotGram.Finance.Fix;
 /// </para>
 /// <para>
 /// The object is a plain, editable value: add a message, change what one requires, drop a code from a
-/// field, and apply the result. Applying takes what the dictionary says at that moment; editing it
-/// afterwards changes nothing in a context already made from it.
+/// field, and apply the result. A context's <c>With(dictionary)</c> takes a snapshot: the dictionary's
+/// messages, components and fields are read and their checks compiled at that moment; later edits to
+/// the dictionary do not change what the context does.
 /// </para>
 /// </remarks>
 public sealed class FixDictionary
@@ -45,6 +46,10 @@ public sealed class FixDictionary
 	public KeyedCollection<string, FixDictionaryComponent> Components { get; } = new Keyed<string, FixDictionaryComponent>(static one => one.Name);
 
 	/// <summary>The fields, by tag.</summary>
+	/// <remarks>
+	/// Each field's key must equal its <see cref="FixDictionaryField.Tag"/>; a mismatch is detected and
+	/// refused when the dictionary is applied to a context with <c>With</c>.
+	/// </remarks>
 	public Dictionary<int, FixDictionaryField> Fields { get; } = [];
 
 	/// <summary>
@@ -287,10 +292,11 @@ public sealed class FixDictionary
 
 			var number = Required(reader, "number");
 			var name   = Required(reader, "name");
-			var field  = new FixDictionaryField(name, reader.GetAttribute("type"));
 
 			if (!int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) || tag <= 0)
 				throw Bad(reader, $"The field '{name}' has number '{number}', which is not a tag.");
+
+			var field  = new FixDictionaryField(tag, name, reader.GetAttribute("type"));
 
 			Values(reader, field.Codes);
 
@@ -434,7 +440,7 @@ public sealed class FixDictionaryMessage(string msgType, string name)
 public sealed class FixDictionaryComponent(string name)
 {
 	/// <summary>The name, by which a dictionary knows the component.</summary>
-	public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
+	public string Name { get; set; } = name ?? throw new ArgumentNullException(nameof(name));
 
 	/// <summary>What the component carries, in order.</summary>
 	public List<FixDictionaryMember> Members { get; } = [];
@@ -449,11 +455,19 @@ public sealed class FixDictionaryComponent(string name)
 	}
 }
 
-/// <summary>A field of a dictionary: its name, the type it names, and the values it lists.</summary>
+/// <summary>A field of a dictionary: its tag, name, the type it names, and the values it lists.</summary>
+/// <param name="tag">The FIX tag.</param>
 /// <param name="name">The name, by which messages and components refer to it: <c>OrdType</c>.</param>
 /// <param name="type">The type as a dictionary names it, <c>CHAR</c>; null where it names none.</param>
-public sealed class FixDictionaryField(string name, string? type = null)
+public sealed class FixDictionaryField(int tag, string name, string? type = null)
 {
+	/// <summary>The FIX tag of the field.</summary>
+	/// <remarks>
+	/// Must match the key under which the field is stored in <see cref="FixDictionary.Fields"/>; a
+	/// mismatch is detected and refused when the dictionary is applied to a context.
+	/// </remarks>
+	public int Tag { get; } = tag;
+
 	/// <summary>The name, by which messages and components refer to the field.</summary>
 	public string Name { get; set; } = name ?? throw new ArgumentNullException(nameof(name));
 
@@ -466,7 +480,7 @@ public sealed class FixDictionaryField(string name, string? type = null)
 
 	internal FixDictionaryField Copy()
 	{
-		var copy = new FixDictionaryField(Name, Type);
+		var copy = new FixDictionaryField(Tag, Name, Type);
 
 		copy.Codes.AddRange(Codes);
 

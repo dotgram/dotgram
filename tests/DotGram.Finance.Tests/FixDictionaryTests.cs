@@ -66,7 +66,7 @@ public sealed class FixDictionaryTests
 		var over     = new FixDictionary();
 
 		over.Messages.Add(new FixDictionaryMessage("A", "Logon") { Members = { FixDictionaryMember.Field("HeartBtInt", required: true) } });
-		over.Fields[40] = new FixDictionaryField("OrdType", "CHAR") { Codes = { "2" } };
+		over.Fields[40] = new FixDictionaryField(40, "OrdType", "CHAR") { Codes = { "2" } };
 
 		var merged = standard.Merge(over);
 
@@ -171,7 +171,7 @@ public sealed class FixDictionaryTests
 	{
 		var dictionary = FixDictionary.Parse(Venue);
 
-		dictionary.Fields[44] = new FixDictionaryField("OrdType", "PRICE");
+		dictionary.Fields[44] = new FixDictionaryField(44, "OrdType", "PRICE");
 
 		var refused = Assert.Throws<FormatException>(() => Fix44Context.Default.With(dictionary));
 
@@ -188,6 +188,31 @@ public sealed class FixDictionaryTests
 		var refused = Assert.Throws<FormatException>(() => Fix44Context.Default.With(dictionary));
 
 		Assert.Equal("The dictionary places the field 'OrderQty' in 'FixMessage.Logon', which has no member of that name.", refused.Message);
+	}
+
+	[Fact]
+	public void Two_contexts_made_from_the_same_dictionary_value_are_not_equal()
+	{
+		var dictionary = FixDictionary.Parse(Venue);
+
+		var ctx1 = Fix44Context.Default.With(dictionary);
+		var ctx2 = Fix44Context.Default.With(dictionary);
+
+		Assert.NotEqual(ctx1, ctx2);
+		Assert.True(ctx1 == Fix44Context.Default.With(dictionary) || ctx1 != ctx2, "Each With call builds its own tables");
+	}
+
+	[Fact]
+	public void A_field_with_mismatched_key_and_tag_is_refused_where_applied()
+	{
+		var dictionary = FixDictionary.Parse(Venue);
+
+		// Add a field with mismatched key and tag
+		dictionary.Fields[44] = new FixDictionaryField(40, "OrdType", "CHAR");
+
+		var exception = Assert.Throws<ArgumentException>(() => Fix44Context.Default.With(dictionary));
+
+		Assert.Equal("Field dictionary key 44 does not match its Tag 40.", exception.Message);
 	}
 
 	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");

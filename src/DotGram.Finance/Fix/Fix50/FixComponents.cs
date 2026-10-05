@@ -15,6 +15,7 @@ namespace DotGram.Finance.Fix.Fix50;
 // in the interface: IInstrument.NoSecurityAltIDGroup.
 
 /// <summary>The FIX 5.0 SP2 ApplicationSequenceControl block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IApplicationSequenceControl
 {
 	/// <summary>The FIX ApplID, tag 1180.</summary>
@@ -31,6 +32,7 @@ public interface IApplicationSequenceControl
 }
 
 /// <summary>The FIX 5.0 SP2 CommissionData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ICommissionData
 {
 	/// <summary>The FIX Commission, tag 12.</summary>
@@ -47,6 +49,7 @@ public interface ICommissionData
 }
 
 /// <summary>The FIX 5.0 SP2 DiscretionInstructions block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IDiscretionInstructions
 {
 	/// <summary>The FIX DiscretionInst, tag 388.</summary>
@@ -72,6 +75,7 @@ public interface IDiscretionInstructions
 }
 
 /// <summary>The FIX 5.0 SP2 DisplayInstruction block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IDisplayInstruction
 {
 	/// <summary>The FIX DisplayQty, tag 1138.</summary>
@@ -100,6 +104,7 @@ public interface IDisplayInstruction
 }
 
 /// <summary>The FIX 5.0 SP2 ExpirationQty repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IExpirationQty
 {
 	/// <summary>The FIX NoExpiration, tag 981.</summary>
@@ -120,6 +125,7 @@ public interface IExpirationQty
 }
 
 /// <summary>The FIX 5.0 SP2 FinancingDetails block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IFinancingDetails
 {
 	/// <summary>The FIX AgreementDesc, tag 913.</summary>
@@ -151,6 +157,7 @@ public interface IFinancingDetails
 }
 
 /// <summary>The FIX 5.0 SP2 Instrument block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrument : IInstrumentParties
 {
 	/// <summary>The FIX Symbol, tag 55.</summary>
@@ -511,6 +518,7 @@ public interface IInstrument : IInstrumentParties
 }
 
 /// <summary>The FIX 5.0 SP2 InstrumentExtension block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrumentExtension
 {
 	/// <summary>The FIX DeliveryForm, tag 668.</summary>
@@ -537,6 +545,7 @@ public interface IInstrumentExtension
 }
 
 /// <summary>The FIX 5.0 SP2 InstrumentLeg block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrumentLeg
 {
 	/// <summary>The FIX LegSymbol, tag 600.</summary>
@@ -716,6 +725,7 @@ public interface IInstrumentLeg
 }
 
 /// <summary>The FIX 5.0 SP2 InstrumentParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IInstrumentParties
 {
 	/// <summary>The FIX NoInstrumentParties, tag 1018.</summary>
@@ -755,6 +765,7 @@ public interface IInstrumentParties
 }
 
 /// <summary>The FIX 5.0 SP2 LegBenchmarkCurveData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ILegBenchmarkCurveData
 {
 	/// <summary>The FIX LegBenchmarkCurveCurrency, tag 676.</summary>
@@ -774,6 +785,7 @@ public interface ILegBenchmarkCurveData
 }
 
 /// <summary>The FIX 5.0 SP2 LegStipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ILegStipulations
 {
 	/// <summary>The FIX NoLegStipulations, tag 683.</summary>
@@ -794,6 +806,7 @@ public interface ILegStipulations
 }
 
 /// <summary>The FIX 5.0 SP2 NestedParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties
 {
 	/// <summary>The FIX NoNestedPartyIDs, tag 539.</summary>
@@ -833,6 +846,7 @@ public interface INestedParties
 }
 
 /// <summary>The FIX 5.0 SP2 NestedParties2 repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties2
 {
 	/// <summary>The FIX NoNested2PartyIDs, tag 756.</summary>
@@ -872,6 +886,7 @@ public interface INestedParties2
 }
 
 /// <summary>The FIX 5.0 SP2 NestedParties3 repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties3
 {
 	/// <summary>The FIX NoNested3PartyIDs, tag 948.</summary>
@@ -911,6 +926,7 @@ public interface INestedParties3
 }
 
 /// <summary>The FIX 5.0 SP2 NestedParties4 repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface INestedParties4
 {
 	/// <summary>The FIX NoNested4PartyIDs, tag 1414.</summary>
@@ -950,6 +966,7 @@ public interface INestedParties4
 }
 
 /// <summary>The FIX 5.0 SP2 OrderQtyData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IOrderQtyData
 {
 	/// <summary>The FIX OrderQty, tag 38.</summary>
@@ -969,6 +986,7 @@ public interface IOrderQtyData
 }
 
 /// <summary>The FIX 5.0 SP2 Parties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IParties
 {
 	/// <summary>The FIX NoPartyIDs, tag 453.</summary>
@@ -1008,6 +1026,7 @@ public interface IParties
 }
 
 /// <summary>The FIX 5.0 SP2 PegInstructions block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPegInstructions
 {
 	/// <summary>The FIX PegOffsetValue, tag 211.</summary>
@@ -1045,6 +1064,7 @@ public interface IPegInstructions
 }
 
 /// <summary>The FIX 5.0 SP2 PositionAmountData repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPositionAmountData
 {
 	/// <summary>The FIX NoPosAmt, tag 753.</summary>
@@ -1068,6 +1088,7 @@ public interface IPositionAmountData
 }
 
 /// <summary>The FIX 5.0 SP2 PositionQty repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IPositionQty
 {
 	/// <summary>The FIX NoPositions, tag 702.</summary>
@@ -1103,6 +1124,7 @@ public interface IPositionQty
 }
 
 /// <summary>The FIX 5.0 SP2 RateSource repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IRateSource
 {
 	/// <summary>The FIX NoRateSources, tag 1445.</summary>
@@ -1126,6 +1148,7 @@ public interface IRateSource
 }
 
 /// <summary>The FIX 5.0 SP2 RootParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IRootParties
 {
 	/// <summary>The FIX NoRootPartyIDs, tag 1116.</summary>
@@ -1165,6 +1188,7 @@ public interface IRootParties
 }
 
 /// <summary>The FIX 5.0 SP2 SecurityTradingRules block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISecurityTradingRules
 {
 	/// <summary>The FIX NoTickRules, tag 1205.</summary>
@@ -1355,6 +1379,7 @@ public interface ISecurityTradingRules
 }
 
 /// <summary>The FIX 5.0 SP2 SettlInstructionsData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISettlInstructionsData
 {
 	/// <summary>The FIX SettlDeliveryType, tag 172.</summary>
@@ -1393,6 +1418,7 @@ public interface ISettlInstructionsData
 }
 
 /// <summary>The FIX 5.0 SP2 SettlParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISettlParties
 {
 	/// <summary>The FIX NoSettlPartyIDs, tag 781.</summary>
@@ -1432,6 +1458,7 @@ public interface ISettlParties
 }
 
 /// <summary>The FIX 5.0 SP2 SideTrdRegTS repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISideTrdRegTS
 {
 	/// <summary>The FIX NoSideTrdRegTS, tag 1016.</summary>
@@ -1455,6 +1482,7 @@ public interface ISideTrdRegTS
 }
 
 /// <summary>The FIX 5.0 SP2 SpreadOrBenchmarkCurveData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ISpreadOrBenchmarkCurveData
 {
 	/// <summary>The FIX Spread, tag 218.</summary>
@@ -1483,6 +1511,7 @@ public interface ISpreadOrBenchmarkCurveData
 }
 
 /// <summary>The FIX 5.0 SP2 Stipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IStipulations
 {
 	/// <summary>The FIX NoStipulations, tag 232.</summary>
@@ -1503,6 +1532,7 @@ public interface IStipulations
 }
 
 /// <summary>The FIX 5.0 SP2 TargetParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ITargetParties
 {
 	/// <summary>The FIX NoTargetPartyIDs, tag 1461.</summary>
@@ -1526,6 +1556,7 @@ public interface ITargetParties
 }
 
 /// <summary>The FIX 5.0 SP2 TrdRegTimestamps repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ITrdRegTimestamps
 {
 	/// <summary>The FIX NoTrdRegTimestamps, tag 768.</summary>
@@ -1558,6 +1589,7 @@ public interface ITrdRegTimestamps
 }
 
 /// <summary>The FIX 5.0 SP2 TriggeringInstruction block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface ITriggeringInstruction
 {
 	/// <summary>The FIX TriggerType, tag 1100.</summary>
@@ -1607,6 +1639,7 @@ public interface ITriggeringInstruction
 }
 
 /// <summary>The FIX 5.0 SP2 UnderlyingAmount repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUnderlyingAmount
 {
 	/// <summary>The FIX NoUnderlyingAmounts, tag 984.</summary>
@@ -1633,6 +1666,7 @@ public interface IUnderlyingAmount
 }
 
 /// <summary>The FIX 5.0 SP2 UnderlyingInstrument block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUnderlyingInstrument : IUnderlyingStipulations, IUndlyInstrumentParties
 {
 	/// <summary>The FIX UnderlyingSymbol, tag 311.</summary>
@@ -1860,6 +1894,7 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations, IUndlyInstrume
 }
 
 /// <summary>The FIX 5.0 SP2 UnderlyingStipulations repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUnderlyingStipulations
 {
 	/// <summary>The FIX NoUnderlyingStips, tag 887.</summary>
@@ -1880,6 +1915,7 @@ public interface IUnderlyingStipulations
 }
 
 /// <summary>The FIX 5.0 SP2 UndlyInstrumentParties repeating component, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IUndlyInstrumentParties
 {
 	/// <summary>The FIX NoUndlyInstrumentParties, tag 1058.</summary>
@@ -1919,6 +1955,7 @@ public interface IUndlyInstrumentParties
 }
 
 /// <summary>The FIX 5.0 SP2 YieldData block, wherever it is carried.</summary>
+/// <remarks>Not meant to be implemented; the set of members is the version's and does not change.</remarks>
 public interface IYieldData
 {
 	/// <summary>The FIX YieldType, tag 235.</summary>

@@ -32,6 +32,12 @@ namespace DotGram.Finance.Fix;
 /// rest. That object is not part of what a consumer sees: what replaces a check is a dictionary,
 /// read from a file, and not a delegate written by hand.
 /// </para>
+/// <para>
+/// Equality does not compare schema (the loaded checks and types); use it as a shorthand only. Two
+/// contexts made from <c>Default.With(dictionary)</c> with the same dictionary object are equal only
+/// if they are the same instance; each context creation with a dictionary builds its own tables and
+/// compiles its own checks, so equality does not mean "same schema".
+/// </para>
 /// </remarks>
 public abstract record FixContext
 {
@@ -129,8 +135,13 @@ public abstract record FixContext
 		var types = new List<(int Tag, FixValueType Type)>();
 
 		foreach (var field in dictionary.Fields)
+		{
+			if (field.Key != field.Value.Tag)
+				throw new ArgumentException($"Field dictionary key {field.Key} does not match its Tag {field.Value.Tag}.");
+
 			if (Version.Type(field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
 				types.Add((field.Key, type));
+		}
 
 		return this with
 		{
