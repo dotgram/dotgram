@@ -25808,3 +25808,47 @@ Asked of Roslyn on the way: `M(Box)` beside `M(params Box[])` is ambiguous for `
 a target-typed `new` converts even to an array, which it cannot make — and `M(Box)` beside
 `M(Box, int = 1)` takes the first. This language reads no `T?` in a type; the nullable cases are
 written `System.Nullable<Spot>`.
+
+## A store returns what it wrote, and an immediate reader carries its own registers
+
+Three fixed costs of a generated parse's entry and exit, found by timing the pieces of a one-token
+SQL:2023 parse (`sql/literal`, 250 ns against the hand-written parser's 31) one at a time, each
+through its own compiled delegate: rent and return of each store, the scanner alone, the walk.
+
+- **The dense store's `Return` tested every table's count** — 303 loads and branches on SQL:2023's
+  store — to find the one table a literal wrote. The store now keeps a list of the tables written
+  this parse: `Add` lists a table with its first value, and a record-indexed write lists it where
+  it raises the table's mark (`Wrote`); `Return` empties those alone. Only from 32 tables
+  (`ListedTables`): below that a test per table is cheaper than a dispatch per table written -
+  Sql92's eleven-table store read 3-4% slower with the list, and keeps the tests, byte for byte.
+  Rent and return of SQL:2023's store: 92 to 21 ns. `sql/literal` 250 to 141-151 ns, `sql/column`
+  -19%, `sql/select1` -5 to -8%, `sql/arithmetic` -5 to -6%, `select20` unchanged (the tests were
+  0.3% of it).
+- **The adaptive store** — T-SQL's, 47 tables of `ValueTable<T>` — cleared every table to the
+  records the parse used: 47 clears of up to 256 rows each, written or not. Each table now carries
+  its own high-water mark, raised where a value is stored, and `Return` clears the written tables to
+  theirs. T-SQL `SELECT 1` 880 to 680 ns (-23%), the stand's statements -7 to -14%. Generated source
+  +0.75% on T-SQL (one `values.Wrote(...)` a materialiser arm); SQL:2023 -4.6 KB.
+- **An immediate reader's struct carried a register per value type of the whole file**, not of its
+  own machine: SQL:2023's one-token readers had 309 fields, three kilobytes zeroed at every entry.
+  Registers are the machine's own types now. The immediate copy of SQL:2023 reads a literal in
+  50-51 ns (from 120) with this and the store's `Return` together; EL's immediate reading is
+  unchanged, its machines' types being the file's. Generated source -53 KB on that copy.
+
+Not taken, with the numbers that decided it: renting `Ways` and `DirectValues` as one object (the
+`Ways` pair is 12 ns, and the store's pair without the tests about the same, so one pair is at most
+12 ns); building a sole root record at the entry without entering the walk (8-12 ns expected, for a
+second dispatch per entry); a mask of the tables touched for the non-dense store (EL clears 22
+tables to `_used` and 5 hold values, about 5% of `el/floor` — an OR per arm, for a gain outside the
+rows that pay for generated size). The tape store an immediate grammar's refused machines fall back
+to is planned as the tape's own: adaptive on the SQL:2023 immediate copy, where it cleared 303 tables
+to `_used` on every parse. The marks serve it as they serve T-SQL's: that copy reads a column
+reference in 660 ns (from 2470) and select1 in 4.0 us (from 7.2), for 471 KB of `Wrote` lines.
+
+Paired on the stand against the commit before, with its A/A, two windows: `sql/literal` -24 to -25%,
+`sql/column` -4 to -7%, `sql/values` -1 to -3%, `select1` and `select20` unchanged, the T-SQL
+statements -7 to -14%, EL unchanged; no row slower.
+
+What the entry of the one-token tape parse still costs, in ns: tokenize and recycle 40, `Ways`
+rent and return 12, the store's rent and return 21-29, the root's walk and construction about 25,
+the reader, `Failure` and `Match` about 40. The hand-written parser does all of it in 31.
