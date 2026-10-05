@@ -76,21 +76,33 @@ public sealed class DenseValuesTests
 	[Fact]
 	public void Dense_tables_grow_for_their_own_values_and_clear_after_failure_and_reentry()
 	{
-		var (assembly, _) = Compile(false);
+		var (assembly, source) = Compile(false);
 		var owner = assembly.GetType("Grammar")!;
 		var input = string.Concat(Enumerable.Repeat("abcdefgh", 257));
-		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", input).IsSuccess);
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 		var store = owner.GetNestedType("DirectValues", Flags)!;
-		var spare = store.GetField("_spare", Flags)!.GetValue(null)!;
 		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal) && field.FieldType.IsArray).ToArray();
 		Assert.True(tables.Length >= 8);
-		foreach (var table in tables)
+
+		// Few tables: Return tests every table's count, and keeps no list of the ones written.
+		Assert.DoesNotContain("Written", source);
+		Assert.Contains("if (slot >= values.N", source);
+
+		// After either entry — the appending machine (Start) and the one that writes by record
+		// under a guard (Guarded) — the parked store holds no value.
+		foreach (var entry in new[] { "TryParseStart", "TryParseGuarded" })
 		{
-			var array = (Array)table.GetValue(spare)!;
-			Assert.InRange(array.Length, 16, 512);
-			foreach (var held in array)
-				Assert.Equal(Activator.CreateInstance(held!.GetType()), held);
+			Assert.True(EmittedCode.Match(assembly, "Grammar", entry, input).IsSuccess);
+			var spare = store.GetField("_spare", Flags)!.GetValue(null)!;
+			foreach (var table in tables)
+			{
+				var array = (Array)table.GetValue(spare)!;
+				// The appending machine's tables hold one value a row; the guarded one writes by
+				// record, and its tables reach as far as the record that wrote them.
+				Assert.InRange(array.Length, 16, entry == "TryParseStart" ? 512 : 4096);
+				foreach (var held in array)
+					Assert.Equal(Activator.CreateInstance(held!.GetType()), held);
+			}
 		}
 
 		owner.GetField("Fail")!.SetValue(null, true);
@@ -98,6 +110,51 @@ public sealed class DenseValuesTests
 		owner.GetField("Fail")!.SetValue(null, false);
 		owner.GetField("Reenter")!.SetValue(null, true);
 		Assert.Equal("1234567h", EmittedCode.Match(assembly, "Grammar", "TryParseStart", "abcdefgh").Value);
+	}
+
+	[Fact]
+	public void Many_dense_tables_are_emptied_by_the_list_of_those_written()
+	{
+		// Thirty-three value types: past the count at which the store keeps a list of the
+		// tables a parse wrote, for Return to empty those and read nothing of the rest. The
+		// padding's factories are never reached, so their tables are never written.
+		var grammar = Grammar.Replace("Row : @string = Dead?", "Row : @string = Padding & Dead?") +
+			"\nPadding = " + string.Join(" & ", Enumerable.Range(0, 24).Select(i => "Spare" + i + "?")) + "\n" +
+			string.Join("\n", Enumerable.Range(0, 24).Select(i =>
+				"Spare" + i + " : @SpareValue" + i + " = '" + (char)(0xE000 + i) + "' => @(UnusedSpare<SpareValue" + i + ">())"));
+		var spares = "static T UnusedSpare<T>() => throw new System.InvalidOperationException(\"Unused spare factory\");\n" +
+			string.Join("\n", Enumerable.Range(0, 24).Select(i => "public sealed class SpareValue" + i + " {}"));
+		var (assembly, source) = Compile(false, grammar, extraMembers: spares);
+		var owner = assembly.GetType("Grammar")!;
+		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+		var store = owner.GetNestedType("DirectValues", Flags)!;
+		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal) && field.FieldType.IsArray).ToArray();
+		Assert.True(tables.Length >= 32);
+
+		// The appending machine (Start) lists a table as it adds the first value; the one that
+		// writes by record under a guard (Guarded) lists it as it raises the table's count.
+		Assert.Contains("Written[WrittenCount++]", source);
+		Assert.Contains("values.Wrote(", source);
+		Assert.Contains("switch (values.Written[written])", source);
+
+		var input = string.Concat(Enumerable.Repeat("abcdefgh", 257));
+
+		foreach (var entry in new[] { "TryParseStart", "TryParseGuarded", "TryParseStart" })
+		{
+			var match = EmittedCode.Match(assembly, "Grammar", entry, input);
+			Assert.True(match.IsSuccess, match.Error);
+			Assert.Equal(string.Join("|", Enumerable.Repeat("1234567h", 257)), match.Value);
+
+			// Returned: no value in any table, the counts at zero, and the list empty.
+			var spare = store.GetField("_spare", Flags)!.GetValue(null)!;
+			Assert.Equal(0, store.GetField("WrittenCount", Flags)!.GetValue(spare));
+			foreach (var table in tables)
+			{
+				Assert.Equal(0, store.GetField("N" + table.Name.Substring(1), Flags)!.GetValue(spare));
+				foreach (var held in (Array)table.GetValue(spare)!)
+					Assert.Equal(Activator.CreateInstance(held!.GetType()), held);
+			}
+		}
 	}
 
 	[Theory]
@@ -122,7 +179,7 @@ public sealed class DenseValuesTests
 		}
 	}
 
-	static (Assembly Assembly, string Source) Compile(bool lexical, string grammar = Grammar, ValueStorageKind storage = ValueStorageKind.Auto)
+	static (Assembly Assembly, string Source) Compile(bool lexical, string grammar = Grammar, ValueStorageKind storage = ValueStorageKind.Auto, string extraMembers = "")
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -131,6 +188,6 @@ public sealed class DenseValuesTests
 		});
 		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
 		var source = Assert.Single(compiled.Sources).Text;
-		return (EmittedCode.Compile(source, declarationMembers: Members), source);
+		return (EmittedCode.Compile(source, declarationMembers: Members + "\n" + extraMembers), source);
 	}
 }

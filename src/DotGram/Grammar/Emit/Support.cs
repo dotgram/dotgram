@@ -1837,6 +1837,18 @@ public static partial class CSharpEmitter
 	/// </summary>
 	const int RecordsKept = 1048576;
 
+	/// <summary>
+	/// From how many marked tables a store keeps a list of the ones a parse wrote, for
+	/// <c>Return</c> to empty those alone (<see cref="DirectValuesClass"/>, <c>Machine.DirectMark</c>).
+	/// </summary>
+	/// <remarks>
+	/// Below it a test of every table's mark is cheaper than a dispatch per table written: a
+	/// store of eleven tables that writes most of them on an ordinary parse read a few per
+	/// cent slower with the list. Above it the tests are the cost — three hundred of them on
+	/// every return of SQL:2023's store, whatever the parse wrote.
+	/// </remarks>
+	internal const int ListedTables = 32;
+
 	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool markPositions = false, bool indexed = false)
 	{
 		var text = new StringBuilder();
@@ -1888,6 +1900,22 @@ public static partial class CSharpEmitter
 			text.Append("\tinternal long Tables = ").Append(valueTypes.Count * 16).Append(";\n");
 		}
 
+		// A dense table carries a count of what it holds and an adaptive one its high-water
+		// mark, so Return empties each to what was written in it; and where there are many
+		// tables, a list of the ones written this parse, so that Return reads nothing of the
+		// rest. It used to test every table's mark: three hundred loads and branches on every
+		// return of SQL:2023's store, a third of a one-token parse. A table joins the list once
+		// a parse, where its mark leaves zero, so the list is as long as the tables at most.
+		var marked = dense || adaptive;
+		var listed = marked && valueTypes.Count >= ListedTables;
+
+		if (listed)
+		{
+			text.Append("\t/// <summary>The tables this parse has written, each once, in the order of their first value.</summary>\n");
+			text.Append("\tinternal int[] Written = new int[").Append(valueTypes.Count).Append("];\n");
+			text.Append("\tinternal int WrittenCount;\n");
+		}
+
 		text.Append("\tint _used;\n\n");
 		Spares(text, "DirectValues", releases: true);
 				var capacities = dense
@@ -1908,18 +1936,38 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// per table - the same sum the bound is read from, with use in place of length.
 		text.Append("\t\tvar rows = values._used;\n\n");
 
-		for (var i = 0; i < valueTypes.Count; i++)
-			if (dense)
+		// What empties one marked table: to its count, or to its high-water mark. Emptied, never
+		// replaced: what a table holds goes, the room it holds it in stays. Replacing it was
+		// the cliff the bound below now answers.
+		string Emptied(int i)
+		{
+			return dense
+				? $"global::System.Array.Clear(values.V{i}, 0, global::System.Math.Min(values.N{i}, values.V{i}.Length)); values.N{i} = 0;"
+				: $"values.V{i}.Clear(values.V{i}.High); values.V{i}.High = 0;";
+		}
+
+		if (listed)
+		{
+			// Only the tables the parse wrote, by the list it kept of them.
+			text.Append("\t\tfor (var written = 0; written < values.WrittenCount; written++)\n");
+			text.Append("\t\t\tswitch (values.Written[written])\n\t\t\t{\n");
+
+			for (var i = 0; i < valueTypes.Count; i++)
+				text.Append("\t\t\t\tcase ").Append(i).Append(": ").Append(Emptied(i)).Append(" break;\n");
+
+			text.Append("\t\t\t}\n\n");
+			text.Append("\t\tvalues.WrittenCount = 0;\n");
+		}
+		else if (marked)
+			// Few tables: a test of each mark is cheaper than a dispatch per table written.
+			for (var i = 0; i < valueTypes.Count; i++)
 			{
-				text.Append("\t\tif (values.N").Append(i).Append(" > 0)\n\t\t{\n");
-				// Emptied, never replaced: what the table holds goes, the room it holds it in
-				// stays. Replacing it was the cliff the bound below now answers.
-				text.Append("\t\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
-				text.Append("\t\t\tvalues.N").Append(i).Append(" = 0;\n\t\t}\n");
+				text.Append("\t\tif (").Append(dense ? $"values.N{i}" : $"values.V{i}.High").Append(" > 0)\n\t\t{\n");
+				text.Append("\t\t\t").Append(Emptied(i).Replace("; ", ";\n\t\t\t")).Append('\n');
+				text.Append("\t\t}\n");
 			}
-			else if (adaptive)
-				text.Append("\t\tvalues.V").Append(i).Append(".Clear(values._used);\n");
-			else
+		else
+			for (var i = 0; i < valueTypes.Count; i++)
 				text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
 
 		if (dense)
@@ -1997,11 +2045,25 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
 		text.Append("\t}\n");
 
+		if (listed)
+		{
+			// The mark a record-indexed write into this store raises, and the list it joins
+			// the first time (Machine.DirectMark): the same two writes Add makes below, for a
+			// machine that writes by record rather than by appending.
+			text.Append("\t/// <summary>A value written at <paramref name=\"slot\"/> of a table: raises the table's mark past it, and lists the table where the mark was zero.</summary>\n");
+			text.Append("\tinternal void Wrote(int table, ref int mark, int slot)\n\t{\n");
+			text.Append("\t\tif (slot < mark) return;\n");
+			text.Append("\t\tif (mark == 0) Written[WrittenCount++] = table;\n");
+			text.Append("\t\tmark = slot + 1;\n\t}\n");
+		}
+
 		if (dense)
 			for (var i = 0; i < valueTypes.Count; i++)
 			{
 				text.Append("\tinternal int Add").Append(i).Append("(int record)\n\t{\n");
 				text.Append("\t\tvar index = N").Append(i).Append("++;\n");
+				if (listed)
+					text.Append("\t\tif (index == 0) Written[WrittenCount++] = ").Append(i).Append(";\n");
 				text.Append("\t\tif (index == V").Append(i).Append(".Length)\n\t\t{\n");
 				text.Append("\t\t\tvar was = V").Append(i).Append(".Length;\n");
 				text.Append("\t\t\tglobal::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(16, index * 2));\n");

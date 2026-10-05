@@ -106,10 +106,15 @@ public sealed class AdaptiveValuesTests
 		var store = owner.GetNestedType("DirectValues", Flags)!;
 		var spare = store.GetField("_spare", Flags)!.GetValue(null)!;
 		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal)).ToArray();
-		Assert.True(tables.Length >= 8);
+		Assert.True(tables.Length >= 32);
+
+		// Returned by the list of the tables written: the list is empty again, every table's
+		// high-water mark is back at zero, and no page of any table holds a value.
+		Assert.Equal(0, store.GetField("WrittenCount", Flags)!.GetValue(spare));
 		foreach (var table in tables)
 		{
 			var value = table.GetValue(spare)!;
+			Assert.Equal(0, value.GetType().GetField("High", Flags)!.GetValue(value));
 			foreach (var field in value.GetType().GetFields(Flags).Where(field => field.FieldType.IsArray))
 				if (field.GetValue(value) is Array array) Clear(array);
 		}

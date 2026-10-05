@@ -734,21 +734,35 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// What a record-indexed write leaves behind in a store that also holds dense tables:
-	/// the mark <c>Return</c> clears to, raised where the value is actually stored.
+	/// What a record-indexed write leaves behind in a store whose tables carry a mark: the
+	/// mark <c>Return</c> clears to, raised where the value is actually stored.
 	/// </summary>
 	/// <remarks>
-	/// A dense machine's <c>Add</c> raises its own mark, and a store with no dense machine in
-	/// it has no marks to raise — it is cleared to the records it used. The mixed store is the
-	/// one that needs this: were the marks raised for every type at once, as room is made,
-	/// they would say that every table holds a value at every record, and the store would be
-	/// cleared in full however little of it was written.
+	/// A dense machine's <c>Add</c> raises its own mark, and a store with neither dense nor
+	/// adaptive tables has no marks to raise — it is cleared to the records it used. The
+	/// mixed store and the adaptive one are what need this: were the marks raised for every
+	/// type at once, as room is made, they would say that every table holds a value at every
+	/// record, and the store would be cleared in full however little of it was written. Where
+	/// the store keeps a list of the tables written (<c>CSharpEmitter.ListedTables</c>), the
+	/// first raise of a parse also puts the table on it, which is all <c>Return</c> reads.
 	/// </remarks>
 	string DirectMark(string type, string index)
 	{
-		return !DenseDirectValues && _denseStore && TableFor(type) >= 0
-			? $"if ({index} >= values.N{TableName(type)}) values.N{TableName(type)} = {index} + 1;"
-			: "";
+		if (TableFor(type) < 0)
+			return "";
+
+		string mark;
+
+		if (!DenseDirectValues && _denseStore)
+			mark = $"values.N{TableName(type)}";
+		else if (_adaptiveStore)
+			mark = $"values.V{TableName(type)}.High";
+		else
+			return "";
+
+		return _valueTypes.Count >= CSharpEmitter.ListedTables
+			? $"values.Wrote({TableName(type)}, ref {mark}, {index});"
+			: $"if ({index} >= {mark}) {mark} = {index} + 1;";
 	}
 
 	/// <summary>
