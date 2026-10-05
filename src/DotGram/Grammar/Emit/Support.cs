@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -2600,6 +2600,17 @@ public static partial class CSharpEmitter
 
 			/// <summary>Standing marks the walk read, summed over every walk.</summary>
 			internal static long CountMarkSteps = 0;
+
+			/// <summary>Lab only: per guard site, how often it was asked and the walks its values cost.</summary>
+			internal static readonly global::System.Collections.Generic.Dictionary<string, long[]> CountSites = new global::System.Collections.Generic.Dictionary<string, long[]>();
+
+			internal static void CountSite(string site, long walks)
+			{
+				if (!CountSites.TryGetValue(site, out var counted))
+					CountSites[site] = counted = new long[2];
+				counted[0]++;
+				counted[1] += walks;
+			}
 
 			#endif
 			/// <summary>

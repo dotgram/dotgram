@@ -91,6 +91,7 @@
 		     the generator here under another carrier (docs/next.md, the redesign). -->
 		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard92.gram" Link="SqlStandard92.gram" />
 		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="SqlStandard.gram" />
+		<AdditionalFiles Include="SqlStandardCarried.gram" />
 	</ItemGroup>
 
 </Project>

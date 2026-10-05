@@ -5001,6 +5001,11 @@ sealed partial class Machine
 				arguments.Add(ValueAt(rule, "fold"));
 			}
 
+			// Lab only: walks per guard site.
+			var countedAt = $"cg{_guardLocals++}";
+			code.Line("#if DOTGRAM_COUNTS");
+			code.Line($"var {countedAt} = Ways.CountWalks;");
+			code.Line("#endif");
 			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
 			{
 				var handed = $"g{_guardLocals++}";
@@ -5071,6 +5076,9 @@ sealed partial class Machine
 				machine.Carrier.Gathered(code, Refs, slots, handed, type, build, member.Rule is null);
 			}
 
+			code.Line("#if DOTGRAM_COUNTS");
+			code.Line($"Ways.CountSite(\"{rule.Name}@{guard.At}\", Ways.CountWalks - {countedAt});");
+			code.Line("#endif");
 			if (selection is null)
 			{
 				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");

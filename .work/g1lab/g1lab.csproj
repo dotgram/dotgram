@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+		<IsPackable>false</IsPackable>
+		<EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+		<RunAnalyzers>false</RunAnalyzers>
+		<NoWarn>$(NoWarn);CS8600;CS8602;CS8604;CS1591</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\benchmarks\DotGram.Benchmarks\DotGram.Benchmarks.csproj" />
+	</ItemGroup>
+</Project>
