@@ -47,6 +47,11 @@ public sealed record Fix44Context : FixContext
 		}, FixStandard.Type, FixTag.LegInterestAccrualDate);
 	}
 
+	private protected override FixVersion Version
+	{
+		get { return Standard.Version; }
+	}
+
 	/// <summary>A context of FIX 4.4 as this package compiles it in, reading the wire by the standard's own pairs.</summary>
 	public Fix44Context() : base(Standard.Version, FixValidator44.Default)
 	{

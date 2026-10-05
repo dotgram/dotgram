@@ -35,12 +35,14 @@ namespace DotGram.Finance.Fix;
 /// </remarks>
 public abstract record FixContext
 {
-	// The version's pairs and types, and the table the reader indexes built from them.
-	readonly FixVersion _version;
+	// The version's pairs and types, which the table the reader indexes is built from. Each version's
+	// context answers its own. It is also what closes the hierarchy to this package: a record's copy
+	// constructor cannot be less than protected, so an abstract member nothing outside can implement is
+	// the way to keep a type elsewhere from deriving from a context.
+	private protected abstract FixVersion Version { get; }
 
 	private protected FixContext(FixVersion version, FixValidator checks)
 	{
-		_version = version;
 		_pairs   = version.Pairs;
 		Coded    = version.Codes;
 		Checks   = checks;
@@ -90,7 +92,7 @@ public abstract record FixContext
 		get => _pairs;
 		init
 		{
-			var pairs = new Dictionary<int, int>(_version.Pairs);
+			var pairs = new Dictionary<int, int>(Version.Pairs);
 
 			foreach (var pair in value)
 				pairs[pair.Key] = pair.Value;
@@ -127,7 +129,7 @@ public abstract record FixContext
 		var types = new List<(int Tag, FixValueType Type)>();
 
 		foreach (var field in dictionary.Fields)
-			if (_version.Type(field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
+			if (Version.Type(field.Key) == FixValueType.None && TypeOf(field.Value.Type) is { } type)
 				types.Add((field.Key, type));
 
 		return this with

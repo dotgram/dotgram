@@ -26,6 +26,11 @@ public sealed record @@Context@@ : FixContext
 @@Version@@
 	}
 
+	private protected override FixVersion Version
+	{
+		get { return Standard.Version; }
+	}
+
 	/// <summary>A context of @@Title@@ as this package compiles it in, reading the wire by the standard's own pairs.</summary>
 	public @@Context@@() : base(Standard.Version, @@Validator@@.Default)
 	{

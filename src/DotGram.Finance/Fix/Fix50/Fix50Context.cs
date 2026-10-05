@@ -55,6 +55,11 @@ public sealed record Fix50Context : FixContext
 		}, FixStandard.Type, FixTag.StreamAsgnType);
 	}
 
+	private protected override FixVersion Version
+	{
+		get { return Standard.Version; }
+	}
+
 	/// <summary>A context of FIX 5.0 SP2 as this package compiles it in, reading the wire by the standard's own pairs.</summary>
 	public Fix50Context() : base(Standard.Version, FixValidator50.Default)
 	{

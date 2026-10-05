@@ -9,11 +9,18 @@ namespace DotGram.Finance.Fix;
 /// One field as the wire had it: its tag, its extent, and its value read as the type the tag has.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A field is a class of the type of its value, not of its tag: an <c>OrderQty</c> is a
 /// <see cref="Decimal"/> whose <see cref="Tag"/> is <see cref="FixTag.OrderQty"/>, matched as
 /// <c>FixField.Decimal { Tag: FixTag.OrderQty } quantity</c>. The type is the standard's for the
 /// tags FIX 4.4 defines and a loaded dictionary's for the ones it adds; a tag neither defines is an
 /// <see cref="Invalid"/>.
+/// </para>
+/// <para>
+/// The set of classes is closed: their constructors are visible only inside this package, so a type
+/// outside it cannot derive from <see cref="FixField"/> or <see cref="Typed{T}"/>. A value of a kind
+/// the twelve do not hold is kept in a property of the message that carries it.
+/// </para>
 /// </remarks>
 public abstract class FixField : IFixLocation
 {
@@ -31,7 +38,7 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag; recovery fields use zero.</param>
 	/// <param name="isValid">Whether the supplied primitive value is valid.</param>
-	protected FixField(int tag, bool isValid)
+	private protected FixField(int tag, bool isValid)
 	{
 		Tag     = tag;
 		IsValid = isValid;
@@ -248,7 +255,7 @@ public abstract class FixField : IFixLocation
 		/// </summary>
 		/// <param name="tag">The FIX tag.</param>
 		/// <param name="value">The typed value to store.</param>
-		protected Typed(int tag, T value) : base(tag, true)
+		private protected Typed(int tag, T value) : base(tag, true)
 		{
 			_value = value;
 		}
@@ -258,7 +265,7 @@ public abstract class FixField : IFixLocation
 		/// </summary>
 		/// <param name="tag">The FIX tag.</param>
 		/// <param name="parsed">The conversion status and its resulting value.</param>
-		protected Typed(int tag, (bool Valid, T Value) parsed)
+		private protected Typed(int tag, (bool Valid, T Value) parsed)
 			: base(tag, parsed.Valid)
 		{
 			_value = parsed.Value;

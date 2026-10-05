@@ -45,6 +45,11 @@ public sealed record Fix42Context : FixContext
 		}, FixStandard.Type, FixTag.EncodedListStatusText);
 	}
 
+	private protected override FixVersion Version
+	{
+		get { return Standard.Version; }
+	}
+
 	/// <summary>A context of FIX 4.2 as this package compiles it in, reading the wire by the standard's own pairs.</summary>
 	public Fix42Context() : base(Standard.Version, FixValidator42.Default)
 	{

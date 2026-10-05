@@ -37920,7 +37920,6 @@ DotGram.Finance.Fix.FixField.Date
 DotGram.Finance.Fix.FixField.Date.Date(int tag, (bool Valid, System.DateOnly Value) value) -> void
 DotGram.Finance.Fix.FixField.Decimal
 DotGram.Finance.Fix.FixField.Decimal.Decimal(int tag, (bool Valid, decimal Value) value) -> void
-DotGram.Finance.Fix.FixField.FixField(int tag, bool isValid) -> void
 DotGram.Finance.Fix.FixField.Integer
 DotGram.Finance.Fix.FixField.Integer.Integer(int tag, (bool Valid, long Value) value) -> void
 DotGram.Finance.Fix.FixField.Invalid
@@ -37948,8 +37947,6 @@ DotGram.Finance.Fix.FixField.Timestamp
 DotGram.Finance.Fix.FixField.Timestamp.Timestamp(int tag, (bool Valid, System.DateTimeOffset Value) value) -> void
 DotGram.Finance.Fix.FixField.Typed<T>
 DotGram.Finance.Fix.FixField.Typed<T>.TryGetValue(out T result) -> bool
-DotGram.Finance.Fix.FixField.Typed<T>.Typed(int tag, (bool Valid, T Value) parsed) -> void
-DotGram.Finance.Fix.FixField.Typed<T>.Typed(int tag, T value) -> void
 DotGram.Finance.Fix.FixField.Typed<T>.Value.get -> T
 DotGram.Finance.Fix.FixField.ValuePosition.get -> int
 DotGram.Finance.Fix.FixField.ZonedTime
