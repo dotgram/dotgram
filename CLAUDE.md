@@ -103,6 +103,10 @@ tests/
 	                      package is held against. Not shipped: it is a fixture
 	DotGram.Finance.Fix44.Tests/ the comparisons against that oracle, kept out of
 	                      Finance.Tests so that the ordinary tests build in seconds (D12)
+	DotGram.ExpressionLanguage.Immediate/ the sources of DotGram.ExpressionLanguage compiled
+	                      again with its immediate reading, ExpressionParser.Immediate, which
+	                      the package does not carry. Not shipped: it is a fixture, read by
+	                      DotGram.Tests and the stand under an extern alias
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
 	DotGram.Traced/       the sources of DotGram.Sql, DotGram.ExpressionLanguage and

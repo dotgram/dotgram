@@ -1,4 +1,6 @@
-﻿using System;
+﻿extern alias immediate;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -6,6 +8,8 @@ using System.Numerics;
 using System.Reflection;
 
 using DotGram.ExpressionLanguage;
+
+using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -2679,7 +2683,7 @@ public sealed class ExpressionParserTests
 	{
 		Assert.Equal(
 			Both.Compile<Func<int, string>>("(int x) => $\"<{x,3}>\"")(7),
-			ExpressionParser.Immediate.TryParseLambda("(int x) => $\"<{x,3}>\"", new ExpressionParser.State(typeof(ExpressionParserTests).Assembly)).Value!
+			ImmediateExpressions.Immediate.TryParseLambda("(int x) => $\"<{x,3}>\"", new ImmediateExpressions.State(typeof(ExpressionParserTests).Assembly)).Value!
 				.Compile().DynamicInvoke(7));
 	}
 

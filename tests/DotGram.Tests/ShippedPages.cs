@@ -199,8 +199,22 @@ static class ShippedPages
 			.. AppDomain.CurrentDomain
 				.GetAssemblies()
 				.Where(static assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
-				.Select(static assembly => (MetadataReference)MetadataReference.CreateFromFile(assembly.Location)),
+				.Select(static assembly => Referenced(assembly)),
 		];
+	}
+
+	/// <summary>
+	/// An assembly as the test project itself references it: the fixture that carries the expression
+	/// language a second time, with its immediate reading, under the alias the project gives it, so
+	/// that a page naming <c>ExpressionParser</c> means the package's, as it does for a reader.
+	/// </summary>
+	static MetadataReference Referenced(Assembly assembly)
+	{
+		var reference = MetadataReference.CreateFromFile(assembly.Location);
+
+		return assembly.GetName().Name == "DotGram.ExpressionLanguage.Immediate"
+			? reference.WithAliases(["immediate"])
+			: reference;
 	}
 
 	/// <summary>The grammar a block holds inside its <c>[Gram(…)]</c>, or null where it holds none.</summary>

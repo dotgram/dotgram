@@ -1,4 +1,6 @@
-﻿using System;
+﻿extern alias immediate;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,6 +10,8 @@ using System.Text;
 
 using DotGram.ExpressionLanguage;
 using DotGram.Handwritten;
+
+using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -43,7 +47,7 @@ public sealed class ExpressionRefusalTests
 		foreach (var text in Texts())
 		{
 			var tape      = Answer(text, ExpressionParser.TryParseLambda);
-			var immediate = Answer(text, ExpressionParser.Immediate.TryParseLambda);
+			var immediate = Answer(text, ImmediateExpressions.Immediate.TryParseLambda);
 
 			answers
 				.Append(Escaped(text))
@@ -93,18 +97,44 @@ public sealed class ExpressionRefusalTests
 	{
 		var state = new ExpressionParser.State(typeof(ExpressionRefusalTests).Assembly) { Text = text };
 
-		try
+		return Caught(() =>
 		{
 			var match = read(text, state);
 
 			return match.IsSuccess
 				? "accepted"
 				: $"{match.Outcome} at {match.Position}: {match.Error} {state.Mark()}";
+		}, () => state.Mark().ToString());
+	}
+
+	/// <summary>
+	/// The same of the immediate reading, which is the fixture's and so has a state and a match of
+	/// its own types: the two meet in the answer, never in a value.
+	/// </summary>
+	static string Answer(string text, Func<string, ImmediateExpressions.State, ImmediateExpressions.Match<LambdaExpression>> read)
+	{
+		var state = new ImmediateExpressions.State(typeof(ExpressionRefusalTests).Assembly) { Text = text };
+
+		return Caught(() =>
+		{
+			var match = read(text, state);
+
+			return match.IsSuccess
+				? "accepted"
+				: $"{match.Outcome} at {match.Position}: {match.Error} {state.Mark()}";
+		}, () => state.Mark().ToString());
+	}
+
+	static string Caught(Func<string> answer, Func<string> mark)
+	{
+		try
+		{
+			return answer();
 		}
 		catch (Exception thrown) when (thrown is FormatException or InvalidOperationException or OverflowException ||
 			thrown is ArgumentException and not ArgumentNullException)
 		{
-			return "threw " + thrown.GetType().Name + " " + state.Mark();
+			return "threw " + thrown.GetType().Name + " " + mark();
 		}
 	}
 

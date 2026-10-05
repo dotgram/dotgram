@@ -1,10 +1,14 @@
-﻿using System;
+﻿extern alias immediate;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
 using DotGram.ExpressionLanguage;
 using DotGram.Handwritten;
+
+using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -59,7 +63,7 @@ public sealed class CarrierAgreementTests
 		foreach (var text in Texts())
 		{
 			var tape      = Answer(text, ExpressionParser.TryParseLambda);
-			var immediate = Answer(text, ExpressionParser.Immediate.TryParseLambda);
+			var immediate = Answer(text, ImmediateExpressions.Immediate.TryParseLambda);
 
 			if (tape == immediate)
 				continue;
@@ -132,11 +136,36 @@ public sealed class CarrierAgreementTests
 	{
 		var state = new ExpressionParser.State(typeof(CarrierAgreementTests).Assembly) { Text = text };
 
-		try
+		return Caught(() =>
 		{
 			var match = read(text, state);
 
 			return match.IsSuccess ? Accepted : $"{match.Outcome} at {match.Position}: {match.Error}";
+		});
+	}
+
+	/// <summary>
+	/// The same of the immediate reading, which is the fixture's and so has a state and a match of
+	/// its own types: the two meet in the answer, never in a value.
+	/// </summary>
+	static string Answer(
+		string text, Func<string, ImmediateExpressions.State, ImmediateExpressions.Match<LambdaExpression>> read)
+	{
+		var state = new ImmediateExpressions.State(typeof(CarrierAgreementTests).Assembly) { Text = text };
+
+		return Caught(() =>
+		{
+			var match = read(text, state);
+
+			return match.IsSuccess ? Accepted : $"{match.Outcome} at {match.Position}: {match.Error}";
+		});
+	}
+
+	static string Caught(Func<string> answer)
+	{
+		try
+		{
+			return answer();
 		}
 		catch (Exception thrown) when (thrown is FormatException or InvalidOperationException or OverflowException ||
 			thrown is ArgumentException and not ArgumentNullException)

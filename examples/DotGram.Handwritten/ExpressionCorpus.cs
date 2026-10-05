@@ -362,19 +362,44 @@ public static class ExpressionCorpus
 	internal static string Answer(
 		string text, Func<string, ExpressionParser.State, ExpressionParser.Match<LambdaExpression>> read, ExpressionParser.State state)
 	{
-		try
+		return Answer(() =>
 		{
 			var match = read(text, state);
 
 			return match.IsSuccess
-				? (string)DebugView.GetValue(match.Value)!
-				: $"refused ({match.Outcome}) at {match.Position}, a name refused at {state.RefusedAt}: {state.Refused()}";
+				? Shown(match.Value!)
+				: Refusal(match.Outcome, match.Position, state.RefusedAt, state.Refused());
+		});
+	}
+
+	/// <summary>
+	/// The same answer of a reading whose state and match are types of another assembly — the
+	/// immediate reading, which is compiled into a fixture of its own with every type of the language
+	/// again: the caller reads it and says what it read, and the answer is put the same way.
+	/// </summary>
+	internal static string Answer(Func<string> read)
+	{
+		try
+		{
+			return read();
 		}
 		catch (Exception thrown) when (thrown is FormatException or InvalidOperationException or OverflowException ||
 			thrown is ArgumentException and not ArgumentNullException)
 		{
 			return "threw " + thrown.GetType().Name;
 		}
+	}
+
+	/// <summary>An accepted text's answer: the tree as the API prints it for a debugger.</summary>
+	internal static string Shown(LambdaExpression value)
+	{
+		return (string)DebugView.GetValue(value)!;
+	}
+
+	/// <summary>A refused text's answer: how and where, and the furthest name the reading refused.</summary>
+	internal static string Refusal(object outcome, long position, int refusedAt, string? refused)
+	{
+		return $"refused ({outcome}) at {position}, a name refused at {refusedAt}: {refused}";
 	}
 
 	static readonly PropertyInfo DebugView =

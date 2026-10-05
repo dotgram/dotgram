@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The expression language's second reading, on the immediate carrier: the sources of
+	     src/DotGram.ExpressionLanguage compiled again with DOTGRAM_EL_IMMEDIATE, under which the
+	     grammar asks for `[GramOptions(Carrier = Immediate, Suffix = "Immediate")]` as well. The
+	     package leaves the symbol off and so carries one reading; this assembly carries both, and
+	     ExpressionParser.Immediate is read from here — by the agreement tests, which hold it to the
+	     tape, and by the stand, which measures it. Not shipped: it is a fixture.
+
+	     Every type of the language is here a second time under the same full name, so a project
+	     that references the package as well takes this one under an alias (`extern alias
+	     immediate`) and reads `State`, `Match<T>` and `ResolutionScope` of the immediate reading
+	     from here: the two readings meet only in what they answer, never in a value of one
+	     assembly handed to the other. Their static caches are per assembly too. -->
+	<PropertyGroup>
+		<!-- net10.0 alone: the tests and the stand are what read it, and both are net10.0. -->
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>DotGram.ExpressionLanguage</RootNamespace>
+		<DefineConstants>$(DefineConstants);DOTGRAM_EL_IMMEDIATE</DefineConstants>
+
+		<!-- As the package has them, so that a reader can open what the grammar became beside the
+		     package's own and see that the tape's reading is the same text. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\..\src\DotGram.ExpressionLanguage\**\*.cs"
+		         Exclude="..\..\src\DotGram.ExpressionLanguage\obj\**;..\..\src\DotGram.ExpressionLanguage\bin\**"
+		         LinkBase="ExpressionLanguage" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The package's own, for the same readers: the immediate reading is internal there too. -->
+		<InternalsVisibleTo Include="DotGram.Tests" />
+		<InternalsVisibleTo Include="DotGram.Benchmarks" />
+	</ItemGroup>
+
+</Project>

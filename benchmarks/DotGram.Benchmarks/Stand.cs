@@ -597,7 +597,7 @@ static partial class Stand
 		};
 
 		if (immediate)
-			readings.Add(new Reading("immediate", () => Read(ExpressionParser.Immediate.TryParseLambda)));
+			readings.Add(new Reading("immediate", () => ImmediateExpression.Reads(text, Caller) ? 1 : 0));
 
 		return new Workload("el", name, [.. readings], Disagreement);
 
@@ -617,7 +617,7 @@ static partial class Stand
 			if (!immediate)
 				return null;
 
-			var eager = ExpressionCorpus.Answer(text, ExpressionParser.Immediate.TryParseLambda, new ExpressionParser.State(Caller) { Text = text });
+			var eager = ImmediateExpression.Answer(text, Caller);
 
 			return eager == tape ? null : $"  tape      {tape}\n  immediate {eager}";
 		}
@@ -732,6 +732,9 @@ static partial class Stand
 		readonly Type _elTape;
 		readonly Type _elImmediate;
 		readonly Type _elState;
+		// The immediate reading's own state: a type of the assembly the reading is in, which is not the package's
+		// where the side has the fixture (ImmediateFixture).
+		readonly Type _elImmediateState;
 		// Null where the side has no unified FixParser at all (v0.1.0: 93 per-message parsers, no
 		// door to reflect on): the side then has no FIX rows, but every other family still reads
 		// (finance-fo, this optionality). The `Fix`/`FixOptions`/`FixMessages` properties below are
@@ -820,8 +823,15 @@ static partial class Stand
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
 			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
 			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
-			_elImmediate = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
+			// The immediate reading is in the fixture where the side has one, and in the package itself in a side built
+			// before it moved there; its state is taken from the assembly the reading is in, since the fixture carries
+			// every type of the language again under the same names.
+			_elImmediate = File.Exists(Path.Combine(directory, ImmediateFixture + ".dll"))
+				? Load(ImmediateFixture, "DotGram.ExpressionLanguage.ExpressionParser+Immediate")
+				: Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
+			_elImmediateState = _elImmediate.Assembly.GetType("DotGram.ExpressionLanguage.ExpressionParser+State")
+				?? throw new InvalidOperationException($"{name}: DotGram.ExpressionLanguage.ExpressionParser+State not found in {_elImmediate.Assembly.GetName().Name}");
 			// Only a side that was given DotGram.Finance.dll at all has FIX to read: v0.1.0's FIX package predates
 			// the file (93 per-message parsers, no unified door), so a pair against it built without it must not
 			// even try to load it -- `Find`/`Load` above call LoadFromAssemblyPath unconditionally, and that
@@ -899,15 +909,16 @@ static partial class Stand
 		/// <summary>The quiet form of this side's expression parser, <c>bool TryParseLambda(string, State, out value)</c>, by reflection; null where the side has none.</summary>
 		public Func<int>? ElBool(string rule, string text, bool immediate)
 		{
-			var type = immediate ? _elImmediate : _elTape;
+			var type      = immediate ? _elImmediate : _elTape;
+			var stateType = immediate ? _elImmediateState : _elState;
 			var call = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).FirstOrDefault(one => one.Name == rule
-				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, var state, { IsOut: true }] && state.ParameterType == _elState);
+				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, var state, { IsOut: true }] && state.ParameterType == stateType);
 
 			if (call is null)
 				return null;
 
-			var ctor = _elState.GetConstructor([typeof(Assembly)]) ?? throw new InvalidOperationException("ExpressionParser.State(Assembly) not found");
-			var textProperty = _elState.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			var ctor = stateType.GetConstructor([typeof(Assembly)]) ?? throw new InvalidOperationException("ExpressionParser.State(Assembly) not found");
+			var textProperty = stateType.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 				?? throw new InvalidOperationException("ExpressionParser.State.Text not found");
 
 			return () =>
@@ -1283,13 +1294,14 @@ static partial class Stand
 
 		public Func<int> El(string method, string text, bool immediate)
 		{
-			var type = immediate ? _elImmediate : _elTape;
+			var type      = immediate ? _elImmediate : _elTape;
+			var stateType = immediate ? _elImmediateState : _elState;
 			var call = type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-				null, [typeof(string), _elState], null)
+				null, [typeof(string), stateType], null)
 				?? throw new InvalidOperationException($"{type.Name}.{method}(string, State) not found");
-			var ctor = _elState.GetConstructor([typeof(Assembly)])
+			var ctor = stateType.GetConstructor([typeof(Assembly)])
 				?? throw new InvalidOperationException("ExpressionParser.State(Assembly) not found");
-			var textProperty = _elState.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+			var textProperty = stateType.GetProperty("Text", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 				?? throw new InvalidOperationException("ExpressionParser.State.Text not found");
 
 			return () =>
@@ -2010,7 +2022,7 @@ static partial class Stand
 		var after  = Read(afterDir);
 
 		if (before == "no build.txt" && after == "no build.txt")
-			return FixModeNote(beforeDir, afterDir).TrimStart();
+			return (FixModeNote(beforeDir, afterDir) + ElImmediateNote(beforeDir, afterDir)).TrimStart();
 
 		var note = $"Sides: before ({before}); after ({after}). (The check that the two emitted different code applies to two sides of one commit given different properties; its silence says nothing about two commits.)";
 
@@ -2021,7 +2033,24 @@ static partial class Stand
 		if (propertiesBefore != propertiesAfter && Line(beforeDir, "emitted").Length > 0 && Line(beforeDir, "emitted") == Line(afterDir, "emitted"))
 			note += " **THE TWO SIDES EMITTED THE SAME CODE (byte for byte, worktree paths aside) although their properties differ: the generator read none of them, and this is not a pair of two branches.**";
 
-		return note + FixModeNote(beforeDir, afterDir);
+		return note + FixModeNote(beforeDir, afterDir) + ElImmediateNote(beforeDir, afterDir);
+	}
+
+	/// <summary>The assembly the expression language's immediate reading is read from since it left the package: tests/DotGram.ExpressionLanguage.Immediate.</summary>
+	const string ImmediateFixture = "DotGram.ExpressionLanguage.Immediate";
+
+	/// <summary>
+	/// A pair one side of which reads the expression language's immediate reading from the package and the other from the fixture.
+	/// The fixture is an assembly of its own, with every static cache of the language again, so on that side the immediate reading
+	/// warms nothing the tape's reading has warmed and the other way round: a cold or first-call figure of the immediate rows is not
+	/// comparable across such a pair. A warmed one is.
+	/// </summary>
+	static string ElImmediateNote(string beforeDir, string afterDir)
+	{
+		var before = File.Exists(Path.Combine(beforeDir, ImmediateFixture + ".dll"));
+		var after  = File.Exists(Path.Combine(afterDir, ImmediateFixture + ".dll"));
+
+		return before == after ? "" : $" **The expression language's immediate rows (before-immediate, after-immediate) read that reading from two places: the {(before ? "before" : "after")} side from {ImmediateFixture}, the other from the package. Static caches are per assembly, so a cold or first-call figure of those rows is not comparable across this pair; a warmed one is.**";
 	}
 
 	/// <summary>The A/A of the parent for one row: the median change of its build against itself, and the range over the runs; empty where the row was not in the A/A.</summary>

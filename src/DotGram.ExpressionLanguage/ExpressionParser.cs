@@ -185,7 +185,14 @@ namespace DotGram.ExpressionLanguage;
 // written so that none could. Take the suppression off if a construction is added to an
 // alternative that can be abandoned without a guard in front of it asking what the construction
 // will do — and expect `CarrierAgreementTests` to be what tells you.
+//
+// That second reading is not in the package. It is compiled only where DOTGRAM_EL_IMMEDIATE
+// is defined, which is the fixture tests/DotGram.ExpressionLanguage.Immediate: these same
+// sources built again into an assembly of their own, which the tests and the stand read. The
+// package carries the one reading a scope is given, and nothing that only measures it.
+#if DOTGRAM_EL_IMMEDIATE
 #pragma warning disable GRAM5015
+#endif
 [Gram("""
 	@using System;
 	@using System.Globalization;
@@ -1675,15 +1682,20 @@ namespace DotGram.ExpressionLanguage;
 // reading above: the two must answer alike on every input, which is what
 // ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
 // the one place that did, a name resolved by a factory that threw, is a `when` now.
+// Compiled in the fixture only, as the comment above the grammar says.
+#if DOTGRAM_EL_IMMEDIATE
 [GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
 #pragma warning restore GRAM5015
+#endif
 public static partial class ExpressionParser
 {
+#if DOTGRAM_EL_IMMEDIATE
 	// Declared here so that it is internal: a reading for the tests and the yardstick, and
 	// no part of what a scope is given (docs/syntax.md §6.6).
 	internal static partial class Immediate
 	{
 	}
+#endif
 
 	// ParseLambda and TryParseLambda are generated here.
 

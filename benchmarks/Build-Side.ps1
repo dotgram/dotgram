@@ -56,6 +56,11 @@ $projects = 'src/DotGram.Finance/DotGram.Finance.csproj', 'src/DotGram.Expressio
 	'src/DotGram.Web/DotGram.Web.csproj', 'examples/DotGram.Examples/DotGram.Examples.csproj', 'src/DotGram.Sql/DotGram.Sql.csproj',
 	# The document grammar the config rows read (Documents.cs, Config) is compiled into the benchmarks assembly, so a side without it has no config rows: window 79 of 2026-09-20 asked for config/ and got nothing.
 	'benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj'
+# The expression language's immediate reading, which left the package for a fixture of its own: the benchmarks project builds it
+# through its reference, and it is named here so that its DLL is copied beside the others. A commit from before the move has no such
+# project, and its side reads that reading from the package (Stand.cs, PairedSide).
+$fixture  = 'tests/DotGram.ExpressionLanguage.Immediate/DotGram.ExpressionLanguage.Immediate.csproj'
+if (Test-Path (Join-Path $Tree $fixture)) { $projects += $fixture }
 $flags    = @($Property | ForEach-Object { "-p:$_" })
 $rebuild  = @(if ($Property.Count -gt 0) { '-t:Rebuild' })
 $watch    = [Diagnostics.Stopwatch]::StartNew()

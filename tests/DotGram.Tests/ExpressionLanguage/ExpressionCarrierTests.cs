@@ -1,8 +1,12 @@
-﻿using System;
+﻿extern alias immediate;
+
+using System;
 using System.Linq.Expressions;
 using System.Reflection;
 
 using DotGram.ExpressionLanguage;
+
+using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -175,11 +179,29 @@ public sealed class ExpressionCarrierTests
 	{
 		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
 
-		Assert.NotNull(typeof(ExpressionParser.Immediate).GetNestedType("ImmediateValues", Nested));
-		Assert.Null(typeof(ExpressionParser.Immediate).GetNestedType("DirectValues", Nested));
+		Assert.NotNull(typeof(ImmediateExpressions.Immediate).GetNestedType("ImmediateValues", Nested));
+		Assert.Null(typeof(ImmediateExpressions.Immediate).GetNestedType("DirectValues", Nested));
 
 		Assert.NotNull(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
 		Assert.Null(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+	}
+
+	/// <summary>
+	/// The package carries the one reading a scope is given. The immediate copy is compiled only
+	/// into the fixture this project reads it from (tests/DotGram.ExpressionLanguage.Immediate),
+	/// and a package that carried it again would pay its size for nothing a caller can reach.
+	/// </summary>
+	[Fact]
+	public void The_package_carries_no_immediate_copy()
+	{
+		var shipped = typeof(ExpressionParser).Assembly;
+
+		Assert.Equal("DotGram.ExpressionLanguage", shipped.GetName().Name);
+		Assert.Null(typeof(ExpressionParser).GetNestedType("Immediate", BindingFlags.Public | BindingFlags.NonPublic));
+		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "Immediate");
+		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "ImmediateValues");
+
+		Assert.NotSame(shipped, typeof(ImmediateExpressions.Immediate).Assembly);
 	}
 
 	[Theory]
@@ -211,7 +233,7 @@ public sealed class ExpressionCarrierTests
 		var match = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
 
 		Assert.Equal(match.IsSuccess, ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var tape));
-		Assert.Equal(match.IsSuccess, ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var immediate));
+		Assert.Equal(match.IsSuccess, ImmediateExpressions.Immediate.TryParseLambda(input, new ImmediateExpressions.State { Text = input }, out var immediate));
 
 		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(tape));
 		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(immediate));
@@ -220,7 +242,7 @@ public sealed class ExpressionCarrierTests
 	static void Agree(string input)
 	{
 		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
-		var immediate = ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State { Text = input });
+		var immediate = ImmediateExpressions.Immediate.TryParseLambda(input, new ImmediateExpressions.State { Text = input });
 
 		Assert.Equal(tape.IsSuccess, immediate.IsSuccess);
 

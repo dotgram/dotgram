@@ -1,4 +1,6 @@
-﻿using System;
+﻿extern alias immediate;
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -7,6 +9,8 @@ using System.Linq.Expressions;
 using System.Text;
 
 using DotGram.ExpressionLanguage;
+
+using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -352,8 +356,8 @@ public sealed class InitializerOracleTests
 	/// <summary>The text read on the immediate carrier, where constructions run as they are read.</summary>
 	static LambdaExpression Immediately(string text)
 	{
-		var match = ExpressionParser.Immediate.TryParseLambda(
-			text, new ExpressionParser.State(typeof(Box).Assembly) { Text = text });
+		var match = ImmediateExpressions.Immediate.TryParseLambda(
+			text, new ImmediateExpressions.State(typeof(Box).Assembly) { Text = text });
 
 		Assert.True(match.IsSuccess, match.Error);
 
@@ -365,8 +369,8 @@ public sealed class InitializerOracleTests
 	{
 		try
 		{
-			var match = ExpressionParser.Immediate.TryParseLambda(
-				text, new ExpressionParser.State(typeof(Box).Assembly) { Text = text });
+			var match = ImmediateExpressions.Immediate.TryParseLambda(
+				text, new ImmediateExpressions.State(typeof(Box).Assembly) { Text = text });
 
 			return match.IsSuccess ? null : match.Error;
 		}

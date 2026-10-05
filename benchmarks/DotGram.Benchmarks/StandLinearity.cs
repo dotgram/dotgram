@@ -184,7 +184,7 @@ static partial class Stand
 
 		yield return new Series("expression", "hand",      "terms", [10, 100, 1000], n => { var t = chain(n); return () => HandExpression.TryParseLambda(t, new ExpressionParser.State(Caller) { Text = t }).IsSuccess; });
 		yield return new Series("expression", "tape",      "terms", [10, 100, 1000], n => { var t = chain(n); return () => ExpressionParser.TryParseLambda(t, new ExpressionParser.State(Caller) { Text = t }).IsSuccess; });
-		yield return new Series("expression", "immediate", "terms", [10, 100, 1000], n => { var t = chain(n); return () => ExpressionParser.Immediate.TryParseLambda(t, new ExpressionParser.State(Caller) { Text = t }).IsSuccess; });
+		yield return new Series("expression", "immediate", "terms", [10, 100, 1000], n => { var t = chain(n); return () => ImmediateExpression.Reads(t, Caller); });
 	}
 
 	/// <summary>
