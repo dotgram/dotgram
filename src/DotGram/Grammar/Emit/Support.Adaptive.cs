@@ -12,11 +12,18 @@ public static partial class CSharpEmitter
 			Held<T>[][]? _pages;
 			int _capacity;
 
+			// Raised where a value is stored (Machine.DirectMark), not where room is made: room
+			// is made in every table at once, and clearing every table to the records used was
+			// three hundred tables of two hundred and fifty-six rows on a store that wrote ten.
+			/// <summary>One past the highest record written this parse, or zero: what Return clears to.</summary>
+			internal int High;
+
 			internal ValueTable(int size)
 			{
 				_first = new Held<T>[size];
 				_pages = null;
 				_capacity = size;
+				High = 0;
 			}
 
 			internal int Length => _capacity;
