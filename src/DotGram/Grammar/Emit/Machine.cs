@@ -2472,26 +2472,93 @@ sealed partial class Machine
 	/// that token is the form it is compiled in rather than a chain of tries.
 	/// </para>
 	/// <para>
-	/// A repetition that recovers is left as it is too. It tries what follows it before each
-	/// turn, to tell an element from where the run ends, and comes back for the turn when what
-	/// follows fails (<see cref="CompileRecoveringRepeat"/>): braces would commit that probe's
-	/// way out, and <c>Row* recover ';' &amp; eof</c> refused <c>a;</c> at 0. The probe is the
-	/// recovery's machinery and not a reading the author chose, and the turn it decides is
-	/// what the methods read.
+	/// Nor is anything that holds a repetition that recovers (<see cref="HoldsRecovery"/>). Such a
+	/// repetition tries the complete continuation after it before each turn — §8.2, the whole
+	/// rest of the parse and not the rest of its rule — and comes back for the turn when that
+	/// fails (<see cref="CompileRecoveringRepeat"/>). Braces around it, or around a call, a
+	/// choice or a repetition it stands in, would commit the probe's way out: <c>Row* recover
+	/// ';' &amp; 'a' &amp; eof</c> refused <c>a;a</c>, and <c>Rows &amp; 'z'</c> with <c>Rows =
+	/// Row* recover ';'</c> refused <c>a;z</c>, <c>Rows</c> answering with no element before
+	/// <c>'z'</c> was tried. The probe is the recovery's machinery and not a reading the author
+	/// chose; what it holds is braced as before.
 	/// </para>
 	/// </remarks>
 	bool Stands(Node node)
 	{
-		return OverKinds && !_standing.Contains(node) && node switch
+		return OverKinds && !_standing.Contains(node) && !HoldsRecovery(node) && node switch
 		{
 			Node.Call => true,
 			Node.Choice { Selection: null } or Node.Repeat when
 				!_owners.TryGetValue(node, out var owner) || owner.GivesBack => false,
 			Node.Choice(var alternatives) { Selection: null } => Predictive(alternatives) is null,
-			Node.Repeat => !_recoveries.ContainsKey(node),
+			Node.Repeat => true,
 			_ => false,
 		};
 	}
+
+	/// <summary>
+	/// Whether a node is, or holds, a repetition that recovers: in itself, or in a rule it calls
+	/// however deep.
+	/// </summary>
+	bool HoldsRecovery(Node node)
+	{
+		if (_recoveries.Count == 0)
+			return false;
+
+		if (_holdsRecovery.TryGetValue(node, out var known))
+			return known;
+
+		var recovering = Recovering();
+		var found   = NodeWalk.Descendants(node).Any(one =>
+			_recoveries.ContainsKey(one) || one is Node.Call(var rule, _) && recovering.Contains(rule));
+
+		_holdsRecovery[node] = found;
+
+		return found;
+	}
+
+	/// <summary>
+	/// The rules whose bodies hold a repetition that recovers, themselves or through a call: those
+	/// that hold one, and every rule that calls one of them, until no more are added.
+	/// </summary>
+	HashSet<RuleSymbol> Recovering()
+	{
+		if (_recovering is { } known)
+			return known;
+
+		var probing = new HashSet<RuleSymbol>();
+		var calls   = new Dictionary<RuleSymbol, List<RuleSymbol>>();
+
+		foreach (var pair in _graph.Bodies)
+		{
+			var called = new List<RuleSymbol>();
+
+			foreach (var one in NodeWalk.Descendants(pair.Value))
+			{
+				if (_recoveries.ContainsKey(one))
+					probing.Add(pair.Key);
+				else if (one is Node.Call(var callee, _))
+					called.Add(callee);
+			}
+
+			calls[pair.Key] = called;
+		}
+
+		for (var added = true; added;)
+		{
+			added = false;
+
+			foreach (var pair in calls)
+				if (!probing.Contains(pair.Key) && pair.Value.Exists(probing.Contains))
+					added |= probing.Add(pair.Key);
+		}
+
+		return _recovering = probing;
+	}
+
+	readonly Dictionary<Node, bool> _holdsRecovery = new(NodeIdentity.Instance);
+
+	HashSet<RuleSymbol>? _recovering;
 
 	int CompileUnguarded(Node node, int next, FollowSets.Continuation following)
 	{

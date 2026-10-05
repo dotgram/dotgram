@@ -574,41 +574,70 @@ public sealed class TokenReadingFindingsTests
 
 	/// <summary>
 	/// The constructs whose engine rendering tries a way out first and comes back — a recovering
-	/// repetition, followed by the end, called, and followed by what its elements begin with; a
-	/// lookahead; a fold, by recursion on the left and by
-	/// binding powers — read alike over tokens in every rendering and carrier, whole, from every
-	/// position and in windows, and as over characters where §4 does not intervene.
+	/// repetition followed by the end, called, followed by what its elements begin with, and
+	/// called inside a lookahead; a positive and a negative lookahead; a fold, by recursion on the
+	/// left and by binding powers — read alike over tokens in every rendering, whole, from every
+	/// position and in windows, and as over characters. The last column says what the tape and
+	/// the immediate carrier run: the reader's methods, a flat method, or the engine.
 	/// </summary>
 	/// <remarks>
-	/// A recovering repetition tries what follows it before each turn, and comes back for the
-	/// turn when that fails. Braced as an ordinary repetition is over kinds, the probe's way
-	/// out was committed, and <c>Row* recover ';' &amp; eof</c> refused <c>a;</c> at 0 on the
-	/// engine. The probe is the recovery's own machinery, not a reading the author chose, and
-	/// is left unbraced.
 	/// <para>
-	/// Without a factory: a recovery with one is refused in a spaced grammar (GRAM4010, the
-	/// element being the seam and the call), and a grammar without trivia is not cut. Nor a
-	/// stream: yielding with implicit trivia is refused (GRAM4027). The inputs have no spaces
-	/// where a valueless repetition's turns meet, which over characters have no seam.
+	/// A recovering repetition tries the complete continuation after it before each turn (§8.2)
+	/// and comes back for the turn when that fails. Braced as an ordinary repetition is over
+	/// kinds, the probe's way out was committed: <c>Row* recover ';' &amp; 'a' &amp; eof</c>
+	/// refused <c>a;a</c> on the engine. So was a call holding one: <c>Rows &amp; 'z'</c> refused
+	/// <c>a;z</c>, <c>Rows</c> answering with no element before <c>'z'</c> was tried — read only
+	/// while the repetition was taken for silent and the call's braces compiled to nothing. The
+	/// probe is the recovery's machinery and not a reading the author chose: nothing that holds
+	/// one is braced, so the continuation it tries is the one §8.2 names, past the end of its rule,
+	/// and the answer is the one over characters. That is a reading of §8.2 against §4's "a rule's
+	/// answer stands", which the maintainer may decide otherwise.
 	/// </para>
 	/// <para>
-	/// Where a turn has to be recovered before what follows the repetition, the engine over
-	/// tokens refuses what the tape reads, with or without any braces: <c>aa;z</c> through
-	/// <c>Rows</c>, <c>aa;a</c> before <c>'a' &amp; eof</c>. That is not this question, and
-	/// those inputs are not asked here.
+	/// Every recovering row runs the engine in all three renderings: the reader reads a recovery
+	/// only with a factory, a factory is refused in a spaced grammar (GRAM4010, the element being
+	/// the seam and the call), and a grammar without trivia is not cut. Nor is a stream asked:
+	/// yielding with implicit trivia is refused (GRAM4027). The inputs have no spaces where a
+	/// valueless repetition's turns meet, which over characters have no seam.
+	/// </para>
+	/// <para>
+	/// Where a turn has to be recovered before what follows the repetition, the engine over tokens
+	/// refuses what it reads over characters, with or without any braces: <c>aa;z</c> through
+	/// <c>Rows</c>, <c>aa;a</c> before <c>'a' &amp; eof</c>. That is not this question, and those
+	/// inputs are not asked here.
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a|")]
-	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;")]
-	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b")]
-	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a")]
-	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Lex.Num => @(left - right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 - 3|9|9 -|- 9")]
-	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Start << 1 => @(left - right) | left: Start & '*' & right: Start << 2 => @(left * right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 * 3 - 1|2 * 3|9 -|9 - 2 *")]
-	public void A_construct_that_tries_a_way_out_first_reads_alike_over_tokens(string grammar, string inputs)
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a|", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';' & 'z'\nStart = ?=Rows & 'a' & ';' & 'z' & eof\nparse Start\n", "a;z|z|a;a;z", "engine")]
+	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b", "flat")]
+	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a", "flat")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Lex.Num => @(left - right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 - 3|9|9 -|- 9", "methods")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Start << 1 => @(left - right) | left: Start & '*' & right: Start << 2 => @(left * right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 * 3 - 1|2 * 3|9 -|9 - 2 *", "methods")]
+	public void A_construct_that_tries_a_way_out_first_reads_alike_over_tokens(string grammar, string inputs, string carried)
 	{
 		grammar = "trivia = { ' '* }\n" + grammar;
+
+		// What the tape and the immediate carrier run: the reader's methods, a flat method, or the
+		// engine where the methods refuse the grammar (GRAM5005) — which every recovery over tokens is, a
+		// recovery the reader reads needing a factory and a factory being refused in a spaced
+		// grammar (GRAM4010). Those rows ask the engine three times, and say so.
+		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		{
+			var options = Options(lexical: true, direct: true);
+
+			options.Carrier = carrier;
+
+			var text = GramCompiler.Compile(grammar, options).Sources[0].Text;
+
+			Assert.Equal(
+				carried,
+				text.Contains("ref struct Reader_", StringComparison.Ordinal) ? "methods" :
+				text.Contains("entries.Add(new ParserEntry(", StringComparison.Ordinal) ? "engine" :
+				"flat");
+		}
 
 		var tokens     = OverTokens(grammar, "GRAM5005", "GRAM5007").ToArray();
 		var characters = OverCharacters(grammar).ToArray();

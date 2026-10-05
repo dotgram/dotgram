@@ -1447,7 +1447,8 @@ give it, a rule called with arguments — runs on the shared engine, the slower 
 reads what the methods read: since 2026-10-04 the engine, and the flat method lowered from it,
 read each call over kinds as if braced, and each choice and repetition of a rule not marked `?`
 too, so a rule's answer stands and what matched inside it is revisited only in a rule marked
-`?`, as §4 says. A recovery and a stream were on that list until the buffered rendering learned
+`?`, as §4 says. What holds a repetition marked `recover` is left open: the repetition tries the
+complete continuation after it before each turn (§8.2), past the end of its rule. A recovery and a stream were on that list until the buffered rendering learned
 to read both: over a buffer the methods carry a `recover` and step a `yield` one element at
 a time, and what runs then is the reader's committed reading, not the engine's. `GRAM5009`: an optional or a repetition that can take,
 in one token, what follows it, which over kinds nothing gives back.

@@ -153,7 +153,11 @@ sealed partial class Machine
 			// nothing else — which is the same question, asked of it. `Path = ('/' & Segment)*`
 			// with `Segment` a repetition of its own is the shape this was refusing, and it is
 			// the shape most path-like grammars are written in.
-			Node.Repeat repeat => SilentRepeat(repeat, following),
+			//
+			// Never one that recovers: it writes its turn and the way back to the element on the
+			// arena (CompileRecoveringRepeat) whatever is proved about it. Taken for silent, the
+			// braces of a call over kinds around it compiled to nothing (Machine.Stands).
+			Node.Repeat repeat => !_recoveries.ContainsKey(node) && SilentRepeat(repeat, following),
 
 			// An atomic group is first-match-commits, and that is a shape locals can hold:
 			// try each alternative in order through the give-back door, and the first that
