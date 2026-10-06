@@ -86,6 +86,12 @@ public sealed class FixShapedCarrierTests
 	// Nothing, and nothing but separators.
 	[InlineData("")]
 	[InlineData(";;;")]
+	// Cut inside a field after fields that stood: the reading runs out of input where the
+	// field, its value or its data was owed, with the fields before it gathered already.
+	[InlineData("1=abc;2")]
+	[InlineData("1=abc;2=")]
+	[InlineData("1=abc;9=3;7=ab")]
+	[InlineData("1=abc;9=3;7=abc;1=d")]
 	public void The_two_carriers_build_the_same(string wire)
 	{
 		var tape      = Read(CarrierKind.Tape, wire);
@@ -122,9 +128,20 @@ public sealed class FixShapedCarrierTests
 
 		var read   = host.GetMethods().Single(one =>
 			one.Name == "ParseFields" && one.GetParameters()[0].ParameterType == typeof(string));
-		var fields = ((IEnumerable)read.Invoke(null, [wire])!).Cast<object?>().Select(one => one?.ToString() ?? "<null>");
 
-		return (string.Join(" | ", fields), built.Cast<string>().ToArray());
+		string fields;
+
+		// A wire the stream refuses is an answer too, and the two carriers have to give the same one.
+		try
+		{
+			fields = string.Join(" | ", ((IEnumerable)read.Invoke(null, [wire])!).Cast<object?>().Select(one => one?.ToString() ?? "<null>"));
+		}
+		catch (TargetInvocationException refused)
+		{
+			fields = "<" + refused.InnerException!.GetType().Name + ": " + refused.InnerException.Message + ">";
+		}
+
+		return (fields, built.Cast<string>().ToArray());
 	}
 
 	static string Counted(string[] built)

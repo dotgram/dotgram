@@ -470,7 +470,7 @@ namespace DotGram.Snapshots
 					values.Count1 = rr1_1;
 
 					if (q1 >= 0)
-						return Refused_DotGram(ref failure, p, 0);
+						{ values.Count1 = rb_1; return Refused_DotGram(ref failure, p, 0); }
 					last0 = Construct_Program(values.Take1(rb_1)!);
 					return p;
 				}
