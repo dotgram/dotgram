@@ -940,6 +940,9 @@ public static partial class CSharpEmitter
 			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
 			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
 
+			// The one-call refusal, where a reader wrote one.
+			regioned = Region(regioned, "refused", machines.Exists(static compiled => compiled.Direct && compiled.Machine.RefusesById));
+
 			file.Write(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")

@@ -489,8 +489,7 @@ namespace DotGram.Snapshots
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
-					return -1;
+					return Refused_DotGram(ref failure, p, 4);
 				}
 				c = text[p];
 				switch (c)
@@ -509,10 +508,7 @@ namespace DotGram.Snapshots
 							if (q2 < 0) return -1;
 							p = q2;
 							if ((uint)p >= (uint)text.Length || text[p] != ')')
-							{
-								if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
-								return -1;
-							}
+								return Refused_DotGram(ref failure, p, 1);
 							p += 1;
 							ways.Begin(1);
 							ways.Put(r0);
@@ -596,10 +592,7 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				if ((uint)p >= (uint)text.Length || text[p] != '^')
-				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
-					return -1;
-				}
+					return Refused_DotGram(ref failure, p, 3);
 				p += 1;
 				var q1 = Read_trivia(p);
 				if (q1 < 0) return -1;
@@ -693,10 +686,7 @@ namespace DotGram.Snapshots
 				}
 
 				if (p < m0 + 1)
-				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
-					return -1;
-				}
+					return Refused_DotGram(ref failure, p, 5);
 
 				b0 = p;
 				ways.Begin(4);
@@ -737,10 +727,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				var r0 = -1;
 				if ((uint)p >= (uint)text.Length || text[p] != '+')
-				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
-					return -1;
-				}
+					return Refused_DotGram(ref failure, p, 0);
 				p += 1;
 				var q0 = Read_trivia(p);
 				if (q0 < 0) return -1;
@@ -2130,6 +2117,19 @@ namespace DotGram.Snapshots
 							Put(Refs[at + 1]);
 					}
 			}
+		}
+
+		/// <summary>
+		/// The set numbered <paramref name="id"/> refused at <paramref name="at"/> where the reading is
+		/// not quiet, and the failure: what most refusals of a reader write, as one call.
+		/// </summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		static int Refused_DotGram(ref Failure failure, int at, int id)
+		{
+			if (!failure.Quiet)
+				Refuse_DotGram(ref failure, at, ExpectedSet_DotGram(id));
+
+			return -1;
 		}
 
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
