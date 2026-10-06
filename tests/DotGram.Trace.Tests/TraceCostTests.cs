@@ -102,7 +102,8 @@ public sealed class TraceCostTests(ITestOutputHelper output)
 	/// first; then as the scaling classes time a ratio (<c>ScalingClock</c>): alternating rounds, the
 	/// least of each, and a ratio over the bound measured again before it is believed, so that other
 	/// test assemblies running beside this one — which <see cref="Alone"/> does not hold off — cannot
-	/// decide it.
+	/// decide it. The Windows CI job also runs this assembly by itself, after the others have finished,
+	/// for the same reason: a hosted runner has too few cores to time a ratio beside them.
 	/// </para>
 	/// </remarks>
 	[Theory]

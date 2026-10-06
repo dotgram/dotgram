@@ -246,8 +246,16 @@ jobs:
       - name: Build
         run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
 
+      # The cost of a trace build is a ratio of two timings, and a hosted Windows runner has too few
+      # cores to time it while other test assemblies run beside it: dotnet test starts the assemblies
+      # in parallel, and the longer, profiled reading suffers the more. So that assembly is left out
+      # of the first run (its tests are filtered out by namespace; the empty assembly then reports
+      # no tests, exit code 8, which is ignored) and run alone, after the rest, in the second.
       - name: Test
-        run: dotnet test DotGram.slnx --no-build --configuration Release
+        run: dotnet test DotGram.slnx --no-build --configuration Release --filter-not-namespace DotGram.Trace.Tests --ignore-exit-code 8
+
+      - name: Test the trace cost alone
+        run: dotnet test --project tests/DotGram.Trace.Tests --no-build --configuration Release
 
       - name: Show the refusal exponents
         if: always()
