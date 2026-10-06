@@ -1050,9 +1050,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1091,16 +1088,10 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("first names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						for (var item = 0; item < log[read]; item++)
 						{
-							#if DOTGRAM_CHECKS
-							if (log[read + 1 + item] >= Ways.CheckRecords || log[read + 1 + item] < 0) throw new global::System.InvalidOperationException("rest[" + item + "] names record " + log[read + 1 + item] + " of " + Ways.CheckRecords + ", at " + read);
-							#endif
 							live[log[read + 1 + item]] = true;
 						}
 						read += 1 + log[read];
@@ -1108,32 +1099,20 @@ namespace DotGram.Snapshots
 					}
 					case 1:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 2:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("high names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("low names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 3:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("high names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -1145,9 +1124,6 @@ namespace DotGram.Snapshots
 					}
 					case 5:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("value names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -1528,16 +1504,6 @@ namespace DotGram.Snapshots
 
 
 
-			#if DOTGRAM_CHECKS
-
-			[global::System.ThreadStatic]
-			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
-			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
-			// initialiser runs for the first thread only, which for a zero default is what every other
-			// thread gets anyway.
-			internal static int CheckRecords = 0;
-
-			#endif
 
 			#if DOTGRAM_COUNTS
 

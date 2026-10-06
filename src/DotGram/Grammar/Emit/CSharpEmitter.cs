@@ -189,7 +189,7 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false)
+		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false)
 	{
 		statics ??= [];
 
@@ -1254,12 +1254,12 @@ public static partial class CSharpEmitter
 				if (part.IndexOf('\u0001') >= 0)
 					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
 				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);
-				sourceParts!.Add(PublicDocs.Keep(part));
+				sourceParts!.Add(Finished(part, checks));
 			}
 		}
 
 		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
-		return PublicDocs.Keep(written);
+		return Finished(written, checks);
 	}
 
 	static void EmitEngine(Writer file, Machine machine, string engine)
@@ -4617,6 +4617,16 @@ file.Line("return spare;");
 		{
 			return rule.Declaration?.Name ?? rule.Name;
 		}
+	}
+
+	/// <summary>
+	/// A generated file as it is handed over: the walk's checks only where they were asked for
+	/// (<see cref="CheckBlocks"/>), documentation only where another assembly reads it
+	/// (<see cref="PublicDocs"/>).
+	/// </summary>
+	static string Finished(string text, bool checks)
+	{
+		return PublicDocs.Keep(CheckBlocks.Settle(text, checks));
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>

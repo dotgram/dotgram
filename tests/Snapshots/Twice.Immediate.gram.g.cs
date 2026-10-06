@@ -1250,16 +1250,6 @@ namespace DotGram.Snapshots
 
 
 
-				#if DOTGRAM_CHECKS
-
-				[global::System.ThreadStatic]
-				// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
-				// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
-				// initialiser runs for the first thread only, which for a zero default is what every other
-				// thread gets anyway.
-				internal static int CheckRecords = 0;
-
-				#endif
 
 				#if DOTGRAM_COUNTS
 

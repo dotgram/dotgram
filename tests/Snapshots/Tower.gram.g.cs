@@ -1936,9 +1936,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1958,9 +1955,6 @@ namespace DotGram.Snapshots
 				(known || global::System.MemoryExtensions.IndexOf(new global::System.ReadOnlySpan<bool>(built, from_, root - from_), false) < 0))
 			{
 				var at    = ways.Opened;
-				#if DOTGRAM_CHECKS
-				if (at >= ways.LogCount || at + log[at] != ways.LogCount) throw new global::System.InvalidOperationException("record " + root + " is built where it stands, but the record there begins at " + at + " and the log ends at " + ways.LogCount);
-				#endif
 				var slot  = root;
 				var read  = at + 2;
 
@@ -2044,252 +2038,144 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 2:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 3:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 4:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 5:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 6:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 7:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 8:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 9:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 10:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 11:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 12:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 13:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 14:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 15:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 16:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 17:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("inner names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("tail names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -3117,16 +3003,6 @@ namespace DotGram.Snapshots
 
 
 
-			#if DOTGRAM_CHECKS
-
-			[global::System.ThreadStatic]
-			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
-			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
-			// initialiser runs for the first thread only, which for a zero default is what every other
-			// thread gets anyway.
-			internal static int CheckRecords = 0;
-
-			#endif
 
 			#if DOTGRAM_COUNTS
 

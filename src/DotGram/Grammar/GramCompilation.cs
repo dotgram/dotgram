@@ -222,6 +222,19 @@ public sealed class GramCompilerOptions
 	public bool CountRules { get; set; }
 
 	/// <summary>
+	/// Whether the walk that builds values asserts its invariants as it goes, in code written inside
+	/// <c>#if DOTGRAM_CHECKS</c>. For the repository's own checked builds; not a supported setting.
+	/// </summary>
+	/// <remarks>
+	/// The generator sets it where the compilation defines <c>DOTGRAM_CHECKS</c>, and nowhere else:
+	/// without it no text of the checks is written, where it used to be written everywhere and
+	/// compiled nowhere. With it the checks are written inside the same <c>#if</c>, so what runs is
+	/// decided by the symbol as before and a parser compiled from this text without the symbol is
+	/// the parser compiled without the option.
+	/// </remarks>
+	public bool Checks { get; set; }
+
+	/// <summary>
 	/// Whether the parser is a trace build: its readers report what they do to a sink set with
 	/// <c>Tracing(sink)</c> on the generated class, which carries the sink types and three
 	/// ready-made sinks beside the parser (docs/syntax.md, §6.9).

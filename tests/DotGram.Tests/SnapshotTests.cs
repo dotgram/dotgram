@@ -60,7 +60,8 @@ public sealed class SnapshotTests
 			// consumer’s project.
 			EmittedCode.Compile(
 				sources[0].Text, options.ClassName, options.Namespace, declarations,
-				sources.Skip(1).Select(static source => source.Text), utf8Literals: options.Utf8Literals);
+				sources.Skip(1).Select(static source => source.Text),
+				symbols: options.Checks ? ["DOTGRAM_CHECKS"] : null, utf8Literals: options.Utf8Literals);
 
 			foreach (var source in sources)
 				Held(source.HintName, source.Text);
@@ -224,6 +225,17 @@ public sealed class SnapshotTests
 				tower.Carrier = CarrierKind.Tape;
 
 				yield return (tower, null);
+
+				// And with the walk's invariants written in, which a parser compiled without
+				// DOTGRAM_CHECKS carries no text of: this is the one place their text is read, and
+				// it is compiled with the symbol defined.
+				var checks = Options();
+
+				checks.Carrier = CarrierKind.Tape;
+				checks.Checks  = true;
+				checks.Suffix  = "Checked";
+
+				yield return (checks, null);
 
 				break;
 			}
