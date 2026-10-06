@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -124,9 +124,19 @@ public sealed class ShippedExampleTests
 		Ast.Expression e = SqlStandardParser.ParseExpression("a + b * 2");
 		string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
 
+		Assert.Equal("a + b * 2", again);
+
 		bool standard = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t").IsSuccess;  // false
 
-		Assert.Equal("a + b * 2", again);
 		Assert.False(standard);
+
+		// A statement's kind is the type of its node.
+		if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Updatability: null } query)
+			again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
+
+		Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
+
+		Assert.Equal("SELECT a FROM t", again);
+		Assert.Equal(2, all.Length);
 	}
 }

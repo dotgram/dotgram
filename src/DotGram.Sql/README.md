@@ -35,9 +35,12 @@ dialect is the size of the difference.
 [`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/Sql2023Writer.cs). Its records are named for the standard's
 constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two types.
 
-`SqlStandardParser` publishes the standard's productions under their own names —
-`ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
-and the rest listed at the end of its grammar. `TransactSqlParser` publishes `ParseSelect`,
+`SqlStandardParser` reads at six levels: `ParseValue` (the standard's literal, a signed number among
+them, or `NULL`), `ParseDataType`, `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one
+statement of any kind, its `;` optional; a query is the `Statement.Select` among them) and `ParseSql`
+(statements, each ended by a `;` or by the end of the text, where an empty statement is refused).
+A production below them is read through the level that holds it, and a statement's kind is the type
+of its node. `TransactSqlParser` publishes `ParseSelect`,
 `ParseQuery`, `ParseSearchCondition`, `ParseValueExpression`, `ParseStatement`, `ParseSql` and
 `ParseScript`, each with two `TryParse…`: one giving a `Match<T>` with the refusal's message and
 position, and a `bool TryParse…(string input, out T value)` for where only the answer is wanted.
