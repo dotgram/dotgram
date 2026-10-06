@@ -1546,13 +1546,37 @@ sealed partial class Machine
 			.Exists(one => one.Shape is MemberShape.Pieces or MemberShape.Records);
 
 		/// <summary>
-		/// Whether what this method has written so far pushes a gathered member — itself, or
-		/// through a part — and so whether a failure past this point gives it back
-		/// (<see cref="Fails"/>). Read in the order the method is written: an exit in an
-		/// alternative after one that pushed gives back what its own path never pushed, which
-		/// is one assignment on a path that is failing anyway.
+		/// Whether what this method has written on the path to here pushes a gathered member —
+		/// itself, or through a part — and so whether a failure past this point gives it back
+		/// (<see cref="Fails"/>). Written in the order the method is, except across the
+		/// alternatives of a choice, which <see cref="PushedApart"/> keeps apart.
 		/// </summary>
 		bool _pushed;
+
+		/// <summary>
+		/// The alternatives of one choice with their pushes kept apart: each is rendered from
+		/// what stood pushed before the choice — what the one before it pushed was given back
+		/// before this one was tried, and is not on this one's path — and the choice leaves
+		/// pushed whatever any of them did.
+		/// </summary>
+		sealed class PushedApart(ReaderWriter writer)
+		{
+			readonly bool _before = writer._pushed;
+			bool _any;
+
+			/// <summary>Before each alternative.</summary>
+			public void Next()
+			{
+				_any |= writer._pushed;
+				writer._pushed = _before;
+			}
+
+			/// <summary>After the last.</summary>
+			public void Done()
+			{
+				writer._pushed |= _any;
+			}
+		}
 
 		readonly RecognitionGraph _graph = machine._graph;
 
@@ -2706,6 +2730,7 @@ sealed partial class Machine
 				// itself, and a character no group holds is a character that call refuses.
 				// What is left is a handful of labels the compiler compares in a line.
 				var widest = Widest(groups);
+				var apart  = new PushedApart(this);
 
 				using (code.Block("switch (c)"))
 				{
@@ -2742,6 +2767,7 @@ sealed partial class Machine
 							var refused = _guardRefuses;
 							_guardRefuses = GuardRefuses(alternatives, group.Members);
 							_dispatched = group.Set;
+							apart.Next();
 							EmitAmong(code, group.Members, following, loaded: true);
 							_dispatched = null;
 							_guardRefuses = refused;
@@ -2779,6 +2805,7 @@ sealed partial class Machine
 							_refuseOver = machine.DeclareExpected(machine.Displays(
 								new Node.Element(false, [.. groups[widest].Set.Ranges], [], [])));
 							_refuseUnless = asked;
+							apart.Next();
 							Emit(code, groups[widest].Members[0], following);
 							_refuseWith = null;
 							_refuseOver = null;
@@ -2787,6 +2814,8 @@ sealed partial class Machine
 						}
 					}
 				}
+
+				apart.Done();
 
 				return;
 			}
@@ -2837,7 +2866,8 @@ sealed partial class Machine
 			code.Line($"c = {machine.ReadAt("p")};");
 
 			// Two choices share a table where its bytes are the same, each from its own start.
-			var at = table.From == 0 ? "c" : $"c - {table.From}";
+			var at    = table.From == 0 ? "c" : $"c - {table.From}";
+			var apart = new PushedApart(this);
 
 			using (code.Block($"switch ((uint)({at}) < (uint){table.Name}.Length ? {table.Name}[{at}] : 0)"))
 			{
@@ -2851,6 +2881,7 @@ sealed partial class Machine
 						var refused = _guardRefuses;
 						_guardRefuses = GuardRefuses(alternatives, groups[g].Members);
 						_dispatched   = groups[g].Set;
+						apart.Next();
 						EmitAmong(code, groups[g].Members, following, loaded: true);
 						_dispatched   = null;
 						_guardRefuses = refused;
@@ -2863,6 +2894,8 @@ sealed partial class Machine
 				using (code.Indent())
 					RefusedAsking(code, name, asked);
 			}
+
+			apart.Done();
 		}
 
 		/// <summary>
@@ -2951,6 +2984,8 @@ sealed partial class Machine
 
 			code.Line($"c = {machine.ReadAt("p")};");
 
+			var apart = new PushedApart(this);
+
 			for (var i = 0; i < chain.Count; i++)
 			{
 				code.Line($"{(i == 0 ? "if" : "else if")} ({machine.RangesTest(chain[i].Set.Ranges, machine.Tabulate)})");
@@ -2958,9 +2993,12 @@ sealed partial class Machine
 				using (code.Block(""))
 				{
 					code.Line($"p = {began};");
+					apart.Next();
 					Emit(code, chain[i].Node, following);
 				}
 			}
+
+			apart.Done();
 
 			code.Line("else");
 
@@ -2979,6 +3017,8 @@ sealed partial class Machine
 
 			code.Line($"c = {machine.ReadAt("p")};");
 
+			var apart = new PushedApart(this);
+
 			for (var i = 0; i < chain.Count - 1; i++)
 			{
 				code.Line($"{(i == 0 ? "if" : "else if")} ({machine.RangesTest(chain[i].Set.Ranges, machine.Tabulate)})");
@@ -2986,6 +3026,7 @@ sealed partial class Machine
 				using (code.Block(""))
 				{
 					_dispatched = chain[i].Set;
+					apart.Next();
 					Emit(code, chain[i].Node, following, loaded: true);
 					_dispatched = null;
 				}
@@ -2997,6 +3038,8 @@ sealed partial class Machine
 
 			using (code.Block(""))
 			{
+				apart.Next();
+
 				if (Leads(last) is { } call && machine.Decidable(call) is { Ends: false })
 				{
 					_refuseWith = name;
@@ -3012,6 +3055,8 @@ sealed partial class Machine
 					_dispatched = null;
 				}
 			}
+
+			apart.Done();
 		}
 
 		/// <summary>
@@ -3217,9 +3262,12 @@ sealed partial class Machine
 			// Where the last alternatives are all text, the last of them refuses for all of
 			// them where they have all failed (RefusedRun).
 			var closing = Closing(alternatives, following);
+			var apart   = new PushedApart(this);
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
+				apart.Next();
+
 				var (part, undo, _) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
 				// The first attempt is made; each after it, only where the one before failed.
@@ -3271,11 +3319,14 @@ sealed partial class Machine
 				// The one written in place, and the only one that can still use the token
 				// the dispatch read: what came before it was a method, which reads its own.
 				_closing = closing;
+				apart.Next();
 				Emit(code, alternatives[alternatives.Count - 1], following, loaded);
 				_closing = null;
 
 				code.Line($"{tried} = p;");
 			}
+
+			apart.Done();
 
 			code.Line($"p = {tried};");
 
@@ -3359,6 +3410,7 @@ sealed partial class Machine
 			// Where the last alternatives are all text, they refuse together once they have all
 			// failed (RefusedRun).
 			var closing = Closing(alternatives, following);
+			var apart   = new PushedApart(this);
 
 			for (var i = 0; i < alternatives.Count; i++)
 			{
@@ -3377,6 +3429,8 @@ sealed partial class Machine
 					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
 						code.Line(line);
 					code.Line();
+
+					apart.Next();
 
 					var (call, undo, opens) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
@@ -3429,6 +3483,8 @@ sealed partial class Machine
 					}
 				}
 			}
+
+			apart.Done();
 
 			code.Line();
 
@@ -5162,6 +5218,7 @@ sealed partial class Machine
 			}
 			else
 				call = EmitGuardCall(code, selection.Selector, selection);
+			var apart = new PushedApart(this);
 			using (code.Block($"switch ({call})"))
 			{
 				for (var i = 0; i < choice.Nodes.Count; i++)
@@ -5170,6 +5227,7 @@ sealed partial class Machine
 					using (code.Indent())
 					using (code.Block(""))
 					{
+						apart.Next();
 						Emit(code, choice.Nodes[i], following);
 						code.Line("break;");
 					}
@@ -5181,6 +5239,7 @@ sealed partial class Machine
 					code.Line(Fails());
 				}
 			}
+			apart.Done();
 		}
 
 		void EmitGuard(Writer code, Node.Guard guard, string? expected = null)
