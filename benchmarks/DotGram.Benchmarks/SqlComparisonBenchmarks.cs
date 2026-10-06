@@ -9,7 +9,8 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// One SQL-92 grammar read two ways: the tape and the immediate carrier.
+/// One SQL-92 grammar read two ways: the tape (<see cref="TapeSql"/>) and the immediate carrier
+/// the shipped <see cref="Sql92Parser"/> is carried on.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -55,8 +56,8 @@ public class SqlComparisonBenchmarks
 	{
 		foreach (var input in Inputs)
 		{
-			var tape      = Sql92Parser.TryParseSearchCondition(input).IsSuccess;
-			var immediate = ImmediateSql.TryParseSearchCondition(input).IsSuccess;
+			var tape      = TapeSql.TryParseSearchCondition(input).IsSuccess;
+			var immediate = Sql92Parser.TryParseSearchCondition(input).IsSuccess;
 
 			if (tape != immediate)
 				throw new InvalidOperationException(
@@ -68,12 +69,12 @@ public class SqlComparisonBenchmarks
 	[Benchmark(Baseline = true, Description = "tape")]
 	public bool Tape()
 	{
-		return Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
+		return TapeSql.TryParseSearchCondition(Input).IsSuccess;
 	}
 
 	[Benchmark(Description = "immediate")]
 	public bool Immediate()
 	{
-		return ImmediateSql.TryParseSearchCondition(Input).IsSuccess;
+		return Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
 	}
 }

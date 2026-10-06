@@ -85,8 +85,8 @@ static class SqlSlope
 
 				for (var i = 0; i < 200; i++)
 				{
+					TapeSql.TryParseSearchCondition(input);
 					Sql92Parser.TryParseSearchCondition(input);
-					ImmediateSql.TryParseSearchCondition(input);
 					Sql92Parser.TryParseSearchCondition(")" + input);
 				}
 			}
@@ -127,8 +127,8 @@ static class SqlSlope
 		var input   = Input(term, terms);
 		var refused = ")" + input;
 
-		return (Median(parses, () => Sql92Parser.TryParseSearchCondition(input)),
-		        Median(parses, () => ImmediateSql.TryParseSearchCondition(input)),
+		return (Median(parses, () => TapeSql.TryParseSearchCondition(input)),
+		        Median(parses, () => Sql92Parser.TryParseSearchCondition(input)),
 		        Median(parses, () => Sql92Parser.TryParseSearchCondition(refused)));
 	}
 

@@ -460,8 +460,8 @@ static class Program
 
 				foreach (var (name, what) in new (string Name, Func<string, bool> What)[]
 				{
-					("tape",      static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess),
-					("immediate", static one => ImmediateSql.TryParseSearchCondition(one).IsSuccess),
+					("tape",      static one => TapeSql.TryParseSearchCondition(one).IsSuccess),
+					("immediate", static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess),
 				})
 				{
 					// Warmed, because the first parse on a thread builds the buffers it will
@@ -504,9 +504,9 @@ static class Program
 
 		// `--spin [seconds] [input] [immediate]` is not a benchmark either: it reads one SQL
 		// input over and over, long enough for a profiler to attach and sample. Which input
-		// is an index into SqlComparisonBenchmarks.Inputs, and `immediate` reads it on the
-		// immediate carrier instead of the tape, so the two profiles can be read against
-		// each other.
+		// is an index into SqlComparisonBenchmarks.Inputs, and `immediate` reads it by the
+		// shipped parser, on the immediate carrier, instead of by the tape copy, so the two
+		// profiles can be read against each other.
 		if (args.Length > 0 && args[0] == "--spin")
 		{
 			var seconds = args.Length > 1 && int.TryParse(args[1], out var given) ? given : 20;
@@ -518,8 +518,8 @@ static class Program
 
 			while (DateTime.UtcNow < until)
 				for (var i = 0; i < 2000; i++)
-					read += immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
-					                      Sql92Parser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
+					read += immediately ? Sql92Parser.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
+					                      TapeSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 
 			Console.WriteLine($"{read:N0} parses of \"{text}\"");
 

@@ -449,7 +449,34 @@ static partial class Stand
 			// 2026-09-18); a row where either side accepts is still a disagreement.
 			SqlRefused<Ast.Statement, Ast.Statement>(
 				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+
+			// SQL-92: the shipped parser (immediate) against the tape copy of the same grammar, on the rows its
+			// carrier was priced on. The accepted rows and then the refusals: early, at the first token the
+			// grammar cannot place; late, after a long accepted prefix whose constructions the immediate
+			// carrier has already run; a stray token after a whole query; a long condition cut mid-token.
+			Sql92("literal", "42", Sql92Parser.TryParseValueExpression, TapeSql.TryParseValueExpression),
+			Sql92("arithmetic", Sql92Arithmetic, Sql92Parser.TryParseValueExpression, TapeSql.TryParseValueExpression),
+			Sql92("condition", SqlConditions(100), Sql92Parser.TryParseSearchCondition, TapeSql.TryParseSearchCondition),
+			Sql92("select1", "SELECT a FROM t", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("select20", Sql92Columns(20), Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("join", Sql92Join, Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("refused-early", "SELECT a, b FROM", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("join.stray", Sql92Join + " )", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
+			Sql92("condition.cut90", SqlConditions(100)[..(SqlConditions(100).Length * 9 / 10)], Sql92Parser.TryParseSearchCondition, TapeSql.TryParseSearchCondition),
 		];
+	}
+
+	/// <summary>A join as people write one, for the SQL-92 rows: two tables, a condition on each, an order.</summary>
+	const string Sql92Join = "SELECT c.CustomerId, c.Name, o.OrderId, o.Total FROM Customers AS c INNER JOIN Orders AS o ON o.CustomerId = c.CustomerId WHERE o.Total > 100 AND c.Region = 'EU' ORDER BY o.Total DESC";
+
+	/// <summary>Twenty copies of one arithmetic expression joined by +, for the SQL-92 rows: a long value expression and no predicate.</summary>
+	static readonly string Sql92Arithmetic = string.Join(" + ", Enumerable.Repeat("a + b * (c - d) / e + f * g - h * (i + j) / k", 20));
+
+	/// <summary>A SELECT of <paramref name="columns"/> columns from one table with one predicate, for the SQL-92 rows (no semicolon: SQL-92's Select reads none).</summary>
+	static string Sql92Columns(int columns)
+	{
+		return "SELECT " + string.Join(", ", Enumerable.Range(0, columns).Select(static i => "a" + i)) + " FROM t WHERE a0 = 1";
 	}
 
 	/// <summary>The field counts D13's slope rows fit a line over.</summary>
@@ -720,6 +747,55 @@ static partial class Stand
 		}
 	}
 
+	/// <summary>
+	/// One SQL-92 entry over an input, read by the shipped parser (carried immediately) and by the benchmarks' tape
+	/// copy of the same grammar (<see cref="TapeSql"/>). SQL-92 has no hand-written parser, so the shipped reading is
+	/// the base its ratios are taken against, as a web row's is. The two readings must agree: on the tree, written
+	/// out, where both accept; on the position and the message where both refuse.
+	/// </summary>
+	static Workload Sql92<T>(string name, string text, Func<string, Sql92Parser.Match<T>> generated, Func<string, TapeSql.Match<T>> tape)
+	{
+		return new Workload(
+			"sql92",
+			name,
+			[
+				new Reading("generated", () => generated(text).IsSuccess ? 1 : 0),
+				new Reading("tape",      () => tape(text).IsSuccess ? 1 : 0),
+			],
+			Disagreement);
+
+		string? Disagreement()
+		{
+			var byGenerated = generated(text);
+			var byTape      = tape(text);
+
+			if (byGenerated.IsSuccess != byTape.IsSuccess)
+				return $"  generated {(byGenerated.IsSuccess ? "accepted" : "refused")}, tape {(byTape.IsSuccess ? "accepted" : "refused")}";
+
+			if (!byGenerated.IsSuccess)
+				return byGenerated.Position == byTape.Position && byGenerated.Error == byTape.Error
+					? null
+					: $"  generated refused at {byGenerated.Position}: {byGenerated.Error}\n  tape      refused at {byTape.Position}: {byTape.Error}";
+
+			var expected = Sql92Written(byGenerated.Value);
+			var actual   = Sql92Written(byTape.Value);
+
+			return expected == actual ? null : $"  generated {expected}\n  tape      {actual}";
+		}
+	}
+
+	/// <summary>A SQL-92 tree written back as text, by the writer of the tree it is (SqlSyntax.cs).</summary>
+	static string Sql92Written<T>(T value)
+	{
+		return value switch
+		{
+			DotGram.Sql.Statement statement   => DotGram.Sql.SqlWriter.Write(statement),
+			DotGram.Sql.Query query           => DotGram.Sql.SqlWriter.Write(query),
+			DotGram.Sql.Expression expression => DotGram.Sql.SqlWriter.Write(expression),
+			_ => value?.ToString() ?? "null",
+		};
+	}
+
 	// ── Paired: two builds, one process ─────────────────────────────────────────
 
 	/// <summary>
@@ -734,6 +810,7 @@ static partial class Stand
 	sealed class PairedSide
 	{
 		readonly Type _sql;
+		readonly Type _sql92;
 		readonly Type _elTape;
 		readonly Type _elImmediate;
 		readonly Type _elState;
@@ -793,6 +870,7 @@ static partial class Stand
 			{
 				"el" => [_elTape, _elImmediate],
 				"tsql" => [_tsql],
+				"sql92" => [_sql92],
 				"fix" => _fix is null ? [] : new[] { _fix, (_fix.Assembly.GetType("DotGram.Finance.Fix.Fix44.FixGrammar") ?? _fix.Assembly.GetType("DotGram.Finance.Fix.FixGrammar")) }.OfType<Type>().ToArray(),
 				"web" => new[] { _json, _uri }.OfType<Type>().ToArray(),
 				_ => [_sql],
@@ -826,6 +904,7 @@ static partial class Stand
 			}
 
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
+			_sql92       = Load("DotGram.Sql", "DotGram.Sql.Standard.Sql92Parser");
 			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
 			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
 			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
@@ -898,6 +977,15 @@ static partial class Stand
 		public Func<int> Sql(string methods, string text)
 		{
 			var call = SqlEntry(methods) ?? throw new InvalidOperationException($"SqlStandardParser.{methods}(string) not found");
+
+			return () => IsSuccess(call.Invoke(null, [text])!);
+		}
+
+		/// <summary>This side's SQL-92 entry <paramref name="method"/>, by reflection: whether it read the text.</summary>
+		public Func<int> Sql92(string method, string text)
+		{
+			var call = _sql92.GetMethod(method, [typeof(string)])
+				?? throw new InvalidOperationException($"Sql92Parser.{method}(string) not found");
 
 			return () => IsSuccess(call.Invoke(null, [text])!);
 		}
@@ -1793,7 +1881,54 @@ static partial class Stand
 			.. PairedSql("statement-create", "TryParseStatement", "TryParseStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", before, after),
 			.. PairedSql("script", "TryParseSql", "TryParseSql", SqlScript, before, after),
 			.. PairedSql("refused-late", "TryParseStatement", "TryParseStatement", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", before, after),
+
+			// SQL-92, side against side, on the rows of the plain stand (Workloads): the accepted ones and the
+			// refusals, early, late, stray and cut.
+			PairedSql92("literal", "TryParseValueExpression", "42", before, after),
+			PairedSql92("arithmetic", "TryParseValueExpression", Sql92Arithmetic, before, after),
+			PairedSql92("condition", "TryParseSearchCondition", SqlConditions(100), before, after),
+			PairedSql92("select1", "TryParseSelect", "SELECT a FROM t", before, after),
+			PairedSql92("select20", "TryParseSelect", Sql92Columns(20), before, after),
+			PairedSql92("join", "TryParseSelect", Sql92Join, before, after),
+			PairedSql92("refused-early", "TryParseSelect", "SELECT a, b FROM", before, after),
+			PairedSql92("refused-late", "TryParseSelect", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", before, after),
+			PairedSql92("join.stray", "TryParseSelect", Sql92Join + " )", before, after),
+			PairedSql92("condition.cut90", "TryParseSearchCondition", SqlConditions(100)[..(SqlConditions(100).Length * 9 / 10)], before, after),
 		];
+	}
+
+	/// <summary>
+	/// A row of SQL-92, side against side: each build's shipped parser, with this process's own build of the
+	/// same grammar on the tape (<see cref="TapeSql"/>) as the base the ratios are taken against, SQL-92 having
+	/// no hand-written parser. The three must agree on accepting or refusing the text.
+	/// </summary>
+	static Workload PairedSql92(string name, string method, string text, PairedSide before, PairedSide after)
+	{
+		var tape = typeof(TapeSql).GetMethod(method, [typeof(string)])
+			?? throw new InvalidOperationException($"TapeSql.{method}(string) not found");
+		var isSuccess = tape.ReturnType.GetProperty("IsSuccess") ?? throw new InvalidOperationException("TapeSql.Match<T>.IsSuccess not found");
+		var byTape   = new Func<int>(() => (bool)isSuccess.GetValue(tape.Invoke(null, [text]))! ? 1 : 0);
+		var byBefore = before.Sql92(method, text);
+		var byAfter  = after.Sql92(method, text);
+
+		return new Workload(
+			"sql92",
+			name,
+			[
+				new Reading("tape",   byTape),
+				new Reading("before", byBefore),
+				new Reading("after",  byAfter),
+			],
+			() =>
+			{
+				var t = byTape() == 1;
+				var b = byBefore() == 1;
+				var a = byAfter() == 1;
+
+				return t == b && b == a
+					? null
+					: $"  tape {(t ? "accepted" : "refused")}, before {(b ? "accepted" : "refused")}, after {(a ? "accepted" : "refused")}";
+			});
 	}
 
 	static IEnumerable<Workload> PairedFix(string name, string text, PairedSide before, PairedSide after)
@@ -2123,7 +2258,7 @@ static partial class Stand
 			text.AppendLine();
 		}
 
-		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, and `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one.");
+		text.AppendLine("The base of a row is what every ratio is over, and its name says what it is: `hand` is a hand-written parser (`DotGram.Handwritten`), `scriptdom` is Microsoft's parser, `control` is this process's own build of the same generated parser, held constant so that the two sides are compared and nothing is claimed against a hand-written one, and `tape` is this process's own build of the same grammar on the tape (SQL-92, whose shipped parser is carried immediately and has no hand-written one).");
 		text.AppendLine();
 		text.AppendLine("The last two columns are what a reader a month later cannot get from a message: **the base's spread between the runs** (how much the machine's speed varied from one run to the next; a row with a large one had a disturbed run, and its medians are read with the range beside them) and the **change of each run** (the smallest and the largest, and how many of the runs were positive).");
 		text.AppendLine();

@@ -43,12 +43,12 @@ public class SqlCounters
 	[Benchmark(Baseline = true)]
 	public bool Immediate()
 	{
-		return ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
+		return Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
 	}
 
 	[Benchmark]
 	public bool Tape()
 	{
-		return Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
+		return TapeSql.TryParseSearchCondition(Long).IsSuccess;
 	}
 }

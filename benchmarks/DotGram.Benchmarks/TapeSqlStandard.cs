@@ -10,8 +10,8 @@ namespace DotGram.Benchmarks;
 /// <see cref="SqlStandardParser"/>'s grammar (SQL:2023) compiled on the tape: the same file, the same
 /// tree, and every <c>=&gt;</c> recorded as it is read and run by a walk once the parse is accepted,
 /// where the shipped parser runs each the moment its alternative is read. The counterpart of
-/// <see cref="ImmediateSql"/>, which is SQL-92 the other way about: there the package ships the tape and
-/// this project carries the copy.
+/// <see cref="TapeSql"/>, which is SQL-92 the same way: the package ships the immediate carrier and
+/// this project carries the tape copy.
 /// </summary>
 /// <remarks>
 /// <para>
