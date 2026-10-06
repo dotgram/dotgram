@@ -2330,10 +2330,11 @@ whole forms are right either way.
 Set, every `parse` is compiled knowing that it is also read from a position, and those forms
 give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
 rested on, and that is the cost: in this repository's own packages the JSON, JSON Pointer and
-URI Template readers and the `Set-Cookie` reader leave the immediate carrier for the tape and
-grow by 6 to 24 per cent, and several refusals that were linear in the input's length become
-quadratic. A grammar that states `Carrier = Immediate` keeps it, and is told (`GRAM5015`)
-where the generator would now have chosen the tape: the FIX grammar is one. That is a warning,
+URI Template readers leave the immediate carrier for the tape and grow by 6 to 24 per cent,
+and several refusals that were linear in the input's length become quadratic. A grammar that
+states `Carrier = Immediate` keeps it, and is told (`GRAM5015`) where the generator would now
+have chosen the tape: the FIX grammar is one, and so is the `Set-Cookie` reader, which left
+the immediate carrier under this property until it named it. That is a warning,
 and under warnings as errors — this repository's `Directory.Build.props` sets
 `TreatWarningsAsErrors` — it stops the build of such a grammar while the property is set; build
 with `-p:WarningsNotAsErrors=GRAM5015` (keeping any the project already lists) or suppress it
@@ -2352,8 +2353,8 @@ the proof is answered as `true` answers it. Every other question — whether wha
 where a body that failed began — is answered as `true` answers it too. Every reading is meant to
 answer as under `true`, and the tests hold it to that on this repository's web grammars and on
 generated shapes; what differs is the reader the generator writes. In this repository's packages only
-the readers whose rule ends behind a `when` move from the immediate carrier: the fragment form of
-JSON Pointer and the `Set-Cookie` reader.
+the readers whose rule ends behind a `when` would move from the immediate carrier: the fragment form
+of JSON Pointer, which does, and the `Set-Cookie` reader, which names its carrier and keeps it.
 
 #### `DotGramNoCache`
 
