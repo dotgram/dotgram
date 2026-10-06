@@ -12,16 +12,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-06 13:05 |
-| DotGram.Examples | 2026-10-06 13:04 |
-| DotGram.ExpressionLanguage | 2026-10-06 13:04 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-06 13:04 |
-| DotGram.Finance | 2026-10-06 13:04 |
-| DotGram.Finance.Fix44 | 2026-10-06 13:05 |
-| DotGram.Sql | 2026-10-06 13:05 |
-| DotGram.Sql.Productions | 2026-10-06 13:05 |
-| DotGram.Tests | 2026-10-06 13:06 |
-| DotGram.Web | 2026-10-06 13:04 |
+| DotGram.Benchmarks | 2026-10-06 19:28 |
+| DotGram.Examples | 2026-10-06 19:27 |
+| DotGram.ExpressionLanguage | 2026-10-06 19:27 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 19:27 |
+| DotGram.Finance | 2026-10-06 19:27 |
+| DotGram.Finance.Fix44 | 2026-10-06 19:27 |
+| DotGram.Sql | 2026-10-06 19:27 |
+| DotGram.Sql.Productions | 2026-10-06 19:27 |
+| DotGram.Tests | 2026-10-06 19:28 |
+| DotGram.Web | 2026-10-06 19:27 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -116,18 +116,18 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Tests.Generated.UrlGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Tests.RereadUnderSubstitutionTests.Reread | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc3339 | 1 | 0 | immediate | none |  |  |  |  |  |  | 5/5 |
-| DotGram.Web.Rfc3986 | 1 | 1 | tape | read again | 6 | 0 | 0 | 12 | 0 | 0 | 19/19 |
-| DotGram.Web.Rfc5322 | 5 | 5 | tape | read again | 48 | 0 | 0 | 99 | 0 | 0 | 129/129 |
-| DotGram.Web.Rfc5646 | 1 | 1 | tape | read again | 9 | 0 | 0 | 6 | 0 | 0 | 22/22 |
-| DotGram.Web.Rfc6265 | 6 | 5 | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 29/29 |
-| DotGram.Web.Rfc6266 | 1 | 1 | tape | read again | 3 | 0 | 0 | 2 | 0 | 0 | 5/5 |
+| DotGram.Web.Rfc3986 |  |  | immediate (author) |  |  |  |  |  |  |  | 19/19 |
+| DotGram.Web.Rfc5322 |  |  | immediate (author) |  |  |  |  |  |  |  | 129/129 |
+| DotGram.Web.Rfc5646 |  |  | immediate (author) |  |  |  |  |  |  |  | 22/22 |
+| DotGram.Web.Rfc6265 |  |  | immediate (author) |  |  |  |  |  |  |  | 29/29 |
+| DotGram.Web.Rfc6266 |  |  | immediate (author) |  |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc6570 | 1 | 0 | immediate | none |  |  |  |  |  |  | 10/10 |
 | DotGram.Web.Rfc6901 | 2 | 0 | immediate | none |  |  |  |  |  |  | 4/4 |
-| DotGram.Web.Rfc7239 | 2 | 2 | tape | read again | 7 | 0 | 0 | 7 | 0 | 0 | 16/16 |
+| DotGram.Web.Rfc7239 |  |  | immediate (author) |  |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none |  |  |  |  |  |  | 29/29 |
-| DotGram.Web.Rfc8288 | 1 | 1 | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 9/9 |
-| DotGram.Web.Rfc9110 | 1 | 1 | tape | read again | 4 | 0 | 0 | 6 | 0 | 0 | 13/13 |
-| DotGram.Web.Rfc9651 | 3 | 3 | tape | read again | 15 | 0 | 0 | 17 | 0 | 0 | 44/44 |
+| DotGram.Web.Rfc8288 |  |  | immediate (author) |  |  |  |  |  |  |  | 9/9 |
+| DotGram.Web.Rfc9110 |  |  | immediate (author) |  |  |  |  |  |  |  | 13/13 |
+| DotGram.Web.Rfc9651 |  |  | immediate (author) |  |  |  |  |  |  |  | 44/44 |
 
 ## Machine by machine
 
@@ -197,31 +197,10 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Tests.Calculators.TwoCalculators | EvaluateDouble | whole | immediate | none | 0 | 0 | 0 | 0 | 17/17 |
 | DotGram.Tests.Extents | ParseExtent | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Web.Rfc3339 | ParseTimestamp, ParseFullDate, ParseFullTime | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
-| DotGram.Web.Rfc3986 | ParseReference, ParseUri | whole | tape | read again | 6 | 0 | 12 | 0 | 19/19 |
-| DotGram.Web.Rfc5322 | ParseAddressList, ParseMailboxList, ParseMailbox and 1 more | whole | tape | read again | 17 | 0 | 27 | 0 | 47/47 |
-| DotGram.Web.Rfc5322 | ParseStrictAddrSpec | whole | tape | read again | 4 | 0 | 15 | 0 | 9/9 |
-| DotGram.Web.Rfc5322 | ParseStrictMailbox | whole | tape | read again | 6 | 0 | 17 | 0 | 15/15 |
-| DotGram.Web.Rfc5322 | ParseStrictMailboxList | whole | tape | read again | 8 | 0 | 19 | 0 | 21/21 |
-| DotGram.Web.Rfc5322 | ParseStrictAddressList | whole | tape | read again | 13 | 0 | 24 | 0 | 37/37 |
-| DotGram.Web.Rfc5646 | ParseTag | whole | tape | read again | 9 | 0 | 6 | 0 | 22/22 |
-| DotGram.Web.Rfc6265 | ParseSetCookie | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
-| DotGram.Web.Rfc6265 | ReadDateTokens | whole | tape | read again | 2 | 0 | 1 | 0 | 3/3 |
-| DotGram.Web.Rfc6265 | ReadTime | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6265 | ReadDay | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6265 | ReadMonth | whole | tape | read again | 1 | 0 | 1 | 0 | 12/12 |
-| DotGram.Web.Rfc6265 | ReadYear | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6266 | ParseContentDisposition | whole | tape | read again | 3 | 0 | 2 | 0 | 5/5 |
 | DotGram.Web.Rfc6570 | ParseTemplate | whole | immediate | none | 0 | 0 | 0 | 0 | 10/10 |
 | DotGram.Web.Rfc6901 | ParsePointer | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Web.Rfc6901 | ParseFragment | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
-| DotGram.Web.Rfc7239 | ParseForwarded | whole | tape | read again | 6 | 0 | 2 | 0 | 12/12 |
-| DotGram.Web.Rfc7239 | ParseNode | whole | tape | read again | 1 | 0 | 5 | 0 | 4/4 |
 | DotGram.Web.Rfc8259 | ParseJson | whole | immediate | none | 0 | 0 | 0 | 0 | 29/29 |
-| DotGram.Web.Rfc8288 | ParseLinks | whole | tape | read again | 5 | 0 | 5 | 0 | 9/9 |
-| DotGram.Web.Rfc9110 | ParseContentType | whole | tape | read again | 4 | 0 | 6 | 0 | 7/7 |
-| DotGram.Web.Rfc9651 | ParseItem | whole | tape | read again | 7 | 0 | 9 | 0 | 22/22 |
-| DotGram.Web.Rfc9651 | ParseList | whole | tape | read again | 11 | 0 | 13 | 0 | 34/34 |
-| DotGram.Web.Rfc9651 | ParseDictionary | whole | tape | read again | 12 | 0 | 14 | 0 | 37/37 |
 
 ## Where the second gate's ways are opened
 
@@ -233,20 +212,16 @@ or which nothing calls, so that no caller asks it again.
 
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| choice | alternatives begin alike | 13 | 23 | 38 | 0 | 8 | NoCaptures.Host: `(IPv4 \| RegName)` |
-| turns | a turn led by what may read nothing | 7 | 12 | 24 | 7 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
-| run | what follows begins alike | 14 | 22 | 22 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
-| choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
-| optional | what follows begins alike | 12 | 12 | 16 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
-| choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
-| choice | an alternative that may read nothing | 6 | 12 | 13 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
-| counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
+| run | what follows begins alike | 9 | 14 | 14 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
+| choice | alternatives begin alike | 8 | 8 | 9 | 0 | 3 | NoCaptures.Host: `(IPv4 \| RegName)` |
 | turns | the seam leads every alternative of the turn | 5 | 5 | 7 | 7 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| turns | what follows begins alike | 4 | 5 | 6 | 5 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
-| turns | follow unknown | 1 | 1 | 5 | 0 | 0 | Rfc5322.Cfws: `(Fws? & Comment)+` |
+| optional | what follows begins alike | 6 | 6 | 6 | 2 | 2 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | the seam leads every alternative | 2 | 2 | 4 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
+| choice | an alternative that may read nothing | 3 | 4 | 4 | 0 | 0 | HttpParser.Field: `(eol \| ?=eof)` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
-| optional | a turn led by what may read nothing | 2 | 3 | 3 | 1 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
+| turns | a turn led by what may read nothing | 2 | 2 | 2 | 2 | 0 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| choice | every alternative led by what may read nothing | 2 | 2 | 2 | 0 | 0 | IniParser.Entries: `(item0: Entry \| Blank)` |
+| turns | what follows begins alike | 2 | 2 | 2 | 1 | 1 | JsonParser.Body: `(Plain \| Escape)*` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
 
@@ -805,270 +780,13 @@ or which nothing calls, so that no caller asks it again.
 
 - machine ParseTimestamp, ParseFullDate, ParseFullTime [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
 
-## DotGram.Web.Rfc3986
-
-- machine ParseReference, ParseUri [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 12; refused: 0; points: 19/19
-- again Authority: opens a way
-- open Authority: optional, captured; a turn led by what may read nothing; open; (user: UserInfoText & '@')?
-- again DecOctet: opens a way
-- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
-- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
-- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
-- again HierPart: opens a way
-- open HierPart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
-- again HostText: opens a way
-- open HostText: choice; an alternative that may read nothing; open; (IPLiteral | IPv4Address | RegName)
-- again IPLiteral: through IPv6Address
-- again IPv4Address: through DecOctet
-- again IPv6Address: opens a way
-- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
-- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
-- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
-- again Ls32: opens a way
-- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
-- again Reference: opens a way
-- open Reference: choice; an alternative that may read nothing; entry; (u: Uri => (u) | ?!SchemeMark & r: RelativeRef => (r))
-- again RelativePart: opens a way
-- open RelativePart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
-- again RelativeRef: through RelativePart
-- again Uri: through HierPart
-
 ## DotGram.Web.Rfc5322
 
-- machine ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: carrier: tape; gate: read again; building: 17; replayed: 0; read again: 27; refused: 0; points: 47/47
-- machine ParseStrictAddrSpec [whole]: carrier: tape; gate: read again; building: 4; replayed: 0; read again: 15; refused: 0; points: 9/9
-- machine ParseStrictMailbox [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 17; refused: 0; points: 15/15
-- machine ParseStrictMailboxList [whole]: carrier: tape; gate: read again; building: 8; replayed: 0; read again: 19; refused: 0; points: 21/21
-- machine ParseStrictAddressList [whole]: carrier: tape; gate: read again; building: 13; replayed: 0; read again: 24; refused: 0; points: 37/37
 - memo ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: remembered 0; not 1: Comment (characters)
 - memo ParseStrictAddrSpec [whole]: remembered 0; not 1: Comment (characters)
 - memo ParseStrictMailbox [whole]: remembered 0; not 1: Comment (characters)
 - memo ParseStrictMailboxList [whole]: remembered 0; not 1: Comment (characters)
 - memo ParseStrictAddressList [whole]: remembered 0; not 1: Comment (characters)
-- again AddrSpecRule: through Domain
-- again AddrSpecRule: through CurrentLocalPart
-- again AddrSpecRule: through CurrentLocalPart
-- again AddrSpecRule: through CurrentLocalPart
-- again AddrSpecRule: through CurrentLocalPart
-- again Address: opens a way
-- open Address: choice; alternatives begin alike; open; (mailbox: Mailbox => (mailbox) | group: Group => (group))
-- again AddressList: through NullMembers
-- again AddressList: through Address
-- again Address: opens a way
-- open Address: choice; alternatives begin alike; open; (mailbox: Mailbox_With4 => (mailbox) | group: Group_With4 => (group))
-- again AngleAddr: opens a way
-- open AngleAddr: optional; a turn led by what may read nothing; open; ObsRoute?
-- again AngleAddr: through Cfws
-- again AngleAddr: through Cfws
-- again AngleAddr: through Cfws
-- again Atom: through Cfws
-- again Ccontent: through Comment
-- again Ccontent: through Comment
-- again Ccontent: through Comment
-- again Ccontent: through Comment
-- again Ccontent: through Comment
-- again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ({ (Fws? & Comment)+ & Fws? } | Fws)
-- open Cfws: turns; follow unknown; open; (Fws? & Comment)+
-- again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With1)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With1)+
-- again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With2)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With2)+
-- again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With3)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With3)+
-- again Cfws: opens a way
-- open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With4)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With4)+
-- again Comment: opens a way
-- open Comment: turns; a turn led by what may read nothing; open; (Fws? & Ccontent)*
-- again Comment: opens a way
-- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With1)*
-- again Comment: opens a way
-- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With2)*
-- again Comment: opens a way
-- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With3)*
-- again Comment: opens a way
-- open Comment: turns; a turn led by what may read nothing; open; (CurrentFws? & Ccontent_With4)*
-- again Ctext: opens a way
-- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
-- again Ctext: opens a way
-- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
-- again Ctext: opens a way
-- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
-- again Ctext: opens a way
-- open Ctext: choice; alternatives begin apart; open; (['!'..'\'' | '*'..'[' | ']'..'~'] | Never)
-- again CurrentDomain: opens a way
-- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With1 => (literal) | Cfws_With1? & text: DotAt…
-- again CurrentDomain: opens a way
-- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With2 => (literal) | Cfws_With2? & text: DotAt…
-- again CurrentDomain: opens a way
-- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With3 => (literal) | Cfws_With3? & text: DotAt…
-- again CurrentDomain: opens a way
-- open CurrentDomain: choice; every alternative led by what may read nothing; open; (literal: DomainLiteral_With4 => (literal) | Cfws_With4? & text: DotAt…
-- again CurrentFws: opens a way
-- open CurrentFws: optional; a turn led by what may read nothing; open; (Wsp* & Crlf)?
-- again CurrentLocalPart: opens a way
-- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With1? & text: DotAtomText & Cfws_With1? => (text) | Cfws_With1?…
-- again CurrentLocalPart: opens a way
-- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With2? & text: DotAtomText & Cfws_With2? => (text) | Cfws_With2?…
-- again CurrentLocalPart: opens a way
-- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With3? & text: DotAtomText & Cfws_With3? => (text) | Cfws_With3?…
-- again CurrentLocalPart: opens a way
-- open CurrentLocalPart: choice; every alternative led by what may read nothing; open; (Cfws_With4? & text: DotAtomText & Cfws_With4? => (text) | Cfws_With4?…
-- again Domain: opens a way
-- open Domain: choice; alternatives begin alike; open; (literal: DomainLiteral => (literal) | { first: Atom & rest: DotAtom* …
-- again DomainLiteral: through Cfws
-- again DomainLiteralBody: opens a way
-- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (Fws? & Dtext)*
-- again DomainLiteralBody: opens a way
-- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With1)*
-- again DomainLiteralBody: opens a way
-- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With2)*
-- again DomainLiteralBody: opens a way
-- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With3)*
-- again DomainLiteralBody: opens a way
-- open DomainLiteralBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Dtext_With4)*
-- again DomainLiteral: through Cfws
-- again DomainLiteral: through Cfws
-- again DomainLiteral: through Cfws
-- again DomainLiteral: through Cfws
-- again Dtext: through ObsDtext
-- again Dtext: opens a way
-- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
-- again Dtext: opens a way
-- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
-- again Dtext: opens a way
-- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
-- again Dtext: opens a way
-- open Dtext: choice; alternatives begin apart; open; (['!'..'Z' | '^'..'~'] | Never)
-- again Group: through Cfws
-- again GroupList: opens a way
-- open GroupList: choice; an alternative that may read nothing; open; (list: MailboxList => (list) | ObsGroupList => (Array.Empty<EmailAddre…
-- again GroupList: opens a way
-- open GroupList: choice; an alternative that may read nothing; open; (list: MailboxList_With4 => (list) | Never => (Array.Empty<EmailAddres…
-- again Group: through Cfws
-- again Mailbox: opens a way
-- open Mailbox: choice; alternatives begin alike; open; (name: Phrase? & address: AngleAddr => (new EmailAddress.Mailbox(Rfc53…
-- open Mailbox: optional, captured; what follows begins alike; open; name: Phrase?
-- again MailboxList: through NullMembers
-- again MailboxList: through Mailbox
-- again MailboxList: through Mailbox
-- again Mailbox: opens a way
-- open Mailbox: choice; every alternative led by what may read nothing; entry; (name: CurrentPhrase_With2? & address: AngleAddr_With2 => (new EmailAd…
-- open Mailbox: optional, captured; what follows begins alike; entry; name: CurrentPhrase_With2?
-- again Mailbox: opens a way
-- open Mailbox: choice; every alternative led by what may read nothing; open; (name: CurrentPhrase_With3? & address: AngleAddr_With3 => (new EmailAd…
-- open Mailbox: optional, captured; what follows begins alike; open; name: CurrentPhrase_With3?
-- again Mailbox: opens a way
-- open Mailbox: choice; every alternative led by what may read nothing; open; (name: CurrentPhrase_With4? & address: AngleAddr_With4 => (new EmailAd…
-- open Mailbox: optional, captured; what follows begins alike; open; name: CurrentPhrase_With4?
-- again NextAddress: opens a way
-- open NextAddress: choice; an alternative that may read nothing; open; (address: Address => (new[] { address }) | NullMember => (Array.Empty<…
-- again NextAddress: opens a way
-- open NextAddress: choice; alternatives begin apart; open; (address: Address_With4 => (new[] { address }) | Never => (Array.Empty…
-- again NextMailbox: opens a way
-- open NextMailbox: choice; an alternative that may read nothing; open; (mailbox: Mailbox => (new[] { mailbox }) | NullMember => (Array.Empty<…
-- again NextMailbox: opens a way
-- open NextMailbox: choice; alternatives begin apart; open; (mailbox: Mailbox_With3 => (new[] { mailbox }) | Never => (Array.Empty…
-- again NextMailbox: opens a way
-- open NextMailbox: choice; alternatives begin apart; open; (mailbox: Mailbox_With4 => (new[] { mailbox }) | Never => (Array.Empty…
-- again NullMember: through Cfws
-- again NullMembers: opens a way
-- open NullMembers: turns; a turn led by what may read nothing; open; (Cfws? & ',')*
-- again ObsDtext: through QuotedPair
-- again ObsGroupList: opens a way
-- open ObsGroupList: turns; a turn led by what may read nothing; open; (Cfws? & ',')+
-- again ObsRoute: through Cfws
-- again Qcontent: through QuotedPair
-- again Qcontent: through QuotedPair
-- again Qcontent: through QuotedPair
-- again Qcontent: through QuotedPair
-- again Qcontent: through QuotedPair
-- again Qtext: opens a way
-- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
-- again Qtext: opens a way
-- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
-- again Qtext: opens a way
-- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
-- again Qtext: opens a way
-- open Qtext: choice; alternatives begin apart; open; (['!' | '#'..'[' | ']'..'~'] | Never)
-- again QuotedBody: opens a way
-- open QuotedBody: turns; a turn led by what may read nothing; open; (Fws? & Qcontent)*
-- again QuotedBody: opens a way
-- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With1)*
-- again QuotedBody: opens a way
-- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With2)*
-- again QuotedBody: opens a way
-- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With3)*
-- again QuotedBody: opens a way
-- open QuotedBody: turns; a turn led by what may read nothing; open; (CurrentFws? & Qcontent_With4)*
-- again QuotedPair: opens a way
-- open QuotedPair: choice; alternatives begin alike; open; ('\\' & ['\t' | ' '..'~'] | ObsQp)
-- again QuotedPair: opens a way
-- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
-- again QuotedPair: opens a way
-- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
-- again QuotedPair: opens a way
-- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
-- again QuotedPair: opens a way
-- open QuotedPair: choice; alternatives begin apart; open; ('\\' & ['\t' | ' '..'~'] | Never)
-- again Word: opens a way
-- open Word: choice; every alternative led by what may read nothing; open; (Cfws? & text: AtomText & Cfws? => (text) | Cfws? & body: QuotedBody &…
-
-## DotGram.Web.Rfc5646
-
-- machine ParseTag [whole]: carrier: tape; gate: read again; building: 9; replayed: 0; read again: 6; refused: 0; points: 22/22
-- again Extension: opens a way
-- open Extension: turns, captured; what follows begins alike; open; subtags: ExtensionSubtag+
-- again LangTag: opens a way
-- open LangTag: choice; alternatives begin alike; open; (language: ShortLanguage & extended: ExtLang{0,3} & tail: Tail => (tai…
-- open LangTag: counted, captured; what follows begins alike; open; extended: ExtLang{0,3}
-- again LanguageTag: opens a way
-- open LanguageTag: choice; alternatives begin alike; entry; (registered: Grandfathered & eof => (Rfc5646.Registered(registered)) |…
-- open LanguageTag: choice; alternatives begin alike; entry; (tag: LangTag => (tag) | subtags: PrivateUse => (new LanguageTag(null,…
-- again Tail: opens a way
-- open Tail: optional, captured; what follows begins alike; open; ('-' & script: Script)?
-- open Tail: optional, captured; what follows begins alike; open; ('-' & region: Region)?
-- open Tail: turns, captured; what follows begins alike; open; variants: Variant*
-- open Tail: turns, captured; what follows begins alike; open; extensions: Extension*
-- again Variant: through VariantText
-- again VariantText: opens a way
-- open VariantText: choice; alternatives begin alike; open; (Alphanum{5,8} | Digit & Alphanum{3})
-
-## DotGram.Web.Rfc6265
-
-- machine ParseSetCookie [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
-- machine ReadDateTokens [whole]: carrier: tape; gate: read again; building: 2; replayed: 0; read again: 1; refused: 0; points: 3/3
-- machine ReadTime [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- machine ReadDay [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- machine ReadMonth [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 1; refused: 0; points: 12/12
-- machine ReadYear [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- again CookieDate: opens a way
-- open CookieDate: turns, captured; what follows begins alike; entry; rest: NextDateToken*
-- again DayToken: through Tail
-- again MonthToken: opens a way
-- open MonthToken: choice; alternatives begin alike; entry; ("apr"i & any* => (4) | "aug"i & any* => (8))
-- open MonthToken: choice; alternatives begin alike; entry; ("jan"i & any* => (1) | "jun"i & any* => (6) | "jul"i & any* => (7))
-- open MonthToken: choice; alternatives begin alike; entry; ("mar"i & any* => (3) | "may"i & any* => (5))
-- again Tail: opens a way
-- open Tail: run; what follows begins alike; open; any*
-- again TimeToken: through Tail
-- again YearToken: through Tail
-
-## DotGram.Web.Rfc6266
-
-- machine ParseContentDisposition [whole]: carrier: tape; gate: read again; building: 3; replayed: 0; read again: 2; refused: 0; points: 5/5
-- again DispositionField: through DispositionParms
-- again DispositionParms: opens a way
-- open DispositionParms: turns, captured; a turn led by what may read nothing; open; items: DispositionParm*
 
 ## DotGram.Web.Rfc6570
 
@@ -1079,88 +797,7 @@ or which nothing calls, so that no caller asks it again.
 - machine ParsePointer [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
 - machine ParseFragment [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
 
-## DotGram.Web.Rfc7239
-
-- machine ParseForwarded [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 2; refused: 0; points: 12/12
-- machine ParseNode [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 5; refused: 0; points: 4/4
-- again DecOctet: opens a way
-- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
-- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
-- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
-- again ForwardedField: through Ows
-- again IPv4Address: through DecOctet
-- again IPv6Address: opens a way
-- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
-- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
-- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
-- again Ls32: opens a way
-- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
-- again Node: through IPv4Address
-- again Ows: opens a way
-- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
-
 ## DotGram.Web.Rfc8259
 
 - machine ParseJson [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 29/29
 - memo ParseJson [whole]: remembered 0; not 1: Value (characters)
-
-## DotGram.Web.Rfc8288
-
-- machine ParseLinks [whole]: carrier: tape; gate: read again; building: 5; replayed: 0; read again: 5; refused: 0; points: 9/9
-- again Assignment: opens a way
-- open Assignment: optional; what follows begins alike; open; ('=' & Ows & (Token | QuotedString))?
-- again Field: through Ows
-- again LinkParam: through Ows
-- again LinkValue: opens a way
-- open LinkValue: turns, captured; a turn led by what may read nothing; open; parameters: LinkParam*
-- again Ows: opens a way
-- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
-
-## DotGram.Web.Rfc9110
-
-- machine ParseContentType [whole]: carrier: tape; gate: read again; building: 4; replayed: 0; read again: 6; refused: 0; points: 7/7
-- again ContentTypeField: through Ows
-- again Media: through Parameters
-- again Ows: opens a way
-- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
-- again ParameterSlot: through Ows
-- again ParameterText: opens a way
-- open ParameterText: optional; what follows begins alike; open; (Token & '=' & (Token | QuotedString))?
-- again Parameters: opens a way
-- open Parameters: turns, captured; a turn led by what may read nothing; open; slots: ParameterSlot*
-
-## DotGram.Web.Rfc9651
-
-- machine ParseItem [whole]: carrier: tape; gate: read again; building: 7; replayed: 0; read again: 9; refused: 0; points: 22/22
-- machine ParseList [whole]: carrier: tape; gate: read again; building: 11; replayed: 0; read again: 13; refused: 0; points: 34/34
-- machine ParseDictionary [whole]: carrier: tape; gate: read again; building: 12; replayed: 0; read again: 14; refused: 0; points: 37/37
-- again DictMember: opens a way
-- open DictMember: choice; an alternative that may read nothing; open; ('=' & value: ListMember | parameters: SfParameters)
-- again DictRest: through DictMember
-- again DictionaryField: opens a way
-- open DictionaryField: turns, captured; a turn led by what may read nothing; entry; rest: DictRest*
-- again InnerMember: through SfItem
-- again ItemField: through SfItem
-- again Key: opens a way
-- open Key: run; what follows begins alike; open; ['*' | '-'..'.' | '0'..'9' | '_' | 'a'..'z']*
-- again ListField: opens a way
-- open ListField: turns, captured; a turn led by what may read nothing; entry; rest: ListRest*
-- again ListMember: through SfItem
-- again ListRest: through ListMember
-- again Parameter: through SfBareItem
-- again SfBareItem: opens a way
-- open SfBareItem: choice; every alternative led by what may read nothing; open; (text: SfDecimal => (new BareItem.Decimal(Rfc9651.Decimal(text))) | te…
-- again SfDecimal: opens a way
-- open SfDecimal: run; what follows begins alike; open; Digit{1,3}
-- again SfInnerList: through SfParameters
-- again SfInteger: opens a way
-- open SfInteger: run; what follows begins alike; open; Digit{1,15}
-- again SfItem: through SfBareItem
-- again SfParameters: through Parameter
-- again SfToken: opens a way
-- open SfToken: run; what follows begins alike; open; ['!' | '#'..'\'' | '*'..'+' | '-'..':' | 'A'..'Z' | '^'..'z' | '|' | '…
