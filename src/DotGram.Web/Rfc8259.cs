@@ -447,6 +447,10 @@ public abstract record JsonValue
 // caller's. A byte order mark is not whitespace and is refused, which §8.1 allows; a caller who wants
 // it ignored takes it off first. Nesting is as deep as the input goes — the reading moves to a fresh
 // stack where one runs low — and a limit, which §9 allows, is the caller's to set.
+//
+// The captures are spans: a string token is handed to Unescaped as the slice of the input it was read
+// from, and the one string built is the value itself. With string captures the token was a string
+// too, and nearly every JSON string, having no escape in it, was built twice.
 
 [Gram("""
 	@using System;
@@ -467,7 +471,7 @@ public abstract record JsonValue
 		| "true"              => @(JsonValue.Boolean.True)
 		| members: ObjectBody => @(members)
 		| items: ArrayBody    => @(items)
-		| text: NumberText    => @(new JsonValue.Number(text))
+		| text: NumberText    => @(new JsonValue.Number(text.ToString()))
 		| text: StringText    => @(new JsonValue.String(Rfc8259.Unescaped(text)))
 
 	// §4. begin-object, members, end-object: whitespace after each structural character and after each value.
@@ -497,7 +501,7 @@ public abstract record JsonValue
 	Hexdig = ['0'..'9' | 'a'..'f' | 'A'..'F']
 
 	parse JsonText as ParseJson
-	""")]
+	""", SpanCaptures = true)]
 static partial class Rfc8259
 {
 	// ParseJson and TryParseJson are generated here; JsonValue.Parse is the way in.
@@ -529,45 +533,65 @@ static partial class Rfc8259
 	}
 
 	/// <summary>A string token's text between its quotation marks, with §7's escapes undone.</summary>
-	internal static string Unescaped(string token)
+	internal static string Unescaped(ReadOnlySpan<char> token)
 	{
-		if (token.IndexOf('\\') < 0)
-			return token.Substring(1, token.Length - 2);
+		var inside = token.Slice(1, token.Length - 2);
 
-		var output = new StringBuilder(token.Length);
+		// Nothing escaped, which is nearly every string: the value is the slice, built once.
+		if (inside.IndexOf('\\') < 0)
+			return inside.ToString();
 
-		for (var at = 1; at < token.Length - 1; at++)
+		// An escape is written in more characters than it stands for, so the value fits in the
+		// token's length: undone into a buffer of that length and made a string once. The buffer
+		// is not a stackalloc: a type that holds one is skipped by Roslyn's unused-member analysis,
+		// which the generated half of this type is measured by.
+		var output = new char[inside.Length];
+		var length = 0;
+
+		for (var at = 0; at < inside.Length; at++)
 		{
-			var character = token[at];
+			var character = inside[at];
 
 			if (character != '\\')
 			{
-				output.Append(character);
+				output[length++] = character;
 				continue;
 			}
 
-			var escaped = token[++at];
+			var escaped = inside[++at];
 
 			switch (escaped)
 			{
-				case 'b': output.Append('\b'); break;
-				case 'f': output.Append('\f'); break;
-				case 'n': output.Append('\n'); break;
-				case 'r': output.Append('\r'); break;
-				case 't': output.Append('\t'); break;
+				case 'b': output[length++] = '\b'; break;
+				case 'f': output[length++] = '\f'; break;
+				case 'n': output[length++] = '\n'; break;
+				case 'r': output[length++] = '\r'; break;
+				case 't': output[length++] = '\t'; break;
 
 				case 'u':
-					output.Append((char)int.Parse(token.Substring(at + 1, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture));
+					output[length++] = (char)Hex(inside.Slice(at + 1, 4));
 					at += 4;
 					break;
 
 				// `"`, `\` and `/` stand for themselves.
 				default:
-					output.Append(escaped);
+					output[length++] = escaped;
 					break;
 			}
 		}
 
-		return output.ToString();
+		return new string(output, 0, length);
+	}
+
+	// The grammar has read these as hexadecimal digits, four of them. By hand, since the framework
+	// floor has no int.Parse over a span and a string of the digits would be an allocation.
+	static int Hex(ReadOnlySpan<char> digits)
+	{
+		var value = 0;
+
+		foreach (var digit in digits)
+			value = value * 16 + (digit >= 'a' ? digit - 'a' + 10 : digit >= 'A' ? digit - 'A' + 10 : digit - '0');
+
+		return value;
 	}
 }

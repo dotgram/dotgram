@@ -136,6 +136,42 @@ public sealed class Rfc8259Tests
 		Assert.Equal("\"\\udead\"", text.ToString());
 	}
 
+	/// <summary>
+	/// §7's nine escapes are undone, a hexadecimal one in either case, in a name as in a value; and a
+	/// string that is undone past the length the parser keeps on the stack is undone the same.
+	/// </summary>
+	[Theory]
+	[InlineData("\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"", "\" \\ / \b \f \n \r \t")]
+	[InlineData("\"\\u0041\\u00e9\\u00E9\\uabcd\\uABCD\\u0000\"", "A\u00e9\u00e9\uabcd\uabcd\0")]
+	[InlineData("\"\\uD83D\\uDE00\"", "\U0001F600")]
+	[InlineData("\"plain\"", "plain")]
+	[InlineData("\"\"", "")]
+	public void Every_escape_is_undone(string text, string expected)
+	{
+		Assert.Equal(expected, ((JsonValue.String)Both.Json(text)).Value);
+
+		var member = ((JsonValue.Object)Both.Json("{" + text + ":" + text + "}")).Members[0];
+
+		Assert.Equal(expected, member.Key);
+		Assert.Equal(expected, ((JsonValue.String)member.Value).Value);
+	}
+
+	[Theory]
+	[InlineData(255)]
+	[InlineData(256)]
+	[InlineData(257)]
+	[InlineData(5000)]
+	public void A_long_string_is_undone_the_same_as_a_short_one(int length)
+	{
+		// Exactly `length` characters between the quotation marks, which is the length the buffer is chosen by.
+		var escaped  = string.Concat(Enumerable.Repeat("\\n", length / 2)) + (length % 2 == 1 ? "a" : "");
+		var expected = new string('\n', length / 2) + (length % 2 == 1 ? "a" : "");
+		var plain    = new string('x', length);
+
+		Assert.Equal(expected, ((JsonValue.String)Both.Json("\"" + escaped + "\"")).Value);
+		Assert.Equal(plain,    ((JsonValue.String)Both.Json("\"" + plain + "\"")).Value);
+	}
+
 	/// <summary>Nesting as deep as the suite's deepest refusal is read on as many stacks as it takes.</summary>
 	[Fact]
 	public void Deep_nesting_is_read()
