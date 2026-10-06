@@ -221,12 +221,35 @@ sealed partial class Machine
 		return "CountEntered_" + CSharpEmitter.IdentifierOf(rule);
 	}
 
-	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
-	public string RenderReader(IReadOnlyList<Publication> publications)
+	/// <summary>The publications the readers were settled for (<see cref="Settle"/>), or null before they were.</summary>
+	IReadOnlyList<Publication>? _settledFor;
+
+	/// <summary>
+	/// What the readers need to know before any of them is written, found once: the rules they
+	/// reach, the back edges, what the guards need, the arms, which rules open a way back — and
+	/// from those, the carrier a machine left to choose takes (<see cref="Choose"/>) and which
+	/// rules remember where they failed (<see cref="ChooseMemo"/>).
+	/// </summary>
+	/// <remarks>
+	/// Apart from <see cref="RenderReader"/> so that a machine's carrier can be asked for before
+	/// its readers are written: the emitter asks it of two machines before it decides whether
+	/// they share one, and of the union before it decides to keep it (CSharpEmitter, the
+	/// sibling pass). Asked again for the same publications, it does nothing; asked for others,
+	/// it refuses, since what it found would be another machine's.
+	/// </remarks>
+	internal void Settle(IReadOnlyList<Publication> publications)
 	{
-		var file  = new Writer(0);
+		if (_settledFor is not null)
+		{
+			if (!_settledFor.SequenceEqual(publications))
+				throw new InvalidOperationException("The readers were settled for other publications.");
+
+			return;
+		}
+
+		_settledFor = publications;
+
 		var rules = DirectRules(publications);
-		var seen  = new HashSet<RuleSymbol>();
 
 		BackEdges(publications);
 		DirectGuardNeeds(rules);
@@ -264,6 +287,19 @@ sealed partial class Machine
 
 		// Which rules remember where they failed, knowing which of them give back (Machine.Memo.cs).
 		ChooseMemo(rules);
+	}
+
+	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
+	public string RenderReader(IReadOnlyList<Publication> publications)
+	{
+		Settle(publications);
+
+		if (_opens is not { } opens)
+			throw new InvalidOperationException("The readers were not settled.");
+
+		var file  = new Writer(0);
+		var rules = _directRules;
+		var seen  = new HashSet<RuleSymbol>();
 
 		// Render again with the selected carrier and known open rules. Append each rule
 		// and its parts immediately so completed method strings need not all stay alive.
@@ -278,7 +314,7 @@ sealed partial class Machine
 				_readerPart = 0;
 
 				var reader = new ReaderWriter(this, rule);
-				var tape   = _opens.Contains(rule);
+				var tape   = opens.Contains(rule);
 				var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 				if (tape)

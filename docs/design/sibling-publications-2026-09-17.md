@@ -95,3 +95,25 @@ Debug DLL including embedded PDB: 53,075,456 -> 27,142,656 bytes. Release SQL DL
 51,828,224 -> 27,139,584 bytes. No instruction-layout or DLL-identity claim is made.
 
 [Raw runtime observations](../../benchmarks/results/sibling-publications-runtime-2026-09-17.json).
+
+## Update 2026-10-06: the immediate carrier's machines share too
+
+The gate above let only machines on the tape share, by a condition read off the graph
+alone: the carrier was explicitly the tape, or `Auto` would keep the machine there for a
+building rule read where the reading may not stand. The bound was conservative for a
+reason, not an oversight: a machine's carrier was settled only as its readers were
+written, after the sharing pass, and the union is one machine with one carrier — so
+folding a machine that would carry immediately into one that needed the tape would have
+moved it onto the tape silently. The cost was that a grammar compiled on the immediate
+carrier kept one machine per publication: SQL:2023 came out as 17 machines (13 copies of
+its expression reader) against the tape's 4, 2.45x the generated source, and T-SQL as 6
+against 2, 1.31x.
+
+Now each machine is asked ahead of the pass which carrier it will have — `WouldRefuse`
+where the carrier was named, and the gates (which read the rules through once, apart
+from writing them) where it was left to choose — and shares only with machines that
+answer the same. A union of immediate machines is kept only where it carries immediately
+itself; otherwise its members stay apart, each on the carrier it would have had alone.
+Machines on the tape share exactly as before, by the same condition, so no parser on the
+tape changes. With this, SQL:2023 and T-SQL on the immediate carrier come out with the
+tape's machines and a smaller source than the tape's.

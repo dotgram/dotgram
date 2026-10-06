@@ -969,7 +969,13 @@ after a repeatable benefit in actual solution builds has been demonstrated.
 
 ## Shared publication machines
 
-Large direct readers with at least 90% rule overlap may share a machine when each
-already needs deferred value construction. Small and streamed publications remain
-separate. This reduces duplicate generated methods independently of source-file
-splitting. See the [implementation and measurements](design/sibling-publications-2026-09-17.md).
+Large direct readers with at least 90% rule overlap may share a machine when they will
+carry their values the same way: machines on the tape share with machines on the tape,
+and machines the immediate carrier carries share with each other, each judged on the
+carrier it will actually have — what `Auto` chooses, or the tape a refused request
+falls back to (GRAM5007). A union of immediate machines is kept only where the immediate
+carrier carries the union too, so that sharing never puts a machine on the tape that would
+have carried immediately on its own. Small and streamed publications remain separate.
+This reduces duplicate generated methods independently of source-file splitting, and it is
+what keeps a grammar's generated source the same size whichever carrier it is compiled on.
+See the [implementation and measurements](design/sibling-publications-2026-09-17.md).

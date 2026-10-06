@@ -538,6 +538,36 @@ sealed partial class Machine
 		};
 	}
 
+	/// <summary>
+	/// Whether this machine's readers will carry immediately, asked before they are written: the
+	/// immediate carrier where it was asked for by name and does not refuse the machine, or where
+	/// the machine was left to choose and chooses it. The tape otherwise.
+	/// </summary>
+	/// <remarks>
+	/// A carrier the author named is settled by the refusal alone, which needs nothing but the
+	/// rules. A machine left to choose asks the gates, and the second of them — a rule the reader
+	/// can be asked again after it answered — is known only once the rules have been read through
+	/// once (<see cref="Settle"/>), which this does here rather than wait for the readers to be
+	/// written. The emitter asks this before it folds machines together, so that a machine that
+	/// would have carried immediately on its own is never put on the tape by sharing one.
+	/// </remarks>
+	internal bool WillCarryImmediately(IReadOnlyList<Publication> publications)
+	{
+		switch (_carrierKind)
+		{
+			case CarrierKind.Immediate:
+				return WouldRefuse(CarrierKind.Immediate) is null;
+
+			case CarrierKind.Auto:
+				Settle(publications);
+
+				return CarriesImmediately;
+
+			default:
+				return false;
+		}
+	}
+
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
 

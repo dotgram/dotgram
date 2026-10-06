@@ -305,20 +305,31 @@ public static partial class CSharpEmitter
 		// A publication whose rule another machine already reaches is read by that machine,
 		// entered at its own rule, rather than by a second copy of everything it reaches.
 		Joined(graph, machines, overKinds);
-		// Share substantial overlap only when every member already requires the tape.
-		// A small publication must not acquire a large sibling's parsing infrastructure.
-		var reached = machines.ToDictionary(compiled => compiled, Rules);
+		// Share substantial overlap only among machines that will carry the same way: the tape's
+		// with the tape's, the immediate carrier's with its own, each judged on the carrier it will
+		// actually have — what `Auto` chooses, or the tape a refused request falls back to. A small
+		// publication must not acquire a large sibling's parsing infrastructure.
+		//
+		// The union is one machine with one carrier. Machines on the tape stay there as one: what
+		// kept each is among the union's rules too. Machines the immediate carrier will carry are
+		// folded only where it carries the union as well; otherwise they stay apart, since sharing
+		// must not put a machine on the tape that would have carried immediately on its own. That
+		// is why the gate was once the tape's alone — the carrier could not be asked ahead of the
+		// readers being written — and why the immediate carrier's copies of a grammar came out as
+		// one machine per publication, several times the tape's size.
+		var reached   = machines.ToDictionary(compiled => compiled, Rules);
+		var shareable = new Dictionary<Compiled, bool?>();
 		for (var host = 0; host < machines.Count; host++)
 		{
 			var owner = machines[host];
-			if (!Eligible(owner)) continue;
+			if (Shareable(owner) is not { } immediately) continue;
 			var union = new HashSet<RuleSymbol>(reached[owner]);
 			var guests = new List<int>();
 			var publications = owner.Publications.ToList();
 			for (var guest = host + 1; guest < machines.Count; guest++)
 			{
 				var candidate = machines[guest];
-				if (!Eligible(candidate) || candidate.Machine.BuildsDuringRecognition != owner.Machine.BuildsDuringRecognition) continue;
+				if (Shareable(candidate) != immediately || candidate.Machine.BuildsDuringRecognition != owner.Machine.BuildsDuringRecognition) continue;
 				var other = reached[candidate];
 				if (union.Count(other.Contains) * 10 < Math.Max(union.Count, other.Count) * 9) continue;
 				union.UnionWith(other);
@@ -338,20 +349,49 @@ public static partial class CSharpEmitter
 			made.Tracing = tracing;
 			made.MemoisesFailures = memoise;
 			if (!made.CanDirect(publications)) continue;
+			// Kept only where the union carries as its members do.
+			if (immediately && !made.WillCarryImmediately(publications)) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
 				machines.RemoveAt(guests[guest]);
 		}
 
-		bool Eligible(Compiled compiled)
+		// Whether a machine may share, and with which: false among the tape's, true among the
+		// immediate carrier's, null alone.
+		bool? Shareable(Compiled compiled)
+		{
+			if (shareable.TryGetValue(compiled, out var known))
+				return known;
+
+			return shareable[compiled] = Judged(compiled);
+		}
+
+		bool? Judged(Compiled compiled)
 		{
 			// A reading is passed by each publication at runtime, so different readings
 			// may share the same rule bodies without sharing their selected version.
-			return compiled.Direct && !compiled.Flat &&
-				reached[compiled].Count >= 128 && compiled.Publications.All(publication =>
-					!Streams(graph, publication, overKinds)) &&
-				(carrier == CarrierKind.Tape || carrier == CarrierKind.Auto && replay is not null &&
-					reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)));
+			if (!compiled.Direct || compiled.Flat || reached[compiled].Count < 128 ||
+				compiled.Publications.Any(publication => Streams(graph, publication, overKinds)))
+			{
+				return null;
+			}
+
+			if (carrier == CarrierKind.Tape)
+				return false;
+
+			// Left to choose, and kept on the tape by a building rule read where the reading may
+			// not stand: on the tape for certain, and so is any union it joins.
+			if (carrier == CarrierKind.Auto && replay is not null &&
+				reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)))
+			{
+				return false;
+			}
+
+			// Asked for by name, or left to choose where that gate let everything through: shared
+			// where the immediate carrier will carry it. A machine it will not — refused, kept on
+			// the tape by a rule that can be read again, or with nothing to build — stays alone,
+			// as it did.
+			return compiled.Machine.WillCarryImmediately(compiled.Publications) ? true : null;
 		}
 		HashSet<RuleSymbol> Rules(Compiled compiled)
 		{
