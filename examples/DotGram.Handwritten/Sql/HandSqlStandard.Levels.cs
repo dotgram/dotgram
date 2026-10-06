@@ -115,20 +115,20 @@ partial class HandSqlStandard
 	}
 
 	/// <summary>
-	/// The executable statements, then what direct invocation adds to them: a query, as a cursor
-	/// specification, and a temporary table's declaration.
+	/// A query, as a cursor specification, then the executable statements, then a temporary table's
+	/// declaration: the order of the grammar, which asks the query before the single-row <c>SELECT … INTO</c>.
 	/// </summary>
 	static bool SqlStatementBody(ref SqlCursor cursor, out Statement statement)
 	{
-		if (SQLExecutableStatement(ref cursor, out statement))
-			return true;
-
 		if (CursorSpecification(ref cursor, out var query))
 		{
 			statement = query;
 
 			return true;
 		}
+
+		if (SQLExecutableStatement(ref cursor, out statement))
+			return true;
 
 		if (TemporaryTableDeclaration(ref cursor, out var table))
 		{

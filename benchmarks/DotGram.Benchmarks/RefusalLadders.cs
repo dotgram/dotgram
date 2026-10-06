@@ -227,14 +227,14 @@ internal static class RefusalLadders
 		yield return R("T-SQL search condition", "predicates, then an unclosed (", "predicates", 4096, n => Conditions(n) + " AND (a = 1", static t => TransactSqlParser.TryParseSearchCondition(t).IsSuccess);
 		yield return R("T-SQL search condition", "nested parentheses, never closed (the closed form is as dear: a cost of nesting)", "levels", 300, n => new string('(', n) + "a = 1", static t => TransactSqlParser.TryParseSearchCondition(t).IsSuccess);
 
-		yield return R("SQL:2023 statement", "columns, then a FROM with nothing after it", "columns", 4096, n => $"SELECT {Names(n)} FROM", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "an unclosed string", "characters", 4096, n => "SELECT '" + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "an unclosed comment", "characters", 4096, n => "SELECT 1 /* " + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "an unclosed quoted identifier", "characters", 4096, n => "SELECT " + quote + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "nested parentheses, never closed (the closed form is as dear: a cost of nesting)", "levels", 300, n => "SELECT " + new string('(', n) + "1", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "subqueries opened and not closed", "levels", 200, n => "SELECT * FROM " + Copies("(SELECT * FROM ", n) + "t", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "CASE arms, no END", "arms", 4096, n => "SELECT CASE" + Copies(" WHEN 1 = 1 THEN 1", n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
-		yield return R("SQL:2023 statement", "joins, then a JOIN with nothing after it", "joins", 4096, n => "SELECT * FROM t" + Copies(" JOIN t ON a = a", n) + " JOIN", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "columns, then a FROM with nothing after it", "columns", 4096, n => $"SELECT {Names(n)} FROM", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "an unclosed string", "characters", 4096, n => "SELECT '" + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "an unclosed comment", "characters", 4096, n => "SELECT 1 /* " + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "an unclosed quoted identifier", "characters", 4096, n => "SELECT " + quote + new string('a', n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "nested parentheses, never closed (the closed form is as dear: a cost of nesting)", "levels", 300, n => "SELECT " + new string('(', n) + "1", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "subqueries opened and not closed", "levels", 200, n => "SELECT * FROM " + Copies("(SELECT * FROM ", n) + "t", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "CASE arms, no END", "arms", 4096, n => "SELECT CASE" + Copies(" WHEN 1 = 1 THEN 1", n), static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
+		yield return R("SQL:2023 query", "joins, then a JOIN with nothing after it", "joins", 4096, n => "SELECT * FROM t" + Copies(" JOIN t ON a = a", n) + " JOIN", static t => SqlStandardParser.TryParseStatement(t).IsSuccess);
 		yield return R("SQL:2023 search condition", "predicates, then a dangling AND", "predicates", 4096, n => Conditions(n) + " AND", static t => SqlStandardParser.TryParseSearchCondition(t).IsSuccess);
 		yield return R("SQL:2023 search condition", "predicates, then an unclosed (", "predicates", 4096, n => Conditions(n) + " AND (a = 1", static t => SqlStandardParser.TryParseSearchCondition(t).IsSuccess);
 		yield return R("SQL:2023 search condition", "nested parentheses, never closed (the closed form is as dear: a cost of nesting)", "levels", 300, n => new string('(', n) + "a = 1", static t => SqlStandardParser.TryParseSearchCondition(t).IsSuccess);
