@@ -320,6 +320,7 @@ TSqlPrimaryCore : @Expression
 	| n: NextValue                             => @(n)
 	| f: DatePartCall                          => @(f)
 	| f: LeftRightCall                         => @(f)
+	| n: NamedPrimary                          => @(n)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
 	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
@@ -329,6 +330,38 @@ TSqlPrimaryCore : @Expression
 	| "NULL"i                                  => @(Expression.NullValue)
 	| t: RowColumnName                         => @(new Expression.ColumnReference(t))
 	| n: ColumnReference                       => @(n)
+
+// A qualified name read once, and what follows it says what it names: a call where `(` does
+// and the name may be called, a table's identity or row-GUID column where `.IDENTITYCOL` or
+// `.ROWGUIDCOL` does, and a column otherwise. The three alternatives below that begin with a
+// name — `FunctionCall`, `RowColumnName`, `ColumnReference` — each read it again from the
+// start, which on a statement of ordinary columns was most of what the name rules did; this
+// rule is their union for the names it takes, and stands where the first of them stands.
+//
+// What it does not take it leaves to them, so that nothing between `FunctionCall` and
+// `ColumnReference` is read differently than before: a name beginning with `INTERVAL` or
+// `VALUE`, which `UnsignedValueSpecification` reads where it stands alone or as a literal;
+// `IIF`, the JSON constructors and the casts in front of a bracket, which `FunctionCall`
+// turns away as well; and a name the guard refuses — `[LEN]('a')`, `.f2(1)` — which is read
+// as a column by the rule that reads columns, after the guard has refused it where it did.
+// The guard stands where `FunctionCall`'s stands, after the name and before the bracket,
+// so that a refusal is recorded where it was.
+//
+// The tree is the one the three built: the call's name is the name alone, a row column's
+// is the whole text, as `RowColumnName` handed it over, and `t.col.STArea()` is the call
+// `FunctionCall` made of it, since the name eats every dot it can before the bracket.
+NamedPrimary : @Expression
+	= ?!("INTERVAL"i | "VALUE"i)
+	  & ?!((JsonOwnName | "IIF"i) & '(')
+	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
+	  & t: (name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	        & ( call: '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+	          | '.' & ("IDENTITYCOL"i | "ROWGUIDCOL"i))?)
+		=> @(call is null
+				 ? new Expression.ColumnReference(t)
+				 : Syntax.Called(
+					   new Expression.RoutineInvocation(
+						   name, SqlList.Own(Syntax.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 
 // `LEFT` and `RIGHT` are reserved for the joins and are functions besides: `LEFT('a', 1)` is
 // read, and `dbo.LEFT(1)` and `LEFT('a', 1) OVER ()` are refused.
