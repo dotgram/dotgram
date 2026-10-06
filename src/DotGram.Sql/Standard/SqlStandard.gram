@@ -2657,8 +2657,10 @@ CursorReturnability : @CursorReturnability = "WITH"i & "RETURN"i => @(CursorRetu
 
 // A value as SQL writes it: the standard's <literal>, a signed number among them, or `NULL`. `NULL` is
 // no <literal> in the standard but a <null specification>; it is read here because it is the one value a
-// caller has to write without one, and the tree already has its node.
-Value : @LiteralValue = v: Literal => @(v) | "NULL"i => @(new LiteralValue.Null())
+// caller has to write without one, and the tree already has its node. <literal>'s two alternatives are
+// written out rather than called: a value is read by its own machine, and a rule between the entry and
+// the literal was a call and a record more on every value, a seventh of the time of reading `1`.
+Value : @LiteralValue = v: SignedNumericLiteral => @(v) | v: GeneralLiteral => @(v) | "NULL"i => @(new LiteralValue.Null())
 
 // What a publication of a tower hands back: the node alone, since the towers are the grammar's own business.
 ValueExpressionTree : @Expression = e: ValueExpression => @(e.Node)
