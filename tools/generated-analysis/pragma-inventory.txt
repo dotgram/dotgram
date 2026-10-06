@@ -42,7 +42,6 @@ Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	CS0649 // a table nothing writes still
 Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	CS0649 // a table nothing writes still declares the field
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	CS0108 // a dialect hides what it inherits, on purpose
-Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	CS0649 // a table nothing writes still declares the field
 Web	DotGram.Web.Rfc3339.g.cs	0649
 Web	DotGram.Web.Rfc3986.g.cs	CS0649 // a table nothing writes still declares the field
 Web	DotGram.Web.Rfc5322.g.cs	CS0649 // a table nothing writes still declares the field

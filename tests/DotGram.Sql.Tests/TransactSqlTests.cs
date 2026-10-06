@@ -225,6 +225,45 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A text cut inside the arguments of a function is refused, and refused quietly, through
+	/// every door.
+	/// </summary>
+	/// <remarks>
+	/// The parser is carried immediately: a construction runs the moment its alternative is read,
+	/// for a derivation the parse may then give up. These texts are the ones where that once
+	/// showed: the literal built for the last argument of <c>CHOOSE</c> stayed on the carrier's
+	/// stack when the call was abandoned at the unclosed quote, and the primary read next took
+	/// it for one of its own members — an <c>InvalidCastException</c> in the factory instead of a
+	/// refusal. A reading that is given up has to leave nothing behind, whichever entry reads it
+	/// and whether or not it locates.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT CHOOSE (2, 'a', 'b', '")]
+	[InlineData("SELECT CHOOSE (2, 'a', 'b', 'c")]
+	[InlineData("SELECT CHOOSE (2, 'a', 'b', 'c'")]
+	[InlineData("SELECT CHOOSE (2, 'a', 'b', ")]
+	[InlineData("SELECT IIF (a = 1, 'a', '")]
+	[InlineData("SELECT COALESCE (a, 'b', '")]
+	public void A_text_cut_inside_a_call_is_refused_and_nothing_is_thrown(string input)
+	{
+		var statement = TransactSqlParser.TryParseStatement(input);
+		var select    = TransactSqlParser.TryParseSelect(input);
+		var query     = TransactSqlParser.TryParseQuery(input);
+
+		Assert.False(statement.IsSuccess, input);
+		Assert.False(select.IsSuccess, input);
+		Assert.False(query.IsSuccess, input);
+
+		var located = TransactSqlParser.Located.TryParseStatement(input);
+
+		Assert.False(located.IsSuccess, input);
+		Assert.Equal(statement.Position, located.Position);
+		Assert.Equal(statement.Error, located.Error);
+		Assert.False(TransactSqlParser.Located.TryParseSelect(input).IsSuccess, input);
+		Assert.False(TransactSqlParser.Located.TryParseQuery(input).IsSuccess, input);
+	}
+
 	// ── The query layer ─────────────────────────────────────────────────────────
 
 	/// <summary>What T-SQL puts around a query, and the standard does not.</summary>
