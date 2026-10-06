@@ -291,6 +291,18 @@ public abstract record EmailAddress
 // quoted-pair is the character alone. The domain is RFC 5322's liberal one; whether it is also a host name
 // RFC 5321 would deliver to — a hyphen at a label's edge, a length — is not asked here.
 
+// Carried immediately, by name: an address is built the moment its rule has been read, and nothing
+// is recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): a
+// mailbox with a display name is tried before a bare addr-spec over the same words, comments and
+// folding can be asked again after they have answered, and a construction asked again runs again.
+// Every construction here builds from the text it was given — `Unquoted`, `Literal` and
+// `DisplayName` undo folding and quoted-pairs over a body the rule has already matched whole,
+// `Dotted` and `Joined` concatenate — and reads nothing else, so a reading given up or asked twice
+// leaves nothing behind and nothing can throw. Held to the tape by an agreement run: the same
+// grammar compiled on the tape, all eight entries over the is_email tests and the tests' texts, each
+// cut at every character and given a stray one — the same values, the same messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -475,7 +487,8 @@ public abstract record EmailAddress
 	parse Mailbox      with (Fws = CurrentFws, ObsNoWsCtl = Never, ObsQp = Never, ObsDtext = Never, LocalPart = CurrentLocalPart, Domain = CurrentDomain, Phrase = CurrentPhrase, ObsRoute = Never) as ParseStrictMailbox
 	parse MailboxList  with (Fws = CurrentFws, ObsNoWsCtl = Never, ObsQp = Never, ObsDtext = Never, LocalPart = CurrentLocalPart, Domain = CurrentDomain, Phrase = CurrentPhrase, ObsRoute = Never, NullMembers = none, NullMember = Never) as ParseStrictMailboxList
 	parse AddressList  with (Fws = CurrentFws, ObsNoWsCtl = Never, ObsQp = Never, ObsDtext = Never, LocalPart = CurrentLocalPart, Domain = CurrentDomain, Phrase = CurrentPhrase, ObsRoute = Never, NullMembers = none, NullMember = Never, ObsGroupList = Never) as ParseStrictAddressList
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc5322
 {
 	// ParseAddrSpec, ParseMailbox, ParseMailboxList, ParseAddressList, their Strict readings and all their Try
