@@ -2667,11 +2667,16 @@ SearchConditionTree : @Expression = e: SearchCondition => @(e.Node)
 // One statement of any kind. What direct invocation reads (§22) and what a routine's body reads (§13, the
 // SQL procedure statement) are each a part of what a caller hands a parser, and the union of the two is
 // the SQL executable statements with the two that direct invocation adds: a query, as a cursor
-// specification, and a temporary table's declaration. The executable statements are asked first, so that
-// a positioned `DELETE` or `UPDATE` reads as itself.
+// specification, and a temporary table's declaration.
+//
+// The query is asked first. Among the executable statements is the single-row `SELECT … INTO`, which reads
+// a whole select list before it finds no `INTO`, and asked first it read every query's select list twice,
+// subqueries and all; no executable statement begins as a query does except that one, and it is no query
+// (a query has no `INTO` there), so the order decides nothing else. The executable statements are asked
+// before the temporary table, and among them a positioned `DELETE` or `UPDATE` reads as itself.
 SqlStatementBody : @Statement
-	= s: SQLExecutableStatement => @(s)
-	| c: CursorSpecification => @(c)
+	= c: CursorSpecification => @(c)
+	| s: SQLExecutableStatement => @(s)
 	| t: TemporaryTableDeclaration => @(t)
 
 // A statement ends at its semicolon or at the end of the text: one statement read whole may leave the

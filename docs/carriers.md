@@ -5,22 +5,23 @@ Every grammar the last build with `-p:DotGramReportGeneration=full` compiled: th
 held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the reports
 that build left; run again rather than edited.
 
-Read from 9 projects, and written when each one was last compiled with the
+Read from 10 projects, and written when each one was last compiled with the
 report on. A project built below that level leaves no report and is absent here rather than
 empty, so a short table is a short build and not a grammar with nothing to say; a project whose
 time is older than the rest was not in the last build, and its rows are that build's answer.
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-05 23:06 |
-| DotGram.Examples | 2026-10-05 23:03 |
-| DotGram.ExpressionLanguage | 2026-10-05 23:03 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-05 23:03 |
-| DotGram.Finance | 2026-10-05 23:05 |
-| DotGram.Finance.Fix44 | 2026-10-05 23:05 |
-| DotGram.Sql | 2026-10-05 23:04 |
-| DotGram.Tests | 2026-10-05 23:06 |
-| DotGram.Web | 2026-10-05 23:03 |
+| DotGram.Benchmarks | 2026-10-06 06:54 |
+| DotGram.Examples | 2026-10-06 06:52 |
+| DotGram.ExpressionLanguage | 2026-10-06 06:52 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 06:52 |
+| DotGram.Finance | 2026-10-06 06:53 |
+| DotGram.Finance.Fix44 | 2026-10-06 06:54 |
+| DotGram.Sql | 2026-10-06 06:54 |
+| DotGram.Sql.Productions | 2026-10-06 06:54 |
+| DotGram.Tests | 2026-10-06 06:54 |
+| DotGram.Web | 2026-10-06 06:52 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -51,7 +52,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.ImmediateSql |  |  | immediate (author) |  |  |  |  |  |  |  | 12/244 |
-| DotGram.Benchmarks.ImmediateSqlStandard |  |  | immediate refused (author) |  |  |  |  |  |  |  | 1284/2644 |
+| DotGram.Benchmarks.ImmediateSqlStandard |  |  | immediate (author) |  |  |  |  |  |  |  | 1247/2604 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none |  |  |  |  |  |  | 19/19 |
 | DotGram.Benchmarks.MaterializationCost.NoCaptures | 1 | 1 | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 1 | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
@@ -103,9 +104,10 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1830/1830 |
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  | 14/14 |
+| DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  | 1298/2658 |
 | DotGram.Sql.Standard.Sql92Parser | 1 | 1 | tape | replay | 49 | 45 | 4 | 0 | 0 | 0 | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser | 4 | 4 | tape | replay | 557 | 309 | 28 | 0 | 2 | 0 | 1284/2644 |
-| DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 655 | 323 | 79 | 0 | 1 | 0 | 2352/3138 |
+| DotGram.Sql.Standard.SqlStandardParser | 3 | 3 | tape | replay | 543 | 309 | 28 | 0 | 0 | 0 | 1247/2604 |
+| DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 655 | 323 | 79 | 0 | 0 | 0 | 2352/3138 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -189,12 +191,11 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 103 | 97 | 0 | 0 | 23/505 |
 | DotGram.Sql.Standard.Sql92Parser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 49 | 45 | 0 | 0 | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseLiteral | whole | tape | replay | 13 | 12 | 0 | 0 | 4/35 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseTableName | whole | tape | replay | 4 | 3 | 0 | 0 | 2/12 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseValueExpression, ParseUnsignedLiteral, ParseColumnReference and 21 more | whole | tape | replay | 307 | 291 | 0 | 1 | 32/1366 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseDirectSQLStatement, ParseSQLSchemaStatement, ParseUpdateStatementPositioned and 11 more | whole | tape | replay | 540 | 309 | 0 | 1 | 1248/2608 |
+| DotGram.Sql.Standard.SqlStandardParser | ParseValue | whole | tape | replay | 13 | 12 | 0 | 0 | 4/35 |
+| DotGram.Sql.Standard.SqlStandardParser | ParseExpression, ParseDataType, ParseSearchCondition | whole | tape | replay | 293 | 291 | 0 | 0 | 4/1338 |
+| DotGram.Sql.Standard.SqlStandardParser | ParseSql, ParseStatement | whole | tape | replay | 540 | 309 | 0 | 0 | 1239/2596 |
 | DotGram.Sql.TransactSql.TransactSqlParser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 180 | 175 | 0 | 0 | 37/812 |
-| DotGram.Sql.TransactSql.TransactSqlParser | ParseStatement, ParseStatement100, ParseStatement110 and 15 more | whole | tape | replay | 651 | 323 | 0 | 1 | 2344/3130 |
+| DotGram.Sql.TransactSql.TransactSqlParser | ParseStatement, ParseStatement100, ParseStatement110 and 15 more | whole | tape | replay | 651 | 323 | 0 | 0 | 2344/3130 |
 | DotGram.Tests.Calculators.DecimalCalculator | Evaluate | whole | immediate | none | 0 | 0 | 0 | 0 | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | Read | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | Evaluate | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
@@ -290,21 +291,9 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Benchmarks.ImmediateSqlStandard
 
-- memo ParseValueExpression, ParseUnsignedLiteral, ParseColumnReference, ParseIdentifierChain, ParseDataType, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseCommonValueExpression [whole]: remembered 19: CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseNumericValueExpression [whole]: remembered 20: NumericValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseStringValueExpression [whole]: remembered 20: StringValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseCharacterValueExpression [whole]: remembered 20: CharacterValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseBinaryValueExpression [whole]: remembered 19: CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseDatetimeValueExpression [whole]: remembered 20: DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseIntervalValueExpression [whole]: remembered 19: CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseBooleanValueExpression [whole]: remembered 19: BooleanValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseExpression, ParseDataType [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
 - memo ParseSearchCondition [whole]: remembered 19: BooleanValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParsePredicate [whole]: remembered 18: BooleanPrimary, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseRowValuePredicand [whole]: remembered 19: RowValuePredicand, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseValueExpressionPrimary [whole]: remembered 20: ValueExpressionPrimary, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate; not 0
-- memo ParseDirectSQLStatement, ParseSQLSchemaStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseDirectSQLDataStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement [whole]: remembered 23: DeleteStatementSearched, ForPortionOf, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate, SQLSchemaStatement; not 0
-- memo ParseSQLProcedureStatement [whole]: remembered 21: SQLExecutableStatement, Subquery, QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseSql, ParseStatement [whole]: remembered 21: SQLExecutableStatement, Subquery, QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
 
 ## DotGram.Benchmarks.Levels
 
@@ -770,6 +759,11 @@ or which nothing calls, so that no caller asks it again.
 
 - memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
 
+## DotGram.Sql.Productions.SqlStandardProductions
+
+- memo ParseExpression, ParseValueExpression, ParseDataType, ParseUnsignedLiteral, ParseIdentifierChain, ParseColumnReference, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement, ParseSearchCondition, ParseCommonValueExpression, ParseNumericValueExpression, ParseStringValueExpression, ParseCharacterValueExpression, ParseBinaryValueExpression, ParseDatetimeValueExpression, ParseIntervalValueExpression, ParseBooleanValueExpression, ParsePredicate, ParseRowValuePredicand, ParseValueExpressionPrimary [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseSql, ParseStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLSchemaStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement, ParseDirectSQLStatement, ParseDirectSQLDataStatement, ParseSQLProcedureStatement [whole]: remembered 21: SQLExecutableStatement, Subquery, QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+
 ## DotGram.Sql.Standard.Sql92Parser
 
 - machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 49; replayed: 45; read again: 0; refused: 0; points: 12/244
@@ -822,14 +816,11 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.Standard.SqlStandardParser
 
-- machine ParseLiteral [whole]: carrier: tape; gate: replay; building: 13; replayed: 12; read again: 0; refused: 0; points: 4/35
-- machine ParseTableName [whole]: carrier: tape; gate: replay; building: 4; replayed: 3; read again: 0; refused: 0; points: 2/12
-- machine ParseValueExpression, ParseUnsignedLiteral, ParseColumnReference, ParseIdentifierChain, ParseDataType, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement, ParseCommonValueExpression, ParseNumericValueExpression, ParseStringValueExpression, ParseCharacterValueExpression, ParseBinaryValueExpression, ParseDatetimeValueExpression, ParseIntervalValueExpression, ParseBooleanValueExpression, ParseSearchCondition, ParsePredicate, ParseRowValuePredicand, ParseValueExpressionPrimary [whole]: carrier: tape; gate: replay; building: 307; replayed: 291; read again: 0; refused: 1; points: 32/1366
-- machine ParseDirectSQLStatement, ParseSQLSchemaStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseDirectSQLDataStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement, ParseSQLProcedureStatement [whole]: carrier: tape; gate: replay; building: 540; replayed: 309; read again: 0; refused: 1; points: 1248/2608
-- memo ParseValueExpression, ParseUnsignedLiteral, ParseColumnReference, ParseIdentifierChain, ParseDataType, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement, ParseCommonValueExpression, ParseNumericValueExpression, ParseStringValueExpression, ParseCharacterValueExpression, ParseBinaryValueExpression, ParseDatetimeValueExpression, ParseIntervalValueExpression, ParseBooleanValueExpression, ParseSearchCondition, ParsePredicate, ParseRowValuePredicand, ParseValueExpressionPrimary [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseDirectSQLStatement, ParseSQLSchemaStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseDirectSQLDataStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement, ParseSQLProcedureStatement [whole]: remembered 23: DeleteStatementSearched, ForPortionOf, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, ValueNode, ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, JSONSubscript, JSONPathWff, JSONPathPredicate, SQLSchemaStatement; not 0
-- refused: 'JSONTablePlanTail' gathers two members onto one stack (JsonTablePlan); otherwise replay 291
-- refused: 'JSONTablePlanTail' gathers two members onto one stack (JsonTablePlan); otherwise replay 309
+- machine ParseValue [whole]: carrier: tape; gate: replay; building: 13; replayed: 12; read again: 0; refused: 0; points: 4/35
+- machine ParseExpression, ParseDataType, ParseSearchCondition [whole]: carrier: tape; gate: replay; building: 293; replayed: 291; read again: 0; refused: 0; points: 4/1338
+- machine ParseSql, ParseStatement [whole]: carrier: tape; gate: replay; building: 540; replayed: 309; read again: 0; refused: 0; points: 1239/2596
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseSql, ParseStatement [whole]: remembered 21: SQLExecutableStatement, Subquery, QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
 - replay Bracketed: Follows in PrimaryReading [choice], then when ((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0…
 - replay CharacterLargeObjectLength: Follows in CharacterStringType [choice], then ')'
 - replay CharacterLength: Follows in CharacterStringType [choice], then ')'
@@ -1143,10 +1134,9 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
 - machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 180; replayed: 175; read again: 0; refused: 0; points: 37/812
-- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170 [whole]: carrier: tape; gate: replay; building: 651; replayed: 323; read again: 0; refused: 1; points: 2344/3130
+- machine ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170 [whole]: carrier: tape; gate: replay; building: 651; replayed: 323; read again: 0; refused: 0; points: 2344/3130
 - memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone; not 0
 - memo ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170 [whole]: remembered 20: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone, TSqlInsert, OutputClause, OptionSetting, TryCatchStatement, StatementList, ConditionalStatement, Branch, EventValue, EventPredicate, BackupName; not 0
-- refused: 'SetExpressions_Dialect' gathers two members onto one stack (string); otherwise replay 323
 - replay AlterColumnWord: Follows in AlterTableAction [choice], then when (Syntax.FlagsOnline(flag, options))
 - replay Arguments: Follows in Member [turn], then ')'
 - replay AssemblyOptions: Follows in CodeStatement [choice], then when (Syntax.Tail(tail) is not null)
