@@ -185,8 +185,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.SqlDialect | ParseOld, ParseNew, ParseAny | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | ParseQuery | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 97 | 91 | 0 | 1 | 23/486 |
-| DotGram.ExpressionLanguage.ExpressionParser | ParseAsciiLambda, ParseHole_With2, ParseBody_With3 | whole | tape | replay | 97 | 91 | 0 | 1 | 23/486 |
+| DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 103 | 97 | 0 | 0 | 23/505 |
 | DotGram.Sql.Standard.Sql92Parser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 49 | 45 | 0 | 0 | 12/244 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseLiteral | whole | tape | replay | 13 | 12 | 0 | 0 | 4/35 |
 | DotGram.Sql.Standard.SqlStandardParser | ParseTableName | whole | tape | replay | 4 | 3 | 0 | 0 | 2/12 |
@@ -664,150 +663,96 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
-- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 97; replayed: 91; read again: 0; refused: 1; points: 23/486
-- machine ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: carrier: tape; gate: replay; building: 97; replayed: 91; read again: 0; refused: 1; points: 23/486
+- machine ParseLambda, ParseHole, ParseBody [whole]: carrier: tape; gate: replay; building: 103; replayed: 97; read again: 0; refused: 0; points: 23/505
 - memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
-- memo ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
-- refused: 'Primary' gathers two members onto one stack (string); otherwise replay 91
-- refused: 'Primary_With1' gathers two members onto one stack (string); otherwise replay 91
-- replay Arm: Follows in Binary [turn], then '}'
 - replay Arm: Follows in Binary [turn], then '}'
 - replay Assignment: Follows in Primary [choice], then ']'
-- replay Assignment: Follows in Primary [choice], then ']'
-- replay Conditional: Follows in Conditional [turn], then ':'
+- replay Char: Lookahead in TestedMarked [lookahead]
 - replay Conditional: Follows in Conditional [turn], then ':'
 - replay Core: Follows in Primary [choice], then '.'
-- replay Core: Follows in Primary [choice], then '.'
-- replay Discard: Follows in Arm [choice], then "=>"
 - replay Discard: Follows in Arm [choice], then "=>"
 - replay Elements: Follows in TargetNew [turn], then '}'
-- replay Elements: Follows in Primary [choice], then '}'
 - replay Identifier: Lookahead in Constant [choice]
-- replay Identifier: Follows in Postfix [turn], then Arguments
+- replay Interpolated: Lookahead in TestedMarked [lookahead]
 - replay Name: Follows in Constant [choice], then ?="=>" or ':' or Identifier
-- replay Name: Follows in Postfix [choice], then at: Indices_With1 & (?='/' & when (context.Indexes(parserSpan)))? => (…
 - replay Parameter: Follows in Function [choice], then ')'
-- replay Parameter: Follows in Function [choice], then ')'
-- replay Target: Follows in Assignment [choice], then '0' & value: Assignment => (ExpressionParser.AddAssign(target, value, …
-- replay Target: Follows in Assignment [choice], then '0' & value: Assignment_With1 => (ExpressionParser.AddAssign(target, v…
+- replay RawByHand: Lookahead in TestedMarked [lookahead]
+- replay RawDoubled3: Lookahead in TestedMarked [lookahead]
+- replay RawDoubled4: Lookahead in TestedMarked [lookahead]
+- replay RawDoubled5: Lookahead in TestedMarked [lookahead]
+- replay RawInterpolated3: Lookahead in TestedMarked [lookahead]
+- replay RawInterpolated4: Lookahead in TestedMarked [lookahead]
+- replay RawInterpolated5: Lookahead in TestedMarked [lookahead]
+- replay RawText3: Lookahead in TestedMarked [lookahead]
+- replay RawText4: Lookahead in TestedMarked [lookahead]
+- replay RawText5: Lookahead in TestedMarked [lookahead]
+- replay Target: Follows in Assignment [choice], then '/' & value: Assignment => (ExpressionParser.AddAssign(target, value, …
+- replay Text: Lookahead in TestedMarked [lookahead]
 - replay Type: Follows in NamedType [turn], then '>'
-- replay Type: Follows in NamedType [turn], then '>'
+- replay Verbatim: Lookahead in TestedMarked [lookahead]
+- replay VerbatimInterpolated: Lookahead in TestedMarked [lookahead]
 - replay Arguments: under Postfix
-- replay Arguments: under Postfix
-- replay Awaiting: under Untyped
 - replay Awaiting: under Untyped
 - replay Bin: under Primary
 - replay Binary: under Coalesce
-- replay Binary: under Coalesce
 - replay Binding: under Bindings
-- replay Binding: under Bindings
-- replay Bindings: under Primary
-- replay Bindings: under Primary
-- replay Block: under Body
+- replay Bindings: under Instanced
 - replay Block: under Body
 - replay Body: under Inner
-- replay Body: under Inner
-- replay Case: under Switch
 - replay Case: under Switch
 - replay Catch: under Try
-- replay Catch: under Try
 - replay Change: under Binary
-- replay Change: under Binary
-- replay Char: under Primary
-- replay Coalesce: under Conditional
 - replay Coalesce: under Conditional
 - replay Constant: under Pattern
-- replay Constant: under Pattern
-- replay Control: under Body
 - replay Control: under Body
 - replay Dec: under Primary
 - replay Decimals: under Primary
 - replay DoWhile: under Control
-- replay DoWhile: under Control
 - replay Doubles: under Primary
 - replay Element: under Elements
-- replay Element: under Elements
-- replay Fallback: under Switch
 - replay Fallback: under Switch
 - replay Floats: under Primary
 - replay For: under Control
 - replay ForLoop: under For
-- replay ForLoop: under For
-- replay For: under Control
 - replay Foreach: under Control
 - replay ForeachInferred: under Control
-- replay ForeachInferred: under Control
 - replay ForeachUnsettled: under Control
-- replay ForeachUnsettled: under Control
-- replay Foreach: under Control
-- replay Guarded: under Postfix
 - replay Guarded: under Postfix
 - replay Held: under Untyped
 - replay HeldBody: under Held
-- replay HeldBody: under Held
-- replay Held: under Untyped
 - replay Hex: under Primary
 - replay If: under Control
 - replay IfValue: under Body
-- replay IfValue: under Body
-- replay If: under Control
 - replay ImplicitArray: under Primary
-- replay ImplicitArray: under Primary
-- replay Indices: under Postfix
 - replay Indices: under Postfix
 - replay Inferred: under Statement
 - replay InferredUnsettled: under Statement
-- replay InferredUnsettled: under Statement
-- replay Inferred: under Statement
-- replay Initial: under Binding
 - replay Initial: under Binding
 - replay Inner: under Primary
-- replay Inner: under Primary
-- replay Interpolated: under Primary
-- replay Jump: under Statement
+- replay Instanced: under Primary
 - replay Jump: under Statement
 - replay Label: under Case
-- replay Label: under Case
 - replay Local: under Statement
-- replay Local: under Statement
-- replay NamedType: under Core
+- replay Marked: under Type
 - replay NamedType: under Core
 - replay Or: under Pattern
-- replay Or: under Pattern
-- replay Pattern: under Arm
+- replay Parenthesised: under Primary
 - replay Pattern: under Arm
 - replay Postfix: under Unary
-- replay Postfix: under Unary
 - replay Primary: under Postfix
-- replay Primary: under Postfix
-- replay RawByHand: under Primary
-- replay RawDoubled3: under Primary
-- replay RawDoubled4: under Primary
-- replay RawDoubled5: under Primary
-- replay RawInterpolated3: under Primary
-- replay RawInterpolated4: under Primary
-- replay RawInterpolated5: under Primary
-- replay RawText3: under Primary
-- replay RawText4: under Primary
-- replay RawText5: under Primary
 - replay Real: under Primary
 - replay Return: under Statement
-- replay Return: under Statement
 - replay SignedLong: under Primary
 - replay SignedLong: under Primary
 - replay SignedLong: under Primary
 - replay Statement: under Block
-- replay Statement: under Block
 - replay Step: under Guarded
-- replay Step: under Guarded
-- replay Switch: under Control
+- replay Strict: under Instanced
 - replay Switch: under Control
 - replay TargetNew: under Primary
-- replay TargetNew: under Primary
-- replay Text: under Primary
+- replay Tested: under Binary
+- replay TestedMarked: under Tested
 - replay Try: under Control
-- replay Try: under Control
-- replay Unary: under Binary
 - replay Unary: under Binary
 - replay UnsignedLong: under Primary
 - replay UnsignedLong: under Primary
@@ -816,16 +761,11 @@ or which nothing calls, so that no caller asks it again.
 - replay Unsigned: under Primary
 - replay Unsigned: under Primary
 - replay Untyped: under Primary
-- replay Untyped: under Primary
-- replay Verbatim: under Primary
-- replay VerbatimInterpolated: under Primary
-- replay While: under Control
 - replay While: under Control
 
 ## DotGram.ExpressionLanguage.ExpressionParser.Immediate
 
 - memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
-- memo ParseAsciiLambda, ParseHole_With2, ParseBody_With3 [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
 
 ## DotGram.Sql.Standard.Sql92Parser
 
