@@ -207,7 +207,11 @@ public sealed class ConcurrentStoreReturnTests
 	/// </summary>
 	static IEnumerable<string> StoreComplaints(Type parser)
 	{
-		var store = parser.GetNestedType("DirectValues", Any)!;
+		// The store is the carrier's: DirectValues on the tape, ImmediateValues where the parser is
+		// carried immediately (T-SQL). Both pool their stores the same way, in the same slots.
+		var store = parser.GetNestedType("DirectValues", Any)
+			?? parser.GetNestedType("ImmediateValues", Any)
+			?? throw new InvalidOperationException($"{parser.Name} has neither DirectValues nor ImmediateValues");
 		var held  = new List<(string Slot, object Store)>();
 
 		void Slot(string name)
@@ -302,6 +306,24 @@ public sealed class ConcurrentStoreReturnTests
 
 				if (Array.IndexOf(built, true) is var at && at >= 0)
 					yield return $"Built[{at}] is set";
+			}
+			else if ((name.Length > 5 && name.StartsWith("Count", StringComparison.Ordinal) && char.IsDigit(name[5]))
+				|| (name.Length > 4 && name.StartsWith("High", StringComparison.Ordinal) && char.IsDigit(name[4])))
+			{
+				// The immediate store: one stack a type, its count and the high-water mark Return clears to.
+				if ((int)field.GetValue(store)! != 0)
+					yield return $"{name} is {field.GetValue(store)}";
+			}
+			else if (name.Length > 5 && name.StartsWith("Stack", StringComparison.Ordinal) && char.IsDigit(name[5]))
+			{
+				var stack = (Array)field.GetValue(store)!;
+
+				for (var at = 0; at < stack.Length; at++)
+					if (stack.GetValue(at) is not null)
+					{
+						yield return $"{name}[{at}] holds a value";
+						break;
+					}
 			}
 		}
 	}

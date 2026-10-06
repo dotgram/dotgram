@@ -26,8 +26,21 @@ namespace DotGram.Sql.TransactSql;
 // The standard this dialect is written on top of, named rather than inherited: a class has
 // one base and as many attributes as it likes, and what a grammar is called inside this one
 // — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.
+// Carried immediately, by name: every construction runs the moment its alternative is read,
+// rather than being recorded on the tape and replayed after the parse is accepted. The gates
+// `Auto` asks would keep this grammar on the tape (about half of its building rules are read for
+// derivations the parse may give up), and that is what the request costs: a construction runs for
+// a reading that is then abandoned, and an exception thrown there escapes the publication. Here
+// none can. The factories (SqlSyntax.cs) build records from what they are given and read no host
+// state; the dialect's version is a binding fixed at compile time and whether a reading locates is
+// a flag of the call, so a discarded derivation leaves nothing behind that a later one could read.
+// Held to the tape by an agreement run over the ScriptDom corpus, each statement whole and cut,
+// every string of the tests, every accepted text cut at each word boundary and given a stray
+// token, through the plain and the located door: the same trees, the same messages, nothing thrown.
+// What it buys is the time the tape spent recording and replaying — about half of every T-SQL
+// row of the stand — for more bytes allocated on a reading that is abandoned part-way.
 [GramInclude(typeof(Sql92Parser), As = "Sql92")]
-[Gram("TransactSql.gram", Lexical = true)]
+[Gram("TransactSql.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 [GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
 public abstract partial class TransactSqlParser
 {
