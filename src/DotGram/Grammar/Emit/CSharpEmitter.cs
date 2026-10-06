@@ -1254,10 +1254,12 @@ public static partial class CSharpEmitter
 				if (part.IndexOf('\u0001') >= 0)
 					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
 				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);
-				sourceParts!.Add(part);
+				sourceParts!.Add(PublicDocs.Keep(part));
 			}
 		}
-		return written;
+
+		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
+		return PublicDocs.Keep(written);
 	}
 
 	static void EmitEngine(Writer file, Machine machine, string engine)

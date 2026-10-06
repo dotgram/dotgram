@@ -1647,9 +1647,9 @@ public sealed class CSharpEmitterTests
 			"Start = ((\"a\" | \"ab\") & 'c')* & 'd'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar", Namespace = "My.App" }).Sources).Text;
 
-		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\t/// <summary>", source);
-		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\t/// <summary>",                    source);
-		Assert.Contains("\t\tsealed class Ways\r\n\t\t{\r\n",                                        source);
+		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\tprivate readonly ", source);
+		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\tpublic int Position;",               source);
+		Assert.Contains("\t\tsealed class Ways\r\n\t\t{\r\n",                                      source);
 	}
 
 	[Fact]

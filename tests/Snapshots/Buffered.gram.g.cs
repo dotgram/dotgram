@@ -409,7 +409,6 @@ namespace DotGram.Snapshots
 				text.ReleaseBefore(start);
 			}
 		}
-		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
 		private ref struct Reader_DotGram_Feed
 		{
 			readonly global::System.ReadOnlySpan<char> text;
@@ -423,7 +422,6 @@ namespace DotGram.Snapshots
 				this.ways    = ways;
 			}
 
-			/// <summary><c>Feed</c>, and the way back into it.</summary>
 			public int Read_Feed_Feed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -447,7 +445,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Feed_Feed_Body(int pos)
 			{
@@ -503,7 +500,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Record</c>, and the way back into it.</summary>
 			public int Read_Record_Feed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -527,7 +523,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Record</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Record_Feed_Body(int pos)
 			{
@@ -553,7 +548,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Sep</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Sep_Feed(int pos)
 			{
@@ -564,7 +558,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Count</c>, read by a method of its own.</summary>
 			public int Read_Count_Feed(int pos)
 			{
 				var p = pos;
@@ -589,7 +582,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Digit</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Digit_Feed(int pos)
 			{
@@ -604,7 +596,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Body</c>, read by a method of its own.</summary>
 			public int Read_Body_Feed(int pos)
 			{
 				var p = pos;
@@ -625,7 +616,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eol</c>, and the way back into it.</summary>
 			public int Read_eol_Feed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -649,7 +639,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>eol</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_eol_Feed_Body(int pos)
 			{
@@ -727,7 +716,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Feed_Part0(int pos)
 			{
 				var p = pos;
@@ -746,7 +734,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Feed_Part1(int pos)
 			{
 				var p = pos;
@@ -756,7 +743,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eof</c>, read by a method of its own.</summary>
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
@@ -774,7 +760,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eof</c>, read where it stood.</summary>
 			public int Read_eof_Feed_Part0(int pos)
 			{
 				var p = pos;
@@ -786,7 +771,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>The whole input as <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -810,7 +794,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Whole_Read_Body(int pos)
 			{
 				var p = pos;
@@ -825,7 +808,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>A reading of <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -849,7 +831,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Read_Body(int pos)
 			{
 				var p = pos;
@@ -861,7 +842,6 @@ namespace DotGram.Snapshots
 
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -884,7 +864,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -1142,7 +1121,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary><c>Body</c>, recognized with nothing written down.</summary>
 		static int Scan_Body_Record(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
@@ -1155,7 +1133,6 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Count</c>, recognized with nothing written down.</summary>
 		static int Scan_Count_Record(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
@@ -1181,7 +1158,6 @@ namespace DotGram.Snapshots
 			return -1 - p;
 		}
 
-		/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
 		static int Scan_Digit_Record(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
@@ -1207,7 +1183,6 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
 		private ref struct Reader_DotGram_Buffered_ParseFeed
 		{
 			readonly BufferedText text;
@@ -1221,7 +1196,6 @@ namespace DotGram.Snapshots
 				this.ways    = ways;
 			}
 
-			/// <summary><c>Feed</c>, and the way back into it.</summary>
 			public int Read_Feed_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1245,7 +1219,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Feed_Buffered_ParseFeed_Body(int pos)
 			{
@@ -1301,7 +1274,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Record</c>, and the way back into it.</summary>
 			public int Read_Record_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1325,7 +1297,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Record</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Record_Buffered_ParseFeed_Body(int pos)
 			{
@@ -1354,7 +1325,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Sep</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Sep_Buffered_ParseFeed(int pos)
 			{
@@ -1368,7 +1338,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Count</c>, read by a method of its own.</summary>
 			public int Read_Count_Buffered_ParseFeed(int pos)
 			{
 				var p = pos;
@@ -1396,7 +1365,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Digit</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Digit_Buffered_ParseFeed(int pos)
 			{
@@ -1417,7 +1385,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Body</c>, read by a method of its own.</summary>
 			public int Read_Body_Buffered_ParseFeed(int pos)
 			{
 				var p = pos;
@@ -1438,7 +1405,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eol</c>, and the way back into it.</summary>
 			public int Read_eol_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1462,7 +1428,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>eol</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_eol_Buffered_ParseFeed_Body(int pos)
 			{
@@ -1542,7 +1507,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Buffered_ParseFeed_Part0(int pos)
 			{
 				var p = pos;
@@ -1562,7 +1526,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Buffered_ParseFeed_Part1(int pos)
 			{
 				var p = pos;
@@ -1575,7 +1538,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eof</c>, read by a method of its own.</summary>
 			public int Read_eof_Buffered_ParseFeed(int pos)
 			{
 				var p = pos;
@@ -1596,7 +1558,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eof</c>, read where it stood.</summary>
 			public int Read_eof_Buffered_ParseFeed_Part0(int pos)
 			{
 				var p = pos;
@@ -1611,7 +1572,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>The whole input as <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1635,7 +1595,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Whole_Read_Body(int pos)
 			{
 				var p = pos;
@@ -1650,7 +1609,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>A reading of <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1674,7 +1632,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Read_Body(int pos)
 			{
 				var p = pos;
@@ -1686,7 +1643,6 @@ namespace DotGram.Snapshots
 
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed_Whole(BufferedText text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -1709,7 +1665,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed(BufferedText text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -1735,7 +1690,6 @@ namespace DotGram.Snapshots
 
 		static int ReadBuffered_ParseFeed(BufferedText text, int pos, ref Failure failure) =>
 			Recognize_Feed_Whole(text, pos, ref failure);
-		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
 		private ref struct Reader_DotGram_Buffered_ParseFeed_Bytes
 		{
 			readonly BufferedBytes text;
@@ -1749,7 +1703,6 @@ namespace DotGram.Snapshots
 				this.ways    = ways;
 			}
 
-			/// <summary><c>Feed</c>, and the way back into it.</summary>
 			public int Read_Feed_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1773,7 +1726,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Feed_Buffered_ParseFeed_Bytes_Body(int pos)
 			{
@@ -1829,7 +1781,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Record</c>, and the way back into it.</summary>
 			public int Read_Record_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1853,7 +1804,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Record</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Record_Buffered_ParseFeed_Bytes_Body(int pos)
 			{
@@ -1882,7 +1832,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Sep</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Sep_Buffered_ParseFeed_Bytes(int pos)
 			{
@@ -1896,7 +1845,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Count</c>, read by a method of its own.</summary>
 			public int Read_Count_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var p = pos;
@@ -1924,7 +1872,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Digit</c>, read by a method of its own.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Digit_Buffered_ParseFeed_Bytes(int pos)
 			{
@@ -1945,7 +1892,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>Body</c>, read by a method of its own.</summary>
 			public int Read_Body_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var p = pos;
@@ -1966,7 +1912,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eol</c>, and the way back into it.</summary>
 			public int Read_eol_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1990,7 +1935,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>eol</c> is, one reading of it at a time.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_eol_Buffered_ParseFeed_Bytes_Body(int pos)
 			{
@@ -2070,7 +2014,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Buffered_ParseFeed_Bytes_Part0(int pos)
 			{
 				var p = pos;
@@ -2090,7 +2033,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Buffered_ParseFeed_Bytes_Part1(int pos)
 			{
 				var p = pos;
@@ -2103,7 +2045,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary><c>eof</c>, read by a method of its own.</summary>
 			public int Read_eof_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var p = pos;
@@ -2124,7 +2065,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>One alternative of <c>eof</c>, read where it stood.</summary>
 			public int Read_eof_Buffered_ParseFeed_Bytes_Part0(int pos)
 			{
 				var p = pos;
@@ -2139,7 +2079,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>The whole input as <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -2163,7 +2102,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Whole_Read_Body(int pos)
 			{
 				var p = pos;
@@ -2178,7 +2116,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			/// <summary>A reading of <c>Feed</c>, and the way back into it.</summary>
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
@@ -2202,7 +2139,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
 			public int Recognize_Feed_Read_Body(int pos)
 			{
 				var p = pos;
@@ -2214,7 +2150,6 @@ namespace DotGram.Snapshots
 
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed_Whole(BufferedBytes text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -2237,7 +2172,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
 		static int Recognize_Feed(BufferedBytes text, int pos, ref Failure failure)
 		{
 			var ways = Ways.Rent();
@@ -2899,16 +2833,10 @@ namespace DotGram.Snapshots
 		/// <summary>What a publication answers with: the value, or why there is none.</summary>
 		public readonly struct Match<T>
 		{
-			/// <summary>What would have fit at the furthest position, or null.</summary>
 			private readonly string[]? _expected;
 
-			/// <summary>The arrays that tied with it, or null where none did.</summary>
 			private readonly global::System.Collections.Generic.List<string[]>? _tied;
 
-			/// <summary>
-			/// What <c>Error</c> says when nothing named what would have fit. A literal
-			/// chosen where the match failed, so naming it costs nothing.
-			/// </summary>
 			private readonly string? _otherwise;
 
 			private Match(
@@ -3059,86 +2987,26 @@ namespace DotGram.Snapshots
 				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
 
-			/// <summary>
-			/// This refusal, said of another reading: at <paramref name="position"/>, of another type,
-			/// and with <paramref name="otherwise"/> where it had nothing of its own to say. What it
-			/// says is still built where <c>Error</c> is asked for, and not here: a reading made of
-			/// others — a whole made of parts, each read where it lies — refuses with the refusal of
-			/// the part it stopped at, and a caller that only wants to know pays for none of it.
-			/// </summary>
 			internal Match<TOther> Refusal<TOther>(long position, string otherwise)
 			{
 				return Match<TOther>.Failed(Outcome, _otherwise ?? otherwise, position, _expected, _tied);
 			}
 		}
 
-		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
 		{
-			/// <summary>
-			/// The furthest position the input was followed to. Zero on a match that
-			/// succeeded without ever backtracking, and meaningless unless one failed.
-			/// </summary>
 			public int Position;
 
-			/// <summary>
-			/// Where something wanted more input than remained, one past the position, or
-			/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
-			/// not fit" by (§7.5).
-			/// </summary>
-			/// <remarks>
-			/// <para>
-			/// A position rather than a flag, and written straight here rather than
-			/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
-			/// is whether the <em>furthest</em> failure ran out, so a room check that
-			/// failed somewhere the parse later got past answers by not matching
-			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
-			/// the automaton's own unwinding is untouched — which is why this costs a
-			/// store on a failure path and nothing anywhere else.
-			/// </para>
-			/// <para>
-			/// The furthest such place, and not the last: backtracking asks the same test again
-			/// further back, where it may lack room too, and a later write of a smaller place
-			/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
-			/// </para>
-			/// <para>
-			/// One past, because a zeroed struct has to mean "nowhere" and zero is a
-			/// position. Only a test wanting more than one character writes it: one
-			/// wanting a single character can only fail for want of room at the very end
-			/// of the input, which the boundary reads off <c>Position</c> itself.
-			/// </para>
-			/// </remarks>
 			public int OutOfInput;
 
-			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 			public bool Starved;
 
-			/// <summary>
-			/// What would have fit at the furthest position, or null. Meaningless unless
-			/// the match failed. A reference into one of the generator's own arrays, not
-			/// a copy of it.
-			/// </summary>
 			public string[]? Expected;
 
-			/// <summary>
-			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one, and emptied rather
-			/// than dropped when the furthest position moves on: a parse that ties once
-			/// tends to tie again, and a list per tie was an allocation per operand.
-			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
-			/// <summary>
-			/// How many lookaheads the reading is inside. A refusal there is not the parse's —
-			/// the look is read and given back whatever it says — so a reader records none
-			/// while this is above zero, as the engine records none inside its own lookahead.
-			/// </summary>
 			public int Looking;
 
-			/// <summary>
-			/// Whether nothing reads what this failure would record, so nothing is recorded: a
-			/// `find` trying each start, the lexer measuring or valuing a token again.
-			/// </summary>
 			public bool Quiet;
 		}
 
@@ -3207,9 +3075,7 @@ namespace DotGram.Snapshots
 				return _source != null ? _source.Slice(position, length) : _span.Slice(position, length);
 			}
 		}
-		/// <summary>What a buffered parse retains at most where a call does not say ([Gram(MaxRetained)]).</summary>
 		internal const int DefaultMaxRetained = 4096;
-		/// <summary>A buffered parse's initial capacity where a call does not say ([Gram(BufferSize)]).</summary>
 		internal const int DefaultBufferSize = 4096;
 
 		private sealed class BufferedText : global::System.IDisposable, IParserInputSource<char>
@@ -3271,11 +3137,6 @@ namespace DotGram.Snapshots
 
 			#if DOTGRAM_COUNTS
 
-			/// <summary>
-			/// How many times a reading asked for room, which it does for every character it reads:
-			/// what a gate that counts reads (D144). <b>Compiled only under <c>DOTGRAM_COUNTS</c>,
-			/// which no project defines; it is not a supported setting.</b>
-			/// </summary>
 			internal static long CountEnsured;
 
 			#endif
@@ -3503,11 +3364,6 @@ namespace DotGram.Snapshots
 
 			#if DOTGRAM_COUNTS
 
-			/// <summary>
-			/// How many times a reading asked for room, which it does for every character it reads:
-			/// what a gate that counts reads (D144). <b>Compiled only under <c>DOTGRAM_COUNTS</c>,
-			/// which no project defines; it is not a supported setting.</b>
-			/// </summary>
 			internal static long CountEnsured;
 
 			#endif
@@ -3644,7 +3500,6 @@ namespace DotGram.Snapshots
 		}
 
 		// The end of the trace hook, which a file with no engine goes without (CSharpEmitter).
-		/// <summary>A reader, read through a buffer that is reused.</summary>
 		sealed class Window
 		{
 			private readonly global::System.IO.TextReader _input;
@@ -3654,20 +3509,12 @@ namespace DotGram.Snapshots
 			private long   _offset;
 			private bool   _ended;
 
-			/// <summary>Line terminators dropped with what the window no longer holds.</summary>
 			private int _lines;
 
-			/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
 			private long _break = -1;
 
-			/// <summary>Whether the last character dropped was a <c>\r</c>, which a <c>\n</c> held next closes.</summary>
 			private bool _droppedCr;
 
-			/// <summary>
-			/// Whether a line ends at a character held: as <c>eol</c> ends one, at <c>\r\n</c>,
-			/// <c>\n</c> or <c>\r</c>, a <c>\r\n</c> counted once at its <c>\r</c> — the two
-			/// halves may be either side of a refill.
-			/// </summary>
 			private bool Ends(int at)
 			{
 				var c = _buffer[at];
@@ -3681,49 +3528,31 @@ namespace DotGram.Snapshots
 				_buffer = new char[capacity];
 			}
 
-			/// <summary>How much of the input the window is holding.</summary>
 			public int Length
 			{
 				get { return _filled; }
 			}
 
-			/// <summary>Whether the reader has been read to its end.</summary>
 			public bool Ended
 			{
 				get { return _ended; }
 			}
 
-			/// <summary>Where the window begins in the whole input.</summary>
 			public long Offset
 			{
 				get { return _offset; }
 			}
 
-			/// <summary>
-			/// What the window holds.
-			/// </summary>
-			/// <remarks>
-			/// Called where it is passed and never kept in a local: a span cannot live in
-			/// an iterator's state, and every published streaming method is an iterator.
-			/// </remarks>
 			public global::System.ReadOnlySpan<char> Span()
 			{
 				return new global::System.ReadOnlySpan<char>(_buffer, 0, _filled);
 			}
 
-			/// <summary>A stretch of the window, as a string.</summary>
 			public string Text(int from, int length)
 			{
 				return new string(_buffer, from, length);
 			}
 
-			/// <summary>
-			/// Which line of the whole input a position in the window is on, from 1.
-			/// </summary>
-			/// <remarks>
-			/// The window's own contents plus what was dropped before it. Counting only
-			/// what is held would restart the numbering every time the buffer moved.
-			/// </remarks>
 			public int LineAt(int position)
 			{
 				var line = _lines + 1;
@@ -3735,7 +3564,6 @@ namespace DotGram.Snapshots
 				return line;
 			}
 
-			/// <summary>How far into its line a position is, from 1.</summary>
 			public int ColumnAt(int position)
 			{
 				var start = -1;
@@ -3752,11 +3580,6 @@ namespace DotGram.Snapshots
 					: position - start;
 			}
 
-			/// <summary>
-			/// Reads more of the input, dropping what is before <paramref name="from"/> to
-			/// make room for it and moving <paramref name="from"/> with what is kept.
-			/// </summary>
-			/// <returns>Whether anything new arrived.</returns>
 			public bool Extend(ref int from)
 			{
 				if (_ended)
@@ -3813,7 +3636,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>A sequence of lines, read as though it were a file.</summary>
 		sealed class Lines : global::System.IO.TextReader
 		{
 			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
@@ -3847,9 +3669,6 @@ namespace DotGram.Snapshots
 				return written;
 			}
 
-			/// <summary>
-			/// The next line, with the terminator the sequence does not carry put back.
-			/// </summary>
 			private bool Next()
 			{
 				if (_ended)
@@ -3877,91 +3696,33 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>The ways back still open in a direct parse (Machine.Direct.cs).</summary>
-		/// <remarks>
-		/// Two integers per way: the alternative in force, and the last one there is. A
-		/// way whose two are equal is spent — it stays on the tape so that a replay reads
-		/// the same decisions in the same places, and is never taken again.
-		/// </remarks>
 		sealed class Ways
 		{
 			internal int[] Items = new int[32];
 
-			/// <summary>How many ways are on the tape.</summary>
 			internal int Count;
 
-			/// <summary>The next way a replay reads; equal to <see cref="Count"/> when nothing is being replayed.</summary>
 			internal int Cursor;
 
-			/// <summary>
-			/// What was recognized, for building values with once the parse has accepted: one
-			/// record per completed valued rule, written after its children, each starting
-			/// with its own length so that a walk from the front steps from record to record.
-			/// </summary>
 			internal int[] Log = new int[64];
 
-			/// <summary>How much of the log is written.</summary>
 			internal int LogCount;
 
-			/// <summary>How many records the log holds: the number the next one is given.</summary>
-			/// <remarks>
-			/// A record is named by its number and not by where it was written, so that the
-			/// tables the walk builds into are as long as there are records and not as long as
-			/// the log. On a real grammar that is four or five times shorter, which is the
-			/// difference between a table that fits in the first cache and one that does not.
-			/// </remarks>
 			internal int Records;
 
-			/// <summary>Which record finished most recently: the number a caller captures.</summary>
 			internal int Last = -1;
 
-			/// <summary>
-			/// How much of the log the values built for a guard still stand for: a record
-			/// below this that was built need not be built again, and one above it was
-			/// written since — the log was put back past it and has grown again.
-			/// </summary>
 			internal int Built;
 
-			/// <summary>
-			/// How far up the log every record is already built, so that a guard asking again
-			/// need not read the flags at all.
-			/// </summary>
-			/// <remarks>
-			/// Stronger than <see cref="Built"/>, and not the same question. <c>Built</c> says the
-			/// flags below it are not stale — a record below it may still be false. This says every
-			/// record below it is true, which is what lets the scan be skipped rather than shortened.
-			/// <para>
-			/// It never runs ahead of <see cref="Built"/>, which is what keeps the clearing honest:
-			/// the flags are cleared from <c>Built</c> upwards, so a watermark above it would claim
-			/// records whose flags had just been wiped. It is raised only where <c>Built</c> is raised
-			/// with it and lowered wherever <c>Built</c> is lowered, so the two move together.
-			/// </para>
-			/// </remarks>
 			internal int AllBuilt;
 
-			/// <summary>Where <see cref="AllBuilt"/> is in the log: the position its record begins at.</summary>
-			/// <remarks>
-			/// The two are one fact in two units, and a walk needs both — the record number to index the
-			/// flags and the tables, the position to start stepping from. They move together and only
-			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-			/// lowers it, and the snapshot a give-back restores carries both.
-			/// </remarks>
 			internal int AllBuiltAt;
 
-			/// <summary>Where the log stood: what a reading given back puts it back to.</summary>
-			/// <remarks>
-			/// Passed by value and not by reference, so that it stays three registers in the method
-			/// that took it rather than a struct in memory whose address escaped.
-			/// </remarks>
 			internal struct Snapshot
 			{
 				internal int LogCount;
 				internal int Records;
 
-				/// <summary>
-				/// The last record closed: a reference to a record is <see cref="Last"/> at the moment it is
-				/// pushed, so one left pointing into an abandoned reading names a record the parse no longer has.
-				/// </summary>
 				internal int Last;
 			}
 
@@ -3989,17 +3750,6 @@ namespace DotGram.Snapshots
 
 			#if DOTGRAM_CHECKS
 
-			/// <summary>
-			/// How many records the parse has, for the walk to check a reference against as it follows it.
-			/// <b>Compiled only under <c>DOTGRAM_CHECKS</c>, which no project defines; not a supported
-			/// setting.</b>
-			/// </summary>
-			/// <remarks>
-			/// A reference must name a record this parse has. Checking it against the LENGTH of the liveness
-			/// array instead would be checking the symptom: that array only grows, so a thread whose earlier
-			/// parse was larger absorbs a bad reference and marks an unrelated record as reached, and a
-			/// thread whose array is still short throws. Thread-static for the same reason the stores are.
-			/// </remarks>
 			[global::System.ThreadStatic]
 			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
 			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
@@ -4011,81 +3761,49 @@ namespace DotGram.Snapshots
 
 			#if DOTGRAM_COUNTS
 
-			/// <summary>
-			/// What the materialising walk did, for a test that gates it by counting rather than by a
-			/// clock (<c>ReaderCountTests</c>, which says why). <b>Compiled only under
-			/// <c>DOTGRAM_COUNTS</c>, which no project defines; it is not a supported setting.</b>
-			/// </summary>
 			// Initialised, not merely declared: a grammar whose walk never reaches one of these — no
 			// marks, or nothing that materialises at all — leaves it unassigned, and CS0649 is an ERROR
 			// where a consumer treats warnings as errors (DotGram.Compatibility does, on purpose).
 			internal static long CountWalks = 0;
 
-			/// <summary>Records the scan listed, summed over every walk.</summary>
 			internal static long CountListed = 0;
 
-			/// <summary>Standing marks the walk read, summed over every walk.</summary>
 			internal static long CountMarkSteps = 0;
 
 			#endif
-			/// <summary>
-			/// Captures collected while a rule runs and gathered into its record at the end:
-			/// three integers each — the slot, and either a record and -1, or a start and end.
-			/// </summary>
 			internal int[] Refs = new int[48];
 
-			/// <summary>How much of the side stack is in use.</summary>
 			internal int RefsCount;
 
-			/// <summary>Where the record being written begins, and which record it is.</summary>
-			/// <remarks>
-			/// Once it is closed, where the last one begins: a guard asking for the record it just
-			/// captured is handed its place without a walk of the log to find it. A give-back does not
-			/// put it back, so where the last record opened was discarded it stands at or past the end
-			/// of the log, which is how the one reader of it tells that it names nothing.
-			/// </remarks>
 			internal int Opened;
 			int _number;
 
 			[global::System.ThreadStatic]
 			static Ways? _spare;
 
-			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 			[global::System.ThreadStatic]
 			static Ways?[]? _deeper;
 
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
-			/// <summary>A tape too large for the ordinary slot, kept while the work still wants it.</summary>
 			[global::System.ThreadStatic]
 			static Ways? _large;
 
-			/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 			[global::System.ThreadStatic]
 			static int _largeIdle;
 
-			/// <summary>And where it goes then: reachable while nothing else wants the memory.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Ways>? _largeLetGo;
 
-			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 			[global::System.ThreadStatic]
 			static int _spareIdle;
 
-			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Ways>? _spareLetGo;
 
-			/// <summary>
-			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
-			/// tape, this thread's work has changed and the next parse is unlikely to want it
-			/// either. Holding it through a few small parses costs the memory we were holding a
-			/// moment ago anyway; holding it through a hundred would be hoarding.
-			/// </summary>
 			const int LargeIdle = 8;
 
-			/// <summary>The same count for the ordinary slot, read the same way.</summary>
 			const int SpareIdle = 8;
 
 			internal static Ways Rent()
@@ -4188,10 +3906,8 @@ namespace DotGram.Snapshots
 					(_deeper ??= new Ways?[3])[_deeperCount++] = ways;
 			}
 
-			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>
 			internal int Open(int last) => Open(0, last);
 
-			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
 			internal int Open(int at, int last)
 			{
 				if (Count * 2 + 2 > Items.Length)
@@ -4205,17 +3921,6 @@ namespace DotGram.Snapshots
 				return Count - 1;
 			}
 
-			/// <summary>
-			/// Takes the latest way decided since <paramref name="segment"/> that still has an
-			/// alternative left, drops everything decided after it, and sets the replay to
-			/// begin at the segment. False when none is left, and then nothing moves.
-			/// </summary>
-			/// <remarks>
-			/// Only what stands before the cursor is the construct's own. During a replay the
-			/// tape past the cursor is the future — decisions of what comes after, waiting to
-			/// be read again — and a construct that fails on the way there, exactly as it did
-			/// the first time, must leave that future alone.
-			/// </remarks>
 			internal bool Retry(int segment)
 			{
 				for (var way = Cursor - 1; way >= segment; way--)
@@ -4233,10 +3938,6 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			/// <summary>
-			/// Moves a way on to its next alternative once the one in force is spent, and
-			/// drops what that alternative decided: the next one starts from nothing.
-			/// </summary>
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
@@ -4244,10 +3945,6 @@ namespace DotGram.Snapshots
 				Cursor = way + 1;
 			}
 
-			/// <summary>
-			/// <see cref="Next(int, int)"/>, and the way now reaches <paramref name="last"/>:
-			/// as far as the alternative it moved to could be mended from.
-			/// </summary>
 			internal void Next(int way, int value, int last)
 			{
 				Items[way * 2]     = value;
@@ -4256,26 +3953,12 @@ namespace DotGram.Snapshots
 				Cursor = way + 1;
 			}
 
-			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
 			internal void Seal(int segment)
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>
-			/// Opens a record: its length is written when it ends.
-			/// </summary>
-			/// <remarks>
-			/// One number says which rule wrote it and which of that rule's alternatives,
-			/// because the walk at the end wants both together and asking twice cost a
-			/// switch inside a switch — two jump tables where a record needs one.
-			/// </remarks>
-			/// <summary>
-			/// Opens a record that stands nowhere in particular: where nothing a machine
-			/// builds is a span of the input, and no factory it runs asks where it read,
-			/// the two positions are two integers written and never looked at.
-			/// </summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Begin(int arm)
 			{
@@ -4321,7 +4004,6 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = b;
 			}
 
-			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
 			{
@@ -4330,11 +4012,6 @@ namespace DotGram.Snapshots
 				RefsCount    = refs;
 			}
 
-			/// <summary>
-			/// The record closed, and named by where it stands rather than by its number:
-			/// an extent is the one thing whose value is the record itself, read straight
-			/// out of the log by whoever captured it, and never put in a table.
-			/// </summary>
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void EndAt(int refs)
 			{
@@ -4343,11 +4020,6 @@ namespace DotGram.Snapshots
 				RefsCount    = refs;
 			}
 
-			/// <summary>
-			/// A mark placed or taken away (docs/syntax.md §7.8): a record of its own in the
-			/// log, so that what was put back with the log takes its marks with it. The kind
-			/// is -1 where the mark opens and -2 where it closes; nothing captures one.
-			/// </summary>
 			internal void Mark(int kind, int site, int at)
 			{
 				if (LogCount + 5 > Log.Length)
@@ -4362,7 +4034,6 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = at;
 			}
 
-			/// <summary>A capture made inside a repetition, kept until the rule gathers it.</summary>
 			internal void Push(int slot, int a, int b)
 			{
 				if (RefsCount + 3 > Refs.Length)
@@ -4373,11 +4044,6 @@ namespace DotGram.Snapshots
 				Refs[RefsCount++] = b;
 			}
 
-			/// <summary>
-			/// Writes what was pushed for the given slots since <paramref name="from"/>: how
-			/// many, then each one — the record alone where <paramref name="pairs"/> is false,
-			/// the start and end where it is true.
-			/// </summary>
 			internal void Collect(int from, long slots, bool pairs)
 			{
 				var count = 0;
@@ -4399,10 +4065,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>
-		/// The set numbered <paramref name="id"/> refused at <paramref name="at"/> where the reading is
-		/// not quiet, and the failure: what most refusals of a reader write, as one call.
-		/// </summary>
 		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		static int Refused_DotGram(ref Failure failure, int at, int id)
 		{
@@ -4412,7 +4074,6 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
-		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
 		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)
 		{
 			if (failure.Looking > 0)
@@ -4441,24 +4102,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>
-		/// Records what a choice wanted where the call that begins its widest group refused at the
-		/// same place: what that call said there, which the choice's set holds, is dropped for it.
-		/// </summary>
-		/// <remarks>
-		/// <para>
-		/// Everything the call recorded here is about the character it began at — its own first
-		/// set, or a rule that begins with it, <c>Digit</c> where the choice says
-		/// <c>['0'..'9']</c> — which the choice's set holds, so the choice says it once, in its own
-		/// words. <paramref name="stood"/> says which of what is here is the call's: all of it
-		/// where it is -1, nothing having been recorded here before the call, and otherwise the
-		/// sets that tied after the first that many.
-		/// </para>
-		/// <para>
-		/// Where the call's rule says its own refusal (§4's <c>on fail</c>), nothing goes: the
-		/// author's words are the whole answer.
-		/// </para>
-		/// </remarks>
 		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
 		{
 			if (failure.Looking > 0)
@@ -4491,7 +4134,6 @@ namespace DotGram.Snapshots
 			Refuse_DotGram(ref failure, at, expected);
 		}
 
-		/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
 		static bool Spoke_DotGram(string[]? expected)
 		{
 			if (expected != null)
@@ -4502,7 +4144,6 @@ namespace DotGram.Snapshots
 			return false;
 		}
 
-		/// <summary>Whether any of the sets that tied holds one.</summary>
 		static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
 		{
 			if (tied != null)
@@ -4513,7 +4154,6 @@ namespace DotGram.Snapshots
 			return false;
 		}
 
-		/// <summary>How much of a run matched, asked only when it did not.</summary>
 		static int Reach_DotGram(
 			global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)
 		{
@@ -4540,49 +4180,29 @@ namespace DotGram.Snapshots
 			[global::System.ThreadStatic]
 			static DirectValues? _spare;
 
-			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 			[global::System.ThreadStatic]
 			static DirectValues?[]? _deeper;
 
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
-			/// <summary>A store past the bound, kept while this thread's work still wants it.</summary>
 			[global::System.ThreadStatic]
 			static DirectValues? _large;
 
-			/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 			[global::System.ThreadStatic]
 			static int _largeIdle;
 
-			/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<DirectValues>? _largeLetGo;
 
-			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 			[global::System.ThreadStatic]
 			static int _spareIdle;
 
-			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<DirectValues>? _spareLetGo;
 
-			/// <summary>
-			/// Eight is a claim rather than a taste: if eight parses in a row have not wanted
-			/// the room a slot holds - the large store, or an ordinary spare far bigger than
-			/// the parses that keep coming - this thread's work has changed and the next parse is unlikely
-			/// to want it either. Carrying it through a few small parses costs the memory this
-			/// thread held a moment ago anyway; carrying it through a hundred would be hoarding.
-			///
-			/// Counted where a parse ENDS, against what that parse USED. At the rental it
-			/// could never arrive: a rental that takes the kept store zeroes the count, and
-			/// with no ordinary spare - the state right after a large parse - every rental
-			/// takes it. Against CAPACITY it could never arrive either: a store comes back
-			/// as large as it was grown, whatever the document was.
-			/// </summary>
 			const int LargeIdle = 8;
 
-			/// <summary>The same count for the ordinary slot, read the same way.</summary>
 			const int SpareIdle = 8;
 
 			internal static DirectValues Rent()
@@ -4677,7 +4297,6 @@ namespace DotGram.Snapshots
 					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
 			}
 
-			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
 			internal void Room(int count, bool live = true, int from = 0)
 			{
 				if (count > _used) _used = count;
@@ -4694,7 +4313,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>
 		#pragma warning disable CS0649 // a table nothing writes still declares the field
 		struct Held<T>
 		{
@@ -4709,15 +4327,6 @@ namespace DotGram.Snapshots
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
-			/// <summary>
-			/// The calls whose values the accepted derivation reaches, in the order they were
-			/// reached from the root.
-			/// </summary>
-			/// <remarks>
-			/// Written afresh on every materialization and read back to front, so unlike the
-			/// link tables it needs no initial value — what is past the count written this
-			/// time is never looked at.
-			/// </remarks>
 			int[] _owners = global::System.Array.Empty<int>();
 			internal int LinkedUpTo;
 			int _valuesUsed;
@@ -4858,62 +4467,14 @@ namespace DotGram.Snapshots
 			internal const int PendingRecovery = 12;
 			internal const int Run = 13;
 
-			/// <summary>
-			/// The one way out a settled repetition keeps standing, in place of a
-			/// <see cref="Choice"/> per turn.
-			/// </summary>
-			/// <remarks>
-			/// Valid only while it is the loop's latest: the <see cref="Repeat"/> entry it
-			/// points back to holds, in its rule-index field, where the last completed turn
-			/// ended, and an exit whose own position no longer matches is history — popped
-			/// past, never resumed. That is what turns a failure that used to resume one
-			/// exit per completed turn, re-reading the suffix each time, into one that
-			/// resumes a single exit and skips the rest.
-			/// </remarks>
 			internal const int LoopExit = 14;
 
-			/// <summary>
-			/// A completed turn of a counted repetition, standing where unwinding can see
-			/// it.
-			/// </summary>
-			/// <remarks>
-			/// The count in a <see cref="Repeat"/> entry is rewritten in place, and an
-			/// in-place rewrite survives backtracking that the turn it counted does not:
-			/// resume an alternative inside a completed turn and the body re-completes,
-			/// counting the same turn twice — <c>X{2}</c> read two of a thing the input
-			/// held one of. Popping this entry is what un-counts the turn, at the exact
-			/// moment the parse abandons it.
-			/// </remarks>
 			internal const int TurnDone = 15;
 
-			/// <summary>
-			/// Where a capture began, standing where unwinding can take it away again.
-			/// </summary>
-			/// <remarks>
-			/// A start kept in a variable is right for exactly as long as nothing opens the
-			/// same capture between the opening and the close. Two things do: a rule that
-			/// reaches itself, and a repetition whose next turn begins before a door inside
-			/// the turn before it has been passed. Both leave the variable holding a start
-			/// the parse has given back, and backtracking restores the arena and nothing
-			/// else — so the start goes in the arena, and the close finds its own by
-			/// counting these against the <see cref="Capture"/> entries that closed them,
-			/// the way brackets are counted. Marking an opening closed in place would not
-			/// do: an in-place rewrite survives backtracking that the close it recorded
-			/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
-			/// </remarks>
 			internal const int CaptureOpen = 16;
 
-			/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
-			/// <remarks>
-			/// Inert while the text is read: nothing dispatches on these and nothing restores
-			/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
-			/// it is why a mark needs no save-and-restore of its own. What reads them is the
-			/// walk that runs the factories once a derivation is accepted, over an arena that
-			/// by then holds only what was accepted (§7.8).
-			/// </remarks>
 			internal const int StateSet = 17;
 
-			/// <inheritdoc cref="StateSet"/>
 			internal const int StateEnd = 18;
 
 			internal ParserEntry(
@@ -4945,44 +4506,9 @@ namespace DotGram.Snapshots
 		static partial void RentParser(ref Parser parser);
 		static partial void ReturnParser(Parser parser);
 
-		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
-		/// <remarks>
-		/// A parse allocates nothing it can help — the arena, the value table and the links
-		/// are all grown once and reused — but that is only true of a parser that outlives
-		/// the parse. Without this, every call built the whole machinery from nothing and
-		/// grew the arena from empty by doubling, which for a parse of any size costs more
-		/// than the parse.
-		/// <para>
-		/// One slot, taken out of the field while it is in use, so a parse reached from
-		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
-		/// truly outsized input does not leave every thread holding its arena for
-		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
-		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
-		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
-		/// being everything but the tree. Trimming the tables instead of dropping them
-		/// was tried and measured slower than either: the trim is itself large-object
-		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
-		/// megabytes — the working set of a parser whose documents are that size — and
-		/// anything past it is the pathology the letting-go is for.
-		/// </para>
-		/// <para>
-		/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
-		/// document one entry past it rebuilt the whole machinery on every parse, growing it
-		/// from nothing by doubling, so a third more input cost twenty times the memory
-		/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
-		/// instead, held while this thread's work keeps wanting it and passed to the collector
-		/// when it stops. Both halves matter: held, because a tight loop of large parses must
-		/// reuse deterministically rather than when a collection happens not to have
-		/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
-		/// reliable one; passed on, because the sentence above — no thread holds an outsized
-		/// arena for ever — is still the rule.
-		/// </para>
-		/// </remarks>
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
-		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 		[global::System.ThreadStatic]
 		static Parser?[]? _deeperParsers;
 
@@ -4991,35 +4517,23 @@ namespace DotGram.Snapshots
 
 		const int KeptEntries = 65536;
 
-		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
 		[global::System.ThreadStatic]
 		static Parser? _largeParser;
 
-		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
-		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _largeParserLetGo;
 
-		/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 		[global::System.ThreadStatic]
 		static int _spareParserIdle;
 
-		/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _spareParserLetGo;
 
-		/// <summary>
-		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
-		/// large arena, this thread's work has changed and the next parse is unlikely to want
-		/// it either. Carrying it through a few small parses costs the memory this thread held
-		/// a moment ago anyway; carrying it through a hundred would be hoarding.
-		/// </summary>
 		const int LargeParserIdle = 8;
 
-		/// <summary>The same count for the ordinary slot, read the same way.</summary>
 		const int SpareParserIdle = 8;
 
 		static Parser Recycled()
@@ -5097,11 +4611,6 @@ namespace DotGram.Snapshots
 				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
 
-		/// <summary>
-		/// One line per step of the automaton, on standard error, when the build defines
-		/// <c>DOTGRAM_STEPS</c> — nothing else to configure, and when it does not, the
-		/// calls are removed at their sites, arguments and all.
-		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(string action, int state, int position, int arena)
 		{
@@ -5110,10 +4619,6 @@ namespace DotGram.Snapshots
 				" at " + position.ToString() + " arena=" + arena.ToString());
 		}
 
-		/// <summary>
-		/// The same line with the rule it happened in and a window of the input around
-		/// the position, the caret marking the position itself.
-		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(
 			string action, int state, int position, int arena,
