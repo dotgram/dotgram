@@ -138,6 +138,7 @@ public sealed class SqlStandardEntryTests
 	[InlineData("TRUNCATE TABLE t", typeof(Statement.TruncateTable))]
 	[InlineData("CREATE TABLE t (a INT NOT NULL, PRIMARY KEY (a))", typeof(Statement.CreateTable))]
 	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT)", typeof(Statement.DeclareLocalTemporaryTable))]
+	[InlineData("SELECT a INTO :x FROM t", typeof(Statement.Select))]
 	[InlineData("COMMIT", typeof(Statement.Commit))]
 	[InlineData("GET DIAGNOSTICS n = NUMBER", typeof(Statement.GetDiagnostics))]
 	public void A_statement_is_any_statement(string input, Type kind)

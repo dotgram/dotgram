@@ -5,9 +5,9 @@ would cost to say so, and what it would be worth. Written from the two parsers t
 
 ## The question is not whether
 
-`HandSqlStandard` reads the whole of SQL:2023 — all forty-two publications — over a token
-cursor, and answers what `SqlStandardParser` answers on 14,701 tests and 113,000 corpus lines,
-clean and mutated, with nothing differing. Reading this language over kinds is therefore not a
+`HandSqlStandard` reads the whole of SQL:2023 — all forty-two publications the grammar had on the
+day this was written — over a token cursor, and answers what `SqlStandardParser` answers on 14,701
+tests and 113,000 corpus lines, clean and mutated, with nothing differing. Reading this language over kinds is therefore not a
 thing to be established. It is done, it is in the repository, and it is the yardstick.
 
 What is worth writing down is what the token layer had to be allowed to do, because those are

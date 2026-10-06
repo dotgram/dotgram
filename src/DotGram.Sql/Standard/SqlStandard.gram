@@ -299,6 +299,9 @@ trivia       = { Separator? }
 
 // ── §5.3 Literals ───────────────────────────────────────────────────────────
 
+// `Value`, the parser's first level, writes these two alternatives out beside `NULL` rather than calling
+// this rule, and must follow any change made here; the tests hold that `ParseValue` reads every literal
+// this rule reads to the same tree (Both, through `Shipped.Value`).
 Literal         : @LiteralValue = v: SignedNumericLiteral => @(v) | v: GeneralLiteral => @(v)
 UnsignedLiteral : @LiteralValue = t: UnsignedNumericLiteral => @(Nodes.NumericLiteral(t)) | v: GeneralLiteral => @(v)
 
