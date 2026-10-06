@@ -12,16 +12,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-06 11:58 |
-| DotGram.Examples | 2026-10-06 11:56 |
-| DotGram.ExpressionLanguage | 2026-10-06 11:56 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-06 11:56 |
-| DotGram.Finance | 2026-10-06 11:57 |
-| DotGram.Finance.Fix44 | 2026-10-06 11:58 |
-| DotGram.Sql | 2026-10-06 11:57 |
-| DotGram.Sql.Productions | 2026-10-06 11:58 |
-| DotGram.Tests | 2026-10-06 11:58 |
-| DotGram.Web | 2026-10-06 11:56 |
+| DotGram.Benchmarks | 2026-10-06 13:05 |
+| DotGram.Examples | 2026-10-06 13:04 |
+| DotGram.ExpressionLanguage | 2026-10-06 13:04 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 13:04 |
+| DotGram.Finance | 2026-10-06 13:04 |
+| DotGram.Finance.Fix44 | 2026-10-06 13:05 |
+| DotGram.Sql | 2026-10-06 13:05 |
+| DotGram.Sql.Productions | 2026-10-06 13:05 |
+| DotGram.Tests | 2026-10-06 13:06 |
+| DotGram.Web | 2026-10-06 13:04 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -51,7 +51,6 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Feed | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 7/7 |
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none |  |  |  |  |  |  | 0/0 |
-| DotGram.Benchmarks.ImmediateSql |  |  | immediate (author) |  |  |  |  |  |  |  | 12/244 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none |  |  |  |  |  |  | 19/19 |
 | DotGram.Benchmarks.MaterializationCost.NoCaptures | 1 | 1 | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 1 | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
@@ -61,6 +60,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  | 12/244 |
 | DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 1 | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
@@ -105,7 +105,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  | 1299/2659 |
-| DotGram.Sql.Standard.Sql92Parser | 1 | 1 | tape | replay | 49 | 45 | 4 | 0 | 0 | 0 | 12/244 |
+| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  | 12/244 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  | 2352/3138 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
@@ -190,7 +190,6 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.SqlReadOnly | ParseQuery | whole | tape | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 103 | 97 | 0 | 0 | 23/505 |
-| DotGram.Sql.Standard.Sql92Parser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 49 | 45 | 0 | 0 | 12/244 |
 | DotGram.Tests.Calculators.DecimalCalculator | Evaluate | whole | immediate | none | 0 | 0 | 0 | 0 | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | Read | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | Evaluate | whole | tape | read again | 1 | 0 | 1 | 0 | 15/15 |
@@ -280,10 +279,6 @@ or which nothing calls, so that no caller asks it again.
 
 - machine ParseDoc [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
 
-## DotGram.Benchmarks.ImmediateSql
-
-- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
-
 ## DotGram.Benchmarks.Levels
 
 - machine Levelled [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 19/19
@@ -322,6 +317,10 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Benchmarks.Possession.Open
 
 - machine ParseDoc [whole]: carrier: tape; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
+
+## DotGram.Benchmarks.TapeSql
+
+- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
 
 ## DotGram.Benchmarks.TapeSqlStandard
 
@@ -760,53 +759,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.Standard.Sql92Parser
 
-- machine ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: carrier: tape; gate: replay; building: 49; replayed: 45; read again: 0; refused: 0; points: 12/244
 - memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
-- replay ColumnList: Follows in TableReference [turn], then ')'
-- replay RowValueConstructorElement: Follows in RowValueConstructor [choice], then ',' …
-- replay Subquery: Follows in TablePrimary [choice], then Identifier
-- replay ValueExpression: Follows in ValueExpressionPrimary [choice], then ')'
-- replay AsClause: under SelectSublist
-- replay BooleanFactor: under BooleanTerm
-- replay BooleanPrimary: under BooleanTest
-- replay BooleanTerm: under SearchCondition
-- replay BooleanTest: under BooleanFactor
-- replay CaseExpression: under ValueExpressionPrimary
-- replay CastOperand: under CastSpecification
-- replay CastSpecification: under ValueExpressionPrimary
-- replay Collate: under ValueExpression
-- replay ColumnName: under ColumnList
-- replay ColumnReference: under ValueExpressionPrimary
-- replay EscapeClause: under NegatablePredicate
-- replay FromClause: under QuerySpecification
-- replay GeneralValueSpecification: under ValueExpressionPrimary
-- replay GroupByClause: under QuerySpecification
-- replay GroupingColumn: under GroupByClause
-- replay HavingClause: under QuerySpecification
-- replay InPredicateValue: under NegatablePredicate
-- replay NegatablePredicate: under PredicateTail
-- replay Predicate: under BooleanPrimary
-- replay PredicateTail: under Predicate
-- replay QueryExpression: under Subquery
-- replay QueryPrimary: under QueryExpression
-- replay QuerySpecification: under QueryPrimary
-- replay Reserved: under ?
-- replay Result: under CaseExpression
-- replay RowValueConstructor: under Predicate
-- replay ScalarSubquery: under ValueExpressionPrimary
-- replay SearchCondition: under SearchedWhen
-- replay SearchedWhen: under CaseExpression
-- replay SelectList: under QuerySpecification
-- replay SelectSublist: under SelectList
-- replay SetFunctionSpecification: under ValueExpressionPrimary
-- replay SimpleWhen: under CaseExpression
-- replay TablePrimary: under TableReference
-- replay TableReference: under FromClause
-- replay TableValueConstructor: under QueryPrimary
-- replay UnsignedLiteral: under ValueExpressionPrimary
-- replay ValueExpressionPrimary: under ValueExpression
-- replay ValueFunction: under ValueExpressionPrimary
-- replay WhereClause: under QuerySpecification
 
 ## DotGram.Sql.Standard.SqlStandardParser
 
