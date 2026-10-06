@@ -25852,3 +25852,26 @@ statements -7 to -14%, EL unchanged; no row slower.
 What the entry of the one-token tape parse still costs, in ns: tokenize and recycle 40, `Ways`
 rent and return 12, the store's rent and return 21-29, the root's walk and construction about 25,
 the reader, `Failure` and `Match` about 40. The hand-written parser does all of it in 31.
+
+## A rule that fails gives back what it gathered
+
+The immediate carrier gathers a repetition's members onto a stack per type, and a rule's record
+takes everything pushed since the rule began. A turn or an alternative that failed put the stack
+back to its own mark; a rule that failed as a whole did not, and its leavings stayed for the next
+rule to collect on that stack. T-SQL's `CHOOSE (2, 'a', 'b', '` showed it: the argument list is
+abandoned at the open literal, `CHOOSE` is read again as a column name, and the two literals were
+taken for the `AT TIME ZONE` tail of the expression around it — where the factory cast them to the
+type a zone has, and threw. With a value of the right type on the stack the tree would have been
+wrong and nothing would have said so. The same happens when the rule to collect next is the failed
+rule itself, entered again around the call that failed, and on the text stack as on the typed ones.
+
+Fixed where the rule fails: every exit of a rule's own body that stands past a push puts the
+stacks the rule gathers on back to the rule's mark (`GiveBackGathered`, written into `Fails`). Not
+at the caller — a caller knows only the stacks it gathers on itself, and the leavings travel
+through rules that gather nothing — and not by a wrapper around every gathering rule, which would
+be a call on the hot path for something only the failing path needs. An exit before any push is
+left as it was; an exit in an alternative written after one that pushed gives back what its own
+path never pushed, one assignment on a path already failing. Parts give back nothing: a turn's or
+an alternative's failure is put back by the loop or the choice around it, and the body's exit
+after a part that pushed does the rest. The tape needs none of this — its references carry the
+slot they were pushed for, and a collector takes only its own — and its output is unchanged.

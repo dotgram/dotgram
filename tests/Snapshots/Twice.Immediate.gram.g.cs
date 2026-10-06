@@ -408,7 +408,7 @@ namespace DotGram.Snapshots
 					if (!Recognize_DotGram_Guard4(g0))
 					{
 						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
-						return -1;
+						{ values.Count0 = rb_0; return -1; }
 					}
 					last0 = Construct_Sum(r0!, values.Take0(rb_0)!);
 					return p;
