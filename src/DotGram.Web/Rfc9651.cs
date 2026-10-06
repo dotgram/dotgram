@@ -319,6 +319,18 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 // sixteenth digit is neither a `;`, a `,`, a space nor the end, so the field fails there,
 // which is what §4.2.4 says it must.
 
+// Carried immediately, by name: an item is built the moment its rule has been read, and nothing is
+// recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): a
+// bare item's alternatives, a key and the runs of members and parameters can be asked again after
+// they have answered, and a construction asked again runs again. Every construction here builds from
+// the text it was given — `Integer` and `Decimal` read digits the rule has already counted, `Bytes`
+// and `Displayed` stand behind guards that asked them first and answer null rather than throwing —
+// and reads nothing else, so a reading given up or asked twice leaves nothing behind and nothing can
+// throw. Held to the tape by an agreement run: the same grammar compiled on the tape, all three
+// entries over the structured-field tests and the tests' texts, each cut at every character and
+// given a stray one — the same values, the same messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using System.Collections.Generic;
@@ -420,7 +432,8 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	parse ItemField       as ParseItem
 	parse ListField       as ParseList
 	parse DictionaryField as ParseDictionary
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc9651
 {
 	// ParseItem, ParseList and ParseDictionary are generated here, each with its Try form.
