@@ -161,6 +161,17 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 // nothing, and a field that the ABNF does not make is refused whole. Both checks are a `when` in a rule
 // that holds no group.
 
+// Carried immediately, by name: a field is built the moment its rule has been read, and nothing is
+// recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): the
+// run of parameters can be asked again after it has answered, and a construction asked again runs
+// again. Every construction here stands behind the guard of its own rule \u2014 `IsParameter` before
+// `Parameter`, `AreDistinct` before the field \u2014 and builds from the text it was given, reading
+// nothing else, so a reading given up or asked twice leaves nothing behind and nothing can throw.
+// Held to the tape by an agreement run: the same grammar compiled on the tape, over the tests'
+// texts, each cut at every character and given a stray one \u2014 the same values, the same messages,
+// nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -192,7 +203,8 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 	ParmValue = Token | QuotedString
 
 	parse DispositionField as ParseContentDisposition
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc6266
 {
 	// ParseContentDisposition and TryParseContentDisposition are generated here.
