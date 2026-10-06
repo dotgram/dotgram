@@ -1947,7 +1947,6 @@ static partial class Stand
 		}
 	}
 
-
 	/// <summary>
 	/// Runs <see cref="PairedWorkloads"/> and writes <c>paired.md</c>: hand, before and after
 	/// in one table, the same control and pinning as <c>--stand</c>. <paramref name="only"/>

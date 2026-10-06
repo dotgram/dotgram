@@ -20,7 +20,13 @@ is what to decide before using one, the contract they share, and what is easy to
 - **`SqlStandardParser`** (`DotGram.Sql.Standard`) — the ISO SQL:2023 language, when the
   question is whether a text is standard SQL, or when a tree of the standard's own constructs is
   wanted. It builds the tree in `DotGram.Sql.Ast`. It refuses what the standard does not have:
-  `SELECT TOP 1 a FROM t` is T-SQL, and here it is refused.
+  `SELECT TOP 1 a FROM t` is T-SQL, and here it is refused. It reads at six levels:
+  `ParseValue` (a literal, a signed number among them, or `NULL`), `ParseDataType`,
+  `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one statement of any kind, its `;`
+  optional) and `ParseSql` (statements, each ended by `;` or by the end of the text). A query is
+  a statement: `ParseStatement` gives back a `Statement`, and a query is the `Statement.Select`
+  among them. `TransactSqlParser.ParseValueExpression` is an expression and
+  `SqlStandardParser.ParseValue` a literal: the names are not the same level yet.
 - **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on.
 
 ## The contract they share
@@ -125,8 +131,14 @@ README lists what it covers, and what it does not cover it refuses.
 using Ast = DotGram.Sql.Ast;
 using DotGram.Sql.Standard;
 
-Ast.Expression e = SqlStandardParser.ParseValueExpression("a + b * 2");
+Ast.Expression e = SqlStandardParser.ParseExpression("a + b * 2");
 string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
 
-bool standard = SqlStandardParser.TryParseQueryExpression("SELECT TOP 1 a FROM t").IsSuccess;  // false
+bool standard = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t").IsSuccess;  // false
+
+// A statement's kind is the type of its node.
+if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Updatability: null } query)
+	again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
+
+Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
 ```
