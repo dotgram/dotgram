@@ -28,6 +28,8 @@ Changed (breaking): SqlStandardParser reads by level, six entries where it publi
 
 Changed: SqlStandardParser is carried immediately (Carrier = GramCarrier.Immediate): a node is built the moment its rule is read, with no tape recorded during the parse and replayed after it. Every reading through the six entries is faster, and more is allocated only on a text refused part-way, where the nodes of the abandoned reading were built for nothing. Trees, refusals and messages are the same as before. The factories of the SQL:2023 tree read nothing outside their arguments and the guards read a tower's roles, so a derivation the parse gives up leaves nothing behind.
 
+Changed: Sql92Parser is carried immediately too (Carrier = GramCarrier.Immediate), the last of the three parsers here to be: a node is built the moment its rule is read, with no tape recorded during the parse and replayed after it. Every accepted reading through its four entries is faster; a text refused part-way allocates more, where the nodes of the abandoned reading were built for nothing, and one refused late, after a long accepted prefix, can take longer than it did on the tape. Trees, refusals and messages are the same as before. The factories of the tree in SqlSyntax.cs read nothing outside their arguments, so a derivation the parse gives up leaves nothing behind.
+
 Removed: from SqlStandardParser, the Parse and TryParse forms of UnsignedLiteral, Identifier, IdentifierChain, ColumnReference, TableName, SchemaName, CommonValueExpression, NumericValueExpression, StringValueExpression, CharacterValueExpression, BinaryValueExpression, DatetimeValueExpression, IntervalValueExpression, BooleanValueExpression, Predicate, RowValuePredicand, ValueExpressionPrimary, QueryExpression, QuerySpecification, TableReference, InsertStatement, UpdateStatementSearched, UpdateStatementPositioned, DeleteStatementSearched, DeleteStatementPositioned, MergeStatement, TruncateTableStatement, SQLSchemaStatement, DirectSQLStatement, SQLTransactionStatement, SQLConnectionStatement, SQLSessionStatement, SQLDiagnosticsStatement, DirectSQLDataStatement, SQLControlStatement, SQLDataStatement, SQLDynamicStatement, SQLProcedureStatement: 258 public methods. ParseLiteral and ParseValueExpression are renamed ParseValue and ParseExpression, and the class publishes 42 methods where it published 286.
 
 Fixed: ten thousand T-SQL CASE … ELSE CASE … ended the process with a stack overflow in the generated reader, and are read. SqlWriter and Sql2023Writer write every tree a parser gives back, carrying the walk onto a thread of their own where the stack runs low, where a chain of about ten thousand + overflowed, and so did nested GROUPING SETS and JSON_TABLE NESTED PATH in Sql2023Writer; and the T-SQL reading's checks of a chain of UNION, of brackets and of PIVOT loop rather than recurse, where ten thousand UNION overflowed a thread of a megabyte. Equality and GetHashCode still throw InsufficientExecutionStackException on a tree deeper than the stack has room for.</PackageReleaseNotes>
@@ -48,12 +50,12 @@ Fixed: ten thousand T-SQL CASE … ELSE CASE … ended the process with a stack 
 		     found six of CS1570 in the summaries of Sql2023Ast.cs, where a BNF production name was
 		     written in angle brackets and is not XML. -->
 		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
-		<!-- GRAM5015: the SQL:2023 and T-SQL parsers name the immediate carrier over grammars Auto would
-		     keep on the tape (SqlStandardParser.cs and TransactSqlParser.cs say why it is safe: pure
-		     factories, no host state read by the reading, each held to the tape by an agreement run
-		     over the corpus). The warning is
-		     raised in the .gram file, which no pragma reaches, so the suppression is here, scoped to
-		     this project: another project compiling the same file on another carrier still hears it. -->
+		<!-- GRAM5015: the three parsers here (SQL:2023, SQL-92, T-SQL) name the immediate carrier over
+		     grammars Auto would keep on the tape (SqlStandardParser.cs, Sql92Parser.cs and
+		     TransactSqlParser.cs say why it is safe: pure factories, no host state read by the reading,
+		     each held to the tape by an agreement run over the corpus). The warning is raised in the
+		     .gram file, which no pragma reaches, so the suppression is here, scoped to this project:
+		     another project compiling the same file on another carrier still hears it. -->
 		<NoWarn>$(NoWarn);GRAM5015</NoWarn>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from

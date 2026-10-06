@@ -48,8 +48,25 @@ namespace DotGram.Sql.Standard;
 /// through the earlier editions (docs/design/sql-parsers.md). This one stays while T-SQL still
 /// includes it and the benchmarks hold it against a hand-written recognizer, and goes when neither does.
 /// </para>
+/// <para>
+/// <b>It is carried immediately, by name.</b> A node is built the moment its rule has been read, and
+/// nothing is recorded on a tape and replayed once the parse is accepted. Left to choose, the
+/// generator would keep this grammar on the tape: forty-five of its forty-nine building rules are
+/// read for derivations the parse may give up — an ordered choice tries the longer alternative
+/// first — and that is what the request costs: a construction runs for a reading that is then
+/// abandoned, and an exception thrown there would escape the publication. Here none can. The
+/// factories of <c>Expression</c>, <c>Query</c> and <c>Statement</c> in <c>SqlSyntax.cs</c> build
+/// records from what they are given and read no host state, so a derivation given up leaves nothing
+/// a later one could read. Held to the tape by an agreement run over the ScriptDom corpus, each
+/// statement whole and cut, every string of the tests, every accepted text cut at each word boundary
+/// and given a stray token, through all four entries in every form: the same trees, the same
+/// messages, nothing thrown; the benchmarks compile the same grammar on the tape (<c>TapeSql</c>) and
+/// hold the two carriers to each other. What it buys is the time the tape spent recording and
+/// replaying, for more bytes allocated where a reading is abandoned part-way — and, on a text
+/// refused late, after a long accepted prefix, the time those constructions took.
+/// </para>
 /// </remarks>
-[Gram("SqlStandard92.gram", Lexical = true)]
+[Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public abstract partial class Sql92Parser
 {
 }
