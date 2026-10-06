@@ -175,4 +175,153 @@ public sealed class SiblingPublicationTests
 			Assert.False(EmittedCode.Match(host.Assembly, "Grammar", attempt, "aa").IsSuccess);
 		}
 	}
+
+	/// <summary>
+	/// Two large publications carried immediately share one machine as they would on the tape,
+	/// and a small one keeps its own: the carrier a grammar is compiled on does not decide how
+	/// many machines it comes out as.
+	/// </summary>
+	[Theory]
+	[InlineData(8, 2)]
+	[InlineData(130, 1)]
+	public void Immediate_publications_share_a_machine_as_the_tapes_do(int count, int readers)
+	{
+		var grammar = Chain(count) +
+			"Number : @int = n: R0 => @(n)\n" +
+			"Text : @string = n: R0 => @(n.ToString())\n" +
+			"parse Number\nparse Text";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			Carrier = CarrierKind.Immediate, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Equal(readers, Readers(source).Count);
+		Assert.Empty(Materializers(source));
+		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		var assembly = EmittedCode.Compile(source);
+		Assert.Equal(count * 3, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
+		Assert.Equal((count * 3).ToString(), EmittedCode.Match(assembly, "Grammar", "TryParseText", "((v))").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "v!").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseText", "v!").IsSuccess);
+	}
+
+	/// <summary>
+	/// A machine the immediate carrier refuses falls back to the tape, and shares with no machine
+	/// it carries: the two carriers' machines stay apart however much they overlap, and the one it
+	/// carries is still carried.
+	/// </summary>
+	[Fact]
+	public void Machines_on_different_carriers_stay_apart()
+	{
+		// `Mixed` gathers two members onto the int stack in one construction, which the immediate
+		// carrier refuses (GRAM5007); `Number` reaches the same rules and is carried.
+		var grammar = Chain(130) +
+			"Number : @int = n: R0 => @(n)\n" +
+			"Mixed : @int = a: R0* & ';' & b: R0* => @(a.Length * 100 + b.Length)\n" +
+			"parse Number\nparse Mixed";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			Carrier = CarrierKind.Immediate, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Contains(result.Diagnostics, one => one.Id == GramCompiler.CarrierRefused && one.Message.Contains("'Mixed'", StringComparison.Ordinal));
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Equal(2, Readers(source).Count);
+		Assert.Single(Materializers(source));
+		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		var assembly = EmittedCode.Compile(source);
+		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
+		Assert.Equal(201, EmittedCode.Match(assembly, "Grammar", "TryParseMixed", "vv;v").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseMixed", "v").IsSuccess);
+	}
+
+	/// <summary>
+	/// Left to choose, a grammar whose gates let it through is carried immediately, and its
+	/// large publications share one machine on that carrier as they would on the tape.
+	/// </summary>
+	[Fact]
+	public void Immediate_machines_chosen_by_auto_share_a_machine()
+	{
+		var grammar = Chain(130) +
+			"Number : @int = n: R0 => @(n)\n" +
+			"Text : @string = n: R0 => @(n.ToString())\n" +
+			"parse Number\nparse Text";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Empty(Materializers(source));
+		Assert.Single(Readers(source));
+		var assembly = EmittedCode.Compile(source);
+		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
+		Assert.Equal("390", EmittedCode.Match(assembly, "Grammar", "TryParseText", "((v))").Value);
+	}
+
+	/// <summary>
+	/// Left to choose, a publication kept on the tape — a value it builds is read where the
+	/// reading may not stand — shares nothing with one carried immediately, and neither moves:
+	/// the carried one is not put on the tape by the sharing.
+	/// </summary>
+	[Fact]
+	public void Auto_keeps_a_carried_machine_apart_from_one_kept_on_the_tape()
+	{
+		// `Taped` builds Q in an alternative that can still fail after it — at 'x', where the next
+		// alternative reads the same 'q' as Q2 — so Q is read where the reading may not stand, and
+		// that keeps `Taped` on the tape. Replay is asked of the grammar, rule by rule, so the cause
+		// has to be a rule `Number` never reaches: were R0 itself read that way anywhere, `Number`
+		// would be on the tape as well, and the two would share as tape machines do. (Two
+		// alternatives beginning with the same call share it once normalized, which is why the
+		// second begins with a rule of its own.)
+		var grammar = Chain(130) +
+			"Q : @int = 'q' => @(1)\n" +
+			"Q2 : @int = 'q' => @(2)\n" +
+			"Number : @int = n: R0 => @(n)\n" +
+			"Taped : @int = n: Q & 'x' & m: R0 => @(n + m) | n: Q2 & 'y' & m: R0 => @(n + m + 100)\n" +
+			"parse Number\nparse Taped";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		Assert.Equal(2, Readers(source).Count);
+		Assert.Single(Materializers(source));
+		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		var assembly = EmittedCode.Compile(source);
+		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
+		Assert.Equal(391, EmittedCode.Match(assembly, "Grammar", "TryParseTaped", "qx((v))").Value);
+		Assert.Equal(492, EmittedCode.Match(assembly, "Grammar", "TryParseTaped", "qy((v))").Value);
+	}
+
+	/// <summary>A chain of <paramref name="count"/> valued rules, the last of them recursive through parentheses.</summary>
+	static string Chain(int count)
+	{
+		return string.Join("\n", Enumerable.Range(0, count - 1)
+			.Select(i => $"R{i} : @int = n: R{i + 1} => @(n + 1)")) +
+			$"\nR{count - 1} : @int = '(' & n: R0 & ')' => @(n + 1) | 'v' => @(1)\n";
+	}
+
+	/// <summary>The readers of the file, one per machine written as methods.</summary>
+	static List<string> Readers(string source)
+	{
+		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<StructDeclarationSyntax>()
+			.Select(static one => one.Identifier.Text)
+			.Where(static name => name.StartsWith("Reader_DotGram", StringComparison.Ordinal))
+			.ToList();
+	}
+
+	/// <summary>The walks that build a tape machine's values, one per machine on the tape.</summary>
+	static List<string> Materializers(string source)
+	{
+		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
+			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>()
+			.Select(static one => one.Identifier.Text)
+			.Where(static name => name.StartsWith("Materialize_DotGram_", StringComparison.Ordinal) && name.EndsWith("_Direct", StringComparison.Ordinal))
+			.ToList();
+	}
 }
