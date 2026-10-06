@@ -473,9 +473,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -497,7 +495,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard36(g0))
 							{
@@ -589,9 +587,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -613,7 +609,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard37(g0))
 							{
@@ -673,9 +669,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -697,7 +691,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard38(g0))
 							{
@@ -757,9 +751,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -781,7 +773,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard39(g0))
 							{
@@ -841,9 +833,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -865,7 +855,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard40(g0))
 							{
@@ -925,9 +915,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -949,7 +937,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard41(g0))
 							{
@@ -1009,9 +997,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1033,7 +1019,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard42(g0))
 							{
@@ -1093,9 +1079,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1117,7 +1101,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard43(g0))
 							{
@@ -1177,9 +1161,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1201,7 +1183,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard44(g0))
 							{
@@ -1261,9 +1243,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1285,7 +1265,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard45(g0))
 							{
@@ -1345,9 +1325,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1369,7 +1347,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard46(g0))
 							{
@@ -1429,9 +1407,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1453,7 +1429,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard47(g0))
 							{
@@ -1513,9 +1489,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1537,7 +1511,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard48(g0))
 							{
@@ -1597,9 +1571,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1621,7 +1593,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard49(g0))
 							{
@@ -1681,9 +1653,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1705,7 +1675,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard50(g0))
 							{
@@ -1765,9 +1735,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1789,7 +1757,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard51(g0))
 							{
@@ -1849,9 +1817,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1873,7 +1839,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard52(g0))
 							{
@@ -1933,9 +1899,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var r0 = -1;
 				var r1 = -1;
 				if ((uint)p >= (uint)text.Length)
@@ -1957,7 +1921,7 @@ namespace DotGram.Snapshots
 							p = q1;
 							r0 = ways.Last;
 							var g0At = r0;
-							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+							if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 							int g0 = (int)values.V0[g0At].Value!;
 							if (!Recognize_DotGram_Guard53(g0))
 							{
@@ -2107,7 +2071,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Direct(ways, text, values, ways.Last, 0, 0);
+				Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
 				value = values.V0[ways.Last].Value;
 
 				return end;
@@ -2142,7 +2106,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Direct(ways, text, values, ways.Last, 0, 0);
+				Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
 				value = values.V0[ways.Last].Value;
 
 				return end;
@@ -2155,8 +2119,11 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
+		static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
 		{
+			var from  = since.LogCount;
+			var first = since.Records;
+
 			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
 			{
 				first = ways.AllBuilt;
@@ -3417,9 +3384,61 @@ namespace DotGram.Snapshots
 			/// The two are one fact in two units, and a walk needs both — the record number to index the
 			/// flags and the tables, the position to start stepping from. They move together and only
 			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// lowers it, and the snapshot a give-back restores carries both.
 			/// </remarks>
 			internal int AllBuiltAt;
+
+			/// <summary>Where the log stood: what a reading given back puts it back to.</summary>
+			/// <remarks>
+			/// Passed by value and not by reference, so that it stays three registers in the method
+			/// that took it rather than a struct in memory whose address escaped.
+			/// </remarks>
+			internal struct Snapshot
+			{
+				internal int LogCount;
+				internal int Records;
+
+				/// <summary>
+				/// The last record closed: a reference to a record is <see cref="Last"/> at the moment it is
+				/// pushed, so one left pointing into an abandoned reading names a record the parse no longer has.
+				/// </summary>
+				internal int Last;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal Snapshot Snap()
+			{
+				Snapshot mark;
+
+				mark.LogCount = LogCount;
+				mark.Records  = Records;
+				mark.Last     = Last;
+
+				return mark;
+			}
+
+			/// <summary>
+			/// The log put back, and the watermarks of what a guard built with it: a record above
+			/// them is one written since, and a value built in a derivation that was then abandoned is
+			/// not the value of the record the next derivation writes at the same place. A method of its
+			/// own rather than a flag, so that the give-back where nothing builds has no branch.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void RewindBuilt(Snapshot mark)
+			{
+				LogCount = mark.LogCount;
+				Records  = mark.Records;
+				Last     = mark.Last;
+
+				if (Built > mark.Records)
+					Built = mark.Records;
+
+				if (AllBuilt > mark.Records)
+				{
+					AllBuilt   = mark.Records;
+					AllBuiltAt = mark.LogCount;
+				}
+			}
 
 
 

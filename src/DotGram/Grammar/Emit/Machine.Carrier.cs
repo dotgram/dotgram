@@ -626,6 +626,9 @@ sealed partial class Machine
 			return [name];
 		}
 
+		/// <summary>The type of each of <see cref="RecordMarks"/>, as a part declares it.</summary>
+		public virtual string RecordMarkType => "int";
+
 		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
 		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);
 
@@ -922,20 +925,15 @@ sealed partial class Machine
 			return declared ? ", int refs" : inBody ? ", rb" : ", refs";
 		}
 
-		public override IReadOnlyList<string> RecordMarks(string name)
-		{
-			return [name, name + "R", name + "L"];
-		}
+		/// <remarks>
+		/// Three numbers — how much of the log is written, how many records it holds, and the last
+		/// record closed — taken and put back together as one <c>Ways.Snapshot</c>, by value.
+		/// </remarks>
+		public override string RecordMarkType => Machine.WaysType + ".Snapshot";
 
 		public override IEnumerable<string> MarkRecords(string name)
 		{
-			yield return $"var {name}  = ways.LogCount;";
-			yield return $"var {name}R = ways.Records;";
-
-			// The last record CLOSED, which a give-back has to put back with the other two: a
-			// reference to a record is `ways.Last` at the moment it is pushed, so a `Last` left
-			// pointing into an abandoned reading is a reference to a record the parse no longer has.
-			yield return $"var {name}L = ways.Last;";
+			yield return $"var {name} = ways.Snap();";
 		}
 
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
@@ -955,17 +953,9 @@ sealed partial class Machine
 			// journal it would unwind is never written. Asked of the declaration rather than of the
 			// sites, which are numbered as the reader is emitted and so are not all known yet here.
 			if (machine._graph.State is not null)
-				yield return $"ways.MarksBackTo({name});";
+				yield return $"ways.MarksBackTo({name}.LogCount);";
 
-			yield return $"ways.LogCount  = {name};";
-			yield return $"ways.Records   = {name}R;";
-			yield return $"ways.Last      = {name}L;";
-
-			if (machine._directBuilds)
-			{
-				yield return $"if (ways.Built > {name}R) ways.Built = {name}R;";
-				yield return $"if (ways.AllBuilt > {name}R) {{ ways.AllBuilt = {name}R; ways.AllBuiltAt = {name}; }}";
-			}
+			yield return machine._directBuilds ? $"ways.RewindBuilt({name});" : $"ways.Rewind({name});";
 		}
 
 		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)
@@ -981,7 +971,7 @@ sealed partial class Machine
 		public override string DeclareAccumulator(RuleSymbol rule)
 		{
 			return machine.FoldAsked(rule)
-				? "var fold = -1; var foldSince = ways.LogCount; var foldSinceR = ways.Records; var foldEnd = foldSince; var foldEndR = foldSinceR;"
+				? "var fold = -1; var foldSince = ways.Snap(); var foldEnd = foldSince;"
 				: "var fold = -1;";
 		}
 
@@ -995,21 +985,21 @@ sealed partial class Machine
 		public override IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner)
 		{
 			return machine.FoldAsked(owner)
-				? [("int ", "fold"), ("int ", "foldSince"), ("int ", "foldSinceR"), ("int ", "foldEnd"), ("int ", "foldEndR")]
+				? [("int ", "fold"), (RecordMarkType + " ", "foldSince"), (RecordMarkType + " ", "foldEnd")]
 				: base.FoldState(owner);
 		}
 
 		public override string Accumulated(RuleSymbol owner)
 		{
 			return machine.FoldAsked(owner)
-				? "fold = ways.Last; foldEnd = ways.LogCount; foldEndR = ways.Records;"
+				? "fold = ways.Last; foldEnd = ways.Snap();"
 				: base.Accumulated(owner);
 		}
 
 		public override string BuildFold(RuleSymbol owner, string sinceMark)
 		{
 			return machine.FoldAsked(owner)
-				? Materialize("fold", "foldSince") + " foldSince = foldEnd; foldSinceR = foldEndR;"
+				? Materialize("fold", "foldSince") + " foldSince = foldEnd;"
 				: base.BuildFold(owner, sinceMark);
 		}
 
@@ -1136,7 +1126,7 @@ sealed partial class Machine
 		public override string Materialize(string record, string sinceMark)
 		{
 			return machine.Materializing(
-				$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
+				$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}" +
 				$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
 		}
 
@@ -1206,7 +1196,7 @@ sealed partial class Machine
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
 			yield return machine.Materializing(
-				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0, 0" +
+				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, default" +
 				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
 
 			yield return

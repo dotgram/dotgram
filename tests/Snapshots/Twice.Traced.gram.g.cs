@@ -491,9 +491,7 @@ namespace DotGram.Snapshots
 						return Deepen_DotGram(pos, 0, 0);
 
 					var s  = ways.Cursor;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var rb = ways.RefsCount;
 
 					while (true)
@@ -503,11 +501,7 @@ namespace DotGram.Snapshots
 						if (q >= 0)
 							return q;
 
-						ways.LogCount  = lm;
-						ways.Records   = lmR;
-						ways.Last      = lmL;
-						if (ways.Built > lmR) ways.Built = lmR;
-						if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
+						ways.RewindBuilt(lm);
 						ways.RefsCount = rb;
 
 						if (ways.Cursor > s && ways.Retry(s))
@@ -526,9 +520,7 @@ namespace DotGram.Snapshots
 					var p = pos;
 					var c = '\0';
 					var rb = ways.RefsCount;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var r0 = -1;
 					var q0 = Read_Term(p);
 					if (q0 < 0) return Exited_DotGram(1, pos, -1);
@@ -553,24 +545,18 @@ namespace DotGram.Snapshots
 						}
 
 						var s2  = ways.Cursor;
-						var lm2  = ways.LogCount;
-						var lm2R = ways.Records;
-						var lm2L = ways.Last;
+						var lm2 = ways.Snap();
 						var rr2 = ways.RefsCount;
 						var q2 = -1;
 
 						while (true)
 						{
-							q2 = Read_Sum_Part0(p, pos, lm, lmR, lmL, rb);
+							q2 = Read_Sum_Part0(p, pos, lm, rb);
 
 							if (q2 >= 0)
 								break;
 
-							ways.LogCount  = lm2;
-							ways.Records   = lm2R;
-							ways.Last      = lm2L;
-							if (ways.Built > lm2R) ways.Built = lm2R;
-							if (ways.AllBuilt > lm2R) { ways.AllBuilt = lm2R; ways.AllBuiltAt = lm2; }
+							ways.RewindBuilt(lm2);
 							ways.RefsCount = rr2;
 
 							if (ways.Cursor > s2 && ways.Retry(s2))
@@ -588,7 +574,7 @@ namespace DotGram.Snapshots
 						p = q2;
 					}
 					var g0At = r0;
-					if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm, lmR);
+					if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
 					int g0 = (int)values.V0[g0At].Value!;
 					if (!Guarded_DotGram(0, p, Recognize_DotGram_Guard4(g0)))
 					{
@@ -603,7 +589,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <summary>One alternative of <c>Sum</c>, read where it stood.</summary>
-				public int Read_Sum_Part0(int pos, int start, int lmark, int lmarkR, int lmarkL, int refs)
+				public int Read_Sum_Part0(int pos, int start, Ways.Snapshot lmark, int refs)
 				{
 					var p = pos;
 					var q0 = Read_trivia(p);
@@ -620,9 +606,7 @@ namespace DotGram.Snapshots
 				public int Read_Term(int pos)
 				{
 					var s  = ways.Cursor;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var rb = ways.RefsCount;
 
 					while (true)
@@ -632,11 +616,7 @@ namespace DotGram.Snapshots
 						if (q >= 0)
 							return q;
 
-						ways.LogCount  = lm;
-						ways.Records   = lmR;
-						ways.Last      = lmL;
-						if (ways.Built > lmR) ways.Built = lmR;
-						if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
+						ways.RewindBuilt(lm);
 						ways.RefsCount = rb;
 
 						if (ways.Cursor > s && ways.Retry(s))
@@ -655,9 +635,7 @@ namespace DotGram.Snapshots
 					var p = pos;
 					var c = '\0';
 					var rb = ways.RefsCount;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var r0 = -1;
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
@@ -720,20 +698,14 @@ namespace DotGram.Snapshots
 								if (q4 < 0 && d0 <= 0)
 								{
 									var s1  = ways.Cursor;
-									var lm1  = ways.LogCount;
-									var lm1R = ways.Records;
-									var lm1L = ways.Last;
+									var lm1 = ways.Snap();
 									var rr1 = ways.RefsCount;
 
-									q4 = Read_Term_Part0(p, pos, lm, lmR, lmL, r1);
+									q4 = Read_Term_Part0(p, pos, lm, r1);
 
 									if (q4 < 0)
 									{
-										ways.LogCount  = lm1;
-										ways.Records   = lm1R;
-										ways.Last      = lm1L;
-										if (ways.Built > lm1R) ways.Built = lm1R;
-										if (ways.AllBuilt > lm1R) { ways.AllBuilt = lm1R; ways.AllBuiltAt = lm1; }
+										ways.RewindBuilt(lm1);
 										ways.RefsCount = rr1;
 									}
 
@@ -743,20 +715,14 @@ namespace DotGram.Snapshots
 								if (q4 < 0 && d0 <= 1)
 								{
 									var s2  = ways.Cursor;
-									var lm2  = ways.LogCount;
-									var lm2R = ways.Records;
-									var lm2L = ways.Last;
+									var lm2 = ways.Snap();
 									var rr2 = ways.RefsCount;
 
-									q4 = Read_Term_Part1(p, pos, lm, lmR, lmL, r1);
+									q4 = Read_Term_Part1(p, pos, lm, r1);
 
 									if (q4 < 0)
 									{
-										ways.LogCount  = lm2;
-										ways.Records   = lm2R;
-										ways.Last      = lm2L;
-										if (ways.Built > lm2R) ways.Built = lm2R;
-										if (ways.AllBuilt > lm2R) { ways.AllBuilt = lm2R; ways.AllBuiltAt = lm2; }
+										ways.RewindBuilt(lm2);
 										ways.RefsCount = rr2;
 									}
 								}
@@ -772,7 +738,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <summary>One alternative of <c>Term</c>, read where it stood.</summary>
-				public int Read_Term_Part0(int pos, int start, int lmark, int lmarkR, int lmarkL, int r1)
+				public int Read_Term_Part0(int pos, int start, Ways.Snapshot lmark, int r1)
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
@@ -794,10 +760,10 @@ namespace DotGram.Snapshots
 					p = q2;
 					r2 = ways.Last;
 					var g0At = r1;
-					if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lmark, lmarkR);
+					if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lmark);
 					int g0 = (int)values.V0[g0At].Value!;
 					var g1At = r2;
-					if (!(g1At < 0)) Materialize_DotGram_Direct(ways, text, values, g1At, lmark, lmarkR);
+					if (!(g1At < 0)) Materialize_DotGram_Direct(ways, text, values, g1At, lmark);
 					int g1 = (int)values.V0[g1At].Value!;
 					if (!Guarded_DotGram(1, p, Recognize_DotGram_Guard5(g0, g1)))
 					{
@@ -812,7 +778,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <summary>One alternative of <c>Term</c>, read where it stood.</summary>
-				public int Read_Term_Part1(int pos, int start, int lmark, int lmarkR, int lmarkL, int r1)
+				public int Read_Term_Part1(int pos, int start, Ways.Snapshot lmark, int r1)
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
@@ -898,9 +864,7 @@ namespace DotGram.Snapshots
 				public int Read_More(int pos)
 				{
 					var s  = ways.Cursor;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var rb = ways.RefsCount;
 
 					while (true)
@@ -910,11 +874,7 @@ namespace DotGram.Snapshots
 						if (q >= 0)
 							return q;
 
-						ways.LogCount  = lm;
-						ways.Records   = lmR;
-						ways.Last      = lmL;
-						if (ways.Built > lmR) ways.Built = lmR;
-						if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
+						ways.RewindBuilt(lm);
 						ways.RefsCount = rb;
 
 						if (ways.Cursor > s && ways.Retry(s))
@@ -956,9 +916,7 @@ namespace DotGram.Snapshots
 				public int Recognize_Sum_Whole_Read(int pos)
 				{
 					var s  = ways.Cursor;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var rb = ways.RefsCount;
 
 					while (true)
@@ -968,11 +926,7 @@ namespace DotGram.Snapshots
 						if (q >= 0)
 							return q;
 
-						ways.LogCount  = lm;
-						ways.Records   = lmR;
-						ways.Last      = lmL;
-						if (ways.Built > lmR) ways.Built = lmR;
-						if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
+						ways.RewindBuilt(lm);
 						ways.RefsCount = rb;
 
 						if (ways.Cursor > s && ways.Retry(s))
@@ -987,9 +941,7 @@ namespace DotGram.Snapshots
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var q0 = Read_trivia(p);
 					if (q0 < 0) return -1;
 					p = q0;
@@ -1011,9 +963,7 @@ namespace DotGram.Snapshots
 				public int Recognize_Sum_Read(int pos)
 				{
 					var s  = ways.Cursor;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var rb = ways.RefsCount;
 
 					while (true)
@@ -1023,11 +973,7 @@ namespace DotGram.Snapshots
 						if (q >= 0)
 							return q;
 
-						ways.LogCount  = lm;
-						ways.Records   = lmR;
-						ways.Last      = lmL;
-						if (ways.Built > lmR) ways.Built = lmR;
-						if (ways.AllBuilt > lmR) { ways.AllBuilt = lmR; ways.AllBuiltAt = lm; }
+						ways.RewindBuilt(lm);
 						ways.RefsCount = rb;
 
 						if (ways.Cursor > s && ways.Retry(s))
@@ -1042,9 +988,7 @@ namespace DotGram.Snapshots
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
-					var lm  = ways.LogCount;
-					var lmR = ways.Records;
-					var lmL = ways.Last;
+					var lm = ways.Snap();
 					var q0 = Read_trivia(p);
 					if (q0 < 0) return -1;
 					p = q0;
@@ -1265,7 +1209,7 @@ namespace DotGram.Snapshots
 						return end;
 					}
 
-					Materialize_DotGram_Direct(ways, text, values, ways.Last, 0, 0);
+					Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
 					value = values.V0[ways.Last].Value;
 
 					return end;
@@ -1300,7 +1244,7 @@ namespace DotGram.Snapshots
 						return end;
 					}
 
-					Materialize_DotGram_Direct(ways, text, values, ways.Last, 0, 0);
+					Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
 					value = values.V0[ways.Last].Value;
 
 					return end;
@@ -1313,8 +1257,11 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-			static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int roots = -1, long rootSlots = 0)
+			static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
 			{
+				var from  = since.LogCount;
+				var first = since.Records;
+
 				if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
 				{
 					first = ways.AllBuilt;
@@ -3872,9 +3819,61 @@ namespace DotGram.Snapshots
 				/// The two are one fact in two units, and a walk needs both — the record number to index the
 				/// flags and the tables, the position to start stepping from. They move together and only
 				/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-				/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+				/// lowers it, and the snapshot a give-back restores carries both.
 				/// </remarks>
 				internal int AllBuiltAt;
+
+				/// <summary>Where the log stood: what a reading given back puts it back to.</summary>
+				/// <remarks>
+				/// Passed by value and not by reference, so that it stays three registers in the method
+				/// that took it rather than a struct in memory whose address escaped.
+				/// </remarks>
+				internal struct Snapshot
+				{
+					internal int LogCount;
+					internal int Records;
+
+					/// <summary>
+					/// The last record closed: a reference to a record is <see cref="Last"/> at the moment it is
+					/// pushed, so one left pointing into an abandoned reading names a record the parse no longer has.
+					/// </summary>
+					internal int Last;
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+				internal Snapshot Snap()
+				{
+					Snapshot mark;
+
+					mark.LogCount = LogCount;
+					mark.Records  = Records;
+					mark.Last     = Last;
+
+					return mark;
+				}
+
+				/// <summary>
+				/// The log put back, and the watermarks of what a guard built with it: a record above
+				/// them is one written since, and a value built in a derivation that was then abandoned is
+				/// not the value of the record the next derivation writes at the same place. A method of its
+				/// own rather than a flag, so that the give-back where nothing builds has no branch.
+				/// </summary>
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+				internal void RewindBuilt(Snapshot mark)
+				{
+					LogCount = mark.LogCount;
+					Records  = mark.Records;
+					Last     = mark.Last;
+
+					if (Built > mark.Records)
+						Built = mark.Records;
+
+					if (AllBuilt > mark.Records)
+					{
+						AllBuilt   = mark.Records;
+						AllBuiltAt = mark.LogCount;
+					}
+				}
 
 
 

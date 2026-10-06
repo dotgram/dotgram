@@ -3559,7 +3559,7 @@ sealed partial class Machine
 				var passed   = machine.Carrier.RecordMarks(_part ? "lmark" : "lm");
 
 				for (var one = 0; one < declared.Count; one++)
-					text.Append(", ").Append(type.Length > 0 ? "int " + declared[one] : passed[one]);
+					text.Append(", ").Append(type.Length > 0 ? machine.Carrier.RecordMarkType + " " + declared[one] : passed[one]);
 			}
 
 			// The strength the rule was entered at, which every method of it reads.

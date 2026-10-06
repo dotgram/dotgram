@@ -932,7 +932,15 @@ public static partial class CSharpEmitter
 			// and a refusal records a set the turn says again though it was said there before.
 			var turns = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery);
 
-			file.Write(Region(Region(Region(Region(Region(DirectSupport, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
+			// The snapshot a give-back takes and restores is the tape's, and it puts the watermarks of
+			// what a guard built back with the log only in a machine whose guards build: each form is
+			// written where some machine of the file uses it.
+			var tape     = machines.FindAll(static compiled => compiled.Direct && !compiled.Machine.CarriesImmediately);
+			var builds   = tape.Exists(static compiled => compiled.Machine.BuildsDuringRecognition);
+			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
+			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
+
+			file.Write(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
 				// A refusal a recording reading records is told to the sink, where the build traces.
