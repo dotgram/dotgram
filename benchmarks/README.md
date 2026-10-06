@@ -1126,8 +1126,10 @@ A line that begins `--` is skipped. `--standard ? file` says which lexical produ
 each word of a line, and `--standard ! production` which pieces of the BNF read as empty and
 which productions the one named reaches that derive nothing.
 
-Where `SqlStandardParser` publishes a rule of the production's name — `<identifier chain>` as
-`TryParseIdentifierChain` — each line is put to it as well, the two verdicts are printed side by
+Where the grammar publishes a rule of the production's name — `<identifier chain>` as
+`TryParseIdentifierChain`, asked of `SqlStandardProductions` (`tests/DotGram.Sql.Productions`), the
+test fixture that includes the grammar and publishes its productions, since the shipped class
+publishes six levels only — each line is put to it as well, the two verdicts are printed side by
 side with `≠` where they differ, and the count of both closes the run. That is how the grammar is
 held to the standard: a row goes into `SqlStandardParserTests` once the two agree on it. A line's
 milliseconds are mostly the recognizer's; the grammar's own time, and its slowest line, are said

@@ -219,6 +219,13 @@ and dynamic SQL — triggers and SQL-invoked routines, and user-defined types, c
 orderings and transforms: everything the grammar reads. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
 shape is in `design/sql-ast.md`.
 
+The parser hands it out at six levels, and the node a level gives back is the root of what it read:
+`ParseValue` a `LiteralValue` (a literal, or `LiteralValue.Null` for `NULL`), `ParseDataType` a
+`DataType`, `ParseExpression` and `ParseSearchCondition` an `Expression`, `ParseStatement` a
+`Statement` — a query is a `Statement.Select`, with `Updatability` set where a cursor's `FOR UPDATE`
+or `FOR READ ONLY` followed it — and `ParseSql` a `Statement[]`. `-1` is one literal to `ParseValue`
+and a sign applied to the literal `1` to `ParseExpression`, as the standard's `<factor>` has it.
+
 ## The nodes
 
 ### `Statement`

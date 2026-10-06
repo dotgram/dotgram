@@ -12,7 +12,15 @@ namespace DotGram.Sql.Standard;
 /// <b>The BNF is the authority, and it is asked.</b> The standard has no engine to put a
 /// statement to, so <c>--standard</c> in DotGram.Benchmarks reads the published BNF with an
 /// Earley recognizer and says, line by line, whether a text is the production named — and
-/// whether this grammar's rule of the same name says the same.
+/// whether this grammar's rule of the same name says the same, asked of a test fixture that includes
+/// the grammar and publishes its productions one by one.
+/// </para>
+/// <para>
+/// <b>It reads at six levels</b>, not production by production: <c>ParseValue</c>, a literal, signed
+/// numbers and <c>NULL</c> among them; <c>ParseDataType</c>; <c>ParseExpression</c>;
+/// <c>ParseSearchCondition</c>; <c>ParseStatement</c>, one statement of any kind, its semicolon
+/// optional; and <c>ParseSql</c>, statements each ended by a semicolon or by the end of the text. A
+/// statement's kind is the type of its node, and a query is a <c>Statement.Select</c>.
 /// </para>
 /// <para>
 /// <b>The rule names are the standard's</b>, production for production: <c>&lt;query

@@ -53,6 +53,19 @@ is open until it is built, and `status.md` is what will say when it has been.
   named for what they are, `SqlStandardParser` and `TransactSqlParser`, so that no namespace
   shares a name with a type in it. For now T-SQL still includes the standard's grammar; it
   stops when the SQL:2023 grammar replaces `SqlStandard92.gram`.
+- **SQL:2023 is published by level, not by production** (Igor, 2026-10-05). `SqlStandardParser`
+  publishes six entries — `ParseValue` (a literal, signed numbers and `NULL` among them),
+  `ParseDataType`, `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one statement of any
+  kind, `;` optional) and `ParseSql` (statements, each ended by `;` or the end of the text) — where it
+  published forty-two productions, which only the tests and the BNF oracle called. Each publication is
+  a root of the machines the generator builds, so the productions cost the package source and size
+  whether anybody called them or not. A query is the `Statement.Select` a statement may be; there is no
+  query entry. The productions are published again by `tests/DotGram.Sql.Productions`, a fixture that
+  includes the grammar: the oracle asks it, and the tests read a production there and hold the shipped
+  levels to it. The fixture is a parser compiled apart — its own kinds, machines and memo — so it tests
+  the grammar and the include, and the shipped class is tested through its levels. T-SQL's
+  entries are not renamed yet: `TransactSqlParser.ParseValueExpression` is an expression where
+  `SqlStandardParser.ParseValue` is a literal.
 - **The reshaped tree has requirements of its own** (Igor, 2026-09-15): lossless, one-level
   hierarchies, enums and properties rather than the BNF's structure, validation outside the tree.
   They are in `sql-ast.md`, with the SQL:2023 blank `Standard/Sql2023Ast.cs` they start from and each
@@ -102,7 +115,8 @@ is open until it is built, and `status.md` is what will say when it has been.
 
 - ~~**An Earley recognizer over a BNF**~~ Done, 2026-09-13: `--standard` in DotGram.Benchmarks,
   which since 2026-09-14 also asks `SqlStandardParser`'s rule of the production's name and
-  marks where the two differ.
+  marks where the two differ — since 2026-10-06 the rule the test fixture `SqlStandardProductions`
+  publishes, the shipped class publishing levels only.
 - ~~**Convert a BNF into `.gram`.**~~ Done, 2026-09-13: `--bnf-gram` writes the skeleton.
 - **The SQL:2023 grammar, chapter by chapter** (`Standard/SqlStandard.gram`). §5 is written —
   tokens, separators, literals, names and the reserved words — §6 with window functions, §7's query
