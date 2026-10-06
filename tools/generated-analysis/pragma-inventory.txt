@@ -39,7 +39,6 @@ Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothi
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	CS0649 // a table nothing writes still declares the field
-Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	CS0649 // a table nothing writes still declares the field
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	CS0649 // a table nothing writes still declares the field
