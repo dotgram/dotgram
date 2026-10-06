@@ -477,7 +477,7 @@ namespace DotGram.Snapshots
 				if (q1 >= 0)
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
-					return -1;
+					{ values.Count1 = rb_1; return -1; }
 				}
 				last0 = Construct_Program(values.Take1(rb_1)!);
 				return p;

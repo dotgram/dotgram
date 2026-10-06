@@ -635,6 +635,16 @@ sealed partial class Machine
 		/// <summary>The gathered members put back to a mark.</summary>
 		public abstract IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name);
 
+		/// <summary>
+		/// What a rule that fails gives back, written at the exits of its body that stand past a
+		/// push: the gathered members put back to the rule's own mark, where a carrier's collector
+		/// would otherwise take what a failed rule left; nothing, where it takes only its own.
+		/// </summary>
+		public virtual IEnumerable<string> GiveBackGathered(RuleSymbol owner, string name)
+		{
+			return [];
+		}
+
 		// ---- the locals a value is kept in -----------------------------------------------------
 
 		/// <summary>

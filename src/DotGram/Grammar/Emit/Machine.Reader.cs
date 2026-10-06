@@ -1544,6 +1544,15 @@ sealed partial class Machine
 		readonly bool _gathers = machine.DirectMembers(owner)
 			.Exists(one => one.Shape is MemberShape.Pieces or MemberShape.Records);
 
+		/// <summary>
+		/// Whether what this method has written so far pushes a gathered member — itself, or
+		/// through a part — and so whether a failure past this point gives it back
+		/// (<see cref="Fails"/>). Read in the order the method is written: an exit in an
+		/// alternative after one that pushed gives back what its own path never pushed, which
+		/// is one assignment on a path that is failing anyway.
+		/// </summary>
+		bool _pushed;
+
 		readonly RecognitionGraph _graph = machine._graph;
 
 		/// <summary>What stands in this method already, and so is not declared in it.</summary>
@@ -1745,8 +1754,15 @@ sealed partial class Machine
 		/// </remarks>
 		string Fails()
 		{
+			// What the rule pushed is given back by the rule's own body, past a push: not by a
+			// part, whose failure the turn or the choice around it puts back, and not by the
+			// entry, whose failure ends the parse.
+			var given = !_part && !_entry && _gathers && _pushed
+				? string.Join(" ", machine.Carrier.GiveBackGathered(owner, "rb"))
+				: "";
+
 			if (machine.Tracing is not { } tracing)
-				return "return -1;";
+				return given.Length == 0 ? "return -1;" : $"{{ {given} return -1; }}";
 
 			var leave = !Reports
 				? "return -1;"
@@ -1754,10 +1770,13 @@ sealed partial class Machine
 					? "goto Failed;"
 					: $"return Exited_DotGram({tracing.RuleOf(owner)}, pos, -1);";
 
-			if (_frames.Count == 0)
+			if (_frames.Count == 0 && given.Length == 0)
 				return leave;
 
 			var closed = new System.Text.StringBuilder("{ ");
+
+			if (given.Length > 0)
+				closed.Append(given).Append(' ');
 
 			for (var i = _frames.Count - 1; i >= 0; i--)
 				closed.Append($"failure.Trace?.Exit({_frames[i].Rule}, {_frames[i].At}, -1); ");
@@ -2117,6 +2136,7 @@ sealed partial class Machine
 					code.Line($"a{slot} = p;");
 					Emit(code, held, following, loaded);
 					Carried(code, machine.Carrier.PushText(slot, $"a{slot}", "p"));
+					_pushed = true;
 					break;
 
 				case MemberShape.Records:
@@ -2124,6 +2144,7 @@ sealed partial class Machine
 					Carried(code, member.Member.Element is null
 						? machine.Carrier.PushRecord(slot, RuleOfSlot(slot))
 						: machine.Carrier.PushTagged(slot));
+					_pushed = true;
 					break;
 
 				default:
@@ -3477,6 +3498,7 @@ sealed partial class Machine
 
 			var written = apart.Render(part, following);
 			ObservedOpen |= apart.ObservedOpen;
+			_pushed      |= apart._pushed;
 
 			Parts.Add((name, Handing(given, taken, "int "), written));
 
