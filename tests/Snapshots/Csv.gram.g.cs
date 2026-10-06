@@ -5,23 +5,19 @@ namespace DotGram.Snapshots
 {
 	partial class Csv
 	{
-		/// <summary>Everything <c>Csv</c> is made of, in order (§4.1 case 2).</summary>
 		static string[] Construct_Csv(string[] item0) =>
 			item0 ?? global::System.Array.Empty<string>();
 
-		/// <summary>What <c>Row</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Row(string name, int amount) =>
 #line 23 "Csv.gram"
                                                             (name + "=" + amount);
 #line default
 
-		/// <summary>What <c>Name</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static string Construct_Name(string text) =>
 #line 25 "Csv.gram"
                                                                               (text);
 #line default
 
-		/// <summary>What <c>Amount</c> builds its value with (docs/syntax.md §7.3).</summary>
 		static int Construct_Amount(string digits) =>
 #line 27 "Csv.gram"
                                         int.Parse(digits);
@@ -605,7 +601,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary><c>eof</c>, recognized with nothing written down.</summary>
 		static int Scan_eof(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
@@ -866,42 +861,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
 		{
-			/// <summary>
-			/// The furthest position the input was followed to. Zero on a match that
-			/// succeeded without ever backtracking, and meaningless unless one failed.
-			/// </summary>
 			public int Position;
 
-			/// <summary>
-			/// Where something wanted more input than remained, one past the position, or
-			/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
-			/// not fit" by (§7.5).
-			/// </summary>
-			/// <remarks>
-			/// <para>
-			/// A position rather than a flag, and written straight here rather than
-			/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
-			/// is whether the <em>furthest</em> failure ran out, so a room check that
-			/// failed somewhere the parse later got past answers by not matching
-			/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
-			/// the automaton's own unwinding is untouched — which is why this costs a
-			/// store on a failure path and nothing anywhere else.
-			/// </para>
-			/// <para>
-			/// The furthest such place, and not the last: backtracking asks the same test again
-			/// further back, where it may lack room too, and a later write of a smaller place
-			/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
-			/// </para>
-			/// <para>
-			/// One past, because a zeroed struct has to mean "nowhere" and zero is a
-			/// position. Only a test wanting more than one character writes it: one
-			/// wanting a single character can only fail for want of room at the very end
-			/// of the input, which the boundary reads off <c>Position</c> itself.
-			/// </para>
-			/// </remarks>
 			// Nothing assigns this here: every test in this grammar wants one character.
 			// A field nothing assigns is CS0649 in somebody else's build, which for one
 			// that treats warnings as errors is a broken compilation of a file they did
@@ -910,19 +873,8 @@ namespace DotGram.Snapshots
 			public int OutOfInput;
 			#pragma warning restore 0649
 
-			/// <summary>
-			/// What would have fit at the furthest position, or null. Meaningless unless
-			/// the match failed. A reference into one of the generator's own arrays, not
-			/// a copy of it.
-			/// </summary>
 			public string[]? Expected;
 
-			/// <summary>
-			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one, and emptied rather
-			/// than dropped when the furthest position moves on: a parse that ties once
-			/// tends to tie again, and a list per tie was an allocation per operand.
-			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
 
@@ -936,15 +888,6 @@ namespace DotGram.Snapshots
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
-			/// <summary>
-			/// The calls whose values the accepted derivation reaches, in the order they were
-			/// reached from the root.
-			/// </summary>
-			/// <remarks>
-			/// Written afresh on every materialization and read back to front, so unlike the
-			/// link tables it needs no initial value — what is past the count written this
-			/// time is never looked at.
-			/// </remarks>
 			int[] _owners = global::System.Array.Empty<int>();
 			internal int LinkedUpTo;
 			int _valuesUsed;
@@ -1098,62 +1041,14 @@ namespace DotGram.Snapshots
 			internal const int PendingRecovery = 12;
 			internal const int Run = 13;
 
-			/// <summary>
-			/// The one way out a settled repetition keeps standing, in place of a
-			/// <see cref="Choice"/> per turn.
-			/// </summary>
-			/// <remarks>
-			/// Valid only while it is the loop's latest: the <see cref="Repeat"/> entry it
-			/// points back to holds, in its rule-index field, where the last completed turn
-			/// ended, and an exit whose own position no longer matches is history — popped
-			/// past, never resumed. That is what turns a failure that used to resume one
-			/// exit per completed turn, re-reading the suffix each time, into one that
-			/// resumes a single exit and skips the rest.
-			/// </remarks>
 			internal const int LoopExit = 14;
 
-			/// <summary>
-			/// A completed turn of a counted repetition, standing where unwinding can see
-			/// it.
-			/// </summary>
-			/// <remarks>
-			/// The count in a <see cref="Repeat"/> entry is rewritten in place, and an
-			/// in-place rewrite survives backtracking that the turn it counted does not:
-			/// resume an alternative inside a completed turn and the body re-completes,
-			/// counting the same turn twice — <c>X{2}</c> read two of a thing the input
-			/// held one of. Popping this entry is what un-counts the turn, at the exact
-			/// moment the parse abandons it.
-			/// </remarks>
 			internal const int TurnDone = 15;
 
-			/// <summary>
-			/// Where a capture began, standing where unwinding can take it away again.
-			/// </summary>
-			/// <remarks>
-			/// A start kept in a variable is right for exactly as long as nothing opens the
-			/// same capture between the opening and the close. Two things do: a rule that
-			/// reaches itself, and a repetition whose next turn begins before a door inside
-			/// the turn before it has been passed. Both leave the variable holding a start
-			/// the parse has given back, and backtracking restores the arena and nothing
-			/// else — so the start goes in the arena, and the close finds its own by
-			/// counting these against the <see cref="Capture"/> entries that closed them,
-			/// the way brackets are counted. Marking an opening closed in place would not
-			/// do: an in-place rewrite survives backtracking that the close it recorded
-			/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
-			/// </remarks>
 			internal const int CaptureOpen = 16;
 
-			/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
-			/// <remarks>
-			/// Inert while the text is read: nothing dispatches on these and nothing restores
-			/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
-			/// it is why a mark needs no save-and-restore of its own. What reads them is the
-			/// walk that runs the factories once a derivation is accepted, over an arena that
-			/// by then holds only what was accepted (§7.8).
-			/// </remarks>
 			internal const int StateSet = 17;
 
-			/// <inheritdoc cref="StateSet"/>
 			internal const int StateEnd = 18;
 
 			internal ParserEntry(
@@ -1185,44 +1080,9 @@ namespace DotGram.Snapshots
 		static partial void RentParser(ref Parser parser);
 		static partial void ReturnParser(Parser parser);
 
-		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
-		/// <remarks>
-		/// A parse allocates nothing it can help — the arena, the value table and the links
-		/// are all grown once and reused — but that is only true of a parser that outlives
-		/// the parse. Without this, every call built the whole machinery from nothing and
-		/// grew the arena from empty by doubling, which for a parse of any size costs more
-		/// than the parse.
-		/// <para>
-		/// One slot, taken out of the field while it is in use, so a parse reached from
-		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
-		/// truly outsized input does not leave every thread holding its arena for
-		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
-		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
-		/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
-		/// being everything but the tree. Trimming the tables instead of dropping them
-		/// was tried and measured slower than either: the trim is itself large-object
-		/// allocation, once per parse. At 65,536 entries the retained machinery is a few
-		/// megabytes — the working set of a parser whose documents are that size — and
-		/// anything past it is the pathology the letting-go is for.
-		/// </para>
-		/// <para>
-		/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
-		/// document one entry past it rebuilt the whole machinery on every parse, growing it
-		/// from nothing by doubling, so a third more input cost twenty times the memory
-		/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
-		/// instead, held while this thread's work keeps wanting it and passed to the collector
-		/// when it stops. Both halves matter: held, because a tight loop of large parses must
-		/// reuse deterministically rather than when a collection happens not to have
-		/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
-		/// reliable one; passed on, because the sentence above — no thread holds an outsized
-		/// arena for ever — is still the rule.
-		/// </para>
-		/// </remarks>
 		[global::System.ThreadStatic]
 		static Parser? _spareParser;
 
-		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 		[global::System.ThreadStatic]
 		static Parser?[]? _deeperParsers;
 
@@ -1231,35 +1091,23 @@ namespace DotGram.Snapshots
 
 		const int KeptEntries = 65536;
 
-		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
 		[global::System.ThreadStatic]
 		static Parser? _largeParser;
 
-		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
-		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _largeParserLetGo;
 
-		/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 		[global::System.ThreadStatic]
 		static int _spareParserIdle;
 
-		/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser>? _spareParserLetGo;
 
-		/// <summary>
-		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
-		/// large arena, this thread's work has changed and the next parse is unlikely to want
-		/// it either. Carrying it through a few small parses costs the memory this thread held
-		/// a moment ago anyway; carrying it through a hundred would be hoarding.
-		/// </summary>
 		const int LargeParserIdle = 8;
 
-		/// <summary>The same count for the ordinary slot, read the same way.</summary>
 		const int SpareParserIdle = 8;
 
 		static Parser Recycled()
@@ -1337,11 +1185,6 @@ namespace DotGram.Snapshots
 				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
 
-		/// <summary>
-		/// One line per step of the automaton, on standard error, when the build defines
-		/// <c>DOTGRAM_STEPS</c> — nothing else to configure, and when it does not, the
-		/// calls are removed at their sites, arguments and all.
-		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(string action, int state, int position, int arena)
 		{
@@ -1350,10 +1193,6 @@ namespace DotGram.Snapshots
 				" at " + position.ToString() + " arena=" + arena.ToString());
 		}
 
-		/// <summary>
-		/// The same line with the rule it happened in and a window of the input around
-		/// the position, the caret marking the position itself.
-		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 		static void Trace(
 			string action, int state, int position, int arena,

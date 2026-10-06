@@ -321,7 +321,6 @@ namespace DotGram.Snapshots
 				return AllUrls_DotGram(input, Tracing_DotGram.Value);
 			}
 
-			/// <summary>What <c>AllUrls</c> enumerates, reporting to the sink that was set where it was called.</summary>
 			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls_DotGram(string input, GramTrace? trace)
 			{
 				for (var start = 0; start <= input.Length; )
@@ -3739,7 +3738,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary><c>Unreserved</c>, recognized with nothing written down.</summary>
 			static int Scan_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
@@ -3758,7 +3756,6 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			/// <summary><c>SubDelim</c>, recognized with nothing written down.</summary>
 			static int Scan_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
@@ -3777,7 +3774,6 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			/// <summary><c>PctEncoded</c>, recognized with nothing written down.</summary>
 			static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
@@ -3816,7 +3812,6 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			/// <summary><c>Digit</c>, recognized with nothing written down.</summary>
 			static int Scan_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
@@ -3835,7 +3830,6 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			/// <summary><c>UserInfo</c>, recognized with nothing written down.</summary>
 			static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
@@ -3893,7 +3887,6 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			/// <summary><c>H16</c>, recognized with nothing written down.</summary>
 			static int Scan_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
@@ -3920,7 +3913,6 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			/// <summary><c>Group</c>, recognized with nothing written down.</summary>
 			static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
@@ -3963,7 +3955,6 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			/// <summary><c>Hex</c>, recognized with nothing written down.</summary>
 			static int Scan_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
@@ -4281,16 +4272,10 @@ namespace DotGram.Snapshots
 			/// <summary>What a publication answers with: the value, or why there is none.</summary>
 			public readonly struct Match<T>
 			{
-				/// <summary>What would have fit at the furthest position, or null.</summary>
 				private readonly string[]? _expected;
 
-				/// <summary>The arrays that tied with it, or null where none did.</summary>
 				private readonly global::System.Collections.Generic.List<string[]>? _tied;
 
-				/// <summary>
-				/// What <c>Error</c> says when nothing named what would have fit. A literal
-				/// chosen where the match failed, so naming it costs nothing.
-				/// </summary>
 				private readonly string? _otherwise;
 
 				private Match(
@@ -4441,82 +4426,26 @@ namespace DotGram.Snapshots
 					return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 				}
 
-				/// <summary>
-				/// This refusal, said of another reading: at <paramref name="position"/>, of another type,
-				/// and with <paramref name="otherwise"/> where it had nothing of its own to say. What it
-				/// says is still built where <c>Error</c> is asked for, and not here: a reading made of
-				/// others — a whole made of parts, each read where it lies — refuses with the refusal of
-				/// the part it stopped at, and a caller that only wants to know pays for none of it.
-				/// </summary>
 				internal Match<TOther> Refusal<TOther>(long position, string otherwise)
 				{
 					return Match<TOther>.Failed(Outcome, _otherwise ?? otherwise, position, _expected, _tied);
 				}
 			}
 
-			/// <summary>Where a match got before it gave up, and why.</summary>
 			struct Failure
 			{
-				/// <summary>
-				/// The furthest position the input was followed to. Zero on a match that
-				/// succeeded without ever backtracking, and meaningless unless one failed.
-				/// </summary>
 				public int Position;
 
-				/// <summary>
-				/// Where something wanted more input than remained, one past the position, or
-				/// zero — what <c>Outcome</c> tells "the input ran out" from "the input did
-				/// not fit" by (§7.5).
-				/// </summary>
-				/// <remarks>
-				/// <para>
-				/// A position rather than a flag, and written straight here rather than
-				/// threaded through <c>Fail:</c> like <c>Expected</c>: what the boundary asks
-				/// is whether the <em>furthest</em> failure ran out, so a room check that
-				/// failed somewhere the parse later got past answers by not matching
-				/// <c>Position</c>. Nothing has to be adopted, nothing has to be cleared, and
-				/// the automaton's own unwinding is untouched — which is why this costs a
-				/// store on a failure path and nothing anywhere else.
-				/// </para>
-				/// <para>
-				/// The furthest such place, and not the last: backtracking asks the same test again
-				/// further back, where it may lack room too, and a later write of a smaller place
-				/// hid that the furthest failure had run out (<c>@aab</c> against <c>'a'* &amp; "abc"</c>).
-				/// </para>
-				/// <para>
-				/// One past, because a zeroed struct has to mean "nowhere" and zero is a
-				/// position. Only a test wanting more than one character writes it: one
-				/// wanting a single character can only fail for want of room at the very end
-				/// of the input, which the boundary reads off <c>Position</c> itself.
-				/// </para>
-				/// </remarks>
 				public int OutOfInput;
 
-				/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
 				public bool Starved;
 
-				/// <summary>
-				/// What would have fit at the furthest position, or null. Meaningless unless
-				/// the match failed. A reference into one of the generator's own arrays, not
-				/// a copy of it.
-				/// </summary>
 				public string[]? Expected;
 
-				/// <summary>
-				/// A second array and beyond, where more than one terminal tied for the
-				/// furthest position. Null until an actual tie needs one, and emptied rather
-				/// than dropped when the furthest position moves on: a parse that ties once
-				/// tends to tie again, and a list per tie was an allocation per operand.
-				/// </summary>
 				public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
-				/// <summary>
-				/// Whether nothing reads what this failure would record, so nothing is recorded: a
-				/// `find` trying each start, the lexer measuring or valuing a token again.
-				/// </summary>
 				public bool Quiet;
 
-				/// <summary>The reading the sink was told began, which every event goes through; null where no sink is set.</summary>
 				public GramRead? Trace;
 			}
 
@@ -4699,7 +4628,6 @@ namespace DotGram.Snapshots
 				bool[]? _entryOpen;
 				int[]? _reopened;
 
-				/// <summary>The sink this reading reports to.</summary>
 				internal readonly GramTrace Sink;
 
 				internal GramRead(
@@ -4848,14 +4776,12 @@ namespace DotGram.Snapshots
 					column = character - _lines[low] + 1;
 				}
 
-				/// <summary>A rule is entered: kept as open, and the sink told.</summary>
 				internal void Enter(int rule, int position)
 				{
 					Opened(rule, position, -1);
 					Sink.Enter(rule, position + _offset);
 				}
 
-				/// <summary>The innermost rule open is left: no longer kept, and the sink told.</summary>
 				internal void Exit(int rule, int position, int end)
 				{
 					if (_open > 0)
@@ -4864,11 +4790,6 @@ namespace DotGram.Snapshots
 					Sink.Exit(rule, position + _offset, end < 0 ? end : end + _offset);
 				}
 
-				/// <summary>
-				/// An exception leaves the reading: every rule still open is left, innermost first, as
-				/// thrown. What the sink throws meanwhile is dropped, the exception leaving being the
-				/// one that is let out.
-				/// </summary>
 				internal void Unwind()
 				{
 					while (_open > 0)
@@ -4890,7 +4811,6 @@ namespace DotGram.Snapshots
 					}
 				}
 
-				/// <summary>A rule kept as open, at the arena entry it stands at on the engine, or -1.</summary>
 				void Opened(int rule, int position, int entry)
 				{
 					if (_openRules == null || _openAt == null || _openEntries == null)
@@ -4912,11 +4832,6 @@ namespace DotGram.Snapshots
 					_open++;
 				}
 
-				/// <summary>
-				/// The engine calls a rule, or a reading on it begins, at an entry of its arena: what the
-				/// entry stands for kept, and the rule entered. A rule of -1 is a reading of no rule —
-				/// the trivia before one — which reports nothing.
-				/// </summary>
 				internal void Called(int entry, int caller, int rule, int position)
 				{
 					Noted(entry, caller, rule, position);
@@ -4929,10 +4844,6 @@ namespace DotGram.Snapshots
 					Sink.Enter(rule, position + _offset);
 				}
 
-				/// <summary>
-				/// A rule the engine reads at a stretch, without a state of its own — a scanner whose
-				/// end is kept at an entry — entered and left at once.
-				/// </summary>
 				internal void Scanned(int entry, int caller, int rule, int position, int end)
 				{
 					Noted(entry, caller, rule, position);
@@ -4940,7 +4851,6 @@ namespace DotGram.Snapshots
 					Sink.Exit(rule, position + _offset, end + _offset);
 				}
 
-				/// <summary>The call at an entry returns: left, and the sink told where it ended.</summary>
 				internal void Returned(int entry, int end)
 				{
 					if (!Open(entry))
@@ -4950,10 +4860,6 @@ namespace DotGram.Snapshots
 					Sink.Exit(_entryRules![entry], _entryAt![entry] + _offset, end + _offset);
 				}
 
-				/// <summary>
-				/// The engine, going back, takes a call's entry off its arena: a call still open failed,
-				/// and one that had returned has what it read taken back.
-				/// </summary>
 				internal void Popped(int entry)
 				{
 					if (_entryRules == null || (uint)entry >= (uint)_entryRules.Length || _entryRules[entry] < 0)
@@ -4968,11 +4874,6 @@ namespace DotGram.Snapshots
 						Sink.Retracted(_entryRules[entry], _entryAt![entry] + _offset);
 				}
 
-				/// <summary>
-				/// The engine goes on from a way back taken in the call at <paramref name="call"/>: where
-				/// that call, or one it was made in, had returned, it is going on inside it, so each
-				/// such is retracted and entered again, outermost first.
-				/// </summary>
 				internal void Resumed(int call)
 				{
 					if (_entryRules == null)
@@ -5018,7 +4919,6 @@ namespace DotGram.Snapshots
 					return _entryOpen != null && (uint)entry < (uint)_entryOpen.Length && _entryOpen[entry] && _entryRules![entry] >= 0;
 				}
 
-				/// <summary>An open call at an entry no longer kept as open: the innermost, as calls end.</summary>
 				void Closed(int entry)
 				{
 					_entryOpen![entry] = false;
@@ -5032,8 +4932,6 @@ namespace DotGram.Snapshots
 						}
 				}
 
-				/// <summary>What an entry of the engine's arena stands for, kept by its index.</summary>
-				/// <remarks>An index never noted stands for no rule, and is passed over.</remarks>
 				void Noted(int entry, int caller, int rule, int position)
 				{
 					if (_entryRules == null || _entryAt == null || _entryCallers == null || _entryOpen == null)
@@ -5068,48 +4966,38 @@ namespace DotGram.Snapshots
 					_entryOpen[entry]    = false;
 				}
 
-				/// <summary>A rule answered from memory, told.</summary>
 				internal void Remembered(int rule, int position)
 				{
 					Sink.Remembered(rule, position + _offset);
 				}
 
-				/// <summary>A guard asked, told.</summary>
 				internal void Guard(int guard, int position, bool passed)
 				{
 					Sink.Guard(guard, position + _offset, passed);
 				}
 
-				/// <summary>
-				/// A refusal recorded, told: only by a recording reading, which a quiet one's refusals
-				/// never are — the engine records them as the methods do not, and drops them.
-				/// </summary>
 				internal void Refused(int position, string[]? expected)
 				{
 					if (!Quiet)
 						Sink.Refused(position + _offset, expected);
 				}
 
-				/// <summary>An element stepped over, told.</summary>
 				internal void Recovered(int rule, int from, int to, int reach)
 				{
 					Sink.Recovered(rule, from + _offset, to + _offset, reach + _offset);
 				}
 
-				/// <summary>A move to another stack, told.</summary>
 				internal void Deepened(int position)
 				{
 					Sink.Deepened(position + _offset);
 				}
 
-				/// <summary>Where a position the reading holds is, counted from the beginning of the input.</summary>
 				internal int Absolute(int position)
 				{
 					return position < 0 ? position : position + _offset;
 				}
 			}
 
-			/// <summary>The sink readings in this flow of control report to, where one is set.</summary>
 			static readonly global::System.Threading.AsyncLocal<GramTrace?> Tracing_DotGram =
 				new global::System.Threading.AsyncLocal<GramTrace?>();
 
@@ -5131,7 +5019,6 @@ namespace DotGram.Snapshots
 				return scope;
 			}
 
-			/// <summary>Puts the sink back that a <see cref="Tracing"/> found, once.</summary>
 			sealed class TraceScope_DotGram : global::System.IDisposable
 			{
 				readonly GramTrace? _previous;
@@ -5152,15 +5039,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>
-			/// A reading begins: where a sink is set, the sink is told, and the failure carries the
-			/// reading, through which every event of it goes.
-			/// </summary>
-			/// <remarks>
-			/// A sink whose <c>Begin</c> throws has begun the reading as far as it knows, so it is told
-			/// the reading ended before what it threw leaves the call, as for any exception that
-			/// leaves a reading.
-			/// </remarks>
 			static GramRead? Began_DotGram(
 				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
 				int[]? starts, int count, int end, int offset)
@@ -5184,21 +5062,12 @@ namespace DotGram.Snapshots
 				return read;
 			}
 
-			/// <summary>A reading ends: the sink is told where, and what the failure recorded.</summary>
 			static void Ended_DotGram(ref Failure failure, GramRead? read, int end)
 			{
 				if (read != null)
 					read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), failure.Expected, failure.ExpectedMore);
 			}
 
-			/// <summary>
-			/// A reading an exception leaves ends all the same, for the sink: every rule open left as
-			/// thrown, then the reading told as a refusal, and the exception let through untouched.
-			/// </summary>
-			/// <remarks>
-			/// Asked as the exception's filter, before anything between here and where it was thrown
-			/// is unwound; what the sink throws here is dropped, the runtime would drop it anyway.
-			/// </remarks>
 			static bool Thrown_DotGram(ref Failure failure, GramRead? read)
 			{
 				if (read == null)
@@ -5217,7 +5086,6 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			/// <summary>A call answers with a refusal: the sink is told what the match says.</summary>
 			static Match<T> Rejected_DotGram<T>(Match<T> match)
 			{
 				var sink = Tracing_DotGram.Value;
@@ -5227,7 +5095,6 @@ namespace DotGram.Snapshots
 
 				return match;
 			}
-			/// <summary>A rule read by a scanner: entered where the scan began and left where it ended, and the end handed on.</summary>
 			static int Scanned_DotGram(ref Failure failure, int rule, int pos, int end)
 			{
 				var trace = failure.Trace;
@@ -5240,7 +5107,6 @@ namespace DotGram.Snapshots
 
 				return end;
 			}
-			/// <summary>Every rule a trace names, by the number its events carry.</summary>
 			static readonly string[] TraceRules_DotGram = new string[]
 			{
 				"Url",
@@ -5266,12 +5132,10 @@ namespace DotGram.Snapshots
 				"SubDelim",
 			};
 
-			/// <summary>Every guard a trace names, as the grammar writes it, by the number its events carry.</summary>
 			static readonly string[] TraceGuards_DotGram = new string[]
 			{
 			};
 
-			/// <summary>Which rules only hand on another's value, and are reported where they were called.</summary>
 			static readonly bool[] TraceForwarders_DotGram = new bool[]
 			{
 				false,
@@ -6121,7 +5985,6 @@ namespace DotGram.Snapshots
 					_writer.WriteLine(indent + line);
 				}
 
-				/// <summary>The starts a find refused since the last thing it found, as one line.</summary>
 				void Summed()
 				{
 					if (_refusedStarts == 0)
@@ -6136,7 +5999,6 @@ namespace DotGram.Snapshots
 						_lastRefused.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
 				}
 
-				/// <summary>What the budget kept out, said once a call ends.</summary>
 				void Noted()
 				{
 					if (_dropped == _noted || _written < Budget)
@@ -6462,7 +6324,6 @@ namespace DotGram.Snapshots
 					return quiet ? row.Quiet : row.Recording;
 				}
 
-				/// <summary>Room for a rule's number past the tables, which only a sink shared by mistake can hand in.</summary>
 				void Room(int rule)
 				{
 					if (rule < _rows.Length)
@@ -6537,7 +6398,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>A reader, read through a buffer that is reused.</summary>
 			sealed class Window
 			{
 				private readonly global::System.IO.TextReader _input;
@@ -6547,20 +6407,12 @@ namespace DotGram.Snapshots
 				private long   _offset;
 				private bool   _ended;
 
-				/// <summary>Line terminators dropped with what the window no longer holds.</summary>
 				private int _lines;
 
-				/// <summary>Where the last of them was, or -1 when none has been dropped.</summary>
 				private long _break = -1;
 
-				/// <summary>Whether the last character dropped was a <c>\r</c>, which a <c>\n</c> held next closes.</summary>
 				private bool _droppedCr;
 
-				/// <summary>
-				/// Whether a line ends at a character held: as <c>eol</c> ends one, at <c>\r\n</c>,
-				/// <c>\n</c> or <c>\r</c>, a <c>\r\n</c> counted once at its <c>\r</c> — the two
-				/// halves may be either side of a refill.
-				/// </summary>
 				private bool Ends(int at)
 				{
 					var c = _buffer[at];
@@ -6574,49 +6426,31 @@ namespace DotGram.Snapshots
 					_buffer = new char[capacity];
 				}
 
-				/// <summary>How much of the input the window is holding.</summary>
 				public int Length
 				{
 					get { return _filled; }
 				}
 
-				/// <summary>Whether the reader has been read to its end.</summary>
 				public bool Ended
 				{
 					get { return _ended; }
 				}
 
-				/// <summary>Where the window begins in the whole input.</summary>
 				public long Offset
 				{
 					get { return _offset; }
 				}
 
-				/// <summary>
-				/// What the window holds.
-				/// </summary>
-				/// <remarks>
-				/// Called where it is passed and never kept in a local: a span cannot live in
-				/// an iterator's state, and every published streaming method is an iterator.
-				/// </remarks>
 				public global::System.ReadOnlySpan<char> Span()
 				{
 					return new global::System.ReadOnlySpan<char>(_buffer, 0, _filled);
 				}
 
-				/// <summary>A stretch of the window, as a string.</summary>
 				public string Text(int from, int length)
 				{
 					return new string(_buffer, from, length);
 				}
 
-				/// <summary>
-				/// Which line of the whole input a position in the window is on, from 1.
-				/// </summary>
-				/// <remarks>
-				/// The window's own contents plus what was dropped before it. Counting only
-				/// what is held would restart the numbering every time the buffer moved.
-				/// </remarks>
 				public int LineAt(int position)
 				{
 					var line = _lines + 1;
@@ -6628,7 +6462,6 @@ namespace DotGram.Snapshots
 					return line;
 				}
 
-				/// <summary>How far into its line a position is, from 1.</summary>
 				public int ColumnAt(int position)
 				{
 					var start = -1;
@@ -6645,11 +6478,6 @@ namespace DotGram.Snapshots
 						: position - start;
 				}
 
-				/// <summary>
-				/// Reads more of the input, dropping what is before <paramref name="from"/> to
-				/// make room for it and moving <paramref name="from"/> with what is kept.
-				/// </summary>
-				/// <returns>Whether anything new arrived.</returns>
 				public bool Extend(ref int from)
 				{
 					if (_ended)
@@ -6706,7 +6534,6 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			/// <summary>A sequence of lines, read as though it were a file.</summary>
 			sealed class Lines : global::System.IO.TextReader
 			{
 				private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
@@ -6740,9 +6567,6 @@ namespace DotGram.Snapshots
 					return written;
 				}
 
-				/// <summary>
-				/// The next line, with the terminator the sequence does not carry put back.
-				/// </summary>
 				private bool Next()
 				{
 					if (_ended)
@@ -6779,15 +6603,6 @@ namespace DotGram.Snapshots
 				int[] _linkHeads = global::System.Array.Empty<int>();
 				int[] _linkNexts = global::System.Array.Empty<int>();
 
-				/// <summary>
-				/// The calls whose values the accepted derivation reaches, in the order they were
-				/// reached from the root.
-				/// </summary>
-				/// <remarks>
-				/// Written afresh on every materialization and read back to front, so unlike the
-				/// link tables it needs no initial value — what is past the count written this
-				/// time is never looked at.
-				/// </remarks>
 				int[] _owners = global::System.Array.Empty<int>();
 				internal int LinkedUpTo;
 				int _valuesUsed;
@@ -6937,62 +6752,14 @@ namespace DotGram.Snapshots
 				internal const int PendingRecovery = 12;
 				internal const int Run = 13;
 
-				/// <summary>
-				/// The one way out a settled repetition keeps standing, in place of a
-				/// <see cref="Choice"/> per turn.
-				/// </summary>
-				/// <remarks>
-				/// Valid only while it is the loop's latest: the <see cref="Repeat"/> entry it
-				/// points back to holds, in its rule-index field, where the last completed turn
-				/// ended, and an exit whose own position no longer matches is history — popped
-				/// past, never resumed. That is what turns a failure that used to resume one
-				/// exit per completed turn, re-reading the suffix each time, into one that
-				/// resumes a single exit and skips the rest.
-				/// </remarks>
 				internal const int LoopExit = 14;
 
-				/// <summary>
-				/// A completed turn of a counted repetition, standing where unwinding can see
-				/// it.
-				/// </summary>
-				/// <remarks>
-				/// The count in a <see cref="Repeat"/> entry is rewritten in place, and an
-				/// in-place rewrite survives backtracking that the turn it counted does not:
-				/// resume an alternative inside a completed turn and the body re-completes,
-				/// counting the same turn twice — <c>X{2}</c> read two of a thing the input
-				/// held one of. Popping this entry is what un-counts the turn, at the exact
-				/// moment the parse abandons it.
-				/// </remarks>
 				internal const int TurnDone = 15;
 
-				/// <summary>
-				/// Where a capture began, standing where unwinding can take it away again.
-				/// </summary>
-				/// <remarks>
-				/// A start kept in a variable is right for exactly as long as nothing opens the
-				/// same capture between the opening and the close. Two things do: a rule that
-				/// reaches itself, and a repetition whose next turn begins before a door inside
-				/// the turn before it has been passed. Both leave the variable holding a start
-				/// the parse has given back, and backtracking restores the arena and nothing
-				/// else — so the start goes in the arena, and the close finds its own by
-				/// counting these against the <see cref="Capture"/> entries that closed them,
-				/// the way brackets are counted. Marking an opening closed in place would not
-				/// do: an in-place rewrite survives backtracking that the close it recorded
-				/// does not, which is the same thing <see cref="TurnDone"/> exists to avoid.
-				/// </remarks>
 				internal const int CaptureOpen = 16;
 
-				/// <summary>A mark going up over what follows, and the one taking it down again.</summary>
-				/// <remarks>
-				/// Inert while the text is read: nothing dispatches on these and nothing restores
-				/// anything when unwinding pops one — being gone <em>is</em> the restoration, and
-				/// it is why a mark needs no save-and-restore of its own. What reads them is the
-				/// walk that runs the factories once a derivation is accepted, over an arena that
-				/// by then holds only what was accepted (§7.8).
-				/// </remarks>
 				internal const int StateSet = 17;
 
-				/// <inheritdoc cref="StateSet"/>
 				internal const int StateEnd = 18;
 
 				internal ParserEntry(
@@ -7024,44 +6791,9 @@ namespace DotGram.Snapshots
 			static partial void RentParser(ref Parser parser);
 			static partial void ReturnParser(Parser parser);
 
-			/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
-			/// <remarks>
-			/// A parse allocates nothing it can help — the arena, the value table and the links
-			/// are all grown once and reused — but that is only true of a parser that outlives
-			/// the parse. Without this, every call built the whole machinery from nothing and
-			/// grew the arena from empty by doubling, which for a parse of any size costs more
-			/// than the parse.
-			/// <para>
-			/// One slot, taken out of the field while it is in use, so a parse reached from
-			/// inside another — a guard that parses, a value that does — gets its own rather
-			/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
-			/// truly outsized input does not leave every thread holding its arena for
-			/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
-			/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
-			/// machinery — 1.13 ms and 3.8 MB against 0.85 ms and 315 KB kept, the difference
-			/// being everything but the tree. Trimming the tables instead of dropping them
-			/// was tried and measured slower than either: the trim is itself large-object
-			/// allocation, once per parse. At 65,536 entries the retained machinery is a few
-			/// megabytes — the working set of a parser whose documents are that size — and
-			/// anything past it is the pathology the letting-go is for.
-			/// </para>
-			/// <para>
-			/// What "let go" meant was thrown away, and that was a cliff rather than a bound: a
-			/// document one entry past it rebuilt the whole machinery on every parse, growing it
-			/// from nothing by doubling, so a third more input cost twenty times the memory
-			/// (measured, 2026-09-19). An outsized parser now goes to <see cref="_largeParser"/>
-			/// instead, held while this thread's work keeps wanting it and passed to the collector
-			/// when it stops. Both halves matter: held, because a tight loop of large parses must
-			/// reuse deterministically rather than when a collection happens not to have
-			/// intervened, and an intermittent twentyfold jump is worse to diagnose than a
-			/// reliable one; passed on, because the sentence above — no thread holds an outsized
-			/// arena for ever — is still the rule.
-			/// </para>
-			/// </remarks>
 			[global::System.ThreadStatic]
 			static Parser? _spareParser;
 
-			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 			[global::System.ThreadStatic]
 			static Parser?[]? _deeperParsers;
 
@@ -7070,35 +6802,23 @@ namespace DotGram.Snapshots
 
 			const int KeptEntries = 65536;
 
-			/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
 			[global::System.ThreadStatic]
 			static Parser? _largeParser;
 
-			/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 			[global::System.ThreadStatic]
 			static int _largeParserIdle;
 
-			/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Parser>? _largeParserLetGo;
 
-			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 			[global::System.ThreadStatic]
 			static int _spareParserIdle;
 
-			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 			[global::System.ThreadStatic]
 			static global::System.WeakReference<Parser>? _spareParserLetGo;
 
-			/// <summary>
-			/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
-			/// large arena, this thread's work has changed and the next parse is unlikely to want
-			/// it either. Carrying it through a few small parses costs the memory this thread held
-			/// a moment ago anyway; carrying it through a hundred would be hoarding.
-			/// </summary>
 			const int LargeParserIdle = 8;
 
-			/// <summary>The same count for the ordinary slot, read the same way.</summary>
 			const int SpareParserIdle = 8;
 
 			static Parser Recycled()
@@ -7176,11 +6896,6 @@ namespace DotGram.Snapshots
 					(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 			}
 
-			/// <summary>
-			/// One line per step of the automaton, on standard error, when the build defines
-			/// <c>DOTGRAM_STEPS</c> — nothing else to configure, and when it does not, the
-			/// calls are removed at their sites, arguments and all.
-			/// </summary>
 			[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 			static void Trace(string action, int state, int position, int arena)
 			{
@@ -7189,10 +6904,6 @@ namespace DotGram.Snapshots
 					" at " + position.ToString() + " arena=" + arena.ToString());
 			}
 
-			/// <summary>
-			/// The same line with the rule it happened in and a window of the input around
-			/// the position, the caret marking the position itself.
-			/// </summary>
 			[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
 			static void Trace(
 				string action, int state, int position, int arena,
