@@ -157,7 +157,7 @@ namespace DotGram.Snapshots
 
 				var from = TokenAt_DotGram(starts, count, at);
 
-				if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
+				if (from < 0)
 				{
 
 					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
@@ -229,7 +229,7 @@ namespace DotGram.Snapshots
 
 				var from = TokenAt_DotGram(starts, count, at);
 
-				if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
+				if (from < 0)
 				{
 
 					value = default!;
@@ -279,7 +279,7 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
-				if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
+				if (count == 0)
 				{
 					Recycle_DotGram(tokens);
 
@@ -354,7 +354,7 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
-				if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
+				if (count == 0)
 				{
 					Recycle_DotGram(tokens);
 
@@ -1137,17 +1137,6 @@ namespace DotGram.Snapshots
 				internal bool   Cut;
 
 				internal int    Asked;
-
-				internal bool Unreadable(int from)
-				{
-					for (var at = from; at < Count; at++)
-					{
-						if (Kinds[at] != '\0')
-							return false;
-					}
-
-					return !Cut;
-				}
 
 				internal void Room(int length)
 				{

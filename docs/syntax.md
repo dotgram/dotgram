@@ -1984,9 +1984,10 @@ this grammar calls trivia — is the lexer's to skip and not the caller's to kno
 host reading a script a statement at a time hands in the position after the last
 statement, which is one of those as often as not. `Position` then says where the reading
 began, which is where the value begins and not where the caller was looking, and where
-nothing is left but trivia the answer is `Starved`. So it is where what is left — after the
-position, or in the window — holds only characters no token begins with: over tokens there
-is nothing there to read, where over characters a rule that can read nothing reads it there.
+nothing is left but trivia the answer is `Starved`. A character no token begins with is not
+trivia, and input that ran out is not what refuses a reading there: one that begins on it, or
+reaches it, is answered as over characters — `NoMatch` at it, or the empty reading where the
+grammar allows one.
 A published rule of a namespace without trivia reads none over tokens either: trivia before
 its first token, or after its last where the end is asked for, refuses it as it does over
 characters. A token the text or the window ends inside of — an unclosed string, a comment the

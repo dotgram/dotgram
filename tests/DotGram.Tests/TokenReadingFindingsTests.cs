@@ -355,19 +355,17 @@ public sealed class TokenReadingFindingsTests
 	}
 
 	/// <summary>
-	/// A reading that begins at a character no token begins with, where a token is left after
-	/// it, is answered by that character as it is over characters: a rule that must read
-	/// something is refused there (<c>NoMatch</c>), and one that can read nothing reads nothing
-	/// there. Where nothing but such characters and trivia is left, there is nothing to read
-	/// over tokens and the answer is <c>Starved</c> (§6.3), where over characters the character
-	/// answers: a rule that must read something is refused by it, and one that can read nothing
-	/// reads nothing there.
+	/// A reading that begins at a character no token begins with is answered by that character
+	/// as it is over characters (§6.3), whether or not a token is left after it: a rule that
+	/// must read something is refused there (<c>NoMatch</c>), and one that can read nothing
+	/// reads nothing there. Where nothing but trivia is left there is nothing to read over
+	/// tokens and the answer is <c>Starved</c>.
 	/// </summary>
 	/// <remarks>
-	/// The last column is the reading over characters, written out where it differs, so that the
-	/// difference §6.3 keeps is in plain sight. Where nothing but trivia is left the two are not
-	/// compared: over tokens that is <c>Starved</c> by §6.3, and over characters it depends on
-	/// whether the rule can read nothing past the trivia, which is not this question.
+	/// The last column is the reading over characters, written out where it differs. Where
+	/// nothing but trivia is left the two are not compared: over tokens that is <c>Starved</c>
+	/// by §6.3, and over characters it depends on whether the rule can read nothing past the
+	/// trivia, which is not this question.
 	/// </remarks>
 	[Theory]
 	[InlineData("'a'", "#a", 0, null, "NoMatch 0 0", "same")]
@@ -377,11 +375,11 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("'a'?", "#a", 0, null, "Success 0 0", "same")]
 	[InlineData("'a'?", "#a", 0, 2, "Success 0 0", "same")]
 	[InlineData("'a'?", "a #a", 1, 3, "Success 2 0", "same")]
-	[InlineData("'a'", "#", 0, null, "Starved 1 0", "NoMatch 0 0")]
-	[InlineData("'a'", "a #", 1, 2, "Starved 3 0", "NoMatch 2 0")]
-	[InlineData("'a'?", "#", 0, null, "Starved 1 0", "Success 0 0")]
-	[InlineData("'a'?", "a# #", 1, null, "Starved 4 0", "Success 1 0")]
-	[InlineData("'a'?", "a# #a", 1, 3, "Starved 4 0", "Success 1 0")]
+	[InlineData("'a'", "#", 0, null, "NoMatch 0 0", "same")]
+	[InlineData("'a'", "a #", 1, 2, "NoMatch 2 0", "same")]
+	[InlineData("'a'?", "#", 0, null, "Success 0 0", "same")]
+	[InlineData("'a'?", "a# #", 1, null, "Success 1 0", "same")]
+	[InlineData("'a'?", "a# #a", 1, 3, "Success 1 0", "same")]
 	[InlineData("'a'", "a  ", 1, null, "Starved 3 0", null)]
 	[InlineData("'a'?", "a  ", 1, null, "Starved 3 0", null)]
 	[InlineData("'a'?", "a  ", 1, 2, "Starved 3 0", null)]
@@ -407,6 +405,38 @@ public sealed class TokenReadingFindingsTests
 		var over = Positioned(Built(grammar, lexical: false, direct: true), input, at, length);
 
 		Assert.True((characters == "same" ? tokens : characters) == $"{over.Outcome} {over.Position} {over.Length}", said + ": " + over);
+	}
+
+	/// <summary>
+	/// A host reading a growing text a statement at a time is told <c>Starved</c> only while the
+	/// text may still grow into something: past the trivia after the last statement, or inside
+	/// a token. A character no token begins with is there to answer, whatever follows it.
+	/// </summary>
+	/// <remarks>
+	/// Each row is a prefix of the text as the host holds it, read from the position after the
+	/// first statement. The <c>#</c> answers <c>NoMatch</c> at once, as over characters, and does
+	/// not wait for what might come after it; an optional statement reads nothing there.
+	/// </remarks>
+	[Theory]
+	[InlineData("Item", "a",       1, "Starved 1 0")]
+	[InlineData("Item", "a ",      1, "Starved 2 0")]
+	[InlineData("Item", "a #",     1, "NoMatch 2 0")]
+	[InlineData("Item", "a # ",    1, "NoMatch 2 0")]
+	[InlineData("Item", "a #a",    1, "NoMatch 2 0")]
+	[InlineData("Item?", "a #",     1, "Success 2 0")]
+	[InlineData("Item?", "a # a",   1, "Success 2 0")]
+	[InlineData("Item", "a \"bc",  1, "Starved 5 0")]
+	[InlineData("Item", "a #\"bc", 1, "NoMatch 2 0")]
+	public void A_growing_text_is_starved_only_where_it_may_still_grow(string start, string input, int at, string tokens)
+	{
+		var grammar = $"{CutShort}Start = {start} & ('!' | '!' & '?')?\n";
+
+		foreach (var assembly in OverTokens(grammar))
+		{
+			var match = Positioned(assembly, input, at, null);
+
+			Assert.True(tokens == $"{match.Outcome} {match.Position} {match.Length}", $"\"{input}\" at {at}: {match}");
+		}
 	}
 
 	/// <summary>
@@ -925,7 +955,7 @@ public sealed class TokenReadingFindingsTests
 	/// The columns: from the position or in the window over tokens, the whole reading over tokens,
 	/// and both over characters, which say the same. Over characters a literal wanting more than is
 	/// left is starved where it begins, over tokens at the end. Over tokens <c>@aabx</c> from a
-	/// position is nothing but characters no token begins with, which is starved (§6.3).
+	/// position is characters no token begins with, which answer it as they do over characters (§6.3).
 	/// </para>
 	/// </remarks>
 	[Theory]
@@ -938,7 +968,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("@aabc", 0, 4, "Starved 4", null, "Starved 3")]
 	[InlineData("@aaabc !", 0, 5, "Starved 5", null, "Starved 4")]
 	[InlineData("@aabc", 0, null, "Success 0", "Success 0", "Success 0")]
-	[InlineData("@aabx", 0, null, "Starved 5", "NoMatch 0", "NoMatch 4")]
+	[InlineData("@aabx", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 4")]
 	[InlineData("@aabcz", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 3")]
 	public void A_token_a_rule_measures_is_cut_short_where_the_rule_ran_out_furthest(
 		string input, int at, int? length, string tokens, string? whole, string characters)

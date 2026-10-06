@@ -2130,7 +2130,7 @@ public static partial class CSharpEmitter
 					// window cut into no token at all is refused the same way: nothing is there.
 					if (positional && windowed)
 					{
-						using (file.Block("if (count == 0 || (tokens.Kinds[0] == '\\0' && tokens.Unreadable(0)))"))
+						using (file.Block("if (count == 0)"))
 						{
 							file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2145,7 +2145,7 @@ public static partial class CSharpEmitter
 						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
 						file.Line();
 
-						using (file.Block("if (from < 0 || (tokens.Kinds[from] == '\\0' && tokens.Unreadable(from)))"))
+						using (file.Block("if (from < 0)"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2375,10 +2375,10 @@ public static partial class CSharpEmitter
 					if (positional && windowed)
 					{
 						// A window cut into no token at all holds nothing to read either: trivia, or
-						// nothing — or nothing but characters no token begins with, each cut into a
-						// token of no kind, which is not one to read (§6.3). The same refusal as from
-						// a position, said at the window's end.
-						using (file.Block("if (count == 0 || (tokens.Kinds[0] == '\\0' && tokens.Unreadable(0)))"))
+						// nothing. The same refusal as from a position, said at the window's end. A
+						// character no token begins with is a token of no kind, and the reading is
+						// answered by it (§6.3).
+						using (file.Block("if (count == 0)"))
 						{
 							file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2397,10 +2397,10 @@ public static partial class CSharpEmitter
 						file.Line();
 
 						// Nothing at or after it is a token, so there is nothing there to read: the
-						// rest of the input is trivia, or there is no rest, or it holds nothing but
-						// characters no token begins with (§6.3). Where a token stands after such a
-						// character, the reading begins at the character and is answered by it.
-						using (file.Block("if (from < 0 || (tokens.Kinds[from] == '\\0' && tokens.Unreadable(from)))"))
+						// rest of the input is trivia, or there is no rest. A character no token
+						// begins with is a token of no kind: the reading begins at it and is answered
+						// by it, as over characters (§6.3).
+						using (file.Block("if (from < 0)"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
@@ -2687,28 +2687,6 @@ public static partial class CSharpEmitter
 			file.Line("/// </remarks>");
 			file.Line("internal int    Asked;");
 			file.Line();
-			file.Line("/// <summary>Whether no token from this one on is of a kind: nothing is left there to read.</summary>");
-			file.Line("/// <remarks>");
-			file.Line("/// What a reading from a position or in a window is cut into goes on past a character no");
-			file.Line("/// token begins with, as a token of no kind. Where nothing but those and trivia is left,");
-			file.Line("/// the reading is starved rather than refused by the first of them. A token the text");
-			file.Line("/// ends inside of is one to read: the reading meets it, and is starved there.");
-			file.Line("/// </remarks>");
-
-			using (file.Block("internal bool Unreadable(int from)"))
-			{
-				using (file.Block("for (var at = from; at < Count; at++)"))
-				{
-					file.Line("if (Kinds[at] != '\\0')");
-					file.Then("return false;");
-				}
-
-				file.Line();
-				file.Line("return !Cut;");
-			}
-
-			file.Line();
-
 			using (file.Block("internal void Room(int length)"))
 			{
 				file.Line("Asked = length;");
