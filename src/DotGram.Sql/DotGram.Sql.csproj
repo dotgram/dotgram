@@ -117,6 +117,10 @@ Fixed: ten thousand T-SQL CASE … ELSE CASE … ended the process with a stack 
 	<ItemGroup>
 		<!-- For the benchmark host that compiles SqlStandard.gram on another carrier; Nodes and Towers stay internal. -->
 		<InternalsVisibleTo Include="DotGram.Benchmarks" />
+
+		<!-- For the test fixture that includes SqlStandard.gram and publishes its productions one by one
+		     (tests/DotGram.Sql.Productions): the included rules call Nodes and Towers. -->
+		<InternalsVisibleTo Include="DotGram.Sql.Productions" />
 	</ItemGroup>
 
 </Project>

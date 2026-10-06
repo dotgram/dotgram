@@ -1,0 +1,115 @@
+﻿// SQL:2023 production by production: the shipped grammar (src/DotGram.Sql/Standard/SqlStandard.gram),
+// included, and its productions published one by one. The shipped parser publishes six levels and reads
+// a production through the level that holds it; the BNF oracle and the tests ask a production by its
+// own name, and this is where they find it.
+//
+// A few productions are rules here and not in the shipped grammar, because none of its six levels
+// reaches them: <direct SQL statement> and what it gathers, which the shipped grammar reads as the
+// union `SqlStatement`, <predicate>, which a search condition reads as a boolean primary, and the
+// binary string tower, which a value expression reads as any other. They are written as the shipped
+// grammar wrote them.
+
+@using System;
+@using DotGram.Sql.Ast;
+@using DotGram.Sql.Standard;
+
+using SqlStandardParser;
+using SqlStandardParser.Lexical;
+
+trivia = { Separator? }
+
+// ── §22 Direct invocation of SQL ────────────────────────────────────────────
+//
+// <direct SQL statement>: a statement and its semicolon.
+DirectSQLStatement : @Statement = s: DirectlyExecutableStatement & ';' => @(s)
+
+DirectlyExecutableStatement : @Statement
+	= d: DirectSQLDataStatement => @(d)
+	| s: SQLSchemaStatement => @(s)
+	| t: SQLTransactionStatement => @(t)
+	| c: SQLConnectionStatement => @(c)
+	| n: SQLSessionStatement => @(n)
+
+// <direct SQL data statement>. A multiple row select statement is a cursor specification; a searched
+// statement is asked before a query only by its key word.
+DirectSQLDataStatement : @Statement
+	= d: DeleteStatementSearched => @(d)
+	| i: InsertStatement => @(i)
+	| u: UpdateStatementSearched => @(u)
+	| t: TruncateTableStatement => @(t)
+	| m: MergeStatement => @(m)
+	| l: TemporaryTableDeclaration => @(l)
+	| c: CursorSpecification => @(c)
+
+// ── §8 Predicates, §6.28 the binary string tower ────────────────────────────
+
+// <predicate>: a boolean primary that is not only a predicand.
+Predicate : @Towers.Typed = e: BooleanPrimary & when @((Towers.RolesOf(e) & Towers.Logical) != 0) => @(e)
+
+BinaryValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Binary) != 0) => @(e)
+
+// ── What a publication of a tower hands back: the node alone ────────────────
+
+CommonValueExpressionTree    : @Expression = e: CommonValueExpression => @(e.Node)
+NumericValueExpressionTree   : @Expression = e: NumericValueExpression => @(e.Node)
+StringValueExpressionTree    : @Expression = e: StringValueExpression => @(e.Node)
+CharacterValueExpressionTree : @Expression = e: CharacterValueExpression => @(e.Node)
+BinaryValueExpressionTree    : @Expression = e: BinaryValueExpression => @(e.Node)
+DatetimeValueExpressionTree  : @Expression = e: DatetimeValueExpression => @(e.Node)
+IntervalValueExpressionTree  : @Expression = e: IntervalValueExpression => @(e.Node)
+BooleanValueExpressionTree   : @Expression = e: BooleanValueExpression => @(e.Node)
+PredicateTree                : @Expression = e: Predicate => @(e.Node)
+RowValuePredicandTree        : @Expression = e: RowValuePredicand => @(e.Node)
+ValueExpressionPrimaryTree   : @Expression = e: ValueExpressionPrimary => @(e.Node)
+
+// ── The shipped parser's six levels, under its names ────────────────────────
+
+parse Value               as ParseValue
+parse DataType            as ParseDataType
+parse ValueExpressionTree as ParseExpression
+parse SearchConditionTree as ParseSearchCondition
+parse SqlStatement        as ParseStatement
+parse Sql                 as ParseSql
+
+// ── The productions, each under its own name ────────────────────────────────
+
+parse Literal                      as ParseLiteral
+parse UnsignedLiteral              as ParseUnsignedLiteral
+parse Identifier                   as ParseIdentifier
+parse IdentifierChain              as ParseIdentifierChain
+parse ColumnReference              as ParseColumnReference
+parse TableName                    as ParseTableName
+parse SchemaName                   as ParseSchemaName
+parse ValueExpressionTree          as ParseValueExpression
+parse CommonValueExpressionTree    as ParseCommonValueExpression
+parse NumericValueExpressionTree   as ParseNumericValueExpression
+parse StringValueExpressionTree    as ParseStringValueExpression
+parse CharacterValueExpressionTree as ParseCharacterValueExpression
+parse BinaryValueExpressionTree    as ParseBinaryValueExpression
+parse DatetimeValueExpressionTree  as ParseDatetimeValueExpression
+parse IntervalValueExpressionTree  as ParseIntervalValueExpression
+parse BooleanValueExpressionTree   as ParseBooleanValueExpression
+parse PredicateTree                as ParsePredicate
+parse RowValuePredicandTree        as ParseRowValuePredicand
+parse ValueExpressionPrimaryTree   as ParseValueExpressionPrimary
+parse QueryExpression              as ParseQueryExpression
+parse QuerySpecification           as ParseQuerySpecification
+parse TableReference               as ParseTableReference
+parse InsertStatement              as ParseInsertStatement
+parse UpdateStatementSearched      as ParseUpdateStatementSearched
+parse UpdateStatementPositioned    as ParseUpdateStatementPositioned
+parse DeleteStatementSearched      as ParseDeleteStatementSearched
+parse DeleteStatementPositioned    as ParseDeleteStatementPositioned
+parse MergeStatement               as ParseMergeStatement
+parse TruncateTableStatement       as ParseTruncateTableStatement
+parse SQLSchemaStatement           as ParseSQLSchemaStatement
+parse DirectSQLStatement           as ParseDirectSQLStatement
+parse SQLTransactionStatement      as ParseSQLTransactionStatement
+parse SQLConnectionStatement       as ParseSQLConnectionStatement
+parse SQLSessionStatement          as ParseSQLSessionStatement
+parse SQLDiagnosticsStatement      as ParseSQLDiagnosticsStatement
+parse DirectSQLDataStatement       as ParseDirectSQLDataStatement
+parse SQLControlStatement          as ParseSQLControlStatement
+parse SQLDataStatement             as ParseSQLDataStatement
+parse SQLDynamicStatement          as ParseSQLDynamicStatement
+parse SQLProcedureStatement        as ParseSQLProcedureStatement

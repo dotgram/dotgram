@@ -112,10 +112,10 @@ public sealed class FailureMemoCountTests(ITestOutputHelper output)
 
 		var (publication, depths, text) = shape switch
 		{
-			"a value nest in SELECT, never closed" => ("TryParseQueryExpression", Depths, (Func<int, string>)(n => "SELECT " + Open(n) + "a")),
+			"a value nest in SELECT, never closed" => ("TryParseStatement", Depths, (Func<int, string>)(n => "SELECT " + Open(n) + "a")),
 			"a nest of conditions, never closed"   => ("TryParseSearchCondition", Depths, n => Open(n) + "a = 1"),
-			"a bracketed sum, never closed"        => ("TryParseValueExpression", Depths, n => Open(n) + "a + 1"),
-			"subqueries in FROM"                   => ("TryParseQueryExpression", Wide, n => "SELECT * FROM " + Repeated("(SELECT * FROM ", n) + "t"),
+			"a bracketed sum, never closed"        => ("TryParseExpression", Depths, n => Open(n) + "a + 1"),
+			"subqueries in FROM"                   => ("TryParseStatement", Wide, n => "SELECT * FROM " + Repeated("(SELECT * FROM ", n) + "t"),
 			_                                      => throw new ArgumentOutOfRangeException(nameof(shape)),
 		};
 

@@ -4,6 +4,7 @@ using System.Text;
 
 using DotGram.Handwritten;
 using DotGram.Sql.Ast;
+using DotGram.Sql.Productions;
 using DotGram.Sql.Standard;
 
 using Xunit;
@@ -32,19 +33,27 @@ using Statement = DotGram.Sql.Ast.Statement;
 /// way round — it is the generated parser that the BNF oracle has been asking, line by line.
 /// </para>
 /// <para>
+/// A production is read by <see cref="SqlStandardProductions"/>, the grammar included and published
+/// production by production, since the shipped class publishes six levels and no production; every
+/// reading is also put to <see cref="SqlStandardParser"/> at the level that holds it (<see cref="Shipped"/>),
+/// so that a row tests the binary that ships as well as the grammar.
+/// </para>
+/// <para>
 /// Chapter by chapter: a production the handwritten parser does not read yet is still called
-/// through <see cref="SqlStandardParser"/> directly, and moves here when it does.
+/// through <see cref="SqlStandardProductions"/> directly, and moves here when it does.
 /// </para>
 /// </remarks>
 static class Both
 {
 	// ── §5.3 Literals ──────────────────────────────────────────────────────────
 
-	public static SqlStandardParser.Match<LiteralValue> TryParseLiteral(string input)
+	public static SqlStandardProductions.Match<LiteralValue> TryParseLiteral(string input)
 	{
-		var read = SqlStandardParser.TryParseLiteral(input);
+		var read = SqlStandardProductions.TryParseLiteral(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseLiteral(input, out var hand), hand);
+
+		Shipped.Value(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -52,13 +61,13 @@ static class Both
 	public static LiteralValue ParseLiteral(string input)
 	{
 		return TryParseLiteral(input).IsSuccess
-		? SqlStandardParser.ParseLiteral(input)
+		? SqlStandardProductions.ParseLiteral(input)
 		: throw Refused(input, "literal");
 	}
 
-	public static SqlStandardParser.Match<LiteralValue> TryParseUnsignedLiteral(string input)
+	public static SqlStandardProductions.Match<LiteralValue> TryParseUnsignedLiteral(string input)
 	{
-		var read = SqlStandardParser.TryParseUnsignedLiteral(input);
+		var read = SqlStandardProductions.TryParseUnsignedLiteral(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseUnsignedLiteral(input, out var hand), hand);
 
@@ -67,9 +76,9 @@ static class Both
 
 	// ── §5.4 Names and identifiers ─────────────────────────────────────────────
 
-	public static SqlStandardParser.Match<Identifier> TryParseIdentifier(string input)
+	public static SqlStandardProductions.Match<Identifier> TryParseIdentifier(string input)
 	{
-		var read = SqlStandardParser.TryParseIdentifier(input);
+		var read = SqlStandardProductions.TryParseIdentifier(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseIdentifier(input, out var hand), hand);
 
@@ -79,13 +88,13 @@ static class Both
 	public static Identifier ParseIdentifier(string input)
 	{
 		return TryParseIdentifier(input).IsSuccess
-		? SqlStandardParser.ParseIdentifier(input)
+		? SqlStandardProductions.ParseIdentifier(input)
 		: throw Refused(input, "identifier");
 	}
 
-	public static SqlStandardParser.Match<QualifiedName> TryParseIdentifierChain(string input)
+	public static SqlStandardProductions.Match<QualifiedName> TryParseIdentifierChain(string input)
 	{
-		var read = SqlStandardParser.TryParseIdentifierChain(input);
+		var read = SqlStandardProductions.TryParseIdentifierChain(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseIdentifierChain(input, out var hand), hand);
 
@@ -95,13 +104,13 @@ static class Both
 	public static QualifiedName ParseIdentifierChain(string input)
 	{
 		return TryParseIdentifierChain(input).IsSuccess
-		? SqlStandardParser.ParseIdentifierChain(input)
+		? SqlStandardProductions.ParseIdentifierChain(input)
 		: throw Refused(input, "identifier chain");
 	}
 
-	public static SqlStandardParser.Match<Expression> TryParseColumnReference(string input)
+	public static SqlStandardProductions.Match<Expression> TryParseColumnReference(string input)
 	{
-		var read = SqlStandardParser.TryParseColumnReference(input);
+		var read = SqlStandardProductions.TryParseColumnReference(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseColumnReference(input, out var hand), hand);
 
@@ -111,13 +120,13 @@ static class Both
 	public static Expression ParseColumnReference(string input)
 	{
 		return TryParseColumnReference(input).IsSuccess
-		? SqlStandardParser.ParseColumnReference(input)
+		? SqlStandardProductions.ParseColumnReference(input)
 		: throw Refused(input, "column reference");
 	}
 
-	public static SqlStandardParser.Match<QualifiedName> TryParseTableName(string input)
+	public static SqlStandardProductions.Match<QualifiedName> TryParseTableName(string input)
 	{
-		var read = SqlStandardParser.TryParseTableName(input);
+		var read = SqlStandardProductions.TryParseTableName(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseTableName(input, out var hand), hand);
 
@@ -127,13 +136,13 @@ static class Both
 	public static QualifiedName ParseTableName(string input)
 	{
 		return TryParseTableName(input).IsSuccess
-		? SqlStandardParser.ParseTableName(input)
+		? SqlStandardProductions.ParseTableName(input)
 		: throw Refused(input, "table name");
 	}
 
-	public static SqlStandardParser.Match<QualifiedName> TryParseSchemaName(string input)
+	public static SqlStandardProductions.Match<QualifiedName> TryParseSchemaName(string input)
 	{
-		var read = SqlStandardParser.TryParseSchemaName(input);
+		var read = SqlStandardProductions.TryParseSchemaName(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSchemaName(input, out var hand), hand);
 
@@ -142,11 +151,13 @@ static class Both
 
 	// ── §6.1 Data types ────────────────────────────────────────────────────────
 
-	public static SqlStandardParser.Match<DataType> TryParseDataType(string input)
+	public static SqlStandardProductions.Match<DataType> TryParseDataType(string input)
 	{
-		var read = SqlStandardParser.TryParseDataType(input);
+		var read = SqlStandardProductions.TryParseDataType(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDataType(input, out var hand), hand);
+
+		Shipped.Same(input, read.IsSuccess, read.Position, read.Error, read.IsSuccess ? read.Value : null, SqlStandardParser.TryParseDataType(input));
 
 		return read;
 	}
@@ -154,17 +165,19 @@ static class Both
 	public static DataType ParseDataType(string input)
 	{
 		return TryParseDataType(input).IsSuccess
-		? SqlStandardParser.ParseDataType(input)
+		? SqlStandardProductions.ParseDataType(input)
 		: throw Refused(input, "data type");
 	}
 
 	// ── §6.28 Value expressions, §8 predicates ─────────────────────────────────
 
-	public static SqlStandardParser.Match<Expression> TryParseValueExpression(string input)
+	public static SqlStandardProductions.Match<Expression> TryParseValueExpression(string input)
 	{
-		var read = SqlStandardParser.TryParseValueExpression(input);
+		var read = SqlStandardProductions.TryParseValueExpression(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseValueExpression(input, out var hand), hand);
+
+		Shipped.Same(input, read.IsSuccess, read.Position, read.Error, read.IsSuccess ? read.Value : null, SqlStandardParser.TryParseExpression(input));
 
 		return read;
 	}
@@ -172,24 +185,26 @@ static class Both
 	public static Expression ParseValueExpression(string input)
 	{
 		return TryParseValueExpression(input).IsSuccess
-		? SqlStandardParser.ParseValueExpression(input)
+		? SqlStandardProductions.ParseValueExpression(input)
 		: throw Refused(input, "value expression");
 	}
 
-	public static SqlStandardParser.Match<Expression> TryParseRowValuePredicand(string input)
+	public static SqlStandardProductions.Match<Expression> TryParseRowValuePredicand(string input)
 	{
-		var read = SqlStandardParser.TryParseRowValuePredicand(input);
+		var read = SqlStandardProductions.TryParseRowValuePredicand(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseRowValuePredicand(input, out var hand), hand);
 
 		return read;
 	}
 
-	public static SqlStandardParser.Match<Expression> TryParseSearchCondition(string input)
+	public static SqlStandardProductions.Match<Expression> TryParseSearchCondition(string input)
 	{
-		var read = SqlStandardParser.TryParseSearchCondition(input);
+		var read = SqlStandardProductions.TryParseSearchCondition(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSearchCondition(input, out var hand), hand);
+
+		Shipped.Same(input, read.IsSuccess, read.Position, read.Error, read.IsSuccess ? read.Value : null, SqlStandardParser.TryParseSearchCondition(input));
 
 		return read;
 	}
@@ -197,17 +212,19 @@ static class Both
 	public static Expression ParseSearchCondition(string input)
 	{
 		return TryParseSearchCondition(input).IsSuccess
-		? SqlStandardParser.ParseSearchCondition(input)
+		? SqlStandardProductions.ParseSearchCondition(input)
 		: throw Refused(input, "search condition");
 	}
 
 	// ── §7 Query expressions ───────────────────────────────────────────────────
 
-	public static SqlStandardParser.Match<Statement.Select> TryParseQueryExpression(string input)
+	public static SqlStandardProductions.Match<Statement.Select> TryParseQueryExpression(string input)
 	{
-		var read = SqlStandardParser.TryParseQueryExpression(input);
+		var read = SqlStandardProductions.TryParseQueryExpression(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseQueryExpression(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -215,13 +232,13 @@ static class Both
 	public static Statement.Select ParseQueryExpression(string input)
 	{
 		return TryParseQueryExpression(input).IsSuccess
-		? SqlStandardParser.ParseQueryExpression(input)
+		? SqlStandardProductions.ParseQueryExpression(input)
 		: throw Refused(input, "query expression");
 	}
 
-	public static SqlStandardParser.Match<TableSource> TryParseTableReference(string input)
+	public static SqlStandardProductions.Match<TableSource> TryParseTableReference(string input)
 	{
-		var read = SqlStandardParser.TryParseTableReference(input);
+		var read = SqlStandardProductions.TryParseTableReference(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseTableReference(input, out var hand), hand);
 
@@ -231,17 +248,19 @@ static class Both
 	public static TableSource ParseTableReference(string input)
 	{
 		return TryParseTableReference(input).IsSuccess
-		? SqlStandardParser.ParseTableReference(input)
+		? SqlStandardProductions.ParseTableReference(input)
 		: throw Refused(input, "table reference");
 	}
 
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
-	public static SqlStandardParser.Match<Statement.Insert> TryParseInsertStatement(string input)
+	public static SqlStandardProductions.Match<Statement.Insert> TryParseInsertStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseInsertStatement(input);
+		var read = SqlStandardProductions.TryParseInsertStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseInsertStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -249,15 +268,17 @@ static class Both
 	public static Statement.Insert ParseInsertStatement(string input)
 	{
 		return TryParseInsertStatement(input).IsSuccess
-		? SqlStandardParser.ParseInsertStatement(input)
+		? SqlStandardProductions.ParseInsertStatement(input)
 		: throw Refused(input, "insert statement");
 	}
 
-	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementSearched(string input)
+	public static SqlStandardProductions.Match<Statement.Update> TryParseUpdateStatementSearched(string input)
 	{
-		var read = SqlStandardParser.TryParseUpdateStatementSearched(input);
+		var read = SqlStandardProductions.TryParseUpdateStatementSearched(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseUpdateStatementSearched(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -265,15 +286,17 @@ static class Both
 	public static Statement.Update ParseUpdateStatementSearched(string input)
 	{
 		return TryParseUpdateStatementSearched(input).IsSuccess
-		? SqlStandardParser.ParseUpdateStatementSearched(input)
+		? SqlStandardProductions.ParseUpdateStatementSearched(input)
 		: throw Refused(input, "update statement: searched");
 	}
 
-	public static SqlStandardParser.Match<Statement.Update> TryParseUpdateStatementPositioned(string input)
+	public static SqlStandardProductions.Match<Statement.Update> TryParseUpdateStatementPositioned(string input)
 	{
-		var read = SqlStandardParser.TryParseUpdateStatementPositioned(input);
+		var read = SqlStandardProductions.TryParseUpdateStatementPositioned(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseUpdateStatementPositioned(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -281,15 +304,17 @@ static class Both
 	public static Statement.Update ParseUpdateStatementPositioned(string input)
 	{
 		return TryParseUpdateStatementPositioned(input).IsSuccess
-		? SqlStandardParser.ParseUpdateStatementPositioned(input)
+		? SqlStandardProductions.ParseUpdateStatementPositioned(input)
 		: throw Refused(input, "update statement: positioned");
 	}
 
-	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementSearched(string input)
+	public static SqlStandardProductions.Match<Statement.Delete> TryParseDeleteStatementSearched(string input)
 	{
-		var read = SqlStandardParser.TryParseDeleteStatementSearched(input);
+		var read = SqlStandardProductions.TryParseDeleteStatementSearched(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDeleteStatementSearched(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -297,15 +322,17 @@ static class Both
 	public static Statement.Delete ParseDeleteStatementSearched(string input)
 	{
 		return TryParseDeleteStatementSearched(input).IsSuccess
-		? SqlStandardParser.ParseDeleteStatementSearched(input)
+		? SqlStandardProductions.ParseDeleteStatementSearched(input)
 		: throw Refused(input, "delete statement: searched");
 	}
 
-	public static SqlStandardParser.Match<Statement.Delete> TryParseDeleteStatementPositioned(string input)
+	public static SqlStandardProductions.Match<Statement.Delete> TryParseDeleteStatementPositioned(string input)
 	{
-		var read = SqlStandardParser.TryParseDeleteStatementPositioned(input);
+		var read = SqlStandardProductions.TryParseDeleteStatementPositioned(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDeleteStatementPositioned(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -313,15 +340,17 @@ static class Both
 	public static Statement.Delete ParseDeleteStatementPositioned(string input)
 	{
 		return TryParseDeleteStatementPositioned(input).IsSuccess
-		? SqlStandardParser.ParseDeleteStatementPositioned(input)
+		? SqlStandardProductions.ParseDeleteStatementPositioned(input)
 		: throw Refused(input, "delete statement: positioned");
 	}
 
-	public static SqlStandardParser.Match<Statement.Merge> TryParseMergeStatement(string input)
+	public static SqlStandardProductions.Match<Statement.Merge> TryParseMergeStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseMergeStatement(input);
+		var read = SqlStandardProductions.TryParseMergeStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseMergeStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -329,15 +358,17 @@ static class Both
 	public static Statement.Merge ParseMergeStatement(string input)
 	{
 		return TryParseMergeStatement(input).IsSuccess
-		? SqlStandardParser.ParseMergeStatement(input)
+		? SqlStandardProductions.ParseMergeStatement(input)
 		: throw Refused(input, "merge statement");
 	}
 
-	public static SqlStandardParser.Match<Statement.TruncateTable> TryParseTruncateTableStatement(string input)
+	public static SqlStandardProductions.Match<Statement.TruncateTable> TryParseTruncateTableStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseTruncateTableStatement(input);
+		var read = SqlStandardProductions.TryParseTruncateTableStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseTruncateTableStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -345,17 +376,19 @@ static class Both
 	public static Statement.TruncateTable ParseTruncateTableStatement(string input)
 	{
 		return TryParseTruncateTableStatement(input).IsSuccess
-		? SqlStandardParser.ParseTruncateTableStatement(input)
+		? SqlStandardProductions.ParseTruncateTableStatement(input)
 		: throw Refused(input, "truncate table statement");
 	}
 
 	// ── §11, §12 and §14 to §23: the statements ────────────────────────────────
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLSchemaStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLSchemaStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLSchemaStatement(input);
+		var read = SqlStandardProductions.TryParseSQLSchemaStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLSchemaStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -363,15 +396,17 @@ static class Both
 	public static Statement ParseSQLSchemaStatement(string input)
 	{
 		return TryParseSQLSchemaStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLSchemaStatement(input)
+		? SqlStandardProductions.ParseSQLSchemaStatement(input)
 		: throw Refused(input, "SQL schema statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseDirectSQLStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseDirectSQLStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseDirectSQLStatement(input);
+		var read = SqlStandardProductions.TryParseDirectSQLStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDirectSQLStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -379,15 +414,17 @@ static class Both
 	public static Statement ParseDirectSQLStatement(string input)
 	{
 		return TryParseDirectSQLStatement(input).IsSuccess
-		? SqlStandardParser.ParseDirectSQLStatement(input)
+		? SqlStandardProductions.ParseDirectSQLStatement(input)
 		: throw Refused(input, "direct SQL statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseDirectSQLDataStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseDirectSQLDataStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseDirectSQLDataStatement(input);
+		var read = SqlStandardProductions.TryParseDirectSQLDataStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseDirectSQLDataStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -395,15 +432,17 @@ static class Both
 	public static Statement ParseDirectSQLDataStatement(string input)
 	{
 		return TryParseDirectSQLDataStatement(input).IsSuccess
-		? SqlStandardParser.ParseDirectSQLDataStatement(input)
+		? SqlStandardProductions.ParseDirectSQLDataStatement(input)
 		: throw Refused(input, "direct SQL data statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLDataStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLDataStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLDataStatement(input);
+		var read = SqlStandardProductions.TryParseSQLDataStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDataStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -411,15 +450,17 @@ static class Both
 	public static Statement ParseSQLDataStatement(string input)
 	{
 		return TryParseSQLDataStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLDataStatement(input)
+		? SqlStandardProductions.ParseSQLDataStatement(input)
 		: throw Refused(input, "SQL data statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLControlStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLControlStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLControlStatement(input);
+		var read = SqlStandardProductions.TryParseSQLControlStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLControlStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -427,15 +468,17 @@ static class Both
 	public static Statement ParseSQLControlStatement(string input)
 	{
 		return TryParseSQLControlStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLControlStatement(input)
+		? SqlStandardProductions.ParseSQLControlStatement(input)
 		: throw Refused(input, "SQL control statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLTransactionStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLTransactionStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLTransactionStatement(input);
+		var read = SqlStandardProductions.TryParseSQLTransactionStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLTransactionStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -443,15 +486,17 @@ static class Both
 	public static Statement ParseSQLTransactionStatement(string input)
 	{
 		return TryParseSQLTransactionStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLTransactionStatement(input)
+		? SqlStandardProductions.ParseSQLTransactionStatement(input)
 		: throw Refused(input, "SQL transaction statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLConnectionStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLConnectionStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLConnectionStatement(input);
+		var read = SqlStandardProductions.TryParseSQLConnectionStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLConnectionStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -459,15 +504,17 @@ static class Both
 	public static Statement ParseSQLConnectionStatement(string input)
 	{
 		return TryParseSQLConnectionStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLConnectionStatement(input)
+		? SqlStandardProductions.ParseSQLConnectionStatement(input)
 		: throw Refused(input, "SQL connection statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLSessionStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLSessionStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLSessionStatement(input);
+		var read = SqlStandardProductions.TryParseSQLSessionStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLSessionStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -475,15 +522,17 @@ static class Both
 	public static Statement ParseSQLSessionStatement(string input)
 	{
 		return TryParseSQLSessionStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLSessionStatement(input)
+		? SqlStandardProductions.ParseSQLSessionStatement(input)
 		: throw Refused(input, "SQL session statement");
 	}
 
-	public static SqlStandardParser.Match<Statement.GetDiagnostics> TryParseSQLDiagnosticsStatement(string input)
+	public static SqlStandardProductions.Match<Statement.GetDiagnostics> TryParseSQLDiagnosticsStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLDiagnosticsStatement(input);
+		var read = SqlStandardProductions.TryParseSQLDiagnosticsStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDiagnosticsStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -491,15 +540,17 @@ static class Both
 	public static Statement.GetDiagnostics ParseSQLDiagnosticsStatement(string input)
 	{
 		return TryParseSQLDiagnosticsStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLDiagnosticsStatement(input)
+		? SqlStandardProductions.ParseSQLDiagnosticsStatement(input)
 		: throw Refused(input, "SQL diagnostics statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLDynamicStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLDynamicStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLDynamicStatement(input);
+		var read = SqlStandardProductions.TryParseSQLDynamicStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLDynamicStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -507,15 +558,17 @@ static class Both
 	public static Statement ParseSQLDynamicStatement(string input)
 	{
 		return TryParseSQLDynamicStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLDynamicStatement(input)
+		? SqlStandardProductions.ParseSQLDynamicStatement(input)
 		: throw Refused(input, "SQL dynamic statement");
 	}
 
-	public static SqlStandardParser.Match<Statement> TryParseSQLProcedureStatement(string input)
+	public static SqlStandardProductions.Match<Statement> TryParseSQLProcedureStatement(string input)
 	{
-		var read = SqlStandardParser.TryParseSQLProcedureStatement(input);
+		var read = SqlStandardProductions.TryParseSQLProcedureStatement(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseSQLProcedureStatement(input, out var hand), hand);
+
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
 
 		return read;
 	}
@@ -523,8 +576,74 @@ static class Both
 	public static Statement ParseSQLProcedureStatement(string input)
 	{
 		return TryParseSQLProcedureStatement(input).IsSuccess
-		? SqlStandardParser.ParseSQLProcedureStatement(input)
+		? SqlStandardProductions.ParseSQLProcedureStatement(input)
 		: throw Refused(input, "SQL procedure statement");
+	}
+
+	// ── Holding the productions to the shipped parser ─────────────────────────
+
+	/// <summary>
+	/// The shipped <see cref="SqlStandardParser"/> beside the productions: what a production reads, the
+	/// level that holds it reads to the same tree.
+	/// </summary>
+	/// <remarks>
+	/// The productions are read by <see cref="SqlStandardProductions"/>, which includes the shipped grammar
+	/// and is a parser of its own; the shipped class publishes six levels and no production. So every
+	/// reading here is put to the shipped class as well, at the level it belongs to, and the rows written
+	/// for one production test the binary that ships too.
+	/// </remarks>
+	static class Shipped
+	{
+		/// <summary>A statement or a query the production read is one statement to the shipped parser, the same one.</summary>
+		public static void Statement(string input, bool read, object? tree)
+		{
+			if (!read)
+				return;
+
+			var shipped = SqlStandardParser.TryParseStatement(input);
+
+			Assert.True(shipped.IsSuccess, "The shipped parser refuses as a statement what a production reads: " + input + "\n  " + shipped.Error);
+			Same(input, tree, shipped.Value);
+		}
+
+		/// <summary>A literal is a value to the shipped parser; a value that is no literal is <c>NULL</c>.</summary>
+		public static void Value(string input, bool read, object? tree)
+		{
+			var shipped = SqlStandardParser.TryParseValue(input);
+
+			if (read)
+			{
+				Assert.True(shipped.IsSuccess, "The shipped parser refuses as a value what is a literal: " + input + "\n  " + shipped.Error);
+				Same(input, tree, shipped.Value);
+			}
+			else if (shipped.IsSuccess)
+				Assert.IsType<LiteralValue.Null>(shipped.Value);
+		}
+
+		/// <summary>A production the shipped parser publishes as a level of its own answers the same there, refusals and their messages too.</summary>
+		public static void Same<T>(string input, bool read, long position, string? error, object? tree, SqlStandardParser.Match<T> shipped)
+		{
+			Assert.True(read == shipped.IsSuccess, (read ? "The shipped parser refuses what the production reads: " : "The shipped parser reads what the production refuses: ") + input);
+
+			if (read)
+			{
+				Same(input, tree, shipped.Value);
+
+				return;
+			}
+
+			Assert.Equal(position, shipped.Position);
+			Assert.Equal(error, shipped.Error);
+		}
+
+		static void Same(string input, object? tree, object? shipped)
+		{
+			var expected = Dump(tree);
+			var actual   = Dump(shipped);
+
+			Assert.True(expected == actual, "The production and the shipped parser built different trees for: " + input + "\n  production: " + expected + "\n  shipped:    " + actual);
+			Assert.Equal(tree, shipped);
+		}
 	}
 
 	// ── Holding one to the other ───────────────────────────────────────────────

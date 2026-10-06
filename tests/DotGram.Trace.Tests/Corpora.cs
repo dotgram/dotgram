@@ -192,13 +192,15 @@ static class Corpora
 		"  theme=dark; session_id=abc123; tracking=no  ",
 	];
 
-	public static readonly string[] Identifiers =
+	public static readonly string[] Values =
 	[
-		"customer_name",
-		"\"Quoted \"\"Name\"\"\"",
-		"U&\"\\0041bc\"",
-		"Z9",
-		"\"x\" UESCAPE '!'",
+		"-12.5E3",
+		"N'it''s'",
+		"U&'\\0041bc' UESCAPE '!'",
+		"DATE '2024-01-31'",
+		"INTERVAL -'1:30' HOUR TO MINUTE",
+		"X'0A1B'",
+		"NULL",
 	];
 
 	public static readonly string[] Uris =

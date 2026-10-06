@@ -77,7 +77,7 @@ public sealed class ColdThreadTests
 	public void A_first_reading_of_the_standard_answers()
 	{
 		Assert.True(OnANewThread(static () =>
-			DotGram.Sql.Standard.SqlStandardParser.TryParseQueryExpression("SELECT a FROM t WHERE a = 1").IsSuccess));
+			DotGram.Sql.Standard.SqlStandardParser.TryParseStatement("SELECT a FROM t WHERE a = 1").IsSuccess));
 	}
 
 	/// <summary>A value in brackets and an operator with nothing after it: refused, on a first reading.</summary>
@@ -93,7 +93,7 @@ public sealed class ColdThreadTests
 	public void A_first_reading_of_an_operator_with_nothing_after_it_refuses_rather_than_throwing()
 	{
 		Assert.False(OnANewThread(static () =>
-			DotGram.Sql.Standard.SqlStandardParser.TryParseQueryExpression("SELECT (a) +").IsSuccess));
+			DotGram.Sql.Standard.SqlStandardParser.TryParseStatement("SELECT (a) +").IsSuccess));
 	}
 
 	/// <summary>The same defect in the located T-SQL reader, where it threw on a warm thread as well.</summary>

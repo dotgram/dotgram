@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 using DotGram.Sql;
 using DotGram.Sql.Ast;
@@ -41,7 +41,7 @@ foreach (var file in files)
 		foreach (var (mode, text) in Cuts(statement))
 		{
 			Report(file, $"tsql-statement#{at}/{mode}", text, static one => TSql(one));
-			Report(file, $"sql2023-direct#{at}/{mode}", text + ";", static one => Standard(one));
+			Report(file, $"sql2023-statement#{at}/{mode}", text + ";", static one => Standard(one));
 		}
 	}
 }
@@ -107,7 +107,7 @@ static string TSql(string text)
 
 static string Standard(string text)
 {
-	var read = SqlStandardParser.TryParseDirectSQLStatement(text);
+	var read = SqlStandardParser.TryParseStatement(text);
 
 	return read.IsSuccess ? "ok " + Sql2023Writer.Write(read.Value!) : Refused(read.Position, read.Error);
 }

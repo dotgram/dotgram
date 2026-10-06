@@ -146,7 +146,7 @@ public sealed class ConcurrentParsingTests
 				Name = "SQL:2023: a query expression that reads",
 				Compute = () =>
 				{
-					var match = SqlStandardParser.TryParseQueryExpression("SELECT a FROM t WHERE a = 1");
+					var match = SqlStandardParser.TryParseStatement("SELECT a FROM t WHERE a = 1");
 					return Signature(match.IsSuccess, match.Position, match.Error,
 						() => Ast.Sql2023Writer.Write(match.Value) + "|" + SpansSignature(match.Value));
 				},
@@ -157,7 +157,7 @@ public sealed class ConcurrentParsingTests
 				Name = "SQL:2023: TOP is not standard, and is refused",
 				Compute = () =>
 				{
-					var match = SqlStandardParser.TryParseQueryExpression("SELECT TOP 1 a FROM t");
+					var match = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t");
 					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
 				},
 			},

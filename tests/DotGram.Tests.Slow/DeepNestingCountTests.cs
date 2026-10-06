@@ -64,7 +64,7 @@ public sealed class DeepNestingCountTests(ITestOutputHelper output)
 	[InlineData("subqueries",    "SELECT ",                "(SELECT ",                      "1",     " FROM t)",          " FROM t", 80)]
 	public void A_SQL_2023_nest_is_walked_once(string shape, string prefix, string open, string middle, string close, string suffix, int perLevel)
 	{
-		Holds(SqlVariants.Parser(SqlVariants.Standard, counts: true), "TryParseQueryExpression", "SQL:2023 " + shape, depth => Nested(prefix, open, middle, close, suffix, depth), perLevel);
+		Holds(SqlVariants.Parser(SqlVariants.Standard, counts: true), "TryParseStatement", "SQL:2023 " + shape, depth => Nested(prefix, open, middle, close, suffix, depth), perLevel);
 	}
 
 	[Theory]

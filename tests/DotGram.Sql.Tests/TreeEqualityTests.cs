@@ -267,7 +267,7 @@ public sealed class TreeEqualityTests
 						continue; // The writer's own fault, held above; not this grammar's to answer for.
 					}
 
-					var firstRead = SqlStandardParser.TryParseQueryExpression(candidate);
+					var firstRead = SqlStandardParser.TryParseStatement(candidate);
 
 					if (!firstRead.IsSuccess)
 						continue; // T-SQL syntax SQL:2023 does not have: a dialect difference, not this test's business.
@@ -287,7 +287,7 @@ public sealed class TreeEqualityTests
 						continue;
 					}
 
-					var secondRead = SqlStandardParser.TryParseQueryExpression(written);
+					var secondRead = SqlStandardParser.TryParseStatement(written);
 
 					if (!secondRead.IsSuccess)
 						faults.Add($"`{candidate}` printed as `{written}`, which SQL:2023 refuses to read back");

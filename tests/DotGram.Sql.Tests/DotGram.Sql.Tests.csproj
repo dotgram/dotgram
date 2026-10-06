@@ -23,6 +23,10 @@
 		     generator put into it when it was built. -->
 		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 
+		<!-- The productions one by one, which the shipped parser does not publish: its grammar included
+		     and published again (Both.cs reads a production there and holds the shipped levels to it). -->
+		<ProjectReference Include="..\DotGram.Sql.Productions\DotGram.Sql.Productions.csproj" />
+
 		<!-- The same language read by hand (Both.cs): the yardstick the generated parser is
 		     measured against, held to it here so that a difference between the two fails as a
 		     test rather than as a ratio nobody could explain. -->

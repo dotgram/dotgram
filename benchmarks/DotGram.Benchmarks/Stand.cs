@@ -429,24 +429,26 @@ static partial class Stand
 			Expression("refused-early", "(int x) => x +"),
 			Expression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +"),
 
-			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseLiteral, HandSqlStandard.TryParseLiteral, ImmediateSqlStandard.TryParseLiteral),
-			Sql<Ast.Expression, Ast.Expression>("column", "a.b.c", SqlStandardParser.TryParseColumnReference, HandSqlStandard.TryParseColumnReference, ImmediateSqlStandard.TryParseColumnReference),
-			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression, ImmediateSqlStandard.TryParseValueExpression),
-			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression, ImmediateSqlStandard.TryParseValueExpression),
+			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseValue, HandSqlStandard.TryParseValue, ImmediateSqlStandard.TryParseValue),
+			Sql<Ast.Expression, Ast.Expression>("value1", "1", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("condition1", "a = 1", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
 			Sql<Ast.Expression, Ast.Expression>("condition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("select1", "SELECT a FROM t", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("values", "VALUES (1)", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
-			Sql<Ast.Statement.Select, Ast.Statement.Select>("comment", SqlWithComments, SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			Sql<Ast.Statement, Ast.Statement>("select1", "SELECT a FROM t;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("values", "VALUES (1);", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("comment", SqlWithComments + ";", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
 			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
 			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement, Ast.Statement>("create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", SqlStandardParser.TryParseSQLSchemaStatement, HandSqlStandard.TryParseSQLSchemaStatement, ImmediateSqlStandard.TryParseSQLSchemaStatement),
+			Sql<Ast.Statement, Ast.Statement>("statement-create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
+			Sql<Ast.Statement[], Ast.Statement[]>("script", SqlScript, SqlStandardParser.TryParseSql, HandSqlStandard.TryParseSql, ImmediateSqlStandard.TryParseSql),
 
 			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
 			// TryParse exposes no position, so agreement here is accept/refuse only (expr-2d,
 			// 2026-09-18); a row where either side accepts is still a disagreement.
-			SqlRefused<Ast.Statement.Select, Ast.Statement.Select>(
-				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression, ImmediateSqlStandard.TryParseQueryExpression),
+			SqlRefused<Ast.Statement, Ast.Statement>(
+				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
 		];
 	}
 
@@ -461,6 +463,9 @@ static partial class Stand
 		"c\n" +
 		"FROM t -- the table of orders, one row for each order line and one for each shipment made against the line\n" +
 		"WHERE a = 1 -- only the orders of the year still open in the ledger, and none that were cancelled after they shipped";
+
+	/// <summary>A text of three statements, each ended by its semicolon: what <c>ParseSql</c> is timed on.</summary>
+	const string SqlScript = "SELECT a, b FROM t WHERE a = 1; INSERT INTO t (a, b) VALUES (1, 'x'); UPDATE t SET b = 'y' WHERE a = 1;";
 
 	/// <summary>
 	/// A search condition of <paramref name="predicates"/> predicates joined by AND: the input on which the
@@ -886,12 +891,26 @@ static partial class Stand
 				: null;
 		}
 
-		public Func<int> Sql(string method, string text)
+		/// <summary>
+		/// This side's SQL:2023 entry, the first of <paramref name="methods"/> (names apart by <c>|</c>) it
+		/// has, by reflection: an entry renamed between the two builds is read under either name.
+		/// </summary>
+		public Func<int> Sql(string methods, string text)
 		{
-			var call = _sql.GetMethod(method, [typeof(string)])
-				?? throw new InvalidOperationException($"SqlStandardParser.{method}(string) not found");
+			var call = SqlEntry(methods) ?? throw new InvalidOperationException($"SqlStandardParser.{methods}(string) not found");
 
 			return () => IsSuccess(call.Invoke(null, [text])!);
+		}
+
+		/// <summary>Whether this side has any of <paramref name="methods"/> (names apart by <c>|</c>).</summary>
+		public bool HasSql(string methods)
+		{
+			return SqlEntry(methods) is not null;
+		}
+
+		MethodInfo? SqlEntry(string methods)
+		{
+			return methods.Split('|').Select(method => _sql.GetMethod(method, [typeof(string)])).FirstOrDefault(static one => one is not null);
 		}
 
 		/// <summary>
@@ -900,7 +919,8 @@ static partial class Stand
 		/// </summary>
 		public Func<int>? SqlBool(string rule, string text)
 		{
-			var call = _sql.GetMethods(BindingFlags.Static | BindingFlags.Public).FirstOrDefault(one => one.Name == rule
+			var names = rule.Split('|');
+			var call = _sql.GetMethods(BindingFlags.Static | BindingFlags.Public).FirstOrDefault(one => names.Contains(one.Name)
 				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
 
 			return call is null ? null : () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
@@ -1009,7 +1029,8 @@ static partial class Stand
 		/// </summary>
 		public Func<int> SqlPositional(bool tsql, string method, string text, int at, int? length)
 		{
-			var call = (tsql ? _tsql : _sql).GetMethod(method, length is null ? [typeof(string), typeof(int)] : [typeof(string), typeof(int), typeof(int)])
+			Type[] parameters = length is null ? [typeof(string), typeof(int)] : [typeof(string), typeof(int), typeof(int)];
+			var call = method.Split('|').Select(one => (tsql ? _tsql : _sql).GetMethod(one, parameters)).FirstOrDefault(static one => one is not null)
 				?? throw new InvalidOperationException($"{method}(string, int{(length is null ? "" : ", int")}) not found");
 			object[] arguments = length is null ? [text, at] : [text, at, length.Value];
 
@@ -1752,24 +1773,26 @@ static partial class Stand
 			PairedExpression("refused-early", "(int x) => x +", before, after),
 			PairedExpression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +", before, after),
 
-			PairedSql("literal", "TryParseLiteral", "1", before, after),
-			PairedSql("comment", "TryParseQueryExpression", SqlWithComments, before, after),
-			PairedSql("conditions100", "TryParseSearchCondition", SqlConditions(100), before, after),
-			PairedSql("conditions1000", "TryParseSearchCondition", SqlConditions(1000), before, after),
+			.. PairedSql("literal", "TryParseValue|TryParseLiteral", "TryParseValue", "1", before, after),
+			.. PairedSql("comment", "TryParseStatement", "TryParseStatement", SqlWithComments + ";", before, after),
+			.. PairedSql("conditions100", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(100), before, after),
+			.. PairedSql("conditions1000", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(1000), before, after),
 			PairedTsql("comment", SqlWithComments, before, after),
 
 			// The ordinary statements the stand reads against ScriptDom, side against side.
 			.. TsqlRows.Select(row => PairedTsql(row.Name, row.Text, before, after)),
 
-			PairedSql("column", "TryParseColumnReference", "a.b.c", before, after),
-			PairedSql("arithmetic", "TryParseValueExpression", "(a + b) * c - d / 5", before, after),
-			PairedSql("nest8", "TryParseValueExpression", "((((((((a))))))))", before, after),
-			PairedSql("condition", "TryParseSearchCondition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", before, after),
-			PairedSql("select1", "TryParseQueryExpression", "SELECT a FROM t", before, after),
-			PairedSql("select20", "TryParseQueryExpression", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1", before, after),
-			PairedSql("values", "TryParseQueryExpression", "VALUES (1)", before, after),
-			PairedSql("create", "TryParseSQLSchemaStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))", before, after),
-			PairedSql("refused-late", "TryParseQueryExpression", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", before, after),
+			.. PairedSql("value1", "TryParseExpression", "TryParseExpression", "1", before, after),
+			.. PairedSql("arithmetic", "TryParseExpression|TryParseValueExpression", "TryParseExpression", "(a + b) * c - d / 5", before, after),
+			.. PairedSql("nest8", "TryParseExpression|TryParseValueExpression", "TryParseExpression", "((((((((a))))))))", before, after),
+			.. PairedSql("condition1", "TryParseSearchCondition", "TryParseSearchCondition", "a = 1", before, after),
+			.. PairedSql("condition", "TryParseSearchCondition", "TryParseSearchCondition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", before, after),
+			.. PairedSql("select1", "TryParseStatement", "TryParseStatement", "SELECT a FROM t;", before, after),
+			.. PairedSql("select20", "TryParseStatement", "TryParseStatement", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", before, after),
+			.. PairedSql("values", "TryParseStatement", "TryParseStatement", "VALUES (1);", before, after),
+			.. PairedSql("statement-create", "TryParseStatement", "TryParseStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", before, after),
+			.. PairedSql("script", "TryParseSql", "TryParseSql", SqlScript, before, after),
+			.. PairedSql("refused-late", "TryParseStatement", "TryParseStatement", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", before, after),
 		];
 	}
 
@@ -1889,29 +1912,41 @@ static partial class Stand
 			() => before.Tsql(text)() == 1 && after.Tsql(text)() == 1 ? null : "  a side refuses the statement");
 	}
 
-	static Workload PairedSql(string name, string method, string text, PairedSide before, PairedSide after)
+	/// <summary>
+	/// A row of SQL:2023, side against side. <paramref name="method"/> names the entry, or several names
+	/// apart by <c>|</c> where the entry was renamed (the first a side has is read); a side that has none of
+	/// them has no such row, and the pair leaves it out, as it does a FIX row of a side without FIX.
+	/// </summary>
+	static IEnumerable<Workload> PairedSql(string name, string method, string hand, string text, PairedSide before, PairedSide after)
 	{
-		return new Workload(
+		if (!before.HasSql(method) || !after.HasSql(method))
+			yield break;
+
+		var byBefore = before.Sql(method, text);
+		var byAfter  = after.Sql(method, text);
+
+		yield return new Workload(
 			"sql",
 			name,
 			[
-				new Reading("hand",   () => HandAccepts(method, text) ? 1 : 0),
-				new Reading("before", before.Sql(method, text)),
-				new Reading("after",  after.Sql(method, text)),
+				new Reading("hand",   () => HandAccepts(hand, text) ? 1 : 0),
+				new Reading("before", byBefore),
+				new Reading("after",  byAfter),
 			],
 			Disagreement);
 
 		string? Disagreement()
 		{
-			var hand = HandAccepts(method, text);
-			var b    = before.Sql(method, text)() == 1;
-			var a    = after.Sql(method, text)() == 1;
+			var byHand = HandAccepts(hand, text);
+			var b      = byBefore() == 1;
+			var a      = byAfter() == 1;
 
-			return hand == b && b == a
+			return byHand == b && b == a
 				? null
-				: $"  hand {(hand ? "accepted" : "refused")}, before {(b ? "accepted" : "refused")}, after {(a ? "accepted" : "refused")}";
+				: $"  hand {(byHand ? "accepted" : "refused")}, before {(b ? "accepted" : "refused")}, after {(a ? "accepted" : "refused")}";
 		}
 	}
+
 
 	/// <summary>
 	/// Runs <see cref="PairedWorkloads"/> and writes <c>paired.md</c>: hand, before and after

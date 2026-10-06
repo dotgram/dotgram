@@ -72,7 +72,7 @@ public sealed class DeepTreeTests
 		var (written, thrown) = OnStack(() =>
 		{
 			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
-			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseQueryExpression(from));
+			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
 			var sql92    = SqlWriter.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
@@ -98,7 +98,7 @@ public sealed class DeepTreeTests
 	{
 		var text = Nested(prefix, open, middle, close, suffix, Depth);
 
-		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseQueryExpression, Ast.Sql2023Writer.Write));
+		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseStatement, Ast.Sql2023Writer.Write));
 
 		Assert.True(thrown is null, $"{shape}: {thrown}");
 		Assert.NotEmpty(written);
