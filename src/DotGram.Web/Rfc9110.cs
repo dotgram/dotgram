@@ -223,6 +223,17 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 // A type and a subtype are tokens, as HTTP reads them; RFC 6838 §4.2's narrower names for registration are
 // a registration's business, and every name the IANA registry holds is one.
 
+// Carried immediately, by name: a media type is built the moment its rule has been read, and nothing
+// is recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): the
+// run of parameters and a range of an Accept field can be asked again after they have answered, and
+// a construction asked again runs again. Every construction here builds from the text it was given
+// — `Present` takes the slots apart, `Weighted` stands behind `IsRange`, which has already read every
+// `q` it will parse — and reads nothing else, so a reading given up or asked twice leaves nothing
+// behind and nothing can throw. Held to the tape by an agreement run: the same grammar compiled on
+// the tape, both entries over the IANA registry and the tests' texts, each cut at every character
+// and given a stray one — the same values, the same messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -266,7 +277,8 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 
 	parse ContentTypeField as ParseContentType
 	parse AcceptField      as ParseAccept
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc9110
 {
 	// ParseContentType, ParseAccept and their Try forms are generated here.
