@@ -211,6 +211,17 @@ public sealed record LanguageTag(
 // The grandfathered tags are asked first, and whole: `zh-min-nan` before `zh-min`, and each only
 // where the tag ends there, so `zh-min-xyz` goes on to be read as an ordinary tag.
 
+// Carried immediately, by name: a tag is built the moment its rule has been read, and nothing is
+// recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): a
+// grandfathered tag is tried before a langtag over the same letters, and a rule asked again after it
+// has answered runs its construction again. Every construction here is a LanguageTag or an Extension
+// made of the subtags it was given, by the constructor, `with` or `Registered`, and reads nothing
+// else, so a reading given up or asked twice leaves nothing behind and nothing can throw. Held to
+// the tape by an agreement run: the same grammar compiled on the tape, over every tag and subtag of
+// the registry and the tests' texts, each cut at every character and given a stray one — the same
+// values, the same messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -284,7 +295,8 @@ public sealed record LanguageTag(
 		| "zh-min-nan"i | "zh-min"i | "zh-xiang"i
 
 	parse LanguageTag as ParseTag
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc5646
 {
 	// ParseTag and TryParseTag are generated here.
