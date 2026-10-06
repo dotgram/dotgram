@@ -429,26 +429,26 @@ static partial class Stand
 			Expression("refused-early", "(int x) => x +"),
 			Expression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +"),
 
-			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseValue, HandSqlStandard.TryParseValue, ImmediateSqlStandard.TryParseValue),
-			Sql<Ast.Expression, Ast.Expression>("value1", "1", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
-			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
-			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, ImmediateSqlStandard.TryParseExpression),
-			Sql<Ast.Expression, Ast.Expression>("condition1", "a = 1", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Expression, Ast.Expression>("condition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement, Ast.Statement>("select1", "SELECT a FROM t;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
-			Sql<Ast.Statement, Ast.Statement>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
-			Sql<Ast.Statement, Ast.Statement>("values", "VALUES (1);", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
-			Sql<Ast.Statement, Ast.Statement>("comment", SqlWithComments + ";", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
-			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, ImmediateSqlStandard.TryParseSearchCondition),
-			Sql<Ast.Statement, Ast.Statement>("statement-create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
-			Sql<Ast.Statement[], Ast.Statement[]>("script", SqlScript, SqlStandardParser.TryParseSql, HandSqlStandard.TryParseSql, ImmediateSqlStandard.TryParseSql),
+			Sql<Ast.LiteralValue, Ast.LiteralValue>("literal", "1", SqlStandardParser.TryParseValue, HandSqlStandard.TryParseValue, TapeSqlStandard.TryParseValue),
+			Sql<Ast.Expression, Ast.Expression>("value1", "1", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, TapeSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("arithmetic", "(a + b) * c - d / 5", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, TapeSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("nest8", "((((((((a))))))))", SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression, TapeSqlStandard.TryParseExpression),
+			Sql<Ast.Expression, Ast.Expression>("condition1", "a = 1", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, TapeSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Expression, Ast.Expression>("condition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, TapeSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Statement, Ast.Statement>("select1", "SELECT a FROM t;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("select20", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("values", "VALUES (1);", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+			Sql<Ast.Statement, Ast.Statement>("comment", SqlWithComments + ";", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+			Sql<Ast.Expression, Ast.Expression>("conditions100", SqlConditions(100), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, TapeSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Expression, Ast.Expression>("conditions1000", SqlConditions(1000), SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition, TapeSqlStandard.TryParseSearchCondition),
+			Sql<Ast.Statement, Ast.Statement>("statement-create", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
+			Sql<Ast.Statement[], Ast.Statement[]>("script", SqlScript, SqlStandardParser.TryParseSql, HandSqlStandard.TryParseSql, TapeSqlStandard.TryParseSql),
 
 			// Q7.2: a select refused near its end, not at the first token — HandSqlStandard's
 			// TryParse exposes no position, so agreement here is accept/refuse only (expr-2d,
 			// 2026-09-18); a row where either side accepts is still a disagreement.
 			SqlRefused<Ast.Statement, Ast.Statement>(
-				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, ImmediateSqlStandard.TryParseStatement),
+				"refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement, TapeSqlStandard.TryParseStatement),
 		];
 	}
 
@@ -634,15 +634,15 @@ static partial class Stand
 	/// One SQL:2023 production over one input, by hand and by the generated parser, which must
 	/// also accept it: a row that times two refusals says nothing about reading SQL.
 	/// </summary>
-	/// <param name="immediate">
-	/// The same production compiled onto the immediate carrier (<c>ImmediateSqlStandard</c>,
-	/// docs/next.md, the redesign question of 2026-09-27: does SQL:2023 close the gap the way
-	/// SQL-92 did). Null where no such method exists for this production; a row given one gets a
-	/// third reading and its tree is held to the tape's the same way the tape's is held to hand's.
+	/// <param name="tape">
+	/// The same entry of the grammar compiled on the tape (<c>TapeSqlStandard</c>): the carrier the
+	/// shipped parser was on until 2026-10-06, kept so that the stand reads what the immediate carrier
+	/// bought and costs on every row. Null where no such method exists for this entry; a row given one gets
+	/// a third reading and its tree is held to the shipped parser's the same way that is held to hand's.
 	/// </param>
 	static Workload Sql<TGenerated, THand>(
 		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand,
-		Func<string, ImmediateSqlStandard.Match<TGenerated>>? immediate = null)
+		Func<string, TapeSqlStandard.Match<TGenerated>>? tape = null)
 	{
 		var readings = new List<Reading>
 		{
@@ -650,8 +650,8 @@ static partial class Stand
 			new("generated", () => generated(text).IsSuccess ? 1 : 0),
 		};
 
-		if (immediate is not null)
-			readings.Add(new Reading("immediate", () => immediate(text).IsSuccess ? 1 : 0));
+		if (tape is not null)
+			readings.Add(new Reading("tape", () => tape(text).IsSuccess ? 1 : 0));
 
 		return new Workload("sql", name, [.. readings], Disagreement);
 
@@ -671,17 +671,17 @@ static partial class Stand
 			if (expected != actual)
 				return $"  generated {expected}\n  by hand   {actual}";
 
-			if (immediate is null)
+			if (tape is null)
 				return null;
 
-			var eager = immediate(text);
+			var recorded = tape(text);
 
-			if (!eager.IsSuccess)
-				return "  the immediate carrier refuses it";
+			if (!recorded.IsSuccess)
+				return "  the tape carrier refuses it";
 
-			var actualImmediate = Standard.Dump(eager.Value);
+			var actualTape = Standard.Dump(recorded.Value);
 
-			return actualImmediate == expected ? null : $"  generated {expected}\n  immediate {actualImmediate}";
+			return actualTape == expected ? null : $"  generated {expected}\n  tape      {actualTape}";
 		}
 	}
 
@@ -694,7 +694,7 @@ static partial class Stand
 	/// </summary>
 	static Workload SqlRefused<TGenerated, THand>(
 		string name, string text, Func<string, SqlStandardParser.Match<TGenerated>> generated, HandRead<THand> hand,
-		Func<string, ImmediateSqlStandard.Match<TGenerated>>? immediate = null)
+		Func<string, TapeSqlStandard.Match<TGenerated>>? tape = null)
 	{
 		var readings = new List<Reading>
 		{
@@ -702,8 +702,8 @@ static partial class Stand
 			new("generated", () => generated(text).IsSuccess ? 1 : 0),
 		};
 
-		if (immediate is not null)
-			readings.Add(new Reading("immediate", () => immediate(text).IsSuccess ? 1 : 0));
+		if (tape is not null)
+			readings.Add(new Reading("tape", () => tape(text).IsSuccess ? 1 : 0));
 
 		return new Workload("sql", name, [.. readings], Disagreement);
 
@@ -711,11 +711,11 @@ static partial class Stand
 		{
 			var byGenerated = generated(text).IsSuccess;
 			var byHand      = hand(text, out _);
-			var byImmediate = immediate?.Invoke(text).IsSuccess ?? false;
+			var byTape      = tape?.Invoke(text).IsSuccess ?? false;
 
-			return byGenerated || byHand || byImmediate
+			return byGenerated || byHand || byTape
 				? $"  expected all to refuse; generated {(byGenerated ? "accepted" : "refused")}, hand {(byHand ? "accepted" : "refused")}" +
-					(immediate is null ? "" : $", immediate {(byImmediate ? "accepted" : "refused")}")
+					(tape is null ? "" : $", tape {(byTape ? "accepted" : "refused")}")
 				: null;
 		}
 	}
