@@ -293,6 +293,22 @@ TSqlCompOp
 // of each, `a COLLATE x AT TIME ZONE b`; the engine reads both. The last collation is the
 // standard's own, after the primary, so two never stand side by side, which the engine
 // refuses.
+//
+// A qualified name is read once, where `FunctionCall` stands, and what follows it says what
+// it names: a call where `(` does and the name may be called, a column otherwise. Three of
+// the alternatives begin with a name — `FunctionCall`, `RowColumnName`, `ColumnReference` —
+// and over kinds none can hand it to the next, so on a statement of ordinary columns each
+// read it again from its first token. The alternative written out is their union for the
+// names it takes, and leaves the rest to them unchanged: a name beginning with `INTERVAL`
+// or `VALUE`, which `UnsignedValueSpecification` reads where it stands alone or as a literal;
+// `IIF`, the JSON constructors and the casts in front of a bracket, which `FunctionCall` turns
+// away as well; a name the guard refuses, `[LEN]('a')`, `.f2(1)`, which `ColumnReference`
+// reads after the guard has refused it where it did; and a name a dot follows that is not
+// a part's, `t.IDENTITYCOL`, which `RowColumnName` reads and says what it wanted there. The
+// guard stands where `FunctionCall`'s stands, after the name and before the bracket, so that
+// a refusal is recorded where it was and the name it is handed is the one the column is
+// built from; `t.col.STArea()` is the call `FunctionCall` made of it, since the name eats
+// every dot it can before the bracket.
 TSqlValuePrimary : @Expression
 	= p: TSqlPrimaryCore & members: Member* & zones: AtTimeZone*
 		=> @(Syntax.Reached(p, members, zones))
@@ -320,7 +336,17 @@ TSqlPrimaryCore : @Expression
 	| n: NextValue                             => @(n)
 	| f: DatePartCall                          => @(f)
 	| f: LeftRightCall                         => @(f)
-	| n: NamedPrimary                          => @(n)
+	| ?!("INTERVAL"i | "VALUE"i)
+	  & ?!((JsonOwnName | "IIF"i) & '(')
+	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
+	  & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	  & ( call: '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+	    | ?!'.')
+		=> @(call is null
+				 ? new Expression.ColumnReference(name)
+				 : Syntax.Called(
+					   new Expression.RoutineInvocation(
+						   name, SqlList.Own(Syntax.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
 	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
@@ -330,38 +356,6 @@ TSqlPrimaryCore : @Expression
 	| "NULL"i                                  => @(Expression.NullValue)
 	| t: RowColumnName                         => @(new Expression.ColumnReference(t))
 	| n: ColumnReference                       => @(n)
-
-// A qualified name read once, and what follows it says what it names: a call where `(` does
-// and the name may be called, a table's identity or row-GUID column where `.IDENTITYCOL` or
-// `.ROWGUIDCOL` does, and a column otherwise. The three alternatives below that begin with a
-// name — `FunctionCall`, `RowColumnName`, `ColumnReference` — each read it again from the
-// start, which on a statement of ordinary columns was most of what the name rules did; this
-// rule is their union for the names it takes, and stands where the first of them stands.
-//
-// What it does not take it leaves to them, so that nothing between `FunctionCall` and
-// `ColumnReference` is read differently than before: a name beginning with `INTERVAL` or
-// `VALUE`, which `UnsignedValueSpecification` reads where it stands alone or as a literal;
-// `IIF`, the JSON constructors and the casts in front of a bracket, which `FunctionCall`
-// turns away as well; and a name the guard refuses — `[LEN]('a')`, `.f2(1)` — which is read
-// as a column by the rule that reads columns, after the guard has refused it where it did.
-// The guard stands where `FunctionCall`'s stands, after the name and before the bracket,
-// so that a refusal is recorded where it was.
-//
-// The tree is the one the three built: the call's name is the name alone, a row column's
-// is the whole text, as `RowColumnName` handed it over, and `t.col.STArea()` is the call
-// `FunctionCall` made of it, since the name eats every dot it can before the bracket.
-NamedPrimary : @Expression
-	= ?!("INTERVAL"i | "VALUE"i)
-	  & ?!((JsonOwnName | "IIF"i) & '(')
-	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
-	  & t: (name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
-	        & ( call: '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
-	          | '.' & ("IDENTITYCOL"i | "ROWGUIDCOL"i))?)
-		=> @(call is null
-				 ? new Expression.ColumnReference(t)
-				 : Syntax.Called(
-					   new Expression.RoutineInvocation(
-						   name, SqlList.Own(Syntax.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 
 // `LEFT` and `RIGHT` are reserved for the joins and are functions besides: `LEFT('a', 1)` is
 // read, and `dbo.LEFT(1)` and `LEFT('a', 1) OVER ()` are refused.
