@@ -25808,3 +25808,37 @@ Asked of Roslyn on the way: `M(Box)` beside `M(params Box[])` is ambiguous for `
 a target-typed `new` converts even to an array, which it cannot make — and `M(Box)` beside
 `M(Box, int = 1)` takes the first. This language reads no `T?` in a type; the nullable cases are
 written `System.Nullable<Spot>`.
+
+## T-SQL reads a primary's qualified name once
+
+A trace of the T-SQL parser over a statement of ordinary columns showed the four name rules
+(`TSqlIdentifier`, `NamePartName`, `TSqlQualifiedName`, `NamePart`) at a third of the reader's
+own time, and three of every ten entries into them at a position the same reading had already
+entered them at. The sites were in `TSqlPrimaryCore`: `FunctionCall` read the qualified name and
+refused it at the bracket, `RowColumnName` read it part by part and refused it at `IDENTITYCOL`,
+and `ColumnReference` read it a third time and kept it. Over kinds a rule's answer stands, so
+none of the three could hand the name to the next; each began again at its first token.
+
+`NamedPrimary` now stands where `FunctionCall` stood: the name once, then what follows says
+what it was — a call where `(` follows and the name may be called, a row column where
+`.IDENTITYCOL` or `.ROWGUIDCOL` does, a column otherwise. The three rules stay behind it, and
+the names it does not take fall through to them unchanged: a name beginning with `INTERVAL` or
+`VALUE` (which `UnsignedValueSpecification` reads where it stands alone or as a literal, and
+only `FunctionCall`'s failing first let it), the bare `IIF`, JSON and `CAST` shapes
+`FunctionCall` turns away, and a name the `Callable` guard refuses. Held against the parser as
+it was: every tree of the ScriptDom corpus and of the test strings equal, every refusal the same
+words at the same position (33,212 corpus readings and 8,208 readings of 143 shapes cut before
+every token), and the immediate carrier's agreement over 399,593 texts unchanged, its one
+thrower included. On the long select the four rules' re-entries fell from 294 to 57 a parse
+(entries 1,048 to 723); on the 62 KB script from 18,800 to 3,800.
+
+Two things were not done. A success memo for the name rules — the failure memo's twin — would
+have removed the re-reads without touching the grammar, but it is a generator feature with a
+cost on every rule, where the grammar had three readers of one name in one place. And the
+guard was left where `FunctionCall`'s was, after the name and before the bracket, although
+asking for `(` first would spare every plain column the string the guard is handed (one cut a
+column on the tape; one guard a parse instead of one a column on the long select). Tried, it
+changed what a refusal says where a name the guard refuses is followed by a bracket
+(`[LEN]('a')`, `db..f2(1)`): the guard's refusal, recorded after the bracket, is now the
+furthest and names no set, so "Expected '.', '=', ..." became "Expected more input." — a
+worse message for a cheaper read, which is not a trade this grammar makes on its own.
