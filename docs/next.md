@@ -25808,3 +25808,40 @@ Asked of Roslyn on the way: `M(Box)` beside `M(params Box[])` is ambiguous for `
 a target-typed `new` converts even to an array, which it cannot make — and `M(Box)` beside
 `M(Box, int = 1)` takes the first. This language reads no `T?` in a type; the nullable cases are
 written `System.Nullable<Spot>`.
+
+## T-SQL's three readers of a qualified name, measured on the tape
+
+A trace of the T-SQL parser over a statement of ordinary columns showed the four name rules
+(`TSqlIdentifier`, `NamePartName`, `TSqlQualifiedName`, `NamePart`) at a third of the trace
+build's own time, and three of every ten entries into them at a position the same reading had
+already entered them at. The sites are in `TSqlPrimaryCore`: `FunctionCall` reads the qualified
+name and refuses it at the bracket, `RowColumnName` reads it part by part and refuses it at
+`IDENTITYCOL`, and `ColumnReference` reads it a third time and keeps it. Over kinds a rule's
+answer stands, so none of the three can hand the name to the next. A second site is
+`TSqlSelectSublist`, which reads a qualified name for `t.*` and an alias for `x = …` before the
+value expression reads the same tokens; it is a tenth of the first.
+
+Three shapes of the obvious answer — read the name once where `FunctionCall` stands and let
+what follows say what it was, with the three rules kept behind it for the names it does not
+take — were built and held against the parser as it was. All three keep every tree of the
+ScriptDom corpus and of the test strings, and the immediate carrier's agreement over 399,593
+texts with its one thrower; the re-entries fall by four fifths (294 to 57 a parse on the long
+select, 18,800 to 3,800 on the 62 KB script). None of them is faster. A rule of its own, with
+the row column's text as a capture around the name, reads the long select 4% slower than main
+and a thousand bare columns 9% slower (A/A within 2%), and allocates a second string a column:
+the guard's cut of `name` is kept for a construction that wants `t`. Asking for the bracket
+before the guard takes that string back, 4-5% over the A/A, and lands at main — but records the
+guard's refusal after the bracket, where it is the furthest and names no set, so `[LEN]('a')`
+is refused with "Expected more input." instead of the list. Written inline into
+`TSqlPrimaryCore` it keeps every set and position and still lists the words of its negative
+looks in another order in 2,336 corpus refusals, and is the largest of the three in generated
+code (+2% of the parser's source).
+
+So the premise did not hold on the tape: a short name re-read by a failing alternative is a
+first-token dispatch and a few comparisons, and the trace build, where every entry reports,
+charged it as if it were a rule's worth of work. What a factoring adds — a rule entry or an
+alternative with a choice and an optional, a construction over six captures, a string the
+guard is handed — costs about what it removes. The grammar is left as it was. A success memo
+for the four rules, the failure memo's twin, was not tried: it is a generator feature with a
+cost on every rule, and the measurement says the reads it would spare are not where the time
+goes.
