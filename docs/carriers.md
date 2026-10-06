@@ -12,16 +12,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-06 09:14 |
-| DotGram.Examples | 2026-10-06 09:13 |
-| DotGram.ExpressionLanguage | 2026-10-06 09:13 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-06 09:13 |
-| DotGram.Finance | 2026-10-06 09:13 |
-| DotGram.Finance.Fix44 | 2026-10-06 09:14 |
-| DotGram.Sql | 2026-10-06 09:14 |
-| DotGram.Sql.Productions | 2026-10-06 09:14 |
-| DotGram.Tests | 2026-10-06 09:14 |
-| DotGram.Web | 2026-10-06 09:13 |
+| DotGram.Benchmarks | 2026-10-06 10:26 |
+| DotGram.Examples | 2026-10-06 10:23 |
+| DotGram.ExpressionLanguage | 2026-10-06 10:23 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 10:23 |
+| DotGram.Finance | 2026-10-06 10:23 |
+| DotGram.Finance.Fix44 | 2026-10-06 10:23 |
+| DotGram.Sql | 2026-10-06 10:23 |
+| DotGram.Sql.Productions | 2026-10-06 10:24 |
+| DotGram.Tests | 2026-10-06 10:27 |
+| DotGram.Web | 2026-10-06 10:23 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -52,7 +52,6 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.ImmediateSql |  |  | immediate (author) |  |  |  |  |  |  |  | 12/244 |
-| DotGram.Benchmarks.ImmediateSqlStandard |  |  | immediate (author) |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none |  |  |  |  |  |  | 19/19 |
 | DotGram.Benchmarks.MaterializationCost.NoCaptures | 1 | 1 | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 1 | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
@@ -62,6 +61,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 7/7 |
+| DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 1 | tape | read again | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | 1 | 0 | immediate | none |  |  |  |  |  |  | 22/22 |
@@ -106,7 +106,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  | 1299/2659 |
 | DotGram.Sql.Standard.Sql92Parser | 1 | 1 | tape | replay | 49 | 45 | 4 | 0 | 0 | 0 | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser | 3 | 3 | tape | replay | 543 | 309 | 28 | 0 | 0 | 0 | 1248/2605 |
+| DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 655 | 323 | 79 | 0 | 0 | 0 | 2352/3138 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -191,9 +191,6 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Languages.TokenizedQuery | ParseQuery | whole | immediate | none | 0 | 0 | 0 | 0 | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser | ParseLambda, ParseHole, ParseBody | whole | tape | replay | 103 | 97 | 0 | 0 | 23/505 |
 | DotGram.Sql.Standard.Sql92Parser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 49 | 45 | 0 | 0 | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseValue | whole | tape | replay | 13 | 12 | 0 | 0 | 5/36 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseExpression, ParseDataType, ParseSearchCondition | whole | tape | replay | 293 | 291 | 0 | 0 | 4/1338 |
-| DotGram.Sql.Standard.SqlStandardParser | ParseSql, ParseStatement | whole | tape | replay | 540 | 309 | 0 | 0 | 1239/2596 |
 | DotGram.Sql.TransactSql.TransactSqlParser | ParseSelect, ParseQuery, ParseSearchCondition and 1 more | whole | tape | replay | 180 | 175 | 0 | 0 | 37/812 |
 | DotGram.Sql.TransactSql.TransactSqlParser | ParseStatement, ParseStatement100, ParseStatement110 and 15 more | whole | tape | replay | 651 | 323 | 0 | 0 | 2344/3130 |
 | DotGram.Tests.Calculators.DecimalCalculator | Evaluate | whole | immediate | none | 0 | 0 | 0 | 0 | 18/18 |
@@ -289,11 +286,6 @@ or which nothing calls, so that no caller asks it again.
 
 - memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
 
-## DotGram.Benchmarks.ImmediateSqlStandard
-
-- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
-
 ## DotGram.Benchmarks.Levels
 
 - machine Levelled [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 19/19
@@ -332,6 +324,11 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Benchmarks.Possession.Open
 
 - machine ParseDoc [whole]: carrier: tape; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
+
+## DotGram.Benchmarks.TapeSqlStandard
+
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
 
 ## DotGram.Benchmarks.TinyScalar
 
@@ -815,320 +812,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.Standard.SqlStandardParser
 
-- machine ParseValue [whole]: carrier: tape; gate: replay; building: 13; replayed: 12; read again: 0; refused: 0; points: 5/36
-- machine ParseExpression, ParseDataType, ParseSearchCondition [whole]: carrier: tape; gate: replay; building: 293; replayed: 291; read again: 0; refused: 0; points: 4/1338
-- machine ParseSql, ParseStatement [whole]: carrier: tape; gate: replay; building: 540; replayed: 309; read again: 0; refused: 0; points: 1239/2596
 - memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
 - memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
-- replay Bracketed: Follows in PrimaryReading [choice], then when ((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0…
-- replay CharacterLargeObjectLength: Follows in CharacterStringType [choice], then ')'
-- replay CharacterLength: Follows in CharacterStringType [choice], then ')'
-- replay CharacterNode: Follows in JSONNameAndValue [choice], then "VALUE"i
-- replay ColumnNameList: Follows in Correlated [choice], then ')'
-- replay CommonSequenceGeneratorOptions: Follows in ColumnValueSource [choice], then ')'
-- replay ContextuallyTypedElement: Follows in ContextuallyTypedRowValueExpression [choice], then ',' …
-- replay ContextuallyTypedTableValueConstructor: Follows in InsertValues [choice], then ?!"UNION"i or "EXCEPT"i or "INTERSECT"i or "ORDER"i or "OFFSET"i or "F…
-- replay ContextuallyTypedValueSpecification: Follows in ContextuallyTypedRowValueExpression [choice], then ')'
-- replay DataType: Follows in Correlated [choice], then Identifier
-- replay FetchOrientation: Follows in FetchStatement [turn], then "FROM"i
-- replay GrantedBy: Follows in RevokeStatement [choice], then DropBehavior
-- replay Grantees: Follows in RevokeStatement [choice], then DropBehavior
-- replay Identifier: Follows in CharacterSetSpecification [turn], then '.'
-- replay IdentityGeneration: Follows in ColumnValueSource [choice], then "AS"i
-- replay JSONInputExpression: Follows in JSONArrayConstructor [choice], then ')'
-- replay JSONOutputClause: Follows in JSONArrayConstructor [choice], then ')'
-- replay JSONPathPredicate: Follows in JSONPredicatePrimary [choice], then ')'
-- replay LargeObjectLength: Follows in BinaryStringType [choice], then ')'
-- replay PrimarySteps: Follows in PrimaryReading [choice], then when ((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0…
-- replay Privileges: Follows in GrantStatement [choice], then "TO"i
-- replay RowPattern: Follows in RowPatternPrimary [choice], then ')'
-- replay SQLStatementName: Follows in DescribeStatement [choice], then UsingDescriptor
-- replay SchemaName: Follows in SchemaNameClause [choice], then "AUTHORIZATION"i
-- replay SimpleTargetSpecification: Follows in SQLDiagnosticsInformation [choice], then '='
-- replay StartField: Follows in IntervalQualifier [choice], then "TO"i
-- replay Subquery: Follows in TablePrimary [choice], then CorrelationOrRecognition
-- replay ValueNode: Follows in CollectionValueConstructor [choice], then "??)" or ']'
-- replay AbsoluteValue: under ValueFunction
-- replay ActualIdentifier: under Identifier
-- replay AggregateCall: under AggregateFunction
-- replay AggregateFunction: under WindowedFunction
-- replay AllFields: under SelectSublist
-- replay AndOperand: under Conjunction
-- replay ArrayElementStep: under FunctionSubscript
-- replay ArrayValueExpression: under ValueFunction
-- replay AsClause: under AllFields
-- replay BasicSequenceGeneratorOption: under CommonSequenceGeneratorOption
-- replay BinaryStringType: under PredefinedType
-- replay BooleanFactor: under Conjunction
-- replay BooleanLiteral: under GeneralLiteral
-- replay BooleanPrimary: under BooleanTest
-- replay BooleanTest: under BooleanFactor
-- replay BooleanValueExpression: under SearchedWhenClause
-- replay BracketTail: under Bracketed
-- replay CaseExpression: under PrimaryBase
-- replay CastSpecification: under PrimaryBase
-- replay ChainOrMeasure: under PrimaryBase
-- replay CharacterSetSpecification: under PredefinedType
-- replay CharacterStringType: under PredefinedType
-- replay CharacterValueExpression: under CharacterNode
-- replay CollateClause: under PredefinedType
-- replay CollectionNode: under TablePrimary
-- replay CollectionTypeSuffix: under DataType
-- replay CollectionValueConstructor: under PrimaryBase
-- replay CollectionValueExpression: under TablePrimary
-- replay ColumnReference: under WindowedFunction
-- replay CommonSequenceGeneratorOption: under CommonSequenceGeneratorOptions
-- replay CommonValueExpression: under DatetimeValueExpression
-- replay CommonValueExpressionOrRow: under BooleanPrimary
-- replay ComparisonTail: under PredicatePart2
-- replay Conjunction: under Disjunction
-- replay ContextuallyTypedRowValueExpression: under ContextuallyTypedTableValueConstructor
-- replay Correlated: under TablePrimary
-- replay CorrelationOrRecognition: under TablePrimary
-- replay CorrespondingSpec: under Intersected
-- replay CycleClause: under SearchOrCycleClause
-- replay DataChangeDeltaTable: under TablePrimary
-- replay DataChangeStatement: under DataChangeDeltaTable
-- replay DataTypeBase: under DataType
-- replay DateLiteral: under GeneralLiteral
-- replay DatetimeType: under PredefinedType
-- replay DatetimeValueExpression: under ForPortionOf
-- replay DatetimeValueFunction: under ValueFunction
-- replay DeleteStatementSearched: under DataChangeStatement
-- replay Disjunction: under Bracketed
-- replay ElseClause: under CaseExpression
-- replay EndField: under IntervalQualifier
-- replay ExistingWindowName: under WindowSpecificationDetails
-- replay ExtractExpression: under NumericValueFunction
-- replay FetchFirstClause: under QueryExpression
-- replay FetchFirstQuantity: under FetchFirstClause
-- replay FieldDefinition: under RowType
-- replay FilterClause: under AggregateFunction
-- replay ForPortionOf: under DeleteStatementSearched
-- replay FromClause: under TableExpression
-- replay FunctionSubscript: under Primary
-- replay GeneralLiteral: under UnsignedLiteral
-- replay GeneralValueSpecification: under PrimaryBase
-- replay GranteeItem: under Grantees
-- replay Grantor: under GrantedBy
-- replay GreatestOrLeastFunction: under PrimaryBase
-- replay GroupByClause: under TableExpression
-- replay GroupingColumnReference: under OrdinaryGroupingSet
-- replay GroupingElement: under GroupByClause
-- replay HavingClause: under TableExpression
-- replay IdentifierChain: under PeriodPredicand
-- replay ImplicitlyTypedValueSpecification: under ContextuallyTypedValueSpecification
-- replay InsertColumnsAndSource: under InsertStatement
-- replay InsertStatement: under DataChangeStatement
-- replay InsertValues: under InsertColumnsAndSource
-- replay Intersected: under QueryTerm
-- replay IntervalLiteral: under GeneralLiteral
-- replay IntervalPrimary: under TimeZoneSpecifier
-- replay IntervalQualifier: under IntervalLiteral
-- replay IntroducedStringLiteral: under GeneralLiteral
-- replay IsPredicatePart2: under PredicatePart2
-- replay JSONAPICommonSyntax: under JSONValueFunction
-- replay JSONAggregateFunction: under AggregateCall
-- replay JSONArgument: under JSONAPICommonSyntax
-- replay JSONArrayConstructor: under PrimaryBase
-- replay JSONColumnBehavior: under JSONTableTypedColumn
-- replay JSONColumnFormat: under JSONTableTypedColumn
-- replay JSONColumnQuotes: under JSONColumnWrapper
-- replay JSONColumnWrapper: under JSONTableTypedColumn
-- replay JSONExistsPredicate: under BooleanPrimary
-- replay JSONInputClause: under JSONInputExpression
-- replay JSONMethod: under PrimaryStep
-- replay JSONNameAndValue: under JSONAggregateFunction
-- replay JSONObjectConstructor: under PrimaryBase
-- replay JSONPathAccessor: under JSONPathUnary
-- replay JSONPathAccessorOp: under JSONPathAccessor
-- replay JSONPathAdded: under JSONPathWff
-- replay JSONPathMultiplicative: under JSONPathWff
-- replay JSONPathMultiplied: under JSONPathMultiplicative
-- replay JSONPathPrimary: under JSONPathAccessor
-- replay JSONPathSign: under JSONPathUnary
-- replay JSONPathUnary: under JSONPathMultiplicative
-- replay JSONPathWff: under JSONSubscript
-- replay JSONPredicatePrimary: under JSONPathPredicate
-- replay JSONQuery: under PrimaryBase
-- replay JSONQueryQuotes: under JSONQuery
-- replay JSONRepresentation: under JSONOutputClause
-- replay JSONSerialize: under StringValueFunction
-- replay JSONSubscript: under PrimaryStep
-- replay JSONTable: under TablePrimary
-- replay JSONTableColumnDefinition: under JSONTableColumnsClause
-- replay JSONTableColumnsClause: under JSONTable
-- replay JSONTableDefaultPlanChoices: under JSONTablePlanClause
-- replay JSONTablePlan: under JSONTablePlanClause
-- replay JSONTablePlanClause: under JSONTable
-- replay JSONTablePlanPrimary: under JSONTablePlan
-- replay JSONTablePlanTail: under JSONTablePlan
-- replay JSONTablePrimitive: under TablePrimary
-- replay JSONTablePrimitiveColumn: under JSONTablePrimitive
-- replay JSONTableTypedColumn: under JSONTableColumnDefinition
-- replay JSONTypedValueFunction: under ValueFunction
-- replay JSONValueBehavior: under JSONValueFunction
-- replay JSONValueExpression: under JSONSerialize
-- replay JSONValueFunction: under PrimaryBase
-- replay JoinOperand: under PartitionedJoin
-- replay JoinOperandTail: under JoinOperand
-- replay JoinPartitioning: under Joins
-- replay JoinSpecification: under PartitionedJoin
-- replay JoinStep: under Joins
-- replay Joins: under TableReference
-- replay LikeEscape: under NegatablePredicatePart2
-- replay ListaggOverflowClause: under AggregateCall
-- replay LocalOrSchemaQualifiedName: under SimpleTable
-- replay MergeCondition: under MergeWhenClause
-- replay MergeInsertSpecification: under MergeWhenClause
-- replay MergeMatchedThen: under MergeWhenClause
-- replay MergeStatement: under DataChangeStatement
-- replay MergeWhenClause: under MergeStatement
-- replay MultisetElementReference: under PrimaryBase
-- replay MultisetValueExpression: under ValueFunction
-- replay NationalCharacterStringType: under PredefinedType
-- replay NegatablePredicatePart2: under PredicatePart2
-- replay NewSpecification: under PrimaryBase
-- replay NextValueExpression: under PrimaryBase
-- replay NumericNode: under NumericValueFunction
-- replay NumericType: under PredefinedType
-- replay NumericValueExpression: under ValueFunction
-- replay NumericValueFunction: under ValueFunction
-- replay ObjectName: under Privileges
-- replay Operand: under CommonValueExpressionOrRow
-- replay Operated: under CommonValueExpressionOrRow
-- replay Operator: under Operated
-- replay OrOperand: under Disjunction
-- replay OrderByClause: under QueryExpression
-- replay OrdinaryGroupingSet: under GroupingElement
-- replay OverflowBehavior: under ListaggOverflowClause
-- replay OverlayFunction: under StringValueFunction
-- replay OverrideClause: under InsertColumnsAndSource
-- replay ParenthesizedJoinedTable: under TablePrimary
-- replay PartitionColumn: under WindowPartitionClause
-- replay PartitionedJoin: under Joins
-- replay PathResolvedUserDefinedTypeName: under DataTypeBase
-- replay PeriodConstructor: under BooleanPrimary
-- replay PeriodContained: under PeriodPredicatePart2
-- replay PeriodPredicand: under PeriodPredicatePart2
-- replay PeriodPredicatePart2: under BooleanPrimary
-- replay PositionExpression: under NumericValueFunction
-- replay Postfix: under Operand
-- replay PredefinedType: under DataTypeBase
-- replay PredicatePart2: under WhenOperand
-- replay PredicatePart2Mark: under BooleanPrimary
-- replay Primary: under Operand
-- replay PrimaryBase: under PrimaryReading
-- replay PrimaryReading: under Primary
-- replay PrimaryStep: under PrimarySteps
-- replay PrivilegeAction: under PrivilegeActions
-- replay PrivilegeActions: under Privileges
-- replay QueryExpression: under Subquery
-- replay QueryExpressionBody: under QueryExpression
-- replay QueryPrimary: under QueryTerm
-- replay QuerySpecification: under SimpleTable
-- replay QuerySystemTimePeriodSpecification: under TablePrimary
-- replay QueryTerm: under QueryExpressionBody
-- replay Recognized: under TablePrimary
-- replay ReferenceResolution: under PrimaryBase
-- replay ReferenceType: under DataTypeBase
-- replay RegexSearch: under NumericValueFunction
-- replay Result: under SimpleWhenClause
-- replay ResultOffsetClause: under QueryExpression
-- replay RoutineInvocation: under PrimaryBase
-- replay RoutineName: under RoutineInvocation
-- replay RoutineType: under SpecificRoutineDesignator
-- replay RowPatternCommonSyntax: under WindowFrameClause
-- replay RowPatternDefinition: under RowPatternCommonSyntax
-- replay RowPatternFactor: under RowPatternTerm
-- replay RowPatternMeasure: under RowPatternMeasures
-- replay RowPatternMeasures: under WindowFrameClause
-- replay RowPatternNavigationOperation: under PrimaryBase
-- replay RowPatternPartitionBy: under RowPatternRecognitionClause
-- replay RowPatternPrimary: under RowPatternFactor
-- replay RowPatternQuantifier: under RowPatternFactor
-- replay RowPatternRecognitionClause: under Recognized
-- replay RowPatternRowsPerMatch: under RowPatternRecognitionClause
-- replay RowPatternSkipTo: under RowPatternCommonSyntax
-- replay RowPatternSubsetClause: under RowPatternCommonSyntax
-- replay RowPatternSubsetItem: under RowPatternSubsetClause
-- replay RowPatternTerm: under RowPattern
-- replay RowType: under DataTypeBase
-- replay RowValueExpression: under NegatablePredicatePart2
-- replay RowValuePredicand: under CaseExpression
-- replay SQLArgument: under SQLArgumentList
-- replay SQLArgumentList: under PrimaryStep
-- replay SampleClause: under TableFactor
-- replay SchemaQualifiedName: under StringValueFunction
-- replay SearchClause: under SearchOrCycleClause
-- replay SearchOrCycleClause: under WithListElement
-- replay SearchedWhenClause: under CaseExpression
-- replay SelectList: under QuerySpecification
-- replay SelectSublist: under SelectList
-- replay SetClause: under SetClauseList
-- replay SetClauseList: under MergeMatchedThen
-- replay SetTarget: under SetClause
-- replay SetTargetTail: under SetTarget
-- replay SignedNumericLiteral: under SimpleValueSpecification
-- replay SimpleOrDynamicValue: under WindowedFunction
-- replay SimpleTable: under QueryPrimary
-- replay SimpleValueSpecification: under SimpleOrDynamicValue
-- replay SimpleWhenClause: under CaseExpression
-- replay SingleDatetimeField: under IntervalQualifier
-- replay SortSpecification: under SortSpecificationList
-- replay SortSpecificationList: under AggregateCall
-- replay SpecificRoutineDesignator: under PrivilegeAction
-- replay StaticMethodInvocation: under PrimaryBase
-- replay StringValueExpression: under NumericValueFunction
-- replay StringValueFunction: under ValueFunction
-- replay SubstringFunction: under StringValueFunction
-- replay SubstringTail: under SubstringFunction
-- replay SubtypeTreatment: under PrimaryBase
-- replay TableExpression: under QuerySpecification
-- replay TableFactor: under TableReference
-- replay TablePrimary: under TableFactor
-- replay TableReference: under FromClause
-- replay TableValueConstructor: under SimpleTable
-- replay TargetCorrelation: under DeleteStatementSearched
-- replay TargetSubtype: under SubtypeTreatment
-- replay TargetTable: under DeleteStatementSearched
-- replay TimeLiteral: under GeneralLiteral
-- replay TimeZone: under Postfix
-- replay TimeZoneSpecifier: under TimeZone
-- replay TimestampLiteral: under GeneralLiteral
-- replay TrimAfterSpecification: under TrimOperands
-- replay TrimFrom: under TrimOperands
-- replay TrimFunction: under StringValueFunction
-- replay TrimOperands: under TrimFunction
-- replay TruthTest: under BooleanTest
-- replay UnionOrExcept: under QueryExpressionBody
-- replay UnsignedLiteral: under PrimaryBase
-- replay UnsignedValueSpecification: under WindowFrameBound
-- replay UpdateStatementSearched: under DataChangeStatement
-- replay UserDefinedTypeSpecification: under IsPredicatePart2
-- replay UsingUnits: under PositionExpression
-- replay ValueExpression: under ValueNode
-- replay ValueExpressionPrimary: under ReferenceResolution
-- replay ValueFunction: under Primary
-- replay WhenOperand: under SimpleWhenClause
-- replay WhereClause: under TableExpression
-- replay WindowClause: under TableExpression
-- replay WindowDefinition: under WindowClause
-- replay WindowFrameBound: under WindowFrameExtent
-- replay WindowFrameClause: under WindowSpecificationDetails
-- replay WindowFrameExclusion: under WindowFrameClause
-- replay WindowFrameExtent: under WindowFrameClause
-- replay WindowFrameStart: under WindowFrameExtent
-- replay WindowNameOrSpecification: under WindowOver
-- replay WindowOrderClause: under WindowSpecificationDetails
-- replay WindowOver: under WindowedFunction
-- replay WindowPartitionClause: under WindowSpecificationDetails
-- replay WindowSpecification: under WindowNameOrSpecification
-- replay WindowSpecificationDetails: under WindowSpecification
-- replay WindowedFunction: under PrimaryBase
-- replay WithClause: under QueryExpression
-- replay WithListElement: under WithClause
-- replay WithinGroupSpecification: under AggregateCall
 
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
