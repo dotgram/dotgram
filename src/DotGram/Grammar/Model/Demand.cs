@@ -47,11 +47,12 @@ namespace DotGram.Grammar.Model;
 /// them are read unbuilt too.
 /// </para>
 /// <para>
-/// <b>Conservative in one direction</b>, the one that builds: a name is found in a guard's
-/// text the way the emitter finds it (<c>Machine.GuardMembers</c>), as a substring, so a
-/// name written inside a string literal counts as asked for — which is also what makes the
-/// tape build it. A captured value the construction never mentions still inherits: the tape
-/// hands the construction every member.
+/// A name is found in a guard's text as the scanner found it free there
+/// (<see cref="RecognitionGraph.FreeNames"/>): an identifier written with a Unicode escape is
+/// the same name, and one inside a string literal or after a dot is not. Without a scanner the
+/// spelling decides, as a substring — <b>conservative in the direction that builds</b>, since a
+/// value a guard asks for and does not get is a null in the author's code. A captured value
+/// the construction never mentions still inherits: the tape hands the construction every member.
 /// </para>
 /// <para>
 /// It reads the graph and nothing else, like <see cref="Replay"/> beside it, so it stands
@@ -179,8 +180,8 @@ public static class Demand
 	/// <summary>
 	/// The left-recursive rules a step of which runs something while reading — a guard, the text
 	/// of a <c>with state</c> — that names the value so far (§4.3): the rule's own value, asked
-	/// for before the rule has answered. Found as a name is found in a guard's text elsewhere here,
-	/// as a substring, which errs towards building.
+	/// for before the rule has answered. Found as a name is found in a guard's text elsewhere here
+	/// (<see cref="Names"/>).
 	/// </summary>
 	static HashSet<RuleSymbol> SelfAsking(RecognitionGraph graph)
 	{
@@ -197,7 +198,7 @@ public static class Demand
 						_                          => null,
 					};
 
-					if (text is not null && text.Contains(step.Value))
+					if (text is not null && Names(graph, text, step.Value))
 					{
 						found.Add(fold.Key);
 						break;
@@ -290,7 +291,7 @@ public static class Demand
 
 			var slot = layout.SlotOrNone(node);
 
-			kept[call] = Named(name, slot, readers) ? Kind.Always : Kind.Inherits;
+			kept[call] = Named(graph, name, slot, readers) ? Kind.Always : Kind.Inherits;
 		}
 
 		foreach (var node in NodeWalk.Descendants(body))
@@ -299,13 +300,24 @@ public static class Demand
 	}
 
 	/// <summary>Whether something that runs while reading, after this capture, names it.</summary>
-	static bool Named(string name, int slot, List<(string Text, int Before)> readers)
+	static bool Named(RecognitionGraph graph, string name, int slot, List<(string Text, int Before)> readers)
 	{
 		foreach (var (text, before) in readers)
-			if ((slot < 0 || slot < before) && text.Contains(name))
+			if ((slot < 0 || slot < before) && Names(graph, text, name))
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// Whether the C# names the identifier: what the scanner found free in it where the graph has
+	/// a scanner's answer, and the spelling, as a substring, where it has none.
+	/// </summary>
+	static bool Names(RecognitionGraph graph, string text, string name)
+	{
+		return graph.FreeNames.TryGetValue(text, out var free)
+			? free.Contains(name)
+			: text.Contains(name);
 	}
 
 	/// <summary>

@@ -138,6 +138,55 @@ public sealed class CarrierDemandTests
 	}
 
 	/// <summary>
+	/// The same rule with the guard naming the value so far by a Unicode escape, which is the same
+	/// identifier to C#: demand is asked of the names the scanner found free in the guard, not of
+	/// the spelling, so every carrier builds what the guard reads and refuses as the tape does.
+	/// </summary>
+	const string EscapedAccumulator = """
+		Start : @string = l: Start & ',' & when @(l.Length > 0) & d: Digit => @(l + d) | d: Digit => @(d)
+		Digit : @string = t: ['0'..'9'] => @(t.ToString())
+		parse Start
+		""";
+
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Auto)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_guard_naming_the_value_so_far_by_an_escape_is_found(CarrierKind carrier)
+	{
+		// The one rule asks for its own value, so nothing in this grammar is ever read unbuilt.
+		var (outcome, _) = Run(carrier, "1,2,", EscapedAccumulator, unbuilds: false);
+
+		Assert.Equal("<refused at 4: Expected ['0'..'9'].>", outcome.Answer);
+	}
+
+	/// <summary>
+	/// And a guard naming an ordinary capture by its escape: <c>x</c> is built while reading
+	/// inside <c>Inner</c>, which nobody captures, on every carrier.
+	/// </summary>
+	const string EscapedCapture = """
+		Start : @string = h: Held & ';' & k: Kept => @(Log("Start", h + k))
+		Held : @string = Inner => @(Log("Held", "held"))
+		Inner : @string = x: Leaf & ',' & y: Other & when @(x.Length > 0) => @(Log("Inner", x + y))
+		Kept : @string = l: Leaf => @(Log("Kept", l))
+		Leaf : @string = t: ['a'..'z']+ => @(Log("Leaf", t.ToString()))
+		Other : @string = t: ['0'..'9']+ => @(Log("Other", t.ToString()))
+		parse Start
+		""";
+
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Auto)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_guard_naming_a_capture_by_an_escape_is_found(CarrierKind carrier)
+	{
+		var (outcome, value) = Run(carrier, "ab,12;cd", EscapedCapture);
+
+		Assert.Equal("heldcd", value);
+		Assert.Equal("Held×1, Kept×1, Leaf×2, Start×1", Counted(outcome.Built));
+	}
+
+	/// <summary>
 	/// The form that answers only yes or no reads once and builds as it reads, so a refusal
 	/// through it has built the accepted prefix once: the two readings of the match form built
 	/// it once more only where a guard asked.
@@ -211,7 +260,11 @@ public sealed class CarrierDemandTests
 	/// Which published form reads the input: <c>match</c>, the <c>Match</c>-returning form, which
 	/// reads a refused input twice; or <c>bool</c>, the form that answers yes or no and reads once.
 	/// </param>
-	static (Outcome Outcome, string? Value) Run(CarrierKind carrier, string input, string grammar = Grammar, string form = "match")
+	/// <param name="unbuilds">
+	/// Whether the immediate reading of the grammar has anything to leave unbuilt at all, which is
+	/// what shows that the carrier under test is the one reading.
+	/// </param>
+	static (Outcome Outcome, string? Value) Run(CarrierKind carrier, string input, string grammar = Grammar, string form = "match", bool unbuilds = true)
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -224,7 +277,7 @@ public sealed class CarrierDemandTests
 
 		// The immediate reading is the one under test, and a grammar it could not carry would
 		// be read on the tape and pass by testing nothing.
-		if (carrier == CarrierKind.Immediate)
+		if (carrier == CarrierKind.Immediate && unbuilds)
 			Assert.Contains("unbuilt", source, StringComparison.Ordinal);
 
 		var host  = EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;

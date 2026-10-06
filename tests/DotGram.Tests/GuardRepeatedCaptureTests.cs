@@ -707,15 +707,17 @@ public sealed class GuardRepeatedCaptureTests
 				.GetField("made", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 
 			// A refusal is read twice — quietly, then again to record what it says (Q7.2) — and
-			// each reading builds what it needs once, so anything built at all is built twice.
-			// The immediate carrier's direct reader also builds the moment it reads a capture,
-			// guard or no guard (the carrier's contract) — but only there: `find` reads ahead of
-			// where a derivation starts, and the engine's own (non-direct) reader defers the same
-			// way the tape carrier does, so neither carries the eagerness.
+			// each reading builds what a guard asks of it once, so a capture handed to the guard is
+			// built twice. The immediate carrier's direct reader also builds the moment it reads a
+			// capture, guard or no guard (the carrier's contract) — but only there, and only on the
+			// quiet reading: the second one asks nothing of its value and leaves the construction
+			// out (Failure.Unasked). `find` reads ahead of where a derivation starts, and the
+			// engine's own (non-direct) reader defers the same way the tape carrier does, so
+			// neither carries the eagerness.
 			var resolvedImmediate = carrier == CarrierKind.Immediate || (carrier == CarrierKind.Auto &&
 				result.Diagnostics.Any(one => one.Id == GramCompiler.CarrierChosen && one.Message.Contains("carried as Immediate")));
 			var eager    = direct && !find && resolvedImmediate;
-			var expected = handed || eager ? 2 : 0;
+			var expected = handed ? 2 : eager ? 1 : 0;
 
 			if (made != expected)
 				wrong.Add(rule + ": made " + made + ", not " + expected);
