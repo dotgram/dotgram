@@ -1759,9 +1759,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1797,9 +1794,6 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("t names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -2245,9 +2239,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2623,9 +2614,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3148,9 +3136,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3189,27 +3174,18 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 2:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("n names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
@@ -3718,9 +3694,6 @@ namespace DotGram.Snapshots
 			}
 
 			values.Room(ways.Records, from: first);
-			#if DOTGRAM_CHECKS
-			Ways.CheckRecords = ways.Records;
-			#endif
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -3756,18 +3729,12 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException("target names record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
 					case 1:
 					{
-						#if DOTGRAM_CHECKS
-						if (log[read] >= Ways.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException("a step of Call follows a reference to record " + log[read] + " of " + Ways.CheckRecords + ", at " + read);
-						#endif
 						live[log[read]] = true;
 						read++;
 						break;
@@ -4649,16 +4616,6 @@ namespace DotGram.Snapshots
 
 
 
-			#if DOTGRAM_CHECKS
-
-			[global::System.ThreadStatic]
-			// Initialised for the same reason the counters are: a grammar with no walk never assigns it,
-			// and CS0649 is an error where a consumer treats warnings as errors. With [ThreadStatic] the
-			// initialiser runs for the first thread only, which for a zero default is what every other
-			// thread gets anyway.
-			internal static int CheckRecords = 0;
-
-			#endif
 
 			#if DOTGRAM_COUNTS
 

@@ -156,11 +156,10 @@ jobs:
             [ "$reported" -eq 3 ] || { echo "::error::DotGram.Sql ($framework) reported $reported parsers, not 3"; exit 1; }
           done
 
-      # Every suite, snapshots included. The check lines are in the generated TEXT whether or not the
-      # symbol is defined — the symbol decides only whether they compile — so the baseline matches
-      # either way, and all eleven snapshots pass here. An exclusion was written first, on the
-      # strength of seven failures seen against a baseline from BEFORE the check lines were
-      # committed; the reason had expired by the time it was written down.
+      # Every suite, snapshots included. The generator writes the check lines only into a compilation
+      # that defines the symbol, as this build does; the snapshots are compiled by the test itself
+      # with options of their own, so they match here as anywhere — one of them, Tower.Checked, is
+      # rendered with the checks on and compiled with the symbol.
       - name: Test with the invariant compiled in
         run: dotnet test DotGram.slnx --no-build --configuration Linux
 

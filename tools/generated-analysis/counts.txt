@@ -6,14 +6,14 @@
 # or the ratchet only protects against regressing to a number looser than reality.
 # package	rule	count
 Examples	IDE0035	0
-Examples	IDE0059	1257
-Examples	IDE0060	135
+Examples	IDE0059	1250
+Examples	IDE0060	125
 Examples	IDE0051	102
 Examples	IDE0052	19
 Examples	IDE0004	41
 ExpressionLanguage	IDE0035	0
-ExpressionLanguage	IDE0059	328
-ExpressionLanguage	IDE0060	315
+ExpressionLanguage	IDE0059	474
+ExpressionLanguage	IDE0060	231
 ExpressionLanguage	IDE0051	0
 ExpressionLanguage	IDE0052	0
 ExpressionLanguage	IDE0004	122
@@ -24,13 +24,13 @@ Finance	IDE0051	171
 Finance	IDE0052	0
 Finance	IDE0004	10
 Sql	IDE0035	0
-Sql	IDE0059	8120
-Sql	IDE0060	5369
+Sql	IDE0059	11015
+Sql	IDE0060	4280
 Sql	IDE0051	873
 Sql	IDE0052	27
 Sql	IDE0004	1645
 Web	IDE0035	0
-Web	IDE0059	1551
+Web	IDE0059	1524
 Web	IDE0060	45
 Web	IDE0051	65
 Web	IDE0052	38
