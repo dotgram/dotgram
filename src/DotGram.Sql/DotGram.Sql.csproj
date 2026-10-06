@@ -48,9 +48,10 @@ Fixed: ten thousand T-SQL CASE … ELSE CASE … ended the process with a stack 
 		     found six of CS1570 in the summaries of Sql2023Ast.cs, where a BNF production name was
 		     written in angle brackets and is not XML. -->
 		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
-		<!-- GRAM5015: the T-SQL parser names the immediate carrier over a grammar Auto would keep on
-		     the tape (TransactSqlParser.cs says why it is safe: pure factories, no host state read
-		     by the reading, held to the tape by an agreement run over the corpus). The warning is
+		<!-- GRAM5015: the SQL:2023 and T-SQL parsers name the immediate carrier over grammars Auto would
+		     keep on the tape (SqlStandardParser.cs and TransactSqlParser.cs say why it is safe: pure
+		     factories, no host state read by the reading, each held to the tape by an agreement run
+		     over the corpus). The warning is
 		     raised in the .gram file, which no pragma reaches, so the suppression is here, scoped to
 		     this project: another project compiling the same file on another carrier still hears it. -->
 		<NoWarn>$(NoWarn);GRAM5015</NoWarn>
