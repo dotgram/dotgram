@@ -25875,3 +25875,69 @@ path never pushed, one assignment on a path already failing. Parts give back not
 an alternative's failure is put back by the loop or the choice around it, and the body's exit
 after a part that pushed does the rest. The tape needs none of this — its references carry the
 slot they were pushed for, and a collector takes only its own — and its output is unchanged.
+
+## SQL:2023 reads by level
+
+`SqlStandardParser` published forty-two productions, so that each could be put to the BNF on its own,
+and nothing but the tests, the stand and the BNF oracle called any of them. A publication is not free
+even when nobody calls it: each is a root of the machines the generator builds, and every one wrote its
+public forms and its entry. The class now publishes six levels — `ParseValue`, `ParseDataType`,
+`ParseExpression` (was `ParseValueExpression`), `ParseSearchCondition`, `ParseStatement` and `ParseSql` —
+and 42 public methods where it had 286.
+
+- **A value** is the standard's `<literal>` or `NULL`. `NULL` is a `<null specification>` in the
+  standard, not a literal, but it is the one value a caller cannot write as one, and `LiteralValue.Null`
+  was already in the tree. `Value` writes `<literal>`'s two alternatives out beside `NULL` rather than
+  calling `Literal`: called, the rule between the entry and the literal was a call and a record more,
+  and `sql/literal` read +14.9% [+11.3..+19.6], five runs of five, against an A/A of -1.3%; written out,
+  -2.6% against an A/A of +2.1%.
+- **A statement** is the union of what direct invocation reads and what a routine's body reads: the
+  executable statements, a query as a cursor specification, and a temporary table's declaration, ended
+  by `;` or by the end of the text. The query is asked first. Asked after the executable statements, the
+  single-row `SELECT … INTO` among them read every query's select list before it found no `INTO`, and
+  the list was read again as the query's: `DeepNestingCountTests` counted 6,300 records at fifty levels
+  of subqueries in a select list where the query entry had read 3,164, and the same twice over for CASE
+  and COALESCE. Only that statement begins as a query does, and it is no query, so the order decides
+  nothing else.
+- **A text** is `SqlStatement*`, so `ParseSql`'s machine reaches `ParseStatement`'s and the two are one
+  machine; an empty statement (`;;`, a `;` first) is refused, where T-SQL's `ParseSql` reads it as the
+  engine does.
+- **No query entry.** A query reads as a statement, to the same `Statement.Select`; a caller that wants
+  a query and nothing else tests the node's type and `Updatability`.
+
+The productions are published again by a test fixture, `tests/DotGram.Sql.Productions`, which includes
+the grammar (`[GramInclude]`, `Carrier = Tape`, `Portable = false`). The BNF oracle asks it, and `Both`
+reads each production there and holds the shipped class's level to every reading: a statement or a
+query the production reads is the same tree to `ParseStatement`, a literal to `ParseValue`, and a data
+type, an expression or a search condition answers the same, refusals and their messages included. The
+fixture is a parser compiled apart — its own kinds, machines and memo — so it tests the grammar and the
+include; the shipped class is tested through its levels. Five rules no level reaches — `<direct SQL
+statement>`, `<directly executable statement>`, `<direct SQL data statement>`, `<predicate>` and the
+binary string tower — are the fixture's own: left in the shipped grammar they were GRAM4018.
+
+Not done: publishing the productions in the shipped class behind a build symbol for the tests. It is a
+generator feature that does not exist (no symbol gates a `parse` directive), and the tests would then
+run against a build of `DotGram.Sql` that is not the one packed — a sibling as much as the fixture is,
+and one that stays out of the package only by configuration.
+
+What it moved, measured on the commit before and after:
+
+- `SqlStandardParser.g.cs` 7,035,799 → 6,299,293 bytes (-10.5%), 197,241 → 178,960 lines; the
+  T-SQL and SQL-92 parsers' generated files byte for byte the same. `DotGram.Sql.dll` (net10.0)
+  11,711,488 → 11,489,792 bytes.
+- Machines (`docs/carriers.md`): four → three — `ParseValue` (13 building rules), `ParseExpression`,
+  `ParseDataType` and `ParseSearchCondition` (293), `ParseSql` and `ParseStatement` (540). The
+  statement machine still reads the expression rules again.
+- Over the ScriptDom corpus, every statement whole and cut at 60%: `ParseDataType`, `ParseExpression`
+  and `ParseSearchCondition` answer byte for byte as before; `ParseValue` as `ParseLiteral` did but for
+  `"NULL"i` in what a refusal expected. Every text `TryParseDirectSQLStatement` (582),
+  `TryParseQueryExpression` (460) or `TryParseSQLProcedureStatement` (133) read, `ParseStatement`
+  reads to the same tree. `DotGram.MessageDiff` now reads `ParseStatement`: of 15,520 SQL:2023 lines
+  12,238 are the same, 3,124 expect more at the same place (every statement's first words, and `;` or
+  the end where a statement could end), 139 are refused later (a procedure statement read further) and
+  19 are read (`OPEN`, `CLOSE`, `EXECUTE`, `RETURN`, `SELECT … INTO`); the 17,692 T-SQL lines are the same.
+- The stand, paired with the parent and its A/A, five runs: no row of `literal`, `arithmetic`, `nest8`,
+  `condition`, `condition1`, `conditions100` and `conditions1000` moved past its A/A. The query rows read
+  statements now (`select1`, `select20`, `values`, `comment`, `refused-late`, and `create` as
+  `statement-create`), with a `;`; they are new rows, as are `value1` and `script`, and `column` is
+  gone.
