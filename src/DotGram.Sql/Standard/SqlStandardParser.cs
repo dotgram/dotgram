@@ -42,8 +42,25 @@ namespace DotGram.Sql.Standard;
 /// character, datetime, interval — as towers that meet only in a primary, and a parser has no
 /// types; an expression is read once and <see cref="Towers"/> says which towers it still belongs to.
 /// </para>
+/// <para>
+/// <b>It is carried immediately, by name.</b> A node is built the moment its rule has been read, and
+/// nothing is recorded on a tape and replayed once the parse is accepted. Left to choose, the
+/// generator would keep this grammar on the tape: some three hundred of its five hundred building
+/// rules are read for derivations the parse may give up — an ordered choice tries the longer
+/// alternative first — and that is what the request costs: a construction runs for a reading that is
+/// then abandoned, and an exception thrown there would escape the publication. Here none can. The
+/// factories of <c>Nodes</c> and <see cref="Towers"/> build records from what they are given and
+/// read no host state, and the guards read a tower's roles and nothing else, so a derivation given
+/// up leaves nothing a later one could read. Held to the tape by an agreement run over the ScriptDom
+/// corpus, each statement whole and cut, every string of the tests, every accepted text cut at each
+/// word boundary and given a stray token, through all six entries: the same trees, the same
+/// messages, nothing thrown; and <c>tests/DotGram.Sql.Productions</c> compiles the same grammar on
+/// the tape, so the two carriers are held to each other on every test run. What it buys is the time
+/// the tape spent recording and replaying, for more bytes allocated where a reading is abandoned
+/// part-way.
+/// </para>
 /// </remarks>
-[Gram("SqlStandard.gram", Lexical = true)]
+[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public abstract partial class SqlStandardParser
 {
 }
