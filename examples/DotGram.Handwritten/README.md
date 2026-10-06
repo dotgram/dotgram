@@ -76,7 +76,9 @@ same tree and refuses the same input; a ratio against a parser that quietly read
 would say nothing about the generator.
 
 - **Publications keep the generated names**: `ParseLiteral`, `TryParseDataType` and the
-  rest, one pair per publication of the grammar. `TryParseX(string, out T)` answers rather
+  rest, one pair per production the grammar was published by, and the six levels the shipped
+  parser publishes now — `ParseValue`, `ParseDataType`, `ParseExpression`, `ParseSearchCondition`,
+  `ParseStatement` and `ParseSql` (`HandSqlStandard.Levels.cs`). `TryParseX(string, out T)` answers rather
   than throwing, and `ParseX` throws `FormatException`.
 - **The whole language**: all forty-two publications of the grammar, from §5's tokens to
   §23's diagnostics, with §6's value expressions and their functions, §7's queries, §8's
@@ -100,7 +102,9 @@ would say nothing about the generator.
 ### How it is held to the generated parser
 
 - `Both` in `tests/DotGram.Sql.Tests` calls both parsers and asserts the same verdict and
-  the same tree, property by property. Every row of `SqlStandardParserTests` and
+  the same tree, property by property. A production is read on the generated side by
+  `SqlStandardProductions` (`tests/DotGram.Sql.Productions`), the grammar included and published
+  production by production, and the shipped class's level is held to every reading. Every row of `SqlStandardParserTests` and
   `SqlStandardTreeTests` for a production it reads goes through it, so `dotnet test` is the
   check.
 - `--standard "^production" file` in DotGram.Benchmarks puts every line of a corpus to both
