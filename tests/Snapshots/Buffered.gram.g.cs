@@ -427,9 +427,7 @@ namespace DotGram.Snapshots
 			public int Read_Feed_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -439,9 +437,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -473,9 +469,7 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var lm2L = ways.Last;
+					var lm2 = ways.Snap();
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
@@ -486,9 +480,7 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.Last      = lm2L;
+						ways.Rewind(lm2);
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -515,9 +507,7 @@ namespace DotGram.Snapshots
 			public int Read_Record_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -527,9 +517,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -656,9 +644,7 @@ namespace DotGram.Snapshots
 			public int Read_eol_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -668,9 +654,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -718,18 +702,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1  = ways.LogCount;
-								var lm1R = ways.Records;
-								var lm1L = ways.Last;
+								var lm1 = ways.Snap();
 								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm1;
-									ways.Records   = lm1R;
-									ways.Last      = lm1L;
+									ways.Rewind(lm1);
 									ways.RefsCount = rr1;
 								}
 
@@ -739,18 +719,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2  = ways.LogCount;
-								var lm2R = ways.Records;
-								var lm2L = ways.Last;
+								var lm2 = ways.Snap();
 								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm2;
-									ways.Records   = lm2R;
-									ways.Last      = lm2L;
+									ways.Rewind(lm2);
 									ways.RefsCount = rr2;
 								}
 							}
@@ -806,17 +782,13 @@ namespace DotGram.Snapshots
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
-				var lm0  = ways.LogCount;
-				var lm0R = ways.Records;
-				var lm0L = ways.Last;
+				var lm0 = ways.Snap();
 				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Feed_Part0(p);
 				failure.Looking--;
 
-				ways.LogCount  = lm0;
-				ways.Records   = lm0R;
-				ways.Last      = lm0L;
+				ways.Rewind(lm0);
 				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
@@ -846,9 +818,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -858,9 +828,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -889,9 +857,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -901,9 +867,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1289,9 +1253,7 @@ namespace DotGram.Snapshots
 			public int Read_Feed_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1301,9 +1263,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1335,9 +1295,7 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var lm2L = ways.Last;
+					var lm2 = ways.Snap();
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
@@ -1348,9 +1306,7 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.Last      = lm2L;
+						ways.Rewind(lm2);
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -1377,9 +1333,7 @@ namespace DotGram.Snapshots
 			public int Read_Record_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1389,9 +1343,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1518,9 +1470,7 @@ namespace DotGram.Snapshots
 			public int Read_eol_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1530,9 +1480,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1580,18 +1528,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1  = ways.LogCount;
-								var lm1R = ways.Records;
-								var lm1L = ways.Last;
+								var lm1 = ways.Snap();
 								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm1;
-									ways.Records   = lm1R;
-									ways.Last      = lm1L;
+									ways.Rewind(lm1);
 									ways.RefsCount = rr1;
 								}
 
@@ -1601,18 +1545,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2  = ways.LogCount;
-								var lm2R = ways.Records;
-								var lm2L = ways.Last;
+								var lm2 = ways.Snap();
 								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm2;
-									ways.Records   = lm2R;
-									ways.Last      = lm2L;
+									ways.Rewind(lm2);
 									ways.RefsCount = rr2;
 								}
 							}
@@ -1667,17 +1607,13 @@ namespace DotGram.Snapshots
 			public int Read_eof_Buffered_ParseFeed(int pos)
 			{
 				var p = pos;
-				var lm0  = ways.LogCount;
-				var lm0R = ways.Records;
-				var lm0L = ways.Last;
+				var lm0 = ways.Snap();
 				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Buffered_ParseFeed_Part0(p);
 				failure.Looking--;
 
-				ways.LogCount  = lm0;
-				ways.Records   = lm0R;
-				ways.Last      = lm0L;
+				ways.Rewind(lm0);
 				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
@@ -1707,9 +1643,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1719,9 +1653,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1750,9 +1682,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1762,9 +1692,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1853,9 +1781,7 @@ namespace DotGram.Snapshots
 			public int Read_Feed_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1865,9 +1791,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -1899,9 +1823,7 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var lm2L = ways.Last;
+					var lm2 = ways.Snap();
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
@@ -1912,9 +1834,7 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.Last      = lm2L;
+						ways.Rewind(lm2);
 						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -1941,9 +1861,7 @@ namespace DotGram.Snapshots
 			public int Read_Record_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -1953,9 +1871,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2082,9 +1998,7 @@ namespace DotGram.Snapshots
 			public int Read_eol_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2094,9 +2008,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2144,18 +2056,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1  = ways.LogCount;
-								var lm1R = ways.Records;
-								var lm1L = ways.Last;
+								var lm1 = ways.Snap();
 								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Bytes_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm1;
-									ways.Records   = lm1R;
-									ways.Last      = lm1L;
+									ways.Rewind(lm1);
 									ways.RefsCount = rr1;
 								}
 
@@ -2165,18 +2073,14 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2  = ways.LogCount;
-								var lm2R = ways.Records;
-								var lm2L = ways.Last;
+								var lm2 = ways.Snap();
 								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Bytes_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.LogCount  = lm2;
-									ways.Records   = lm2R;
-									ways.Last      = lm2L;
+									ways.Rewind(lm2);
 									ways.RefsCount = rr2;
 								}
 							}
@@ -2231,17 +2135,13 @@ namespace DotGram.Snapshots
 			public int Read_eof_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var p = pos;
-				var lm0  = ways.LogCount;
-				var lm0R = ways.Records;
-				var lm0L = ways.Last;
+				var lm0 = ways.Snap();
 				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Buffered_ParseFeed_Bytes_Part0(p);
 				failure.Looking--;
 
-				ways.LogCount  = lm0;
-				ways.Records   = lm0R;
-				ways.Last      = lm0L;
+				ways.Rewind(lm0);
 				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
@@ -2271,9 +2171,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2283,9 +2181,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -2314,9 +2210,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var lmL = ways.Last;
+				var lm = ways.Snap();
 				var rb = ways.RefsCount;
 
 				while (true)
@@ -2326,9 +2220,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					ways.Last      = lmL;
+					ways.Rewind(lm);
 					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
@@ -4080,9 +3972,46 @@ namespace DotGram.Snapshots
 			/// The two are one fact in two units, and a walk needs both — the record number to index the
 			/// flags and the tables, the position to start stepping from. They move together and only
 			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// lowers it, and the snapshot a give-back restores carries both.
 			/// </remarks>
 			internal int AllBuiltAt;
+
+			/// <summary>Where the log stood: what a reading given back puts it back to.</summary>
+			/// <remarks>
+			/// Passed by value and not by reference, so that it stays three registers in the method
+			/// that took it rather than a struct in memory whose address escaped.
+			/// </remarks>
+			internal struct Snapshot
+			{
+				internal int LogCount;
+				internal int Records;
+
+				/// <summary>
+				/// The last record closed: a reference to a record is <see cref="Last"/> at the moment it is
+				/// pushed, so one left pointing into an abandoned reading names a record the parse no longer has.
+				/// </summary>
+				internal int Last;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal Snapshot Snap()
+			{
+				Snapshot mark;
+
+				mark.LogCount = LogCount;
+				mark.Records  = Records;
+				mark.Last     = Last;
+
+				return mark;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Rewind(Snapshot mark)
+			{
+				LogCount = mark.LogCount;
+				Records  = mark.Records;
+				Last     = mark.Last;
+			}
 
 
 

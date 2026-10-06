@@ -1712,7 +1712,7 @@ namespace DotGram.Snapshots
 			/// The two are one fact in two units, and a walk needs both — the record number to index the
 			/// flags and the tables, the position to start stepping from. They move together and only
 			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// lowers it, and the snapshot a give-back restores carries both.
 			/// </remarks>
 			internal int AllBuiltAt;
 

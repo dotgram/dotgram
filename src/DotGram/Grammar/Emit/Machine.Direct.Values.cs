@@ -831,7 +831,7 @@ sealed partial class Machine
 		// captures were recorded since its rule began, and nothing before that reaches them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
-			$"{WaysType} ways, {InputType} text, DirectValues values, int root, int from, int first" +
+			$"{WaysType} ways, {InputType} text, DirectValues values, int root, {WaysType}.Snapshot since" +
 			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int roots = -1, long rootSlots = 0)"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
@@ -934,6 +934,11 @@ sealed partial class Machine
 					}
 				}
 			}
+
+			// The caller's mark in the two numbers the walk counts in: where in the log, and which record.
+			file.Line("var from  = since.LogCount;");
+			file.Line("var first = since.Records;");
+			file.Line();
 
 			// THE WALK STARTS ABOVE WHAT IS ALREADY BUILT. Everything below the watermark is built, so
 			// there is nothing down there for any of the three passes to do; starting at it is what a

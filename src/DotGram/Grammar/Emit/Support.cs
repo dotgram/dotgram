@@ -2447,9 +2447,75 @@ public static partial class CSharpEmitter
 			/// The two are one fact in two units, and a walk needs both — the record number to index the
 			/// flags and the tables, the position to start stepping from. They move together and only
 			/// together: raised where the fast path raises the watermark, lowered wherever a give-back
-			/// lowers it, and the mark a give-back restores carries both (<c>lm0</c> and <c>lm0R</c>).
+			/// lowers it, and the snapshot a give-back restores carries both.
 			/// </remarks>
 			internal int AllBuiltAt;
+			// <snap>
+
+			/// <summary>Where the log stood: what a reading given back puts it back to.</summary>
+			/// <remarks>
+			/// Passed by value and not by reference, so that it stays three registers in the method
+			/// that took it rather than a struct in memory whose address escaped.
+			/// </remarks>
+			internal struct Snapshot
+			{
+				internal int LogCount;
+				internal int Records;
+
+				/// <summary>
+				/// The last record closed: a reference to a record is <see cref="Last"/> at the moment it is
+				/// pushed, so one left pointing into an abandoned reading names a record the parse no longer has.
+				/// </summary>
+				internal int Last;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal Snapshot Snap()
+			{
+				Snapshot mark;
+
+				mark.LogCount = LogCount;
+				mark.Records  = Records;
+				mark.Last     = Last;
+
+				return mark;
+			}
+			// <rewind>
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Rewind(Snapshot mark)
+			{
+				LogCount = mark.LogCount;
+				Records  = mark.Records;
+				Last     = mark.Last;
+			}
+			// </rewind>
+			// <rewindbuilt>
+
+			/// <summary>
+			/// The log put back, and the watermarks of what a guard built with it: a record above
+			/// them is one written since, and a value built in a derivation that was then abandoned is
+			/// not the value of the record the next derivation writes at the same place. A method of its
+			/// own rather than a flag, so that the give-back where nothing builds has no branch.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void RewindBuilt(Snapshot mark)
+			{
+				LogCount = mark.LogCount;
+				Records  = mark.Records;
+				Last     = mark.Last;
+
+				if (Built > mark.Records)
+					Built = mark.Records;
+
+				if (AllBuilt > mark.Records)
+				{
+					AllBuilt   = mark.Records;
+					AllBuiltAt = mark.LogCount;
+				}
+			}
+			// </rewindbuilt>
+			// </snap>
 
 			// <expectations>
 			/// <summary>
