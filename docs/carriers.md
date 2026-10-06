@@ -5,21 +5,22 @@ Every grammar the last build with `-p:DotGramReportGeneration=full` compiled: th
 held there. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the reports
 that build left; run again rather than edited.
 
-Read from 8 projects, and written when each one was last compiled with the
+Read from 9 projects, and written when each one was last compiled with the
 report on. A project built below that level leaves no report and is absent here rather than
 empty, so a short table is a short build and not a grammar with nothing to say; a project whose
 time is older than the rest was not in the last build, and its rows are that build's answer.
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-03 22:11 |
-| DotGram.Examples | 2026-10-03 22:10 |
-| DotGram.ExpressionLanguage | 2026-10-03 22:10 |
-| DotGram.Finance | 2026-10-03 22:10 |
-| DotGram.Finance.Fix44 | 2026-10-03 22:11 |
-| DotGram.Sql | 2026-10-03 22:10 |
-| DotGram.Tests | 2026-10-03 22:12 |
-| DotGram.Web | 2026-10-03 22:10 |
+| DotGram.Benchmarks | 2026-10-05 23:06 |
+| DotGram.Examples | 2026-10-05 23:03 |
+| DotGram.ExpressionLanguage | 2026-10-05 23:03 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-05 23:03 |
+| DotGram.Finance | 2026-10-05 23:05 |
+| DotGram.Finance.Fix44 | 2026-10-05 23:05 |
+| DotGram.Sql | 2026-10-05 23:04 |
+| DotGram.Tests | 2026-10-05 23:06 |
+| DotGram.Web | 2026-10-05 23:03 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -50,7 +51,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.ImmediateSql |  |  | immediate (author) |  |  |  |  |  |  |  | 12/244 |
-| DotGram.Benchmarks.ImmediateSqlStandard |  |  | immediate (author) |  |  |  |  |  |  |  | 1284/2644 |
+| DotGram.Benchmarks.ImmediateSqlStandard |  |  | immediate refused (author) |  |  |  |  |  |  |  | 1284/2644 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none |  |  |  |  |  |  | 19/19 |
 | DotGram.Benchmarks.MaterializationCost.NoCaptures | 1 | 1 | tape | read again | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 1 | tape | replay | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
@@ -97,13 +98,13 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 1 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser | 2 | 2 | tape | replay | 163 | 151 | 22 | 0 | 2 | 0 | 46/972 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 46/972 |
+| DotGram.ExpressionLanguage.ExpressionParser | 1 | 1 | tape | replay | 103 | 97 | 26 | 0 | 0 | 0 | 23/505 |
+| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  | 23/505 |
 | DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1830/1830 |
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Standard.Sql92Parser | 1 | 1 | tape | replay | 49 | 45 | 4 | 0 | 0 | 0 | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser | 4 | 4 | tape | replay | 557 | 309 | 27 | 0 | 2 | 0 | 1284/2644 |
+| DotGram.Sql.Standard.SqlStandardParser | 4 | 4 | tape | replay | 557 | 309 | 28 | 0 | 2 | 0 | 1284/2644 |
 | DotGram.Sql.TransactSql.TransactSqlParser | 2 | 2 | tape | replay | 655 | 323 | 79 | 0 | 1 | 0 | 2352/3138 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 1 | tape | read again | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -111,6 +112,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Tests.Calculators.TwoCalculators | 2 | 0 | immediate | none |  |  |  |  |  |  | 34/34 |
 | DotGram.Tests.Extents | 1 | 0 | immediate | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Tests.Generated.UrlGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1/1 |
+| DotGram.Tests.RereadUnderSubstitutionTests.Reread | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc3339 | 1 | 0 | immediate | none |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc3986 | 1 | 1 | tape | read again | 6 | 0 | 0 | 12 | 0 | 0 | 19/19 |
 | DotGram.Web.Rfc5322 | 5 | 5 | tape | read again | 48 | 0 | 0 | 99 | 0 | 0 | 129/129 |
@@ -121,8 +123,8 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Web.Rfc6901 | 2 | 0 | immediate | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Web.Rfc7239 | 2 | 2 | tape | read again | 7 | 0 | 0 | 7 | 0 | 0 | 16/16 |
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none |  |  |  |  |  |  | 29/29 |
-| DotGram.Web.Rfc8288 | 1 | 1 | tape | read again | 5 | 0 | 0 | 6 | 0 | 0 | 9/9 |
-| DotGram.Web.Rfc9110 | 1 | 1 | tape | read again | 4 | 0 | 0 | 7 | 0 | 0 | 13/13 |
+| DotGram.Web.Rfc8288 | 1 | 1 | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 9/9 |
+| DotGram.Web.Rfc9110 | 1 | 1 | tape | read again | 4 | 0 | 0 | 6 | 0 | 0 | 13/13 |
 | DotGram.Web.Rfc9651 | 3 | 3 | tape | read again | 15 | 0 | 0 | 17 | 0 | 0 | 44/44 |
 
 ## Machine by machine
@@ -220,8 +222,8 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Web.Rfc7239 | ParseForwarded | whole | tape | read again | 6 | 0 | 2 | 0 | 12/12 |
 | DotGram.Web.Rfc7239 | ParseNode | whole | tape | read again | 1 | 0 | 5 | 0 | 4/4 |
 | DotGram.Web.Rfc8259 | ParseJson | whole | immediate | none | 0 | 0 | 0 | 0 | 29/29 |
-| DotGram.Web.Rfc8288 | ParseLinks | whole | tape | read again | 5 | 0 | 6 | 0 | 9/9 |
-| DotGram.Web.Rfc9110 | ParseContentType | whole | tape | read again | 4 | 0 | 7 | 0 | 7/7 |
+| DotGram.Web.Rfc8288 | ParseLinks | whole | tape | read again | 5 | 0 | 5 | 0 | 9/9 |
+| DotGram.Web.Rfc9110 | ParseContentType | whole | tape | read again | 4 | 0 | 6 | 0 | 7/7 |
 | DotGram.Web.Rfc9651 | ParseItem | whole | tape | read again | 7 | 0 | 9 | 0 | 22/22 |
 | DotGram.Web.Rfc9651 | ParseList | whole | tape | read again | 11 | 0 | 13 | 0 | 34/34 |
 | DotGram.Web.Rfc9651 | ParseDictionary | whole | tape | read again | 12 | 0 | 14 | 0 | 37/37 |
@@ -237,8 +239,8 @@ or which nothing calls, so that no caller asks it again.
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | choice | alternatives begin alike | 13 | 23 | 38 | 0 | 8 | NoCaptures.Host: `(IPv4 \| RegName)` |
-| turns | a turn led by what may read nothing | 7 | 13 | 29 | 7 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
-| run | what follows begins alike | 14 | 24 | 24 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
+| turns | a turn led by what may read nothing | 7 | 12 | 24 | 7 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| run | what follows begins alike | 14 | 22 | 22 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
 | optional | what follows begins alike | 12 | 12 | 16 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
@@ -246,6 +248,7 @@ or which nothing calls, so that no caller asks it again.
 | counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
 | turns | the seam leads every alternative of the turn | 5 | 5 | 7 | 7 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | turns | what follows begins alike | 4 | 5 | 6 | 5 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
+| turns | follow unknown | 1 | 1 | 5 | 0 | 0 | Rfc5322.Cfws: `(Fws? & Comment)+` |
 | choice | the seam leads every alternative | 2 | 2 | 4 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
 | optional | a turn led by what may read nothing | 2 | 3 | 3 | 1 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
@@ -845,6 +848,7 @@ or which nothing calls, so that no caller asks it again.
 - replay JSONInputExpression: Follows in JSONArrayConstructor [choice], then ')'
 - replay JSONOutputClause: Follows in JSONArrayConstructor [choice], then ')'
 - replay JSONPathPredicate: Follows in JSONPredicatePrimary [choice], then ')'
+- replay LargeObjectLength: Follows in BinaryStringType [choice], then ')'
 - replay PrimarySteps: Follows in PrimaryReading [choice], then when ((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0…
 - replay Privileges: Follows in GrantStatement [choice], then "TO"i
 - replay RowPattern: Follows in RowPatternPrimary [choice], then ')'
@@ -982,7 +986,6 @@ or which nothing calls, so that no caller asks it again.
 - replay JoinSpecification: under PartitionedJoin
 - replay JoinStep: under Joins
 - replay Joins: under TableReference
-- replay LargeObjectLength: under CharacterLargeObjectLength
 - replay LikeEscape: under NegatablePredicatePart2
 - replay ListaggOverflowClause: under AggregateCall
 - replay LocalOrSchemaQualifiedName: under SimpleTable
@@ -1571,19 +1574,19 @@ or which nothing calls, so that no caller asks it again.
 - again Ccontent: through Comment
 - again Cfws: opens a way
 - open Cfws: choice; alternatives begin alike; open; ({ (Fws? & Comment)+ & Fws? } | Fws)
-- open Cfws: turns; a turn led by what may read nothing; open; (Fws? & Comment)+
+- open Cfws: turns; follow unknown; open; (Fws? & Comment)+
 - again Cfws: opens a way
 - open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With1)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With1)+
+- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With1)+
 - again Cfws: opens a way
 - open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With2)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With2)+
+- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With2)+
 - again Cfws: opens a way
 - open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With3)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With3)+
+- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With3)+
 - again Cfws: opens a way
 - open Cfws: choice; alternatives begin alike; open; ({ (CurrentFws? & Comment_With4)+ & CurrentFws? } | CurrentFws)
-- open Cfws: turns; a turn led by what may read nothing; open; (CurrentFws? & Comment_With4)+
+- open Cfws: turns; follow unknown; open; (CurrentFws? & Comment_With4)+
 - again Comment: opens a way
 - open Comment: turns; a turn led by what may read nothing; open; (Fws? & Ccontent)*
 - again Comment: opens a way
@@ -1808,7 +1811,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Web.Rfc8288
 
-- machine ParseLinks [whole]: carrier: tape; gate: read again; building: 5; replayed: 0; read again: 6; refused: 0; points: 9/9
+- machine ParseLinks [whole]: carrier: tape; gate: read again; building: 5; replayed: 0; read again: 5; refused: 0; points: 9/9
 - again Assignment: opens a way
 - open Assignment: optional; what follows begins alike; open; ('=' & Ows & (Token | QuotedString))?
 - again Field: through Ows
@@ -1817,14 +1820,12 @@ or which nothing calls, so that no caller asks it again.
 - open LinkValue: turns, captured; a turn led by what may read nothing; open; parameters: LinkParam*
 - again Ows: opens a way
 - open Ows: run; what follows begins alike; open; ['\t' | ' ']*
-- again Token: opens a way
-- open Token: run; what follows begins alike; open; Tchar+
 
 ## DotGram.Web.Rfc9110
 
-- machine ParseContentType [whole]: carrier: tape; gate: read again; building: 4; replayed: 0; read again: 7; refused: 0; points: 7/7
+- machine ParseContentType [whole]: carrier: tape; gate: read again; building: 4; replayed: 0; read again: 6; refused: 0; points: 7/7
 - again ContentTypeField: through Ows
-- again Media: through Token
+- again Media: through Parameters
 - again Ows: opens a way
 - open Ows: run; what follows begins alike; open; ['\t' | ' ']*
 - again ParameterSlot: through Ows
@@ -1832,8 +1833,6 @@ or which nothing calls, so that no caller asks it again.
 - open ParameterText: optional; what follows begins alike; open; (Token & '=' & (Token | QuotedString))?
 - again Parameters: opens a way
 - open Parameters: turns, captured; a turn led by what may read nothing; open; slots: ParameterSlot*
-- again Token: opens a way
-- open Token: run; what follows begins alike; open; Tchar+
 
 ## DotGram.Web.Rfc9651
 
