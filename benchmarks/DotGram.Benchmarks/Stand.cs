@@ -454,7 +454,7 @@ static partial class Stand
 			// carrier was priced on. The accepted rows and then the refusals, named so that the stand expects
 			// them refused: early, at the first token the grammar cannot place; late, after a long accepted
 			// prefix whose constructions the immediate carrier has already run; a stray token after a whole
-			// query; a long condition cut mid-token.
+			// query; a condition of a hundred predicates cut after the ninety-first's operator.
 			Sql92("literal", "42", Sql92Parser.TryParseValueExpression, TapeSql.TryParseValueExpression),
 			Sql92("arithmetic", Sql92Arithmetic, Sql92Parser.TryParseValueExpression, TapeSql.TryParseValueExpression),
 			Sql92("condition", SqlConditions(100), Sql92Parser.TryParseSearchCondition, TapeSql.TryParseSearchCondition),
@@ -464,7 +464,7 @@ static partial class Stand
 			Sql92("refused-early", "SELECT a, b FROM", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
 			Sql92("refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
 			Sql92("refused-stray", Sql92Join + " )", Sql92Parser.TryParseSelect, TapeSql.TryParseSelect),
-			Sql92("refused-cut90", SqlConditions(100)[..(SqlConditions(100).Length * 9 / 10)], Sql92Parser.TryParseSearchCondition, TapeSql.TryParseSearchCondition),
+			Sql92("refused-cut90", SqlConditions(90) + " AND a90 =", Sql92Parser.TryParseSearchCondition, TapeSql.TryParseSearchCondition),
 		];
 	}
 
@@ -1894,7 +1894,7 @@ static partial class Stand
 			PairedSql92("refused-early", "TryParseSelect", "SELECT a, b FROM", before, after),
 			PairedSql92("refused-late", "TryParseSelect", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ", before, after),
 			PairedSql92("refused-stray", "TryParseSelect", Sql92Join + " )", before, after),
-			PairedSql92("refused-cut90", "TryParseSearchCondition", SqlConditions(100)[..(SqlConditions(100).Length * 9 / 10)], before, after),
+			PairedSql92("refused-cut90", "TryParseSearchCondition", SqlConditions(90) + " AND a90 =", before, after),
 		];
 	}
 
