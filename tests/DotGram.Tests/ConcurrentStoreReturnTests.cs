@@ -101,6 +101,7 @@ public sealed class ConcurrentStoreReturnTests
 				go.Wait();
 
 				for (var round = 0; round < 2; round++)
+				{
 					foreach (var at in order)
 					{
 						var row = rows[at];
@@ -113,7 +114,7 @@ public sealed class ConcurrentStoreReturnTests
 							if (actual != row.Expected)
 								failures.Enqueue($"{where}: expected <{row.Expected}> but got <{actual}>");
 
-							foreach (var complaint in StoreComplaints(row.Parser))
+							foreach (var complaint in StoreComplaints(row.Parser, rented: false))
 								failures.Enqueue($"{where}: after Return, {complaint}");
 						}
 						catch (Exception exception)
@@ -121,6 +122,13 @@ public sealed class ConcurrentStoreReturnTests
 							failures.Enqueue($"{where}: threw {exception}");
 						}
 					}
+
+					// By the end of a round every parser has read something that rents a store, so the pool
+					// of each holds one: a store returned and lost would be missing here.
+					foreach (var parser in rows.Select(static row => row.Parser).Distinct())
+						foreach (var complaint in StoreComplaints(parser, rented: true))
+							failures.Enqueue($"{origin}/round{round}, {parser.Name} after the round: {complaint}");
+				}
 			}, Stack)
 			{ IsBackground = true };
 		}
@@ -205,10 +213,15 @@ public sealed class ConcurrentStoreReturnTests
 	/// the ordinary spare, the deeper spares, the parked large store and the two let go of weakly —
 	/// and what is wrong with each, if anything.
 	/// </summary>
-	static IEnumerable<string> StoreComplaints(Type parser)
+	/// <param name="rented">
+	/// Whether the reading just done is known to have rented a store, so that an empty pool is a store
+	/// lost. The tape rents one for every parse; the immediate carrier rents one only for a machine that
+	/// gathers values onto its stacks, and SQL:2023's <c>ParseValue</c>, which gathers none, rents none.
+	/// </param>
+	static IEnumerable<string> StoreComplaints(Type parser, bool rented)
 	{
 		// The store is the carrier's: DirectValues on the tape, ImmediateValues where the parser is
-		// carried immediately (T-SQL). Both pool their stores the same way, in the same slots.
+		// carried immediately (SQL:2023, T-SQL). Both pool their stores the same way, in the same slots.
 		var store = parser.GetNestedType("DirectValues", Any)
 			?? parser.GetNestedType("ImmediateValues", Any)
 			?? throw new InvalidOperationException($"{parser.Name} has neither DirectValues nor ImmediateValues");
@@ -250,7 +263,7 @@ public sealed class ConcurrentStoreReturnTests
 		Slot("_largeLetGo");
 
 		// A thread that has parsed holds its store somewhere: nothing is dropped.
-		if (held.Count == 0)
+		if (held.Count == 0 && (rented || store.Name == "DirectValues"))
 			yield return "no store is held in any slot of the pool";
 
 		foreach (var (slot, one) in held)
@@ -316,19 +329,28 @@ public sealed class ConcurrentStoreReturnTests
 			}
 			else if (name.Length > 5 && name.StartsWith("Stack", StringComparison.Ordinal) && char.IsDigit(name[5]))
 			{
+				// A stack of a value type — a record struct, an enum, a SqlList in the SQL:2023 tree — holds
+				// the type's default where it is empty, which GetValue would box into "a value"; it is read
+				// element by element against default, as the tape's tables are.
 				var stack = (Array)field.GetValue(store)!;
+				var at    = stack.GetType().GetElementType()!.IsValueType ? FirstNonDefault(stack) : FirstNonNull(stack);
 
-				for (var at = 0; at < stack.Length; at++)
-					if (stack.GetValue(at) is not null)
-					{
-						yield return $"{name}[{at}] holds a value";
-						break;
-					}
+				if (at is { } held)
+					yield return $"{name}[{held}] holds a value";
 			}
 		}
 	}
 
 	/// <summary>The first element of a table of <c>Held&lt;T&gt;</c> that is not the default of its type, or null.</summary>
+	static int? FirstNonNull(Array stack)
+	{
+		for (var at = 0; at < stack.Length; at++)
+			if (stack.GetValue(at) is not null)
+				return at;
+
+		return null;
+	}
+
 	static int? FirstNonDefault(Array table)
 	{
 		var method = Scan.MakeGenericMethod(table.GetType().GetElementType()!);
