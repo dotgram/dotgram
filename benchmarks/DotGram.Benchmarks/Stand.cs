@@ -2034,9 +2034,14 @@ static partial class Stand
 		}
 	}
 
-	/// <summary>T-SQL of two builds against each other, with ScriptDom as the control the hand parser is elsewhere.</summary>
+	/// <summary>
+	/// T-SQL of two builds against each other, with ScriptDom as the control the hand parser is elsewhere.
+	/// A row named as a refusal is one both sides refuse, as the stand expects of it (Unasserted).
+	/// </summary>
 	static Workload PairedTsql(string name, string text, PairedSide before, PairedSide after)
 	{
+		var expected = !name.Contains("refused", StringComparison.Ordinal);
+
 		return new Workload(
 			"tsql",
 			name,
@@ -2045,7 +2050,9 @@ static partial class Stand
 				new Reading("before", before.Tsql(text)),
 				new Reading("after",  after.Tsql(text)),
 			],
-			() => before.Tsql(text)() == 1 && after.Tsql(text)() == 1 ? null : "  a side refuses the statement");
+			() => (before.Tsql(text)() == 1) == expected && (after.Tsql(text)() == 1) == expected
+				? null
+				: $"  a side {(expected ? "refuses" : "accepts")} the statement");
 	}
 
 	/// <summary>

@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Feed_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Feed(text, at, ref failure, out recognized);
 			}
 
@@ -159,7 +159,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Feed(text, at, ref failure, out recognized);
 			}
 
@@ -2444,6 +2444,8 @@ namespace DotGram.Snapshots
 			public int Looking;
 
 			public bool Quiet;
+
+			public bool Unasked;
 		}
 
 		sealed class Window

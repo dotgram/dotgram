@@ -4,6 +4,7 @@ using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Emit;
 
@@ -18,8 +19,58 @@ sealed partial class Machine
 	/// </summary>
 	readonly Replay.Report? _replay;
 
-	/// <summary>Whose value is ever built, asked of the graph the first time a carrier needs it (<see cref="Demand"/>).</summary>
-	Demand.Report Demands => field ??= Demand.Of(_graph);
+	/// <summary>
+	/// Whose value is ever built, asked of the graph the first time a carrier needs it
+	/// (<see cref="Demand"/>) — the rules a refused input is read again through counted as read
+	/// unbuilt, since that reading asks nothing of them (<see cref="UnaskedEntries"/>).
+	/// </summary>
+	Demand.Report Demands => field ??= Demand.Of(_graph, UnaskedEntries);
+
+	/// <summary>
+	/// The rules this machine publishes a parse of whose entry, having read an input quietly and
+	/// refused it, reads it a second time only for what the refusal says: nothing reads the value
+	/// that reading would build, so the entry says so on the failure (<c>Failure.Unasked</c>) and
+	/// a carrier that builds as it reads may leave the constructions out.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The entries that read quietly first and read again are those of a grammar with no context
+	/// and no recovery (<c>CSharpEmitter.ReadsQuietlyFirst</c>). A context that the parser can put
+	/// back reads quietly first too, and is left out here: a construction may write into the
+	/// context and a guard read what it wrote, so a second reading without the constructions is
+	/// not the first reading over again. A buffered publication is read elsewhere, once, recording.
+	/// </para>
+	/// <para>
+	/// Asked of the graph, not of the carrier chosen: the publications are written before a
+	/// machine left to choose has read its rules once and chosen, so what they say of the reading
+	/// cannot depend on the carrier. The tape builds nothing while it reads whatever the failure
+	/// says, and ignores what is read unbuilt; the immediate reader is the one that acts on it.
+	/// </para>
+	/// </remarks>
+	IReadOnlyCollection<RuleSymbol> UnaskedEntries
+	{
+		get
+		{
+			if (field is not null)
+				return field;
+
+			if (_graph.Context is not null || _graph.Recoveries.Count > 0 || BufferedInput)
+				return field = [];
+
+			return field = new HashSet<RuleSymbol>(_graph.Publications
+				.Where(publication => publication.Kind == PublishKind.Parse && !publication.BufferedInput && _rules.Contains(publication.Rule))
+				.Select(static publication => publication.Rule));
+		}
+	}
+
+	/// <summary>
+	/// Whether this machine's published parses, reading a refused input a second time for its
+	/// message, say so on the failure (<c>Failure.Unasked</c>). The carrier that builds as it reads
+	/// then builds nothing the reading does not need: its first reading has already built and
+	/// thrown away the prefix the input was accepted up to, and building it again was most of what
+	/// a short refusal cost over the tape (<see cref="ImmediateCarrier"/>).
+	/// </summary>
+	internal bool ReplaysUnasked => UnaskedEntries.Count > 0;
 
 	/// <summary>Why the carrier asked for was not the one used, or null.</summary>
 	public string? CarrierRefusal { get; private set; }

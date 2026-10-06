@@ -596,7 +596,10 @@ public static partial class CSharpEmitter
 						compiled.Machine.UsesLocating ? locating : null,
 						tracing,
 						compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine",
-						tracing is not null && RunsNothingOfTheAuthors(graph));
+						tracing is not null && RunsNothingOfTheAuthors(graph),
+						// A refused input read again for its message is read with nothing asked of its
+						// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
+						compiled.Machine.ReplaysUnasked);
 
 					file.Line();
 				}
@@ -836,6 +839,10 @@ public static partial class CSharpEmitter
 		var quietField = quiets || valuing is not null;
 		var moreField  = valuing is not null || machines.Exists(static compiled => !compiled.Flat || compiled.Machine.Ties);
 
+		// Whether some entry reads a refused input again asking nothing of its value, and says so
+		// on the failure, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
+		var unaskedField = machines.Exists(static compiled => compiled.Machine.ReplaysUnasked);
+
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
@@ -855,6 +862,7 @@ public static partial class CSharpEmitter
 				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
 				// lexer measuring or valuing a token again.
 				quiet: quietField,
+				unasked: unaskedField,
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
 				began: graph.Trivia.Count > 0 && !overKinds &&
@@ -1796,7 +1804,8 @@ public static partial class CSharpEmitter
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
-		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false)
+		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
+		bool unasked = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1820,10 +1829,11 @@ public static partial class CSharpEmitter
 		var match  = $"{MatchType}<{value}>";
 
 		// What a reading's failure starts as. In a trace build the reading is handed the sink as it
-		// begins (Begun), which puts itself on the failure.
-		string Fresh(bool quiet)
+		// begins (Begun), which puts itself on the failure. The second reading of a refused input
+		// says that nothing reads what it would build (Machine.ReplaysUnasked).
+		string Fresh(bool quiet, bool unasked = false)
 		{
-			return quiet ? $"new {FailureType} {{ Quiet = true }}" : $"new {FailureType}()";
+			return quiet ? $"new {FailureType} {{ Quiet = true }}" : unasked ? $"new {FailureType} {{ Unasked = true }}" : $"new {FailureType}()";
 		}
 
 		// A refusal the call answers with, told to the sink on its way out in a trace build.
@@ -2514,7 +2524,7 @@ public static partial class CSharpEmitter
 						if (rewinds)
 							file.Line("context.Rollback(mark);");
 
-						file.Line($"failure = {Fresh(false)};");
+						file.Line($"failure = {Fresh(false, unasked)};");
 						Begun(begins, windowed, declare: false);
 						Reads(
 							$"{reader}(text, {begins}" +

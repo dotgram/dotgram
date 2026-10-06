@@ -1367,6 +1367,14 @@ sealed partial class Machine
 				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
+
+				// A reading nothing asks the value of — the second reading of a refused input, made
+				// for its message — begins with the count raised, and the carrier that builds as it
+				// reads builds only what a guard asks for (ImmediateCarrier.AroundCall). Not for a
+				// rule whose own guard asks for its value so far: that one builds whenever it is read.
+				if (valued && CarriesImmediately && Demands.ReadUnasked(rule))
+					file.Line("if (failure.Unasked) reader.unbuilt = 1;");
+
 				file.Line();
 				file.Line($"var end = reader.{core}_Read(pos{asked});");
 				file.Line();
@@ -2623,8 +2631,12 @@ sealed partial class Machine
 
 			// Where the value this call reads is built otherwise than the reading around it
 			// is — nobody asks for it, or a guard asks for it inside a reading nobody asks the
-			// value of — the carrier says so around the call (Demand).
-			var around = call is Node.Call asked ? machine.Carrier.AroundCall(owner, asked, result) : null;
+			// value of — the carrier says so around the call (Demand). Not around the entry's
+			// own call of the rule it reads through: that call is the reading, and what the
+			// reading asks of its value was decided by the entry that began it (Failure.Unasked).
+			var around = call is Node.Call asked && !(_entry && ReferenceEquals(called, owner))
+				? machine.Carrier.AroundCall(owner, asked, result)
+				: null;
 
 			if (around is { } before)
 				code.Line(before.Before);

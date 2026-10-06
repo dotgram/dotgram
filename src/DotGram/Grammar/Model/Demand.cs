@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -31,13 +32,19 @@ namespace DotGram.Grammar.Model;
 /// rule it stands in. Built exactly when that rule's value is.</item>
 /// <item><see cref="Kind.Always"/> — captured, and named by something that runs while
 /// reading: a guard, or the text of a <c>with state</c>, that stands after the capture.
-/// Built whether or not the rule it stands in ever is.</item>
+/// Built whether or not the rule it stands in ever is. A call of a rule whose own guard
+/// names the value so far of its fold (§4.3) is one too, captured or not: the guard runs
+/// while the rule is read and asks for the rule's value, so every reading of it builds.</item>
 /// </list>
 /// <para>
 /// A rule is <see cref="Report.ReadUnbuilt">read unbuilt</see> where some reading of it is
 /// one whose value nobody asks for: reached through a <see cref="Kind.Never"/> call, and from
 /// there through the calls that inherit. An <see cref="Kind.Always"/> call asks again for
-/// what is under it, so demand starts over there.
+/// what is under it, so demand starts over there. A reading may also begin with nothing asked
+/// of it: an entry that reads a refused input a second time, for what the refusal says and not
+/// for a value it will never hand out, is one — the rules it begins at are given to
+/// <see cref="Of(RecognitionGraph, IEnumerable{RuleSymbol})"/>, and they and what inherits from
+/// them are read unbuilt too.
 /// </para>
 /// <para>
 /// <b>Conservative in one direction</b>, the one that builds: a name is found in a guard's
@@ -71,11 +78,15 @@ public static class Demand
 	{
 		readonly Dictionary<Node, Kind> _calls;
 		readonly HashSet<RuleSymbol>    _unbuilt;
+		readonly HashSet<RuleSymbol>    _builds;
+		readonly HashSet<RuleSymbol>    _unasked;
 
-		internal Report(Dictionary<Node, Kind> calls, HashSet<RuleSymbol> unbuilt)
+		internal Report(Dictionary<Node, Kind> calls, HashSet<RuleSymbol> unbuilt, HashSet<RuleSymbol> builds, HashSet<RuleSymbol> unasked)
 		{
 			_calls   = calls;
 			_unbuilt = unbuilt;
+			_builds  = builds;
+			_unasked = unasked;
 		}
 
 		/// <summary>
@@ -101,6 +112,22 @@ public static class Demand
 			return _unbuilt.Contains(rule);
 		}
 
+		/// <summary>Whether the rule builds a value, or reaches one that does: whether a reading of it can build anything at all.</summary>
+		public bool Builds(RuleSymbol rule)
+		{
+			return _builds.Contains(rule ?? throw new ArgumentNullException(nameof(rule)));
+		}
+
+		/// <summary>
+		/// Whether an entry may read this rule with nothing asked of its value: one of the rules
+		/// given to <see cref="Of(RecognitionGraph, IEnumerable{RuleSymbol})"/>, unless its own
+		/// guard asks for the value so far, which no reading of it can do without.
+		/// </summary>
+		public bool ReadUnasked(RuleSymbol rule)
+		{
+			return _unasked.Contains(rule ?? throw new ArgumentNullException(nameof(rule)));
+		}
+
 		/// <summary>Whether any call of the graph is <see cref="Kind.Never"/>: whether anything is read and not built.</summary>
 		public bool Discards => _unbuilt.Count > 0;
 	}
@@ -108,8 +135,24 @@ public static class Demand
 	/// <summary>Every call of every body in the graph, and every rule.</summary>
 	public static Report Of(RecognitionGraph graph)
 	{
+		return Of(graph, []);
+	}
+
+	/// <summary>
+	/// Every call of every body in the graph, and every rule — where the rules named are also
+	/// read with nothing asked of their value.
+	/// </summary>
+	/// <param name="unasked">
+	/// The rules an entry reads with nothing asked of the value: they, and whatever inherits
+	/// from them, are <see cref="Report.ReadUnbuilt">read unbuilt</see> besides what the calls say.
+	/// </param>
+	public static Report Of(RecognitionGraph graph, IEnumerable<RuleSymbol> unasked)
+	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
+
+		if (unasked is null)
+			throw new ArgumentNullException(nameof(unasked));
 
 		var builds = Builds(graph);
 		var calls  = new Dictionary<Node, Kind>(NodeIdentity.Instance);
@@ -118,7 +161,50 @@ public static class Demand
 			if (graph.Bodies.TryGetValue(rule, out var body))
 				Walk(graph, rule, body, builds, calls);
 
-		return new Report(calls, Unbuilt(graph, calls));
+		// A rule whose guard reads the value so far asks for its own value while it is read: every
+		// call of it builds, and an entry of it cannot read it unasked.
+		var selfAsking = SelfAsking(graph);
+
+		foreach (var call in calls.Keys.ToList())
+			if (selfAsking.Contains(((Node.Call)call).Rule))
+				calls[call] = Kind.Always;
+
+		var entries = new HashSet<RuleSymbol>(unasked);
+
+		entries.ExceptWith(selfAsking);
+
+		return new Report(calls, Unbuilt(graph, calls, entries), builds, entries);
+	}
+
+	/// <summary>
+	/// The left-recursive rules a step of which runs something while reading — a guard, the text
+	/// of a <c>with state</c> — that names the value so far (§4.3): the rule's own value, asked
+	/// for before the rule has answered. Found as a name is found in a guard's text elsewhere here,
+	/// as a substring, which errs towards building.
+	/// </summary>
+	static HashSet<RuleSymbol> SelfAsking(RecognitionGraph graph)
+	{
+		var found = new HashSet<RuleSymbol>();
+
+		foreach (var fold in graph.Folds)
+			foreach (var step in fold.Value.Accumulators)
+				foreach (var node in NodeWalk.Descendants(step.Key))
+				{
+					var text = node switch
+					{
+						Node.Guard(var guard, _)   => guard,
+						Node.Marked(_, var marked) => marked,
+						_                          => null,
+					};
+
+					if (text is not null && text.Contains(step.Value))
+					{
+						found.Add(fold.Key);
+						break;
+					}
+				}
+
+		return found;
 	}
 
 	/// <summary>The rules that build a value, or reach one that does.</summary>
@@ -224,9 +310,10 @@ public static class Demand
 
 	/// <summary>
 	/// The rules some reading of which nobody asks the value of: reached through a call that
-	/// is never built, and from there through calls that inherit.
+	/// is never built, or begun at by an entry that asks nothing, and from there through calls
+	/// that inherit.
 	/// </summary>
-	static HashSet<RuleSymbol> Unbuilt(RecognitionGraph graph, Dictionary<Node, Kind> calls)
+	static HashSet<RuleSymbol> Unbuilt(RecognitionGraph graph, Dictionary<Node, Kind> calls, IEnumerable<RuleSymbol> unasked)
 	{
 		var found   = new HashSet<RuleSymbol>();
 		var pending = new Stack<RuleSymbol>();
@@ -234,6 +321,10 @@ public static class Demand
 		foreach (var entry in calls)
 			if (entry.Value == Kind.Never && found.Add(((Node.Call)entry.Key).Rule))
 				pending.Push(((Node.Call)entry.Key).Rule);
+
+		foreach (var rule in unasked)
+			if (found.Add(rule))
+				pending.Push(rule);
 
 		while (pending.Count > 0)
 		{

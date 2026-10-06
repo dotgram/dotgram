@@ -53,7 +53,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Program_Whole(text, 0, ref failure, out recognized, source, starts, lengths);
 				}
 
@@ -170,7 +170,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Program(text, from, ref failure, out recognized, source, starts, lengths);
 				}
 
@@ -293,7 +293,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Program(text, 0, ref failure, out recognized, source, starts, lengths);
 				}
 
@@ -417,6 +417,7 @@ namespace DotGram.Snapshots
 				readonly int[] parserLengths;
 				internal string[] last0;
 				internal string last1;
+				internal int unbuilt;
 
 				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, ImmediateValues values, string parserSource, int[] parserStarts, int[] parserLengths)
 				{
@@ -428,6 +429,7 @@ namespace DotGram.Snapshots
 					this.parserLengths = parserLengths;
 					this.last0 = default!;
 					this.last1 = default!;
+					this.unbuilt = default!;
 				}
 
 				public int Read_Program(int pos)
@@ -471,7 +473,7 @@ namespace DotGram.Snapshots
 
 					if (q1 >= 0)
 						{ values.Count1 = rb_1; return Refused_DotGram(ref failure, p, 0); }
-					last0 = Construct_Program(values.Take1(rb_1)!);
+					if (unbuilt == 0) last0 = Construct_Program(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
 					return p;
 				}
 
@@ -524,7 +526,7 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0005')
 						return Refused_DotGram(ref failure, p, 2);
 					p += 1;
-					last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
+					if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
 					return p;
 				}
 
@@ -549,7 +551,7 @@ namespace DotGram.Snapshots
 								a2 = p;
 								p++;
 								b2 = p;
-								last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
+								if (unbuilt == 0) last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
 								break;
 							}
 						case '\u0003':
@@ -560,7 +562,7 @@ namespace DotGram.Snapshots
 								var q0 = Read_Expression_Part0(p, a0, b0);
 								if (q0 < 0)
 								{
-									last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
+									if (unbuilt == 0) last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
 									q0 = p;
 								}
 								p = q0;
@@ -585,7 +587,7 @@ namespace DotGram.Snapshots
 						return Refused_DotGram(ref failure, p, 6);
 					p += 1;
 					b1 = p;
-					last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
+					if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
 					return p;
 				}
 
@@ -625,6 +627,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, values, parserSource, parserStarts, parserLengths);
 
 					reader.failure = failure;
+					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.Recognize_Program_Whole_Read(pos);
 
@@ -656,6 +659,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, values, parserSource, parserStarts, parserLengths);
 
 					reader.failure = failure;
+					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.Recognize_Program_Read(pos);
 
@@ -919,6 +923,8 @@ namespace DotGram.Snapshots
 				public int Looking;
 
 				public bool Quiet;
+
+				public bool Unasked;
 			}
 
 			static readonly byte[] Scan_Runs =

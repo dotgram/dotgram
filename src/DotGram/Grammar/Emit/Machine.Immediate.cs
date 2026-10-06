@@ -276,7 +276,9 @@ sealed partial class Machine
 
 				// How many calls whose value nobody asks for the reading is inside. Nothing is
 				// built while this is above zero (AroundCall). A field for the reason the
-				// marks are, and carried where a reading deepens as the registers are.
+				// marks are, and carried where a reading deepens as the registers are. An entry
+				// that reads a refused input again for its message begins with it raised
+				// (Failure.Unasked, Machine.ReplaysUnasked): that reading hands out no value.
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
 
@@ -331,7 +333,9 @@ sealed partial class Machine
 
 			// A call the report does not know is built as it always was: asking again for
 			// what is under it is what every reading did before demand was asked at all.
-			if (kind == Demand.Kind.Always || !demands.Knows(call))
+			// Not where the rule called builds nothing and reaches nothing that does: there
+			// is nothing under it to ask for, and the count is read by nothing it runs.
+			if (kind == Demand.Kind.Always || !demands.Knows(call) && demands.Builds(call.Rule))
 				return ($"var {local}u = unbuilt; unbuilt = 0;", $"unbuilt = {local}u;");
 
 			return null;

@@ -48,7 +48,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
 					try
 					{
@@ -144,7 +144,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
 					try
 					{
@@ -246,7 +246,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
 					try
 					{
@@ -4445,6 +4445,8 @@ namespace DotGram.Snapshots
 				public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 				public bool Quiet;
+
+				public bool Unasked;
 
 				public GramRead? Trace;
 			}

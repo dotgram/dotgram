@@ -52,6 +52,12 @@ static partial class Stand
 			"WHERE c.Active = 1 AND (g.Name IN ('EU', 'US', 'APAC') OR c.Vip = 1) " +
 			"AND NOT EXISTS (SELECT 1 FROM dbo.Blocked AS b WHERE b.CustomerId = c.CustomerId) " +
 			"GROUP BY c.CustomerId, c.Name HAVING COUNT(*) > 1 ORDER BY Revenue DESC, c.Name"),
+
+		// Refusals, named so that the stand expects them refused (Unasserted): at the first token the grammar
+		// cannot place, and after an accepted prefix whose constructions a reader that builds as it reads has
+		// already run. What the second reading of a refusal costs is what these two rows read.
+		("refused-early", "SELECT a, b FROM"),
+		("refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c ="),
 	];
 
 	static IEnumerable<Workload> TsqlWorkloads()
@@ -74,10 +80,11 @@ static partial class Stand
 				var reference = ScriptDomAccepts(text);
 				var plain     = TransactSqlParser.TryParseStatement(text).IsSuccess;
 				var located   = TransactSqlParser.Located.TryParseStatement(text).IsSuccess;
+				var expected  = !name.Contains("refused", StringComparison.Ordinal);
 
-				return reference && plain && located
+				return reference == expected && plain == expected && located == expected
 					? null
-					: $"  every reading must accept it: ScriptDom {(reference ? "accepts" : "refuses")}, generated {(plain ? "accepts" : "refuses")}, located {(located ? "accepts" : "refuses")}";
+					: $"  every reading must {(expected ? "accept" : "refuse")} it: ScriptDom {(reference ? "accepts" : "refuses")}, generated {(plain ? "accepts" : "refuses")}, located {(located ? "accepts" : "refuses")}";
 			});
 	}
 

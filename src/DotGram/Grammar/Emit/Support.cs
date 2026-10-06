@@ -69,6 +69,19 @@ public static partial class CSharpEmitter
 			{{restore:Quiet}}
 		""";
 
+	const string UnaskedField = """
+
+			/// <summary>
+			/// Whether nothing reads what this reading would build: the second reading of a refused
+			/// input, made for what the refusal says. A reader that builds as it reads then builds
+			/// only what a guard asks for, its first reading having built the accepted prefix and
+			/// thrown it away; the tape builds nothing while it reads in any case.
+			/// </summary>
+			{{suppress:Unasked}}
+			public bool Unasked;
+			{{restore:Unasked}}
+		""";
+
 	const string StarvedField = """
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
@@ -743,6 +756,7 @@ public static partial class CSharpEmitter
 		{
 			("Looking",    "failure.Looking++",     "no reading of this grammar holds a lookahead"),
 			("Quiet",      "Quiet = true",          "no reading whose failure nothing reads is emitted"),
+			("Unasked",    "Unasked = true",        "no reading of this grammar is made for its message alone"),
 			("Began",      "failure.Began = ",      "no reading that begins where it is told is emitted"),
 			("OutOfInput", "failure.OutOfInput = ", "every test in this grammar wants one character"),
 			("Trace",      "Trace = ",              "no reading of this file is begun where a sink could be set"),
@@ -895,7 +909,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false, bool trace = false)
+		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
@@ -924,6 +938,9 @@ public static partial class CSharpEmitter
 				"\t{{quiet}}" + Lines.Ending,
 				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "")
 			.Replace(
+				"\t{{unasked}}" + Lines.Ending,
+				unasked ? Lines.Normalize(UnaskedField) + Lines.Ending : "")
+			.Replace(
 				"\t{{trace}}" + Lines.Ending,
 				trace ? Lines.Normalize(TraceField) + Lines.Ending : "")
 			// Whether each of these fields needs its suppression is not known here: the field is
@@ -934,6 +951,8 @@ public static partial class CSharpEmitter
 			.Replace("{{restore:Looking}}", Mark("Looking", false))
 			.Replace("{{suppress:Quiet}}", Mark("Quiet", true))
 			.Replace("{{restore:Quiet}}", Mark("Quiet", false))
+			.Replace("{{suppress:Unasked}}", Mark("Unasked", true))
+			.Replace("{{restore:Unasked}}", Mark("Unasked", false))
 			.Replace("{{suppress:Began}}", Mark("Began", true))
 			.Replace("{{restore:Began}}", Mark("Began", false))
 			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
@@ -1006,6 +1025,7 @@ public static partial class CSharpEmitter
 			{{expectedMore}}
 			{{looking}}
 			{{quiet}}
+			{{unasked}}
 			{{trace}}
 		}
 		""";

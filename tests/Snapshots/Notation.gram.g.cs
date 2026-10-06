@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Hashed_Whole(text, 0, ref failure);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Hashed(text, at, ref failure);
 			}
 
@@ -159,7 +159,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Hashed(text, at, ref failure);
 			}
 
@@ -233,7 +233,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Marked_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -301,7 +301,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List_With1_Whole(text, 0, ref failure);
 			}
 
@@ -361,7 +361,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List_With1(text, at, ref failure);
 			}
 
@@ -427,7 +427,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List_With1(text, at, ref failure);
 			}
 
@@ -501,7 +501,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List_Whole(text, 0, ref failure);
 			}
 
@@ -561,7 +561,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List(text, at, ref failure);
 			}
 
@@ -627,7 +627,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_List(text, at, ref failure);
 			}
 
@@ -701,7 +701,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small_Whole(text, 0, ref failure, out recognized, 1);
 			}
 
@@ -761,7 +761,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small(text, at, ref failure, out recognized, 1);
 			}
 
@@ -827,7 +827,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small(text, at, ref failure, out recognized, 1);
 			}
 
@@ -901,7 +901,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small_Whole(text, 0, ref failure, out recognized, 0);
 			}
 
@@ -961,7 +961,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small(text, at, ref failure, out recognized, 0);
 			}
 
@@ -1027,7 +1027,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Small(text, at, ref failure, out recognized, 0);
 			}
 
@@ -1101,7 +1101,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Ab_Whole(text, 0, ref failure);
 			}
 
@@ -1169,7 +1169,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Primary_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -1229,7 +1229,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Primary(text, at, ref failure, out recognized);
 			}
 
@@ -1295,7 +1295,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Primary(text, at, ref failure, out recognized);
 			}
 
@@ -4349,6 +4349,8 @@ namespace DotGram.Snapshots
 			#pragma warning restore 0649
 
 			public bool Quiet;
+
+			public bool Unasked;
 		}
 
 		sealed class Window

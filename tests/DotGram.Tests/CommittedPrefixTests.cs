@@ -44,8 +44,9 @@ public sealed class CommittedPrefixTests
 		Assert.Equal(value.HasValue, match.IsSuccess);
 		if (value.HasValue)
 			Assert.Equal(value.Value, match.Value);
-		// Once per reading: a refused input is read a second time, recording (Q7.2).
-		Assert.Equal(value.HasValue ? 1 : 2, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+		// Once: a refused input is read a second time, recording (Q7.2), and that reading
+		// builds nothing, since nothing reads its value (Failure.Unasked).
+		Assert.Equal(1, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
 	}
 
 	[Theory]

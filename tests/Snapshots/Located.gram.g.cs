@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Config_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Config(text, at, ref failure, out recognized);
 			}
 
@@ -163,7 +163,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure();
+				failure = new Failure { Unasked = true };
 				end     = Recognize_Config(text, at, ref failure, out recognized);
 			}
 
@@ -1443,6 +1443,8 @@ namespace DotGram.Snapshots
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 			public bool Quiet;
+
+			public bool Unasked;
 		}
 
 		sealed class Window

@@ -92,6 +92,66 @@ public sealed class CarrierDemandTests
 	}
 
 	/// <summary>
+	/// A refused input is read twice by the match form — quietly, then again for what the
+	/// refusal says — and the second reading asks nothing of the value, so it builds only what
+	/// a guard asks for (<c>Leaf</c>, as <c>x</c>). The first reading built the prefix the input
+	/// was accepted up to, once; until the second reading was told so, it built it again.
+	/// </summary>
+	[Theory]
+	[InlineData("ab,12;", "Held×1, Leaf×2")]
+	[InlineData("ab,12;cd!", "Held×1, Kept×1, Leaf×3, Start×1")]
+	[InlineData("ab;", "Leaf×2")]
+	public void A_refused_input_is_read_again_without_building(string input, string built)
+	{
+		var (tape, _)      = Run(CarrierKind.Tape, input);
+		var (immediate, _) = Run(CarrierKind.Immediate, input);
+
+		Assert.StartsWith("<refused", immediate.Answer, StringComparison.Ordinal);
+		Assert.Equal(tape.Answer, immediate.Answer);
+		Assert.Equal(built, Counted(immediate.Built));
+	}
+
+	/// <summary>
+	/// A left-recursive rule whose step guard reads the value so far asks for its own value while
+	/// it is read, so the second reading of a refused input builds it as the first did: a reading
+	/// that did not would hand the guard nothing. The two carriers refuse alike, and the value so
+	/// far is built once a step on each reading.
+	/// </summary>
+	const string SelfAsking = """
+		Start : @string = f: Fold => @(Log("Start", f))
+		Fold : @string = l: Fold & ',' & when @(l.Length > 0) & d: Digit => @(Log("Fold", l + d)) | d: Digit => @(Log("Fold", d))
+		Digit : @string = t: ['0'..'9'] => @(Log("Digit", t.ToString()))
+		parse Start
+		""";
+
+	[Theory]
+	[InlineData("1,2,", "Digit×4, Fold×4, Start×1")]
+	[InlineData("1,2,3;", "Digit×6, Fold×6, Start×1")]
+	public void A_rule_whose_guard_reads_its_value_so_far_builds_on_every_reading(string input, string built)
+	{
+		var (tape, _)      = Run(CarrierKind.Tape, input, SelfAsking);
+		var (immediate, _) = Run(CarrierKind.Immediate, input, SelfAsking);
+
+		Assert.StartsWith("<refused", immediate.Answer, StringComparison.Ordinal);
+		Assert.Equal(tape.Answer, immediate.Answer);
+		Assert.Equal(built, Counted(immediate.Built));
+	}
+
+	/// <summary>
+	/// The form that answers only yes or no reads once and builds as it reads, so a refusal
+	/// through it has built the accepted prefix once: the two readings of the match form built
+	/// it once more only where a guard asked.
+	/// </summary>
+	[Fact]
+	public void The_bool_form_reads_a_refused_input_once()
+	{
+		var (immediate, _) = Run(CarrierKind.Immediate, "ab,12;cd!", form: "bool");
+
+		Assert.Equal("<refused>", immediate.Answer);
+		Assert.Equal("Held×1, Kept×1, Leaf×2, Start×1", Counted(immediate.Built));
+	}
+
+	/// <summary>
 	/// What a reading that builds nothing gathered is let go of all the same: <c>Inner</c>
 	/// gathers its letters on the stack its type shares with <c>Start</c>'s items, while
 	/// <c>Start</c> is gathering, and a stack nobody collected would hand them to
@@ -147,7 +207,11 @@ public sealed class CarrierDemandTests
 		Assert.Equal(Counted(tape.Built), Counted(auto.Built));
 	}
 
-	static (Outcome Outcome, string? Value) Run(CarrierKind carrier, string input, string grammar = Grammar)
+	/// <param name="form">
+	/// Which published form reads the input: <c>match</c>, the <c>Match</c>-returning form, which
+	/// reads a refused input twice; or <c>bool</c>, the form that answers yes or no and reads once.
+	/// </param>
+	static (Outcome Outcome, string? Value) Run(CarrierKind carrier, string input, string grammar = Grammar, string form = "match")
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -168,11 +232,26 @@ public sealed class CarrierDemandTests
 
 		built.Clear();
 
+		if (form == "bool")
+		{
+			var arguments = new object?[] { input, null };
+			var answered  = (bool)host.GetMethod("TryParseStart", [typeof(string), typeof(string).MakeByRefType()])!.Invoke(null, arguments)!;
+			var answer    = answered ? (string?)arguments[1] : null;
+
+			return (new Outcome(answered ? answer : "<refused>", built.Cast<string>().ToArray()), answer);
+		}
+
 		var match = host.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!;
 		var ok    = (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
 		var value = ok ? (string?)match.GetType().GetProperty("Value")!.GetValue(match) : null;
 
-		return (new Outcome(ok ? value : "<refused>", built.Cast<string>().ToArray()), value);
+		// A refusal is where it refused and what it says, so that the two carriers are held to
+		// the same message and not only to the same no.
+		var refused = ok
+			? null
+			: $"<refused at {match.GetType().GetProperty("Position")!.GetValue(match)}: {match.GetType().GetProperty("Error")!.GetValue(match)}>";
+
+		return (new Outcome(ok ? value : refused, built.Cast<string>().ToArray()), value);
 	}
 
 	static string Counted(string[] built)

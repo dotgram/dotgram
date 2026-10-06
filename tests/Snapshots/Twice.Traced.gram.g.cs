@@ -49,7 +49,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, 0, "methods", input, null, 0, 0, 0);
 					try
 					{
@@ -147,7 +147,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 					try
 					{
@@ -255,7 +255,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Sum", false, at, "methods", input, null, 0, 0, 0);
 					try
 					{
@@ -1595,6 +1595,8 @@ namespace DotGram.Snapshots
 				#pragma warning restore 0649
 
 				public bool Quiet;
+
+				public bool Unasked;
 
 				public GramRead? Trace;
 			}

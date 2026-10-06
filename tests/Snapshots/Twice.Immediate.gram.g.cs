@@ -36,7 +36,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Sum_Whole(text, 0, ref failure, out recognized, parserWhole);
 				}
 
@@ -98,7 +98,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -170,7 +170,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure();
+					failure = new Failure { Unasked = true };
 					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -258,6 +258,7 @@ namespace DotGram.Snapshots
 				readonly global::System.ReadOnlyMemory<char> whole;
 				readonly ImmediateValues values;
 				internal int last0;
+				internal int unbuilt;
 
 				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways ways, ImmediateValues values, global::System.ReadOnlyMemory<char> parserWhole)
 				{
@@ -267,6 +268,7 @@ namespace DotGram.Snapshots
 					this.probes  = 0;
 					this.values = values;
 					this.last0 = default!;
+					this.unbuilt = default!;
 					this.whole   = parserWhole;
 				}
 
@@ -301,6 +303,7 @@ namespace DotGram.Snapshots
 					deep.values = this.values;
 					deep.failure = this.failure;
 					deep.last0 = this.last0;
+					deep.unbuilt = this.unbuilt;
 					deep.probes = this.probes;
 					deep.pos    = pos;
 					deep.which  = which;
@@ -310,6 +313,7 @@ namespace DotGram.Snapshots
 
 					this.failure = deep.failure;
 					this.last0 = deep.last0;
+					this.unbuilt = deep.unbuilt;
 					// Still on the stack that ran low: the next entry probes it again.
 					this.probes = 0;
 
@@ -354,7 +358,9 @@ namespace DotGram.Snapshots
 					var c = '\0';
 					var rb_0 = values.Count0;
 					int r0 = default!;
+					var q0u = unbuilt; unbuilt = 0;
 					var q0 = Read_Term(p);
+					unbuilt = q0u;
 					if (q0 < 0) return -1;
 					p = q0;
 					r0 = last0;
@@ -410,7 +416,7 @@ namespace DotGram.Snapshots
 						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 						{ values.Count0 = rb_0; return -1; }
 					}
-					last0 = Construct_Sum(r0!, values.Take0(rb_0)!);
+					if (unbuilt == 0) last0 = Construct_Sum(r0!, values.Take0(rb_0)!); else { values.Count0 = rb_0; }
 					return p;
 				}
 
@@ -476,13 +482,15 @@ namespace DotGram.Snapshots
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
 									return Refused_DotGram(ref failure, p, 1);
 								p += 1;
-								last0 = Construct_Term((int)r0!);
+								if (unbuilt == 0) last0 = Construct_Term((int)r0!);
 								break;
 							}
 						default:
 							{
+								var q3u = unbuilt; unbuilt = 0;
 								var fq3 = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;
 								var q3 = Read_Digits(p);
+								unbuilt = q3u;
 								if (q3 < 0)
 								{
 									if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, ExpectedSet_DotGram(4), ExpectedSet_DotGram(5), fq3);
@@ -551,7 +559,9 @@ namespace DotGram.Snapshots
 					var q1 = Read_trivia(p);
 					if (q1 < 0) return -1;
 					p = q1;
+					var q2u = unbuilt; unbuilt = 0;
 					var q2 = Read_Digits(p);
+					unbuilt = q2u;
 					if (q2 < 0) return -1;
 					p = q2;
 					r2 = last0;
@@ -564,14 +574,14 @@ namespace DotGram.Snapshots
 						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 						return -1;
 					}
-					last0 = Construct_Term_1((int)r1!, (int)r2!);
+					if (unbuilt == 0) last0 = Construct_Term_1((int)r1!, (int)r2!);
 					return p;
 				}
 
 				public int Read_Term_Part1(int pos, int start, int? r1)
 				{
 					var p = pos;
-					last0 = Construct_Term_2((int)r1!);
+					if (unbuilt == 0) last0 = Construct_Term_2((int)r1!);
 					return p;
 				}
 
@@ -668,7 +678,7 @@ namespace DotGram.Snapshots
 					if (q1 < 0) return -1;
 					p = q1;
 					r0 = last0;
-					last0 = Construct_More(r0!);
+					if (unbuilt == 0) last0 = Construct_More(r0!);
 					return p;
 				}
 
@@ -754,6 +764,7 @@ namespace DotGram.Snapshots
 				internal ImmediateValues values = default!;
 				internal Failure failure = default!;
 				internal int last0 = default!;
+				internal int unbuilt = default!;
 				internal int probes;
 				internal int pos;
 				internal int which;
@@ -837,6 +848,7 @@ namespace DotGram.Snapshots
 					values = default!;
 					failure = default!;
 					last0 = default!;
+					unbuilt = default!;
 					thrown = null;
 				}
 
@@ -906,6 +918,7 @@ namespace DotGram.Snapshots
 
 						reader.failure = this.failure;
 						reader.last0 = this.last0;
+						reader.unbuilt = this.unbuilt;
 						reader.probes = this.probes;
 
 						switch (this.which)
@@ -915,6 +928,7 @@ namespace DotGram.Snapshots
 
 						this.failure = reader.failure;
 						this.last0 = reader.last0;
+						this.unbuilt = reader.unbuilt;
 						this.probes = reader.probes;
 					}
 					catch (global::System.Exception caught)
@@ -934,6 +948,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, ways, values, parserWhole);
 
 					reader.failure = failure;
+					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.Recognize_Sum_Whole_Read(pos);
 
@@ -967,6 +982,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, ways, values, parserWhole);
 
 					reader.failure = failure;
+					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.Recognize_Sum_Read(pos);
 
@@ -1224,6 +1240,8 @@ namespace DotGram.Snapshots
 				#pragma warning restore 0649
 
 				public bool Quiet;
+
+				public bool Unasked;
 			}
 
 			sealed class Ways

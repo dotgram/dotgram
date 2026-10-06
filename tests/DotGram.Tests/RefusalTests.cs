@@ -53,11 +53,13 @@ public sealed class RefusalTests
 	}
 
 	/// <summary>
-	/// A refusal is read twice, and on the immediate carrier what the first reading ran the
-	/// second runs again — once more, and only where the parse refused.
+	/// A refusal is read twice, and on the immediate carrier the first reading has run what it
+	/// read; the second, made for what the refusal says, hands out no value and runs nothing
+	/// (<c>Failure.Unasked</c>). So a refusal costs the constructions of its accepted prefix
+	/// once, as an acceptance costs its own once.
 	/// </summary>
 	[Fact]
-	public void A_refusal_runs_a_construction_once_more_and_an_acceptance_does_not()
+	public void A_refusal_runs_the_constructions_of_its_prefix_once_as_an_acceptance_does()
 	{
 		// Recursive, so that it is read by methods and not lowered to a flat rendering, which
 		// runs its constructions only once it has accepted.
@@ -93,7 +95,7 @@ public sealed class RefusalTests
 		hits.SetValue(null, 0);
 
 		Assert.False(EmittedCode.Match(probe, "Refused.Probe", "TryParseStart", "ab").IsSuccess);
-		Assert.Equal(2, (int)hits.GetValue(null)!);
+		Assert.Equal(1, (int)hits.GetValue(null)!);
 	}
 
 	/// <summary>
