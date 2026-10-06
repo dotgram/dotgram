@@ -354,8 +354,9 @@ NamedPrimary : @Expression
 	= ?!("INTERVAL"i | "VALUE"i)
 	  & ?!((JsonOwnName | "IIF"i) & '(')
 	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
-	  & t: (name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
-	        & ( call: '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+	  & t: (name: QualifiedName
+	        & ( call: '(' & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	            & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 	          | '.' & ("IDENTITYCOL"i | "ROWGUIDCOL"i))?)
 		=> @(call is null
 				 ? new Expression.ColumnReference(t)
