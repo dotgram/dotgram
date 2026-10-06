@@ -25927,15 +25927,25 @@ What it moved, measured on the commit before and after:
   11,711,488 → 11,489,792 bytes.
 - Machines (`docs/carriers.md`): four → three — `ParseValue` (13 building rules), `ParseExpression`,
   `ParseDataType` and `ParseSearchCondition` (293), `ParseSql` and `ParseStatement` (540). The
-  statement machine still reads the expression rules again.
+  statement machine still reads the expression rules again. `ImmediateSqlStandard`, the same grammar
+  on the immediate carrier, has the same two shared machines, `ParseSql` and `ParseStatement` one of them.
+  The regenerated file also shows `ImmediateSqlStandard` as `immediate (author)` where the file in the
+  repository said `immediate refused`, and T-SQL's statement machine with no refused reader where it said
+  one. Neither is this change's: `--carriers` run on the commit before it, built afresh, says the same
+  of both, with all forty-two publications in place — the file had last been written before the
+  immediate carrier learned to carry the whole grammar, so no removed publication carried the refusal.
 - Over the ScriptDom corpus, every statement whole and cut at 60%: `ParseDataType`, `ParseExpression`
   and `ParseSearchCondition` answer byte for byte as before; `ParseValue` as `ParseLiteral` did but for
   `"NULL"i` in what a refusal expected. Every text `TryParseDirectSQLStatement` (582),
   `TryParseQueryExpression` (460) or `TryParseSQLProcedureStatement` (133) read, `ParseStatement`
   reads to the same tree. `DotGram.MessageDiff` now reads `ParseStatement`: of 15,520 SQL:2023 lines
   12,238 are the same, 3,124 expect more at the same place (every statement's first words, and `;` or
-  the end where a statement could end), 139 are refused later (a procedure statement read further) and
-  19 are read (`OPEN`, `CLOSE`, `EXECUTE`, `RETURN`, `SELECT … INTO`); the 17,692 T-SQL lines are the same.
+  the end where a statement could end), 139 are refused later and 19 are read (`OPEN`, `CLOSE`,
+  `EXECUTE`, `RETURN`, `SELECT … INTO`); the 17,692 T-SQL lines are the same. Of the 139, 111 were
+  refused at their first word, a statement direct invocation does not read (`EXECUTE`, `COPY`, `OPEN`,
+  `FETCH`, `RETURN`, `CLOSE`), and 28 at the `INTO` of a T-SQL `SELECT … INTO t`, which is now read as
+  the standard's single-row select and refused further on, at what T-SQL writes there and the standard
+  does not (`ON fg` after the target, among them).
 - The stand, paired with the parent and its A/A, five runs: no row of `literal`, `arithmetic`, `nest8`,
   `condition`, `condition1`, `conditions100` and `conditions1000` moved past its A/A. The query rows read
   statements now (`select1`, `select20`, `values`, `comment`, `refused-late`, and `create` as

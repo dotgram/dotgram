@@ -12,16 +12,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-06 08:20 |
-| DotGram.Examples | 2026-10-06 08:18 |
-| DotGram.ExpressionLanguage | 2026-10-06 08:18 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-06 08:18 |
-| DotGram.Finance | 2026-10-06 08:18 |
-| DotGram.Finance.Fix44 | 2026-10-06 08:19 |
-| DotGram.Sql | 2026-10-06 08:19 |
-| DotGram.Sql.Productions | 2026-10-06 08:19 |
-| DotGram.Tests | 2026-10-06 08:20 |
-| DotGram.Web | 2026-10-06 08:18 |
+| DotGram.Benchmarks | 2026-10-06 09:14 |
+| DotGram.Examples | 2026-10-06 09:13 |
+| DotGram.ExpressionLanguage | 2026-10-06 09:13 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 09:13 |
+| DotGram.Finance | 2026-10-06 09:13 |
+| DotGram.Finance.Fix44 | 2026-10-06 09:14 |
+| DotGram.Sql | 2026-10-06 09:14 |
+| DotGram.Sql.Productions | 2026-10-06 09:14 |
+| DotGram.Tests | 2026-10-06 09:14 |
+| DotGram.Web | 2026-10-06 09:13 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -291,8 +291,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Benchmarks.ImmediateSqlStandard
 
-- memo ParseExpression, ParseDataType [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSearchCondition [whole]: remembered 19: BooleanValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
 - memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
 
 ## DotGram.Benchmarks.Levels
