@@ -68,17 +68,17 @@ public sealed class PositionalFormFindingsTests
 	}
 
 	/// <summary>
-	/// The window form over tokens answers as the form from a position does where nothing is
-	/// left to read, and never moves the position back to the start of the text.
+	/// The window form over tokens answers as the form from a position does where no token is
+	/// left to begin a reading, and never moves the position back to the start of the text.
 	/// </summary>
 	/// <remarks>
-	/// <c>?! 'a'i?</c> is <c>(?! 'a'i)?</c> (§3.8): it reads nothing and succeeds. Over tokens
-	/// a reading begins at a token, and where none is left the answer is Starved — which the
-	/// form from a position said for <c>bb</c> and the window form did not: it read nothing
-	/// out of a window cut into no token, and moved <c>at</c> to 0.
+	/// <c>?! 'a'i?</c> is <c>(?! 'a'i)?</c> (§3.8): it reads nothing and succeeds. A character no
+	/// token begins with is not input that ran out, so over tokens it answers as over characters
+	/// (§6.3): the rule reads nothing there, where the window form once read nothing out of a
+	/// window cut into no token and moved <c>at</c> to 0.
 	/// </remarks>
 	[Fact]
-	public void A_window_over_tokens_with_no_token_in_it_is_refused_and_leaves_the_position()
+	public void A_window_over_tokens_with_no_token_in_it_reads_nothing_where_the_rule_may()
 	{
 		var result = GramCompiler.Compile(
 			"trivia = { ' '* }\nStart = ?! 'a'i?\nparse Start\n",
@@ -88,8 +88,8 @@ public sealed class PositionalFormFindingsTests
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
-		Assert.Equal((false, 0), Answered(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "bb", 0)));
-		Assert.Equal((false, 2), Answered(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "##bb##", 2, 2)));
+		Assert.Equal((true, 0), Answered(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "bb", 0)));
+		Assert.Equal((true, 2), Answered(EmittedCode.Answered(assembly, "Grammar", "TryParseStart", "##bb##", 2, 2)));
 	}
 
 	/// <summary>

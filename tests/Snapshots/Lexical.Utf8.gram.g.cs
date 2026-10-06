@@ -157,7 +157,7 @@ namespace DotGram.Snapshots
 
 				var from = TokenAt_DotGram(starts, count, at);
 
-				if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
+				if (from < 0)
 				{
 
 					return Match<string[]>.Failed(Outcome.Starved, "Expected more input.", source.Length, null, null);
@@ -229,7 +229,7 @@ namespace DotGram.Snapshots
 
 				var from = TokenAt_DotGram(starts, count, at);
 
-				if (from < 0 || (tokens.Kinds[from] == '\0' && tokens.Unreadable(from)))
+				if (from < 0)
 				{
 
 					value = default!;
@@ -279,7 +279,7 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
-				if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
+				if (count == 0)
 				{
 					Recycle_DotGram(tokens);
 
@@ -354,7 +354,7 @@ namespace DotGram.Snapshots
 				var lengths = tokens.Lengths;
 				var count   = tokens.Count;
 
-				if (count == 0 || (tokens.Kinds[0] == '\0' && tokens.Unreadable(0)))
+				if (count == 0)
 				{
 					Recycle_DotGram(tokens);
 
@@ -1294,24 +1294,6 @@ namespace DotGram.Snapshots
 				/// the guess WAS is the honest other side, and Room is where it is known.
 				/// </remarks>
 				internal int    Asked;
-
-				/// <summary>Whether no token from this one on is of a kind: nothing is left there to read.</summary>
-				/// <remarks>
-				/// What a reading from a position or in a window is cut into goes on past a character no
-				/// token begins with, as a token of no kind. Where nothing but those and trivia is left,
-				/// the reading is starved rather than refused by the first of them. A token the text
-				/// ends inside of is one to read: the reading meets it, and is starved there.
-				/// </remarks>
-				internal bool Unreadable(int from)
-				{
-					for (var at = from; at < Count; at++)
-					{
-						if (Kinds[at] != '\0')
-							return false;
-					}
-
-					return !Cut;
-				}
 
 				internal void Room(int length)
 				{
