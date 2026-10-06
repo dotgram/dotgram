@@ -40,16 +40,16 @@ static partial class Stand
 
 		foreach (var (name, method, text) in new[]
 		{
-			("refused-late", "TryParseQueryExpression", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = "),
-			("select20",     "TryParseQueryExpression", "SELECT " + string.Join(", ", System.Linq.Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1"),
+			("refused-late", "TryParseStatement", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;"),
+			("select20",     "TryParseStatement",       "SELECT " + string.Join(", ", System.Linq.Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1"),
 		})
 		{
-			var quiet = after.SqlBool(method, text);
+			var quiet = after.SqlBool(method + "|TryParseQueryExpression", text);
 
 			if (quiet is null)
 				continue;
 
-			var match = before.Sql(method, text);
+			var match = before.Sql(method + "|TryParseQueryExpression", text);
 
 			yield return new Workload("sql", name + ".bool",
 				[

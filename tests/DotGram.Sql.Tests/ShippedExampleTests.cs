@@ -121,10 +121,10 @@ public sealed class ShippedExampleTests
 	[Fact]
 	public void The_skill_standard_example_runs()
 	{
-		Ast.Expression e = SqlStandardParser.ParseValueExpression("a + b * 2");
+		Ast.Expression e = SqlStandardParser.ParseExpression("a + b * 2");
 		string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
 
-		bool standard = SqlStandardParser.TryParseQueryExpression("SELECT TOP 1 a FROM t").IsSuccess;  // false
+		bool standard = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t").IsSuccess;  // false
 
 		Assert.Equal("a + b * 2", again);
 		Assert.False(standard);

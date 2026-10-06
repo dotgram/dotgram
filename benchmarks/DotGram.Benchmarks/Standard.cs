@@ -7,6 +7,7 @@ using System.Text;
 
 using DotGram.Handwritten;
 using DotGram.Sql.Ast;
+using DotGram.Sql.Productions;
 using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
@@ -49,8 +50,8 @@ static class Standard
 		// over a long line, which is no way to look for what makes the grammar slow.
 		if (start.StartsWith('=') && path is not null)
 		{
-			var alone = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(start[1..]), [typeof(string)])
-				?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{start[1..]}>");
+			var alone = typeof(SqlStandardProductions).GetMethod("TryParse" + Bnf.RuleName(start[1..]), [typeof(string)])
+				?? throw new ArgumentException($"SqlStandardProductions publishes no rule for <{start[1..]}>");
 
 			foreach (var line in File.ReadLines(path))
 			{
@@ -96,8 +97,9 @@ static class Standard
 			: File.ReadLines(path);
 
 		// The grammar's rule of the same name, where one is published: `<column reference>` is
-		// asked of `SqlStandardParser.TryParseColumnReference` beside the BNF.
-		var parser = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(start), [typeof(string)]);
+		// asked of `SqlStandardProductions.TryParseColumnReference` beside the BNF: the shipped grammar,
+		// included by the test fixture that publishes it production by production.
+		var parser = typeof(SqlStandardProductions).GetMethod("TryParse" + Bnf.RuleName(start), [typeof(string)]);
 		var (agree, differ) = (0, 0);
 		var grammar = new Stopwatch();
 		var slowest = (Ticks: 0L, Line: "");
@@ -167,8 +169,8 @@ static class Standard
 	/// </summary>
 	static void RoundTrip(string production, string path)
 	{
-		var parser = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(production), [typeof(string)])
-			?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{production}>");
+		var parser = typeof(SqlStandardProductions).GetMethod("TryParse" + Bnf.RuleName(production), [typeof(string)])
+			?? throw new ArgumentException($"SqlStandardProductions publishes no rule for <{production}>");
 		var (read, same, shown) = (0, 0, 0);
 
 		// A direct SQL statement ends in its semicolon, which is the production's and no part of the tree.
@@ -263,8 +265,8 @@ static class Standard
 	static void Handwritten(string production, string path)
 	{
 		var rule      = Bnf.RuleName(production);
-		var published = typeof(SqlStandardParser).GetMethod("TryParse" + rule, [typeof(string)])
-			?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{production}>");
+		var published = typeof(SqlStandardProductions).GetMethod("TryParse" + rule, [typeof(string)])
+			?? throw new ArgumentException($"SqlStandardProductions publishes no rule for <{production}>");
 		var written   = Array.Find(
 			typeof(HandSqlStandard).GetMethods(BindingFlags.Public | BindingFlags.Static),
 			one => one.Name == "TryParse" + rule && one.GetParameters().Length == 2)
@@ -357,7 +359,7 @@ static class Standard
 
 	static Reading Generated<T>(MethodInfo method)
 	{
-		var read = method.CreateDelegate<Func<string, SqlStandardParser.Match<T>>>();
+		var read = method.CreateDelegate<Func<string, SqlStandardProductions.Match<T>>>();
 
 		return input =>
 		{

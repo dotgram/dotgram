@@ -81,16 +81,16 @@ public class SqlStandardBenchmarks
 	[
 		Of<Ast.LiteralValue, Ast.LiteralValue>(
 			"literal", "1",
-			SqlStandardParser.TryParseLiteral, HandSqlStandard.TryParseLiteral),
+			SqlStandardParser.TryParseValue, HandSqlStandard.TryParseValue),
 		Of<Ast.Expression, Ast.Expression>(
 			"arithmetic", "(a + b) * c - d / 5",
-			SqlStandardParser.TryParseValueExpression, HandSqlStandard.TryParseValueExpression),
-		Of<Ast.Statement.Select, Ast.Statement.Select>(
+			SqlStandardParser.TryParseExpression, HandSqlStandard.TryParseExpression),
+		Of<Ast.Statement, Ast.Statement>(
 			"select1", "SELECT a FROM t",
-			SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
-		Of<Ast.Statement.Select, Ast.Statement.Select>(
+			SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement),
+		Of<Ast.Statement, Ast.Statement>(
 			"select20", Select(20),
-			SqlStandardParser.TryParseQueryExpression, HandSqlStandard.TryParseQueryExpression),
+			SqlStandardParser.TryParseStatement, HandSqlStandard.TryParseStatement),
 		Of<Ast.Expression, Ast.Expression>(
 			"conditions100", Conditions(100),
 			SqlStandardParser.TryParseSearchCondition, HandSqlStandard.TryParseSearchCondition),

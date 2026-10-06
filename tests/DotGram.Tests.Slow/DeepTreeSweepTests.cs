@@ -133,7 +133,7 @@ public sealed class DeepTreeSweepTests
 	{
 		var text = Nested(prefix, open, middle, close, suffix, Depth);
 
-		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseQueryExpression, DotGram.Sql.Ast.Sql2023Writer.Write));
+		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseStatement, DotGram.Sql.Ast.Sql2023Writer.Write));
 
 		Assert.True(thrown is null, $"{shape}: {thrown}");
 		Assert.NotEmpty(written);

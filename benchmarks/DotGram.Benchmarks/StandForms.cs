@@ -53,13 +53,13 @@ static partial class Stand
 		var positions = prefix + select20;
 		var window    = prefix + select20 + "; SELECT 2";
 
-		yield return PairedFormRow("sql", "select20.at", "hand", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
-			before.SqlPositional(false, "TryParseQueryExpression", positions, prefix.Length, null),
-			after.SqlPositional(false, "TryParseQueryExpression", positions, prefix.Length, null));
+		yield return PairedFormRow("sql", "select20.at", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
+			before.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", positions, prefix.Length, null),
+			after.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", positions, prefix.Length, null));
 
-		yield return PairedFormRow("sql", "select20.window", "hand", () => HandAccepts("TryParseQueryExpression", select20) ? 1 : 0,
-			before.SqlPositional(false, "TryParseQueryExpression", window, prefix.Length, select20.Length),
-			after.SqlPositional(false, "TryParseQueryExpression", window, prefix.Length, select20.Length));
+		yield return PairedFormRow("sql", "select20.window", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
+			before.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", window, prefix.Length, select20.Length),
+			after.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", window, prefix.Length, select20.Length));
 
 		var insert = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4), (5, 6)";
 

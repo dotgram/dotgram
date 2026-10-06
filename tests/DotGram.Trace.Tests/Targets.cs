@@ -120,14 +120,14 @@ static class Targets
 				text => Count(new CookieCount(), sink => TracedCookies.Tracing(sink), () => Of(TracedCookies.TryParseCookies(text))),
 				Corpora.Cookies),
 
-			// Read by one flat method: an SQL identifier.
+			// Read by one flat method: an SQL value.
 			new Target(
-				"SQL identifier",
-				text => Of(PlainStandard.TryParseIdentifier(text)),
-				text => Explain(typeof(TracedStandard), () => Of(TracedStandard.TryParseIdentifier(text))),
-				text => Explain(typeof(UnfoldedStandard), () => Of(UnfoldedStandard.TryParseIdentifier(text))),
-				text => Count(new StandardCount(), sink => TracedStandard.Tracing(sink), () => Of(TracedStandard.TryParseIdentifier(text))),
-				Corpora.Identifiers),
+				"SQL value",
+				text => Of(PlainStandard.TryParseValue(text)),
+				text => Explain(typeof(TracedStandard), () => Of(TracedStandard.TryParseValue(text))),
+				text => Explain(typeof(UnfoldedStandard), () => Of(UnfoldedStandard.TryParseValue(text))),
+				text => Count(new StandardCount(), sink => TracedStandard.Tracing(sink), () => Of(TracedStandard.TryParseValue(text))),
+				Corpora.Values),
 		];
 	}
 

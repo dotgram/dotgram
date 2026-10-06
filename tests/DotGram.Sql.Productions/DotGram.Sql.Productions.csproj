@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- SQL:2023's productions one by one, which the shipped parser does not publish: it reads at six
+	     levels — a value, a data type, an expression, a search condition, a statement and a text — and a
+	     production below them is read through the level that holds it. This assembly includes that
+	     grammar ([GramInclude]) and publishes the productions again, for the BNF oracle of
+	     DotGram.Benchmarks (the standard option), which asks each production by its name, and for the tests that
+	     read one production at a time. Not shipped: it is a fixture.
+
+	     An including class is a parser of its own, compiled again from the included text: its own kinds,
+	     its own machines, its own memo. What it reads is the grammar's, and what it is is not the shipped
+	     parser's, so the tests that hold this to SqlStandardParser are what say that the two agree. -->
+	<PropertyGroup>
+		<!-- net10.0 alone: the tests and the stand are what read it, and both are net10.0. -->
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>DotGram.Sql.Productions</RootNamespace>
+
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+		<!-- The tree, and the grammar it carries: the included text is read off SqlStandardParser, or
+		     off the file below where it is in reach, which is what a diagnostic points at. -->
+		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="SqlStandardProductions.gram" />
+		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="SqlStandard.gram" />
+	</ItemGroup>
+
+</Project>

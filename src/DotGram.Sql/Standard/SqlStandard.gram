@@ -521,9 +521,6 @@ BooleanPrimary : @Towers.Typed
 PredicatePart2Mark : @Towers.Tail = p: PredicatePart2 => @(p)
                                   | none => @(default)
 
-// <predicate>: a boolean primary that is not only a predicand.
-Predicate : @Towers.Typed = e: BooleanPrimary & when @((Towers.RolesOf(e) & Towers.Logical) != 0) => @(e)
-
 // ── §8 Predicates ───────────────────────────────────────────────────────────
 //
 // The second parts, which is what the BNF calls them too: each says what it takes before it. Most
@@ -667,7 +664,6 @@ FunctionSubscript : @Towers.Stepping = e: ArrayElementStep & s: PrimaryStep* => 
 NumericValueExpression    : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Numeric) != 0) => @(e)
 StringValueExpression     : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.String) != 0) => @(e)
 CharacterValueExpression  : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Character) != 0) => @(e)
-BinaryValueExpression     : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Binary) != 0) => @(e)
 DatetimeValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Datetime) != 0) => @(e)
 IntervalValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Interval) != 0) => @(e)
 ArrayValueExpression      : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Array) != 0) => @(e)
@@ -2326,27 +2322,10 @@ GranteeItem : @Grantee = "PUBLIC"i => @(new Grantee.Public())
 
 // ── §22 Direct invocation of SQL, and the statements it invokes ─────────────
 //
-// <direct SQL statement>: a statement and its semicolon. What an implementation defines for itself is
-// none of the standard's, and not read.
-DirectSQLStatement : @Statement = s: DirectlyExecutableStatement & ';' => @(s)
-
-DirectlyExecutableStatement : @Statement
-	= d: DirectSQLDataStatement => @(d)
-	| s: SQLSchemaStatement => @(s)
-	| t: SQLTransactionStatement => @(t)
-	| c: SQLConnectionStatement => @(c)
-	| n: SQLSessionStatement => @(n)
-
-// <direct SQL data statement>. A multiple row select statement is a cursor specification; a searched
-// statement is asked before a query only by its key word.
-DirectSQLDataStatement : @Statement
-	= d: DeleteStatementSearched => @(d)
-	| i: InsertStatement => @(i)
-	| u: UpdateStatementSearched => @(u)
-	| t: TruncateTableStatement => @(t)
-	| m: MergeStatement => @(m)
-	| l: TemporaryTableDeclaration => @(l)
-	| c: CursorSpecification => @(c)
+// What direct invocation adds to the executable statements (§13): a query, as a cursor specification,
+// and a temporary table's declaration. The productions that gather them, <direct SQL statement> and
+// <directly executable statement>, are not rules here: `SqlStatement` below reads their union with the
+// executable statements.
 
 // <cursor specification>: a query, and whether it is updated through.
 CursorSpecification : @Statement.Select = q: QueryExpression & u: UpdatabilityClause? => @(u is null ? q : q with { Updatability = u })
@@ -2669,60 +2648,41 @@ CursorHoldability   : @CursorHoldability = "WITH"i & "HOLD"i => @(CursorHoldabil
 CursorReturnability : @CursorReturnability = "WITH"i & "RETURN"i => @(CursorReturnability.WithReturn)
                                            | "WITHOUT"i & "RETURN"i => @(CursorReturnability.WithoutReturn)
 
-// What a publication of a tower hands back: the node alone, since the towers are the grammar's own business.
-ValueExpressionTree        : @Expression = e: ValueExpression => @(e.Node)
-CommonValueExpressionTree  : @Expression = e: CommonValueExpression => @(e.Node)
-NumericValueExpressionTree : @Expression = e: NumericValueExpression => @(e.Node)
-StringValueExpressionTree  : @Expression = e: StringValueExpression => @(e.Node)
-CharacterValueExpressionTree : @Expression = e: CharacterValueExpression => @(e.Node)
-BinaryValueExpressionTree  : @Expression = e: BinaryValueExpression => @(e.Node)
-DatetimeValueExpressionTree : @Expression = e: DatetimeValueExpression => @(e.Node)
-IntervalValueExpressionTree : @Expression = e: IntervalValueExpression => @(e.Node)
-BooleanValueExpressionTree : @Expression = e: BooleanValueExpression => @(e.Node)
-SearchConditionTree        : @Expression = e: SearchCondition => @(e.Node)
-PredicateTree              : @Expression = e: Predicate => @(e.Node)
-RowValuePredicandTree      : @Expression = e: RowValuePredicand => @(e.Node)
-ValueExpressionPrimaryTree : @Expression = e: ValueExpressionPrimary => @(e.Node)
+// ── What the parser publishes ────────────────────────────────────────────────
+//
+// One entry for each level a caller reads at, not one for each production: a value, a data type, an
+// expression, a search condition, a statement and a whole text. A production below these is read through
+// the level that holds it — a table reference as `SELECT * FROM` it, a predicate as a search condition — and
+// a statement's kind is the type of its node.
 
-parse Literal                  as ParseLiteral
-parse UnsignedLiteral          as ParseUnsignedLiteral
-parse Identifier               as ParseIdentifier
-parse IdentifierChain          as ParseIdentifierChain
-parse ColumnReference          as ParseColumnReference
-parse TableName                as ParseTableName
-parse SchemaName               as ParseSchemaName
-parse DataType                 as ParseDataType
-parse ValueExpressionTree as ParseValueExpression
-parse CommonValueExpressionTree as ParseCommonValueExpression
-parse NumericValueExpressionTree as ParseNumericValueExpression
-parse StringValueExpressionTree as ParseStringValueExpression
-parse CharacterValueExpressionTree as ParseCharacterValueExpression
-parse BinaryValueExpressionTree as ParseBinaryValueExpression
-parse DatetimeValueExpressionTree as ParseDatetimeValueExpression
-parse IntervalValueExpressionTree as ParseIntervalValueExpression
-parse BooleanValueExpressionTree as ParseBooleanValueExpression
+// A value as SQL writes it: the standard's <literal>, a signed number among them, or `NULL`. `NULL` is
+// no <literal> in the standard but a <null specification>; it is read here because it is the one value a
+// caller has to write without one, and the tree already has its node.
+Value : @LiteralValue = v: Literal => @(v) | "NULL"i => @(new LiteralValue.Null())
+
+// What a publication of a tower hands back: the node alone, since the towers are the grammar's own business.
+ValueExpressionTree : @Expression = e: ValueExpression => @(e.Node)
+SearchConditionTree : @Expression = e: SearchCondition => @(e.Node)
+
+// One statement of any kind. What direct invocation reads (§22) and what a routine's body reads (§13, the
+// SQL procedure statement) are each a part of what a caller hands a parser, and the union of the two is
+// the SQL executable statements with the two that direct invocation adds: a query, as a cursor
+// specification, and a temporary table's declaration. The executable statements are asked first, so that
+// a positioned `DELETE` or `UPDATE` reads as itself.
+SqlStatementBody : @Statement
+	= s: SQLExecutableStatement => @(s)
+	| c: CursorSpecification => @(c)
+	| t: TemporaryTableDeclaration => @(t)
+
+// A statement ends at its semicolon or at the end of the text: one statement read whole may leave the
+// semicolon out. A text is statements, each ended so; the last may leave it out, and an empty statement
+// (`;;`, or a semicolon first) is none.
+SqlStatement : @Statement = s: SqlStatementBody & (';' | eof) => @(s)
+Sql          : @Statement[] = s: SqlStatement* => @(s ?? System.Array.Empty<Statement>())
+
+parse Value               as ParseValue
+parse DataType            as ParseDataType
+parse ValueExpressionTree as ParseExpression
 parse SearchConditionTree as ParseSearchCondition
-parse PredicateTree as ParsePredicate
-parse RowValuePredicandTree as ParseRowValuePredicand
-parse ValueExpressionPrimaryTree as ParseValueExpressionPrimary
-parse QueryExpression          as ParseQueryExpression
-parse QuerySpecification       as ParseQuerySpecification
-parse TableReference           as ParseTableReference
-parse InsertStatement          as ParseInsertStatement
-parse UpdateStatementSearched  as ParseUpdateStatementSearched
-parse UpdateStatementPositioned as ParseUpdateStatementPositioned
-parse DeleteStatementSearched  as ParseDeleteStatementSearched
-parse DeleteStatementPositioned as ParseDeleteStatementPositioned
-parse MergeStatement           as ParseMergeStatement
-parse TruncateTableStatement   as ParseTruncateTableStatement
-parse SQLSchemaStatement       as ParseSQLSchemaStatement
-parse DirectSQLStatement       as ParseDirectSQLStatement
-parse SQLTransactionStatement  as ParseSQLTransactionStatement
-parse SQLConnectionStatement   as ParseSQLConnectionStatement
-parse SQLSessionStatement      as ParseSQLSessionStatement
-parse SQLDiagnosticsStatement  as ParseSQLDiagnosticsStatement
-parse DirectSQLDataStatement   as ParseDirectSQLDataStatement
-parse SQLControlStatement      as ParseSQLControlStatement
-parse SQLDataStatement         as ParseSQLDataStatement
-parse SQLDynamicStatement      as ParseSQLDynamicStatement
-parse SQLProcedureStatement    as ParseSQLProcedureStatement
+parse SqlStatement        as ParseStatement
+parse Sql                 as ParseSql

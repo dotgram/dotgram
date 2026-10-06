@@ -37,9 +37,9 @@ static partial class Stand
 		foreach (var (name, columns) in new[] { ("worst-columns-100k", 100_000), ("worst-columns-300k", 300_000), ("worst-columns-400k", 400_000) })
 		{
 			var text = "SELECT " + string.Join(", ", Enumerable.Range(0, columns).Select(static i => "c" + i)) + " FROM t";
-			var own  = (Func<int>)(() => SqlStandardParser.TryParseQueryExpression(text).IsSuccess ? 1 : 0);
-			var b    = before.Sql("TryParseQueryExpression", text);
-			var a    = after.Sql("TryParseQueryExpression", text);
+			var own  = (Func<int>)(() => SqlStandardParser.TryParseStatement(text).IsSuccess ? 1 : 0);
+			var b    = before.Sql("TryParseStatement|TryParseQueryExpression", text);
+			var a    = after.Sql("TryParseStatement|TryParseQueryExpression", text);
 
 			yield return new Workload("sql", name,
 				[

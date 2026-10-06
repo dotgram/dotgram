@@ -27,8 +27,8 @@ static class SqlLoop
 	{
 		Func<bool> read = which switch
 		{
-			"generated" => static () => SqlStandardParser.TryParseQueryExpression(Select20).IsSuccess,
-			"hand"      => static () => HandSqlStandard.TryParseQueryExpression(Select20, out _),
+			"generated" => static () => SqlStandardParser.TryParseStatement(Select20).IsSuccess,
+			"hand"      => static () => HandSqlStandard.TryParseStatement(Select20, out _),
 			_           => throw new ArgumentException($"'{which}' is not generated or hand."),
 		};
 
