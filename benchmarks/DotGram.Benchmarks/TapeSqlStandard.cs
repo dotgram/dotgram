@@ -7,32 +7,27 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <see cref="SqlStandardParser"/>'s grammar (SQL:2023) compiled immediately: the same file, the
-/// same tree, and every <c>=&gt;</c> run the moment its alternative is read rather than after the
-/// parse is accepted. The counterpart of <see cref="ImmediateSql"/>, which is SQL-92.
+/// <see cref="SqlStandardParser"/>'s grammar (SQL:2023) compiled on the tape: the same file, the same
+/// tree, and every <c>=&gt;</c> recorded as it is read and run by a walk once the parse is accepted,
+/// where the shipped parser runs each the moment its alternative is read. The counterpart of
+/// <see cref="ImmediateSql"/>, which is SQL-92 the other way about: there the package ships the tape and
+/// this project carries the copy.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The 2026-09-05 comparison on SQL-92 read the immediate carrier at 1.1-1.6x of the hand-written
-/// parser against the shipped tape's 2.1-3.0x; this grammar has not been measured that way. If it
-/// compiles at all: SQL:2023 has 302 value tables and eight value types where SQL-92 has far fewer,
-/// so a wider dense store is exercised here that the SQL-92 comparison never touched.
+/// The shipped parser was on the tape until 2026-10-06 and this class was the immediate copy it was
+/// measured against (<c>ImmediateSqlStandard</c>; <c>benchmarks/results/2026-09-27-sql2023-immediate</c>).
+/// The carriers have changed places and the comparison is kept: the stand's <c>sql/</c> rows read
+/// each text by hand, by the shipped parser and by this copy, and <c>--sql2023-stack</c> holds the two
+/// carriers' frames against each other. It is not the shipped parser: a caller who wants SQL:2023 on
+/// the tape compiles the grammar with <c>Carrier = GramCarrier.Tape</c> as this class does.
 /// </para>
 /// <para>
-/// It is not the shipped parser and could not be: immediate construction calls a factory once
-/// per derivation tried, and the tree's factories happen to be pure, which is
-/// what makes the comparison fair rather than what makes it safe.
-/// </para>
-/// <para>
-/// It is carried whole. Joins, JoinOperandTail, JSONTablePlanTail, AlterColumnAction,
-/// Representation and Get- and SetDescriptorInformation each gather two members of one type,
-/// but in alternatives with a construction each, which never see each other's turns; the carrier
-/// refused them until it asked one construction at a time, and this class was the tape under
-/// another name until then. GRAM5007 is no longer suppressed here: should the carrier refuse the
-/// grammar again, the build says so rather than the rows quietly measuring the tape.
+/// It is carried whole, one class and no suppression: the tape is the carrier the generator falls
+/// back to, so there is no GRAM5007 to hear and nothing to measure the tape against itself by mistake.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
-public static partial class ImmediateSqlStandard
+[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Tape)]
+public static partial class TapeSqlStandard
 {
 }

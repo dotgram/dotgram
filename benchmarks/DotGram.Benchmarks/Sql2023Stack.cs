@@ -8,8 +8,8 @@ namespace DotGram.Benchmarks;
 
 /// <summary>
 /// What SQL:2023's own <c>SearchCondition</c> costs a level of nesting to refuse, on the shipped
-/// tape carrier (<see cref="SqlStandardParser"/>) beside the immediate one
-/// (<see cref="ImmediateSqlStandard"/>): the same measurement <c>StackFrameBudgetTests</c> takes of
+/// immediate carrier (<see cref="SqlStandardParser"/>) beside the tape
+/// (<see cref="TapeSqlStandard"/>): the same measurement <c>StackFrameBudgetTests</c> takes of
 /// the shipped grammars (<c>tests/DotGram.Tests.Slow/StackFrameBudgetTests.cs</c>), adapted to hold
 /// two carriers of the same grammar against each other rather than a carrier against a budget.
 /// </summary>
@@ -77,12 +77,12 @@ static class Sql2023Stack
 
 	static bool Tape(int depth)
 	{
-		return SqlStandardParser.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess;
+		return TapeSqlStandard.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess;
 	}
 
 	static bool Immediate(int depth)
 	{
-		return ImmediateSqlStandard.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess;
+		return SqlStandardParser.TryParseSearchCondition(new string('(', depth) + "a = 1").IsSuccess;
 	}
 
 	static long OnWindows()
