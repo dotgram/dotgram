@@ -404,6 +404,20 @@ sealed partial class Machine
 		}
 
 		/// <remarks>
+		/// A record takes everything pushed onto its stacks since its rule began, so a rule that
+		/// pushed some of its turns and then failed has to leave the stacks as it found them: its
+		/// caller may read on by another alternative, and the next rule to collect on the same
+		/// stack — around the caller, or the failed rule itself, entered again — would take what
+		/// the failed one left. T-SQL read <c>CHOOSE (2, 'a', 'b', '</c> that way: the arguments
+		/// of the abandoned call, once <c>CHOOSE</c> had been read again as a column name, were
+		/// taken for the <c>AT TIME ZONE</c> tail of the expression around it.
+		/// </remarks>
+		public override IEnumerable<string> GiveBackGathered(RuleSymbol owner, string name)
+		{
+			return UnwindGathered(owner, name);
+		}
+
+		/// <remarks>
 		/// A default is what says a local was never written, and for a value type the default
 		/// is also a value: an <c>int</c> left out and an <c>int</c> read as nought would be one
 		/// answer. So a member that may be left out is kept in a local that can say nothing.
