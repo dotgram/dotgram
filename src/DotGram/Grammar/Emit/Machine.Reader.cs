@@ -287,6 +287,12 @@ sealed partial class Machine
 
 		// Which rules remember where they failed, knowing which of them give back (Machine.Memo.cs).
 		ChooseMemo(rules);
+
+		// The first pass asked the carrier about its calls, and the carrier asked demand — before the
+		// rules that give back were known, so without them (GivingBack). Forgotten here, on both
+		// sides, so that the readers are written against the report that has them.
+		_demands = null;
+		(Carrier as ImmediateCarrier)?.Resettled();
 	}
 
 	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
@@ -296,6 +302,10 @@ sealed partial class Machine
 
 		if (_opens is not { } opens)
 			throw new InvalidOperationException("The readers were not settled.");
+
+		// What the loops decide is noted as they are written, and written once: a rendering asked
+		// for again says it again from the start.
+		RetryLoops.Clear();
 
 		var file  = new Writer(0);
 		var rules = _directRules;
@@ -505,7 +515,7 @@ sealed partial class Machine
 		Writer file, RuleSymbol rule, string strength, bool seal = false, RuleSymbol? deepens = null)
 	{
 		RenderWayBack(
-			file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
+			file, rule, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
 			strength, seal, deepens);
 	}
 
@@ -631,10 +641,14 @@ sealed partial class Machine
 	/// <c>?</c> over kinds gives back inside itself, and once it has answered the answer
 	/// stands. Sealed rather than dropped, so that a replay reads the same decisions.
 	/// </param>
+	/// <param name="owner">The rule whose reading the loop asks again: the rule itself, or the one an entry reads.</param>
+	/// <param name="entry">Whether the loop is an entry's, around its reading of the rule, rather than the rule's own.</param>
 	void RenderWayBack(
-		Writer file, string name, string summary, string strength, bool seal = false,
-		RuleSymbol? deepens = null)
+		Writer file, RuleSymbol owner, string name, string summary, string strength, bool seal = false,
+		RuleSymbol? deepens = null, bool entry = false)
 	{
+		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
+
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
@@ -643,18 +657,28 @@ sealed partial class Machine
 				Probe(file, deepens);
 
 			file.Line("var s  = ways.Cursor;");
+			if (defers)
+				file.Line(DeclareDeferral(""));
 			foreach (var line in Carrier.MarkRecords("lm"))
 				file.Line(line);
 			foreach (var line in Carrier.MarkGathered(null, "rb"))
 				file.Line(line);
 			file.Line();
 
+			var restore = new List<string>(Carrier.UnwindRecords("lm"));
+
+			restore.AddRange(Carrier.UnwindGathered(null, "rb"));
+
 			using (file.Block("while (true)"))
 			{
 				file.Line(
 					$"var q = {name}_Body(pos{(strength.Length > 0 ? ", power" : "")});");
 				file.Line();
-				if (seal)
+				if (defers)
+				{
+					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", "return q;"] : ["return q;"]);
+				}
+				else if (seal)
 				{
 					using (file.Block("if (q >= 0)"))
 					{
@@ -670,20 +694,153 @@ sealed partial class Machine
 				}
 
 				file.Line();
-				foreach (var line in Carrier.UnwindRecords("lm"))
+				foreach (var line in restore)
 					file.Line(line);
 
-				foreach (var line in Carrier.UnwindGathered(null, "rb"))
-					file.Line(line);
-				file.Line();
-				file.Line("if (ways.Cursor > s && ways.Retry(s))");
-				file.Then("continue;");
+				// A loop that defers is new text, written without the empty line the others keep
+				// where there is nothing to put back; those are written as they always were.
+				if (!defers || restore.Count > 0)
+					file.Line();
+
+				if (defers)
+				{
+					using (file.Block("if (ways.Cursor > s && ways.Retry(s))"))
+						Retried(file, "");
+
+					file.Line();
+					Undeferred(file, "");
+				}
+				else
+				{
+					file.Line("if (ways.Cursor > s && ways.Retry(s))");
+					file.Then("continue;");
+				}
+
 				file.Line();
 				file.Line("return -1;");
 			}
 		}
 
 		file.Line();
+	}
+
+	/// <summary>
+	/// The local of a loop that asks for another reading, saying where its attempts stand since a
+	/// way was given back (<see cref="DefersOnGiveBack"/>): 0 building, as every loop begins; 1
+	/// building still, one way given back; 2 reading unbuilt, the count raised by this loop; 3
+	/// reading the attempt that stood once more, with the failure made quiet by this loop.
+	/// Declared beside the loop's cursor mark, <c>s</c> with the same suffix, so that the two are
+	/// read together.
+	/// </summary>
+	/// <remarks>
+	/// The first way given back is read building, as it always was, and only the second raises the
+	/// count: one give-back is how a choice reads — an alternative that opened a way fails, the way
+	/// is flipped, the next alternative stands — and an accepted address list gives one back for
+	/// every member it reads. Deferring there would read every such member twice. What grows with
+	/// the input is the give-back that is given back again, and that is where the count is raised:
+	/// a refused list builds its first two attempts and no more, twice the first and not its
+	/// square.
+	/// </remarks>
+	static string DeclareDeferral(string suffix)
+	{
+		return $"var u{suffix}  = 0;";
+	}
+
+	/// <summary>
+	/// What a loop does with an attempt that reached somewhere: answers with it — or, where the
+	/// attempts since a give-back were read unbuilt, puts back what a failed attempt puts back,
+	/// sets the cursor to the loop's own mark and reads once more with the count at zero. The
+	/// ways from the mark on hold exactly what the attempt that stood decided, so the reading
+	/// replays them, fails nowhere, and builds what the attempt only recognized. Through the same
+	/// call as every attempt, so that the body is inlined into its loop once.
+	/// </summary>
+	/// <remarks>
+	/// The reading that builds is made quiet while it lasts, where it was not already: the attempt
+	/// that stood recorded every refusal on its way as it was read unbuilt, exactly what the attempt
+	/// that stands records today, and a reading that recorded them again would say the expected set
+	/// twice. The loop puts the flag back when the replay has answered — and where the replay does
+	/// not answer, which the ways it replays rule out, when the loop ends either way.
+	/// </remarks>
+	/// <param name="restore">
+	/// What the failure branch of the same loop puts back before it flips a way: the records to
+	/// their mark, the gathered members to theirs, the positions a part wrote. The one list for
+	/// both, so that the replay cannot put back less than a retry does.
+	/// </param>
+	/// <param name="answer">What ends the loop with the attempt: a return, a break; a seal before either where the loop seals.</param>
+	static void Stood(Writer code, string took, string suffix, IReadOnlyList<string> restore, IReadOnlyList<string> answer)
+	{
+		using (code.Block($"if ({took} >= 0)"))
+		{
+			// The hot path: one compare of a local, and the answer.
+			Answer($"if (u{suffix} <= 1)");
+
+			code.Line();
+
+			using (code.Block($"if (u{suffix} == 3)"))
+			{
+				code.Line("failure.Quiet = false;");
+				code.Line();
+				Answer(null);
+			}
+
+			code.Line();
+			code.Line("unbuilt = 0;");
+			code.Line($"u{suffix} = failure.Quiet ? 0 : 3;");
+			code.Line("failure.Quiet = true;");
+			foreach (var line in restore)
+				code.Line(line);
+			code.Line($"ways.Cursor = s{suffix};");
+			code.Line();
+			code.Line("continue;");
+		}
+
+		void Answer(string? under)
+		{
+			if (under is null)
+			{
+				foreach (var line in answer)
+					code.Line(line);
+			}
+			else if (answer.Count == 1)
+			{
+				code.Line(under);
+				code.Then(answer[0]);
+			}
+			else
+			{
+				using (code.Block(under))
+					foreach (var line in answer)
+						code.Line(line);
+			}
+		}
+	}
+
+	/// <summary>
+	/// What a loop does once a way has been flipped: reads the next attempt — building still after
+	/// the first give-back, unbuilt from the second, of a reading that was building. Not of one
+	/// already unbuilt, which a loop around this one is deferring, or an unasked reading began so.
+	/// </summary>
+	static void Retried(Writer code, string suffix)
+	{
+		using (code.Block($"if (u{suffix} == 1)"))
+		{
+			code.Line($"u{suffix} = 2;");
+			code.Line("unbuilt = 1;");
+		}
+
+		code.Line($"else if (u{suffix} == 0 && unbuilt == 0)");
+		code.Then($"u{suffix} = 1;");
+		code.Line();
+		code.Line("continue;");
+	}
+
+	/// <summary>A loop that ends without an answer puts back what it raised: the count, or the quiet.</summary>
+	static void Undeferred(Writer code, string suffix)
+	{
+		code.Line($"if (u{suffix} == 2)");
+		code.Then("unbuilt = 0;");
+		code.Line($"else if (u{suffix} == 3)");
+		code.Then("failure.Quiet = false;");
 	}
 
 	/// <summary>The whole input, handed to a reader that may have to go on with it elsewhere.</summary>
@@ -1371,7 +1528,7 @@ sealed partial class Machine
 				// for its message — begins with the count raised, and the carrier that builds as it
 				// reads builds only what a guard asks for (ImmediateCarrier.AroundCall). Not for a
 				// rule whose own guard asks for its value so far: that one builds whenever it is read.
-				if (valued && CarriesImmediately && Demands.ReadUnasked(rule))
+				if (valued && CarriesImmediately && UnaskedEntries.Contains(rule) && Demands.ReadUnasked(rule))
 					file.Line("if (failure.Unasked) reader.unbuilt = 1;");
 
 				file.Line();
@@ -1468,7 +1625,7 @@ sealed partial class Machine
 		var said = ends ? "The whole input as" : "A reading of";
 
 		if (tape)
-			RenderWayBack(members, core + "_Read", $"/// <summary>{said} <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
+			RenderWayBack(members, rule, core + "_Read", $"/// <summary>{said} <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule), entry: true);
 
 		members.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
@@ -3466,26 +3623,30 @@ sealed partial class Machine
 
 					var (call, undo, opens) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
+					if (analyzing)
+						machine.NoteRetrySite(owner, alternatives[i]);
+
 					if (opens)
 					{
+						var defers  = Defers(RetrySite.Alternative);
+						var restore = Restore(segment, undo);
+
+						// Declared here and not with the mark above: whether there is a loop to
+						// read it is known only once the alternative has been written.
+						if (defers)
+							code.Line(DeclareDeferral(segment.ToString()));
+
 						using (code.Block("while (true)"))
 						{
 							code.Line($"{tried} = {call};");
 							code.Line();
-							code.Line($"if ({tried} >= 0)");
-							code.Then("break;");
+							Stood(code, tried, segment, defers, restore);
 							code.Line();
-							LogBack(code, $"lm{segment}");
-							foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+							foreach (var line in restore)
 								code.Line(line);
 
-							if (undo.Length > 0)
-								code.Line(undo);
-
 							code.Line();
-							code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
-							code.Then("continue;");
-							code.Line();
+							Retried(code, segment, defers);
 							code.Line("break;");
 						}
 					}
@@ -4738,6 +4899,9 @@ sealed partial class Machine
 				return took;
 			}
 
+			// A loop that asks again, noted with the others and never deferring: the recovering path is outside the deferral's scope.
+			machine.Deferral(owner, RetrySite.Yield, noting: !analyzing);
+
 			code.Line($"var {took} = -1;");
 			code.Line();
 
@@ -4906,9 +5070,15 @@ sealed partial class Machine
 				// which is the alternative's rule (EmitChoiceOverCharacters) over again.
 				var segment = _ways++;
 				var took    = $"q{_calls++}";
+				var defers  = opens && Defers(RetrySite.Turn);
+
+				if (analyzing)
+					machine.NoteRetrySite(owner, body);
 
 				if (opens)
 					code.Line($"var s{segment}  = ways.Cursor;");
+				if (defers)
+					code.Line(DeclareDeferral(segment.ToString()));
 
 				foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 					code.Line(line);
@@ -4919,20 +5089,20 @@ sealed partial class Machine
 
 				if (opens)
 				{
+					// The failure branch puts back the records and the gathered members and no
+					// more: what a part wrote is undone only once the turn is given up, below.
+					var restore = Restore(segment, "");
+
 					using (code.Block("while (true)"))
 					{
 						code.Line($"{took} = {call};");
 						code.Line();
-						code.Line($"if ({took} >= 0)");
-						code.Then("break;");
+						Stood(code, took, segment, defers, restore);
 						code.Line();
-						LogBack(code, $"lm{segment}");
-						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+						foreach (var line in restore)
 							code.Line(line);
 						code.Line();
-						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
-						code.Then("continue;");
-						code.Line();
+						Retried(code, segment, defers);
 						code.Line("break;");
 					}
 				}
@@ -5045,7 +5215,12 @@ sealed partial class Machine
 				return;
 			}
 
+			var defers  = Defers(RetrySite.Atomic);
+			var restore = Restore(segment, undo);
+
 			code.Line($"var s{segment}  = ways.Cursor;");
+			if (defers)
+				code.Line(DeclareDeferral(segment.ToString()));
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
 			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
@@ -5053,24 +5228,19 @@ sealed partial class Machine
 			code.Line($"var {took} = -1;");
 			code.Line();
 
+			// The replay, where there is one, reads before the seal below: what is sealed is the
+			// attempt that stands, built.
 			using (code.Block("while (true)"))
 			{
 				code.Line($"{took} = {call};");
 				code.Line();
-				code.Line($"if ({took} >= 0)");
-				code.Then("break;");
+				Stood(code, took, segment, defers, restore);
 				code.Line();
-				LogBack(code, $"lm{segment}");
-				foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+				foreach (var line in restore)
 					code.Line(line);
 
-				if (undo.Length > 0)
-					code.Line(undo);
-
 				code.Line();
-				code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
-				code.Then("continue;");
-				code.Line();
+				Retried(code, segment, defers);
 				code.Line("break;");
 			}
 
@@ -5080,6 +5250,71 @@ sealed partial class Machine
 			code.Line();
 			code.Line($"ways.Seal(s{segment});");
 			code.Line($"p = {took};");
+		}
+
+		/// <summary>
+		/// Whether a loop of this rule's reading defers building on a give-back: what the machine
+		/// decided for the site (<see cref="Machine.Deferral"/>), noted where the readers are being
+		/// written rather than read through for the first time — and never in a trace build, whose
+		/// sink would hear the attempt that stood twice.
+		/// </summary>
+		bool Defers(RetrySite site)
+		{
+			return machine.Deferral(owner, site, noting: !analyzing).Defers && machine.Tracing is null;
+		}
+
+		/// <summary>
+		/// What a loop around a part puts back where the part failed, before the way is flipped:
+		/// the records to the loop's mark, the gathered members to theirs, and the positions the
+		/// part wrote where the site undoes those on a retry.
+		/// </summary>
+		List<string> Restore(int segment, string undo)
+		{
+			var restore = new List<string>(machine.Carrier.UnwindRecords($"lm{segment}"));
+
+			restore.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{segment}"));
+
+			if (undo.Length > 0)
+				restore.Add(undo);
+
+			return restore;
+		}
+
+		/// <summary>
+		/// A part that reached somewhere ends the loop around it — or, where the loop defers
+		/// building on a give-back, is read once more to build it (<see cref="Machine.Stood"/>).
+		/// </summary>
+		static void Stood(Writer code, string took, int segment, bool defers, IReadOnlyList<string> restore)
+		{
+			if (defers)
+			{
+				Machine.Stood(code, took, segment.ToString(), restore, ["break;"]);
+
+				return;
+			}
+
+			code.Line($"if ({took} >= 0)");
+			code.Then("break;");
+		}
+
+		/// <summary>The way flipped and the part asked again — unbuilt from here on, where the loop defers (<see cref="Machine.Retried"/>).</summary>
+		static void Retried(Writer code, int segment, bool defers)
+		{
+			if (defers)
+			{
+				using (code.Block($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))"))
+					Machine.Retried(code, segment.ToString());
+
+				code.Line();
+				Undeferred(code, segment.ToString());
+				code.Line();
+
+				return;
+			}
+
+			code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+			code.Then("continue;");
+			code.Line();
 		}
 
 		/// <summary>
@@ -5433,6 +5668,9 @@ sealed partial class Machine
 
 			if (sealing)
 			{
+				// A loop that asks again, noted with the others and never deferring: what a look reads is built by nothing.
+				machine.Deferral(owner, RetrySite.Lookahead, noting: !analyzing);
+
 				// Declared and not set: every way out of the loop below has just set it.
 				code.Line($"int {seen};");
 				code.Line();

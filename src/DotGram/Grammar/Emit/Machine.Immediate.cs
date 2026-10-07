@@ -327,6 +327,15 @@ sealed partial class Machine
 		bool? _unbuilding;
 
 		/// <summary>
+		/// What was kept of the demand report, forgotten: the readers were settled, and the report
+		/// is asked again with the rules that give back (<see cref="Machine.Demands"/>).
+		/// </summary>
+		internal void Resettled()
+		{
+			_unbuilding = null;
+		}
+
+		/// <summary>
 		/// <summary>
 		/// A call nobody asks the value of is read with the count raised; one a guard or a
 		/// <c>with state</c> asks for is read with it at zero, where the rule it stands in
