@@ -22,9 +22,195 @@ sealed partial class Machine
 	/// <summary>
 	/// Whose value is ever built, asked of the graph the first time a carrier needs it
 	/// (<see cref="Demand"/>) — the rules a refused input is read again through counted as read
-	/// unbuilt, since that reading asks nothing of them (<see cref="UnaskedEntries"/>).
+	/// unbuilt, since that reading asks nothing of them (<see cref="UnaskedEntries"/>), and so
+	/// the rules whose loops read unbuilt once a way has been given back
+	/// (<see cref="GivingBack"/>).
 	/// </summary>
-	Demand.Report Demands => field ??= Demand.Of(_graph, UnaskedEntries);
+	/// <remarks>
+	/// Asked before the readers are settled it knows only the entries: which rules give back is
+	/// found by settling them. <see cref="Settle"/> forgets the answer once it knows, and the
+	/// carrier forgets what it kept of it (<c>ImmediateCarrier.Resettled</c>), so that the
+	/// readers are written against the whole of it.
+	/// </remarks>
+	Demand.Report Demands => _demands ??= Demand.Of(_graph, ReadUnasked());
+
+	Demand.Report? _demands;
+
+	/// <summary>The rules some reading of which asks nothing of their value: the entries, and the rules that give back.</summary>
+	IEnumerable<RuleSymbol> ReadUnasked()
+	{
+		return GivingBack is { } giving ? UnaskedEntries.Concat(giving) : UnaskedEntries;
+	}
+
+	/// <summary>
+	/// Whether a reading carried immediately reads unbuilt from the first way it gives back until
+	/// an attempt stands, and builds that attempt by reading it once more: the immediate carrier,
+	/// over a grammar with no context and no recovery, whose failure can be told to record nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A repetition that gives a turn back reads every turn before it again, and a carrier that
+	/// builds as it reads built them again each time: a list of a thousand members refused after
+	/// its last one built half a million of them, where the tape builds none. Recognition does
+	/// not depend on building — the contract the unasked reading rests on, and what lets a
+	/// deferred attempt take the same ways as a built one — so once a loop has given a way back
+	/// its further attempts are read with the count raised, and the one that stands is read once
+	/// more with it at zero: the ways vector then holds exactly its decisions, and that reading
+	/// replays them and builds. A loop that fails puts the count back and fails as before.
+	/// </para>
+	/// <para>
+	/// A reading that records — the one made for a refusal's message — recorded every refusal of
+	/// the attempt that stood while it was read unbuilt, exactly as it records the attempt that
+	/// stands today; the reading that builds it again is made quiet (<c>failure.Quiet</c>) for as
+	/// long as it lasts, so nothing is recorded twice and the message is what it was. That is why
+	/// the reader has to ask the flag at every place it records (<see cref="Quiets"/>): a machine
+	/// over a buffered input has no quiet reading and asks nowhere, so a replay could not be made
+	/// quiet there, and it is left out. Not with a context, where a construction may write what a
+	/// guard reads (the reason <see cref="UnaskedEntries"/> leaves one out), and not with a
+	/// recovery. A trace build decides the same and defers nowhere: its sink would hear the
+	/// attempt that stood twice (<see cref="Deferral"/>).
+	/// </para>
+	/// </remarks>
+	internal bool DefersOnGiveBack => CarriesImmediately && Quiets && _graph.Context is null && _graph.Recoveries.Count == 0;
+
+	/// <summary>Where a reader writes a loop that asks for another reading.</summary>
+	internal enum RetrySite
+	{
+		/// <summary>A rule's own way back (<c>Read_X</c> around <c>Read_X_Body</c>).</summary>
+		Rule,
+
+		/// <summary>An entry's reading of the whole input, or from a position.</summary>
+		Entry,
+
+		/// <summary>One alternative of a choice over characters.</summary>
+		Alternative,
+
+		/// <summary>One turn of a repetition.</summary>
+		Turn,
+
+		/// <summary>An atomic group, sealed once it has answered.</summary>
+		Atomic,
+
+		/// <summary>A lookahead's subject, sealed once it has answered.</summary>
+		Lookahead,
+
+		/// <summary>The step of a repetition marked <c>recover</c>.</summary>
+		Yield,
+	}
+
+	/// <summary>
+	/// One loop that asks for another reading, and what was decided about it: whether its attempts
+	/// after a give-back read unbuilt (<see cref="DefersOnGiveBack"/>), or why not, in the words a
+	/// diagnostic could say.
+	/// </summary>
+	internal sealed record RetryLoop(RuleSymbol Owner, RetrySite Site, string? Excluded)
+	{
+		/// <summary>Whether the loop defers building on a give-back — in every build but a trace build, which decides the same and defers nowhere.</summary>
+		public bool Defers => Excluded is null;
+	}
+
+	/// <summary>
+	/// Every loop the readers wrote, with its decision (<see cref="Deferral"/>), in the order
+	/// written. Filled by the rendering that writes the readers, not by the first pass over them.
+	/// </summary>
+	internal List<RetryLoop> RetryLoops { get; } = [];
+
+	/// <summary>
+	/// What a loop decides about deferring, noted for whoever asks later
+	/// (<see cref="RetryLoops"/>). The same in a trace build, which defers nowhere all the same:
+	/// the decision is about the grammar and the carrier, and a trace is a way of watching them.
+	/// </summary>
+	/// <param name="noting">Whether to keep the decision: the rendering that writes the readers, and not the first pass over the rules.</param>
+	internal RetryLoop Deferral(RuleSymbol owner, RetrySite site, bool noting)
+	{
+		var loop = new RetryLoop(owner, site, Excluded(owner, site));
+
+		if (noting)
+			RetryLoops.Add(loop);
+
+		return loop;
+	}
+
+	/// <summary>Why a loop does not defer building on a give-back, or null where it does.</summary>
+	string? Excluded(RuleSymbol owner, RetrySite site)
+	{
+		if (site == RetrySite.Lookahead)
+			return "a lookahead: nothing under it is built";
+
+		if (site == RetrySite.Yield)
+			return "the step of a repetition that recovers";
+
+		if (!CarriesImmediately)
+			return "the tape builds nothing while it reads";
+
+		if (_graph.Context is not null)
+			return "a context: a construction may write what a guard reads";
+
+		if (_graph.Recoveries.Count > 0)
+			return "a recovery";
+
+		if (BufferedInput)
+			return "a buffered input: its one reading records without asking, so the attempt that stood could not be read again quietly";
+
+		if (!Quiets)
+			return "no reading of this machine is quiet: it records without asking, so the attempt that stood could not be read again quietly";
+
+		var demands = Demands;
+
+		if (!demands.ReadUnasked(owner))
+			return "its own guard asks for its value so far";
+
+		if (!demands.Builds(owner))
+			return "it builds nothing";
+
+		return null;
+	}
+
+	/// <summary>
+	/// The rules whose readers write a loop that asks for another reading — the rule's own way
+	/// back (every rule of <see cref="_opens"/>), and the loop around an alternative, a turn or an
+	/// atomic group whose reading can open a way (<see cref="_retrySites"/>) — where the carrier
+	/// defers building on a give-back; null before the readers are settled, and where it does not.
+	/// </summary>
+	/// <remarks>
+	/// The seed <see cref="Demands"/> takes beside the entries: a deferred attempt is a reading of
+	/// the rule nobody asks the value of, so the rule and what inherits from it are read unbuilt,
+	/// and the checks that says so are written under them. Exactly the rules whose loops get the
+	/// hooks, so that nothing is checked for a reading that never defers: a loop is written where
+	/// its part opens a way itself — then its owner opened one, and is in <see cref="_opens"/> —
+	/// or calls a rule that does, which <see cref="Opens(Node)"/> answers once the openers are known.
+	/// </remarks>
+	HashSet<RuleSymbol>? GivingBack
+	{
+		get
+		{
+			if (field is not null || _opens is null || !DefersOnGiveBack)
+				return field;
+
+			field = new HashSet<RuleSymbol>(_opens);
+
+			if (_retrySites is not null)
+				foreach (var (owner, part) in _retrySites)
+					if (Opens(part))
+						field.Add(owner);
+
+			return field;
+		}
+	}
+
+	/// <summary>
+	/// Where the readers wrote a loop around an alternative, a turn or an atomic group that may
+	/// open a way, noted by the first pass over the rules (<see cref="Settle"/>): the owner, and
+	/// the part the loop asks again. Whether the loop is written at all is known only once the
+	/// openers are (<see cref="GivingBack"/>).
+	/// </summary>
+	List<(RuleSymbol Owner, Node Part)>? _retrySites;
+
+	/// <summary>A loop around a part that may open a way, noted while the rules are read for the first time.</summary>
+	void NoteRetrySite(RuleSymbol owner, Node part)
+	{
+		(_retrySites ??= []).Add((owner, part));
+	}
 
 	/// <summary>
 	/// The rules this machine publishes a parse of whose entry, having read an input quietly and
