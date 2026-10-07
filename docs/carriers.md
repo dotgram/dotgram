@@ -12,16 +12,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-06 13:05 |
-| DotGram.Examples | 2026-10-06 13:04 |
-| DotGram.ExpressionLanguage | 2026-10-06 13:04 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-06 13:04 |
-| DotGram.Finance | 2026-10-06 13:04 |
-| DotGram.Finance.Fix44 | 2026-10-06 13:05 |
-| DotGram.Sql | 2026-10-06 13:05 |
-| DotGram.Sql.Productions | 2026-10-06 13:05 |
-| DotGram.Tests | 2026-10-06 13:06 |
-| DotGram.Web | 2026-10-06 13:04 |
+| DotGram.Benchmarks | 2026-10-06 20:06 |
+| DotGram.Examples | 2026-10-06 20:05 |
+| DotGram.ExpressionLanguage | 2026-10-06 20:05 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-06 20:05 |
+| DotGram.Finance | 2026-10-06 20:05 |
+| DotGram.Finance.Fix44 | 2026-10-06 20:06 |
+| DotGram.Sql | 2026-10-06 20:06 |
+| DotGram.Sql.Productions | 2026-10-06 20:06 |
+| DotGram.Tests | 2026-10-06 20:06 |
+| DotGram.Web | 2026-10-06 20:05 |
 
 **Carrier** is what `Auto` took: `immediate`, `tape`, or the author's own choice. **Gate** is what
 kept a grammar on the tape: `replay` — a building rule read where the reading may not stand
@@ -116,16 +116,16 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Tests.Generated.UrlGrammar | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Tests.RereadUnderSubstitutionTests.Reread | 0 | 0 | nothing to choose | none |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc3339 | 1 | 0 | immediate | none |  |  |  |  |  |  | 5/5 |
-| DotGram.Web.Rfc3986 | 1 | 1 | tape | read again | 6 | 0 | 0 | 12 | 0 | 0 | 19/19 |
+| DotGram.Web.Rfc3986 |  |  | immediate (author) |  |  |  |  |  |  |  | 19/19 |
 | DotGram.Web.Rfc5322 | 5 | 5 | tape | read again | 48 | 0 | 0 | 99 | 0 | 0 | 129/129 |
 | DotGram.Web.Rfc5646 | 1 | 1 | tape | read again | 9 | 0 | 0 | 6 | 0 | 0 | 22/22 |
-| DotGram.Web.Rfc6265 | 6 | 5 | tape | read again | 6 | 0 | 0 | 6 | 0 | 0 | 29/29 |
-| DotGram.Web.Rfc6266 | 1 | 1 | tape | read again | 3 | 0 | 0 | 2 | 0 | 0 | 5/5 |
+| DotGram.Web.Rfc6265 |  |  | immediate (author) |  |  |  |  |  |  |  | 29/29 |
+| DotGram.Web.Rfc6266 |  |  | immediate (author) |  |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc6570 | 1 | 0 | immediate | none |  |  |  |  |  |  | 10/10 |
 | DotGram.Web.Rfc6901 | 2 | 0 | immediate | none |  |  |  |  |  |  | 4/4 |
-| DotGram.Web.Rfc7239 | 2 | 2 | tape | read again | 7 | 0 | 0 | 7 | 0 | 0 | 16/16 |
+| DotGram.Web.Rfc7239 |  |  | immediate (author) |  |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none |  |  |  |  |  |  | 29/29 |
-| DotGram.Web.Rfc8288 | 1 | 1 | tape | read again | 5 | 0 | 0 | 5 | 0 | 0 | 9/9 |
+| DotGram.Web.Rfc8288 |  |  | immediate (author) |  |  |  |  |  |  |  | 9/9 |
 | DotGram.Web.Rfc9110 | 1 | 1 | tape | read again | 4 | 0 | 0 | 6 | 0 | 0 | 13/13 |
 | DotGram.Web.Rfc9651 | 3 | 3 | tape | read again | 15 | 0 | 0 | 17 | 0 | 0 | 44/44 |
 
@@ -197,27 +197,16 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Tests.Calculators.TwoCalculators | EvaluateDouble | whole | immediate | none | 0 | 0 | 0 | 0 | 17/17 |
 | DotGram.Tests.Extents | ParseExtent | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Web.Rfc3339 | ParseTimestamp, ParseFullDate, ParseFullTime | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
-| DotGram.Web.Rfc3986 | ParseReference, ParseUri | whole | tape | read again | 6 | 0 | 12 | 0 | 19/19 |
 | DotGram.Web.Rfc5322 | ParseAddressList, ParseMailboxList, ParseMailbox and 1 more | whole | tape | read again | 17 | 0 | 27 | 0 | 47/47 |
 | DotGram.Web.Rfc5322 | ParseStrictAddrSpec | whole | tape | read again | 4 | 0 | 15 | 0 | 9/9 |
 | DotGram.Web.Rfc5322 | ParseStrictMailbox | whole | tape | read again | 6 | 0 | 17 | 0 | 15/15 |
 | DotGram.Web.Rfc5322 | ParseStrictMailboxList | whole | tape | read again | 8 | 0 | 19 | 0 | 21/21 |
 | DotGram.Web.Rfc5322 | ParseStrictAddressList | whole | tape | read again | 13 | 0 | 24 | 0 | 37/37 |
 | DotGram.Web.Rfc5646 | ParseTag | whole | tape | read again | 9 | 0 | 6 | 0 | 22/22 |
-| DotGram.Web.Rfc6265 | ParseSetCookie | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
-| DotGram.Web.Rfc6265 | ReadDateTokens | whole | tape | read again | 2 | 0 | 1 | 0 | 3/3 |
-| DotGram.Web.Rfc6265 | ReadTime | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6265 | ReadDay | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6265 | ReadMonth | whole | tape | read again | 1 | 0 | 1 | 0 | 12/12 |
-| DotGram.Web.Rfc6265 | ReadYear | whole | tape | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Web.Rfc6266 | ParseContentDisposition | whole | tape | read again | 3 | 0 | 2 | 0 | 5/5 |
 | DotGram.Web.Rfc6570 | ParseTemplate | whole | immediate | none | 0 | 0 | 0 | 0 | 10/10 |
 | DotGram.Web.Rfc6901 | ParsePointer | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Web.Rfc6901 | ParseFragment | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
-| DotGram.Web.Rfc7239 | ParseForwarded | whole | tape | read again | 6 | 0 | 2 | 0 | 12/12 |
-| DotGram.Web.Rfc7239 | ParseNode | whole | tape | read again | 1 | 0 | 5 | 0 | 4/4 |
 | DotGram.Web.Rfc8259 | ParseJson | whole | immediate | none | 0 | 0 | 0 | 0 | 29/29 |
-| DotGram.Web.Rfc8288 | ParseLinks | whole | tape | read again | 5 | 0 | 5 | 0 | 9/9 |
 | DotGram.Web.Rfc9110 | ParseContentType | whole | tape | read again | 4 | 0 | 6 | 0 | 7/7 |
 | DotGram.Web.Rfc9651 | ParseItem | whole | tape | read again | 7 | 0 | 9 | 0 | 22/22 |
 | DotGram.Web.Rfc9651 | ParseList | whole | tape | read again | 11 | 0 | 13 | 0 | 34/34 |
@@ -233,22 +222,22 @@ or which nothing calls, so that no caller asks it again.
 
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| choice | alternatives begin alike | 13 | 23 | 38 | 0 | 8 | NoCaptures.Host: `(IPv4 \| RegName)` |
-| turns | a turn led by what may read nothing | 7 | 12 | 24 | 7 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
-| run | what follows begins alike | 14 | 22 | 22 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
+| choice | alternatives begin alike | 10 | 16 | 23 | 0 | 5 | NoCaptures.Host: `(IPv4 \| RegName)` |
+| turns | a turn led by what may read nothing | 5 | 10 | 22 | 5 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| run | what follows begins alike | 11 | 19 | 19 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
-| optional | what follows begins alike | 12 | 12 | 16 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
 | choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
-| choice | an alternative that may read nothing | 6 | 12 | 13 | 0 | 1 | HttpParser.Field: `(eol \| ?=eof)` |
-| counted | what follows begins alike | 3 | 3 | 11 | 1 | 0 | Rfc3986.IPv6Address: `(H16 & ':'){0,2}` |
+| optional | what follows begins alike | 9 | 9 | 13 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
+| choice | an alternative that may read nothing | 5 | 8 | 9 | 0 | 0 | HttpParser.Field: `(eol \| ?=eof)` |
 | turns | the seam leads every alternative of the turn | 5 | 5 | 7 | 7 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
-| turns | what follows begins alike | 4 | 5 | 6 | 5 | 2 | JsonParser.Body: `(Plain \| Escape)*` |
+| turns | what follows begins alike | 3 | 4 | 5 | 4 | 1 | JsonParser.Body: `(Plain \| Escape)*` |
 | turns | follow unknown | 1 | 1 | 5 | 0 | 0 | Rfc5322.Cfws: `(Fws? & Comment)+` |
 | choice | the seam leads every alternative | 2 | 2 | 4 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
-| optional | a turn led by what may read nothing | 2 | 3 | 3 | 1 | 0 | Rfc3986.Authority: `(user: UserInfoText & '@')?` |
+| optional | a turn led by what may read nothing | 1 | 2 | 2 | 0 | 0 | Rfc5322.AngleAddr: `ObsRoute?` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | turns | seam first, what follows begins alike past it | 1 | 1 | 1 | 0 | 1 | Scoped.Program: `(trivia & Let)*` |
+| counted | what follows begins alike | 1 | 1 | 1 | 1 | 0 | Rfc5646.LangTag: `extended: ExtLang{0,3}` |
 
 ## DotGram.Benchmarks.CallCost.Called
 
@@ -805,39 +794,6 @@ or which nothing calls, so that no caller asks it again.
 
 - machine ParseTimestamp, ParseFullDate, ParseFullTime [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
 
-## DotGram.Web.Rfc3986
-
-- machine ParseReference, ParseUri [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 12; refused: 0; points: 19/19
-- again Authority: opens a way
-- open Authority: optional, captured; a turn led by what may read nothing; open; (user: UserInfoText & '@')?
-- again DecOctet: opens a way
-- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
-- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
-- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
-- again HierPart: opens a way
-- open HierPart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
-- again HostText: opens a way
-- open HostText: choice; an alternative that may read nothing; open; (IPLiteral | IPv4Address | RegName)
-- again IPLiteral: through IPv6Address
-- again IPv4Address: through DecOctet
-- again IPv6Address: opens a way
-- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
-- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
-- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
-- again Ls32: opens a way
-- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
-- again Reference: opens a way
-- open Reference: choice; an alternative that may read nothing; entry; (u: Uri => (u) | ?!SchemeMark & r: RelativeRef => (r))
-- again RelativePart: opens a way
-- open RelativePart: choice; an alternative that may read nothing; open; ("//" & a: Authority & path: PathAbEmpty => (a with { Path = path }) |…
-- again RelativeRef: through RelativePart
-- again Uri: through HierPart
-
 ## DotGram.Web.Rfc5322
 
 - machine ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: carrier: tape; gate: read again; building: 17; replayed: 0; read again: 27; refused: 0; points: 47/47
@@ -1043,33 +999,6 @@ or which nothing calls, so that no caller asks it again.
 - again VariantText: opens a way
 - open VariantText: choice; alternatives begin alike; open; (Alphanum{5,8} | Digit & Alphanum{3})
 
-## DotGram.Web.Rfc6265
-
-- machine ParseSetCookie [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
-- machine ReadDateTokens [whole]: carrier: tape; gate: read again; building: 2; replayed: 0; read again: 1; refused: 0; points: 3/3
-- machine ReadTime [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- machine ReadDay [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- machine ReadMonth [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 1; refused: 0; points: 12/12
-- machine ReadYear [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- again CookieDate: opens a way
-- open CookieDate: turns, captured; what follows begins alike; entry; rest: NextDateToken*
-- again DayToken: through Tail
-- again MonthToken: opens a way
-- open MonthToken: choice; alternatives begin alike; entry; ("apr"i & any* => (4) | "aug"i & any* => (8))
-- open MonthToken: choice; alternatives begin alike; entry; ("jan"i & any* => (1) | "jun"i & any* => (6) | "jul"i & any* => (7))
-- open MonthToken: choice; alternatives begin alike; entry; ("mar"i & any* => (3) | "may"i & any* => (5))
-- again Tail: opens a way
-- open Tail: run; what follows begins alike; open; any*
-- again TimeToken: through Tail
-- again YearToken: through Tail
-
-## DotGram.Web.Rfc6266
-
-- machine ParseContentDisposition [whole]: carrier: tape; gate: read again; building: 3; replayed: 0; read again: 2; refused: 0; points: 5/5
-- again DispositionField: through DispositionParms
-- again DispositionParms: opens a way
-- open DispositionParms: turns, captured; a turn led by what may read nothing; open; items: DispositionParm*
-
 ## DotGram.Web.Rfc6570
 
 - machine ParseTemplate [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 10/10
@@ -1079,47 +1008,10 @@ or which nothing calls, so that no caller asks it again.
 - machine ParsePointer [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
 - machine ParseFragment [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
 
-## DotGram.Web.Rfc7239
-
-- machine ParseForwarded [whole]: carrier: tape; gate: read again; building: 6; replayed: 0; read again: 2; refused: 0; points: 12/12
-- machine ParseNode [whole]: carrier: tape; gate: read again; building: 1; replayed: 0; read again: 5; refused: 0; points: 4/4
-- again DecOctet: opens a way
-- open DecOctet: choice; alternatives begin alike; open; ('1' & Digit & Digit | ['1'..'9'] & Digit | Digit)
-- open DecOctet: choice; alternatives begin alike; open; ("25" & ['0'..'5'] | '2' & ['0'..'4'] & Digit | ['1'..'9'] & Digit | D…
-- open DecOctet: choice; alternatives begin alike; open; (['1'..'9'] & Digit | Digit)
-- again ForwardedField: through Ows
-- again IPv4Address: through DecOctet
-- again IPv6Address: opens a way
-- open IPv6Address: choice; alternatives begin alike; open; ((H16 & ':'){6} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | ((H16 &…
-- open IPv6Address: optional; what follows begins alike; open; (H16 & ':')?
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,2}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,3}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,4}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,5}
-- open IPv6Address: counted; what follows begins alike; open; (H16 & ':'){0,6}
-- open IPv6Address: choice; alternatives begin alike; open; ("::" & (H16 & ':'){5} & Ls32 | H16? & "::" & (H16 & ':'){4} & Ls32 | …
-- again Ls32: opens a way
-- open Ls32: choice; alternatives begin alike; open; (H16 & ':' & H16 | IPv4Address)
-- again Node: through IPv4Address
-- again Ows: opens a way
-- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
-
 ## DotGram.Web.Rfc8259
 
 - machine ParseJson [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 29/29
 - memo ParseJson [whole]: remembered 0; not 1: Value (characters)
-
-## DotGram.Web.Rfc8288
-
-- machine ParseLinks [whole]: carrier: tape; gate: read again; building: 5; replayed: 0; read again: 5; refused: 0; points: 9/9
-- again Assignment: opens a way
-- open Assignment: optional; what follows begins alike; open; ('=' & Ows & (Token | QuotedString))?
-- again Field: through Ows
-- again LinkParam: through Ows
-- again LinkValue: opens a way
-- open LinkValue: turns, captured; a turn led by what may read nothing; open; parameters: LinkParam*
-- again Ows: opens a way
-- open Ows: run; what follows begins alike; open; ['\t' | ' ']*
 
 ## DotGram.Web.Rfc9110
 
