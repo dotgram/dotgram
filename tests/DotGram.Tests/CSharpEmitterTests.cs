@@ -2996,4 +2996,102 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(matches, matched);
 	}
 
+	/// <summary>
+	/// A member kept in a <c>T?</c> local, because not every alternative has it, is handed to a
+	/// parameter of <c>T</c> with a cast only where <c>T?</c> is a <c>Nullable&lt;T&gt;</c>: a
+	/// struct, or a type no host vouched for. A string and a class the host knows go as
+	/// <c>local!</c> alone — the cast was written for every type, and on a class it was redundant.
+	/// </summary>
+	/// <remarks>
+	/// Read as text rather than compiled: the class is the host's, and the two readings differ
+	/// only in whether the host answered for it.
+	/// </remarks>
+	[Fact]
+	public void An_optional_member_is_cast_only_where_its_nullable_form_is_a_struct()
+	{
+		const string grammar =
+			"Start : @string = a: Name & '=' & n: Size & '+' & w: Word => @(a + n + w)\n" +
+			"                | a: Name => @(a)\n" +
+			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
+			"Size : @int    = t: ['0'..'9']+ => @(int.Parse(t))\n" +
+			"Word : @Node   = t: ['a'..'z']+ => @(new Node(t))\n" +
+			"parse Start\n";
+
+		var vouched = Emitted(grammar, new ClassVouchingResolver("Node"));
+		var unknown = Emitted(grammar, PermissiveSymbolResolver.Instance);
+
+		foreach (var source in new[] { vouched, unknown })
+		{
+			Assert.Contains("(int)r", source, StringComparison.Ordinal);
+			Assert.DoesNotContain("(string)r", source, StringComparison.Ordinal);
+		}
+
+		Assert.DoesNotContain("(Node)r", vouched, StringComparison.Ordinal);
+		Assert.Contains("(Node)r", unknown, StringComparison.Ordinal);
+
+		static string Emitted(string grammar, ISymbolResolver resolver)
+		{
+			var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = resolver,
+				Carrier        = CarrierKind.Immediate,
+			});
+
+			Assert.DoesNotContain(result.Diagnostics, static diagnostic => diagnostic.Severity == GramSeverity.Error);
+
+			return Assert.Single(result.Sources).Text;
+		}
+	}
+
+	/// <summary>Accepts every name, as the permissive resolver does, and vouches for the named types as classes.</summary>
+	sealed class ClassVouchingResolver(params string[] classes) : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName)
+		{
+			return true;
+		}
+
+		public bool IsAssignable(string from, string to)
+		{
+			return true;
+		}
+
+		public bool TryResolveConstructors(string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
+		}
+
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+		{
+			return ExternalMethodResolution.Found;
+		}
+
+		public bool Rewinds(string qualifiedName)
+		{
+			return false;
+		}
+
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return Array.IndexOf(classes, qualifiedName) >= 0;
+		}
+	}
 }

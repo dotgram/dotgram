@@ -183,6 +183,12 @@ public sealed class RoslynSymbolResolver(
 		return found.Count > 0;
 	}
 
+	/// <remarks>Arrays, constructed generics and <c>global::</c> spellings included, read as <see cref="IsAssignable"/> reads them.</remarks>
+	public bool IsReferenceType(string qualifiedName)
+	{
+		return ValueTypeNamed(qualifiedName) is { IsReferenceType: true };
+	}
+
 	/// <summary>Whether a context of this type has a <c>Mark()</c> and a <c>Rollback</c> of what it returns.</summary>
 	/// <remarks>
 	/// Instance methods, searched through the base types, and callable from the assembly the
