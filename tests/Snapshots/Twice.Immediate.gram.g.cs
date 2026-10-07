@@ -335,17 +335,49 @@ namespace DotGram.Snapshots
 						return Deepen_DotGram(pos, 0, 0);
 
 					var s  = ways.Cursor;
+					var u  = 0;
 
 					while (true)
 					{
 						var q = Read_Sum_Body(pos);
 
 						if (q >= 0)
-							return q;
+						{
+							if (u <= 1)
+								return q;
 
+							if (u == 3)
+							{
+								failure.Quiet = false;
+
+								return q;
+							}
+
+							unbuilt = 0;
+							u = failure.Quiet ? 0 : 3;
+							failure.Quiet = true;
+							ways.Cursor = s;
+
+							continue;
+						}
 
 						if (ways.Cursor > s && ways.Retry(s))
+						{
+							if (u == 1)
+							{
+								u = 2;
+								unbuilt = 1;
+							}
+							else if (u == 0 && unbuilt == 0)
+								u = 1;
+
 							continue;
+						}
+
+						if (u == 2)
+							unbuilt = 0;
+						else if (u == 3)
+							failure.Quiet = false;
 
 						return -1;
 					}
@@ -383,6 +415,7 @@ namespace DotGram.Snapshots
 						}
 
 						var s2  = ways.Cursor;
+						var u2  = 0;
 						var rr2_0 = values.Count0;
 						var q2 = -1;
 
@@ -391,12 +424,45 @@ namespace DotGram.Snapshots
 							q2 = Read_Sum_Part0(p, pos, rb_0);
 
 							if (q2 >= 0)
-								break;
+							{
+								if (u2 <= 1)
+									break;
+
+								if (u2 == 3)
+								{
+									failure.Quiet = false;
+
+									break;
+								}
+
+								unbuilt = 0;
+								u2 = failure.Quiet ? 0 : 3;
+								failure.Quiet = true;
+								values.Count0 = rr2_0;
+								ways.Cursor = s2;
+
+								continue;
+							}
 
 							values.Count0 = rr2_0;
 
 							if (ways.Cursor > s2 && ways.Retry(s2))
+							{
+								if (u2 == 1)
+								{
+									u2 = 2;
+									unbuilt = 1;
+								}
+								else if (u2 == 0 && unbuilt == 0)
+									u2 = 1;
+
 								continue;
+							}
+
+							if (u2 == 2)
+								unbuilt = 0;
+							else if (u2 == 3)
+								failure.Quiet = false;
 
 							break;
 						}
@@ -436,17 +502,49 @@ namespace DotGram.Snapshots
 				public int Read_Term(int pos)
 				{
 					var s  = ways.Cursor;
+					var u  = 0;
 
 					while (true)
 					{
 						var q = Read_Term_Body(pos);
 
 						if (q >= 0)
-							return q;
+						{
+							if (u <= 1)
+								return q;
 
+							if (u == 3)
+							{
+								failure.Quiet = false;
+
+								return q;
+							}
+
+							unbuilt = 0;
+							u = failure.Quiet ? 0 : 3;
+							failure.Quiet = true;
+							ways.Cursor = s;
+
+							continue;
+						}
 
 						if (ways.Cursor > s && ways.Retry(s))
+						{
+							if (u == 1)
+							{
+								u = 2;
+								unbuilt = 1;
+							}
+							else if (u == 0 && unbuilt == 0)
+								u = 1;
+
 							continue;
+						}
+
+						if (u == 2)
+							unbuilt = 0;
+						else if (u == 3)
+							failure.Quiet = false;
 
 						return -1;
 					}
@@ -657,17 +755,49 @@ namespace DotGram.Snapshots
 				public int Read_More(int pos)
 				{
 					var s  = ways.Cursor;
+					var u  = 0;
 
 					while (true)
 					{
 						var q = Read_More_Body(pos);
 
 						if (q >= 0)
-							return q;
+						{
+							if (u <= 1)
+								return q;
 
+							if (u == 3)
+							{
+								failure.Quiet = false;
+
+								return q;
+							}
+
+							unbuilt = 0;
+							u = failure.Quiet ? 0 : 3;
+							failure.Quiet = true;
+							ways.Cursor = s;
+
+							continue;
+						}
 
 						if (ways.Cursor > s && ways.Retry(s))
+						{
+							if (u == 1)
+							{
+								u = 2;
+								unbuilt = 1;
+							}
+							else if (u == 0 && unbuilt == 0)
+								u = 1;
+
 							continue;
+						}
+
+						if (u == 2)
+							unbuilt = 0;
+						else if (u == 3)
+							failure.Quiet = false;
 
 						return -1;
 					}
@@ -698,17 +828,49 @@ namespace DotGram.Snapshots
 				public int Recognize_Sum_Whole_Read(int pos)
 				{
 					var s  = ways.Cursor;
+					var u  = 0;
 
 					while (true)
 					{
 						var q = Recognize_Sum_Whole_Read_Body(pos);
 
 						if (q >= 0)
-							return q;
+						{
+							if (u <= 1)
+								return q;
 
+							if (u == 3)
+							{
+								failure.Quiet = false;
+
+								return q;
+							}
+
+							unbuilt = 0;
+							u = failure.Quiet ? 0 : 3;
+							failure.Quiet = true;
+							ways.Cursor = s;
+
+							continue;
+						}
 
 						if (ways.Cursor > s && ways.Retry(s))
+						{
+							if (u == 1)
+							{
+								u = 2;
+								unbuilt = 1;
+							}
+							else if (u == 0 && unbuilt == 0)
+								u = 1;
+
 							continue;
+						}
+
+						if (u == 2)
+							unbuilt = 0;
+						else if (u == 3)
+							failure.Quiet = false;
 
 						return -1;
 					}
@@ -738,17 +900,49 @@ namespace DotGram.Snapshots
 				public int Recognize_Sum_Read(int pos)
 				{
 					var s  = ways.Cursor;
+					var u  = 0;
 
 					while (true)
 					{
 						var q = Recognize_Sum_Read_Body(pos);
 
 						if (q >= 0)
-							return q;
+						{
+							if (u <= 1)
+								return q;
 
+							if (u == 3)
+							{
+								failure.Quiet = false;
+
+								return q;
+							}
+
+							unbuilt = 0;
+							u = failure.Quiet ? 0 : 3;
+							failure.Quiet = true;
+							ways.Cursor = s;
+
+							continue;
+						}
 
 						if (ways.Cursor > s && ways.Retry(s))
+						{
+							if (u == 1)
+							{
+								u = 2;
+								unbuilt = 1;
+							}
+							else if (u == 0 && unbuilt == 0)
+								u = 1;
+
 							continue;
+						}
+
+						if (u == 2)
+							unbuilt = 0;
+						else if (u == 3)
+							failure.Quiet = false;
 
 						return -1;
 					}
