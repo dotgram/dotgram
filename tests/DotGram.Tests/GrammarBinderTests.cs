@@ -511,6 +511,11 @@ public sealed class GrammarBinderTests
 			return ExternalMethodResolution.Found;
 		}
 
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;

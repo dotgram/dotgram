@@ -5208,8 +5208,9 @@ sealed partial class Machine
 						? $"{type}? {handed} = {machine.Carrier.Absent(member.Rule!, handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
 						// Declared and converted rather than `var`: the expression may be a record local the
 						// rendering typed nullable (the flat path reads `int? r1`), and `var` would inherit
-						// that and then not fit the parameter. The same idiom the factory call uses.
-						: $"{type} {handed} = ({type}){ValueAt(member.Rule!, handed + "At")}!;");
+						// that and then not fit the parameter. The same idiom the factory call uses, and
+						// the same cast: only where `T?` is a Nullable<T> (IsReferenceType).
+						: $"{type} {handed} = {(machine.IsReferenceType(type) ? "" : $"({type})")}{ValueAt(member.Rule!, handed + "At")}!;");
 
 					continue;
 				}

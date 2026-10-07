@@ -286,6 +286,9 @@ public sealed partial class GrammarNormalizer
 			WhenSound  = normalizer._whenSound,
 			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
 
+			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
+			ReferenceTypes = ReferenceTypes(normalizer, resolver, Imports(model.Root)),
+
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
 			PositionalSplit  = positionalFollow && positionalSplit,
@@ -333,6 +336,50 @@ public sealed partial class GrammarNormalizer
 
 			foreach (var import in imports)
 				if (resolver.IsAssignable(import + "." + type, named))
+					return true;
+
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// The declared types the host knows to be classes rather than structs, by the spelling
+	/// <see cref="RecognitionGraph.Types"/> carries (<see cref="ISymbolResolver.IsReferenceType"/>).
+	/// </summary>
+	/// <remarks>
+	/// Asked the way <see cref="Locating"/> asks: bare and then under each import, which is how
+	/// the questions were foreseen. An array spelling is not asked about — the emitter knows one
+	/// for a class by its brackets — and a type nothing answers for is left out, which keeps the
+	/// cast a struct would need.
+	/// </remarks>
+	static IReadOnlyCollection<string> ReferenceTypes(
+		GrammarNormalizer normalizer, ISymbolResolver? resolver, IReadOnlyList<string> imports)
+	{
+		var references = new HashSet<string>(StringComparer.Ordinal);
+
+		if (resolver is null)
+			return references;
+
+		var asked = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var type in normalizer._types.Values)
+		{
+			if (type.EndsWith("[]", StringComparison.Ordinal) || !asked.Add(type))
+				continue;
+
+			if (IsReference(type))
+				references.Add(type);
+		}
+
+		return references;
+
+		bool IsReference(string type)
+		{
+			if (resolver.IsReferenceType(type))
+				return true;
+
+			foreach (var import in imports)
+				if (resolver.IsReferenceType(import + "." + type))
 					return true;
 
 			return false;

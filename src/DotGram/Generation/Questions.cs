@@ -61,6 +61,12 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </remarks>
 	public const int Fitting = -8;
 
+	/// <summary>
+	/// And whether a declared type is a class rather than a struct, which says whether a
+	/// <c>T?</c> local of it needs a cast to become a <c>T</c> (<see cref="ISymbolResolver.IsReferenceType"/>).
+	/// </summary>
+	public const int ReferenceType = -9;
+
 	public static Question Fits(string from, string to)
 	{
 		return new(from, Assignability, to);
@@ -103,6 +109,11 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	public static Question Restores(string context)
 	{
 		return new(context, Rewinds);
+	}
+
+	public static Question References(string type)
+	{
+		return new(type, ReferenceType);
 	}
 
 	/// <summary>The role an <see cref="ExternalMethod"/> question asks about.</summary>
@@ -209,6 +220,21 @@ static class Questions
 		// Question.Fitting.
 		foreach (var type in declared)
 			questions.Add(Question.FitsAmong(type));
+
+		// Whether each is a class rather than a struct: a value kept in a `T?` local is handed to
+		// a parameter of `T` with a cast only where `T?` is a Nullable<T>, and the emitter has no
+		// other way of knowing which. Bare and under each import, the way a type name is asked.
+		// An array is a class whatever it holds, and is not asked about.
+		foreach (var type in declared)
+		{
+			if (type.EndsWith("[]", StringComparison.Ordinal))
+				continue;
+
+			questions.Add(Question.References(type));
+
+			foreach (var import in imports)
+				questions.Add(Question.References(import + "." + type));
+		}
 
 		// Both ways round, because the effective contract is whichever of them satisfies the
 		// rest and that is what the answers are for deciding.
@@ -476,6 +502,8 @@ static class Questions
 
 				Question.Rewinds => new Answer(question, resolver.Rewinds(question.Name)),
 
+				Question.ReferenceType => new Answer(question, resolver.IsReferenceType(question.Name)),
+
 				Question.Fitting => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
@@ -570,6 +598,16 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	public bool Rewinds(string qualifiedName)
 	{
 		return Look(Question.Restores(qualifiedName)).Yes;
+	}
+
+	/// <remarks>
+	/// Unlike the rest, a name nobody foresaw is answered no rather than thrown: a no keeps a
+	/// cast that compiles for every type, so here a guess is cheap where everywhere else it
+	/// would be a wrong answer. A type an external recognizer hands back is such a name.
+	/// </remarks>
+	public bool IsReferenceType(string qualifiedName)
+	{
+		return _answers.TryGetValue(Question.References(qualifiedName), out var answer) && answer.Yes;
 	}
 
 	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
