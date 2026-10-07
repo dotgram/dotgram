@@ -107,6 +107,17 @@ public sealed record UriReference(
 //   * `path-abempty` and friends are reached through the `hier-part` alternatives in the
 //     RFC's order, and `path-empty` is last because everything matches it.
 
+// Carried immediately, by name: a reference is built the moment its rule has been read, and nothing
+// is recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
+// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): a
+// rule can be asked again after it has answered — the authority, the host, the alternatives of an
+// IPv6 address begin alike — and a construction asked again runs again. Every construction here
+// builds a UriReference from the text it was given, by `with`, `Only` or the constructor, and reads
+// nothing else, so a reading given up or asked twice leaves nothing behind and nothing can throw.
+// Held to the tape by an agreement run: the same grammar compiled on the tape, both entries over the
+// tests' texts, each cut at every character and given a stray one — the same values, the same
+// messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -244,7 +255,8 @@ public sealed record UriReference(
 
 	parse Reference as ParseReference
 	parse Uri           as ParseUri
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc3986
 {
 	// ParseReference, TryParseReference, ParseUri and TryParseUri are generated here.
