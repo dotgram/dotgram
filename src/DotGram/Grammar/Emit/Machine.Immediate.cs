@@ -37,7 +37,11 @@ sealed partial class Machine
 	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
 	/// </para>
 	/// </remarks>
-	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, IReadOnlyCollection<string> stacks, string? stateType = null, bool markPositions = false)
+	/// <param name="isReference">
+	/// Whether a value type is a class, which decides how its stack is written to
+	/// (<see cref="Machine.IsReferenceType"/>); null treats every type as a struct.
+	/// </param>
+	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, IReadOnlyCollection<string> stacks, string? stateType = null, bool markPositions = false, Func<string, bool>? isReference = null)
 	{
 		var text = new StringBuilder();
 
@@ -148,7 +152,23 @@ sealed partial class Machine
 			text.Append("\tinternal void Push").Append(tag).Append('(').Append(type).Append(" item)\n\t{\n");
 			text.Append("\t\tif (Count").Append(tag).Append(" == Stack").Append(tag).Append(".Length)\n");
 			text.Append("\t\t\tglobal::System.Array.Resize(ref Stack").Append(tag).Append(", Count").Append(tag).Append(" * 2);\n\n");
-			text.Append("\t\tStack").Append(tag).Append("[Count").Append(tag).Append("++] = item;\n\n");
+
+			// A store into an array of a class type is checked on every write against the
+			// array's runtime element type - an array of a derived type may stand behind a
+			// reference to the base's - and for a type nothing seals the check is a call into
+			// the runtime that walks the item's bases: a tenth of a FIX parse, every field of
+			// which goes onto the stack of an abstract type. A span over the array checks the
+			// array's type once, at its own construction, and writes without the call. Said
+			// only of a class: a struct's store was never checked, and a string's the compiler
+			// already knows is sealed.
+			if (isReference is not null && isReference(type) && type != "string")
+			{
+				text.Append("\t\t// Through a span and not the array: the array's store checks the item against the\n");
+				text.Append("\t\t// array's runtime element type on every write, the span once, at its construction.\n");
+				text.Append("\t\tnew global::System.Span<").Append(type).Append(">(Stack").Append(tag).Append(")[Count").Append(tag).Append("++] = item;\n\n");
+			}
+			else
+				text.Append("\t\tStack").Append(tag).Append("[Count").Append(tag).Append("++] = item;\n\n");
 			text.Append("\t\tif (Count").Append(tag).Append(" > High").Append(tag).Append(") High").Append(tag).Append(" = Count").Append(tag).Append(";\n\t}\n\n");
 			text.Append("\t/// <summary>What was pushed since the mark, as one array, and the stack back at the mark.</summary>\n");
 			text.Append("\tinternal ").Append(type).Append("[] Take").Append(tag).Append("(int from)\n\t{\n");
@@ -796,7 +816,7 @@ sealed partial class Machine
 
 		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
 		{
-			return ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph));
+			return ImmediateValuesClass(valueTypes, SharedRequirements ?? GatheredRequirements, stateType, NamesMarks(machine._graph), machine.IsReferenceType);
 		}
 
 		/// <remarks>
