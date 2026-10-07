@@ -2254,6 +2254,26 @@ sealed partial class Machine
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 	}
 
+	/// <summary>
+	/// Whether a value of this type kept in a <c>T?</c> local is handed to a parameter of <c>T</c>
+	/// as <c>local!</c> alone: a string, any array, or a class the host said is one.
+	/// </summary>
+	/// <remarks>
+	/// Where this is false the cast <c>(T)local!</c> is written, which is what a <c>Nullable&lt;T&gt;</c>
+	/// needs to become its <c>T</c> — and what the analyzers count as redundant on every class,
+	/// a thousand times over a SQL grammar, which is where the question came from. Not knowing is
+	/// answered as a struct: the cast compiles for both.
+	/// </remarks>
+	bool IsReferenceType(string type)
+	{
+		if (type.EndsWith("?", StringComparison.Ordinal))
+			type = type.Substring(0, type.Length - 1);
+
+		return type is "string" or "object" ||
+			type.EndsWith("[]", StringComparison.Ordinal) ||
+			_graph.ReferenceTypes.Contains(type);
+	}
+
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>
 	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members)
 	{
@@ -2319,9 +2339,16 @@ sealed partial class Machine
 			foreach (var member in members)
 				if (member.Member.Name == wanted.Name)
 				{
+					// A member kept in a `T?` local — it is not in every alternative — handed to a
+					// parameter of `T`: a cast where `T?` is a Nullable<T>, and `!` alone where it is
+					// a class under an annotation (IsReferenceType).
+					var cast = !wanted.IsOptional && member.Member is { Rule: { } optional, IsOptional: true }
+						? _results.ValueOf(optional)
+						: null;
+
 					arguments.Add(
-						!wanted.IsOptional && member.Member is { Rule: not null, IsOptional: true }
-							? $"({_results.ValueOf(member.Member.Rule)}){value(member)}!"
+						cast is not null && !IsReferenceType(cast)
+							? $"({cast}){value(member)}!"
 							: $"{value(member)}{(wanted.IsOptional ? "" : "!")}");
 					break;
 				}

@@ -103,6 +103,19 @@ public interface ISymbolResolver
 	/// the first reading began with. A type without the pair keeps the one recording reading.
 	/// </remarks>
 	bool Rewinds(string qualifiedName);
+
+	/// <summary>
+	/// Whether a C# type of this name is a class, interface or delegate rather than a struct or
+	/// an enum: one whose <c>T?</c> is the type itself under an annotation, not a
+	/// <c>Nullable&lt;T&gt;</c> around it.
+	/// </summary>
+	/// <remarks>
+	/// Asked for the one place the two spellings part: a value kept in a <c>T?</c> local is
+	/// handed to a parameter of <c>T</c> as <c>local!</c> for a class and as <c>(T)local!</c>
+	/// for a struct, and the cast written for both is redundant on the class. A resolver that
+	/// cannot be sure answers no, which keeps the cast.
+	/// </remarks>
+	bool IsReferenceType(string qualifiedName);
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
@@ -223,6 +236,12 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	// Permissive about names and not about this: saying yes would have a parser call two
 	// methods nobody said exist, where saying no costs only the quiet first reading.
 	public bool Rewinds(string qualifiedName)
+	{
+		return false;
+	}
+
+	/// <remarks>No, which keeps the cast a struct needs: without a host nothing says which the type is.</remarks>
+	public bool IsReferenceType(string qualifiedName)
 	{
 		return false;
 	}

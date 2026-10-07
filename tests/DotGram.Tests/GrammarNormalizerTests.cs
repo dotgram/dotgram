@@ -780,6 +780,11 @@ public sealed class GrammarNormalizerTests
 			return ExternalMethodResolution.Found;
 		}
 
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -838,6 +843,11 @@ public sealed class GrammarNormalizerTests
 		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
 		{
 			return ExternalMethodResolution.Found;
+		}
+
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
 		}
 
 		public bool Rewinds(string qualifiedName)
@@ -926,6 +936,11 @@ public sealed class GrammarNormalizerTests
 			return ExternalMethodResolution.Found;
 		}
 
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -1001,6 +1016,11 @@ public sealed class GrammarNormalizerTests
 			return methodName == "Nowhere"
 				? ExternalMethodResolution.NoMethod
 				: ExternalMethodResolution.NoOverload;
+		}
+
+		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
 		}
 
 		public bool Rewinds(string qualifiedName)
