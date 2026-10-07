@@ -416,6 +416,9 @@ namespace DotGram.Snapshots
 			internal string[] last0;
 			internal string last1;
 			internal int unbuilt;
+			internal int cutFrom;
+			internal int cutPast;
+			internal string cutText;
 
 			internal Reader_DotGram(global::System.ReadOnlySpan<char> text, ImmediateValues values, string parserSource, int[] parserStarts, int[] parserLengths)
 			{
@@ -428,6 +431,20 @@ namespace DotGram.Snapshots
 				this.last0 = default!;
 				this.last1 = default!;
 				this.unbuilt = default!;
+				this.cutFrom = default!;
+				this.cutPast = default!;
+				this.cutText = default!;
+			}
+
+			string Cut_DotGram(int from, int to)
+			{
+				if (from == cutFrom && to + 1 == cutPast)
+					return cutText;
+
+				cutFrom = from;
+				cutPast = to + 1;
+
+				return cutText = Text_DotGram(parserSource, parserStarts, parserLengths, from, to - from);
 			}
 
 			public int Read_Program(int pos)
@@ -524,7 +541,7 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length || text[p] != '\u0005')
 					return Refused_DotGram(ref failure, p, 2);
 				p += 1;
-				if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
+				if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Cut_DotGram(a0, b0))!, r1!);
 				return p;
 			}
 
@@ -549,7 +566,7 @@ namespace DotGram.Snapshots
 							a2 = p;
 							p++;
 							b2 = p;
-							if (unbuilt == 0) last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
+							if (unbuilt == 0) last1 = Construct_Expression_2((a2 < 0 ? null : Cut_DotGram(a2, b2))!);
 							break;
 						}
 					case '\u0003':
@@ -560,7 +577,7 @@ namespace DotGram.Snapshots
 							var q0 = Read_Expression_Part0(p, a0, b0);
 							if (q0 < 0)
 							{
-								if (unbuilt == 0) last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
+								if (unbuilt == 0) last1 = Construct_Expression_1((a0 < 0 ? null : Cut_DotGram(a0, b0))!);
 								q0 = p;
 							}
 							p = q0;
@@ -585,7 +602,7 @@ namespace DotGram.Snapshots
 					return Refused_DotGram(ref failure, p, 6);
 				p += 1;
 				b1 = p;
-				if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
+				if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Cut_DotGram(a0, b0))!, (a1 < 0 ? null : Cut_DotGram(a1, b1))!);
 				return p;
 			}
 

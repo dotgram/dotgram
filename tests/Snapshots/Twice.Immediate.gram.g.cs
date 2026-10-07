@@ -259,6 +259,9 @@ namespace DotGram.Snapshots
 				readonly ImmediateValues values;
 				internal int last0;
 				internal int unbuilt;
+				internal int cutFrom;
+				internal int cutPast;
+				internal string cutText;
 
 				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways ways, ImmediateValues values, global::System.ReadOnlyMemory<char> parserWhole)
 				{
@@ -269,6 +272,9 @@ namespace DotGram.Snapshots
 					this.values = values;
 					this.last0 = default!;
 					this.unbuilt = default!;
+					this.cutFrom = default!;
+					this.cutPast = default!;
+					this.cutText = default!;
 					this.whole   = parserWhole;
 				}
 
@@ -304,6 +310,9 @@ namespace DotGram.Snapshots
 					deep.failure = this.failure;
 					deep.last0 = this.last0;
 					deep.unbuilt = this.unbuilt;
+					deep.cutFrom = this.cutFrom;
+					deep.cutPast = this.cutPast;
+					deep.cutText = this.cutText;
 					deep.probes = this.probes;
 					deep.pos    = pos;
 					deep.which  = which;
@@ -314,6 +323,9 @@ namespace DotGram.Snapshots
 					this.failure = deep.failure;
 					this.last0 = deep.last0;
 					this.unbuilt = deep.unbuilt;
+					this.cutFrom = deep.cutFrom;
+					this.cutPast = deep.cutPast;
+					this.cutText = deep.cutText;
 					// Still on the stack that ran low: the next entry probes it again.
 					this.probes = 0;
 
@@ -327,6 +339,17 @@ namespace DotGram.Snapshots
 						global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(thrown).Throw();
 
 					return end;
+				}
+
+				string Cut_DotGram(int from, int to)
+				{
+					if (from == cutFrom && to + 1 == cutPast)
+						return cutText;
+
+					cutFrom = from;
+					cutPast = to + 1;
+
+					return cutText = text.Slice(from, to - from).ToString();
 				}
 
 				public int Read_Sum(int pos)
@@ -640,7 +663,7 @@ namespace DotGram.Snapshots
 						return Refused_DotGram(ref failure, p, 5);
 
 					b0 = p;
-					last0 = Construct_Digits((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+					last0 = Construct_Digits((a0 < 0 ? string.Empty : Cut_DotGram(a0, b0))!);
 					return p;
 				}
 
@@ -765,6 +788,9 @@ namespace DotGram.Snapshots
 				internal Failure failure = default!;
 				internal int last0 = default!;
 				internal int unbuilt = default!;
+				internal int cutFrom = default!;
+				internal int cutPast = default!;
+				internal string cutText = default!;
 				internal int probes;
 				internal int pos;
 				internal int which;
@@ -849,6 +875,9 @@ namespace DotGram.Snapshots
 					failure = default!;
 					last0 = default!;
 					unbuilt = default!;
+					cutFrom = default!;
+					cutPast = default!;
+					cutText = default!;
 					thrown = null;
 				}
 
@@ -919,6 +948,9 @@ namespace DotGram.Snapshots
 						reader.failure = this.failure;
 						reader.last0 = this.last0;
 						reader.unbuilt = this.unbuilt;
+						reader.cutFrom = this.cutFrom;
+						reader.cutPast = this.cutPast;
+						reader.cutText = this.cutText;
 						reader.probes = this.probes;
 
 						switch (this.which)
@@ -929,6 +961,9 @@ namespace DotGram.Snapshots
 						this.failure = reader.failure;
 						this.last0 = reader.last0;
 						this.unbuilt = reader.unbuilt;
+						this.cutFrom = reader.cutFrom;
+						this.cutPast = reader.cutPast;
+						this.cutText = reader.cutText;
 						this.probes = reader.probes;
 					}
 					catch (global::System.Exception caught)

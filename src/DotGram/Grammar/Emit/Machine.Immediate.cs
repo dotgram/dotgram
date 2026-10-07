@@ -231,6 +231,10 @@ sealed partial class Machine
 		bool NeedsStorage => Marks || GatheredRequirements.Count != 0;
 		bool _accumulated;
 
+		// Whether some member's text is cut through the reader's one-entry memo (PutText),
+		// which is what puts the memo's registers and method into the reader.
+		bool _cuts;
+
 		/// <remarks>
 		/// The stacks, and everything a construction called inside a reader may ask for:
 		/// the tokens over kinds, since a text member is cut where it is read; the input and
@@ -301,6 +305,19 @@ sealed partial class Machine
 				// (Failure.Unasked, Machine.ReplaysUnasked): that reading hands out no value.
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
+
+				// The last piece of text cut for a member, and the positions it was cut from
+				// (Cut_DotGram). One entry, because what is read again is what was just read: a
+				// rule's next alternative begins where the failed one did, and T-SQL reads a
+				// select item as an alias twice before it reads it as a value, cutting the same
+				// identifier three times — two strings a column that the tape never made. The end
+				// is kept one past, so that the reader's zeroed fields match no cut at all.
+				if (_cuts)
+				{
+					yield return ("int", "cutFrom");
+					yield return ("int", "cutPast");
+					yield return ("string", "cutText");
+				}
 
 				// Where a recovered element is, counted on from the one before (Located_DotGram): the
 				// bad elements are stepped over in the order they are read, as the tape's walk visits
@@ -541,7 +558,7 @@ sealed partial class Machine
 		public override string PutText(DirectMember member, string from, string to, string? cached = null)
 		{
 			var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty";
-			var cut     = $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})";
+			var cut     = $"({from} < 0 ? {missing} : {Cut(from, to)})";
 
 			_puts.Add((member, cached is null ? cut : $"({cached}From == {from} && {cached}To == {to} ? {cached} : {cut})"));
 
@@ -667,25 +684,67 @@ sealed partial class Machine
 			return $"values.Push{Gathering("Spans")}(((long)({from}) << 32) | (uint)({to}));";
 		}
 
+		/// <summary>
+		/// A member's text cut between two positions: a string through the reader's one-entry
+		/// memo, a borrowed span as it is — a span costs nothing to make twice.
+		/// </summary>
+		string Cut(string from, string to)
+		{
+			if (machine.BorrowedCaptures)
+				return machine.Cut(from, $"{to} - {from}");
+
+			_cuts = true;
+
+			return $"Cut_DotGram({from}, {to})";
+		}
+
 		/// <remarks>
+		/// <para>
+		/// The cut memo, where a member's text is cut (<see cref="Cut"/>): the reader's registers
+		/// hold the last string cut and its positions, and a cut asked again for the same two is
+		/// handed that string.
+		/// </para>
+		/// <para>
 		/// §10's join, written once for the reader and called where a run of text is collected.
 		/// The tape's walk joins the same way (Machine.Direct.Values.cs): pieces that tile are
 		/// one cut from the first start to the last end, and over kinds that cut is the answer
 		/// and not a shortcut, because what stands between two adjacent tokens is part of the
 		/// value the same reading over characters gives. Pieces that do not tile are cut one
 		/// by one.
+		/// </para>
 		/// </remarks>
 		public override string ReaderMethods
 		{
 			get
 			{
-				if (machine._directRules is not { } rules ||
-					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))
-				{
+				var pieces = machine._directRules is { } rules &&
+					rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces));
+
+				if (!pieces && !_cuts)
 					return "";
-				}
 
 				var file = new Writer(0);
+
+				if (_cuts)
+				{
+					file.Line("/// <summary>The text between two positions, cut once: asked again for the same two - the next alternative of a rule reading where the last one failed - it hands back the string the first cut made.</summary>");
+
+					using (file.Block("string Cut_DotGram(int from, int to)"))
+					{
+						file.Line("if (from == cutFrom && to + 1 == cutPast)");
+						file.Then("return cutText;");
+						file.Line();
+						file.Line("cutFrom = from;");
+						file.Line("cutPast = to + 1;");
+						file.Line();
+						file.Line($"return cutText = {machine.Cut("from", "to - from")};");
+					}
+
+					file.Line();
+				}
+
+				if (!pieces)
+					return file.ToString();
 
 				file.Line("/// <summary>A run of text gathered across turns, joined: one cut where its pieces tile, each piece on its own where they do not.</summary>");
 
