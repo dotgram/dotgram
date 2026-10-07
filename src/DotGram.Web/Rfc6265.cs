@@ -295,6 +295,18 @@ public static class CookieDate
 // 8877 (reported) and every user agent have it. Erratum 4148 (verified) makes the tail after a day-of-month
 // optional, as it is written here; erratum 3444 (verified) is in §4.1.1's path-value, which is not read.
 
+// Carried immediately, by name: a cookie is built the moment its rule has been read, and nothing is
+// recorded on a tape and replayed once the parse is accepted. The Set-Cookie reading is carried so
+// already; the generator would keep the cookie-date readings on the tape (GRAM5015 says so, and is
+// suppressed here, where the reason is): a date token's tail can be asked again after it has
+// answered, and a construction asked again runs again. Every construction here builds from the text
+// it was given — `Cookie` and `Attribute` divide a pair at its first `=`, `Number` reads one to four
+// digits the rule has already matched, a month is a constant — and reads nothing else, so a reading
+// given up or asked twice leaves nothing behind and nothing can throw. Held to the tape by an
+// agreement run: the same grammar compiled on the tape, every entry over the http-state tests and
+// the tests' texts, each cut at every character and given a stray one — the same values, the same
+// messages, nothing thrown.
+#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -389,7 +401,8 @@ public static class CookieDate
 	internal parse DayToken   as ReadDay
 	internal parse MonthToken as ReadMonth
 	internal parse YearToken  as ReadYear
-	""")]
+	""", Carrier = GramCarrier.Immediate)]
+#pragma warning restore GRAM5015
 static partial class Rfc6265
 {
 	// ParseSetCookie, ParseCookies and their Try forms are generated here, and the date readings beside them.
