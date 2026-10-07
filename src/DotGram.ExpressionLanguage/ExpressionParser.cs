@@ -534,14 +534,16 @@ namespace DotGram.ExpressionLanguage;
 	// nothing. The call reads the body again over exactly its own text, the parameters now
 	// typed, which is what the window a publication takes is for (§6.3).
 	//
-	// Asked first whether a `=>` follows at all, in a lookahead, because this is tried at every
-	// name and every bracket an expression begins with — before `Name` and before a bracketed
-	// expression, or `(a) => …` would be read as `(a)` — and nearly none of them is a lambda.
-	// A lookahead refuses without saying what it wanted, so the expression that follows is
-	// not also told it might have been a lambda at every one of those places.
+	// Whether a `=>` follows at all is asked first, in a lookahead where this is called
+	// (`Primary`), because it is tried at every name and every bracket an expression begins
+	// with — before `Name` and before a bracketed expression, or `(a) => …` would be read as
+	// `(a)` — and nearly none of them is a lambda. A lookahead refuses without saying what it
+	// wanted, so the expression that follows is not also told it might have been a lambda at
+	// every one of those places; and standing at the call rather than here, it keeps this rule
+	// from being entered and left at every one of them: the rule is read only where it reads
+	// a lambda.
 	Untyped : @Expression
-		= ?=((NameOnly | '(' & NameOnly & (',' & NameOnly)* & ')') & "=>")
-		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
+		= (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
 		& body: Held
 		& when @(context.Scoped(parserSpan) && context.Settles(parserSpan))
@@ -752,6 +754,24 @@ namespace DotGram.ExpressionLanguage;
 	// lambda's parameters were built twice, once to be looked at. Until a look reads a rule that
 	// builds as one that only recognizes, which the generator is to do (performance-ff, after C4).
 	NameOnly = ?!Keyword & Word
+
+	// Whether what stands after a '(' can be the type of a cast or of a typed parameter, told
+	// by the token after the first one, and only where the first is a word: a keyword type reads
+	// itself. A word a type is written as is followed by the rest of a dotted name, type
+	// arguments, the nullable mark, a rank, the ')' of a cast or the parameter's name — or by
+	// the end of the input, where every reading stops alike and what each wanted there is said.
+	// A word followed by anything else opens no cast and no typed lambda, and neither is tried
+	// on it: a parenthesised operand, which is what nearly every '(' in an expression opens,
+	// used to fail both first, reading `Type`, `Core` and `NamedType` twice over to find that
+	// the `x` of `(x + y)` names a variable.
+	//
+	// The third way never matches — it is reached only where the second refused, so the '.' or
+	// '<' it asks for is never there — and is written for what it asks: a look refuses without
+	// saying what it wanted, and the two readings this stands in for wanted '.' and '<' after
+	// the word, before anything else was asked for there. The parenthesised reading asks for
+	// both as well, later; a refusal lists what was wanted in the order it was wanted, so the
+	// two are asked for here first, and what a refusal says is unchanged to the letter.
+	TypeLed = ?!Word | ?=(Word & (')' | '.' | '<' | '?' | "[]" | Word | eof)) | Word & ('.' | '<')
 
 	// A keyword is no type's name, which C# says by making it one and this says by refusing it
 	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
@@ -1379,8 +1399,10 @@ namespace DotGram.ExpressionLanguage;
 		// A cast is told from a parenthesized expression by what stands inside it. A keyword
 		// type is no name, and a name is a type only where `NamedType`'s guard finds one —
 		// which is the question C# needs a rule of its own for, asked of the host while the
-		// text is read: `(Exception)e` is a cast, and `(e)` is a parenthesis.
-		| '(' & type: Type & ')' & operand: Unary
+		// text is read: `(Exception)e` is a cast, and `(e)` is a parenthesis. `TypeLed` is
+		// asked before the type is read: where the token after the first says no type can
+		// stand here, the type is not read to find that out.
+		| '(' & TypeLed & type: Type & ')' & operand: Unary
 		  => @(ExpressionParser.Cast(operand, type, parserState))
 
 		| p: Postfix => @(p)
@@ -1550,9 +1572,13 @@ namespace DotGram.ExpressionLanguage;
 		| "nameof" & '(' & head: Identifier & ('.' & part: Identifier)* & ')'
 		  => @(Expression.Constant(ExpressionParser.Last(head, part)))
 
-		| l: Inner with state @(Reading.Lambda) => @(l)
+		// The two lambdas an expression can hold, each behind a look that says whether it can
+		// stand here at all, so that the rules are entered only where they read one: a typed
+		// lambda begins with a '(' and a type (`TypeLed`), an untyped one with a name or a
+		// bracketed list of names and then "=>" (`Untyped` says why the look is here).
+		| ?=('(' & TypeLed) & l: Inner with state @(Reading.Lambda) => @(l)
 
-		| u: Untyped => @(u)
+		| ?=((NameOnly | '(' & NameOnly & (',' & NameOnly)* & ')') & "=>") & u: Untyped => @(u)
 
 		// A parenthesis and a tuple, read as ONE way and told apart by what follows the first
 		// expression. `(a)` is the expression `a`; `(a, b)` is a `ValueTuple` of the two; a name
