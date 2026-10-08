@@ -1006,7 +1006,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 
-			// The report asked for is the carriers' too: what GRAM5012 decided, rule by rule.
+			// The report asked for is the carriers' too: the carrier of each machine and what the
+			// tape would hold back, rule by rule.
 			// Only the full one — this is analysis nobody pays for who is not reading it.
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting.Counts,

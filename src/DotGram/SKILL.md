@@ -391,20 +391,28 @@ call came from — write nothing in them that assumes it is.
 	Trace        = true)]                // a trace build: report what is read to a sink (below)
 ```
 
-`Carrier` is the generator's to choose unless set (`GramCarrier.Auto`), and `GRAM5012` says
-what it chose. `Tape` and `Immediate` are the author's; a grammar the chosen one
-cannot carry is compiled on the tape.
+`Carrier` left unset (`GramCarrier.Auto`) is `Immediate`: every construction runs where its
+alternative is read, also for readings the parse then gives up and for the prefix of a refused
+input. A part of the grammar that carrier cannot carry is compiled on the tape. Where the tape
+would be safer the build warns, `GRAM5016`: constructions share `context` with a `when`, a
+`switch` selector or a recognizer (what is accepted and what is built can differ), or a refused
+input can rebuild a list on every turn given back. `GRAM5012`, information, names the other
+constructions that can run for text read another way or a second time. Answer either by naming
+the carrier: `Tape` holds every construction until the parse is accepted (constructions that
+count, log, throw or share `context` with guards want it); `Immediate` says you have checked, and
+silences both, now and for every reason found later. Name the carrier rather than suppress
+`GRAM5016`: the name is where the decision lives.
 
 `[GramOptions]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+[GramOptions(Carrier = GramCarrier.Tape, Suffix = "Tape")]
 public static partial class Sql;
 ```
 
-`Sql.ParseQuery` is the first and `Sql.Immediate.ParseQuery` the second — the same
+`Sql.ParseQuery` is the first and `Sql.Tape.ParseQuery` the second — the same
 grammar, compiled the other way, side by side.
 
 ## Input that does not fit in memory

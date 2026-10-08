@@ -432,12 +432,13 @@ dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll 
 
 Not a benchmark: it times nothing and builds nothing. It gathers, from the `*.DotGramReport.g.cs`
 files that a build with `-p:DotGramReportGeneration=full` writes beside every grammar's generated
-file, which carrier `Auto` took for each grammar of the solution (GRAM5012) and, for a grammar kept
-on the tape, the gate that kept it (`Replay` or the reader's) and each rule held there with its
-cause, and writes them into `docs/carriers.md` (or to `output`). Run it after such a build: it reads
-what the last one left in every `obj/GeneratedFiles`, so it is a run behind main by construction. It
-is written, never edited. A change that means to move a grammar off the tape is measured by the
-difference in this file before and after it; the stand then says what the move cost or saved.
+file, which carrier each grammar of the solution is read with — for one left to the generator
+(`Auto`), Immediate unless that carrier refused a machine — what the gates say the tape would hold
+back (`Replay` or the reader's), the reasons the build is told of it (GRAM5016, GRAM5012) and each
+rule the gates name with its cause, and writes them into `docs/carriers.md` (or to `output`). Run it
+after such a build: it reads what the last one left in every `obj/GeneratedFiles`, so it is a run
+behind main by construction. It is written, never edited. A change to what a grammar is told, or to
+what the immediate carrier refuses, is measured by the difference in this file before and after it.
 
 ### A faster build leaves the JIT colder for what it measures next
 

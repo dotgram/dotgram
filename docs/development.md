@@ -75,13 +75,10 @@ every other diagnostic about what an author cannot see. `-v:detailed` prints the
 `dotnet build src/DotGram.Sql -t:Rebuild -v:detailed | grep GRAM` is the list for one project.
 
 `-p:DotGramPositionalFollow=true` builds every grammar with the experimental switch of syntax.md
-§6.8, under which a `parse` is compiled knowing it is also read from a position. Under it the FIX
-grammar, which pins `Carrier = Immediate`, reports `GRAM5015`, and `TreatWarningsAsErrors` turns
-that into a failed build: add `-p:WarningsNotAsErrors=NU1900%3BGRAM5015` (the `%3B` is the
-separator; `NU1900` is the one `Directory.Build.props` already lists).
+§6.8, under which a `parse` is compiled knowing it is also read from a position. A grammar that
+names its carrier keeps it and is told nothing; one left to choose may be told more (`GRAM5012`).
 `-p:DotGramPositionalFollow=split` is the same switch, experimental and off by default like it, with
-the positional end told apart where that changes no answer (syntax.md §6.8); FIX keeps its carrier
-and reports nothing under it. `PositionalSplitWebTests` (DotGram.Tests.Slow) holds `split` to `true`
+the positional end told apart where that changes no answer (syntax.md §6.8). `PositionalSplitWebTests` (DotGram.Tests.Slow) holds `split` to `true`
 on the shipped web grammars, in both renderings.
 
 The generator keeps the parsers it compiled in a static cache for as long as the compiler server

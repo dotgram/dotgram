@@ -156,9 +156,10 @@ public static class SupportEmitter
 				/// How the reader carries what it has read until the constructions run.
 				/// </summary>
 				/// <remarks>
-				/// The generator's choice unless set (<c>GramCarrier.Auto</c>), said as GRAM5012.
-				/// The others are the author's to choose, and what each gives up is written on
-				/// it. A grammar the chosen carrier cannot carry is compiled on the tape.
+				/// <c>GramCarrier.Auto</c> unless set, which is <c>Immediate</c> wherever that
+				/// carrier can carry the grammar; where the tape would be safer the build says so
+				/// (GRAM5016, GRAM5012). What each carrier gives up is written on it. A part of the
+				/// grammar the carrier cannot carry is compiled on the tape.
 				/// </remarks>
 				public GramCarrier Carrier { get; set; }
 
@@ -283,10 +284,10 @@ public static class SupportEmitter
 			internal enum GramCarrier
 			{
 				/// <summary>
-				/// Chosen by the generator, and the default: <c>Immediate</c> where every parse
-				/// that succeeds runs only the constructions of what it accepted, the tape
-				/// everywhere else. A parse that fails may already have run the constructions
-				/// of what it read; <c>Tape</c> holds them back until a parse has accepted.
+				/// The default: <c>Immediate</c> wherever it can carry the grammar, the tape
+				/// where it cannot. A construction runs as its alternative is read, also for a
+				/// reading the parse gives up; <c>Tape</c> holds every one back until a parse has
+				/// accepted. Where that matters the build says so (GRAM5016, GRAM5012).
 				/// </summary>
 				Auto,
 
@@ -297,7 +298,8 @@ public static class SupportEmitter
 				/// No deferral: a construction runs the moment its alternative has been read,
 				/// and one abandoned afterwards has already run. Once per derivation tried
 				/// rather than once per derivation accepted — invisible to a pure allocation,
-				/// visible to a counter. For factories the author knows to be pure.
+				/// visible to a counter. Named, it says the author has checked, and silences
+				/// what a grammar left to choose is told.
 				/// </summary>
 				Immediate,
 			}
