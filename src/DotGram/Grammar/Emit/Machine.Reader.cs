@@ -729,9 +729,9 @@ sealed partial class Machine
 	/// The local of a loop that asks for another reading, saying where its attempts stand since a
 	/// way was given back (<see cref="DefersOnGiveBack"/>): 0 building, as every loop begins; 1
 	/// building still, one way given back; 2 reading unbuilt, the count raised by this loop; 3
-	/// reading the attempt that stood once more, with the failure made quiet by this loop.
-	/// Declared beside the loop's cursor mark, <c>s</c> with the same suffix, so that the two are
-	/// read together.
+	/// reading the attempt that stood once more, with the failure kept to be put back
+	/// (<c>ImmediateCarrier.ReplayMethods</c>). Declared beside the loop's cursor mark, <c>s</c>
+	/// with the same suffix, so that the two are read together.
 	/// </summary>
 	/// <remarks>
 	/// The first way given back is read building, as it always was, and only the second raises the
@@ -749,19 +749,14 @@ sealed partial class Machine
 
 	/// <summary>
 	/// What a loop does with an attempt that reached somewhere: answers with it — or, where the
-	/// attempts since a give-back were read unbuilt, puts back what a failed attempt puts back,
-	/// sets the cursor to the loop's own mark and reads once more with the count at zero. The
-	/// ways from the mark on hold exactly what the attempt that stood decided, so the reading
-	/// replays them, fails nowhere, and builds what the attempt only recognized. Through the same
-	/// call as every attempt, so that the body is inlined into its loop once.
+	/// attempts since the second give-back were read unbuilt, puts back what a failed attempt
+	/// puts back, sets the cursor to the loop's own mark and reads once more with the count at
+	/// zero (<c>Stood_DotGram</c>). The ways from the mark on hold exactly what the attempt that
+	/// stood decided, so the reading replays them, fails nowhere, and builds what the attempt only
+	/// recognized. Through the same call as every attempt, so that the body is inlined into its
+	/// loop once; and beside the attempt only one compare of the local, the rest being a call the
+	/// hot path never makes.
 	/// </summary>
-	/// <remarks>
-	/// The reading that builds is made quiet while it lasts, where it was not already: the attempt
-	/// that stood recorded every refusal on its way as it was read unbuilt, exactly what the attempt
-	/// that stands records today, and a reading that recorded them again would say the expected set
-	/// twice. The loop puts the flag back when the replay has answered — and where the replay does
-	/// not answer, which the ways it replays rule out, when the loop ends either way.
-	/// </remarks>
 	/// <param name="restore">
 	/// What the failure branch of the same loop puts back before it flips a way: the records to
 	/// their mark, the gathered members to theirs, the positions a part wrote. The one list for
@@ -772,76 +767,47 @@ sealed partial class Machine
 	{
 		using (code.Block($"if ({took} >= 0)"))
 		{
-			// The hot path: one compare of a local, and the answer.
-			Answer($"if (u{suffix} <= 1)");
-
-			code.Line();
-
-			using (code.Block($"if (u{suffix} == 3)"))
+			using (code.Block($"if (u{suffix} > 1)"))
 			{
-				code.Line("failure.Quiet = false;");
+				code.Line($"u{suffix} = Stood_DotGram(u{suffix}, s{suffix});");
 				code.Line();
-				Answer(null);
+
+				if (restore.Count == 0)
+				{
+					code.Line($"if (u{suffix} > 0)");
+					code.Then("continue;");
+				}
+				else
+				{
+					using (code.Block($"if (u{suffix} > 0)"))
+					{
+						foreach (var line in restore)
+							code.Line(line);
+
+						code.Line();
+						code.Line("continue;");
+					}
+				}
 			}
 
 			code.Line();
-			code.Line("unbuilt = 0;");
-			code.Line($"u{suffix} = failure.Quiet ? 0 : 3;");
-			code.Line("failure.Quiet = true;");
-			foreach (var line in restore)
+			foreach (var line in answer)
 				code.Line(line);
-			code.Line($"ways.Cursor = s{suffix};");
-			code.Line();
-			code.Line("continue;");
-		}
-
-		void Answer(string? under)
-		{
-			if (under is null)
-			{
-				foreach (var line in answer)
-					code.Line(line);
-			}
-			else if (answer.Count == 1)
-			{
-				code.Line(under);
-				code.Then(answer[0]);
-			}
-			else
-			{
-				using (code.Block(under))
-					foreach (var line in answer)
-						code.Line(line);
-			}
 		}
 	}
 
-	/// <summary>
-	/// What a loop does once a way has been flipped: reads the next attempt — building still after
-	/// the first give-back, unbuilt from the second, of a reading that was building. Not of one
-	/// already unbuilt, which a loop around this one is deferring, or an unasked reading began so.
-	/// </summary>
+	/// <summary>What a loop does once a way has been flipped: moves where it stands (<c>Retried_DotGram</c>) and reads the next attempt.</summary>
 	static void Retried(Writer code, string suffix)
 	{
-		using (code.Block($"if (u{suffix} == 1)"))
-		{
-			code.Line($"u{suffix} = 2;");
-			code.Line("unbuilt = 1;");
-		}
-
-		code.Line($"else if (u{suffix} == 0 && unbuilt == 0)");
-		code.Then($"u{suffix} = 1;");
+		code.Line($"u{suffix} = Retried_DotGram(u{suffix});");
 		code.Line();
 		code.Line("continue;");
 	}
 
-	/// <summary>A loop that ends without an answer puts back what it raised: the count, or the quiet.</summary>
+	/// <summary>A loop that ends without an answer puts back what it raised (<c>Undeferred_DotGram</c>).</summary>
 	static void Undeferred(Writer code, string suffix)
 	{
-		code.Line($"if (u{suffix} == 2)");
-		code.Then("unbuilt = 0;");
-		code.Line($"else if (u{suffix} == 3)");
-		code.Then("failure.Quiet = false;");
+		code.Line($"Undeferred_DotGram(u{suffix});");
 	}
 
 	/// <summary>The whole input, handed to a reader that may have to go on with it elsewhere.</summary>
@@ -3661,7 +3627,8 @@ sealed partial class Machine
 							foreach (var line in restore)
 								code.Line(line);
 
-							code.Line();
+							if (!defers || restore.Count > 0)
+								code.Line();
 							Retried(code, segment, defers);
 							code.Line("break;");
 						}
@@ -5115,7 +5082,8 @@ sealed partial class Machine
 						code.Line();
 						foreach (var line in restore)
 							code.Line(line);
-						code.Line();
+						if (!defers || restore.Count > 0)
+							code.Line();
 						Retried(code, segment, defers);
 						code.Line("break;");
 					}
@@ -5253,7 +5221,8 @@ sealed partial class Machine
 				foreach (var line in restore)
 					code.Line(line);
 
-				code.Line();
+				if (!defers || restore.Count > 0)
+					code.Line();
 				Retried(code, segment, defers);
 				code.Line("break;");
 			}
@@ -5311,7 +5280,7 @@ sealed partial class Machine
 			code.Then("break;");
 		}
 
-		/// <summary>The way flipped and the part asked again — unbuilt from here on, where the loop defers (<see cref="Machine.Retried"/>).</summary>
+		/// <summary>The way flipped and the part asked again — where the loop defers, moving where it stands first (<see cref="Machine.Retried"/>).</summary>
 		static void Retried(Writer code, int segment, bool defers)
 		{
 			if (defers)

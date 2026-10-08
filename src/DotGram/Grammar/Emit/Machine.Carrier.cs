@@ -43,9 +43,9 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// Whether a reading carried immediately reads unbuilt from the first way it gives back until
-	/// an attempt stands, and builds that attempt by reading it once more: the immediate carrier,
-	/// over a grammar with no context and no recovery, whose failure can be told to record nothing.
+	/// Whether a reading carried immediately reads unbuilt once a loop has given a way back twice,
+	/// until an attempt stands, and builds that attempt by reading it once more: the immediate
+	/// carrier, over a grammar with no context and no recovery.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -59,19 +59,27 @@ sealed partial class Machine
 	/// replays them and builds. A loop that fails puts the count back and fails as before.
 	/// </para>
 	/// <para>
-	/// A reading that records — the one made for a refusal's message — recorded every refusal of
-	/// the attempt that stood while it was read unbuilt, exactly as it records the attempt that
-	/// stands today; the reading that builds it again is made quiet (<c>failure.Quiet</c>) for as
-	/// long as it lasts, so nothing is recorded twice and the message is what it was. That is why
-	/// the reader has to ask the flag at every place it records (<see cref="Quiets"/>): a machine
-	/// over a buffered input has no quiet reading and asks nowhere, so a replay could not be made
-	/// quiet there, and it is left out. Not with a context, where a construction may write what a
-	/// guard reads (the reason <see cref="UnaskedEntries"/> leaves one out), and not with a
-	/// recovery. A trace build decides the same and defers nowhere: its sink would hear the
-	/// attempt that stood twice (<see cref="Deferral"/>).
+	/// A reading that records — the one made for a refusal's message, the one reading of a
+	/// buffered input — recorded every refusal of the attempt that stood while it was read
+	/// unbuilt, exactly as it records the attempt that stands today. The reading that builds it
+	/// again records as any reading does — it must, since a reading that records opens a way at a
+	/// shut door where a quiet one breaks, and only a reading of the same kind takes the recorded
+	/// ways in the same places — and what it recorded is then taken back: the failure is put back
+	/// to what it was before the replay, and the ties recorded since are dropped
+	/// (<c>Replayed_DotGram</c>). Not with a context, where a construction may write what a guard
+	/// reads (the reason <see cref="UnaskedEntries"/> leaves one out), and not with a recovery. A
+	/// trace build decides the same and defers nowhere: its sink would hear the attempt that stood
+	/// twice (<see cref="Deferral"/>).
 	/// </para>
 	/// </remarks>
-	internal bool DefersOnGiveBack => CarriesImmediately && Quiets && _graph.Context is null && _graph.Recoveries.Count == 0;
+	internal bool DefersOnGiveBack => CarriesImmediately && _graph.Context is null && _graph.Recoveries.Count == 0;
+
+	/// <summary>
+	/// Whether some loop this machine wrote defers and so replays (<see cref="RetryLoops"/>, outside
+	/// a trace build): then the reader keeps what a replay puts back, and the methods that do it.
+	/// Asked once the rules are written, where the reader's own fields and methods are.
+	/// </summary>
+	internal bool Replays => Tracing is null && RetryLoops.Exists(static one => one.Defers);
 
 	/// <summary>Where a reader writes a loop that asks for another reading.</summary>
 	internal enum RetrySite
@@ -148,12 +156,6 @@ sealed partial class Machine
 
 		if (_graph.Recoveries.Count > 0)
 			return "a recovery";
-
-		if (BufferedInput)
-			return "a buffered input: its one reading records without asking, so the attempt that stood could not be read again quietly";
-
-		if (!Quiets)
-			return "no reading of this machine is quiet: it records without asking, so the attempt that stood could not be read again quietly";
 
 		var demands = Demands;
 

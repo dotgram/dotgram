@@ -259,6 +259,8 @@ namespace DotGram.Snapshots
 				readonly ImmediateValues values;
 				internal int last0;
 				internal int unbuilt;
+				internal Failure replayed;
+				internal int replayedMore;
 
 				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways ways, ImmediateValues values, global::System.ReadOnlyMemory<char> parserWhole)
 				{
@@ -269,6 +271,8 @@ namespace DotGram.Snapshots
 					this.values = values;
 					this.last0 = default!;
 					this.unbuilt = default!;
+					this.replayed = default!;
+					this.replayedMore = default!;
 					this.whole   = parserWhole;
 				}
 
@@ -304,6 +308,8 @@ namespace DotGram.Snapshots
 					deep.failure = this.failure;
 					deep.last0 = this.last0;
 					deep.unbuilt = this.unbuilt;
+					deep.replayed = this.replayed;
+					deep.replayedMore = this.replayedMore;
 					deep.probes = this.probes;
 					deep.pos    = pos;
 					deep.which  = which;
@@ -314,6 +320,8 @@ namespace DotGram.Snapshots
 					this.failure = deep.failure;
 					this.last0 = deep.last0;
 					this.unbuilt = deep.unbuilt;
+					this.replayed = deep.replayed;
+					this.replayedMore = deep.replayedMore;
 					// Still on the stack that ran low: the next entry probes it again.
 					this.probes = 0;
 
@@ -327,6 +335,57 @@ namespace DotGram.Snapshots
 						global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(thrown).Throw();
 
 					return end;
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Stood_DotGram(int u, int s)
+				{
+					if (u == 2)
+					{
+						replayed     = failure;
+						replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+						unbuilt      = 0;
+						ways.Cursor  = s;
+
+						return 3;
+					}
+
+					Replayed_DotGram();
+
+					return 0;
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				void Replayed_DotGram()
+				{
+					var more = failure.ExpectedMore;
+
+					failure = replayed;
+
+					if (more != null && more.Count > replayedMore)
+						more.RemoveRange(replayedMore, more.Count - replayedMore);
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Retried_DotGram(int u)
+				{
+					if (u == 1)
+					{
+						unbuilt = 1;
+
+						return 2;
+					}
+
+					return u == 0 && unbuilt == 0 ? 1 : u;
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				void Undeferred_DotGram(int u)
+				{
+					if (u == 2)
+						unbuilt = 0;
+					else if (u == 3)
+						Replayed_DotGram();
 				}
 
 				public int Read_Sum(int pos)
@@ -343,41 +402,25 @@ namespace DotGram.Snapshots
 
 						if (q >= 0)
 						{
-							if (u <= 1)
-								return q;
-
-							if (u == 3)
+							if (u > 1)
 							{
-								failure.Quiet = false;
+								u = Stood_DotGram(u, s);
 
-								return q;
+								if (u > 0)
+									continue;
 							}
 
-							unbuilt = 0;
-							u = failure.Quiet ? 0 : 3;
-							failure.Quiet = true;
-							ways.Cursor = s;
-
-							continue;
+							return q;
 						}
 
 						if (ways.Cursor > s && ways.Retry(s))
 						{
-							if (u == 1)
-							{
-								u = 2;
-								unbuilt = 1;
-							}
-							else if (u == 0 && unbuilt == 0)
-								u = 1;
+							u = Retried_DotGram(u);
 
 							continue;
 						}
 
-						if (u == 2)
-							unbuilt = 0;
-						else if (u == 3)
-							failure.Quiet = false;
+						Undeferred_DotGram(u);
 
 						return -1;
 					}
@@ -425,44 +468,31 @@ namespace DotGram.Snapshots
 
 							if (q2 >= 0)
 							{
-								if (u2 <= 1)
-									break;
-
-								if (u2 == 3)
+								if (u2 > 1)
 								{
-									failure.Quiet = false;
+									u2 = Stood_DotGram(u2, s2);
 
-									break;
+									if (u2 > 0)
+									{
+										values.Count0 = rr2_0;
+
+										continue;
+									}
 								}
 
-								unbuilt = 0;
-								u2 = failure.Quiet ? 0 : 3;
-								failure.Quiet = true;
-								values.Count0 = rr2_0;
-								ways.Cursor = s2;
-
-								continue;
+								break;
 							}
 
 							values.Count0 = rr2_0;
 
 							if (ways.Cursor > s2 && ways.Retry(s2))
 							{
-								if (u2 == 1)
-								{
-									u2 = 2;
-									unbuilt = 1;
-								}
-								else if (u2 == 0 && unbuilt == 0)
-									u2 = 1;
+								u2 = Retried_DotGram(u2);
 
 								continue;
 							}
 
-							if (u2 == 2)
-								unbuilt = 0;
-							else if (u2 == 3)
-								failure.Quiet = false;
+							Undeferred_DotGram(u2);
 
 							break;
 						}
@@ -510,41 +540,25 @@ namespace DotGram.Snapshots
 
 						if (q >= 0)
 						{
-							if (u <= 1)
-								return q;
-
-							if (u == 3)
+							if (u > 1)
 							{
-								failure.Quiet = false;
+								u = Stood_DotGram(u, s);
 
-								return q;
+								if (u > 0)
+									continue;
 							}
 
-							unbuilt = 0;
-							u = failure.Quiet ? 0 : 3;
-							failure.Quiet = true;
-							ways.Cursor = s;
-
-							continue;
+							return q;
 						}
 
 						if (ways.Cursor > s && ways.Retry(s))
 						{
-							if (u == 1)
-							{
-								u = 2;
-								unbuilt = 1;
-							}
-							else if (u == 0 && unbuilt == 0)
-								u = 1;
+							u = Retried_DotGram(u);
 
 							continue;
 						}
 
-						if (u == 2)
-							unbuilt = 0;
-						else if (u == 3)
-							failure.Quiet = false;
+						Undeferred_DotGram(u);
 
 						return -1;
 					}
@@ -753,41 +767,25 @@ namespace DotGram.Snapshots
 
 						if (q >= 0)
 						{
-							if (u <= 1)
-								return q;
-
-							if (u == 3)
+							if (u > 1)
 							{
-								failure.Quiet = false;
+								u = Stood_DotGram(u, s);
 
-								return q;
+								if (u > 0)
+									continue;
 							}
 
-							unbuilt = 0;
-							u = failure.Quiet ? 0 : 3;
-							failure.Quiet = true;
-							ways.Cursor = s;
-
-							continue;
+							return q;
 						}
 
 						if (ways.Cursor > s && ways.Retry(s))
 						{
-							if (u == 1)
-							{
-								u = 2;
-								unbuilt = 1;
-							}
-							else if (u == 0 && unbuilt == 0)
-								u = 1;
+							u = Retried_DotGram(u);
 
 							continue;
 						}
 
-						if (u == 2)
-							unbuilt = 0;
-						else if (u == 3)
-							failure.Quiet = false;
+						Undeferred_DotGram(u);
 
 						return -1;
 					}
@@ -823,41 +821,25 @@ namespace DotGram.Snapshots
 
 						if (q >= 0)
 						{
-							if (u <= 1)
-								return q;
-
-							if (u == 3)
+							if (u > 1)
 							{
-								failure.Quiet = false;
+								u = Stood_DotGram(u, s);
 
-								return q;
+								if (u > 0)
+									continue;
 							}
 
-							unbuilt = 0;
-							u = failure.Quiet ? 0 : 3;
-							failure.Quiet = true;
-							ways.Cursor = s;
-
-							continue;
+							return q;
 						}
 
 						if (ways.Cursor > s && ways.Retry(s))
 						{
-							if (u == 1)
-							{
-								u = 2;
-								unbuilt = 1;
-							}
-							else if (u == 0 && unbuilt == 0)
-								u = 1;
+							u = Retried_DotGram(u);
 
 							continue;
 						}
 
-						if (u == 2)
-							unbuilt = 0;
-						else if (u == 3)
-							failure.Quiet = false;
+						Undeferred_DotGram(u);
 
 						return -1;
 					}
@@ -895,41 +877,25 @@ namespace DotGram.Snapshots
 
 						if (q >= 0)
 						{
-							if (u <= 1)
-								return q;
-
-							if (u == 3)
+							if (u > 1)
 							{
-								failure.Quiet = false;
+								u = Stood_DotGram(u, s);
 
-								return q;
+								if (u > 0)
+									continue;
 							}
 
-							unbuilt = 0;
-							u = failure.Quiet ? 0 : 3;
-							failure.Quiet = true;
-							ways.Cursor = s;
-
-							continue;
+							return q;
 						}
 
 						if (ways.Cursor > s && ways.Retry(s))
 						{
-							if (u == 1)
-							{
-								u = 2;
-								unbuilt = 1;
-							}
-							else if (u == 0 && unbuilt == 0)
-								u = 1;
+							u = Retried_DotGram(u);
 
 							continue;
 						}
 
-						if (u == 2)
-							unbuilt = 0;
-						else if (u == 3)
-							failure.Quiet = false;
+						Undeferred_DotGram(u);
 
 						return -1;
 					}
@@ -959,6 +925,8 @@ namespace DotGram.Snapshots
 				internal Failure failure = default!;
 				internal int last0 = default!;
 				internal int unbuilt = default!;
+				internal Failure replayed = default!;
+				internal int replayedMore = default!;
 				internal int probes;
 				internal int pos;
 				internal int which;
@@ -1043,6 +1011,8 @@ namespace DotGram.Snapshots
 					failure = default!;
 					last0 = default!;
 					unbuilt = default!;
+					replayed = default!;
+					replayedMore = default!;
 					thrown = null;
 				}
 
@@ -1113,6 +1083,8 @@ namespace DotGram.Snapshots
 						reader.failure = this.failure;
 						reader.last0 = this.last0;
 						reader.unbuilt = this.unbuilt;
+						reader.replayed = this.replayed;
+						reader.replayedMore = this.replayedMore;
 						reader.probes = this.probes;
 
 						switch (this.which)
@@ -1123,6 +1095,8 @@ namespace DotGram.Snapshots
 						this.failure = reader.failure;
 						this.last0 = reader.last0;
 						this.unbuilt = reader.unbuilt;
+						this.replayed = reader.replayed;
+						this.replayedMore = reader.replayedMore;
 						this.probes = reader.probes;
 					}
 					catch (global::System.Exception caught)

@@ -496,10 +496,11 @@ rule that builds can be given up and replaced, the generator runs each construct
 it is read rather than holding it for a walk at the end (`GRAM5012` says which it did, and
 why). A parse that succeeds then runs exactly the constructions it would have run anyway.
 A parse that fails may already have run those of what it read before failing, since
-nothing was held back to be dropped — at most twice, for its first two attempts: the second
-reading a refusal makes for its message builds nothing but what a guard names, and so does
-every attempt after a repetition or a choice has given a turn back a second time, until an
-attempt stands and is built. Where a construction must not run for input that is refused — it
+nothing was held back to be dropped — a constant number of times, at most two attempts for
+each enclosing loop that gives back: the second reading a refusal makes for its message
+builds nothing but what a guard names, and so does every attempt after a repetition or a
+choice has given a turn back a second time, until an attempt stands and is built. Where a
+construction must not run for input that is refused — it
 counts, logs, or throws — say so:
 
 ```csharp
@@ -2289,10 +2290,11 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   reading builds nothing but what a guard names. And once a repetition or a choice has given
   a turn back a second time, the attempts after that build nothing but what a guard names
   either, until one stands; that attempt is then read once more and built, so a list of a
-  thousand members refused after its last one builds its members twice and not half a million
-  times. (The first turn given back is read building as before: that is how a choice reads
-  its next alternative, and an attempt that stands then is built once.) What a parse that
-  fails has run is at most the first two attempts of what it read.
+  thousand members refused after its last one builds its members a constant number of times —
+  at most two attempts for each enclosing loop that gives back — and not half a million times.
+  (The first turn given back is read building as before: that is how a choice reads its next
+  alternative, and an attempt that stands then is built once.) What a parse that fails has run
+  is at most that: two attempts per enclosing loop, of what it read.
 
 A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
 among the reasons, that no part of the grammar is read by methods, since a carrier is what a
