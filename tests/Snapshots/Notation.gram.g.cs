@@ -1480,32 +1480,103 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal string last0;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
 			internal Reader_DotGram_Hashed(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.last0 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_Hashed_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Hashed_Hashed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1515,7 +1586,9 @@ namespace DotGram.Snapshots
 			public int Read_Hashed_Hashed_Body(int pos)
 			{
 				var p = pos;
+				unbuilt++;
 				var q0 = Read_Padded_Word_value1_Hashed(p);
+				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -1524,21 +1597,33 @@ namespace DotGram.Snapshots
 			public int Read_Padded_Word_value1_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Padded_Word_value1_Hashed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1548,36 +1633,45 @@ namespace DotGram.Snapshots
 			public int Read_Padded_Word_value1_Hashed_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
-				var r0 = -1;
+				string r0 = default!;
 				var q0 = Read_Word_Hashed(p);
 				if (q0 < 0) return -1;
 				p = q0;
-				r0 = ways.Last;
-				ways.Begin(0);
-				ways.Put(r0);
-				ways.End(rb);
+				r0 = last0;
+				if (unbuilt == 0) last0 = Construct_Padded_Word_value1(r0!);
 				return p;
 			}
 
 			public int Read_Word_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Word_Hashed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1588,7 +1682,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -1629,30 +1722,40 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				ways.Begin(1);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			public int Recognize_Hashed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Hashed_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1675,21 +1778,33 @@ namespace DotGram.Snapshots
 			public int Recognize_Hashed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Hashed_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1750,94 +1865,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static void Materialize_DotGram_Hashed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 1:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var record0 = log[read++];
-						var captured0 = values0[record0].Value;
-
-						values0[slot].Value = Construct_Padded_Word_value1(captured0!);
-						break;
-					}
-					case 1:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values0[slot].Value = Construct_Word(captured0!);
-						break;
-					}
-				}
-			}
-		}
 
 		static int Recognize_Marked_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
@@ -1931,32 +1959,103 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal string last0;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
 			internal Reader_DotGram_List_With1(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.last0 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_List_With1_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_List_With1_List_With1_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1967,7 +2066,9 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
+				unbuilt++;
 				var q0 = Read_Word_List_With1(p);
+				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
 				while (true)
@@ -1986,8 +2087,7 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
+					var u2  = 0;
 					var q1 = -1;
 
 					while (true)
@@ -1995,13 +2095,26 @@ namespace DotGram.Snapshots
 						q1 = Read_List_With1_List_With1_Part0(p);
 
 						if (q1 >= 0)
-							break;
+						{
+							if (u2 > 1)
+							{
+								u2 = Stood_DotGram(u2, s2);
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
+								if (u2 > 0)
+									continue;
+							}
+
+							break;
+						}
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
+						{
+							u2 = Retried_DotGram(u2);
+
 							continue;
+						}
+
+						Undeferred_DotGram(u2);
 
 						break;
 					}
@@ -2023,7 +2136,9 @@ namespace DotGram.Snapshots
 				var q0 = Read_Sep_With1_List_With1(p);
 				if (q0 < 0) return -1;
 				p = q0;
+				unbuilt++;
 				var q1 = Read_Word_List_With1(p);
+				unbuilt--;
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
@@ -2032,21 +2147,33 @@ namespace DotGram.Snapshots
 			public int Read_Word_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Word_List_With1_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2057,7 +2184,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -2098,9 +2224,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				ways.Begin(0);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -2127,21 +2251,33 @@ namespace DotGram.Snapshots
 			public int Recognize_List_With1_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_List_With1_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2164,21 +2300,33 @@ namespace DotGram.Snapshots
 			public int Recognize_List_With1_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_List_With1_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2239,112 +2387,110 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static void Materialize_DotGram_List_With1_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values0[slot].Value = Construct_Word(captured0!);
-						break;
-					}
-				}
-			}
-		}
 
 		private ref struct Reader_DotGram_List
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal string last0;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
 			internal Reader_DotGram_List(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.last0 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_List_List(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_List_List_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2355,7 +2501,9 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
+				unbuilt++;
 				var q0 = Read_Word_List(p);
+				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
 				while (true)
@@ -2374,8 +2522,7 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
+					var u2  = 0;
 					var q1 = -1;
 
 					while (true)
@@ -2383,13 +2530,26 @@ namespace DotGram.Snapshots
 						q1 = Read_List_List_Part0(p);
 
 						if (q1 >= 0)
-							break;
+						{
+							if (u2 > 1)
+							{
+								u2 = Stood_DotGram(u2, s2);
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
+								if (u2 > 0)
+									continue;
+							}
+
+							break;
+						}
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
+						{
+							u2 = Retried_DotGram(u2);
+
 							continue;
+						}
+
+						Undeferred_DotGram(u2);
 
 						break;
 					}
@@ -2411,7 +2571,9 @@ namespace DotGram.Snapshots
 				var q0 = Read_Sep_List(p);
 				if (q0 < 0) return -1;
 				p = q0;
+				unbuilt++;
 				var q1 = Read_Word_List(p);
+				unbuilt--;
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
@@ -2420,21 +2582,33 @@ namespace DotGram.Snapshots
 			public int Read_Word_List(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Word_List_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2445,7 +2619,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -2486,9 +2659,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				ways.Begin(0);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -2508,21 +2679,33 @@ namespace DotGram.Snapshots
 			public int Recognize_List_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_List_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2545,21 +2728,33 @@ namespace DotGram.Snapshots
 			public int Recognize_List_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_List_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2620,116 +2815,114 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static void Materialize_DotGram_List_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values0[slot].Value = Construct_Word(captured0!);
-						break;
-					}
-				}
-			}
-		}
 
 		private ref struct Reader_DotGram_Small
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
-			readonly DirectValues values;
 			readonly int parserReading;
+			internal string last0;
+			internal int last1;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
-			internal Reader_DotGram_Small(global::System.ReadOnlySpan<char> text, Ways ways, DirectValues values, int parserReading)
+			internal Reader_DotGram_Small(global::System.ReadOnlySpan<char> text, Ways ways, int parserReading)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
-				this.values = values;
 				this.parserReading = parserReading;
+				this.last0 = default!;
+				this.last1 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_Small_Small(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Small_Small_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.RewindBuilt(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2740,9 +2933,7 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
-				var lm = ways.Snap();
-				var r0 = -1;
+				int? r0 = default;
 				if ((uint)p >= (uint)text.Length)
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
@@ -2753,10 +2944,12 @@ namespace DotGram.Snapshots
 				{
 					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 						{
+							var q0u = unbuilt; unbuilt = 0;
 							var q0 = Read_Number_Small(p);
+							unbuilt = q0u;
 							if (q0 < 0) return -1;
 							p = q0;
-							r0 = ways.Last;
+							r0 = last1;
 							var w0  = -1;
 							var d0 = 0;
 							if (ways.Cursor < ways.Count)
@@ -2774,15 +2967,11 @@ namespace DotGram.Snapshots
 							if (q1 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1 = ways.Snap();
-								var rr1 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part0(p, pos, lm, r0);
+								q1 = Read_Small_Small_Part0(p, pos, r0);
 
 								if (q1 < 0)
 								{
-									ways.RewindBuilt(lm1);
-									ways.RefsCount = rr1;
 								}
 
 								if (q1 < 0)
@@ -2791,15 +2980,11 @@ namespace DotGram.Snapshots
 							if (q1 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2 = ways.Snap();
-								var rr2 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part1(p, pos, lm, r0);
+								q1 = Read_Small_Small_Part1(p, pos, r0);
 
 								if (q1 < 0)
 								{
-									ways.RewindBuilt(lm2);
-									ways.RefsCount = rr2;
 								}
 
 								if (q1 < 0)
@@ -2808,15 +2993,11 @@ namespace DotGram.Snapshots
 							if (q1 < 0 && d0 <= 2)
 							{
 								var s3  = ways.Cursor;
-								var lm3 = ways.Snap();
-								var rr3 = ways.RefsCount;
 
-								q1 = Read_Small_Small_Part2(p, pos, lm, r0);
+								q1 = Read_Small_Small_Part2(p, pos, r0);
 
 								if (q1 < 0)
 								{
-									ways.RewindBuilt(lm3);
-									ways.RefsCount = rr3;
 								}
 							}
 
@@ -2828,8 +3009,10 @@ namespace DotGram.Snapshots
 						}
 					default:
 						{
+							unbuilt++;
 							var fq2 = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;
 							var q2 = Read_Word_Small(p);
+							unbuilt--;
 							if (q2 < 0)
 							{
 								if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, ExpectedSet_DotGram(5), ExpectedSet_DotGram(0), fq2);
@@ -2842,62 +3025,50 @@ namespace DotGram.Snapshots
 								return -1;
 							}
 							p += 1;
-							ways.Begin(3);
-							ways.End(rb);
+							if (unbuilt == 0) last1 = Construct_Small_3();
 							break;
 						}
 				}
 				return p;
 			}
 
-			public int Read_Small_Small_Part0(int pos, int start, Ways.Snapshot lmark, int r0)
+			public int Read_Small_Small_Part0(int pos, int start, int? r0)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var g0At = r0;
-				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, parserReading);
-				int g0 = (int)values.V1[g0At].Value!;
+				int g0 = (int)g0At!;
 				if (!Recognize_DotGram_Small_Guard4(g0))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
-				ways.Begin(0);
-				ways.Put(r0);
-				ways.End(rb);
+				if (unbuilt == 0) last1 = Construct_Small((int)r0!);
 				return p;
 			}
 
-			public int Read_Small_Small_Part1(int pos, int start, Ways.Snapshot lmark, int r0)
+			public int Read_Small_Small_Part1(int pos, int start, int? r0)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
-				ways.Begin(1);
-				ways.Put(r0);
-				ways.End(rb);
+				if (unbuilt == 0) last1 = Construct_Small_1((int)r0!);
 				return p;
 			}
 
-			public int Read_Small_Small_Part2(int pos, int start, Ways.Snapshot lmark, int r0)
+			public int Read_Small_Small_Part2(int pos, int start, int? r0)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				if (((0x1UL >> parserReading) & 1UL) == 0UL)
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
 				var g0At = r0;
-				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, parserReading);
-				int g0 = (int)values.V1[g0At].Value!;
+				int g0 = (int)g0At!;
 				if (!Recognize_DotGram_Small_Guard5(g0))
 				{
 					if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
 					return -1;
 				}
-				ways.Begin(2);
-				ways.Put(r0);
-				ways.End(rb);
+				if (unbuilt == 0) last1 = Construct_Small_2((int)r0!);
 				return p;
 			}
 
@@ -2905,7 +3076,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -2930,30 +3100,40 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				ways.Begin(4);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			public int Read_Word_Small(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Word_Small_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.RewindBuilt(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -2964,7 +3144,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -3005,30 +3184,40 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				ways.Begin(5);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			public int Recognize_Small_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Small_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.RewindBuilt(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -3037,7 +3226,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Small_Whole_Read_Body(int pos)
 			{
 				var p = pos;
-				var lm = ways.Snap();
 				var q0 = Read_Small_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3052,21 +3240,33 @@ namespace DotGram.Snapshots
 			public int Recognize_Small_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Small_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.RewindBuilt(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -3075,7 +3275,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Small_Read_Body(int pos)
 			{
 				var p = pos;
-				var lm = ways.Snap();
 				var q0 = Read_Small_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3087,13 +3286,13 @@ namespace DotGram.Snapshots
 		static int Recognize_Small_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Small(text, ways, values, parserReading);
+				var reader = new Reader_DotGram_Small(text, ways, parserReading);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Small_Whole_Read(pos);
 
@@ -3106,28 +3305,26 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Small_Direct(ways, text, values, ways.Last, default, parserReading);
-				value = values.V1[ways.Last].Value;
+				value = reader.last1;
 
 				return end;
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 
 		static int Recognize_Small(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
 		{
 			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Small(text, ways, values, parserReading);
+				var reader = new Reader_DotGram_Small(text, ways, parserReading);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Small_Read(pos);
 
@@ -3140,165 +3337,17 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Small_Direct(ways, text, values, ways.Last, default, parserReading);
-				value = values.V1[ways.Last].Value;
+				value = reader.last1;
 
 				return end;
 			}
 			finally
 			{
 				Ways.Return(ways);
-				DirectValues.Return(values);
 			}
 		}
 
-		static void Materialize_DotGram_Small_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int parserReading, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.Records - ways.Built);
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 1:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 2:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 3:
-					{
-						break;
-					}
-					case 4:
-					{
-						read += 2;
-						break;
-					}
-					case 5:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-			var values1 = values.V1;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot] || built[slot]) continue;
-
-				var read  = at + 2;
-
-				built[slot] = true;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
-
-						values1[slot].Value = Construct_Small((int)captured0!);
-						break;
-					}
-					case 1:
-					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
-
-						values1[slot].Value = Construct_Small_1((int)captured0!);
-						break;
-					}
-					case 2:
-					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
-
-						values1[slot].Value = Construct_Small_2((int)captured0!);
-						break;
-					}
-					case 3:
-					{
-						values1[slot].Value = Construct_Small_3();
-						break;
-					}
-					case 4:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values1[slot].Value = Construct_Number(captured0!);
-						break;
-					}
-					case 5:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values0[slot].Value = Construct_Word(captured0!);
-						break;
-					}
-				}
-			}
-
-			ways.Built = ways.Records;
-		}
 
 		static int Recognize_Ab_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
@@ -3338,32 +3387,103 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal int last1;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
 			internal Reader_DotGram_Primary(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.last1 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_Primary_Primary(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Primary_Primary_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -3404,15 +3524,11 @@ namespace DotGram.Snapshots
 				if (q0 < 0 && d0 <= 0)
 				{
 					var s1  = ways.Cursor;
-					var lm1 = ways.Snap();
-					var rr1 = ways.RefsCount;
 
 					q0 = Read_Call_Primary(p);
 
 					if (q0 < 0)
 					{
-						ways.Rewind(lm1);
-						ways.RefsCount = rr1;
 					}
 
 					if (q0 < 0)
@@ -3421,15 +3537,11 @@ namespace DotGram.Snapshots
 				if (q0 < 0 && d0 <= 1)
 				{
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 
 					q0 = Read_Number_Primary(p);
 
 					if (q0 < 0)
 					{
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 					}
 				}
 
@@ -3444,13 +3556,12 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
-				var fold = -1;
-				var r0 = -1;
+				int fold = default!;
+				int r0 = default!;
 				var q0 = Read_Number_Primary(p);
 				if (q0 < 0) return -1;
 				p = q0;
-				r0 = ways.Last;
+				r0 = last1;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
@@ -3465,10 +3576,8 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 2;
-				ways.Begin(0);
-				ways.Put(r0);
-				ways.End(rb);
-				fold = ways.Last;
+				if (unbuilt == 0) last1 = Construct_Call(r0!);
+				fold = last1;
 				while (true)
 				{
 					var o1 = (uint)p < (uint)text.Length;
@@ -3485,16 +3594,12 @@ namespace DotGram.Snapshots
 						break;
 					}
 
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q1 = -1;
 
 					q1 = Read_Call_Primary_Part0(p, ref fold);
 
 					if (q1 < 0)
 					{
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 					}
 
 					if (q1 < 0)
@@ -3505,13 +3610,13 @@ namespace DotGram.Snapshots
 
 					p = q1;
 				}
+				last1 = fold;
 				return p;
 			}
 
 			public int Read_Call_Primary_Part0(int pos, ref int fold)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
@@ -3526,10 +3631,8 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 2;
-				ways.Begin(1);
-				ways.Put(fold);
-				ways.End(rb);
-				fold = ways.Last;
+				if (unbuilt == 0) last1 = Construct_Call_1(fold);
+				fold = last1;
 				return p;
 			}
 
@@ -3537,7 +3640,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -3562,30 +3664,40 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				ways.Begin(2);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			public int Recognize_Primary_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Primary_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -3608,21 +3720,33 @@ namespace DotGram.Snapshots
 			public int Recognize_Primary_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Primary_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -3648,6 +3772,7 @@ namespace DotGram.Snapshots
 				var reader = new Reader_DotGram_Primary(text, ways);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Primary_Whole_Read(pos);
 
@@ -3660,20 +3785,9 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last1;
 
-				try
-				{
-					Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, default);
-					value = values.V1[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
@@ -3690,6 +3804,7 @@ namespace DotGram.Snapshots
 				var reader = new Reader_DotGram_Primary(text, ways);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Primary_Read(pos);
 
@@ -3702,20 +3817,9 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last1;
 
-				try
-				{
-					Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, default);
-					value = values.V1[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
@@ -3723,106 +3827,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static void Materialize_DotGram_Primary_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 1:
-					{
-						live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 2:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values1 = values.V1;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var record0 = log[read++];
-						var captured0 = values1[record0].Value;
-
-						values1[slot].Value = Construct_Call(captured0!);
-						break;
-					}
-					case 1:
-					{
-						var accumulated = log[read++];
-						values1[slot].Value = Construct_Call_1(values1[accumulated].Value);
-						break;
-					}
-					case 2:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values1[slot].Value = Construct_Number(captured0!);
-						break;
-					}
-				}
-			}
-		}
 
 		static int Recognize_DotGram_Word(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{
@@ -4612,51 +4617,6 @@ namespace DotGram.Snapshots
 
 			internal int AllBuiltAt;
 
-			internal struct Snapshot
-			{
-				internal int LogCount;
-				internal int Records;
-
-				internal int Last;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal Snapshot Snap()
-			{
-				Snapshot mark;
-
-				mark.LogCount = LogCount;
-				mark.Records  = Records;
-				mark.Last     = Last;
-
-				return mark;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void Rewind(Snapshot mark)
-			{
-				LogCount = mark.LogCount;
-				Records  = mark.Records;
-				Last     = mark.Last;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void RewindBuilt(Snapshot mark)
-			{
-				LogCount = mark.LogCount;
-				Records  = mark.Records;
-				Last     = mark.Last;
-
-				if (Built > mark.Records)
-					Built = mark.Records;
-
-				if (AllBuilt > mark.Records)
-				{
-					AllBuilt   = mark.Records;
-					AllBuiltAt = mark.LogCount;
-				}
-			}
-
 
 
 
@@ -5062,163 +5022,10 @@ namespace DotGram.Snapshots
 			return pos + at;
 		}
 
-		sealed class DirectValues
+		sealed class ImmediateValues
 		{
-			internal Held<string>[] V0 = new Held<string>[16];
-			internal Held<int>[] V1 = new Held<int>[16];
-			internal bool[] Live   = new bool[16];
-			internal int[]  Starts = new int[16];
-			internal bool[] Built  = new bool[16];
-			int _used;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _spare;
-
-			[global::System.ThreadStatic]
-			static DirectValues?[]? _deeper;
-
-			[global::System.ThreadStatic]
-			static int _deeperCount;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _large;
-
-			[global::System.ThreadStatic]
-			static int _largeIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _largeLetGo;
-
-			[global::System.ThreadStatic]
-			static int _spareIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _spareLetGo;
-
-			const int LargeIdle = 8;
-
-			const int SpareIdle = 8;
-
-			internal static DirectValues Rent()
-			{
-				var spare = _spare;
-
-				if (spare != null)
-					_spare = null;
-				else if (_deeperCount > 0)
-				{
-					spare = _deeper![--_deeperCount]!;
-					_deeper![_deeperCount] = null;
-				}
-				else if (_large != null)
-				{
-					spare = _large;
-					_large = null;
-				}
-				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
-				{
-					spare = letGo;
-					_largeLetGo.SetTarget(null!);
-				}
-				else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
-				{
-					spare = letGoSpare;
-					_spareLetGo.SetTarget(null!);
-				}
-				else
-					return new DirectValues();
-
-				return spare;
-			}
-
-			internal static void Return(DirectValues values)
-			{
-				var rows = values._used;
-
-				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
-				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
-				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
-				values._used = 0;
-
-				// Past the bound the store is not thrown away - that was a cliff
-				// and not a bound - it is kept while the work keeps wanting it, and handed
-				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
-				// first, above: what is kept is the room, never what was built in it.
-				if (0L + values.V0.Length + values.V1.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
-				{
-					// The same question the ordinary slot asks below: is the room far larger than
-					// the use. The bound decides WHICH slot holds the store; it does not decide
-					// whether to keep it. This read the parse's use against the BOUND until
-					// 2026-09-21, and for a dense store the two are not the same quantity: the
-					// room counts three hundred value tables and the use counted only records, so
-					// a parse that had just filled a seventeen-megabyte store read as idle and the
-					// eighth STEADY parse of the same document threw the store away and rebuilt it.
-					if (!(values.Live.Length > 4L * rows))
-						_largeIdle = 0;
-					else if (++_largeIdle >= LargeIdle)
-					{
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-						_large = null;
-						_largeIdle = 0;
-
-						return;
-					}
-
-					if (_large != null && !ReferenceEquals(_large, values))
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
-
-					_large = values;
-
-					return;
-				}
-
-				// The ordinary slot lets go by the same rule as the parked one: counted where a
-				// parse ENDS, against what that parse USED. At the rental it could not arrive,
-				// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that
-				// wants the room straight back still gets it, while one that does not has stopped
-				// holding it against everybody else.
-				if (!(values.Live.Length > 4L * rows))
-					_spareIdle = 0;
-				else if (++_spareIdle >= SpareIdle)
-				{
-					(_spareLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-					_spareIdle = 0;
-
-					return;
-				}
-
-				if (_spare == null)
-					_spare = values;
-				else if (_deeperCount < 3)
-					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
-			}
-
-			internal void Room(int count, bool live = true, int from = 0)
-			{
-				if (count > _used) _used = count;
-				if (Live.Length < count)
-				{
-					Live   = new bool[global::System.Math.Max(count, Live.Length * 2)];
-					Starts = new int[Live.Length];
-					var built = new bool[Live.Length];
-					global::System.Array.Copy(Built, built, Built.Length);
-					Built  = built;
-				}
-				else if (live && count > from)
-					global::System.Array.Clear(Live, from, count - from);
-				if (V0.Length < count)
-					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
-				if (V1.Length < count)
-					global::System.Array.Resize(ref V1, global::System.Math.Max(count, V1.Length * 2));
-			}
+			internal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);
 		}
-
-		#pragma warning disable CS0649 // a table nothing writes still declares the field
-		struct Held<T>
-		{
-			internal T Value;
-		}
-		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

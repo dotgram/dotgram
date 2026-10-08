@@ -8,10 +8,8 @@
 		<IsPackable>false</IsPackable>
 		<RootNamespace>DotGram</RootNamespace>
 
-		<!-- The libraries' own: a public member they leave undocumented is theirs to answer for, and
-		     so is a carrier a grammar names over the generator's choice (GRAM5015: the SQL:2023, SQL-92
-		     and T-SQL parsers, whose own project suppresses it with the reason beside the grammars). -->
-		<NoWarn>$(NoWarn);CS1591;CS1573;GRAM5015</NoWarn>
+		<!-- The libraries' own: a public member they leave undocumented is theirs to answer for. -->
+		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

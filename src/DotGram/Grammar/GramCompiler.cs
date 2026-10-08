@@ -277,20 +277,26 @@ public static class GramCompiler
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
 
-	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
+	/// <summary>The immediate carrier, asked for by name, could not carry a machine of the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";
 
 	/// <summary>An explicitly requested buffered input form is not supported.</summary>
 	public const string BufferedUnsupported = "GRAM4026";
 
-	/// <summary>Which carrier the generator chose, where it was left to choose, and why.</summary>
+	/// <summary>
+	/// A grammar left to choose is carried as Immediate, and the tape would hold back
+	/// constructions that run for a reading the parse then gives up: information.
+	/// </summary>
 	public const string CarrierChosen = "GRAM5012";
 
 	/// <summary>A buffered form read by the engine where its string form is read by methods, and why.</summary>
 	public const string BufferedOnEngine = "GRAM5014";
 
-	/// <summary>The immediate carrier was asked for by name over a grammar the gates would have kept on the tape.</summary>
-	public const string CarrierForced = "GRAM5015";
+	/// <summary>
+	/// A grammar left to choose is carried as Immediate, and the tape would be safer: constructions
+	/// share <c>context</c> with hooks that run during recognition, or a refused input rebuilds lists.
+	/// </summary>
+	public const string CarrierCaution = "GRAM5016";
 
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
 	public const string Unanchored = "GRAM5011";

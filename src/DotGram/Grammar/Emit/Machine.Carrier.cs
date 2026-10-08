@@ -10,12 +10,15 @@ namespace DotGram.Grammar.Emit;
 
 sealed partial class Machine
 {
-	/// <summary>Which carrier the host asked for; what it gets is <see cref="Carrier"/>.</summary>
+	/// <summary>
+	/// Which carrier the machine was asked for — the immediate one where the host left it to the
+	/// generator — and what it gets is <see cref="Carrier"/>.
+	/// </summary>
 	readonly CarrierKind _carrierKind;
 
 	/// <summary>
 	/// Which rules of the graph are read where the reading may not stand, asked once for the
-	/// file and handed to every machine that chooses its own carrier; null where none does.
+	/// file and handed to every machine the immediate carrier was asked for; null on the tape.
 	/// </summary>
 	readonly Replay.Report? _replay;
 
@@ -139,6 +142,78 @@ sealed partial class Machine
 		return loop;
 	}
 
+	/// <summary>Why a loop does not defer: the grammar has a context.</summary>
+	internal const string ExcludedByContext = "a context: a construction may write what a guard reads";
+
+	/// <summary>Why a loop does not defer: the grammar has a recovery.</summary>
+	internal const string ExcludedByRecovery = "a recovery";
+
+	/// <summary>Why a loop does not defer: the rule's own guard asks for what it has built so far.</summary>
+	internal const string ExcludedByOwnGuard = "its own guard asks for its value so far";
+
+	/// <summary>
+	/// The loops this machine wrote that rebuild what they read each time a way is given back: a
+	/// loop that does not defer for a reason a grammar can have (a context, a recovery, its own
+	/// guard asking for its value so far) and whose owner builds. On a refused input such a loop
+	/// rebuilds the list it reads once a turn, which costs memory quadratic in its length where
+	/// the tape builds nothing. Asked once the readers are written (<see cref="RetryLoops"/>).
+	/// </summary>
+	internal IEnumerable<RetryLoop> RebuildingLoops()
+	{
+		if (RetryLoops.Count == 0 || !CarriesImmediately)
+			yield break;
+
+		foreach (var loop in RetryLoops)
+			if (loop.Excluded is ExcludedByContext or ExcludedByRecovery or ExcludedByOwnGuard && Demands.Builds(loop.Owner))
+				yield return loop;
+	}
+
+	/// <summary>
+	/// The rules of this machine whose constructions name <c>context</c>, and whether a hook
+	/// that runs during recognition names it as well: a <c>when</c>, a <c>switch</c> selector
+	/// (a guard too), or an external recognizer handed the context.
+	/// </summary>
+	/// <remarks>
+	/// Read and write are not told apart: either way, a construction that runs as it is read
+	/// rather than after the parse has accepted runs interleaved with those hooks, and what one
+	/// of them sees of the other can change what is accepted or the value that is built.
+	/// </remarks>
+	internal (List<RuleSymbol> Constructing, bool Hooked) ContextSharing()
+	{
+		var constructing = new List<RuleSymbol>();
+		var hooked       = false;
+
+		if (_graph.Context is null)
+			return (constructing, hooked);
+
+		foreach (var rule in _rules)
+		{
+			if (!_graph.Bodies.TryGetValue(rule, out var body))
+				continue;
+
+			var named = _graph.ContextOf(rule) is not null;
+
+			foreach (var node in NodeWalk.Descendants(body))
+			{
+				switch (node)
+				{
+					case Node.Construct { How: Construction.Expression expression }
+						when named && CSharpEmitter.Uses(_graph, expression.Text, "context"):
+						if (!constructing.Contains(rule))
+							constructing.Add(rule);
+						break;
+
+					case Node.Guard guard when named && CSharpEmitter.Uses(_graph, guard.Text, "context"):
+					case Node.External { UsesContext: true }:
+						hooked = true;
+						break;
+				}
+			}
+		}
+
+		return (constructing, hooked);
+	}
+
 	/// <summary>Why a loop does not defer building on a give-back, or null where it does.</summary>
 	string? Excluded(RuleSymbol owner, RetrySite site)
 	{
@@ -152,15 +227,15 @@ sealed partial class Machine
 			return "the tape builds nothing while it reads";
 
 		if (_graph.Context is not null)
-			return "a context: a construction may write what a guard reads";
+			return ExcludedByContext;
 
 		if (_graph.Recoveries.Count > 0)
-			return "a recovery";
+			return ExcludedByRecovery;
 
 		var demands = Demands;
 
 		if (!demands.ReadUnasked(owner))
-			return "its own guard asks for its value so far";
+			return ExcludedByOwnGuard;
 
 		if (!demands.Builds(owner))
 			return "it builds nothing";
@@ -263,7 +338,7 @@ sealed partial class Machine
 	/// <summary>Why the carrier asked for was not the one used, or null.</summary>
 	public string? CarrierRefusal { get; private set; }
 
-	/// <summary>What kept a machine left to choose on the tape where the immediate carrier could have carried it.</summary>
+	/// <summary>What the gates say of a machine: the rules whose constructions may run for a reading that does not stand.</summary>
 	/// <param name="Building">The rules it builds.</param>
 	/// <param name="Replayed">Those of them read for derivations that may not stand, the ones to look at first.</param>
 	/// <param name="Again">The rules that can be read again after answering, where nothing was replayed.</param>
@@ -271,37 +346,19 @@ sealed partial class Machine
 		IReadOnlyList<RuleSymbol> Building, IReadOnlyList<RuleSymbol> Replayed, IReadOnlyList<RuleSymbol> Again);
 
 	/// <summary>
-	/// Why <see cref="CarrierKind.Auto"/> kept this machine on the tape where the immediate
-	/// carrier could have carried it, or null: where it chose that carrier, and where there
-	/// was nothing to choose between. Said once for a file, however many machines it has
-	/// (CSharpEmitter), so it is kept as the rules and not as a sentence.
-	/// </summary>
-	internal Kept? KeptOnTape { get; private set; }
-
-	/// <summary>
-	/// What would have kept this machine on the tape had the carrier been left to choose,
-	/// where the author asked for the immediate one and got it (D138). Null where nothing
-	/// would have, and null for a machine left to choose, which has
-	/// <see cref="KeptOnTape"/> instead.
+	/// What the gates say of a machine asked for the immediate carrier — by name, or left to the
+	/// generator, which asks for it — or null where they hold nothing back: the rules whose
+	/// constructions may run for a reading the parse then gives up, which the tape would have held
+	/// back until the parse was accepted.
 	/// </summary>
 	/// <remarks>
-	/// Asking for a carrier by name skips the gates entirely - which is what made forcing it
-	/// silent - so they are asked here and their answer kept for the diagnostic and for
-	/// nothing else. Nothing reads this to decide anything: the carrier is the one written.
+	/// The gates choose nothing: the carrier is the immediate one wherever it does not refuse the
+	/// machine. Their answer is what a grammar left to choose is told (GRAM5016, GRAM5012) and what
+	/// the carriers report says, and it is kept for a machine the carrier refused too, where the
+	/// report says what would hold it back were the refusal lifted. A diagnostic reads it only of a
+	/// machine the immediate carrier carries.
 	/// </remarks>
-	internal Kept? ForcedPastGates { get; private set; }
-
-	/// <summary>
-	/// Why the immediate carrier refused a machine left to choose, and what the gates would have
-	/// said had it not: the carriers report's, and nothing a diagnostic says (GRAM5012 is silent
-	/// where the carrier refuses). Null where it did not refuse, or where there was nothing to choose.
-	/// </summary>
-	/// <param name="Why">The immediate carrier's refusal, the first it found.</param>
-	/// <param name="Otherwise">What would have kept the machine on the tape all the same: empty lists where nothing would.</param>
-	internal sealed record RefusedByCarrier(string Why, Kept Otherwise);
-
-	/// <summary>The refusal, where there was one (<see cref="RefusedByCarrier"/>).</summary>
-	internal RefusedByCarrier? RefusedOnTape { get; private set; }
+	internal Kept? GateReasons { get; private set; }
 
 	/// <summary>
 	/// Whether a build asked for the carriers report: then <see cref="OpenedHere"/> is kept, and
@@ -528,111 +585,53 @@ sealed partial class Machine
 		return "what follows begins alike";
 	}
 
-	/// <summary>The tape a machine choosing its carrier reads with until it knows enough to choose.</summary>
-	TapeCarrier? _provisional;
-
-	/// <summary>What a machine choosing its carrier chose, once it has.</summary>
-	ValueCarrier? _chosen;
-
 	/// <summary>
-	/// What <see cref="CarrierKind.Auto"/> settles on, once a first reading of the rules has
-	/// said which of them can be read again after answering.
+	/// Asks the gates of a machine the immediate carrier was asked for, once a first reading of the
+	/// rules has said which of them can be read again after answering (<see cref="GateReasons"/>).
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The immediate carrier where every rule this machine builds is read only for the
-	/// derivation that stands or for one the whole parse fails on (<see cref="Replay"/>), and
-	/// where no rule opens a way back. The graph cannot see a way back — an alternative that
-	/// answered being asked for the next one, a turn given back — which is why the report
-	/// alone is not enough and this waits for the reader to have been written once.
+	/// The first gate holds a rule this machine builds that is read for a derivation that may not
+	/// stand (<see cref="Replay"/>); the second, where the first holds nothing, a rule a caller can
+	/// ask again after it answered. The graph cannot see a way back — an alternative that answered
+	/// being asked for the next one, a turn given back — which is why the report alone is not
+	/// enough and this waits for the reader to have been written once.
 	/// </para>
 	/// <para>
-	/// Otherwise the tape it has been reading with. The reason is kept only where the
-	/// immediate carrier could have been asked for instead: a machine that builds nothing has
-	/// nothing to carry, and one that carrier would refuse is not offered it.
+	/// What is asked is not a reading that is thrown away but something already built for one:
+	/// the question is asked of the rules whose value this machine constructs, so where a reading
+	/// builds nothing there is nothing to hold back. A lookahead is where that tells: <c>Replay</c>
+	/// calls what a look reads thrown away — it is — and a look over a rule that builds nothing
+	/// holds nothing back. Not the same question as whether the body is read silently: a
+	/// host-decided <c>switch</c> under a look is never silent and holds nothing back, because
+	/// silence is about what the machine writes down and this is about what the author's
+	/// constructions have already run.
+	/// </para>
+	/// <para>
+	/// Nothing reads the answer to decide anything: a carrier is the one asked for, the tape where
+	/// it refuses. A machine that builds nothing, and one asked for the tape, are not asked.
 	/// </para>
 	/// </remarks>
 	/// <param name="opens">Every rule written with a way back: those that open one, and their callers.</param>
 	/// <param name="ownWays">Those that open one themselves.</param>
-	void Choose(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
+	void AskGates(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
 	{
-		// Above the return below because the gates are now asked of a forced carrier too (D138),
-		// and Replayed() reads this. One pass over the rules, whatever the carrier.
+		if (_carrierKind != CarrierKind.Immediate || _replay is null || GateReasons is not null)
+			return;
+
 		var building = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
 
-		if (_carrierKind != CarrierKind.Auto || _chosen is not null)
-		{
-			// The gates are not asked of a carrier the author named, and that is the whole of why
-			// forcing it was silent. Ask them anyway where the immediate one was asked for and
-			// will be given: the answer decides nothing here and is carried only to the warning.
-			if (_carrierKind == CarrierKind.Immediate && ForcedPastGates is null &&
-				_replay is not null && building.Count > 0)
-			{
-				var held  = Replayed();
-				var twice = held.Count > 0 ? new List<RuleSymbol>() : ReadAgain(rules, opens, ownWays);
-
-				if (held.Count > 0 || twice.Count > 0)
-					ForcedPastGates = new Kept(building, held, twice);
-			}
-
-			return;
-		}
-
-		var tape      = _provisional ??= new TapeCarrier(this);
-		var immediate = new ImmediateCarrier(this);
-
-		_chosen = tape;
-
-		if (building.Count == 0 || _replay is null)
+		if (building.Count == 0)
 			return;
 
-		// Refused before any gate is asked, as it always was. Where the report is asked for, what the
-		// gates would have said is kept beside the refusal, so that it says whether the refusal is
-		// all that holds the machine back; otherwise nothing more is asked.
-		if (immediate.Refuses() is { } refused)
-		{
-			if (Reporting)
-				RefusedOnTape = new RefusedByCarrier(refused, new Kept(building, Replayed(), ReadAgain(rules, opens, ownWays)));
-
-			return;
-		}
-
-		// What keeps the tape is not a reading that is thrown away but something already built
-		// for one: the question is asked of `building`, the rules whose value this machine
-		// constructs, so where a reading builds nothing there is nothing to hold back and the
-		// gate lets it through. A lookahead is where that tells: `Replay` still calls what a
-		// look reads thrown away — it is — and a look over a rule that builds nothing no longer
-		// keeps the grammar on the tape for it. Not the same question as whether the body is
-		// read silently: a host-decided `switch` under a look is never silent and still reaches
-		// the immediate carrier, because silence is about what the machine writes down and this
-		// is about what the author's constructions have already run.
-		var replayed = Replayed();
-
-		if (replayed.Count > 0)
-		{
-			KeptOnTape = new Kept(building, replayed, []);
-
-			return;
-		}
-
-		var again = ReadAgain(rules, opens, ownWays);
-
-		if (again.Count > 0)
-		{
-			KeptOnTape = new Kept(building, [], again);
-
-			return;
-		}
-
-		_chosen = immediate;
-
-		List<RuleSymbol> Replayed()
-		{
-			return building
+		var replayed = building
 			.Where(rule => !_replay.Keeps(rule))
 			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
 			.ToList();
-		}
+		var again    = replayed.Count > 0 ? [] : ReadAgain(rules, opens, ownWays);
+
+		if (replayed.Count > 0 || again.Count > 0)
+			GateReasons = new Kept(building, replayed, again);
 	}
 
 	/// <summary>
@@ -725,9 +724,9 @@ sealed partial class Machine
 	/// <remarks>
 	/// A property of the machine rather than of a reader because every method of every rule in
 	/// a file has to agree on it: a part hands its marks to the body and the entry builds what
-	/// the rules recorded. Chosen once, the first time it is asked for, which is after the
+	/// the rules recorded. Settled once, the first time it is asked for, which is after the
 	/// machine knows its rules — and the tape where the one asked for cannot carry them, with
-	/// the reason kept for whoever asks.
+	/// the reason kept for whoever asks (<see cref="CarrierRefusal"/>).
 	/// </remarks>
 	ValueCarrier Carrier
 	{
@@ -736,13 +735,10 @@ sealed partial class Machine
 			if (field is not null)
 				return field;
 
-			// Not kept until chosen: what reads before then reads on the tape, and is written
-			// again once the choice is made (RenderReader).
-			if (_carrierKind == CarrierKind.Auto)
-				return _chosen is null ? _provisional ??= new TapeCarrier(this) : field = _chosen;
-
-			if (Asked() is { } asked)
+			if (_carrierKind == CarrierKind.Immediate)
 			{
+				var asked = new ImmediateCarrier(this);
+
 				if (asked.Refuses() is { } why)
 					CarrierRefusal = why;
 				else
@@ -750,15 +746,6 @@ sealed partial class Machine
 			}
 
 			return field = new TapeCarrier(this);
-
-			ValueCarrier? Asked()
-			{
-				return _carrierKind switch
-				{
-					CarrierKind.Immediate => new ImmediateCarrier(this),
-					_ => null,
-				};
-			}
 		}
 	}
 
@@ -779,33 +766,14 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether this machine's readers will carry immediately, asked before they are written: the
-	/// immediate carrier where it was asked for by name and does not refuse the machine, or where
-	/// the machine was left to choose and chooses it. The tape otherwise.
+	/// immediate carrier where it was asked for and does not refuse the machine. The tape otherwise.
 	/// </summary>
 	/// <remarks>
-	/// A carrier the author named is settled by the refusal alone, which needs nothing but the
-	/// rules. A machine left to choose asks the gates, and the second of them — a rule the reader
-	/// can be asked again after it answered — is known only once the rules have been read through
-	/// once (<see cref="Settle"/>), which this does here rather than wait for the readers to be
-	/// written. The emitter asks this before it folds machines together, so that a machine that
-	/// would have carried immediately on its own is never put on the tape by sharing one.
+	/// Settled by the refusal alone, which needs nothing but the rules. The emitter asks this before
+	/// it folds machines together, so that a machine that would have carried immediately on its own
+	/// is never put on the tape by sharing one.
 	/// </remarks>
-	internal bool WillCarryImmediately(IReadOnlyList<Publication> publications)
-	{
-		switch (_carrierKind)
-		{
-			case CarrierKind.Immediate:
-				return WouldRefuse(CarrierKind.Immediate) is null;
-
-			case CarrierKind.Auto:
-				Settle(publications);
-
-				return CarriesImmediately;
-
-			default:
-				return false;
-		}
-	}
+	internal bool WillCarryImmediately => _carrierKind == CarrierKind.Immediate && WouldRefuse(CarrierKind.Immediate) is null;
 
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;

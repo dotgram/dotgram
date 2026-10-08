@@ -197,16 +197,16 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 // Erratum 5275, reported and not verified, spells the list rule out and changes nothing read.
 
 // Carried immediately, by name: an element is built the moment its rule has been read, and nothing
-// is recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
-// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): the
+// is recorded on a tape and replayed once the parse is accepted. Named, though left to choose the
+// generator carries it so too, because the tape would hold its constructions back where: the
 // alternatives of a node begin alike and a run of pairs can be asked again after it has answered,
 // and a construction asked again runs again. Every construction here builds from the text it was
 // given — `Pairs` and `Present` take the slots apart, a ForwardedNode is its kind, name and port —
 // and the one check that could refuse, `IsElement`, is a guard read before the element is built, so
-// a reading given up or asked twice leaves nothing behind and nothing can throw. Held to the tape by
-// an agreement run: the same grammar compiled on the tape, both entries over the tests' texts, each
-// cut at every character and given a stray one — the same values, the same messages, nothing thrown.
-#pragma warning disable GRAM5015
+// a reading given up or asked twice leaves nothing behind and nothing can throw. Held to the tape
+// by an agreement run: the same grammar compiled on the tape, both entries over the tests' texts,
+// each cut at every character and given a stray one — the same values, the same messages, nothing
+// thrown.
 [Gram("""
 	@using System;
 	@using DotGram.Web;
@@ -293,7 +293,6 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 	parse ForwardedField as ParseForwarded
 	parse Node           as ParseNode
 	""", Carrier = GramCarrier.Immediate)]
-#pragma warning restore GRAM5015
 static partial class Rfc7239
 {
 	// ParseForwarded, ParseNode and their Try forms are generated here.

@@ -152,47 +152,31 @@ namespace DotGram.ExpressionLanguage;
 //     (CS0136). The nearer name wins here — more permissive than C#, so no valid C# is
 //     turned into something else, and the check C# makes is one this has no reason to.
 
-// GRAM5015 says what asking for this carrier costs: the gates would have kept this grammar
-// on the tape, 81 of the 84 rules it builds are read for derivations that may not stand, and
-// a construction that runs for one of those can throw out of a publication that does not say
-// it can (D137, docs/syntax.md §7.5). It is suppressed for two reasons, one about how this
-// grammar is written and one about what is checked of it:
+// The tape, named. Left to the generator this grammar would be carried as Immediate, and it is
+// one of the grammars that carrier is least safe for (GRAM5016): its constructions read and
+// write the context — the scopes a lambda or a block declares names into — and the `when`
+// guards that decide between competing readings ask the same context. On the tape every
+// construction runs after the parse has accepted, so a guard sees what the derivation that
+// stands declared and nothing else; carried immediately, a construction runs as its
+// alternative is read, before the guards after it and for readings later given up, and 81 of
+// the 84 rules it builds are read for derivations that may not stand.
 //
-//   * where two readings compete over the same text — which is the only place a construction
-//     can run for a derivation that then does not stand — the question is asked by a `when`
-//     and not by letting a construction throw. `Target` is the one to read: it asks
-//     `Has(n, member, scope)`, which is exactly what its construction is about to do, and its
-//     own comment says why. `NamedType` asks `Resolves` for the same reason. Most constructions
-//     here carry no guard, and need none: they run only for the derivation that stands;
-//   * it is checked and not asserted. `CarrierAgreementTests` puts every corpus shape, every
-//     prefix of one and every one-character deletion from one — 10,722 texts — to both
-//     carriers and requires the same answer, refusals and throws included. A construction that
-//     threw for a derivation this carrier abandoned would show there and nowhere else, because
-//     the tape builds only what stands. `ExpressionCarrierTests` is the other half: for texts
-//     that read, the two build the same tree.
-//
-// One thing the condition does not cover, and it is said rather than guarded: a text this
-// language refuses may throw here instead. `s.Trim)` builds `s.Trim` and is told there is no
-// such property before the `)` is reached, where the tape refuses the `)`; the tape would say
-// the same of `s.Trim`. Only a construction that has a meaning to give can be guarded, and
-// what is wrong with `s.Trim` is a meaning — a guard asking it first would turn the message
-// about the member into one about the parenthesis, for the text that ends there too. So the
-// agreement test lets this carrier throw where the tape refuses, and nothing else; this copy
-// is for measuring and for that test, and the reading published to a scope is the tape's.
-//
-// What that is worth, said plainly: a search, not a proof. It says no such construction exists
-// today over the widest corpus there is, and where the language is ambiguous the grammar was
-// written so that none could. Take the suppression off if a construction is added to an
-// alternative that can be abandoned without a guard in front of it asking what the construction
-// will do — and expect `CarrierAgreementTests` to be what tells you.
+// The immediate reading below is compiled anyway, to be measured and held against this one.
+// Where two readings compete over the same text the question is asked by a `when` and not by
+// letting a construction throw — `Target` asks `Has(n, member, scope)`, which is exactly what
+// its construction is about to do; `NamedType` asks `Resolves` for the same reason — and
+// `CarrierAgreementTests` puts every corpus shape, every prefix of one and every one-character
+// deletion from one — 10,722 texts — to both carriers and requires the same answer, refusals
+// and throws included. One thing the guards do not cover: a text this language refuses may
+// throw there instead. `s.Trim)` builds `s.Trim` and is told there is no such property before
+// the `)` is reached, where the tape refuses the `)`. So the agreement test lets the immediate
+// reading throw where the tape refuses, and nothing else. That is a search, not a proof, and
+// why the reading a scope is given stays on the tape.
 //
 // That second reading is not in the package. It is compiled only where DOTGRAM_EL_IMMEDIATE
 // is defined, which is the fixture tests/DotGram.ExpressionLanguage.Immediate: these same
 // sources built again into an assembly of their own, which the tests and the stand read. The
 // package carries the one reading a scope is given, and nothing that only measures it.
-#if DOTGRAM_EL_IMMEDIATE
-#pragma warning disable GRAM5015
-#endif
 [Gram("""
 	@using System;
 	@using System.Globalization;
@@ -1658,17 +1642,16 @@ namespace DotGram.ExpressionLanguage;
 
 	// And the body of a lambda whose parameters say no types, read again once they have one.
 	private parse HeldBody as ParseBody
-	""", Lexical = true)]
+	""", Lexical = true, Carrier = GramCarrier.Tape)]
 
 // The same grammar with the constructions run where they are read rather than after
 // the parse is accepted (§6.5). It is here to be measured and to be held against the
 // reading above: the two must answer alike on every input, which is what
-// ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
-// the one place that did, a name resolved by a factory that threw, is a `when` now.
+// ExpressionCarrierTests asks. No construction found so far needs to be deferred — the one
+// place that did, a name resolved by a factory that threw, is a `when` now.
 // Compiled in the fixture only, as the comment above the grammar says.
 #if DOTGRAM_EL_IMMEDIATE
 [GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
-#pragma warning restore GRAM5015
 #endif
 public static partial class ExpressionParser
 {

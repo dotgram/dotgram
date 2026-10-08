@@ -123,16 +123,15 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 // `rel` is well-formed and has no relations: §3.3's MUST binds the sender.
 
 // Carried immediately, by name: a link is built the moment its rule has been read, and nothing is
-// recorded on a tape and replayed once the parse is accepted. Left to choose, the generator would
-// keep this grammar on the tape (GRAM5015 says so, and is suppressed here, where the reason is): an
-// element and its parameters can be asked again after they have answered, and a construction asked
-// again runs again. Every construction here builds a WebLink or a Parameter from the text it was
-// given — `Parameter` takes a name and what followed it apart, and `Extended` answers null rather
-// than throwing where an ext-value does not decode — and reads nothing else, so a reading given up
-// or asked twice leaves nothing behind and nothing can throw. Held to the tape by an agreement run:
+// recorded on a tape and replayed once the parse is accepted. Named, though left to choose the
+// generator carries it so too, because the tape would hold its constructions back where: an element
+// and its parameters can be asked again after they have answered, and a construction asked again
+// runs again. Every construction here builds a WebLink or a Parameter from the text it was given —
+// `Parameter` takes a name and what followed it apart, and `Extended` answers null rather than
+// throwing where an ext-value does not decode — and reads nothing else, so a reading given up or
+// asked twice leaves nothing behind and nothing can throw. Held to the tape by an agreement run:
 // the same grammar compiled on the tape, over the tests' texts, each cut at every character and
 // given a stray one — the same values, the same messages, nothing thrown.
-#pragma warning disable GRAM5015
 [Gram("""
 	@using System;
 	@using System.Collections.Generic;
@@ -179,7 +178,6 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	parse Field as ParseLinks
 	""", Carrier = GramCarrier.Immediate)]
-#pragma warning restore GRAM5015
 static partial class Rfc8288
 {
 	// ParseLinks and TryParseLinks are generated here.

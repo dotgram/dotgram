@@ -70,10 +70,17 @@ public sealed class PoolRetentionScalingTests
 		Held(4_000, AcceptRange, static text => MediaRange.TryParseAccept(text, out _));
 	}
 
+	/// <remarks>
+	/// The reader pools are the tape's — the ways and the links its log keeps — so the address lists
+	/// are read on the tape copy of RFC 5322 (<see cref="Rfc5322Tape"/>): the shipped reading builds
+	/// as it reads, and its tree is most of what either parse allocates.
+	/// </remarks>
 	[Fact]
 	public void An_address_list_below_the_reader_bounds_reuses_the_pools()
 	{
-		Held(5_000, AddressItem, static text => EmailAddress.TryParseList(text, out _));
+		var parse = Rfc5322Tape.Reads("ParseAddressList");
+
+		Held(5_000, AddressItem, parse);
 	}
 
 	/// <summary>
@@ -83,7 +90,9 @@ public sealed class PoolRetentionScalingTests
 	[Fact]
 	public void And_one_past_both_of_them_does_the_same()
 	{
-		Held(20_000, AddressItem, static text => EmailAddress.TryParseList(text, out _));
+		var parse = Rfc5322Tape.Reads("ParseAddressList");
+
+		Held(20_000, AddressItem, parse);
 	}
 
 	/// <summary>

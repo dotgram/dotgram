@@ -109,13 +109,18 @@ static class SqlVariants
 		return Assembly.Load(stream.ToArray()).GetType(name)!;
 	}
 
-	/// <summary>The shipped host's attributes, less the located reading.</summary>
+	/// <summary>The shipped host's attributes, less the located reading, on the tape.</summary>
+	/// <remarks>
+	/// The tape, named: these variants have always been the tape's — what the walks read is what
+	/// <c>DeepNestingCountTests</c> counts — and the shipped hosts name the immediate carrier, which
+	/// a variant left to choose would now be given too.
+	/// </remarks>
 	const string TransactSqlHost =
 		"using DotGram;\n" +
 		"namespace DotGram.Sql.TransactSql.Variant\n" +
 		"{\n" +
 		"\t[GramInclude(typeof(DotGram.Sql.Standard.Sql92Parser), As = \"Sql92\")]\n" +
-		"\t[Gram(\"TransactSql.gram\", Lexical = true)]\n" +
+		"\t[Gram(\"TransactSql.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
 		"\tpublic abstract partial class TransactSqlParser\n" +
 		"\t{\n" +
 		"\t}\n" +
@@ -125,7 +130,7 @@ static class SqlVariants
 		"using DotGram;\n" +
 		"namespace DotGram.Sql.Standard.Variant\n" +
 		"{\n" +
-		"\t[Gram(\"SqlStandard.gram\", Lexical = true)]\n" +
+		"\t[Gram(\"SqlStandard.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
 		"\tpublic abstract partial class SqlStandardParser\n" +
 		"\t{\n" +
 		"\t}\n" +
@@ -135,7 +140,7 @@ static class SqlVariants
 		"using DotGram;\n" +
 		"namespace DotGram.Sql.Standard.Variant\n" +
 		"{\n" +
-		"\t[Gram(\"SqlStandard92.gram\", Lexical = true)]\n" +
+		"\t[Gram(\"SqlStandard92.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
 		"\tpublic abstract partial class Sql92Parser\n" +
 		"\t{\n" +
 		"\t}\n" +

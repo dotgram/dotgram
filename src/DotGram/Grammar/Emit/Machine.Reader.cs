@@ -227,15 +227,13 @@ sealed partial class Machine
 	/// <summary>
 	/// What the readers need to know before any of them is written, found once: the rules they
 	/// reach, the back edges, what the guards need, the arms, which rules open a way back — and
-	/// from those, the carrier a machine left to choose takes (<see cref="Choose"/>) and which
-	/// rules remember where they failed (<see cref="ChooseMemo"/>).
+	/// from those, what the carrier's gates say (<see cref="AskGates"/>) and which rules remember
+	/// where they failed (<see cref="ChooseMemo"/>).
 	/// </summary>
 	/// <remarks>
-	/// Apart from <see cref="RenderReader"/> so that a machine's carrier can be asked for before
-	/// its readers are written: the emitter asks it of two machines before it decides whether
-	/// they share one, and of the union before it decides to keep it (CSharpEmitter, the
-	/// sibling pass). Asked again for the same publications, it does nothing; asked for others,
-	/// it refuses, since what it found would be another machine's.
+	/// Apart from <see cref="RenderReader"/>, which asks it first. Asked again for the same
+	/// publications, it does nothing; asked for others, it refuses, since what it found would be
+	/// another machine's.
 	/// </remarks>
 	internal void Settle(IReadOnlyList<Publication> publications)
 	{
@@ -276,14 +274,15 @@ sealed partial class Machine
 		if (Reporting)
 			OpenedHere = [.. opens];
 
-		// Opens adds the callers to the set it is handed; the choice wants those that opened one
+		// Opens adds the callers to the set it is handed; the gates want those that opened one
 		// themselves as well.
 		var own = new HashSet<RuleSymbol>(opens);
 
 		_opens = Opens(rules, opens);
 
-		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
-		Choose(rules, _opens, own);
+		// And the gates are asked now, knowing which rules open a way: what they say decides no
+		// carrier, and is said of the grammar (GateReasons).
+		AskGates(rules, _opens, own);
 
 		// Which rules remember where they failed, knowing which of them give back (Machine.Memo.cs).
 		ChooseMemo(rules);
