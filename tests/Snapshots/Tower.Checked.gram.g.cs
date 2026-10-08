@@ -439,7 +439,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -466,13 +467,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -543,7 +550,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -570,13 +578,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -617,7 +631,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -644,13 +659,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -691,7 +712,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -718,13 +740,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -765,7 +793,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -792,13 +821,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -839,7 +874,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -866,13 +902,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -913,7 +955,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -940,13 +983,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -987,7 +1036,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1014,13 +1064,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1061,7 +1117,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1088,13 +1145,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1135,7 +1198,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1162,13 +1226,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1209,7 +1279,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1236,13 +1307,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1283,7 +1360,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1310,13 +1388,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1357,7 +1441,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1384,13 +1469,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1431,7 +1522,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1458,13 +1550,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1505,7 +1603,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1532,13 +1631,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1579,7 +1684,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1606,13 +1712,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1653,7 +1765,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1680,13 +1793,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1727,7 +1846,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 4);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -1754,13 +1874,19 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return -1;
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Refused_DotGram(ref failure, p, 2);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									return -1;
+								}
 								p += 1;
 								var q3 = Read_trivia(p);
 								if (q3 < 0) return -1;
 								p = q3;
 								if ((uint)p >= (uint)text.Length || text[p] != '#')
-									return Refused_DotGram(ref failure, p, 1);
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return -1;
+								}
 								p += 1;
 								var q4 = Read_trivia(p);
 								if (q4 < 0) return -1;
@@ -1814,7 +1940,10 @@ namespace DotGram.Snapshots
 					}
 
 					if (p < m0 + 1)
-						return Refused_DotGram(ref failure, p, 5);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+						return -1;
+					}
 
 					b0 = p;
 					ways.Begin(18);
@@ -3436,15 +3565,6 @@ namespace DotGram.Snapshots
 								Put(Refs[at + 1]);
 						}
 				}
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			static int Refused_DotGram(ref Failure failure, int at, int id)
-			{
-				if (!failure.Quiet)
-					Refuse_DotGram(ref failure, at, ExpectedSet_DotGram(id));
-
-				return -1;
 			}
 
 			static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)

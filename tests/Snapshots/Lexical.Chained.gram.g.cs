@@ -472,7 +472,10 @@ namespace DotGram.Snapshots
 					values.Count1 = rr1_1;
 
 					if (q1 >= 0)
-						{ values.Count1 = rb_1; return Refused_DotGram(ref failure, p, 0); }
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
+						{ values.Count1 = rb_1; return -1; }
+					}
 					if (unbuilt == 0) last0 = Construct_Program(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
 					return p;
 				}
@@ -492,7 +495,10 @@ namespace DotGram.Snapshots
 					var p = pos;
 					var c = '\0';
 					if ((uint)p >= (uint)text.Length)
-						return Refused_DotGram(ref failure, p, 1);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+						return -1;
+					}
 					c = text[p];
 					p++;
 					return p;
@@ -506,25 +512,40 @@ namespace DotGram.Snapshots
 					var b0 = -1;
 					string r1 = default!;
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0001')
-						return Refused_DotGram(ref failure, p, 5);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+						return -1;
+					}
 					p += 1;
 					a0 = p;
 					if ((uint)p >= (uint)text.Length)
-						return Refused_DotGram(ref failure, p, 4);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
+					}
 					c = text[p];
 					if (!(((c >= '\u0001' && c <= '\u0002'))))
-						return Refused_DotGram(ref failure, p, 4);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return -1;
+					}
 					p++;
 					b0 = p;
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0004')
-						return Refused_DotGram(ref failure, p, 3);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+						return -1;
+					}
 					p += 1;
 					var q0 = Read_Expression(p);
 					if (q0 < 0) return -1;
 					p = q0;
 					r1 = last1;
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0005')
-						return Refused_DotGram(ref failure, p, 2);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+						return -1;
+					}
 					p += 1;
 					if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
 					return p;
@@ -541,7 +562,8 @@ namespace DotGram.Snapshots
 					var b2 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Refused_DotGram(ref failure, p, 8);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(8));
+						return -1;
 					}
 					c = text[p];
 					switch (c)
@@ -569,7 +591,8 @@ namespace DotGram.Snapshots
 								break;
 							}
 						default:
-							return Refused_DotGram(ref failure, p, 8);
+							if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(8));
+							return -1;
 					}
 					return p;
 				}
@@ -580,11 +603,17 @@ namespace DotGram.Snapshots
 					var a1 = -1;
 					var b1 = -1;
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0006')
-						return Refused_DotGram(ref failure, p, 7);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(7));
+						return -1;
+					}
 					p += 1;
 					a1 = p;
 					if ((uint)p >= (uint)text.Length || text[p] != '\u0003')
-						return Refused_DotGram(ref failure, p, 6);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(6));
+						return -1;
+					}
 					p += 1;
 					b1 = p;
 					if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
@@ -1740,15 +1769,6 @@ namespace DotGram.Snapshots
 								Put(Refs[at + 1]);
 						}
 				}
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			static int Refused_DotGram(ref Failure failure, int at, int id)
-			{
-				if (!failure.Quiet)
-					Refuse_DotGram(ref failure, at, ExpectedSet_DotGram(id));
-
-				return -1;
 			}
 
 			static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)

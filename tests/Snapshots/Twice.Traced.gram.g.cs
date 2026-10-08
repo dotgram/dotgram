@@ -614,7 +614,8 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						return Exited_DotGram(3, pos, Refused_DotGram(ref failure, p, 4));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						return Exited_DotGram(3, pos, -1);
 					}
 					c = text[p];
 					switch (c)
@@ -633,7 +634,10 @@ namespace DotGram.Snapshots
 								if (q2 < 0) return Exited_DotGram(3, pos, -1);
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
-									return Exited_DotGram(3, pos, Refused_DotGram(ref failure, p, 1));
+								{
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									return Exited_DotGram(3, pos, -1);
+								}
 								p += 1;
 								ways.Begin(1);
 								ways.Put(r0);
@@ -716,7 +720,10 @@ namespace DotGram.Snapshots
 					if (q0 < 0) return -1;
 					p = q0;
 					if ((uint)p >= (uint)text.Length || text[p] != '^')
-						return Refused_DotGram(ref failure, p, 3);
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+						return -1;
+					}
 					p += 1;
 					var q1 = Read_trivia(p);
 					if (q1 < 0) return -1;
@@ -810,7 +817,10 @@ namespace DotGram.Snapshots
 					}
 
 					if (p < m0 + 1)
-						return Exited_DotGram(4, pos, Refused_DotGram(ref failure, p, 5));
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+						return Exited_DotGram(4, pos, -1);
+					}
 
 					b0 = p;
 					ways.Begin(4);
@@ -851,7 +861,10 @@ namespace DotGram.Snapshots
 					var rb = ways.RefsCount;
 					var r0 = -1;
 					if ((uint)p >= (uint)text.Length || text[p] != '+')
-						return Exited_DotGram(2, pos, Refused_DotGram(ref failure, p, 0));
+					{
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
+						return Exited_DotGram(2, pos, -1);
+					}
 					p += 1;
 					var q0 = Read_trivia(p);
 					if (q0 < 0) return Exited_DotGram(2, pos, -1);
@@ -3895,15 +3908,6 @@ namespace DotGram.Snapshots
 								Put(Refs[at + 1]);
 						}
 				}
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			static int Refused_DotGram(ref Failure failure, int at, int id)
-			{
-				if (!failure.Quiet)
-					Refuse_DotGram(ref failure, at, ExpectedSet_DotGram(id));
-
-				return -1;
 			}
 
 			static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)
