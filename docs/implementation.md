@@ -252,24 +252,27 @@ Tape        records on a tape, built by a walk once the parse has been accepted.
 Immediate   no deferral: a => runs the moment its alternative has been read
             (Machine.Immediate.cs). A stack per value type for what a rule gathers,
             registers in the reader itself for what a callee hands its caller
-Auto        the default: the generator chooses between Tape and Immediate
+Auto        the default: written exactly as Immediate, the tape where that carrier
+            refuses a machine
 ```
 
-**Immediate gives up exactly one thing**, and the choice of `Auto` is built around it:
-a construction runs once per derivation *tried*, not once per derivation accepted.
-`Auto` therefore picks Immediate for a machine only where every rule it builds is read
-solely for the derivation that stands or for one on which the whole parse then fails
-(`Replay`), and where no rule it reads can be asked for a second answer after giving its
-first — which only the reader, once written, can see, so the choice is made after a first
-rendering on the tape. The gate is asked of what the machine *builds*, and that is
-narrower than what `Replay` calls given up: a rule read under a lookahead has its reading
-thrown away whatever else is true, but where the machine constructs nothing for it there
-is nothing to hold back, so such a reading does not keep the tape. It is not the same
-question as whether the look's body is read silently — a host-decided `switch` under a
-look is never silent and still reaches Immediate — because silence is about what the
-machine writes down and this is about whose constructions have run. What remains given up
-is a parse that fails having already run some constructions. `GRAM5012` says which carrier was chosen and, where it was the tape,
-which rules kept it there.
+**Immediate gives up exactly one thing**: a construction runs once per derivation *tried*,
+not once per derivation accepted. `Auto` takes it all the same — the emitter normalizes Auto
+to Immediate before anything reads the carrier (`CSharpEmitter.Emit`), so a grammar left to
+choose is written byte for byte as one that names Immediate, refused machines included —
+and what it gives up is said instead of avoided. Two gates find it: a rule the machine
+builds that is read for a derivation that may not stand (`Replay`), and, where nothing is,
+a rule that can be asked for a second answer after giving its first, which only the reader,
+once written, can see (`Machine.AskGates`, after the first pass over the rules). They decide
+nothing; their answer is `Machine.GateReasons`, read only of a machine carried immediately.
+The gate is asked of what the machine *builds*, and that is narrower than what `Replay` calls
+given up: a rule read under a lookahead has its reading thrown away whatever else is true,
+but where the machine constructs nothing for it there is nothing to hold back. A grammar left
+to choose is told the reasons (`CSharpEmitter.Told`): `GRAM5016` where constructions that
+name `context` share it with a guard, a selector or a recognizer (`Machine.ContextSharing`)
+and a gate fails, or where a loop rebuilds what it read on every way back because the reader
+may not defer there (`Machine.RebuildingLoops`, from the loops the reader noted as it wrote
+them); `GRAM5012` for the rest. A grammar that names a carrier is told neither.
 
 **Where a reading is settled is its own analysis** (`Grammar/Model/Commit.cs`). For each
 site it finds the innermost point past which what was read can no longer be taken back —
@@ -282,8 +285,8 @@ is what lets a recovering repetition release its buffer at each turn. It mirrors
 `Replay`'s walk deliberately: one counts what may be given up, the other where it stops
 being possible.
 
-A carrier the author named that cannot carry a machine leaves that machine
-on the tape, and `GRAM5007` says so. The engine and the flat path have no carrier to
+A machine the immediate carrier cannot carry is on the tape, the rest of the grammar
+keeping the carrier: in silence under `Auto`, and with `GRAM5007` where Immediate was named. The engine and the flat path have no carrier to
 choose: the engine builds from its arena, and the flat path's one construction runs at
 accept.
 

@@ -198,15 +198,16 @@ public sealed class GramCompilerOptions
 
 	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
-	/// (<see cref="CarrierKind"/>). The generator's choice by default; the others are the
-	/// author's, and a grammar a chosen carrier cannot carry is compiled on the tape instead.
+	/// (<see cref="CarrierKind"/>). <see cref="CarrierKind.Auto"/> by default, which is the
+	/// immediate carrier wherever it can carry a machine; a machine the immediate carrier cannot
+	/// carry is compiled on the tape instead.
 	/// </summary>
 	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
 
 	/// <summary>
-	/// Whether to say, in <see cref="GramCompilation.Carriers"/>, why the carrier is the one it is:
-	/// the rules the tape keeps and the place each was found. For a report; a parse is generated the
-	/// same either way, and without it nothing of this is kept.
+	/// Whether to say, in <see cref="GramCompilation.Carriers"/>, which carrier each machine has and
+	/// what the tape would hold back: the rules the gates name and the place each was found. For a
+	/// report; a parse is generated the same either way, and without it nothing of this is kept.
 	/// </summary>
 	public bool ReportCarriers { get; set; }
 

@@ -127,7 +127,7 @@ then quietly mean nothing.
 | a publication another reaches, joined into that one's machine | — | — | — | ✓ | ✓ |
 | a grammar cut into a lexer and a syntactic half, `Lexical = true` §4 | — | — | ✓ | ✓ | ✓ |
 | a terminal the lexer begins and a rule or the host ends, `'<' & @M` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the carrier chosen by the generator, or named, `Carrier = GramCarrier.…` | — | — | — | ✓ | ✓ |
+| the carrier left to the generator (Immediate unless refused), or named, `Carrier = GramCarrier.…` | — | — | — | ✓ | ✓ |
 | a trace build, `Trace = true` or `DotGramTrace`: the sink, its scope and three sinks §6.9 | — | — | ✓ | ✓ | ✓ |
 | the same reporting a rule that only forwards where it was collapsed §6.9 | — | — | ✓ | ✓ | ✓ |
 | the same over a reading on the engine, flat, buffered or streamed, and a rule retracted by the engine §6.9 | — | — | — | ✓ | ✓ |
@@ -1296,7 +1296,7 @@ same recursive operand twice, a warning), `GRAM4017` (two rules each with a `wit
 the other), `GRAM4018` (a rule nothing reaches, a warning), `GRAM4019` (`word` with no
 `wordboundary`), `GRAM4020` (a `when … is …` somewhere other than beside an alternative's
 operands) and `GRAM5003` (a generated method past the size the JIT optimizes, a warning).
-`GRAM5004`, `GRAM5005`, `GRAM5007`, `GRAM5009`, `GRAM5011` and `GRAM5012` are under
+`GRAM5004`, `GRAM5005`, `GRAM5007`, `GRAM5009`, `GRAM5011`, `GRAM5012` and `GRAM5016` are under
 *A grammar cut in two* and *Carriers* above.
 
 `GRAM0001` was retired with the publisher check and has
@@ -1472,15 +1472,18 @@ at the start of every token before the automaton; that works and is `GRAM5011`, 
 How a reader carries what it read until the constructions run: `[Gram(..., Carrier =
 GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
 
-- **`Auto`**, the default: the generator chooses between the next two and says what it
-  chose, `GRAM5012` (since 2026-09-13; `GRAM5008`, which offered `Immediate` instead, is
-  retired). Immediate where every rule the machine builds is read only for the derivation
-  that stands or the one the parse then fails on, and none can be read again after it has
-  answered; the tape everywhere else, naming the rules that kept it there. What counts
-  against a grammar is not a reading that is given up but one that has already built
-  something: a rule read where the machine constructs nothing — under a lookahead, whose
-  reading is thrown away by definition and whose body the machine need not build — leaves
-  nothing to hold back, so a look over a building rule does not by itself keep the tape.
+- **`Auto`**, the default: compiled exactly as `Immediate`, byte for byte, and on the tape
+  for a machine that carrier refuses, in silence. Where the tape would hold back
+  constructions the immediate carrier runs — a rule the machine builds read for a
+  derivation that may not stand, or read again after it has answered — the grammar is told:
+  `GRAM5016`, a warning, where constructions share `context` with a `when`, a `switch`
+  selector or a recognizer (what is accepted and what is built can differ), or a loop
+  rebuilds what it read on every way back (quadratic memory on refused input); `GRAM5012`,
+  information, for the rest. What counts is not a reading that is given up but one that has
+  already built something: a rule read where the machine constructs nothing — under a
+  lookahead, whose body the machine need not build — leaves nothing to hold back. Until
+  2026-10 `Auto` chose the tape wherever a gate held something back, and naming `Immediate`
+  over such a grammar was a warning of its own, now retired (diagnostics.md).
 - **`Tape`**: records built into values by a walk once the parse is accepted. The carrier a
   `find` still takes, and the one that keeps "nothing is built while matching" whole. It was
   the only carrier that streamed or recovered until the buffered rendering: a machine reading
@@ -1491,9 +1494,9 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   already have run the constructions of what it read**. No walk at the end, which is about
   two fifths of a parse.
 
-A carrier is what a reader — the rendering by methods — holds. Where the asked carrier
-refuses the grammar, or nothing in it is read by methods, the tape is used and `GRAM5007`
-says why, as a warning.
+A carrier is what a reader — the rendering by methods — holds. Where the immediate carrier
+named refuses a machine, or nothing in the grammar is read by methods, the tape is used and
+`GRAM5007` says why, as a warning; left to the generator, the fallback is silent.
 
 ## What re-runs, and when
 

@@ -485,29 +485,42 @@ and explicit `: @Type` contracts keep their ordinary meaning.
 => value
 ```
 
-Construction gives the alternative its value. It never touches the input and is deferred
-until recognition has selected the accepted derivation, unless a later `when` on that
-same path explicitly asks for the computed value. In that case the construction runs for
-the guard and its result is cached. An alternative later abandoned by backtracking does
-not invoke an unrequested construction.
+Construction gives the alternative its value. It never touches the input. When it runs
+depends on the carrier (§6.8), and the default is to run it where it is read.
 
-**A parse that fails is the one exception, and it can be closed.** Where no reading of a
-rule that builds can be given up and replaced, the generator runs each construction where
-it is read rather than holding it for a walk at the end (`GRAM5012` says which it did, and
-why). A parse that succeeds then runs exactly the constructions it would have run anyway.
-A parse that fails may already have run those of what it read before failing, since
-nothing was held back to be dropped — a constant number of times, at most two attempts for
-each enclosing loop that gives back: the second reading a refusal makes for its message
-builds nothing but what a guard names, and so does every attempt after a repetition or a
-choice has given a turn back a second time, until an attempt stands and is built. Where a
-construction must not run for input that is refused — it
-counts, logs, or throws — say so:
+**By default, a construction runs as its alternative is read.** A grammar that names no
+carrier is carried as `Immediate` wherever that carrier can carry it: each construction runs
+the moment its alternative has been read, and its value is in hand for whatever reads it next.
+That is once per derivation **tried**, not once per derivation accepted: a construction runs
+also for an alternative the parse then gives up, and for the prefix of a refused input. In a
+grammar with no context and no recovery that is a constant number of times, at most two
+attempts for each enclosing loop that gives back: the second reading a refusal makes for its
+message builds nothing but what a guard names, and so does every attempt after a repetition or
+a choice has given a turn back a second time, until an attempt stands and is built — except in
+a rule whose own guard asks for its value so far. With a context or a recovery, and in such a
+rule, nothing is left unbuilt: the second reading builds again, and every way back taken builds
+what stood before it again, as often as the input gives ways back — for a long refused list,
+memory quadratic in its length, which `GRAM5016` warns of. A construction that only builds
+does not mind. One that
+counts, logs or throws does: an exception it throws there escapes the publication (§7.5). In a
+grammar with a `context`, constructions run interleaved with the hooks that share it (§7.7).
+The generator says where this can matter: `GRAM5016`, a warning, where constructions share
+`context` with a guard, a selector or a recognizer, or where a refused input can rebuild a list
+on every turn given back; `GRAM5012`, information, where a construction can run for text the
+parser then reads another way or a second time.
+
+**On the tape, a construction runs once the parse has accepted.** Where a construction must
+not run for input that is refused or for a reading given up — it counts, logs, or throws —
+say so:
 
 ```csharp
 [Gram("…", Carrier = GramCarrier.Tape)]
 ```
 
-and every construction waits until the parse has accepted.
+and every construction is deferred until recognition has selected the accepted derivation,
+unless a later `when` on that same path explicitly asks for the computed value. In that case
+the construction runs for the guard and its result is cached. An alternative later abandoned
+by backtracking does not invoke an unrequested construction.
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
@@ -899,9 +912,10 @@ application of this one. Which is to say `=>` is a fold, and both `=>` in the ru
 above are used: the base builds the first value, the recursive alternative applies once
 per operator.
 
-A fold follows §7.2 like any other rule: `=>` is ordinarily deferred until the accepted
-derivation is known. What the match records is which alternative it came through and,
-for a chain, which step followed which; a step's `=>` not needed earlier is applied
+A fold follows §7.2 like any other rule. Carried immediately, the default, each step's `=>`
+is applied as the step is read, on the value so far. On the tape it is deferred until the
+accepted derivation is known: what the match records is which alternative it came through
+and, for a chain, which step followed which, and a step's `=>` not needed earlier is applied
 once the whole match has succeeded, in that order.
 
 **A guard on a left-recursive step may name the accumulator**, the same way any guard
@@ -2247,8 +2261,8 @@ values, except where an entry below says otherwise: `Lexical` reads over tokens,
 rule's answer stands (§4); `Carrier` decides whether a construction may run for a reading that is abandoned or
 refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
 it allows. The build property `DotGramPositionalFollow`, below, is one more: it changes what a
-reading from a position answers, and, under `Carrier = Auto`, which carrier the generator
-chooses.
+reading from a position answers, and what the generator tells a grammar left to choose about
+its carrier.
 
 `Lexical` and `Carrier` are requests rather than settings. Where a grammar cannot
 be compiled the way one asks, the parser is compiled the way it would have been without the
@@ -2277,9 +2291,14 @@ the `[Gram]` (§6.6).
 
 A reader holds what it has read until the constructions (§3.7) run, and the carrier is how:
 
-- **`Auto`** — the generator chooses, and says which as `GRAM5012`: `Immediate` where every
-  parse that succeeds runs only the constructions of what it accepted, the tape everywhere
-  else. A parse that fails may already have run the constructions of what it read.
+- **`Auto`** — the default: `Immediate` wherever that carrier can carry a machine, the tape
+  for a machine it refuses (in silence; the carriers report says which). Where the tape would
+  hold back constructions the immediate carrier runs, the generator says so: `GRAM5016`, a
+  warning, where it would be safer — constructions share `context` with a guard, a `switch`
+  selector or a recognizer, so what is accepted and what is built can differ, or a refused
+  input can rebuild a list on every turn given back, in memory quadratic in its length; and
+  `GRAM5012`, information, where a construction can run for text the parser then reads another
+  way or a second time. Naming either carrier silences both, and every reason found later.
 - **`Tape`** — records on a tape, built into values once the parse is accepted. No
   construction runs for input that is refused (§3.7).
 - **`Immediate`** — no deferral: a construction runs the moment its alternative has been
@@ -2294,11 +2313,15 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   at most two attempts for each enclosing loop that gives back — and not half a million times.
   (The first turn given back is read building as before: that is how a choice reads its next
   alternative, and an attempt that stands then is built once.) What a parse that fails has run
-  is at most that: two attempts per enclosing loop, of what it read.
+  is at most that: two attempts per enclosing loop, of what it read — in a grammar with no
+  context and no recovery, and outside a rule whose own guard asks for its value so far. There
+  neither bound holds: the second reading builds again, and every way back taken rebuilds what
+  stood before it, as often as the input gives ways back (`GRAM5016`).
 
-A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
-among the reasons, that no part of the grammar is read by methods, since a carrier is what a
-reader holds.
+A machine the immediate carrier cannot carry is compiled on the tape, the rest of the grammar
+keeping the carrier. Where `Carrier = Immediate` was named, `GRAM5007` says which publications
+moved and why — among the reasons, that no part of the grammar is read by methods, since a
+carrier is what a reader holds; left to the generator, the fallback is silent.
 
 #### `LocationType`
 
@@ -2342,15 +2365,9 @@ whole forms are right either way.
 Set, every `parse` is compiled knowing that it is also read from a position, and those forms
 give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
 rested on, and that is the cost: in this repository's own packages the JSON, JSON Pointer and
-URI Template readers leave the immediate carrier for the tape and grow by 6 to 24 per cent,
-and several refusals that were linear in the input's length become quadratic. A grammar that
-states `Carrier = Immediate` keeps it, and is told (`GRAM5015`) where the generator would now
-have chosen the tape: the FIX grammar is one, and so is the `Set-Cookie` reader, which left
-the immediate carrier under this property until it named it. That is a warning,
-and under warnings as errors — this repository's `Directory.Build.props` sets
-`TreatWarningsAsErrors` — it stops the build of such a grammar while the property is set; build
-with `-p:WarningsNotAsErrors=GRAM5015` (keeping any the project already lists) or suppress it
-with `NoWarn`. A token grammar (`Lexical`) changes only the order of its expected-token tables.
+URI Template readers stay on the immediate carrier and are told (`GRAM5012`) that their
+constructions can now run again for text read a second time. A token grammar (`Lexical`) changes only the
+order of its expected-token tables.
 The property is for a build that needs the positional forms right now and accepts that cost; the
 default stays off until the analysis can tell the two kinds of entry apart.
 
@@ -2749,10 +2766,19 @@ ordinary C# rules.
   can see: a rule that reaches one is read again every time. State reached any other way — a
   static field, a context kept somewhere else — it cannot see, and a check that reads it may be
   answered with a failure remembered from before the state changed.
-- A `=>` construction is deferred until the accepted derivation is known unless a `when`
-  guard explicitly inspects its value. Captures normally record what matched and the
-  chosen factory builds only the accepted path. A value requested by a guard is built
-  during recognition, cached, and reused after acceptance; it may therefore have been
+- When a `=>` construction runs is the carrier's (§6.8). Carried immediately — the default
+  for a grammar that names no carrier — it runs as its alternative is read: also for a path
+  ordered choice later abandons, and for the prefix of a refused input, so its code must be
+  safe for speculative invocation as a guard's is. It runs interleaved with the hooks that
+  run during recognition: where a construction and a `when`, a `switch` selector or an
+  external recognizer handed the context share `context`, the hook sees what constructions
+  read before it wrote, and a construction that reads `context` sees it as it stands where
+  the construction is read — in both directions, what the grammar accepts and the values it
+  builds can differ from the tape's, and `GRAM5016` says so. On the tape
+  (`Carrier = GramCarrier.Tape`), a construction is deferred until the accepted derivation is
+  known unless a `when` guard explicitly inspects its value: captures record what matched
+  and the chosen factory builds only the accepted path. A value requested by a guard is
+  built during recognition, cached, and reused after acceptance; it may therefore have been
   built on a path the guard or later input abandons.
 
 ### 7.3 Captures and building the result
@@ -2890,12 +2916,14 @@ shared between assemblies.
 after `when`, an external recognizer: what they throw propagates from every publication, with
 or without the `Try` prefix, as any exception of C# does (§7.4). A `Try` method that turned it
 into a refusal would report a defect of the host as input that did not fit. The parser never
-lets escape an exception from a reading it has abandoned: host code is asked about what the
-parse reads, and a reading the parse gives up cannot fail it. That holds for the carrier the
-generator chooses, which keeps a grammar whose building may run on an abandoned reading off the
-immediate carrier. An author who asks for the immediate carrier over such a grammar
-(`Carrier = GramCarrier.Immediate`) is warned, and takes the condition on: every construction
-that could throw on a reading the parse abandons stands behind a guard that answers first.
+lets escape an exception from a reading it has abandoned — on the tape
+(`Carrier = GramCarrier.Tape`): host code is asked about what the parse reads, and a reading
+the parse gives up cannot fail it. Carried immediately, the default, a construction runs as
+its alternative is read, and one that throws on a reading the parse would have given up
+escapes the publication, `Try` or not, and a throwing `Parse` can surface it instead of the
+parse error. A grammar left to choose whose constructions can run there is told so
+(`GRAM5012`); one whose constructions may throw there names the tape, or puts every such
+construction behind a guard that answers first.
 
 ### 7.6 Mapping positions back
 
@@ -2909,8 +2937,10 @@ breakpoints and for "go to definition" in both directions.
 
 Some grammars need somewhere to put what the reading works out: a table of names, the
 label a jump goes to, whatever the language being read means by scope. A `=>` cannot hold
-it — it runs after the whole match — and a `when` that writes into a static field has made
-that field global, which is a bug waiting for the second thread and the second parse.
+it — on the tape it runs after the whole match, and carried immediately it runs as its
+alternative is read, interleaved with the guards that would read it, which is what `GRAM5016`
+warns of — and a `when` that writes into a static field has made that field global, which is
+a bug waiting for the second thread and the second parse.
 
 So a grammar may declare one:
 
@@ -3088,15 +3118,17 @@ grammar that does not ask for it.
 
 ### 8.1 Recognition failure and C# exceptions
 
-The seam already exists — §7.2: `when` runs **during** the match, `=>` runs **after**
-it, once the match is final and from the alternative that actually matched.
+The seam already exists — §7.2: `when` runs **during** the match; `=>` runs, on the tape,
+**after** it, once the match is final and from the alternative that actually matched, and
+carried immediately where its alternative is read.
 
 A recognition failure is a shape the grammar does not describe. It happens during the
 match, and ordered choice may undo it and try something else. A recovering repetition
 (§8.2) treats a failed element as an error when its complete continuation cannot match
 and input remains. Atomic groups govern backtracking, not this error classification.
 
-Construction runs after recognition. Its C# must produce the rule's declared value;
+Construction runs after recognition on the tape, and during it carried immediately. Its C#
+must produce the rule's declared value;
 compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
 value leaves the parse. The generator does not infer another parser outcome from a C#
 method's signature.
