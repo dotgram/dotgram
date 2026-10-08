@@ -145,11 +145,10 @@ public sealed class CarrierTests
 		Assert.Contains("recover",                told.Message, StringComparison.Ordinal);
 	}
 
-	/// <summary>The carrier the generator chooses agrees with the tape on every shape and every input.</summary>
+	/// <summary>The carrier a grammar left to choose is given agrees with the tape on every shape and every input.</summary>
 	/// <remarks>
-	/// Whichever it chose: a machine choosing reads once on the tape to learn which rules open a
-	/// way back, and is written again for what it chose, so this is also what holds that first
-	/// reading to leaving nothing behind.
+	/// The immediate carrier wherever it does not refuse a machine, and the tape where it does:
+	/// either way the answers are the tape's for shapes whose constructions are pure.
 	/// </remarks>
 	[Theory]
 	[MemberData(nameof(Every))]
@@ -174,11 +173,11 @@ public sealed class CarrierTests
 		}
 	}
 
-	/// <summary>Left to the generator, a grammar that gives up no reading is carried immediately, and told so.</summary>
+	/// <summary>Left to the generator, a grammar that gives up no reading is carried immediately, and told nothing.</summary>
 	/// <remarks>
-	/// Told, because what it gives up is a parse that fails having run the constructions of what
-	/// it read, and the author whose constructions mind needs the word that takes it back. An
-	/// author who chose either carrier is told nothing.
+	/// Nothing the tape would hold back runs for a reading the parse gives up, so there is no
+	/// reason to give; which carrier it took is the carriers report's to say. An author who chose
+	/// either carrier is told nothing either.
 	/// </remarks>
 	[Fact]
 	public void Left_to_the_generator_a_grammar_that_gives_up_nothing_is_carried_immediately()
@@ -196,13 +195,7 @@ public sealed class CarrierTests
 		Assert.Contains("ImmediateValues",           source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
-		var told = Assert.Single(Diagnostics(Plain, CarrierKind.Auto));
-
-		Assert.Equal(GramCompiler.CarrierChosen, told.Id);
-		Assert.Equal(GramSeverity.Info,          told.Severity);
-		Assert.Contains("as Immediate",          told.Message, StringComparison.Ordinal);
-		Assert.Contains("GramCarrier.Tape",      told.Message, StringComparison.Ordinal);
-
+		Assert.Empty(Diagnostics(Plain, CarrierKind.Auto));
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Tape));
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Immediate));
 	}
@@ -280,14 +273,17 @@ public sealed class CarrierTests
 		}
 	}
 
-	/// <summary>And so does a rule read again after it answered, which the graph alone does not show.</summary>
+	/// <summary>
+	/// A rule read again after it answered, which the graph alone does not show, is carried
+	/// immediately all the same, and the grammar left to choose is told so.
+	/// </summary>
 	/// <remarks>
 	/// The repetition takes every letter and gives the last one back for the <c>'a'</c> after
 	/// it. Every reading of <c>Letter</c> is on the derivation that stands or on a parse that
 	/// fails, as far as the graph can say; it is the reader that opens the way back.
 	/// </remarks>
 	[Fact]
-	public void Left_to_the_generator_a_turn_given_back_keeps_the_tape()
+	public void Left_to_the_generator_a_turn_given_back_is_carried_immediately_and_said()
 	{
 		const string GivesBack =
 			"""
@@ -299,7 +295,7 @@ public sealed class CarrierTests
 		var (source, assembly) = Compiled(GivesBack, CarrierKind.Auto);
 		var tape = Compiled(GivesBack, CarrierKind.Tape);
 
-		Assert.Contains("Materialize_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "bca", "a", "ba", "b", "" })
 		{
@@ -310,9 +306,7 @@ public sealed class CarrierTests
 			Assert.Equal(ValueOf(expected),  ValueOf(actual));
 		}
 
-		var told = Assert.Single(Diagnostics(GivesBack, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
-
-		Assert.Contains("read again", told.Message, StringComparison.Ordinal);
+		Assert.Contains("can run again for text the parser reads a second time", Held(GivesBack), StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -333,12 +327,13 @@ public sealed class CarrierTests
 			parse File
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		if (!immediate)
-			Assert.Contains("eol", told.Message, StringComparison.Ordinal);
+			Assert.Contains("eol", told!, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -361,12 +356,13 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		if (!immediate)
-			Assert.Contains("Word", told.Message, StringComparison.Ordinal);
+			Assert.Contains("Word", told!, StringComparison.Ordinal);
 
 		// And what it chose reads what the tape reads, the ways inside the group included.
 		var tape = Compiled(grammar, CarrierKind.Tape);
@@ -404,12 +400,13 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		if (!immediate)
-			Assert.Contains("Pair", told.Message, StringComparison.Ordinal);
+			Assert.Contains("Pair", told!, StringComparison.Ordinal);
 
 		var tape = Compiled(grammar, CarrierKind.Tape);
 		var auto = Compiled(grammar, CarrierKind.Auto);
@@ -447,12 +444,13 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		if (!immediate)
-			Assert.Contains("Line", told.Message, StringComparison.Ordinal);
+			Assert.Contains("Line", told!, StringComparison.Ordinal);
 
 		var tape = Compiled(grammar, CarrierKind.Tape);
 		var auto = Compiled(grammar, CarrierKind.Auto);
@@ -491,12 +489,13 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		if (!immediate)
-			Assert.Contains("Word", told.Message, StringComparison.Ordinal);
+			Assert.Contains("Word", told!, StringComparison.Ordinal);
 
 		var tape = Compiled(grammar, CarrierKind.Tape);
 		var auto = Compiled(grammar, CarrierKind.Auto);
@@ -535,9 +534,10 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(grammar, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+		// Whether the gates hold anything back: where they do, the grammar left to choose is told so.
+		var told = Held(grammar);
 
-		Assert.Contains(immediate ? "as Immediate" : "read again", told.Message, StringComparison.Ordinal);
+		Assert.True(immediate == told is null, told);
 
 		var tape = Compiled(grammar, CarrierKind.Tape);
 		var auto = Compiled(grammar, CarrierKind.Auto);
@@ -557,57 +557,55 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
-	/// Asking for the immediate carrier by name over a grammar the gates would have kept on
-	/// the tape is a warning, and says which rules and how much of the grammar is unsettled.
+	/// A grammar left to choose is carried as Immediate over a grammar the gates would have kept
+	/// on the tape, and is told what the tape would have held back, as information.
 	/// </summary>
 	/// <remarks>
-	/// The request is granted: the point of the warning is that it is granted without the
-	/// gates being asked, which is what <see cref="CarrierKind.Auto"/> does and what naming a
-	/// carrier skips. <c>Depth</c> builds, and the alternative it is read in is only settled by
-	/// the <c>')'</c> that comes after it, so on an unclosed text its construction has already
-	/// run for a reading the parse gives up — and an exception from a host factory there escapes
-	/// the publication (D137, §7.5).
+	/// <c>Start</c> builds and gives turns back, so a refused text can have run its construction
+	/// for a reading the parse then reads a second time. Nothing here shares a context with a
+	/// guard and no list is rebuilt for want of deferral, so it is not a warning.
 	/// </remarks>
 	[Fact]
-	public void Forcing_the_immediate_carrier_over_a_grammar_the_gates_would_keep_warns()
+	public void A_grammar_left_to_choose_is_told_what_the_tape_would_hold_back()
 	{
 		var told = Assert.Single(
-			Diagnostics(TakenBack, CarrierKind.Immediate),
-			static one => one.Id == GramCompiler.CarrierForced);
+			Diagnostics(TakenBack, CarrierKind.Auto),
+			static one => one.Id == GramCompiler.CarrierChosen);
 
-		Assert.Equal(GramSeverity.Warning, told.Severity);
-		Assert.Contains("would have kept it on the tape", told.Message, StringComparison.Ordinal);
-		Assert.Contains("Start can be read again",        told.Message, StringComparison.Ordinal);
-		Assert.Contains("points:",                        told.Message, StringComparison.Ordinal);
+		Assert.Equal(GramSeverity.Info, told.Severity);
+		Assert.Contains("carried as Immediate",                     told.Message, StringComparison.Ordinal);
+		Assert.Contains("constructions of Start can run again",     told.Message, StringComparison.Ordinal);
+		Assert.Contains("Carrier = GramCarrier.Tape",               told.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain(Diagnostics(TakenBack, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierCaution);
+
+		// And the claim is true rather than merely printed: carried immediately, there is no walk
+		// at the end to hold anything back.
+		Assert.DoesNotContain("Materialize_DotGram", Compiled(TakenBack, CarrierKind.Auto).Source, StringComparison.Ordinal);
 	}
 
 	/// <summary>
-	/// The same request over a grammar the generator would have carried immediately anyway
-	/// says nothing: the warning is about the gates disagreeing, not about naming a carrier.
+	/// Naming a carrier is the author having decided, and is told nothing of the gates — the
+	/// immediate one included, which the gates would have held back here.
 	/// </summary>
 	[Fact]
-	public void Forcing_the_immediate_carrier_over_a_grammar_that_would_have_had_it_says_nothing()
+	public void A_carrier_named_is_told_nothing_of_the_gates()
+	{
+		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Tape })
+			Assert.DoesNotContain(
+				Diagnostics(TakenBack, carrier),
+				static one => one.Id is GramCompiler.CarrierChosen or GramCompiler.CarrierCaution);
+	}
+
+	/// <summary>
+	/// The same grammar with nothing to take back says nothing, left to choose: there is no reason
+	/// to give, and which carrier it took is the carriers report's to say.
+	/// </summary>
+	[Fact]
+	public void A_grammar_with_nothing_to_hold_back_says_nothing()
 	{
 		Assert.DoesNotContain(
-			Diagnostics(Settled, CarrierKind.Immediate),
-			static one => one.Id == GramCompiler.CarrierForced);
-	}
-
-	/// <summary>
-	/// And a grammar left to choose is never told this, whatever the gates answer: it is
-	/// told what was chosen instead (<c>GRAM5012</c>), because nothing was overridden.
-	/// </summary>
-	[Fact]
-	public void A_grammar_left_to_choose_is_not_told_that_a_carrier_was_forced()
-	{
-		var told = Diagnostics(TakenBack, CarrierKind.Auto);
-
-		Assert.DoesNotContain(told, static one => one.Id == GramCompiler.CarrierForced);
-		Assert.Contains(told, static one => one.Id == GramCompiler.CarrierChosen);
-
-		// And the warning's claim is true rather than merely printed: left to choose, this
-		// grammar really is kept on the tape, which is what a walk at the end is emitted for.
-		Assert.Contains("Materialize_DotGram", Compiled(TakenBack, CarrierKind.Auto).Source, StringComparison.Ordinal);
+			Diagnostics(Settled, CarrierKind.Auto),
+			static one => one.Id is GramCompiler.CarrierChosen or GramCompiler.CarrierCaution);
 	}
 
 	/// <summary>
@@ -629,6 +627,15 @@ public sealed class CarrierTests
 		Letter : @string = c: ['a'..'z'] => @(c)
 		parse Start
 		""";
+
+	/// <summary>
+	/// What a grammar left to choose is told the tape would hold back (GRAM5012), or null where the
+	/// gates hold nothing back.
+	/// </summary>
+	static string? Held(string grammar)
+	{
+		return Diagnostics(grammar, CarrierKind.Auto).SingleOrDefault(static one => one.Id == GramCompiler.CarrierChosen)?.Message;
+	}
 
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier)
 	{

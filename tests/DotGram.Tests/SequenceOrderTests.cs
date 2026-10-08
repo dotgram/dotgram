@@ -518,7 +518,7 @@ public sealed class SequenceOrderTests
 		// cannot take gets none; the harness reads whatever forms there are.
 		Assert.DoesNotContain(
 			result.Diagnostics,
-			static one => one.Severity != GramSeverity.Info && one.Id is not (GramCompiler.CarrierForced or GramCompiler.CarrierRefused or "GRAM4018" or "GRAM5001"));
+			static one => one.Severity != GramSeverity.Info && one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or "GRAM4018" or "GRAM5001"));
 
 		return EmittedCode.Compile(
 			result.Sources[0].Text,

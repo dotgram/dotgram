@@ -193,6 +193,15 @@ public static partial class CSharpEmitter
 	{
 		statics ??= [];
 
+		// A grammar left to choose is compiled exactly as one that asks for the immediate carrier:
+		// every machine that carrier does not refuse is carried by it, and a refused one is on the
+		// tape, as it would be under the request by name. What was asked is kept for what is said
+		// about it — the diagnostics and the carriers report — and for nothing that is written.
+		var requested = carrier;
+
+		if (carrier == CarrierKind.Auto)
+			carrier = CarrierKind.Immediate;
+
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
 
@@ -236,15 +245,13 @@ public static partial class CSharpEmitter
 		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
 		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", "_Seam" };
 
-		// What the graph says about readings that may not stand, asked once for every machine
-		// left to choose its own carrier, and not at all where the author chose.
-		// Computed for a carrier the author forced to Immediate as well, because the gates need
-		// it to say what they would have said had they been asked (D138, GRAM5015). Nothing
-		// emitted moves by it: the one place that read this under a forced carrier already
-		// computed the same report for itself where it was null (`Commit.Of(_graph, _replay ??
-		// Replay.Of(_graph))`), and `Commit` asks the report only for `Keeps`, which `sites`
-		// does not enter into. The snapshot of a grammar compiled immediately says so too.
-		var replay = carrier is CarrierKind.Auto or CarrierKind.Immediate
+		// What the graph says about readings that may not stand, asked once for every machine the
+		// immediate carrier was asked for, and not at all on the tape. The gates need it to say what
+		// the tape would have held back (Machine.GateReasons). Nothing emitted moves by it: the one
+		// place that reads it otherwise computes the same report for itself where it is null
+		// (`Commit.Of(_graph, _replay ?? Replay.Of(_graph))`), and `Commit` asks the report only for
+		// `Keeps`, which `sites` does not enter into.
+		var replay = carrier == CarrierKind.Immediate
 			? Replay.Of(graph, sites: carriers is not null)
 			: null;
 
@@ -307,16 +314,13 @@ public static partial class CSharpEmitter
 		Joined(graph, machines, overKinds);
 		// Share substantial overlap only among machines that will carry the same way: the tape's
 		// with the tape's, the immediate carrier's with its own, each judged on the carrier it will
-		// actually have — what `Auto` chooses, or the tape a refused request falls back to. A small
+		// actually have — the tape a refused request falls back to included. A small
 		// publication must not acquire a large sibling's parsing infrastructure.
 		//
 		// The union is one machine with one carrier. Machines on the tape stay there as one: what
 		// kept each is among the union's rules too. Machines the immediate carrier will carry are
 		// folded only where it carries the union as well; otherwise they stay apart, since sharing
-		// must not put a machine on the tape that would have carried immediately on its own. That
-		// is why the gate was once the tape's alone — the carrier could not be asked ahead of the
-		// readers being written — and why the immediate carrier's copies of a grammar came out as
-		// one machine per publication, several times the tape's size.
+		// must not put a machine on the tape that would have carried immediately on its own.
 		var reached   = machines.ToDictionary(compiled => compiled, Rules);
 		var shareable = new Dictionary<Compiled, bool?>();
 		for (var host = 0; host < machines.Count; host++)
@@ -350,7 +354,7 @@ public static partial class CSharpEmitter
 			made.MemoisesFailures = memoise;
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
-			if (immediately && !made.WillCarryImmediately(publications)) continue;
+			if (immediately && !made.WillCarryImmediately) continue;
 			machines[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
 				machines.RemoveAt(guests[guest]);
@@ -379,19 +383,9 @@ public static partial class CSharpEmitter
 			if (carrier == CarrierKind.Tape)
 				return false;
 
-			// Left to choose, and kept on the tape by a building rule read where the reading may
-			// not stand: on the tape for certain, and so is any union it joins.
-			if (carrier == CarrierKind.Auto && replay is not null &&
-				reached[compiled].Any(rule => results.QualifiedOf(rule) is not null && !replay.Keeps(rule)))
-			{
-				return false;
-			}
-
-			// Asked for by name, or left to choose where that gate let everything through: shared
-			// where the immediate carrier will carry it. A machine it will not — refused, kept on
-			// the tape by a rule that can be read again, or with nothing to build — stays alone,
+			// Shared where the immediate carrier will carry it. A machine it refuses stays alone,
 			// as it did.
-			return compiled.Machine.WillCarryImmediately(compiled.Publications) ? true : null;
+			return compiled.Machine.WillCarryImmediately ? true : null;
 		}
 		HashSet<RuleSymbol> Rules(Compiled compiled)
 		{
@@ -1046,175 +1040,30 @@ public static partial class CSharpEmitter
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations),
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsTurns)));
 
-		// A carrier the author asked for and did not get, said once per reason and said here:
-		// which carrier a machine took is settled by what it turned out to hold, and nothing
-		// before the readers are written knows. A warning, though the parser that comes out is
-		// correct and is the one the tape would have written: a carrier asked for by name is one
-		// somebody means to measure or rely on, and as information nothing a build prints showed
-		// it — the expression language's copy compiled to be held against the tape was the tape
-		// from 2026-09-24 to 2026-10-04, and every comparison made with it compared the tape with
-		// itself.
-		if (carrier is not (CarrierKind.Tape or CarrierKind.Auto) && diagnostics is not null)
+		// What is said about the carrier, said here: which carrier a machine took is settled by what
+		// it turned out to hold, and nothing before the readers are written knows.
+		if (diagnostics is not null)
+			Told(diagnostics, requested, carrier, machines, graph, overKinds);
+
+		if (carriers is not null)
 		{
-			// Two ways to end up on the tape after asking not to be, and only one of them
-			// used to be said. A carrier that refuses a machine says so. A machine with no
-			// reader does not refuse the carrier — it never asks it — and the file that came
-			// out was the same file byte for byte in silence. Asked only where *no* machine in
-			// the grammar is read by methods: one `find` beside a `parse` is a machine on the
-			// engine next to one the carrier is carrying, which is GRAM5005's subject.
-			var reader  = machines.Exists(static one => one.Direct);
-			var refused = new List<string>();
-
-			foreach (var compiled in machines)
+			if (requested == CarrierKind.Auto)
 			{
-				var why = compiled.Machine.CarrierRefusal ??
-					(reader ? null : Unread(compiled, graph, overKinds, carrier));
-
-				if (why is null || refused.Contains(why))
-					continue;
-
-				refused.Add(why);
-
-				diagnostics.Add(new GramDiagnostic(
-					GramCompiler.CarrierRefused,
-					$"This grammar is carried on the tape rather than as {carrier}: {why}. " +
-					"The parser is the one it would have been without the request.",
-					0,
-					0,
-					GramSeverity.Warning));
-			}
-
-			// D138. The request was honoured and the gates were never asked - asking them is what
-			// CarrierKind.Auto does, and naming a carrier skips it. Where they would have kept the
-			// grammar on the tape, the author has taken off the parser a promise the generator
-			// would not have taken off it: a construction may now run for a reading the parse then
-			// gives up, and an exception thrown by host code there escapes a publication that does
-			// not say it can throw (syntax.md 7.5). A warning and not an error, because it is a
-			// decision the author is allowed to make - the message says what it costs, and the
-			// grammar that means it suppresses it with the reason in place.
-			if (carrier == CarrierKind.Immediate)
-			{
-				var forced = machines
-					.Where(static one => one.Direct)
-					.Select(static one => one.Machine.ForcedPastGates)
-					.OfType<Machine.Kept>()
-					.ToList();
-
-				if (forced.Count > 0)
-				{
-					var builds   = Names(forced.SelectMany(static one => one.Building));
-					var replayed = Names(forced.SelectMany(static one => one.Replayed));
-					var again    = Names(forced.SelectMany(static one => one.Again));
-
-					var why = replayed.Count > 0
-						? $"{replayed.Count} of the {builds.Count} rules it builds are read for derivations " +
-							$"that may not stand - {Three(replayed)}"
-						: $"{Three(again)} can be read again after answering, and what the first reading " +
-							"built would stay built";
-
-					diagnostics.Add(new GramDiagnostic(
-						GramCompiler.CarrierForced,
-						$"This grammar is carried as Immediate because the author asked for it, and " +
-							$"Carrier = GramCarrier.Auto would have kept it on the tape: {why}. Every " +
-							"construction now runs where it is read, including for a reading the parse " +
-							"then gives up, and an exception a host factory throws there escapes the " +
-							"publication whatever it promises (docs/syntax.md 7.5). Where that is meant - " +
-							"nothing a construction reaches can throw, or every one of them stands behind " +
-							"a guard - suppress this warning with the reason in place" +
-							Points(graph, replay) + ".",
-						0,
-						0,
-						GramSeverity.Warning));
-				}
-
-				static List<string> Names(IEnumerable<RuleSymbol> rules)
-				{
-					return [.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
-				}
-
-				static string Three(List<string> names)
-				{
-					return string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
-				}
-			}
-		}
-		else if (carrier == CarrierKind.Auto && diagnostics is not null)
-		{
-			// Left to the generator, which says what it chose (GRAM5012): the one thing a parse
-			// carried immediately gives up is a parse that fails having run constructions, and
-			// an author whose constructions mind has to be told the word that takes it back.
-			// The machines kept on the tape where they could have been carried are said as one,
-			// by the names the grammar gave its rules: a grammar is one thing to its author however
-			// many machines it came out as, and a rule cloned by a `with` or a dialect is still the
-			// rule that was written. Where nothing was chosen between — nothing is read by methods, nothing is
-			// built, or the carrier would refuse — nothing is said.
-			if (machines.Exists(static one => one.Direct && one.Machine.CarriesImmediately))
-				diagnostics.Add(new GramDiagnostic(
-					GramCompiler.CarrierChosen,
-					"This grammar is carried as Immediate: nothing it builds is read for a derivation " +
-					"that is then given up, so every construction runs where it is read and none waits " +
-					"for a walk at the end (§3.7). A parse that fails may already have run the " +
-					"constructions of what it read before failing; Carrier = GramCarrier.Tape holds " +
-					"every one back until a parse has accepted.",
-					0,
-					0,
-					GramSeverity.Info));
-
-			var kept = machines
-				.Where(static one => one.Direct)
-				.Select(static one => one.Machine.KeptOnTape)
-				.OfType<Machine.Kept>()
-				.ToList();
-
-			if (kept.Count > 0)
-			{
-				var building = Named(kept.SelectMany(static one => one.Building));
-				var replayed = Named(kept.SelectMany(static one => one.Replayed));
-				var again    = Named(kept.SelectMany(static one => one.Again));
-
-				var why = replayed.Count > 0
-					? $"{replayed.Count} of the {building.Count} rules it builds are read for derivations " +
-						$"that may not stand — {Listed(replayed)}"
-					: $"{Listed(again)} can be read again after answering, and what the first reading " +
-						"built would stay built";
-
-				diagnostics.Add(new GramDiagnostic(
-					GramCompiler.CarrierChosen,
-					$"This grammar is carried on the tape: {why}. Under Carrier = GramCarrier.Immediate " +
-					"those constructions would run for readings that were then given up. A construction " +
-					"that only builds does not mind, and for one that does not mind that carrier puts " +
-					"down a walk of about two fifths of a parse.",
-					0,
-					0,
-					GramSeverity.Info));
-			}
-
-			if (carriers is not null)
 				Carriers(carriers, machines, replay, graph);
-
-			static List<string> Named(IEnumerable<RuleSymbol> rules)
-			{
-				return [.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
 			}
-
-			static string Listed(List<string> names)
+			else
 			{
-				return string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
+				// What was asked for, and whether it was given: a carrier that refused the grammar
+				// (GRAM5007) left it on the tape, and a report saying only what was asked read as the
+				// carrier the parser has.
+				var given = carrier != CarrierKind.Immediate ||
+					(machines.Exists(static one => one.Direct) &&
+						machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
+
+				carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
+					Points(graph, null));
+				Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
 			}
-		}
-
-		if (carriers is not null && carrier != CarrierKind.Auto)
-		{
-			// What was asked for, and whether it was given: a carrier that refused the grammar
-			// (GRAM5007) left it on the tape, and a report saying only what was asked read as the
-			// carrier the parser has.
-			var given = carrier != CarrierKind.Immediate ||
-				(machines.Exists(static one => one.Direct) &&
-					machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
-
-			carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
-				Points(graph, null));
-			Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
 		}
 
 		// The sets every machine's refusals name, last: what a machine writes a call to is known
@@ -4461,23 +4310,234 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
-	/// What GRAM5012 decided, as lines of the report a build writes on request: which carrier
-	/// <see cref="CarrierKind.Auto"/> took, which gate kept the grammar on the tape, and for each
-	/// rule it kept there, why.
+	/// What a build is told about its carrier: a carrier asked for by name and not given
+	/// (GRAM5007), and for a grammar left to the generator, why the tape would have been safer
+	/// (GRAM5016) or would have held something back (GRAM5012).
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The first gate is <see cref="Replay"/>: a building rule read where the reading may not
-	/// stand. A rule with a cause of its own is given the place it was found — the rule it was read
-	/// in and what around it says so — and one under another is given the replayed rule that calls
-	/// it. The second gate is the reader's: a rule that can be read again after it answered, which
-	/// is only asked where the first let everything through. A rule that opened a way of its own
-	/// is said so, and one that did so through a call is given the call.
+	/// A grammar left to choose is carried as Immediate wherever that carrier does not refuse a
+	/// machine, and a refused machine is on the tape in silence: the carriers report says which.
+	/// What the tape would have held back is said only of the machines that are carried
+	/// immediately — a machine on the tape holds everything back already — and never where the
+	/// author named a carrier: an explicit <c>Immediate</c> is the author having looked.
 	/// </para>
 	/// <para>
-	/// Lines, not a table: `--carriers` in DotGram.Benchmarks gathers them into docs/carriers.md.
+	/// A warning for the reasons that can change what a parse answers or what a refusal costs:
+	/// constructions and hooks sharing <c>context</c>, and lists rebuilt on every turn given back.
+	/// Information for the rest, which change only what a construction that throws or has side
+	/// effects does on a reading that does not stand.
 	/// </para>
 	/// </remarks>
+	static void Told(
+		ICollection<GramDiagnostic> diagnostics, CarrierKind requested, CarrierKind carrier, List<Compiled> machines,
+		RecognitionGraph graph, bool overKinds)
+	{
+		if (requested == CarrierKind.Immediate)
+		{
+			// Two ways to end up on the tape after asking not to be. A carrier that refuses a
+			// machine says so, naming what it reads; the rest of the grammar keeps the carrier. A
+			// machine with no reader does not refuse the carrier — it never asks it — and the
+			// file that came out was the same file byte for byte in silence. Asked only where
+			// *no* machine in the grammar is read by methods: one `find` beside a `parse` is a
+			// machine on the engine next to one the carrier is carrying, which is GRAM5005's
+			// subject. A warning, though the parser that comes out is correct: a carrier asked for
+			// by name is one somebody means to measure or rely on.
+			var reader  = machines.Exists(static one => one.Direct);
+			var carried = machines.Exists(static one => one.Direct && one.Machine.CarriesImmediately);
+			var refused = new List<(string Why, List<string> Read)>();
+
+			foreach (var compiled in machines)
+			{
+				var why = compiled.Machine.CarrierRefusal ??
+					(reader ? null : Unread(compiled, graph, overKinds, carrier));
+
+				if (why is null)
+					continue;
+
+				var at = refused.FindIndex(one => one.Why == why);
+
+				if (at < 0)
+					refused.Add((why, [Read(compiled)]));
+				else if (!refused[at].Read.Contains(Read(compiled)))
+					refused[at].Read.Add(Read(compiled));
+			}
+
+			foreach (var (why, read) in refused)
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierRefused,
+					reader
+						? $"{string.Join("; ", read)} {(read.Count == 1 ? "is" : "are")} carried on the tape rather than as " +
+							$"Immediate: {why}." + (carried ? " The rest of the grammar is Immediate." : "")
+						: $"This grammar is carried on the tape rather than as {carrier}: {why}. " +
+							"The parser is the one it would have been without the request.",
+					0,
+					0,
+					GramSeverity.Warning));
+
+			return;
+		}
+
+		if (requested != CarrierKind.Auto)
+			return;
+
+		var reasons = ReasonsOf(machines);
+		var serious = new List<string>();
+
+		if (reasons.Shared.Count > 0)
+			serious.Add(
+				$"what this grammar accepts, and the values it builds, can depend on the order in which the " +
+				$"constructions of {Three(reasons.Shared)} and its `when`/`switch`/recognizers that use `context` run: they " +
+				"share `context`, and the constructions now run as they are read, before the parse knows the reading " +
+				"stands, instead of after it");
+
+		if (reasons.Rebuilt.Count > 0)
+			serious.Add(
+				$"a refused input can allocate memory quadratic in its length: what {Three(reasons.Rebuilt)} read is built " +
+				$"again each time a way back is taken, a list once a turn given back ({string.Join(", ", reasons.Because)}); " +
+				"for untrusted input keep the tape");
+
+		const string choose =
+			"Set Carrier = GramCarrier.Tape to hold constructions until a parse is accepted, or " +
+			"Carrier = GramCarrier.Immediate once you have checked; a carrier named explicitly silences this, " +
+			"and every reason found later.";
+
+		if (reasons.Serious)
+		{
+			diagnostics.Add(new GramDiagnostic(
+				GramCompiler.CarrierCaution,
+				$"This grammar is carried as Immediate, and the tape would be safer: {string.Join("; ", serious)}. {choose}",
+				0,
+				0,
+				GramSeverity.Warning));
+
+			return;
+		}
+
+		var mild = new List<string>();
+
+		if (reasons.Writes.Count > 0)
+			mild.Add($"constructions of {Three(reasons.Writes)} write `context`, and do so also for text the parser then reads another way");
+
+		if (reasons.Replayed.Count > 0)
+			mild.Add($"constructions of {Three(reasons.Replayed)} can run for text the parser then reads another way");
+		else if (reasons.Again.Count > 0)
+			mild.Add($"constructions of {Three(reasons.Again)} can run again for text the parser reads a second time");
+
+		if (mild.Count > 0)
+			diagnostics.Add(new GramDiagnostic(
+				GramCompiler.CarrierChosen,
+				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. A construction that can throw or has " +
+					$"side effects there behaves differently than on the tape. {choose}",
+				0,
+				0,
+				GramSeverity.Info));
+
+		static string Three(List<string> names)
+		{
+			return string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
+		}
+	}
+
+	/// <summary>
+	/// Why the tape would hold back what the immediate carrier runs, gathered from the machines it
+	/// carries, by the names the grammar gave its rules: a grammar is one thing to its author however
+	/// many machines it came out as, and a rule cloned by a `with` or a dialect is still the rule
+	/// that was written.
+	/// </summary>
+	/// <param name="Shared">Rules whose constructions share <c>context</c> with a hook that runs during recognition, where a reading may not stand.</param>
+	/// <param name="Rebuilt">Rules whose loops rebuild what they read each time a turn is given back.</param>
+	/// <param name="Because">Why those loops do not defer, as a diagnostic says it.</param>
+	/// <param name="Writes">Rules whose constructions name <c>context</c> where no hook does, where a reading may not stand.</param>
+	/// <param name="Replayed">Building rules read for derivations that may not stand.</param>
+	/// <param name="Again">Building rules that can be read again after answering, where none is replayed.</param>
+	sealed record Reasons(
+		List<string> Shared, List<string> Rebuilt, List<string> Because, List<string> Writes, List<string> Replayed, List<string> Again)
+	{
+		/// <summary>Whether a reason is serious enough to be a warning (GRAM5016).</summary>
+		public bool Serious => Shared.Count > 0 || Rebuilt.Count > 0;
+
+		/// <summary>The reasons there are, by a short name each: the carriers report's.</summary>
+		public string Named()
+		{
+			var named = new List<string>();
+
+			if (Shared.Count > 0)
+				named.Add("shares context");
+
+			if (Rebuilt.Count > 0)
+				named.Add("rebuilds lists");
+
+			if (Writes.Count > 0 && !Serious)
+				named.Add("writes context");
+
+			if (Replayed.Count > 0)
+				named.Add("replay");
+			else if (Again.Count > 0)
+				named.Add("read again");
+
+			return named.Count == 0 ? "none" : string.Join(", ", named);
+		}
+	}
+
+	/// <summary>The reasons of every machine read by methods that the immediate carrier carries (<see cref="Reasons"/>).</summary>
+	/// <remarks>
+	/// Only theirs: a machine the carrier refused is on the tape, which holds everything back
+	/// already. Every reason but the rebuilding is about a construction run for a reading that may
+	/// not stand, which is what the gates say, and is asked only where they say so.
+	/// </remarks>
+	static Reasons ReasonsOf(List<Compiled> machines)
+	{
+		var reasons = new Reasons([], [], [], [], [], []);
+
+		foreach (var one in machines)
+		{
+			if (!one.Direct || !one.Machine.CarriesImmediately)
+				continue;
+
+			var machine = one.Machine;
+
+			foreach (var loop in machine.RebuildingLoops())
+			{
+				Add(reasons.Rebuilt, loop.Owner);
+
+				var why = loop.Excluded switch
+				{
+					Machine.ExcludedByContext  => "the grammar has a context",
+					Machine.ExcludedByRecovery => "the grammar has a recovery",
+					_                          => "a rule's own guard asks for its value so far",
+				};
+
+				if (!reasons.Because.Contains(why))
+					reasons.Because.Add(why);
+			}
+
+			if (machine.GateReasons is not { } gates)
+				continue;
+
+			var (constructing, hooked) = machine.ContextSharing();
+
+			foreach (var rule in constructing)
+				Add(hooked ? reasons.Shared : reasons.Writes, rule);
+
+			foreach (var rule in gates.Replayed)
+				Add(reasons.Replayed, rule);
+
+			foreach (var rule in gates.Again)
+				Add(reasons.Again, rule);
+		}
+
+		return reasons;
+
+		static void Add(List<string> names, RuleSymbol rule)
+		{
+			var name = rule.Declaration?.Name ?? rule.Name;
+
+			if (!names.Contains(name))
+				names.Add(name);
+		}
+	}
+
 	/// <summary>
 	/// Which rules each machine's reader remembers the failures of, and why not the others it probes
 	/// the stack in (<c>Machine.Memo.cs</c>): a line a machine that has any.
@@ -4499,37 +4559,56 @@ file.Line("return spare;");
 		}
 	}
 
+	/// <summary>
+	/// Which carrier each machine of a grammar left to choose took, as lines of the report a build
+	/// writes on request: the immediate one, or the tape where it refused the machine; what the
+	/// tape would have held back (the gates) and what of that a diagnostic says (GRAM5016, GRAM5012);
+	/// and for each rule the gates name, why.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first gate is <see cref="Replay"/>: a building rule read where the reading may not
+	/// stand. A rule with a cause of its own is given the place it was found — the rule it was read
+	/// in and what around it says so — and one under another is given the replayed rule that calls
+	/// it. The second gate is the reader's: a rule that can be read again after it answered, which
+	/// is only asked where the first holds nothing. A rule that opened a way of its own is said so,
+	/// and one that did so through a call is given the call.
+	/// </para>
+	/// <para>
+	/// Lines, not a table: `--carriers` in DotGram.Benchmarks gathers them into docs/carriers.md.
+	/// </para>
+	/// </remarks>
 	static void Carriers(ICollection<string> lines, List<Compiled> machines, Replay.Report? replay, RecognitionGraph graph)
 	{
 		var direct    = machines.Where(static one => one.Direct).ToList();
-		var kept      = direct.Select(static one => one.Machine.KeptOnTape).OfType<Machine.Kept>().ToList();
-		var refused   = direct.Select(static one => one.Machine.RefusedOnTape).OfType<Machine.RefusedByCarrier>().ToList();
+		var gated     = direct.Select(static one => one.Machine.GateReasons).OfType<Machine.Kept>().ToList();
+		var refused   = direct.Where(static one => one.Machine.CarrierRefusal is not null).ToList();
 		var immediate = direct.Exists(static one => one.Machine.CarriesImmediately);
-		// What the gates would say of a refused machine counts as it did before the carrier refused
-		// it, so that a refusal adds to the report and takes nothing out of it.
-		var gated     = kept.Concat(refused.Select(static one => one.Otherwise)).ToList();
 		var building  = gated.SelectMany(static one => one.Building).Distinct().ToList();
 		var replayed  = gated.SelectMany(static one => one.Replayed).Distinct().ToList();
 		var again     = gated.Where(static one => one.Replayed.Count == 0).SelectMany(static one => one.Again).Distinct().ToList();
 		var opened    = new HashSet<RuleSymbol>(direct.SelectMany(static one => one.Machine.OpenedHere ?? []));
+		var reasons   = ReasonsOf(machines);
 
-		// A machine the immediate carrier refuses is on the tape before any gate is asked; how many
-		// of those nothing else would keep there — no rule replayed, none read again — is what
-		// lifting the refusal would move.
-		var alone = refused.Count(static one => one.Otherwise.Replayed.Count == 0 && one.Otherwise.Again.Count == 0);
+		// A machine the immediate carrier refuses is on the tape; how many of those the gates would
+		// hold nothing back of — no rule replayed, none read again — is what lifting the refusal
+		// would move without a word said.
+		var alone = refused.Count(static one => one.Machine.GateReasons is null);
 
 		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : refused.Count > 0 ? "refused" : "none";
-		var by   = immediate && kept.Count == 0 && refused.Count == 0 ? "immediate" : kept.Count + refused.Count > 0 ? "tape" : "nothing to choose";
+		var by   = refused.Count > 0 ? "tape" : immediate ? "immediate" : "nothing to choose";
+		var told = reasons.Serious ? "GRAM5016" : reasons.Named() != "none" ? "GRAM5012" : "none";
 
 		// The grammar's own line is a summary of machines that were each carried on their own,
 		// and it shows the worst of them; performance-ff read one as a description of the whole
 		// grammar and predicted a gain where the machine in question had nothing to give. So it
 		// says how many machines it stands for, and each machine says its own answer below.
-		lines.Add((kept.Count + refused.Count == 0
+		lines.Add((gated.Count + refused.Count == 0
 			? $"carrier: {by}; gate: {gate}"
 			: $"carrier: {by}; gate: {gate}; building: {building.Count}; replayed: {replayed.Count}; " +
 				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}; " +
 				$"refused: {refused.Count}; alone: {alone}") +
+			$"; reasons: {reasons.Named()}; told: {told}" +
 			$"; machines: {direct.Count}; on the tape: {direct.Count(static one => !one.Machine.CarriesImmediately)}" +
 			Points(graph, replay));
 
@@ -4539,9 +4618,8 @@ file.Line("return spare;");
 		foreach (var one in direct)
 		{
 			var machine   = one.Machine;
-			var mine      = machine.KeptOnTape;
-			var refusal   = machine.RefusedOnTape;
-			var held      = mine ?? refusal?.Otherwise;
+			var refusal   = machine.CarrierRefusal;
+			var held      = machine.GateReasons;
 			var replaying = held?.Replayed.Count ?? 0;
 			var reading   = held is { Replayed.Count: 0 } ? held.Again.Count : 0;
 
@@ -4558,10 +4636,14 @@ file.Line("return spare;");
 		Memoised(lines, direct);
 
 		foreach (var one in refused)
+		{
+			var otherwise = one.Machine.GateReasons;
+
 			lines.Add(
-				$"refused: {one.Why}; otherwise " +
-				(one.Otherwise.Replayed.Count > 0 ? $"replay {one.Otherwise.Replayed.Count}" :
-					one.Otherwise.Again.Count > 0 ? $"read again {one.Otherwise.Again.Count}" : "nothing"));
+				$"refused: {one.Machine.CarrierRefusal}; otherwise " +
+				(otherwise is null ? "nothing" :
+					otherwise.Replayed.Count > 0 ? $"replay {otherwise.Replayed.Count}" : $"read again {otherwise.Again.Count}"));
+		}
 
 		foreach (var rule in replayed.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
 		{

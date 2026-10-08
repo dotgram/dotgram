@@ -24,8 +24,8 @@ namespace DotGram.Benchmarks;
 /// as this class does.
 /// </para>
 /// <para>
-/// The tape is the carrier the generator falls back to, so there is no GRAM5007 or GRAM5015 to
-/// hear here and nothing to measure the tape against itself by mistake.
+/// The tape, named, is never refused and is told no reasons, so there is no GRAM5007, GRAM5012 or
+/// GRAM5016 to hear here and nothing to measure the tape against itself by mistake.
 /// </para>
 /// </remarks>
 [Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Tape)]

@@ -50,13 +50,13 @@ static class EmittedCode
 	/// grammar compiles is about everything else, and a test that asserted on the whole
 	/// list would break whenever the compiler learned to offer something new.
 	/// <para>
-	/// GRAM5015 and GRAM5007 are warnings and are let through here for the one reason the
-	/// others are not: they are about the caller's choice rather than the grammar. A test that
-	/// names a carrier has already made the decision the warnings describe — that is what the
-	/// test is for, and a test that puts every shape to every carrier means the ones a carrier
-	/// refuses as much as the ones it takes — and there is no grammar text in which it could
-	/// write the reason down. They are asserted on where they are the subject, in
-	/// <c>CarrierTests</c>, which reads the list itself.
+	/// GRAM5016 and GRAM5007 are warnings and are let through here for the one reason the
+	/// others are not: they are about the carrier rather than the grammar. A test that puts
+	/// every shape to every carrier means the ones a carrier refuses as much as the ones it
+	/// takes, and a shape left to choose that the tape would carry more safely is still the
+	/// shape under test — and there is no grammar text in which it could write the reason
+	/// down. They are asserted on where they are the subject, in <c>CarrierTests</c>, which
+	/// reads the list itself.
 	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
@@ -64,7 +64,7 @@ static class EmittedCode
 		Assert.DoesNotContain(
 			diagnostics,
 			static one => one.Severity != GramSeverity.Info &&
-				one.Id is not (GramCompiler.CarrierForced or GramCompiler.CarrierRefused));
+				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused));
 	}
 
 	public static Assembly Compile(

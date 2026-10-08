@@ -127,7 +127,7 @@ public sealed class SnapshotTests
 	/// consumer’s project, and a real symbol resolver is built over them.
 	/// </para>
 	/// </remarks>
-	static IEnumerable<(GramCompilerOptions Options, string? Declarations)> Renderings(string name, string text)
+	internal static IEnumerable<(GramCompilerOptions Options, string? Declarations)> Renderings(string name, string text)
 	{
 		GramCompilerOptions Options()
 		{
@@ -168,7 +168,13 @@ public sealed class SnapshotTests
 			// builds where it reads.
 			case "Twice":
 			{
-				yield return (Options(), null);
+				// The tape, named, as the expression language names it: the generator would carry
+				// both readings immediately otherwise, and there would be one reading twice.
+				var tape = Options();
+
+				tape.Carrier = CarrierKind.Tape;
+
+				yield return (tape, null);
 
 				var immediate = Options();
 
@@ -183,8 +189,9 @@ public sealed class SnapshotTests
 				// readers, every return of a rule reporting it, read against the file above it.
 				var traced = Options();
 
-				traced.Suffix = "Traced";
-				traced.Trace  = true;
+				traced.Suffix  = "Traced";
+				traced.Trace   = true;
+				traced.Carrier = CarrierKind.Tape;
 
 				yield return (traced, null);
 
@@ -390,7 +397,7 @@ public sealed class SnapshotTests
 	/// <c>obj/GeneratedFiles</c>. Out here it is neither, and no csproj has to say so.
 	/// </para>
 	/// </remarks>
-	static string Directory => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!, "Snapshots");
+	internal static string Directory => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!, "Snapshots");
 
 	static string ThisFile { get; } = FilePath();
 

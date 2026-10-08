@@ -1305,11 +1305,12 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(2, type.GetField("Calls")!.GetValue(null));
 	}
 
+	/// <summary>On the tape, a construction runs only for the derivation the parse accepted.</summary>
 	[Fact]
 	public void Construction_runs_only_for_the_accepted_derivation()
 	{
 		var type = Build("""
-			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start")]
+			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start", Carrier = DotGram.GramCarrier.Tape)]
 			public partial class DeferredConstruction
 			{
 				public static string Calls = "";
@@ -1320,6 +1321,28 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal(2, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
 		Assert.Equal("2", type.GetField("Calls")!.GetValue(null));
+	}
+
+	/// <summary>
+	/// Left to the generator, the same grammar is carried as Immediate: a construction runs where
+	/// its alternative is read, so the first alternative's runs before the end of the input gives
+	/// it up. The value is the same.
+	/// </summary>
+	[Fact]
+	public void Left_to_choose_a_construction_runs_where_its_alternative_is_read()
+	{
+		var type = Build("""
+			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start")]
+			public partial class ImmediateConstruction
+			{
+				public static string Calls = "";
+				static int First()  { Calls += "1"; return 1; }
+				static int Second() { Calls += "2"; return 2; }
+			}
+			""").GetType("ImmediateConstruction")!;
+
+		Assert.Equal(2, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+		Assert.Equal("12", type.GetField("Calls")!.GetValue(null));
 	}
 
 	[Fact]

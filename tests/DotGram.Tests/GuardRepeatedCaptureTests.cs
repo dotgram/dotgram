@@ -488,7 +488,7 @@ public sealed class GuardRepeatedCaptureTests
 		// The immediate reader runs a construction the moment it is read, and one given up
 		// afterwards has already run (the carrier's contract): the refused step's `V` is its
 		// sixth. Every other reading builds from the accepted derivation, and runs five.
-		var immediate = carrier == CarrierKind.Immediate && direct && !find;
+		var immediate = carrier is CarrierKind.Immediate or CarrierKind.Auto && direct && !find;
 		var match     = EmittedCode.Match(assembly, "Grammar", "TryParseT", "1,2,3,4");
 		Assert.True(match.IsSuccess, match.Error);
 		Assert.Equal("12v3v|4#1;12v;12v3v#" + (immediate ? 6 : 5), match.Value);
@@ -714,8 +714,8 @@ public sealed class GuardRepeatedCaptureTests
 			// out (Failure.Unasked). `find` reads ahead of where a derivation starts, and the
 			// engine's own (non-direct) reader defers the same way the tape carrier does, so
 			// neither carries the eagerness.
-			var resolvedImmediate = carrier == CarrierKind.Immediate || (carrier == CarrierKind.Auto &&
-				result.Diagnostics.Any(one => one.Id == GramCompiler.CarrierChosen && one.Message.Contains("carried as Immediate")));
+			// Left to choose, a grammar the immediate carrier does not refuse is carried by it.
+			var resolvedImmediate = carrier is CarrierKind.Immediate or CarrierKind.Auto;
 			var eager    = direct && !find && resolvedImmediate;
 			var expected = handed ? 2 : eager ? 1 : 0;
 

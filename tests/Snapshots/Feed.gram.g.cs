@@ -418,32 +418,111 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			readonly ImmediateValues values;
+			internal global::DotGram.Snapshots.Feed.FeedValue last0;
+			internal global::DotGram.Snapshots.Feed.Trailer last1;
+			internal global::DotGram.Snapshots.Feed.Row last2;
+			internal global::DotGram.Snapshots.Feed.Header last3;
+			internal int unbuilt;
+			internal Failure replayed;
+			internal int replayedMore;
 
-			internal Reader_DotGram_Feed(global::System.ReadOnlySpan<char> text, Ways ways)
+			internal Reader_DotGram_Feed(global::System.ReadOnlySpan<char> text, Ways ways, ImmediateValues values)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.values = values;
+				this.last0 = default!;
+				this.last1 = default!;
+				this.last2 = default!;
+				this.last3 = default!;
+				this.unbuilt = default!;
+				this.replayed = default!;
+				this.replayedMore = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Stood_DotGram(int u, int s)
+			{
+				if (u == 2)
+				{
+					replayed     = failure;
+					replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;
+					unbuilt      = 0;
+					ways.Cursor  = s;
+
+					return 3;
+				}
+
+				Replayed_DotGram();
+
+				return 0;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Replayed_DotGram()
+			{
+				var more = failure.ExpectedMore;
+
+				failure = replayed;
+
+				if (more != null && more.Count > replayedMore)
+					more.RemoveRange(replayedMore, more.Count - replayedMore);
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Retried_DotGram(int u)
+			{
+				if (u == 1)
+				{
+					unbuilt = 1;
+
+					return 2;
+				}
+
+				return u == 0 && unbuilt == 0 ? 1 : u;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Undeferred_DotGram(int u)
+			{
+				if (u == 2)
+					unbuilt = 0;
+				else if (u == 3)
+					Replayed_DotGram();
 			}
 
 			public int Read_Feed_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Feed_Feed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -454,13 +533,13 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
-				var r0 = -1;
-				var r2 = -1;
+				var rb_2 = values.Count2;
+				global::DotGram.Snapshots.Feed.Header r0 = default!;
+				global::DotGram.Snapshots.Feed.Trailer r2 = default!;
 				var q0 = Read_Header_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
-				r0 = ways.Last;
+				r0 = last3;
 				while (true)
 				{
 					var o1 = (uint)p < (uint)text.Length;
@@ -477,22 +556,41 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
+					var u2  = 0;
+					var rr2_2 = values.Count2;
 					var q1 = -1;
 
 					while (true)
 					{
-						q1 = Read_Feed_Feed_Part0(p, rb);
+						q1 = Read_Feed_Feed_Part0(p, rb_2);
 
 						if (q1 >= 0)
-							break;
+						{
+							if (u2 > 1)
+							{
+								u2 = Stood_DotGram(u2, s2);
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
+								if (u2 > 0)
+								{
+									values.Count2 = rr2_2;
+
+									continue;
+								}
+							}
+
+							break;
+						}
+
+						values.Count2 = rr2_2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
+						{
+							u2 = Retried_DotGram(u2);
+
 							continue;
+						}
+
+						Undeferred_DotGram(u2);
 
 						break;
 					}
@@ -506,48 +604,56 @@ namespace DotGram.Snapshots
 					p = q1;
 				}
 				var q2 = Read_Trailer_Feed(p);
-				if (q2 < 0) return -1;
+				if (q2 < 0) { values.Count2 = rb_2; return -1; }
 				p = q2;
-				r2 = ways.Last;
+				r2 = last1;
 				var q3 = Read_eof_Feed(p);
-				if (q3 < 0) return -1;
+				if (q3 < 0) { values.Count2 = rb_2; return -1; }
 				p = q3;
-				ways.Begin(0);
-				ways.Put(r0);
-				ways.Collect(rb, 2L, false);
-				ways.Put(r2);
-				ways.End(rb);
+				if (unbuilt == 0) last0 = new global::DotGram.Snapshots.Feed.FeedValue(r0!, values.Take2(rb_2)!, r2!); else { values.Count2 = rb_2; }
 				return p;
 			}
 
-			public int Read_Feed_Feed_Part0(int pos, int refs)
+			public int Read_Feed_Feed_Part0(int pos, int refs_2)
 			{
 				var p = pos;
 				var q0 = Read_Row_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
-				ways.Push(1, ways.Last, -1);
+				values.Push2(last2);
 				return p;
 			}
 
 			public int Read_Header_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Header_Feed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -557,7 +663,6 @@ namespace DotGram.Snapshots
 			public int Read_Header_Feed_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				if ((uint)p >= (uint)text.Length || text[p] != 'H')
@@ -577,9 +682,7 @@ namespace DotGram.Snapshots
 				var q2 = Read_eol_Feed(p);
 				if (q2 < 0) return -1;
 				p = q2;
-				ways.Begin(1);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last3 = new global::DotGram.Snapshots.Feed.Header((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -707,8 +810,6 @@ namespace DotGram.Snapshots
 			public int Read_eol_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -717,8 +818,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -764,15 +863,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1 = ways.Snap();
-								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm1);
-									ways.RefsCount = rr1;
 								}
 
 								if (q0 < 0)
@@ -781,15 +876,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2 = ways.Snap();
-								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm2);
-									ways.RefsCount = rr2;
 								}
 							}
 
@@ -841,21 +932,33 @@ namespace DotGram.Snapshots
 			public int Read_Row_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Row_Feed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -865,7 +968,6 @@ namespace DotGram.Snapshots
 			public int Read_Row_Feed_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				var a1 = -1;
@@ -895,18 +997,13 @@ namespace DotGram.Snapshots
 				var q4 = Read_eol_Feed(p);
 				if (q4 < 0) return -1;
 				p = q4;
-				ways.Begin(2);
-				ways.Put(a0, b0);
-				ways.Put(a1, b1);
-				ways.End(rb);
+				if (unbuilt == 0) last2 = new global::DotGram.Snapshots.Feed.Row((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
 				return p;
 			}
 
 			public int Read_Name_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -915,8 +1012,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1029,16 +1124,12 @@ namespace DotGram.Snapshots
 						break;
 					}
 
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
 					q0 = Read_Amount_Feed_Part0(p);
 
 					if (q0 < 0)
 					{
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 					}
 
 					if (q0 < 0)
@@ -1092,21 +1183,33 @@ namespace DotGram.Snapshots
 			public int Read_Trailer_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Read_Trailer_Feed_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1116,7 +1219,6 @@ namespace DotGram.Snapshots
 			public int Read_Trailer_Feed_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var a0 = -1;
 				var b0 = -1;
 				if ((uint)p >= (uint)text.Length || text[p] != 'T')
@@ -1136,9 +1238,7 @@ namespace DotGram.Snapshots
 				var q2 = Read_eol_Feed(p);
 				if (q2 < 0) return -1;
 				p = q2;
-				ways.Begin(3);
-				ways.Put(a0, b0);
-				ways.End(rb);
+				if (unbuilt == 0) last1 = new global::DotGram.Snapshots.Feed.Trailer((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -1172,14 +1272,10 @@ namespace DotGram.Snapshots
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
-				var lm0 = ways.Snap();
-				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Feed_Part0(p);
 				failure.Looking--;
 
-				ways.Rewind(lm0);
-				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
 				{
@@ -1206,21 +1302,33 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Feed_Whole_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1229,7 +1337,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
+				var rb_2 = values.Count2;
 				var q0 = Read_Feed_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -1244,21 +1352,33 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
+				var u  = 0;
 
 				while (true)
 				{
 					var q = Recognize_Feed_Read_Body(pos);
 
 					if (q >= 0)
-						return q;
+					{
+						if (u > 1)
+						{
+							u = Stood_DotGram(u, s);
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
+							if (u > 0)
+								continue;
+						}
+
+						return q;
+					}
 
 					if (ways.Cursor > s && ways.Retry(s))
+					{
+						u = Retried_DotGram(u);
+
 						continue;
+					}
+
+					Undeferred_DotGram(u);
 
 					return -1;
 				}
@@ -1267,7 +1387,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read_Body(int pos)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
+				var rb_2 = values.Count2;
 				var q0 = Read_Feed_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -1279,12 +1399,14 @@ namespace DotGram.Snapshots
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways.Rent();
+			var values = ImmediateValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Feed(text, ways);
+				var reader = new Reader_DotGram_Feed(text, ways, values);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Feed_Whole_Read(pos);
 
@@ -1297,36 +1419,28 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last0;
 
-				try
-				{
-					Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, default);
-					value = values.V0[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
 				Ways.Return(ways);
+				ImmediateValues.Return(values);
 			}
 		}
 
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways.Rent();
+			var values = ImmediateValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Feed(text, ways);
+				var reader = new Reader_DotGram_Feed(text, ways, values);
 
 				reader.failure = failure;
+				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Feed_Read(pos);
 
@@ -1339,177 +1453,18 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last0;
 
-				try
-				{
-					Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, default);
-					value = values.V0[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
 				Ways.Return(ways);
+				ImmediateValues.Return(values);
 			}
 		}
 
-		static void Materialize_DotGram_Feed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						for (var item = 0; item < log[read]; item++)
-						{
-							live[log[read + 1 + item]] = true;
-						}
-						read += 1 + log[read];
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 1:
-					{
-						read += 2;
-						break;
-					}
-					case 2:
-					{
-						read += 2;
-						read += 2;
-						break;
-					}
-					case 3:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-			var values1 = values.V1;
-			var values2 = values.V2;
-			var values3 = values.V3;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var record0 = log[read++];
-						var captured0 = values3[record0].Value;
-
-						var count1 = log[read++];
-						var captured1 = (count1 == 0 ? global::System.Array.Empty<global::DotGram.Snapshots.Feed.Row>() : new global::DotGram.Snapshots.Feed.Row[count1]);
-
-						for (var item = 0; item < count1; item++)
-						{
-							var record1 = log[read++];
-							captured1[item] = values2[record1].Value;
-						}
-
-						var record2 = log[read++];
-						var captured2 = values1[record2].Value;
-
-						values0[slot].Value = new global::DotGram.Snapshots.Feed.FeedValue(
-							captured0!,
-							captured1!,
-							captured2!);
-						break;
-					}
-					case 1:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values3[slot].Value = new global::DotGram.Snapshots.Feed.Header(
-							captured0!);
-						break;
-					}
-					case 2:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						var from1 = log[read++];
-						var to1   = log[read++];
-						var captured1 = from1 < 0 ? string.Empty : text.Slice(from1, to1 - from1).ToString();
-
-						values2[slot].Value = new global::DotGram.Snapshots.Feed.Row(
-							captured0!,
-							captured1!);
-						break;
-					}
-					case 3:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values1[slot].Value = new global::DotGram.Snapshots.Feed.Trailer(
-							captured0!);
-						break;
-					}
-				}
-			}
-		}
 
 		static int Recognize_DotGram_Name(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{
@@ -2727,34 +2682,6 @@ namespace DotGram.Snapshots
 
 			internal int AllBuiltAt;
 
-			internal struct Snapshot
-			{
-				internal int LogCount;
-				internal int Records;
-
-				internal int Last;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal Snapshot Snap()
-			{
-				Snapshot mark;
-
-				mark.LogCount = LogCount;
-				mark.Records  = Records;
-				mark.Last     = Last;
-
-				return mark;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void Rewind(Snapshot mark)
-			{
-				LogCount = mark.LogCount;
-				Records  = mark.Records;
-				Last     = mark.Last;
-			}
-
 
 
 
@@ -3160,46 +3087,75 @@ namespace DotGram.Snapshots
 			return pos + at;
 		}
 
-		sealed class DirectValues
+		sealed class ImmediateValues
 		{
-			internal Held<global::DotGram.Snapshots.Feed.FeedValue>[] V0 = new Held<global::DotGram.Snapshots.Feed.FeedValue>[16];
-			internal Held<global::DotGram.Snapshots.Feed.Trailer>[] V1 = new Held<global::DotGram.Snapshots.Feed.Trailer>[16];
-			internal Held<global::DotGram.Snapshots.Feed.Row>[] V2 = new Held<global::DotGram.Snapshots.Feed.Row>[16];
-			internal Held<global::DotGram.Snapshots.Feed.Header>[] V3 = new Held<global::DotGram.Snapshots.Feed.Header>[16];
-			internal bool[] Live   = new bool[16];
-			internal int[]  Starts = new int[16];
-			internal bool[] Built  = new bool[16];
-			int _used;
+			internal global::DotGram.Snapshots.Feed.Row[] Stack2 = new global::DotGram.Snapshots.Feed.Row[8];
+			internal int Count2;
+			internal int High2;
+
+			internal void Push2(global::DotGram.Snapshots.Feed.Row item)
+			{
+				if (Count2 == Stack2.Length)
+					global::System.Array.Resize(ref Stack2, Count2 * 2);
+
+				Stack2[Count2++] = item;
+
+				if (Count2 > High2) High2 = Count2;
+			}
+
+			internal global::DotGram.Snapshots.Feed.Row[] Take2(int from)
+			{
+				var taken = Peek2(from);
+
+				Count2 = from;
+
+				return taken;
+			}
+
+			internal global::DotGram.Snapshots.Feed.Row[] Peek2(int from)
+			{
+				var count = Count2 - from;
+
+				if (count == 0)
+					return global::System.Array.Empty<global::DotGram.Snapshots.Feed.Row>();
+
+				var taken = new global::DotGram.Snapshots.Feed.Row[count];
+
+				global::System.Array.Copy(Stack2, from, taken, 0, count);
+
+				return taken;
+			}
+
 
 			[global::System.ThreadStatic]
-			static DirectValues? _spare;
+			static ImmediateValues? _spare;
 
 			[global::System.ThreadStatic]
-			static DirectValues?[]? _deeper;
+			static ImmediateValues?[]? _deeper;
 
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
 			[global::System.ThreadStatic]
-			static DirectValues? _large;
+			static ImmediateValues? _large;
 
 			[global::System.ThreadStatic]
 			static int _largeIdle;
 
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _largeLetGo;
+			static global::System.WeakReference<ImmediateValues>? _largeLetGo;
 
 			[global::System.ThreadStatic]
 			static int _spareIdle;
 
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _spareLetGo;
+			static global::System.WeakReference<ImmediateValues>? _spareLetGo;
 
 			const int LargeIdle = 8;
 
 			const int SpareIdle = 8;
 
-			internal static DirectValues Rent()
+			internal static ImmediateValues Rent()
 			{
 				var spare = _spare;
 
@@ -3226,27 +3182,27 @@ namespace DotGram.Snapshots
 					_spareLetGo.SetTarget(null!);
 				}
 				else
-					return new DirectValues();
+					return new ImmediateValues();
 
 				return spare;
 			}
 
-			internal static void Return(DirectValues values)
+			internal static void Return(ImmediateValues values)
 			{
-				var rows = values._used;
+				var used = 0L + values.High2;
 
-				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
-				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
-				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));
-				global::System.Array.Clear(values.V3, 0, global::System.Math.Min(values._used, values.V3.Length));
-				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
-				values._used = 0;
+				if (values.High2 > 0)
+				{
+					global::System.Array.Clear(values.Stack2, 0, values.High2);
+					values.Count2 = values.High2 = 0;
+				}
+
 
 				// Past the bound the store is not thrown away - that was a cliff
 				// and not a bound - it is kept while the work keeps wanting it, and handed
 				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
 				// first, above: what is kept is the room, never what was built in it.
-				if (0L + values.V0.Length + values.V1.Length + values.V2.Length + values.V3.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
+				if (0L + values.Stack2.Length > 1048576)
 				{
 					// The same question the ordinary slot asks below: is the room far larger than
 					// the use. The bound decides WHICH slot holds the store; it does not decide
@@ -3255,11 +3211,11 @@ namespace DotGram.Snapshots
 					// room counts three hundred value tables and the use counted only records, so
 					// a parse that had just filled a seventeen-megabyte store read as idle and the
 					// eighth STEADY parse of the same document threw the store away and rebuilt it.
-					if (!(values.Live.Length > 4L * rows))
+					if (!(0L + values.Stack2.Length > 4L * used))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
+						(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(values)).SetTarget(values);
 						_large = null;
 						_largeIdle = 0;
 
@@ -3267,7 +3223,7 @@ namespace DotGram.Snapshots
 					}
 
 					if (_large != null && !ReferenceEquals(_large, values))
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
+						(_largeLetGo ??= new global::System.WeakReference<ImmediateValues>(_large)).SetTarget(_large);
 
 					_large = values;
 
@@ -3279,11 +3235,11 @@ namespace DotGram.Snapshots
 				// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that
 				// wants the room straight back still gets it, while one that does not has stopped
 				// holding it against everybody else.
-				if (!(values.Live.Length > 4L * rows))
+				if (!(0L + values.Stack2.Length > 4L * used))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
-					(_spareLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
+					(_spareLetGo ??= new global::System.WeakReference<ImmediateValues>(values)).SetTarget(values);
 					_spareIdle = 0;
 
 					return;
@@ -3292,39 +3248,11 @@ namespace DotGram.Snapshots
 				if (_spare == null)
 					_spare = values;
 				else if (_deeperCount < 3)
-					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
+					(_deeper ??= new ImmediateValues?[3])[_deeperCount++] = values;
 			}
 
-			internal void Room(int count, bool live = true, int from = 0)
-			{
-				if (count > _used) _used = count;
-				if (Live.Length < count)
-				{
-					Live   = new bool[global::System.Math.Max(count, Live.Length * 2)];
-					Starts = new int[Live.Length];
-					var built = new bool[Live.Length];
-					global::System.Array.Copy(Built, built, Built.Length);
-					Built  = built;
-				}
-				else if (live && count > from)
-					global::System.Array.Clear(Live, from, count - from);
-				if (V0.Length < count)
-					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
-				if (V1.Length < count)
-					global::System.Array.Resize(ref V1, global::System.Math.Max(count, V1.Length * 2));
-				if (V2.Length < count)
-					global::System.Array.Resize(ref V2, global::System.Math.Max(count, V2.Length * 2));
-				if (V3.Length < count)
-					global::System.Array.Resize(ref V3, global::System.Math.Max(count, V3.Length * 2));
-			}
+			internal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);
 		}
-
-		#pragma warning disable CS0649 // a table nothing writes still declares the field
-		struct Held<T>
-		{
-			internal T Value;
-		}
-		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

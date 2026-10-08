@@ -88,6 +88,9 @@ public sealed class SwitchTests
 			parse Start
 			""", new GramCompilerOptions
 		{
+			// The tape, whose demand is counted: the immediate carrier builds a value where it is
+			// read, also for a reading the parse then gives up.
+			Carrier = CarrierKind.Tape,
 			BufferedInput = true, BufferedBytes = true, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);

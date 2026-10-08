@@ -137,9 +137,9 @@ public sealed class GiveBackDemandTests
 		Assert.Equal("[" + string.Join("|", Enumerable.Repeat("ab", n)) + "|#]", outcome.Answer);
 
 		if (carrier == CarrierKind.Auto)
-			Assert.Equal("Tape", outcome.Chosen);
+			Assert.Equal("Immediate", outcome.Chosen);
 
-		if (carrier != CarrierKind.Immediate)
+		if (carrier == CarrierKind.Tape)
 		{
 			Assert.Equal(n, outcome.Built.Count(static one => one == "Item"));
 			Assert.Equal(1, outcome.Built.Count(static one => one == "List"));
@@ -226,7 +226,7 @@ public sealed class GiveBackDemandTests
 		Assert.Equal(tape.Answer, outcome.Answer);
 
 		if (carrier == CarrierKind.Auto)
-			Assert.Equal("Tape", outcome.Chosen);
+			Assert.Equal("Immediate", outcome.Chosen);
 	}
 
 	/// <summary>
@@ -413,7 +413,7 @@ public sealed class GiveBackDemandTests
 		Assert.Equal(tape.Answer, outcome.Answer);
 
 		if (carrier == CarrierKind.Auto)
-			Assert.Equal("Tape", outcome.Chosen);
+			Assert.Equal("Immediate", outcome.Chosen);
 	}
 
 	/// <summary>
@@ -632,10 +632,10 @@ public sealed class GiveBackDemandTests
 		if (carrier == CarrierKind.Immediate)
 			Assert.Contains("Retried_DotGram(", source, StringComparison.Ordinal);
 
-		var told   = compiled.Diagnostics.FirstOrDefault(static one => one.Id == GramCompiler.CarrierChosen);
+		// Which carrier a grammar left to choose was given: the tape's walk at the end is written
+		// where the immediate carrier refused it, and nowhere else.
 		var chosen = carrier != CarrierKind.Auto ? carrier.ToString()
-			: told is null ? null
-			: told.Message.Contains("as Immediate", StringComparison.Ordinal) ? "Immediate" : "Tape";
+			: source.Contains("Materialize_DotGram", StringComparison.Ordinal) ? "Tape" : "Immediate";
 
 		var host = EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;
 

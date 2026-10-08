@@ -414,19 +414,19 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal int unbuilt;
 
 			internal Reader_DotGram_Feed(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.unbuilt = default!;
 			}
 
 			public int Read_Feed_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -435,8 +435,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -466,8 +464,6 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
 					while (true)
@@ -477,8 +473,6 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
 							continue;
@@ -503,8 +497,6 @@ namespace DotGram.Snapshots
 			public int Read_Record_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -513,8 +505,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -634,8 +624,6 @@ namespace DotGram.Snapshots
 			public int Read_eol_Feed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -644,8 +632,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -691,15 +677,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1 = ways.Snap();
-								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm1);
-									ways.RefsCount = rr1;
 								}
 
 								if (q0 < 0)
@@ -708,15 +690,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2 = ways.Snap();
-								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Feed_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm2);
-									ways.RefsCount = rr2;
 								}
 							}
 
@@ -768,14 +746,10 @@ namespace DotGram.Snapshots
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
-				var lm0 = ways.Snap();
-				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Feed_Part0(p);
 				failure.Looking--;
 
-				ways.Rewind(lm0);
-				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
 				{
@@ -802,8 +776,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -812,8 +784,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -839,8 +809,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -849,8 +817,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1216,19 +1182,19 @@ namespace DotGram.Snapshots
 			readonly BufferedText text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal int unbuilt;
 
 			internal Reader_DotGram_Buffered_ParseFeed(BufferedText text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.unbuilt = default!;
 			}
 
 			public int Read_Feed_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1237,8 +1203,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1268,8 +1232,6 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
 					while (true)
@@ -1279,8 +1241,6 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
 							continue;
@@ -1305,8 +1265,6 @@ namespace DotGram.Snapshots
 			public int Read_Record_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1315,8 +1273,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1436,8 +1392,6 @@ namespace DotGram.Snapshots
 			public int Read_eol_Buffered_ParseFeed(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1446,8 +1400,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1493,15 +1445,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1 = ways.Snap();
-								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm1);
-									ways.RefsCount = rr1;
 								}
 
 								if (q0 < 0)
@@ -1510,15 +1458,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2 = ways.Snap();
-								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm2);
-									ways.RefsCount = rr2;
 								}
 							}
 
@@ -1569,14 +1513,10 @@ namespace DotGram.Snapshots
 			public int Read_eof_Buffered_ParseFeed(int pos)
 			{
 				var p = pos;
-				var lm0 = ways.Snap();
-				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Buffered_ParseFeed_Part0(p);
 				failure.Looking--;
 
-				ways.Rewind(lm0);
-				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
 				{
@@ -1603,8 +1543,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1613,8 +1551,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1640,8 +1576,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1650,8 +1584,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1723,19 +1655,19 @@ namespace DotGram.Snapshots
 			readonly BufferedBytes text;
 			internal Failure failure;
 			readonly Ways ways;
+			internal int unbuilt;
 
 			internal Reader_DotGram_Buffered_ParseFeed_Bytes(BufferedBytes text, Ways ways)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.unbuilt = default!;
 			}
 
 			public int Read_Feed_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1744,8 +1676,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1775,8 +1705,6 @@ namespace DotGram.Snapshots
 					}
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
 					while (true)
@@ -1786,8 +1714,6 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
 							continue;
@@ -1812,8 +1738,6 @@ namespace DotGram.Snapshots
 			public int Read_Record_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1822,8 +1746,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1943,8 +1865,6 @@ namespace DotGram.Snapshots
 			public int Read_eol_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -1953,8 +1873,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -2000,15 +1918,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
-								var lm1 = ways.Snap();
-								var rr1 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Bytes_Part0(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm1);
-									ways.RefsCount = rr1;
 								}
 
 								if (q0 < 0)
@@ -2017,15 +1931,11 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
-								var lm2 = ways.Snap();
-								var rr2 = ways.RefsCount;
 
 								q0 = Read_eol_Buffered_ParseFeed_Bytes_Part1(p);
 
 								if (q0 < 0)
 								{
-									ways.Rewind(lm2);
-									ways.RefsCount = rr2;
 								}
 							}
 
@@ -2076,14 +1986,10 @@ namespace DotGram.Snapshots
 			public int Read_eof_Buffered_ParseFeed_Bytes(int pos)
 			{
 				var p = pos;
-				var lm0 = ways.Snap();
-				var rr0 = ways.RefsCount;
 				failure.Looking++;
 				var q0 = Read_eof_Buffered_ParseFeed_Bytes_Part0(p);
 				failure.Looking--;
 
-				ways.Rewind(lm0);
-				ways.RefsCount = rr0;
 
 				if (q0 >= 0)
 				{
@@ -2110,8 +2016,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Whole_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -2120,8 +2024,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -2147,8 +2049,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Feed_Read(int pos)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -2157,8 +2057,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3748,34 +3646,6 @@ namespace DotGram.Snapshots
 
 			internal int AllBuiltAt;
 
-			internal struct Snapshot
-			{
-				internal int LogCount;
-				internal int Records;
-
-				internal int Last;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal Snapshot Snap()
-			{
-				Snapshot mark;
-
-				mark.LogCount = LogCount;
-				mark.Records  = Records;
-				mark.Last     = Last;
-
-				return mark;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void Rewind(Snapshot mark)
-			{
-				LogCount = mark.LogCount;
-				Records  = mark.Records;
-				Last     = mark.Last;
-			}
-
 
 
 
@@ -4181,155 +4051,10 @@ namespace DotGram.Snapshots
 			return pos + at;
 		}
 
-		sealed class DirectValues
+		sealed class ImmediateValues
 		{
-			internal bool[] Live   = new bool[16];
-			internal int[]  Starts = new int[16];
-			internal bool[] Built  = new bool[16];
-			int _used;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _spare;
-
-			[global::System.ThreadStatic]
-			static DirectValues?[]? _deeper;
-
-			[global::System.ThreadStatic]
-			static int _deeperCount;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _large;
-
-			[global::System.ThreadStatic]
-			static int _largeIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _largeLetGo;
-
-			[global::System.ThreadStatic]
-			static int _spareIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _spareLetGo;
-
-			const int LargeIdle = 8;
-
-			const int SpareIdle = 8;
-
-			internal static DirectValues Rent()
-			{
-				var spare = _spare;
-
-				if (spare != null)
-					_spare = null;
-				else if (_deeperCount > 0)
-				{
-					spare = _deeper![--_deeperCount]!;
-					_deeper![_deeperCount] = null;
-				}
-				else if (_large != null)
-				{
-					spare = _large;
-					_large = null;
-				}
-				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
-				{
-					spare = letGo;
-					_largeLetGo.SetTarget(null!);
-				}
-				else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
-				{
-					spare = letGoSpare;
-					_spareLetGo.SetTarget(null!);
-				}
-				else
-					return new DirectValues();
-
-				return spare;
-			}
-
-			internal static void Return(DirectValues values)
-			{
-				var rows = values._used;
-
-				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
-				values._used = 0;
-
-				// Past the bound the store is not thrown away - that was a cliff
-				// and not a bound - it is kept while the work keeps wanting it, and handed
-				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
-				// first, above: what is kept is the room, never what was built in it.
-				if (0L + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
-				{
-					// The same question the ordinary slot asks below: is the room far larger than
-					// the use. The bound decides WHICH slot holds the store; it does not decide
-					// whether to keep it. This read the parse's use against the BOUND until
-					// 2026-09-21, and for a dense store the two are not the same quantity: the
-					// room counts three hundred value tables and the use counted only records, so
-					// a parse that had just filled a seventeen-megabyte store read as idle and the
-					// eighth STEADY parse of the same document threw the store away and rebuilt it.
-					if (!(values.Live.Length > 4L * rows))
-						_largeIdle = 0;
-					else if (++_largeIdle >= LargeIdle)
-					{
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-						_large = null;
-						_largeIdle = 0;
-
-						return;
-					}
-
-					if (_large != null && !ReferenceEquals(_large, values))
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
-
-					_large = values;
-
-					return;
-				}
-
-				// The ordinary slot lets go by the same rule as the parked one: counted where a
-				// parse ENDS, against what that parse USED. At the rental it could not arrive,
-				// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that
-				// wants the room straight back still gets it, while one that does not has stopped
-				// holding it against everybody else.
-				if (!(values.Live.Length > 4L * rows))
-					_spareIdle = 0;
-				else if (++_spareIdle >= SpareIdle)
-				{
-					(_spareLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-					_spareIdle = 0;
-
-					return;
-				}
-
-				if (_spare == null)
-					_spare = values;
-				else if (_deeperCount < 3)
-					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
-			}
-
-			internal void Room(int count, bool live = true, int from = 0)
-			{
-				if (count > _used) _used = count;
-				if (Live.Length < count)
-				{
-					Live   = new bool[global::System.Math.Max(count, Live.Length * 2)];
-					Starts = new int[Live.Length];
-					var built = new bool[Live.Length];
-					global::System.Array.Copy(Built, built, Built.Length);
-					Built  = built;
-				}
-				else if (live && count > from)
-					global::System.Array.Clear(Live, from, count - from);
-			}
+			internal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);
 		}
-
-		#pragma warning disable CS0649 // a table nothing writes still declares the field
-		struct Held<T>
-		{
-			internal T Value;
-		}
-		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

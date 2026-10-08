@@ -3211,6 +3211,7 @@ namespace DotGram.Snapshots
 			internal int probes;
 			readonly Ways ways;
 			readonly global::System.ReadOnlyMemory<char> whole;
+			internal int last1;
 
 			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways, global::System.ReadOnlyMemory<char> parserWhole)
 			{
@@ -3218,6 +3219,7 @@ namespace DotGram.Snapshots
 				this.failure = default;
 				this.ways    = ways;
 				this.probes  = 0;
+				this.last1 = default!;
 				this.whole   = parserWhole;
 			}
 
@@ -3250,6 +3252,7 @@ namespace DotGram.Snapshots
 				deep.whole  = this.whole;
 				deep.ways   = this.ways;
 				deep.failure = this.failure;
+				deep.last1 = this.last1;
 				deep.probes = this.probes;
 				deep.pos    = pos;
 				deep.which  = which;
@@ -3258,6 +3261,7 @@ namespace DotGram.Snapshots
 				deep.Go();
 
 				this.failure = deep.failure;
+				this.last1 = deep.last1;
 				// Still on the stack that ran low: the next entry probes it again.
 				this.probes = 0;
 
@@ -3279,8 +3283,6 @@ namespace DotGram.Snapshots
 					return Deepen_DotGram_Sum(pos, 0, power);
 
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -3289,8 +3291,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3304,8 +3304,7 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var rb = ways.RefsCount;
-				var fold = -1;
+				int fold = default!;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -3322,10 +3321,7 @@ namespace DotGram.Snapshots
 				}
 				p++;
 				b0 = p;
-				ways.Begin(0);
-				ways.Put(a0, b0);
-				ways.End(rb);
-				fold = ways.Last;
+				fold = last1 = Construct_Sum((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				while (true)
 				{
 					var o1 = (uint)p < (uint)text.Length;
@@ -3360,19 +3356,15 @@ namespace DotGram.Snapshots
 						break;
 
 					var s2  = ways.Cursor;
-					var lm2 = ways.Snap();
-					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
 					while (true)
 					{
-						q0 = Read_Sum_Sum_Part0(p, ref fold, power, rb);
+						q0 = Read_Sum_Sum_Part0(p, ref fold, power);
 
 						if (q0 >= 0)
 							break;
 
-						ways.Rewind(lm2);
-						ways.RefsCount = rr2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
 							continue;
@@ -3389,14 +3381,14 @@ namespace DotGram.Snapshots
 
 					p = q0;
 				}
+				last1 = fold;
 				return p;
 			}
 
-			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power, int refs)
+			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
-				var r1 = -1;
+				int r1 = default!;
 				if (1 < power)
 					return -1;
 
@@ -3409,20 +3401,14 @@ namespace DotGram.Snapshots
 				var q0 = Read_Sum_Sum(p, 2);
 				if (q0 < 0) return -1;
 				p = q0;
-				r1 = ways.Last;
-				ways.Begin(1);
-				ways.Put(fold);
-				ways.Put(r1);
-				ways.End(rb);
-				fold = ways.Last;
+				r1 = last1;
+				fold = last1 = Construct_Sum_1(fold, r1!);
 				return p;
 			}
 
 			public int Recognize_Sum_Whole_Read(int pos, int power)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -3431,8 +3417,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3444,7 +3428,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Sum_Whole_Read_Body(int pos, int power)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var q0 = Read_Sum_Sum(p, power);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3459,8 +3442,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Sum_Read(int pos, int power)
 			{
 				var s  = ways.Cursor;
-				var lm = ways.Snap();
-				var rb = ways.RefsCount;
 
 				while (true)
 				{
@@ -3469,8 +3450,6 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
-					ways.Rewind(lm);
-					ways.RefsCount = rb;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3482,7 +3461,6 @@ namespace DotGram.Snapshots
 			public int Recognize_Sum_Read_Body(int pos, int power)
 			{
 				var p = pos;
-				var rb = ways.RefsCount;
 				var q0 = Read_Sum_Sum(p, power);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -3496,6 +3474,7 @@ namespace DotGram.Snapshots
 			internal global::System.ReadOnlyMemory<char> whole;
 			internal Ways ways = default!;
 			internal Failure failure = default!;
+			internal int last1 = default!;
 			internal int probes;
 			internal int pos;
 			internal int which;
@@ -3577,6 +3556,7 @@ namespace DotGram.Snapshots
 				whole  = default;
 				ways   = default!;
 				failure = default!;
+				last1 = default!;
 				thrown = null;
 			}
 
@@ -3645,6 +3625,7 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
 
 					reader.failure = this.failure;
+					reader.last1 = this.last1;
 					reader.probes = this.probes;
 
 					switch (this.which)
@@ -3653,6 +3634,7 @@ namespace DotGram.Snapshots
 					}
 
 					this.failure = reader.failure;
+					this.last1 = reader.last1;
 					this.probes = reader.probes;
 				}
 				catch (global::System.Exception caught)
@@ -3683,20 +3665,9 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last1;
 
-				try
-				{
-					Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, default);
-					value = values.V1[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
@@ -3725,20 +3696,9 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				var values = DirectValues.Rent();
+				value = reader.last1;
 
-				try
-				{
-					Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, default);
-					value = values.V1[ways.Last].Value;
-
-					return end;
-				}
-				finally
-				{
-					DirectValues.Return(values);
-				}
-
+				return end;
 			}
 			finally
 			{
@@ -3746,97 +3706,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static void Materialize_DotGram_Sum_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
-		{
-			var from  = since.LogCount;
-			var first = since.Records;
 
-			if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)
-			{
-				first = ways.AllBuilt;
-				from  = ways.AllBuiltAt;
-			}
-
-			values.Room(ways.Records, from: first);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-			#if DOTGRAM_COUNTS
-			Ways.CountListed += listed;
-			Ways.CountWalks++;
-			#endif
-
-			if (roots < 0)
-				live[root] = true;
-			else
-			{
-				for (var at = roots; at < ways.RefsCount; at += 3)
-					if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;
-			}
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						read += 2;
-						break;
-					}
-					case 1:
-					{
-						live[log[read]] = true;
-						read++;
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-				}
-			}
-			var values1 = values.V1;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot]) continue;
-
-				var read  = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values1[slot].Value = Construct_Sum(captured0!);
-						break;
-					}
-					case 1:
-					{
-						var accumulated = log[read++];
-						var record1 = log[read++];
-						var captured1 = values1[record1].Value;
-
-						values1[slot].Value = Construct_Sum_1(values1[accumulated].Value, captured1!);
-						break;
-					}
-				}
-			}
-		}
 
 		static int Recognize_Either_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
@@ -6404,34 +6274,6 @@ namespace DotGram.Snapshots
 
 			internal int AllBuiltAt;
 
-			internal struct Snapshot
-			{
-				internal int LogCount;
-				internal int Records;
-
-				internal int Last;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal Snapshot Snap()
-			{
-				Snapshot mark;
-
-				mark.LogCount = LogCount;
-				mark.Records  = Records;
-				mark.Last     = Last;
-
-				return mark;
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void Rewind(Snapshot mark)
-			{
-				LogCount = mark.LogCount;
-				Records  = mark.Records;
-				Last     = mark.Last;
-			}
-
 
 
 
@@ -6837,167 +6679,10 @@ namespace DotGram.Snapshots
 			return pos + at;
 		}
 
-		sealed class DirectValues
+		sealed class ImmediateValues
 		{
-			internal Held<string>[] V0 = new Held<string>[16];
-			internal Held<int>[] V1 = new Held<int>[16];
-			internal Held<string[]>[] V2 = new Held<string[]>[16];
-			internal bool[] Live   = new bool[16];
-			internal int[]  Starts = new int[16];
-			internal bool[] Built  = new bool[16];
-			int _used;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _spare;
-
-			[global::System.ThreadStatic]
-			static DirectValues?[]? _deeper;
-
-			[global::System.ThreadStatic]
-			static int _deeperCount;
-
-			[global::System.ThreadStatic]
-			static DirectValues? _large;
-
-			[global::System.ThreadStatic]
-			static int _largeIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _largeLetGo;
-
-			[global::System.ThreadStatic]
-			static int _spareIdle;
-
-			[global::System.ThreadStatic]
-			static global::System.WeakReference<DirectValues>? _spareLetGo;
-
-			const int LargeIdle = 8;
-
-			const int SpareIdle = 8;
-
-			internal static DirectValues Rent()
-			{
-				var spare = _spare;
-
-				if (spare != null)
-					_spare = null;
-				else if (_deeperCount > 0)
-				{
-					spare = _deeper![--_deeperCount]!;
-					_deeper![_deeperCount] = null;
-				}
-				else if (_large != null)
-				{
-					spare = _large;
-					_large = null;
-				}
-				else if (_largeLetGo != null && _largeLetGo.TryGetTarget(out var letGo))
-				{
-					spare = letGo;
-					_largeLetGo.SetTarget(null!);
-				}
-				else if (_spareLetGo != null && _spareLetGo.TryGetTarget(out var letGoSpare))
-				{
-					spare = letGoSpare;
-					_spareLetGo.SetTarget(null!);
-				}
-				else
-					return new DirectValues();
-
-				return spare;
-			}
-
-			internal static void Return(DirectValues values)
-			{
-				var rows = values._used;
-
-				global::System.Array.Clear(values.V0, 0, global::System.Math.Min(values._used, values.V0.Length));
-				global::System.Array.Clear(values.V1, 0, global::System.Math.Min(values._used, values.V1.Length));
-				global::System.Array.Clear(values.V2, 0, global::System.Math.Min(values._used, values.V2.Length));
-				global::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));
-				values._used = 0;
-
-				// Past the bound the store is not thrown away - that was a cliff
-				// and not a bound - it is kept while the work keeps wanting it, and handed
-				// to the collector once it stops (CSharpEmitter.Outsized). It is emptied
-				// first, above: what is kept is the room, never what was built in it.
-				if (0L + values.V0.Length + values.V1.Length + values.V2.Length + values.Live.Length + values.Starts.Length + values.Built.Length > 1048576)
-				{
-					// The same question the ordinary slot asks below: is the room far larger than
-					// the use. The bound decides WHICH slot holds the store; it does not decide
-					// whether to keep it. This read the parse's use against the BOUND until
-					// 2026-09-21, and for a dense store the two are not the same quantity: the
-					// room counts three hundred value tables and the use counted only records, so
-					// a parse that had just filled a seventeen-megabyte store read as idle and the
-					// eighth STEADY parse of the same document threw the store away and rebuilt it.
-					if (!(values.Live.Length > 4L * rows))
-						_largeIdle = 0;
-					else if (++_largeIdle >= LargeIdle)
-					{
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-						_large = null;
-						_largeIdle = 0;
-
-						return;
-					}
-
-					if (_large != null && !ReferenceEquals(_large, values))
-						(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
-
-					_large = values;
-
-					return;
-				}
-
-				// The ordinary slot lets go by the same rule as the parked one: counted where a
-				// parse ENDS, against what that parse USED. At the rental it could not arrive,
-				// for the reason written above LargeIdle. And it is let go of WEAKLY, so a thread that
-				// wants the room straight back still gets it, while one that does not has stopped
-				// holding it against everybody else.
-				if (!(values.Live.Length > 4L * rows))
-					_spareIdle = 0;
-				else if (++_spareIdle >= SpareIdle)
-				{
-					(_spareLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
-					_spareIdle = 0;
-
-					return;
-				}
-
-				if (_spare == null)
-					_spare = values;
-				else if (_deeperCount < 3)
-					(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
-			}
-
-			internal void Room(int count, bool live = true, int from = 0)
-			{
-				if (count > _used) _used = count;
-				if (Live.Length < count)
-				{
-					Live   = new bool[global::System.Math.Max(count, Live.Length * 2)];
-					Starts = new int[Live.Length];
-					var built = new bool[Live.Length];
-					global::System.Array.Copy(Built, built, Built.Length);
-					Built  = built;
-				}
-				else if (live && count > from)
-					global::System.Array.Clear(Live, from, count - from);
-				if (V0.Length < count)
-					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
-				if (V1.Length < count)
-					global::System.Array.Resize(ref V1, global::System.Math.Max(count, V1.Length * 2));
-				if (V2.Length < count)
-					global::System.Array.Resize(ref V2, global::System.Math.Max(count, V2.Length * 2));
-			}
+			internal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);
 		}
-
-		#pragma warning disable CS0649 // a table nothing writes still declares the field
-		struct Held<T>
-		{
-			internal T Value;
-		}
-		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

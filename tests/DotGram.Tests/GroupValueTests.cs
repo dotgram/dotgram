@@ -67,7 +67,7 @@ public sealed class GroupValueTests
 				((?=('a' => @(Record(9))) & ('a' => @(Record(1))) & 'x')
 				| (('a' => @(Record(2))) & 'y'))*
 			parse Rows as All stream bytes
-			""", direct);
+			""", direct, carrier: CarrierKind.Tape);
 
 		foreach (var mode in new[] { "text", "chars", "bytes" })
 		{
@@ -171,7 +171,7 @@ public sealed class GroupValueTests
 		var host = Compile("""
 			Rows : @int[] = (("ab" => @(Record(1)) | "a" => @(Record(2))) & 'b')*
 			parse Rows as All stream bytes
-			""", direct);
+			""", direct, carrier: CarrierKind.Tape);
 
 		foreach (var mode in new[] { "text", "chars", "bytes" })
 		{
@@ -181,10 +181,16 @@ public sealed class GroupValueTests
 		}
 	}
 
-	static Type Compile(string grammar, bool direct, bool buffered = true, bool lexical = false)
+	/// <param name="carrier">
+	/// The tape where a test holds that an abandoned reading runs no construction: that is the
+	/// tape's promise, and the immediate carrier a grammar left to choose is given runs a
+	/// construction where its alternative is read.
+	/// </param>
+	static Type Compile(string grammar, bool direct, bool buffered = true, bool lexical = false, CarrierKind carrier = CarrierKind.Auto)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
+			Carrier = carrier,
 			Direct = direct,
 			BufferedInput = buffered,
 			BufferedBytes = buffered,

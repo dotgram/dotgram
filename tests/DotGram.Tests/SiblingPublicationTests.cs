@@ -262,40 +262,45 @@ public sealed class SiblingPublicationTests
 	}
 
 	/// <summary>
-	/// Left to choose, a publication kept on the tape — a value it builds is read where the
-	/// reading may not stand — shares nothing with one carried immediately, and neither moves:
-	/// the carried one is not put on the tape by the sharing.
+	/// Left to choose, a publication the tape would hold back — a value it builds is read where the
+	/// reading may not stand — is carried immediately all the same, and shares one machine with a
+	/// large publication beside it as it would under the immediate carrier named.
 	/// </summary>
+	/// <remarks>
+	/// <c>Taped</c> builds Q in an alternative that can still fail after it — at 'x', where the next
+	/// alternative reads the same 'q' as Q2 — so Q is read where the reading may not stand. That once
+	/// kept <c>Taped</c> on the tape and apart from <c>Number</c>, two readers and a walk; the gates
+	/// choose no carrier now, and the two publications are one machine, carried immediately.
+	/// </remarks>
 	[Fact]
-	public void Auto_keeps_a_carried_machine_apart_from_one_kept_on_the_tape()
+	public void Left_to_choose_a_publication_the_tape_would_hold_back_shares_the_carried_machine()
 	{
-		// `Taped` builds Q in an alternative that can still fail after it — at 'x', where the next
-		// alternative reads the same 'q' as Q2 — so Q is read where the reading may not stand, and
-		// that keeps `Taped` on the tape. Replay is asked of the grammar, rule by rule, so the cause
-		// has to be a rule `Number` never reaches: were R0 itself read that way anywhere, `Number`
-		// would be on the tape as well, and the two would share as tape machines do. (Two
-		// alternatives beginning with the same call share it once normalized, which is why the
-		// second begins with a rule of its own.)
-		var grammar = Chain(130) +
-			"Q : @int = 'q' => @(1)\n" +
-			"Q2 : @int = 'q' => @(2)\n" +
-			"Number : @int = n: R0 => @(n)\n" +
-			"Taped : @int = n: Q & 'x' & m: R0 => @(n + m) | n: Q2 & 'y' & m: R0 => @(n + m + 100)\n" +
-			"parse Number\nparse Taped";
+		var grammar = TapedBeside;
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
-		Assert.Equal(2, Readers(source).Count);
-		Assert.Single(Materializers(source));
+		Assert.Single(Readers(source));
+		Assert.Empty(Materializers(source));
 		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
 		var assembly = EmittedCode.Compile(source);
 		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
 		Assert.Equal(391, EmittedCode.Match(assembly, "Grammar", "TryParseTaped", "qx((v))").Value);
 		Assert.Equal(492, EmittedCode.Match(assembly, "Grammar", "TryParseTaped", "qy((v))").Value);
 	}
+
+	/// <summary>
+	/// Two large publications sharing nearly every rule, one of them building a value read where the
+	/// reading may not stand (<see cref="Left_to_choose_a_publication_the_tape_would_hold_back_shares_the_carried_machine"/>).
+	/// </summary>
+	internal static readonly string TapedBeside = Chain(130) +
+		"Q : @int = 'q' => @(1)\n" +
+		"Q2 : @int = 'q' => @(2)\n" +
+		"Number : @int = n: R0 => @(n)\n" +
+		"Taped : @int = n: Q & 'x' & m: R0 => @(n + m) | n: Q2 & 'y' & m: R0 => @(n + m + 100)\n" +
+		"parse Number\nparse Taped";
 
 	/// <summary>A chain of <paramref name="count"/> valued rules, the last of them recursive through parentheses.</summary>
 	static string Chain(int count)
@@ -306,7 +311,7 @@ public sealed class SiblingPublicationTests
 	}
 
 	/// <summary>The readers of the file, one per machine written as methods.</summary>
-	static List<string> Readers(string source)
+	internal static List<string> Readers(string source)
 	{
 		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<StructDeclarationSyntax>()
@@ -316,7 +321,7 @@ public sealed class SiblingPublicationTests
 	}
 
 	/// <summary>The walks that build a tape machine's values, one per machine on the tape.</summary>
-	static List<string> Materializers(string source)
+	internal static List<string> Materializers(string source)
 	{
 		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>()
