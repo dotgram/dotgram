@@ -33,6 +33,13 @@ namespace DotGram.Examples.Languages;
 // — because the point is the shape that comes out of the parser, not what somebody does
 // with it. Turning the same tree into a SQL `WHERE` or an `Expression<Func<T, bool>>` is
 // the same walk over the same records.
+//
+// The carrier is named, the tape: `decimal.Parse` throws on what it cannot read, and a
+// number's text is read with the trivia the grammar skips inside it, so `0 .75` is a reading
+// of `Number` that `decimal.Parse` refuses. A grammar that names no carrier is carried as
+// Immediate, which runs a construction as soon as its alternative is read: in
+// `cpu=0 .75 mem=2048` that reading is built, and throws, before the parse refuses the text.
+// On the tape every construction waits until the parse has accepted.
 
 [Gram("""
 	@using DotGram.Examples.Languages;
@@ -80,7 +87,7 @@ namespace DotGram.Examples.Languages;
 	                   => @(text)
 
 	parse Filter
-	""")]
+	""", Carrier = GramCarrier.Tape)]
 public sealed partial class Filter
 {
 	/// <summary>Reads a filter, or throws where the text is not one.</summary>

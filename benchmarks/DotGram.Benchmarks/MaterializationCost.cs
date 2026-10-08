@@ -17,6 +17,11 @@ namespace DotGram.Benchmarks;
 /// identical arena entries, but <c>Accept:</c> has nothing to walk. The difference between
 /// the two is materialization's own cost on this input, not a difference in what was
 /// recognized.
+/// <para>
+/// All three on the tape, named: what is measured is the walk at the end that materializes
+/// what the tape recorded, which a grammar left to the generator — carried immediately — does
+/// not have.
+/// </para>
 /// </remarks>
 [MemoryDiagnoser]
 public partial class MaterializationCost
@@ -46,7 +51,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""")]
+		""", Carrier = GramCarrier.Tape)]
 	public static partial class WithCaptures
 	{
 		public sealed record UrlParts(
@@ -79,7 +84,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""")]
+		""", Carrier = GramCarrier.Tape)]
 	public static partial class NoCaptures
 	{
 	}
@@ -129,7 +134,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""")]
+		""", Carrier = GramCarrier.Tape)]
 	public static partial class SpanCaptures
 	{
 		public sealed record UrlSpans(

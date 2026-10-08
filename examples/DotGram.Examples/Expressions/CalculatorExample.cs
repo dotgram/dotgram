@@ -31,6 +31,12 @@ namespace DotGram.Examples.Expressions;
 // `^` is the exception that shows what the rule rests on. C# has no `^` for `decimal`,
 // and its `^` on `int` is exclusive-or rather than power, so that one is a method —
 // overloaded the three ways the operators are overloaded once.
+//
+// The carrier is named, the tape: `/` throws on a zero divisor. A grammar that names none
+// is carried as Immediate, which runs a construction as soon as its alternative is read —
+// `1/0=` would divide, and throw, before the parse refuses the `=`. On the tape every
+// construction waits until the parse has accepted, so a text that is no expression is
+// refused, and only an expression that divides by zero throws.
 
 [Gram("""
 	@using System.Globalization;
@@ -56,7 +62,7 @@ namespace DotGram.Examples.Expressions;
 	parse Expr with (Value = IntNumber)     as EvaluateInt
 	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
 	parse Expr with (Value = NodeNumber)    as BuildTree
-	""")]
+	""", Carrier = GramCarrier.Tape)]
 public static partial class Calculator
 {
 	/// <summary>The tree the third parser builds, and the operators that build it.</summary>

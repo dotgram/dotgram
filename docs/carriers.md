@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-08 16:31 |
-| DotGram.Examples | 2026-10-08 16:30 |
-| DotGram.ExpressionLanguage | 2026-10-08 16:30 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-08 16:30 |
-| DotGram.Finance | 2026-10-08 16:30 |
-| DotGram.Finance.Fix44 | 2026-10-08 16:30 |
-| DotGram.Sql | 2026-10-08 16:30 |
-| DotGram.Sql.Productions | 2026-10-08 16:30 |
-| DotGram.Tests | 2026-10-08 16:31 |
-| DotGram.Web | 2026-10-08 16:30 |
+| DotGram.Benchmarks | 2026-10-08 15:48 |
+| DotGram.Examples | 2026-10-08 15:47 |
+| DotGram.ExpressionLanguage | 2026-10-08 15:47 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-08 15:47 |
+| DotGram.Finance | 2026-10-08 15:47 |
+| DotGram.Finance.Fix44 | 2026-10-08 15:47 |
+| DotGram.Sql | 2026-10-08 15:47 |
+| DotGram.Sql.Productions | 2026-10-08 15:47 |
+| DotGram.Tests | 2026-10-08 15:48 |
+| DotGram.Web | 2026-10-08 15:47 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -58,9 +58,9 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 19/19 |
-| DotGram.Benchmarks.MaterializationCost.NoCaptures | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
-| DotGram.Benchmarks.MaterializationCost.SpanCaptures | 1 | 0 | immediate | replay | replay | GRAM5012 | 7 | 1 | 1 | 0 | 0 | 0 | 17/17 |
-| DotGram.Benchmarks.MaterializationCost.WithCaptures | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 2 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.NoCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.SpanCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 17/17 |
+| DotGram.Benchmarks.MaterializationCost.WithCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1/1 |
 | DotGram.Benchmarks.Nesting | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Numbers | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
@@ -71,7 +71,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
-| DotGram.Examples.Expressions.Calculator | 3 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 8 | 0 | 0 | 51/51 |
+| DotGram.Examples.Expressions.Calculator |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 51/51 |
 | DotGram.Examples.Expressions.ClampedExample | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 14/14 |
 | DotGram.Examples.Expressions.LocaleNumber | 2 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Feeds.FeedReader | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 5 | 0 | 0 | 5/5 |
@@ -94,7 +94,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.TypedCsv | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 12/12 |
 | DotGram.Examples.Formats.XmlParser | 1 | 0 | immediate | replay | replay | GRAM5012 | 7 | 6 | 3 | 0 | 0 | 0 | 21/21 |
 | DotGram.Examples.Formats.YamlLite | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 7 | 0 | 0 | 11/11 |
-| DotGram.Examples.Languages.Filter | 1 | 0 | immediate | replay | replay | GRAM5012 | 9 | 6 | 2 | 0 | 0 | 0 | 33/33 |
+| DotGram.Examples.Languages.Filter |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 33/33 |
 | DotGram.Examples.Languages.FilterFile | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Examples.Languages.Filters | 1 | 0 | immediate | replay | replay | GRAM5012 | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
 | DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
@@ -150,18 +150,12 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Benchmarks.Extents | ParseLetters | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.Flat.NotLowered | ParseDoc | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Benchmarks.Levels | Levelled | whole | immediate | none | 0 | 0 | 0 | 0 | 19/19 |
-| DotGram.Benchmarks.MaterializationCost.NoCaptures | ParseUrl | whole | immediate | read again | 1 | 0 | 2 | 0 | 1/1 |
-| DotGram.Benchmarks.MaterializationCost.SpanCaptures | ParseUrl | whole | immediate | replay | 7 | 1 | 0 | 0 | 17/17 |
-| DotGram.Benchmarks.MaterializationCost.WithCaptures | ParseUrl | whole | immediate | read again | 1 | 0 | 2 | 0 | 1/1 |
 | DotGram.Benchmarks.Nesting | ParseExpr | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Benchmarks.Numbers | ParseSum | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Possession.Open | ParseDoc | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Benchmarks.TinyScalar | ParseDepth | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Urls | ParseUrl | whole | immediate | read again | 2 | 0 | 3 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | Read | whole | immediate | none | 0 | 0 | 0 | 0 | 22/22 |
-| DotGram.Examples.Expressions.Calculator | EvaluateInt | whole | immediate | read again | 2 | 0 | 3 | 0 | 17/17 |
-| DotGram.Examples.Expressions.Calculator | EvaluateDecimal | whole | immediate | read again | 2 | 0 | 5 | 0 | 17/17 |
-| DotGram.Examples.Expressions.Calculator | BuildTree | whole | immediate | read again | 2 | 0 | 5 | 0 | 17/17 |
 | DotGram.Examples.Expressions.ClampedExample | Read | whole | immediate | none | 0 | 0 | 0 | 0 | 14/14 |
 | DotGram.Examples.Expressions.LocaleNumber | ParseNumber | whole | immediate | read again | 1 | 0 | 1 | 0 | 2/2 |
 | DotGram.Examples.Expressions.LocaleNumber | ParseEuropeanNumber | whole | immediate | read again | 1 | 0 | 1 | 0 | 2/2 |
@@ -184,7 +178,6 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.Netstrings | ParseStream | whole | immediate | read again | 2 | 0 | 1 | 0 | 3/3 |
 | DotGram.Examples.Formats.XmlParser | ParseXml | whole | immediate | replay | 7 | 6 | 0 | 0 | 21/21 |
 | DotGram.Examples.Formats.YamlLite | ParseDoc | whole | immediate | read again | 6 | 0 | 7 | 0 | 11/11 |
-| DotGram.Examples.Languages.Filter | ParseFilter | whole | immediate | replay | 9 | 6 | 0 | 0 | 33/33 |
 | DotGram.Examples.Languages.FilterFile | ParseFilter | whole | immediate | none | 0 | 0 | 0 | 0 | 4/4 |
 | DotGram.Examples.Languages.Filters | ParseFilter | whole | immediate | replay | 2 | 1 | 0 | 0 | 8/8 |
 | DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 108/108 |
@@ -226,18 +219,17 @@ or which nothing calls, so that no caller asks it again.
 
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| choice | alternatives begin alike | 10 | 16 | 23 | 0 | 5 | NoCaptures.Host: `(IPv4 \| RegName)` |
 | turns | a turn led by what may read nothing | 5 | 10 | 22 | 5 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
+| choice | alternatives begin alike | 8 | 14 | 21 | 0 | 5 | Urls.Host: `(IPv4 \| RegName)` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
-| run | what follows begins alike | 10 | 18 | 18 | 0 | 0 | Calculator.Spacing: `Whitespace+` |
+| run | what follows begins alike | 9 | 17 | 17 | 0 | 0 | Config.Value: `[^ '\n' \| '\r']*` |
 | choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
-| optional | what follows begins alike | 8 | 8 | 12 | 8 | 3 | NoCaptures.Url: `(UserInfo & '@')?` |
+| optional | what follows begins alike | 5 | 5 | 9 | 7 | 1 | Urls.Authority: `(user: UserInfo & '@')?` |
 | choice | an alternative that may read nothing | 5 | 8 | 9 | 0 | 0 | HttpParser.Field: `(eol \| ?=eof)` |
-| turns | the seam leads every alternative of the turn | 4 | 4 | 6 | 6 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | turns | what follows begins alike | 3 | 4 | 5 | 4 | 1 | JsonParser.Body: `(Plain \| Escape)*` |
 | turns | follow unknown | 1 | 1 | 5 | 0 | 0 | Rfc5322.Cfws: `(Fws? & Comment)+` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
-| choice | the seam leads every alternative | 1 | 1 | 3 | 0 | 0 | Calculator.Expr: `(trivia & '+' & trivia & right: Expr_With1 => (left + right) \| trivia …` |
+| turns | the seam leads every alternative of the turn | 3 | 3 | 3 | 3 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | optional | a turn led by what may read nothing | 1 | 2 | 2 | 0 | 0 | Rfc5322.AngleAddr: `ObsRoute?` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
 | counted | what follows begins alike | 1 | 1 | 1 | 1 | 0 | Rfc5646.LangTag: `extended: ExtLang{0,3}` |
@@ -275,27 +267,6 @@ or which nothing calls, so that no caller asks it again.
 
 - machine Levelled [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 19/19
 - memo Levelled [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
-
-## DotGram.Benchmarks.MaterializationCost.NoCaptures
-
-- machine ParseUrl [whole]: carrier: immediate; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- again Host: opens a way
-- open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
-- again Url: opens a way
-- open Url: optional; what follows begins alike; entry; (UserInfo & '@')?
-
-## DotGram.Benchmarks.MaterializationCost.SpanCaptures
-
-- machine ParseUrl [whole]: carrier: immediate; gate: replay; building: 7; replayed: 1; read again: 0; refused: 0; points: 17/17
-- replay UserInfo: Follows in Url [turn], then '@'
-
-## DotGram.Benchmarks.MaterializationCost.WithCaptures
-
-- machine ParseUrl [whole]: carrier: immediate; gate: read again; building: 1; replayed: 0; read again: 2; refused: 0; points: 1/1
-- again Host: opens a way
-- open Host: choice; alternatives begin alike; open; (IPv4 | RegName)
-- again Url: opens a way
-- open Url: optional, captured; what follows begins alike; entry; (user: UserInfo & '@')?
 
 ## DotGram.Benchmarks.Nesting
 
@@ -340,28 +311,9 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Expressions.Calculator
 
-- machine EvaluateInt [whole]: carrier: immediate; gate: read again; building: 2; replayed: 0; read again: 3; refused: 0; points: 17/17
-- machine EvaluateDecimal [whole]: carrier: immediate; gate: read again; building: 2; replayed: 0; read again: 5; refused: 0; points: 17/17
-- machine BuildTree [whole]: carrier: immediate; gate: read again; building: 2; replayed: 0; read again: 5; refused: 0; points: 17/17
 - memo EvaluateInt [whole]: remembered 0; not 1: Expr (characters)
 - memo EvaluateDecimal [whole]: remembered 0; not 1: Expr (characters)
 - memo BuildTree [whole]: remembered 0; not 1: Expr (characters)
-- again DecimalNumber: through Point
-- again Expr: opens a way
-- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With1 => (left + right) | trivia …
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With1 => (left + right) | trivia …
-- again Expr: opens a way
-- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With2 => (left + right) | trivia …
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With2 => (left + right) | trivia …
-- again Expr: opens a way
-- open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr_With3 => (left + right) | trivia …
-- open Expr: choice; the seam leads every alternative; open; (trivia & '+' & trivia & right: Expr_With3 => (left + right) | trivia …
-- again NodeNumber: through Point
-- again Point: through trivia
-- again Spacing: opens a way
-- open Spacing: run; what follows begins alike; open; Whitespace+
-- again trivia: opens a way
-- open trivia: optional; what follows begins alike; open; Spacing?
 
 ## DotGram.Examples.Expressions.ClampedExample
 
@@ -545,14 +497,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.Filter
 
-- machine ParseFilter [whole]: carrier: immediate; gate: replay; building: 9; replayed: 6; read again: 0; refused: 0; points: 33/33
 - memo ParseFilter [whole]: remembered 0; not 1: Expr (characters)
-- replay List: Follows in Expr [choice], then ')'
-- replay Op: Follows in Expr [choice], then Value
-- replay Body: under Text
-- replay Number: under Value
-- replay Text: under Value
-- replay Value: under List
 
 ## DotGram.Examples.Languages.FilterFile
 

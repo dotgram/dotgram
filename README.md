@@ -85,7 +85,7 @@ using DotGram;
 	parse Expr with (Value = IntNumber)     as EvaluateInt
 	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
 	parse Expr with (Value = NodeNumber)    as BuildTree
-	""")]
+	""", Carrier = GramCarrier.Tape)]
 public static partial class Calculator
 {
 	/// <summary>The tree the third parser builds, and the operators that build it.</summary>
@@ -150,6 +150,11 @@ its `^` on `int` is exclusive-or rather than power, so that one alternative call
 
 There is no runtime generic dispatch and no parser configuration object. All three parsers
 are specialized when the C# is generated.
+
+`Carrier = GramCarrier.Tape` is there for `/`, which throws on a zero divisor. A grammar that
+names no carrier runs each construction as soon as its alternative is read, which is faster,
+and would divide, and throw, in `1/0=` before the parse refused the `=`; on the tape every
+construction waits until the parse has accepted.
 
 ## Something much smaller
 
