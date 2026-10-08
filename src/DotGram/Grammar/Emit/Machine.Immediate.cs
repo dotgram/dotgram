@@ -636,7 +636,30 @@ sealed partial class Machine
 		/// </remarks>
 		public override string Folded(RuleSymbol owner)
 		{
-			return $"{Last(owner)} = fold;";
+			return Builds(owner) ? $"{Last(owner)} = fold;" : "";
+		}
+
+		/// <remarks>
+		/// A fold that builds nothing — a left-recursive rule with no type and no construction,
+		/// <c>Expr = Expr &amp; '&gt;' &amp; Prim | Prim</c> — has no value to carry from turn to
+		/// turn, and no register: the registers are this machine's value types, and a rule that
+		/// builds nothing has none among them. The tape records its turns all the same, and
+		/// nothing reads them.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner)
+		{
+			return Builds(owner) ? base.FoldState(owner) : [];
+		}
+
+		public override string Accumulated(RuleSymbol owner)
+		{
+			return Builds(owner) ? base.Accumulated(owner) : "";
+		}
+
+		/// <summary>Whether a rule has a value this machine builds.</summary>
+		bool Builds(RuleSymbol owner)
+		{
+			return machine._results.QualifiedOf(owner) is not null;
 		}
 
 		/// <remarks>

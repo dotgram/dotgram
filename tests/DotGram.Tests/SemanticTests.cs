@@ -235,6 +235,43 @@ public sealed class SemanticTests
 		Assert.Equal(expected, match.IsSuccess);
 	}
 
+	/// <summary>
+	/// A left-recursive rule that builds nothing folds without a value on either carrier. The
+	/// immediate carrier keeps a register for each type its machine builds, and once wrote the
+	/// fold's value into one for the text a rule with no type would have, which no machine built:
+	/// the generator stopped at a value table the file did not keep.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_fold_that_builds_nothing_reads_on_either_carrier(CarrierKind carrier)
+	{
+		const string grammar =
+			"""
+			Type  = Name & ('<' & Type & '>')?
+			Name  = ['a'..'z']+
+			Expr  = Expr & '>' & Prim | Prim
+			Prim  = Name
+			Start = Type & eof | Expr & eof
+			parse Start
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier,
+			});
+
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a>b>c").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "list<int>").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a>").IsSuccess);
+	}
+
 	// ── A split half the methods refuse is told it will backtrack ────────────
 
 	/// <summary>
