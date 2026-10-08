@@ -3,36 +3,18 @@ Examples	DotGram.Examples.Expressions.Calculator.g.cs	0649
 Examples	DotGram.Examples.Expressions.Calculator.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	0649
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
-Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Feeds.FeedReader.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
-Examples	DotGram.Examples.Formats.Config.Located.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.Config.g.cs	0649
-Examples	DotGram.Examples.Formats.Config.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.FileNames.g.cs	0649
-Examples	DotGram.Examples.Formats.FileNames.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.FixParser.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
-Examples	DotGram.Examples.Formats.HttpParser.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.IniParser.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.JsonParser.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.MarkdownParser.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.MetricsLine.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
-Examples	DotGram.Examples.Formats.Netstrings.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.XmlParser.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Formats.YamlLite.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Filter.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
-Examples	DotGram.Examples.Languages.Filters.g.cs	CS0649 // a table nothing writes still declares the field
-Examples	DotGram.Examples.Languages.GramGrammar.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Lexemes.g.cs	0649
-Examples	DotGram.Examples.Languages.Lexemes.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Scoped.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Selectors.g.cs	0649
-Examples	DotGram.Examples.Languages.Selectors.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
-Examples	DotGram.Examples.Languages.SqlReadOnly.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
 ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
 Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
@@ -41,8 +23,6 @@ Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Web	DotGram.Web.Rfc3339.g.cs	0649
-Web	DotGram.Web.Rfc5322.g.cs	CS0649 // a table nothing writes still declares the field
-Web	DotGram.Web.Rfc5646.g.cs	CS0649 // a table nothing writes still declares the field
 Web	DotGram.Web.Rfc6265.g.cs	0649
 Web	DotGram.Web.Rfc6266.g.cs	0649
 Web	DotGram.Web.Rfc6570.g.cs	0649
@@ -51,5 +31,3 @@ Web	DotGram.Web.Rfc7239.g.cs	0649
 Web	DotGram.Web.Rfc8259.g.cs	0649
 Web	DotGram.Web.Rfc8288.g.cs	0649
 Web	DotGram.Web.Rfc9110.g.cs	0649
-Web	DotGram.Web.Rfc9110.g.cs	CS0649 // a table nothing writes still declares the field
-Web	DotGram.Web.Rfc9651.g.cs	CS0649 // a table nothing writes still declares the field

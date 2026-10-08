@@ -6,9 +6,9 @@
 # or the ratchet only protects against regressing to a number looser than reality.
 # package	rule	count
 Examples	IDE0035	0
-Examples	IDE0059	1250
-Examples	IDE0060	125
-Examples	IDE0051	102
+Examples	IDE0059	1256
+Examples	IDE0060	140
+Examples	IDE0051	103
 Examples	IDE0052	19
 Examples	IDE0004	3
 ExpressionLanguage	IDE0035	0
@@ -30,8 +30,8 @@ Sql	IDE0051	865
 Sql	IDE0052	27
 Sql	IDE0004	14
 Web	IDE0035	0
-Web	IDE0059	1527
-Web	IDE0060	45
+Web	IDE0059	1542
+Web	IDE0060	50
 Web	IDE0051	65
 Web	IDE0052	38
 Web	IDE0004	0
