@@ -53,13 +53,17 @@ static partial class Stand
 		var positions = prefix + select20;
 		var window    = prefix + select20 + "; SELECT 2";
 
-		yield return PairedFormRow("sql", "select20.at", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
-			before.SqlPositional(false, "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", positions, prefix.Length, null),
-			after.SqlPositional(false, "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", positions, prefix.Length, null));
+		// The positional and window forms are later than the plain entries: a side that has not got them has no such row,
+		// and says so (the name of a plain entry it had once is not the same form).
+		if (SkipUnless("select20.at", before, after, false, "TryParseStatement|TryParseQueryExpression", false))
+			yield return PairedFormRow("sql", "select20.at", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
+				before.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", positions, prefix.Length, null),
+				after.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", positions, prefix.Length, null));
 
-		yield return PairedFormRow("sql", "select20.window", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
-			before.SqlPositional(false, "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", window, prefix.Length, select20.Length),
-			after.SqlPositional(false, "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", window, prefix.Length, select20.Length));
+		if (SkipUnless("select20.window", before, after, false, "TryParseStatement|TryParseQueryExpression", true))
+			yield return PairedFormRow("sql", "select20.window", "hand", () => HandAccepts("TryParseStatement", select20) ? 1 : 0,
+				before.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", window, prefix.Length, select20.Length),
+				after.SqlPositional(false, "TryParseStatement|TryParseQueryExpression", window, prefix.Length, select20.Length));
 
 		var insert = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4), (5, 6)";
 
@@ -210,6 +214,25 @@ static partial class Stand
 	}
 
 	/// <summary>A row of a published form: the constant, and the two sides, each asked to give the same answer.</summary>
+	/// <summary>Whether both sides have the positional entry (with a length where <paramref name="window"/>); where one has not, the row is left out and the report says which.</summary>
+	static bool SkipUnless(string name, PairedSide before, PairedSide after, bool tsql, string methods, bool window)
+	{
+		foreach (var side in new[] { before, after })
+		{
+			if (!side.HasSqlPositional(tsql, methods, window))
+			{
+				var message = $"{(tsql ? "tsql" : "sql")}/{name}: row skipped, no {methods.Replace("|", " or ")}(string, int{(window ? ", int" : "")}) on the {side.Name} side";
+
+				_skipped.Add(message);
+				Console.Error.WriteLine(message);
+
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	static Workload PairedFormRow(string family, string name, string baseName, Func<int> hand, Func<int> before, Func<int> after)
 	{
 		return new(family, name,

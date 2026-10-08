@@ -27,7 +27,7 @@ static partial class Stand
 	internal const int MinimumKept = 3;
 
 	/// <summary>What a run of the paired stand leaves for the runs to be merged from.</summary>
-	sealed record Taken(double Control, Row[] Rows, string? Placement = null);
+	sealed record Taken(double Control, Row[] Rows, string? Placement = null, string[]? Skipped = null);
 
 	/// <summary>The runs' medians, and what to say about which runs were used.</summary>
 	sealed record Pooled(Row[] Rows, double Control, int[] Kept, string Note);
@@ -81,7 +81,7 @@ static partial class Stand
 		var runs   = Enumerable.Range(1, count)
 			.Select(i => JsonSerializer.Deserialize<Result>(File.ReadAllText(Path.Combine(output, $"run-{i}", "stand.json")), Json)!)
 			.ToArray();
-		var pooled = Pool([.. runs.Select(static one => new Taken(one.Control, one.Rows, one.Placement))], output);
+		var pooled = Pool([.. runs.Select(static one => new Taken(one.Control, one.Rows, one.Placement, null))], output);
 		var pinned = TakePlacement(runs.Select(static one => one.Placement));
 		var first  = runs[pooled.Kept[0]];
 		var merged = first with { Control = pooled.Control, Rows = pooled.Rows, Pinned = pinned };
@@ -151,6 +151,10 @@ static partial class Stand
 			.ToArray();
 		var pooled = Pool(runs, output);
 		var pinned = TakePlacement(runs.Select(static one => one.Placement));
+
+		_skipped.Clear();
+		_skipped.AddRange(runs.SelectMany(static one => one.Skipped ?? []).Distinct());
+
 		Dictionary<string, Row>? aa = null;
 
 		if (withAa && count >= 1)
@@ -166,7 +170,7 @@ static partial class Stand
 
 		var report = pooled.Note + PairedMarkdown(pinned, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir) + (aaNote.Length > 0 ? " " + aaNote : ""), aa);
 
-		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows, _placement), Json));
+		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows, _placement, [.. _skipped]), Json));
 		File.WriteAllText(Path.Combine(output, "paired.md"), report);
 
 		Console.WriteLine();

@@ -1124,6 +1124,14 @@ static partial class Stand
 			};
 		}
 
+		/// <summary>Whether this side has the positional (or, with <paramref name="window"/>, the window) form of any of <paramref name="methods"/>.</summary>
+		public bool HasSqlPositional(bool tsql, string methods, bool window)
+		{
+			Type[] parameters = window ? [typeof(string), typeof(int), typeof(int)] : [typeof(string), typeof(int)];
+
+			return methods.Split('|').Any(one => (tsql ? _tsql : _sql).GetMethod(one, parameters) is not null);
+		}
+
 		/// <summary>
 		/// The positional <c>(string, at)</c> or window <c>(string, at, length)</c> form of a rule of the SQL:2023 or the T-SQL parser, by
 		/// reflection: whether it read the statement that begins at <paramref name="at"/>.
@@ -1784,6 +1792,17 @@ static partial class Stand
 	/// </summary>
 	static Workload[] PairedWorkloads(PairedSide before, PairedSide after)
 	{
+		_skipped.Clear();
+
+		var rows = PairedRows(before, after);
+
+		SqlRowsAllSkipped(rows);
+
+		return rows;
+	}
+
+	static Workload[] PairedRows(PairedSide before, PairedSide after)
+	{
 		var order          = "8=FIX.4.4\u00019=65\u000135=D\u000111=ORDER\u000155=ABC\u000154=1\u000160=20260915-12:00:00\u000138=100\u000140=2\u000144=12.50\u000110=000\u0001";
 		var orderMalformed = order.Replace("\u000140=2\u0001", "\u000140X=2\u0001");
 		var binaryMany     = string.Concat(Enumerable.Repeat("95=3\u000196=a\u0001b\u0001", 64));
@@ -1875,7 +1894,7 @@ static partial class Stand
 			PairedExpression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +", before, after),
 
 			.. PairedSql("literal", "TryParseValue|TryParseLiteral", "TryParseValue", "1", before, after),
-			.. PairedSql("comment", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", SqlWithComments + ";", before, after),
+			.. PairedSql("comment", "TryParseStatement", "TryParseStatement", SqlWithComments + ";", before, after),
 			.. PairedSql("conditions100", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(100), before, after),
 			.. PairedSql("conditions1000", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(1000), before, after),
 			PairedTsql("comment", SqlWithComments, before, after),
@@ -2070,16 +2089,26 @@ static partial class Stand
 	/// <summary>
 	/// A row of SQL:2023, side against side. <paramref name="method"/> names the entry, or several names
 	/// apart by <c>|</c> where the entry was renamed (the first a side has is read); a side that has none of
-	/// them is a fault of the stand (every side has the SQL:2023 library, so a missing entry is a name the row does
-	/// not know yet), and it stops the run naming the row, the side and the entries that side does have, rather than
-	/// leaving the row out of the pair unseen.
+	/// them has no such row, and the pair leaves it out, as it does a FIX row of a side without FIX, but not unseen:
+	/// the row, the side and the entries that side does have are printed and written in the report, since a row
+	/// left out because an entry was renamed reads the same as one that never existed. A run that would leave out
+	/// every one of the SQL:2023 rows stops instead: it measured nothing of them.
 	/// </summary>
+	static readonly List<string> _skipped = [];
+
 	static IEnumerable<Workload> PairedSql(string name, string method, string hand, string text, PairedSide before, PairedSide after)
 	{
 		foreach (var side in new[] { before, after })
 		{
 			if (!side.HasSql(method))
-				throw new InvalidOperationException($"row sql/{name}: no entry {method.Replace("|", " or ")} on the {side.Name} side, which has {side.SqlEntries()}. Add the old or new name of the entry to the row.");
+			{
+				var message = $"sql/{name}: row skipped, no entry {method.Replace("|", " or ")} on the {side.Name} side, which has {side.SqlEntries()}";
+
+				_skipped.Add(message);
+				Console.Error.WriteLine(message);
+
+				yield break;
+			}
 		}
 
 		var byBefore = before.Sql(method, text);
@@ -2146,7 +2175,7 @@ static partial class Stand
 		var text = PairedMarkdown(pinned, Median(controls), [.. rows], SideNote(beforeDir, afterDir));
 
 		File.WriteAllText(Path.Combine(output, "paired.md"), text);
-		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows], _placement), Json));
+		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows], _placement, [.. _skipped.Distinct()]), Json));
 
 		Console.WriteLine();
 		Console.WriteLine(text);
@@ -2259,6 +2288,13 @@ static partial class Stand
 		return before is null || after is null ? "" : $"{Change(before.Nanoseconds, after.Nanoseconds)} {(row.Ranges is { } ranges && ranges.TryGetValue(suffix, out var range) ? range : "")}";
 	}
 
+	/// <summary>Stops a run in which a side lacks every entry the SQL:2023 rows read, which is a stand that does not know the side's names.</summary>
+	static void SqlRowsAllSkipped(Workload[] workloads)
+	{
+		if (_skipped.Count > 0 && !workloads.Any(static one => one.Family == "sql" && !one.Name.Contains('.')))
+			throw new InvalidOperationException("every SQL:2023 row was skipped:" + Environment.NewLine + string.Join(Environment.NewLine, _skipped));
+	}
+
 	static string PairedMarkdown(bool pinned, double control, Row[] rows, string sides = "", Dictionary<string, Row>? aa = null)
 	{
 		var text = new StringBuilder();
@@ -2274,6 +2310,17 @@ static partial class Stand
 		if (sides.Length > 0)
 		{
 			text.AppendLine(sides);
+			text.AppendLine();
+		}
+
+		if (_skipped.Count > 0)
+		{
+			text.AppendLine("**Rows skipped, a side having no entry for them:**");
+			text.AppendLine();
+
+			foreach (var one in _skipped.Distinct())
+				text.AppendLine(CultureInfo.InvariantCulture, $"- {one}");
+
 			text.AppendLine();
 		}
 
