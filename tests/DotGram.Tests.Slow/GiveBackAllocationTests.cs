@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -70,33 +71,41 @@ public sealed class GiveBackAllocationTests
 		return string.Join(", ", Enumerable.Repeat("ab", count));
 	}
 
-	[Theory]
-	[InlineData(CarrierKind.Immediate)]
-	[InlineData(CarrierKind.Tape)]
-	public void A_refused_list_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier)
-	{
-		var host = Compile(carrier);
+	/// <summary>Which form reads the text: over a string, over a <c>TextReader</c>, or over a <c>Stream</c> of bytes.</summary>
+	public enum Form { Text, Reader, Stream }
 
-		AssertLinear(host, "TryParseList", static n => ListOf(n) + ", <", static n => ListOf(n));
+	[Theory]
+	[InlineData(CarrierKind.Immediate, Form.Text)]
+	[InlineData(CarrierKind.Immediate, Form.Reader)]
+	[InlineData(CarrierKind.Immediate, Form.Stream)]
+	[InlineData(CarrierKind.Tape, Form.Text)]
+	public void A_refused_list_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier, Form form)
+	{
+		var host = Compile(carrier, form);
+
+		AssertLinear(host, "TryParseList", form, static n => ListOf(n) + ", <", static n => ListOf(n));
 	}
 
 	[Theory]
-	[InlineData(CarrierKind.Immediate)]
-	[InlineData(CarrierKind.Tape)]
-	public void A_refused_pair_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier)
+	[InlineData(CarrierKind.Immediate, Form.Text)]
+	[InlineData(CarrierKind.Immediate, Form.Reader)]
+	[InlineData(CarrierKind.Immediate, Form.Stream)]
+	[InlineData(CarrierKind.Tape, Form.Text)]
+	public void A_refused_pair_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier, Form form)
 	{
-		var host = Compile(carrier);
+		var host = Compile(carrier, form);
 
-		AssertLinear(host, "TryParsePair", static n => ListOf(n) + ", z?", static n => ListOf(n) + ", z!");
+		AssertLinear(host, "TryParsePair", form, static n => ListOf(n) + ", z?", static n => ListOf(n) + ", z!");
 	}
 
 	/// <summary>
 	/// Bytes a refused text allocates grow by about two per doubling, and stay under about twice what
 	/// its accepted twin allocates: the first two attempts are built, the attempts after them are not.
+	/// Over a reader or a stream the buffer the call rents and the reader over it are the constant.
 	/// </summary>
-	static void AssertLinear(Type host, string entry, Func<int, string> refused, Func<int, string> accepted)
+	static void AssertLinear(Type host, string entry, Form form, Func<int, string> refused, Func<int, string> accepted)
 	{
-		var read = Reader(host, entry);
+		var read = Reader(host, entry, form);
 
 		// Every size once before anything is measured, so that no pool grows inside a measurement.
 		foreach (var size in Sizes)
@@ -115,7 +124,7 @@ public sealed class GiveBackAllocationTests
 
 		foreach (var (size, refusedBytes, acceptedBytes) in bytes)
 			Assert.True(
-				refusedBytes <= 2.1 * acceptedBytes + 4096,
+				refusedBytes <= 2.1 * acceptedBytes + 16384,
 				$"A refusal at {size} members allocates {refusedBytes:N0} bytes where the accepted text allocates {acceptedBytes:N0}: {shown}.");
 	}
 
@@ -153,19 +162,34 @@ public sealed class GiveBackAllocationTests
 		return best;
 	}
 
-	static Func<string, bool> Reader(Type host, string entry)
+	static Func<string, bool> Reader(Type host, string entry, Form form)
 	{
-		var method    = host.GetMethod(entry, [typeof(string)])!;
+		var method = form switch
+		{
+			Form.Reader => host.GetMethod(entry, [typeof(TextReader), typeof(int?), typeof(int?)])!,
+			Form.Stream => host.GetMethod(entry, [typeof(Stream), typeof(int?), typeof(int?)])!,
+			_ => host.GetMethod(entry, [typeof(string)])!,
+		};
 		var isSuccess = method.ReturnType.GetProperty("IsSuccess")!;
 
-		return text => (bool)isSuccess.GetValue(method.Invoke(null, [text]))!;
+		return form switch
+		{
+			Form.Reader => text => (bool)isSuccess.GetValue(method.Invoke(null, [new StringReader(text), null, null]))!,
+			Form.Stream => text => (bool)isSuccess.GetValue(method.Invoke(null, [new MemoryStream(System.Text.Encoding.ASCII.GetBytes(text)), null, null]))!,
+			_ => text => (bool)isSuccess.GetValue(method.Invoke(null, [text]))!,
+		};
 	}
 
-	static Type Compile(CarrierKind carrier)
+	static Type Compile(CarrierKind carrier, Form form)
 	{
-		var compiled = GramCompiler.Compile(Grammar, new GramCompilerOptions
+		// The stream form is published beside the string one (`stream bytes`), and reads bytes.
+		var grammar = form == Form.Stream
+			? Grammar.Replace("parse List", "parse List stream bytes").Replace("parse Pair", "parse Pair stream bytes")
+			: Grammar;
+
+		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance,
+			ClassName = "Grammar", Carrier = carrier, CSharpScanner = RoslynCSharpScanner.Instance, BufferedInput = form != Form.Text,
 		});
 
 		Assert.DoesNotContain(compiled.Diagnostics, static one => one.Severity == GramSeverity.Error);
@@ -173,7 +197,7 @@ public sealed class GiveBackAllocationTests
 		var source = Assert.Single(compiled.Sources).Text;
 
 		// The immediate reading is the one measured; the tape beside it is what it is held near.
-		Assert.Equal(carrier == CarrierKind.Immediate, source.Contains("unbuilt = 1;", StringComparison.Ordinal));
+		Assert.Equal(carrier == CarrierKind.Immediate, source.Contains("Retried_DotGram(", StringComparison.Ordinal));
 
 		return EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;
 	}

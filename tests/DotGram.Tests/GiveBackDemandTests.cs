@@ -34,9 +34,9 @@ namespace DotGram.Tests;
 /// through Auto says so, so that nothing passes as an immediate reading that is the tape again.
 /// </para>
 /// <para>
-/// A buffered input (a <c>TextReader</c>) is read once, recording, by a machine that never asks
-/// whether its failure is quiet, so its loops are left out and build as they always did; the two
-/// carriers are held to the same values and messages there all the same.
+/// A buffered input (a <c>TextReader</c>) is read once, recording: there the attempt that stood is
+/// read again recording too, and what that reading recorded is taken back afterwards, so its
+/// refusal says what the tape's says.
 /// </para>
 /// </remarks>
 public sealed class GiveBackDemandTests
@@ -154,15 +154,14 @@ public sealed class GiveBackDemandTests
 	}
 
 	/// <summary>
-	/// The same list over a buffered input, whose one reading records as it goes and whose loops are
-	/// left out of the deferral: the values and the refusals agree with the tape's, and the Pair's
-	/// mutation is seen once.
+	/// The same list over a buffered input, whose one reading records as it goes: the members are
+	/// built a bounded number of times, the values agree, and the refusal says what the tape's says.
 	/// </summary>
 	[Theory]
-	[InlineData("TryParseList", 30, ", <", null)]
-	[InlineData("TryParsePair", 30, ", z!", "#")]
-	[InlineData("TryParsePair", 30, ", z?", null)]
-	public void A_buffered_input_given_back_reads_as_the_tape_does(string entry, int n, string tail, string? accepted)
+	[InlineData("TryParseList", 60, ", <", null)]
+	[InlineData("TryParsePair", 60, ", z!", "#")]
+	[InlineData("TryParsePair", 60, ", z?", null)]
+	public void A_buffered_input_given_back_builds_a_bounded_number_of_times_and_refuses_as_the_tape_does(string entry, int n, string tail, string? accepted)
 	{
 		var input     = Members_(n) + tail;
 		var tape      = Run(CarrierKind.Tape, Grammar, entry, input, buffered: true);
@@ -174,6 +173,99 @@ public sealed class GiveBackDemandTests
 			Assert.StartsWith("<refused", tape.Answer, StringComparison.Ordinal);
 		else
 			Assert.EndsWith("|" + accepted + "]", tape.Answer, StringComparison.Ordinal);
+
+		// Two attempts per loop that gives back (the entry's, and Pair's own) build; the rest do not.
+		Assert.InRange(immediate.Built.Count(static one => one == "Item"), n, 4 * (n + 1));
+	}
+
+	/// <summary>
+	/// A recording attempt opens a way at a shut door of a repetition where a quiet one breaks
+	/// before it: the reading that builds the attempt that stood has to be of the same kind as the
+	/// attempt, or it takes the recorded ways in other places. The two grammars of the reviews that
+	/// found it, on every carrier, in the answering and the throwing forms: values and messages
+	/// equal to the tape's.
+	/// </summary>
+	const string ShutDoor = """
+		trivia = none
+		Inner : @string = x: ['a']+ & "aa" & ('b' & 'c')* & ['b' | '!']? & '!' => @(Log("Inner", x.ToString()))
+		Start : @string = i: Inner & when @(i.Length > 0) & '?' => @(Log("Start", i))
+		parse Start
+		""";
+
+	const string TwoLists = """
+		@using System.Collections.Generic;
+		trivia = none
+		Ows  = [' ']*
+		Word = ['a'..'z']+
+		List : @List<string> = first: Item & rest: Rest* & Ows => @(Join(first, rest))
+		Rest : @string = Ows & ',' & Ows & item: Item => @(Log("Rest", item))
+		Item : @string = text: Word => @(Log("Item", text.ToString()))
+		Inner : @string = a: List & ';' & b: List & ',' & Ows & 'z' & ',' & Ows & 'z' => @(Log("Inner", string.Join("|", a) + ";" + string.Join("|", b)))
+		Outer : @string = i: Inner & when @(i.Length > 0) & '!' => @(Log("Outer", i))
+		parse Outer
+		""";
+
+	[Theory]
+	[InlineData(CarrierKind.Tape, ShutDoor, "TryParseStart", "aaa!!x")]
+	[InlineData(CarrierKind.Auto, ShutDoor, "TryParseStart", "aaa!!x")]
+	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaa!!x")]
+	[InlineData(CarrierKind.Immediate, ShutDoor, "ParseStart", "aaa!!x")]
+	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaa!?")]
+	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaabc!?")]
+	[InlineData(CarrierKind.Tape, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
+	[InlineData(CarrierKind.Auto, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
+	[InlineData(CarrierKind.Immediate, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
+	[InlineData(CarrierKind.Immediate, TwoLists, "ParseOuter", "ab, ab;ab, ab, z, z?")]
+	[InlineData(CarrierKind.Immediate, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z!")]
+	[InlineData(CarrierKind.Immediate, TwoLists, "TryParseOuter", "ab;ab, z, z!")]
+	public void A_replay_takes_the_recorded_ways_where_a_recording_attempt_took_them(CarrierKind carrier, string grammar, string entry, string input)
+	{
+		var tape    = Run(CarrierKind.Tape, grammar, entry, input);
+		var outcome = Run(carrier, grammar, entry, input);
+
+		Assert.Equal(tape.Answer, outcome.Answer);
+
+		if (carrier == CarrierKind.Auto)
+			Assert.Equal("Tape", outcome.Chosen);
+	}
+
+	/// <summary>
+	/// The reading that builds the attempt that stood, made while recording: an entry whose own
+	/// guard asks for its value so far reads a refused input a second time with the count at zero
+	/// and recording, so a loop under it that gives back twice there defers and replays while the
+	/// message is being collected. The message is the tape's.
+	/// </summary>
+	const string SelfAskingOverTwo = """
+		@using System.Collections.Generic;
+		trivia = none
+		Ows  = [' ']*
+		Word = ['a'..'z']+
+		List : @List<string> = first: Item & rest: Rest* & Ows => @(Join(first, rest))
+		Rest : @string = Ows & ',' & Ows & item: Item => @(Log("Rest", item))
+		Item : @string = text: Word => @(Log("Item", text.ToString()))
+		Two : @string = l: List & ',' & Ows & 'q' & ',' & Ows & 'q' => @(Log("Two", string.Join("|", l)))
+		Fold : @string = l: Fold & Ows & ';' & Ows & when @(l.Length > 0) & t: Two => @(Log("Fold", l + "+" + t)) | t: Two => @(Log("Fold", t))
+		parse Fold
+		""";
+
+	[Theory]
+	[InlineData("TryParseFold", "ab, q, q", "ab")]
+	[InlineData("TryParseFold", "ab, q, q ; ab, ab, q, q", "ab+ab|ab")]
+	[InlineData("TryParseFold", "ab, q, q ; ab, q, q, x", null)]
+	[InlineData("TryParseFold", "ab, q, q ; ab, q, q ;", null)]
+	[InlineData("ParseFold", "ab, q, q ; ab, q, q, x", null)]
+	[InlineData("ParseFold", "ab, q, q, q", "ab|q")]
+	public void A_loop_replayed_while_the_message_is_collected_leaves_the_message_the_tapes(string entry, string input, string? expected)
+	{
+		var tape      = Run(CarrierKind.Tape, SelfAskingOverTwo, entry, input);
+		var immediate = Run(CarrierKind.Immediate, SelfAskingOverTwo, entry, input);
+
+		if (expected is not null)
+			Assert.Equal(expected, tape.Answer);
+		else
+			Assert.StartsWith("<", tape.Answer, StringComparison.Ordinal);
+
+		Assert.Equal(tape.Answer, immediate.Answer);
 	}
 
 	/// <summary>
@@ -441,13 +533,18 @@ public sealed class GiveBackDemandTests
 		""";
 
 	[Theory]
-	[InlineData("!", 3000)]
-	[InlineData("", 3000)]
+	[InlineData("!", 8000)]
+	[InlineData("", 8000)]
 	public void A_give_back_below_a_hand_off_builds_once(string tail, int depth)
 	{
 		var input = new string('(', depth) + "ab, ab, z" + new string(')', depth) + tail;
 
-		// On a stack too small for the depth, so that the reading is handed off on its way down.
+		// On a 256 KiB stack: eight thousand levels of a reader whose frame cannot be under forty
+		// bytes do not fit it, so a reading that answers was handed off on its way down — the
+		// generated reader probes and hands off (Deepen_DotGram), and without that the process
+		// would have died of the overflow rather than failed the test.
+		Assert.Contains("Deepen_DotGram(", Compile(CarrierKind.Immediate, Deep).Source, StringComparison.Ordinal);
+
 		var tape      = OnSmallStack(() => Run(CarrierKind.Tape, Deep, "TryParseNest", input));
 		var immediate = OnSmallStack(() => Run(CarrierKind.Immediate, Deep, "TryParseNest", input));
 
@@ -498,15 +595,18 @@ public sealed class GiveBackDemandTests
 	[InlineData(Marked, "TryParseList|TryParsePair|ParseList|ParsePair", "ab ,z!<")]
 	[InlineData(Alternatives, "TryParseAlt|ParseAlt", "ab ,z!?")]
 	[InlineData(Atomic, "TryParseSealed|ParseSealed", "ab ,z!?")]
+	[InlineData(ShutDoor, "TryParseStart|ParseStart", "abc!?x")]
+	[InlineData(TwoLists, "TryParseOuter|ParseOuter", "ab ,;z!?")]
+	[InlineData(SelfAskingOverTwo, "TryParseFold|ParseFold", "ab ,;qx")]
 	public void The_carriers_agree_over_random_texts(string grammar, string entries, string alphabet)
 	{
 		var tape      = Compile(CarrierKind.Tape, grammar);
 		var immediate = Compile(CarrierKind.Immediate, grammar);
 		var random    = new Random(20261007);
 
-		for (var i = 0; i < 1500; i++)
+		for (var i = 0; i < 4000; i++)
 		{
-			var length = random.Next(0, 13);
+			var length = random.Next(0, 16);
 			var text   = new string(Enumerable.Range(0, length).Select(_ => alphabet[random.Next(alphabet.Length)]).ToArray());
 
 			foreach (var entry in entries.Split('|'))
@@ -526,10 +626,11 @@ public sealed class GiveBackDemandTests
 		var source = Assert.Single(compiled.Sources).Text;
 
 		// The immediate reading is the one under test, and a grammar it could not carry would be
-		// read on the tape and pass by testing nothing. Every grammar here builds on a give-back,
-		// so its loops read unbuilt.
+		// read on the tape and pass by testing nothing. Every grammar here has a loop that gives
+		// back and builds, so some loop of it is written with the hooks: the call that moves where
+		// the loop stands on a way given back is written nowhere else.
 		if (carrier == CarrierKind.Immediate)
-			Assert.Contains("unbuilt = 1;", source, StringComparison.Ordinal);
+			Assert.Contains("Retried_DotGram(", source, StringComparison.Ordinal);
 
 		var told   = compiled.Diagnostics.FirstOrDefault(static one => one.Id == GramCompiler.CarrierChosen);
 		var chosen = carrier != CarrierKind.Auto ? carrier.ToString()

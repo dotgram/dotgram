@@ -302,6 +302,16 @@ sealed partial class Machine
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
 
+				// What a loop that reads the attempt that stood once more puts back afterwards:
+				// the failure as it was before, and how many ties it held (Stood_DotGram). One
+				// of each: a replay follows the ways an attempt decided and fails nowhere, so
+				// no loop inside it defers, and a loop around a deferring one is building still.
+				if (machine.Replays)
+				{
+					yield return (CSharpEmitter.FailureType, "replayed");
+					yield return ("int", "replayedMore");
+				}
+
 				// Where a recovered element is, counted on from the one before (Located_DotGram): the
 				// bad elements are stepped over in the order they are read, as the tape's walk visits
 				// them. Over buffered input the buffer counts, and nothing is kept here.
@@ -333,6 +343,94 @@ sealed partial class Machine
 		internal void Resettled()
 		{
 			_unbuilding = null;
+		}
+
+		/// <summary>
+		/// The methods a loop that defers building on a give-back calls off its hot path
+		/// (<see cref="Machine.DefersOnGiveBack"/>): where a loop stands is a local <c>u</c> of
+		/// the loop — 0 building, as every loop begins; 1 building still, one way given back; 2
+		/// reading unbuilt, the count raised by this loop; 3 reading the attempt that stood once
+		/// more — and these move it. Not inlined, so that what a loop writes beside its attempt is
+		/// one compare of the local and these calls: the paths they stand on are the rare ones.
+		/// </summary>
+		/// <remarks>
+		/// The replay records as any reading does: a reading that records opens a way at a shut
+		/// door where a quiet one breaks (<c>if (!open &amp;&amp; failure.Quiet)</c>), so only a
+		/// reading of the same kind as the attempt it replays takes the recorded ways in the same
+		/// places. What it records it had already recorded as the attempt that stood, so the
+		/// failure is kept before the replay and put back after it, and the ties the replay added
+		/// are dropped: the message is the attempt's own, said once.
+		/// </remarks>
+		static void ReplayMethods(Writer file)
+		{
+			const string NoInlining =
+				"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
+			file.Line("/// <summary>An attempt stood after this loop gave a way back twice: read unbuilt, it is read once more to be built (3), with the failure kept to be put back; or the reading that built it stood, and the failure is put back (0).</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("int Stood_DotGram(int u, int s)"))
+			{
+				using (file.Block("if (u == 2)"))
+				{
+					file.Line("replayed     = failure;");
+					file.Line("replayedMore = failure.ExpectedMore == null ? 0 : failure.ExpectedMore.Count;");
+					file.Line("unbuilt      = 0;");
+					file.Line("ways.Cursor  = s;");
+					file.Line();
+					file.Line("return 3;");
+				}
+
+				file.Line();
+				file.Line("Replayed_DotGram();");
+				file.Line();
+				file.Line("return 0;");
+			}
+
+			file.Line();
+			file.Line("/// <summary>What a reading made once more recorded, taken back: it recorded what the attempt it read again had recorded already.</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("void Replayed_DotGram()"))
+			{
+				file.Line("var more = failure.ExpectedMore;");
+				file.Line();
+				file.Line("failure = replayed;");
+				file.Line();
+				file.Line("if (more != null && more.Count > replayedMore)");
+				file.Then("more.RemoveRange(replayedMore, more.Count - replayedMore);");
+			}
+
+			file.Line();
+			file.Line("/// <summary>A way given back: the first is read building still, the second raises the count, where the reading was building.</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("int Retried_DotGram(int u)"))
+			{
+				using (file.Block("if (u == 1)"))
+				{
+					file.Line("unbuilt = 1;");
+					file.Line();
+					file.Line("return 2;");
+				}
+
+				file.Line();
+				file.Line("return u == 0 && unbuilt == 0 ? 1 : u;");
+			}
+
+			file.Line();
+			file.Line("/// <summary>A loop that ends without an answer puts back what it raised: the count, or the failure a replay was to put back.</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("void Undeferred_DotGram(int u)"))
+			{
+				file.Line("if (u == 2)");
+				file.Then("unbuilt = 0;");
+				file.Line("else if (u == 3)");
+				file.Then("Replayed_DotGram();");
+			}
+
+			file.Line();
 		}
 
 		/// <summary>
@@ -688,13 +786,16 @@ sealed partial class Machine
 		{
 			get
 			{
+				var file = new Writer(0);
+
+				if (machine.Replays)
+					ReplayMethods(file);
+
 				if (machine._directRules is not { } rules ||
 					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))
 				{
-					return "";
+					return file.ToString();
 				}
-
-				var file = new Writer(0);
 
 				file.Line("/// <summary>A run of text gathered across turns, joined: one cut where its pieces tile, each piece on its own where they do not.</summary>");
 
