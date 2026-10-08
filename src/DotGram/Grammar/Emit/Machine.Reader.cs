@@ -361,8 +361,7 @@ sealed partial class Machine
 				// A trace build's body sends them there itself, leaving the rule as it goes.
 				var slot = !tape && _memo.TryGetValue(rule, out var bit) ? bit : -1;
 
-				reader.Memoised   = slot >= 0 && Tracing is not null;
-				reader.Remembered = slot >= 0;
+				reader.Memoised = slot >= 0 && Tracing is not null;
 
 				var body = slot >= 0 ? reader.Render(_graph.Bodies[rule], FollowOf(rule)) : null;
 
@@ -1799,13 +1798,6 @@ sealed partial class Machine
 		internal bool Memoised;
 
 		/// <summary>
-		/// Whether this writer renders a remembered rule's own method in any build: where it is not a
-		/// trace build, every <c>return -1;</c> of the body is then sent to the place that remembers the
-		/// failure, so a refusal has to fail in those words (Machine.Memo.cs).
-		/// </summary>
-		internal bool Remembered;
-
-		/// <summary>
 		/// The frames of forwarding rules open where code is being written, innermost last: the
 		/// rule's number and the local holding where it was entered. A trace build's only.
 		/// </summary>
@@ -1853,24 +1845,6 @@ sealed partial class Machine
 				closed.Append($"failure.Trace?.Exit({_frames[i].Rule}, {_frames[i].At}, -1); ");
 
 			return closed.Append(leave).Append(" }").ToString();
-		}
-
-		/// <summary>
-		/// What <see cref="Fails"/> writes with the failure's value given as <paramref name="value"/>,
-		/// where that is one return statement; null where it closes frames or jumps first, or where the
-		/// method is a remembered rule's, whose failures are all sent to the memo.
-		/// </summary>
-		string? FailsWith(string value)
-		{
-			if (Remembered || _frames.Count > 0)
-				return null;
-
-			var leave = machine.Tracing is not { } tracing || !Reports
-				? $"return {value};"
-				: $"return Exited_DotGram({tracing.RuleOf(owner)}, pos, {value});";
-			var given = GivenBack();
-
-			return given.Length == 0 ? leave : $"{{ {given} {leave} }}";
 		}
 
 		/// <summary>What a failure here gives back before it leaves (<see cref="Fails"/>), or nothing.</summary>
@@ -2124,7 +2098,8 @@ sealed partial class Machine
 						code.Line($"c = {machine.ReadAt("p - 1")};");
 						code.Line();
 
-						RefusedUnder(code, $"if ({CSharpEmitter.Test(boundary, machine.Tabulate)})", name);
+						using (code.Block($"if ({CSharpEmitter.Test(boundary, machine.Tabulate)})"))
+							Refused(code, name);
 
 						if (loaded)
 						{
@@ -2435,7 +2410,8 @@ sealed partial class Machine
 				if (loaded)
 					_character = true;
 
-				RefusedUnder(code, $"if ({room}{test})", name);
+				using (code.Block($"if ({room}{test})"))
+					Refused(code, name);
 
 				code.Line($"p += {text.Length};");
 
@@ -2603,7 +2579,8 @@ sealed partial class Machine
 
 			if (!loaded)
 			{
-				RefusedUnder(code, $"if ({machine.Past("p")})", name);
+				using (code.Block($"if ({machine.Past("p")})"))
+					Refused(code, name);
 
 				code.Line($"c = {machine.ReadAt("p")};");
 			}
@@ -2613,7 +2590,8 @@ sealed partial class Machine
 			// Not where the case label that brought the reading here admits nothing the
 			// element would refuse: the switch was the test.
 			if (!string.Equals(test, "true", StringComparison.Ordinal) && !(loaded && Chosen(first)))
-				RefusedUnder(code, $"if (!({test}))", name);
+				using (code.Block($"if (!({test}))"))
+					Refused(code, name);
 
 			code.Line("p++;");
 		}
@@ -3028,7 +3006,8 @@ sealed partial class Machine
 
 			_character = true;
 
-			RefusedUnder(code, $"if ({machine.Past("p")})", name);
+			using (code.Block($"if ({machine.Past("p")})"))
+				Refused(code, name);
 
 			code.Line($"c = {machine.ReadAt("p")};");
 
@@ -3050,7 +3029,8 @@ sealed partial class Machine
 
 			code.Line("else");
 
-			RefusedUnder(code, "", name);
+			using (code.Block(""))
+				Refused(code, name);
 		}
 
 		void EmitChain(
@@ -3061,7 +3041,8 @@ sealed partial class Machine
 
 			_character = true;
 
-			RefusedUnder(code, $"if ({machine.Past("p")})", name);
+			using (code.Block($"if ({machine.Past("p")})"))
+				Refused(code, name);
 
 			code.Line($"c = {machine.ReadAt("p")};");
 
@@ -3096,7 +3077,8 @@ sealed partial class Machine
 				}
 				else
 				{
-					RefusedUnder(code, $"if (!({machine.RangesTest(widest.Ranges, machine.Tabulate)}))", name);
+					using (code.Block($"if (!({machine.RangesTest(widest.Ranges, machine.Tabulate)}))"))
+						Refused(code, name);
 
 					_dispatched = widest;
 					Emit(code, last, following, loaded: true);
@@ -3229,7 +3211,8 @@ sealed partial class Machine
 
 				if (!loaded)
 				{
-					RefusedUnder(code, $"if ({machine.Past("p")})", whole);
+					using (code.Block($"if ({machine.Past("p")})"))
+						Refused(code, whole);
 
 					code.Line($"c = {machine.ReadAt("p")};");
 					code.Line();
@@ -3237,7 +3220,8 @@ sealed partial class Machine
 
 				_character = true;
 
-				RefusedUnder(code, $"if (!({machine.RangesTest(gate.Ranges, machine.Tabulate)}))", whole);
+				using (code.Block($"if (!({machine.RangesTest(gate.Ranges, machine.Tabulate)}))"))
+					Refused(code, whole);
 
 				code.Line();
 			}
@@ -4321,7 +4305,8 @@ sealed partial class Machine
 
 			if (min > 0)
 			{
-				RefusedUnder(code, $"if (p < {mark} + {min})", name);
+				using (code.Block($"if (p < {mark} + {min})"))
+					Refused(code, name);
 
 				code.Line();
 			}
@@ -4869,7 +4854,8 @@ sealed partial class Machine
 						// but the rule failing, and says what it wanted.
 						if (min > 0)
 						{
-							RefusedUnder(code, $"if ({turn} < {min})", machine.DeclareExpected(machine.Displays(body)));
+							using (code.Block($"if ({turn} < {min})"))
+								Refused(code, machine.DeclareExpected(machine.Displays(body)));
 
 							code.Line();
 						}
@@ -5509,7 +5495,8 @@ sealed partial class Machine
 
 			if (ends)
 			{
-				RefusedUnder(code, $"if ({seen} >= 0)", machine.EndOfInputExpected());
+				using (code.Block($"if ({seen} >= 0)"))
+					Refused(code, machine.EndOfInputExpected());
 
 				return;
 			}
@@ -5522,7 +5509,8 @@ sealed partial class Machine
 				return;
 			}
 
-			RefusedUnder(code, $"if ({seen} {(positive ? "<" : ">=")} 0)", machine.DeclareExpected([owner.Name]));
+			using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
+				Refused(code, machine.DeclareExpected([owner.Name]));
 		}
 
 		/// <summary>
@@ -5579,55 +5567,8 @@ sealed partial class Machine
 			// that ever did was the rendering beside it.
 			machine._expectedUsed.Add(expected);
 
-			if (Refuses(expected) is { } refused)
-			{
-				code.Line(refused);
-
-				return;
-			}
-
 			code.Line(Refusal(expected));
 			code.Line(Fails());
-		}
-
-		/// <summary>
-		/// <see cref="Refused(Writer, string)"/> under <paramref name="header"/>: one indented line where
-		/// the refusal is one statement, a block where it is two.
-		/// </summary>
-		void RefusedUnder(Writer code, string header, string expected)
-		{
-			machine._expectedUsed.Add(expected);
-
-			if (Refuses(expected) is { } refused)
-			{
-				// No header is the block opened under the line before it — an `else`.
-				if (header.Length > 0)
-					code.Line(header);
-
-				code.Then(refused);
-
-				return;
-			}
-
-			using (code.Block(header))
-				Refused(code, expected);
-		}
-
-		/// <summary>The refusal and the failure after it as one statement, or null where they are two.</summary>
-		/// <remarks>
-		/// The commonest refusal of all — a numbered set, recorded where the reading is not quiet, and
-		/// then the method fails — is one call that does both and answers the failure. A trace build's
-		/// exit takes the call as its value, so the refusal is still told before the exit.
-		/// </remarks>
-		string? Refuses(string expected)
-		{
-			if (!machine.Quiets || !ExpectedSets.TryId(expected, out var id) ||
-				FailsWith($"Refused_DotGram(ref failure, p, {id})") is not { } refused)
-				return null;
-
-			machine._refusesById = true;
-
-			return refused;
 		}
 
 		/// <summary>The statement that records a refusal here, asking first where a reading may be quiet.</summary>

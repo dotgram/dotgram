@@ -3183,21 +3183,6 @@ public static partial class CSharpEmitter
 			}
 		}
 
-		// <refused>
-		/// <summary>
-		/// The set numbered <paramref name="id"/> refused at <paramref name="at"/> where the reading is
-		/// not quiet, and the failure: what most refusals of a reader write, as one call.
-		/// </summary>
-		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-		static int Refused_DotGram(ref Failure failure, int at, int id)
-		{
-			if (!failure.Quiet)
-				Refuse_DotGram(ref failure, at, ExpectedSet_DotGram(id));
-
-			return -1;
-		}
-
-		// </refused>
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
 		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected)
 		{

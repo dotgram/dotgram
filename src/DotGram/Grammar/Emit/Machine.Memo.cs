@@ -97,12 +97,6 @@ sealed partial class Machine
 	/// </remarks>
 	bool _looks;
 
-	/// <summary>Whether this machine's reader refuses through <c>Refused_DotGram</c>: set where one does.</summary>
-	bool _refusesById;
-
-	/// <summary>Whether the file needs <c>Refused_DotGram</c> for this machine.</summary>
-	internal bool RefusesById => _refusesById;
-
 	/// <summary>Words a token: one for every sixty-four rules remembered.</summary>
 	int MemoWords => (_memo.Count + 63) / 64;
 
