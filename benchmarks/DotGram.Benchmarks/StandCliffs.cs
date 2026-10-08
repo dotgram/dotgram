@@ -24,10 +24,10 @@ static partial class Stand
 		var rows = new List<(string Name, string Method, string Text)>();
 
 		foreach (var n in new[] { 1_391, 1_738 })
-			rows.Add(($"refused-cliff-case-{n}", "TryParseStatement|TryParseQueryExpression", "SELECT CASE" + string.Concat(Enumerable.Repeat(" WHEN 1 = 1 THEN 1", n))));
+			rows.Add(($"refused-cliff-case-{n}", "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", "SELECT CASE" + string.Concat(Enumerable.Repeat(" WHEN 1 = 1 THEN 1", n))));
 
 		foreach (var n in new[] { 891, 1_113, 1_738, 2_172 })
-			rows.Add(($"refused-cliff-joins-{n}", "TryParseStatement|TryParseQueryExpression", "SELECT * FROM t" + string.Concat(Enumerable.Repeat(" JOIN t ON a = a", n)) + " JOIN"));
+			rows.Add(($"refused-cliff-joins-{n}", "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", "SELECT * FROM t" + string.Concat(Enumerable.Repeat(" JOIN t ON a = a", n)) + " JOIN"));
 
 		foreach (var n in new[] { 2_715, 3_393 })
 		{
@@ -37,7 +37,7 @@ static partial class Stand
 
 		foreach (var (name, method, text) in rows)
 		{
-			var own = method == "TryParseStatement|TryParseQueryExpression"
+			var own = method == "TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression"
 				? (Func<int>)(() => SqlStandardParser.TryParseStatement(text).IsSuccess ? 1 : 0)
 				: () => SqlStandardParser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 			var b = before.Sql(method, text);

@@ -85,7 +85,8 @@ static partial class Stand
 		FirstCall[] FirstCalls,
 		Held[]      Streamed,
 		Generated[] Generation,
-		string[]    MissingGeneration);
+		string[]    MissingGeneration,
+		string?     Placement = null);
 
 	// Picked 2026-09-18 against 7/25 (the original, most rows at 60-120% spread), 9/75 (closer
 	// to clearing every row but 4x the run, over budget) and this one, which keeps the run under
@@ -143,7 +144,8 @@ static partial class Stand
 			only is null ? FirstCalls(workloads) : [],
 			only is null ? Streamed() : [],
 			only is null ? Generation(root) : [],
-			only is null ? MissingGeneration(root) : []);
+			only is null ? MissingGeneration(root) : [],
+			_placement);
 
 		var report = Markdown(result) + (only is null ? GenerationGate(result, root, against) : "");
 
@@ -881,8 +883,12 @@ static partial class Stand
 		/// <summary>Whether the side was given DotGram.Web, and so has URLs and JSON to read.</summary>
 		public bool HasWeb => _uri is not null;
 
+		/// <summary>"before" or "after", for a message.</summary>
+		public string Name { get; }
+
 		public PairedSide(string name, string directory)
 		{
+			Name = name;
 			directory = Path.GetFullPath(directory);
 
 			var alc = new AssemblyLoadContext(name, isCollectible: false);
@@ -995,6 +1001,12 @@ static partial class Stand
 		public bool HasSql(string methods)
 		{
 			return SqlEntry(methods) is not null;
+		}
+
+		/// <summary>The public <c>TryParse*(string)</c> entries of this side's SQL:2023 parser, for a message.</summary>
+		public string SqlEntries()
+		{
+			return string.Join(", ", _sql.GetMethods(BindingFlags.Static | BindingFlags.Public).Where(static one => one.Name.StartsWith("TryParse", StringComparison.Ordinal) && one.GetParameters() is [{ ParameterType.Name: "String" }]).Select(static one => one.Name).Distinct().Order(StringComparer.Ordinal));
 		}
 
 		MethodInfo? SqlEntry(string methods)
@@ -1863,7 +1875,7 @@ static partial class Stand
 			PairedExpression("refused-late",  "(int x) => x + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 +", before, after),
 
 			.. PairedSql("literal", "TryParseValue|TryParseLiteral", "TryParseValue", "1", before, after),
-			.. PairedSql("comment", "TryParseStatement", "TryParseStatement", SqlWithComments + ";", before, after),
+			.. PairedSql("comment", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", SqlWithComments + ";", before, after),
 			.. PairedSql("conditions100", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(100), before, after),
 			.. PairedSql("conditions1000", "TryParseSearchCondition", "TryParseSearchCondition", SqlConditions(1000), before, after),
 			PairedTsql("comment", SqlWithComments, before, after),
@@ -1871,17 +1883,17 @@ static partial class Stand
 			// The ordinary statements the stand reads against ScriptDom, side against side.
 			.. TsqlRows.Select(row => PairedTsql(row.Name, row.Text, before, after)),
 
-			.. PairedSql("value1", "TryParseExpression", "TryParseExpression", "1", before, after),
+			.. PairedSql("value1", "TryParseExpression|TryParseValueExpression", "TryParseExpression", "1", before, after),
 			.. PairedSql("arithmetic", "TryParseExpression|TryParseValueExpression", "TryParseExpression", "(a + b) * c - d / 5", before, after),
 			.. PairedSql("nest8", "TryParseExpression|TryParseValueExpression", "TryParseExpression", "((((((((a))))))))", before, after),
 			.. PairedSql("condition1", "TryParseSearchCondition", "TryParseSearchCondition", "a = 1", before, after),
 			.. PairedSql("condition", "TryParseSearchCondition", "TryParseSearchCondition", "x = 1 AND y IS NOT NULL OR z BETWEEN 1 AND 2", before, after),
-			.. PairedSql("select1", "TryParseStatement", "TryParseStatement", "SELECT a FROM t;", before, after),
-			.. PairedSql("select20", "TryParseStatement", "TryParseStatement", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", before, after),
-			.. PairedSql("values", "TryParseStatement", "TryParseStatement", "VALUES (1);", before, after),
-			.. PairedSql("statement-create", "TryParseStatement", "TryParseStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", before, after),
+			.. PairedSql("select1", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", "SELECT a FROM t;", before, after),
+			.. PairedSql("select20", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", "SELECT " + string.Join(", ", Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1;", before, after),
+			.. PairedSql("values", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", "VALUES (1);", before, after),
+			.. PairedSql("statement-create", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", "CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a));", before, after),
 			.. PairedSql("script", "TryParseSql", "TryParseSql", SqlScript, before, after),
-			.. PairedSql("refused-late", "TryParseStatement", "TryParseStatement", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", before, after),
+			.. PairedSql("refused-late", "TryParseStatement|TryParseDirectSQLStatement", "TryParseStatement", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c = ;", before, after),
 
 			// SQL-92, side against side, on the rows of the plain stand (Workloads): the accepted ones and the
 			// refusals, early, late, stray and cut.
@@ -2058,12 +2070,17 @@ static partial class Stand
 	/// <summary>
 	/// A row of SQL:2023, side against side. <paramref name="method"/> names the entry, or several names
 	/// apart by <c>|</c> where the entry was renamed (the first a side has is read); a side that has none of
-	/// them has no such row, and the pair leaves it out, as it does a FIX row of a side without FIX.
+	/// them is a fault of the stand (every side has the SQL:2023 library, so a missing entry is a name the row does
+	/// not know yet), and it stops the run naming the row, the side and the entries that side does have, rather than
+	/// leaving the row out of the pair unseen.
 	/// </summary>
 	static IEnumerable<Workload> PairedSql(string name, string method, string hand, string text, PairedSide before, PairedSide after)
 	{
-		if (!before.HasSql(method) || !after.HasSql(method))
-			yield break;
+		foreach (var side in new[] { before, after })
+		{
+			if (!side.HasSql(method))
+				throw new InvalidOperationException($"row sql/{name}: no entry {method.Replace("|", " or ")} on the {side.Name} side, which has {side.SqlEntries()}. Add the old or new name of the entry to the row.");
+		}
 
 		var byBefore = before.Sql(method, text);
 		var byAfter  = after.Sql(method, text);
@@ -2129,7 +2146,7 @@ static partial class Stand
 		var text = PairedMarkdown(pinned, Median(controls), [.. rows], SideNote(beforeDir, afterDir));
 
 		File.WriteAllText(Path.Combine(output, "paired.md"), text);
-		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows]), Json));
+		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(Median(controls), [.. rows], _placement), Json));
 
 		Console.WriteLine();
 		Console.WriteLine(text);

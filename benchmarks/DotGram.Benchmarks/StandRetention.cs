@@ -38,8 +38,8 @@ static partial class Stand
 		{
 			var text = "SELECT " + string.Join(", ", Enumerable.Range(0, columns).Select(static i => "c" + i)) + " FROM t";
 			var own  = (Func<int>)(() => SqlStandardParser.TryParseStatement(text).IsSuccess ? 1 : 0);
-			var b    = before.Sql("TryParseStatement|TryParseQueryExpression", text);
-			var a    = after.Sql("TryParseStatement|TryParseQueryExpression", text);
+			var b    = before.Sql("TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", text);
+			var a    = after.Sql("TryParseStatement|TryParseDirectSQLStatement|TryParseQueryExpression", text);
 
 			yield return new Workload("sql", name,
 				[

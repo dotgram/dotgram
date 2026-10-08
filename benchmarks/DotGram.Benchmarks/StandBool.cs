@@ -44,12 +44,12 @@ static partial class Stand
 			("select20",     "TryParseStatement",       "SELECT " + string.Join(", ", System.Linq.Enumerable.Range(0, 20).Select(i => "a" + i)) + " FROM t WHERE a0 = 1"),
 		})
 		{
-			var quiet = after.SqlBool(method + "|TryParseQueryExpression", text);
+			var quiet = after.SqlBool(method + "|TryParseDirectSQLStatement|TryParseQueryExpression", text);
 
 			if (quiet is null)
 				continue;
 
-			var match = before.Sql(method + "|TryParseQueryExpression", text);
+			var match = before.Sql(method + "|TryParseDirectSQLStatement|TryParseQueryExpression", text);
 
 			yield return new Workload("sql", name + ".bool",
 				[

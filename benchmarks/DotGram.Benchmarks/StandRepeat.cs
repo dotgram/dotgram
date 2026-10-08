@@ -27,7 +27,7 @@ static partial class Stand
 	internal const int MinimumKept = 3;
 
 	/// <summary>What a run of the paired stand leaves for the runs to be merged from.</summary>
-	sealed record Taken(double Control, Row[] Rows);
+	sealed record Taken(double Control, Row[] Rows, string? Placement = null);
 
 	/// <summary>The runs' medians, and what to say about which runs were used.</summary>
 	sealed record Pooled(Row[] Rows, double Control, int[] Kept, string Note);
@@ -81,9 +81,10 @@ static partial class Stand
 		var runs   = Enumerable.Range(1, count)
 			.Select(i => JsonSerializer.Deserialize<Result>(File.ReadAllText(Path.Combine(output, $"run-{i}", "stand.json")), Json)!)
 			.ToArray();
-		var pooled = Pool([.. runs.Select(static one => new Taken(one.Control, one.Rows))], output);
+		var pooled = Pool([.. runs.Select(static one => new Taken(one.Control, one.Rows, one.Placement))], output);
+		var pinned = TakePlacement(runs.Select(static one => one.Placement));
 		var first  = runs[pooled.Kept[0]];
-		var merged = first with { Control = pooled.Control, Rows = pooled.Rows };
+		var merged = first with { Control = pooled.Control, Rows = pooled.Rows, Pinned = pinned };
 		var report = pooled.Note + Markdown(merged) + (only is null ? GenerationGate(merged, root, against) : "");
 
 		File.WriteAllText(Path.Combine(output, "stand.json"), JsonSerializer.Serialize(merged, Json));
@@ -149,6 +150,7 @@ static partial class Stand
 			.Select(i => JsonSerializer.Deserialize<Taken>(File.ReadAllText(Path.Combine(output, $"run-{i}", "paired.json")), Json)!)
 			.ToArray();
 		var pooled = Pool(runs, output);
+		var pinned = TakePlacement(runs.Select(static one => one.Placement));
 		Dictionary<string, Row>? aa = null;
 
 		if (withAa && count >= 1)
@@ -162,14 +164,45 @@ static partial class Stand
 				aa = Pool(aaRuns, output).Rows.ToDictionary(static row => row.Id);
 		}
 
-		var report = pooled.Note + PairedMarkdown(true, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir) + (aaNote.Length > 0 ? " " + aaNote : ""), aa);
+		var report = pooled.Note + PairedMarkdown(pinned, pooled.Control, pooled.Rows, SideNote(beforeDir, afterDir) + (aaNote.Length > 0 ? " " + aaNote : ""), aa);
 
-		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows), Json));
+		File.WriteAllText(Path.Combine(output, "paired.json"), JsonSerializer.Serialize(new Taken(pooled.Control, pooled.Rows, _placement), Json));
 		File.WriteAllText(Path.Combine(output, "paired.md"), report);
 
 		Console.WriteLine();
 		Console.WriteLine(report);
 		Console.WriteLine($"Written to {output}");
+	}
+
+	/// <summary>
+	/// Where the runs were put, read from the runs themselves: the process that merges them runs no timing and never
+	/// calls <see cref="Pin"/>, so its own placement says nothing. Sets the placement the report prints and says whether
+	/// every run was pinned; a run that did not say (a report of an older stand) or one that was not pinned makes the
+	/// whole not pinned, and runs put in different places are named as such.
+	/// </summary>
+	static bool TakePlacement(IEnumerable<string?> placements)
+	{
+		var all = placements.ToArray();
+
+		if (all.Length == 0 || all.Any(static one => one is null))
+		{
+			_placement = "NOT pinned (the runs did not report where they were put)";
+
+			return false;
+		}
+
+		var distinct = all.Distinct(StringComparer.Ordinal).ToArray();
+
+		if (distinct.Length == 1)
+		{
+			_placement = distinct[0]!;
+
+			return !_placement.StartsWith("NOT pinned", StringComparison.Ordinal);
+		}
+
+		_placement = "placement differs between the runs: " + string.Join("; ", distinct);
+
+		return !distinct.Any(static one => one!.StartsWith("NOT pinned", StringComparison.Ordinal));
 	}
 
 	static DateTime? Deadline(double? minutes)
