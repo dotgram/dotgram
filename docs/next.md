@@ -39,7 +39,7 @@ The conventions below are the one part of the old handoff that is still operatio
 - Run the already-built test executable directly:
 
   ```powershell
-  .\tests\DotGram.Tests\bin\Debug\net10.0\DotGram.Tests.exe -noColor
+  .\.build\bin\DotGram.Tests\debug\DotGram.Tests.exe -noColor
   ```
 
 - Before committing, run `git diff --check`, verify line endings and BOM policy, and

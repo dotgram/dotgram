@@ -34,5 +34,5 @@ Otherwise run it when you want the evidence, not by habit.
 
 ```powershell
 dotnet build tests/DotGram.Finance.Fix44.Tests -c Debug
-dotnet tests/DotGram.Finance.Fix44.Tests/bin/Debug/net10.0/DotGram.Finance.Fix44.Tests.dll
+dotnet .build/bin/DotGram.Finance.Fix44.Tests/debug/DotGram.Finance.Fix44.Tests.dll
 ```

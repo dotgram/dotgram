@@ -15,11 +15,18 @@ requires on the .NET 10 SDK and `global.json` opts into. One project is the same
 its path — `dotnet test tests/DotGram.Tests/DotGram.Tests.csproj` — and not `--project`,
 which reports that zero tests ran. Every test project is also an executable, and the runner
 it builds into can be started directly:
-`tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe`,
-`tests/DotGram.Sql.Tests/bin/Debug/net10.0/DotGram.Sql.Tests.exe`, and — on Windows only,
-being net472 — `tests/DotGram.VisualStudio.Tests/bin/Debug/net472/DotGram.VisualStudio.Tests.exe`.
+`.build/bin/DotGram.Tests/debug/DotGram.Tests.exe`,
+`.build/bin/DotGram.Sql.Tests/debug/DotGram.Sql.Tests.exe`, and — on Windows only,
+being net472 — `.build/bin/DotGram.VisualStudio.Tests/debug/DotGram.VisualStudio.Tests.exe`.
 The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/MethodName"`
 runs one test. `DotGram.Tests` runs everything in about two minutes.
+
+All build output goes under `.build/` at the repository root (`ArtifactsPath` in
+`Directory.Build.props`) and nothing is written into a project's own folder: a project's binaries
+are in `.build/bin/<project>/<config>` and its intermediate files in `.build/obj/<project>/<config>`,
+lower-case, with the target framework appended (`release_net10.0`) for a project of several. The
+folder is ignored by git; deleting it is a clean, and it is the one folder to leave out of a
+backup. Packages are written where `--output` says (`artifacts/` in CI).
 
 On the Linux machine the solution builds with `-c Linux` (the solution configuration that leaves
 out the Visual Studio extension). A build or test run started by hand or by a script is best run
@@ -108,8 +115,8 @@ docker volume create dotgram-work
 docker run -d --name dotgram-linux -v P:/dotgram:/src/main:ro -v P:/dotgram.WorkTrees:/src/worktrees:ro -v dotgram-nuget:/root/.nuget/packages -v dotgram-work:/work mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
 ```
 
-The checkouts go in read-only and are never built in place: `bin/` and `obj/` there hold
-Windows output, and a Linux build that reads it earns CS0579 on assembly attributes it
+The checkouts go in read-only and are never built in place: `.build/` there (`bin/` and `obj/`
+in a checkout of an older commit) holds Windows output, and a Linux build that reads it earns CS0579 on assembly attributes it
 finds twice. The tree is copied into `/work` without them instead, which is what `ci`
 does — a script put in the container once, `docker cp ci dotgram-linux:/usr/local/bin/ci`
 and `chmod +x`:
@@ -123,7 +130,7 @@ name=$(basename "$tree")
 rm -rf "/work/$name"
 mkdir -p "/work/$name"
 
-tar -C "/src/$tree" --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=.work --exclude=artifacts -cf - . | tar -C "/work/$name" -xf -
+tar -C "/src/$tree" --exclude=.build --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=.work --exclude=artifacts -cf - . | tar -C "/work/$name" -xf -
 
 cd "/work/$name"
 dotnet restore DotGram.slnx
@@ -267,7 +274,7 @@ smallest thing that still recurses, and `Notation` is the notation's own grammar
 Where a change reaches further than the snapshots — anything in the emitters — the check is
 every generated file of every project, before and against after. Build with
 `-p:EmitCompilerGeneratedFiles=true` and compare
-`obj/GeneratedFiles/DotGram/DotGram.Generation.GramGenerator/` between a worktree at the
+`.build/obj/<project>/GeneratedFiles/DotGram/DotGram.Generation.GramGenerator/` between a worktree at the
 commit being changed and this one, after replacing each worktree's path with a constant:
 `#line` directives carry the grammar's absolute path, so nothing travels between worktrees
 until that is normalized.
@@ -321,7 +328,7 @@ for p in src/DotGram.Sql/DotGram.Sql.csproj src/DotGram.ExpressionLanguage/DotGr
 done
 root_win="$(pwd -W | sed 's#/#\\#g')"
 for d in src/DotGram.Sql src/DotGram.ExpressionLanguage src/DotGram.Web src/DotGram.Finance examples/DotGram.Examples; do
-	find "$d/obj/GeneratedFiles" -name '*.g.cs' ! -name '*DotGramReport*' 2>/dev/null | while read f; do
+	find ".build/obj/$(basename "$d")/GeneratedFiles" -name '*.g.cs' ! -name '*DotGramReport*' 2>/dev/null | while read f; do
 		rel="${f#./}"
 		mkdir -p "$out/$(dirname "$rel")"
 		# #line directives carry the worktree's absolute path; normalize it away.
@@ -361,9 +368,9 @@ build() {
 .work/gencheck/snap.sh "$name" 2>&1 | grep -E " error |recorded" | head -5
 .work/gencheck/cmp.sh "$parent" "$name" | tail -12
 build tests/DotGram.Tests/DotGram.Tests.csproj
-dotnet tests/DotGram.Tests/bin/Release/net10.0/DotGram.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -15
+dotnet .build/bin/DotGram.Tests/release/DotGram.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -15
 build tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj
-dotnet tests/DotGram.Finance.Tests/bin/Release/net10.0/DotGram.Finance.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -8
+dotnet .build/bin/DotGram.Finance.Tests/release/DotGram.Finance.Tests.dll 2>&1 | grep -E "Total:|\[FAIL\]" | head -8
 build tests/DotGram.Compatibility/DotGram.Compatibility.csproj
 build benchmarks/DotGram.Finance.Benchmarks/DotGram.Finance.Benchmarks.csproj
 build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj
@@ -509,7 +516,7 @@ runner is a number about the runner.
 
 ```
 benchmarks/Aside.sh dotnet build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj -c Release
-pwsh benchmarks/Run-Bdn.ps1 -Assembly benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll -Label url -BdnArgs '--filter','*UrlBenchmarks*','--job','short'
+pwsh benchmarks/Run-Bdn.ps1 -Assembly .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll -Label url -BdnArgs '--filter','*UrlBenchmarks*','--job','short'
 ```
 
 `--job short` is enough to see a regression; the error bars are wide, so read the order

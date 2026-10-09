@@ -79,7 +79,7 @@ dotnet build src/DotGram.VisualStudio/DotGram.VisualStudio.csproj -c Release
 The installable package is written to:
 
 ```text
-src/DotGram.VisualStudio/bin/Release/net472/DotGram.VisualStudio.vsix
+.build/bin/DotGram.VisualStudio/release/DotGram.VisualStudio.vsix
 ```
 
 ## Install
@@ -88,7 +88,7 @@ Close Visual Studio, then open `DotGram.VisualStudio.vsix` in File Explorer or r
 
 ```powershell
 & "C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VSIXInstaller.exe" `
-  "src\DotGram.VisualStudio\bin\Release\net472\DotGram.VisualStudio.vsix"
+  ".build\bin\DotGram.VisualStudio\release\DotGram.VisualStudio.vsix"
 ```
 
 Select the Visual Studio instance in the installer and restart Visual Studio after

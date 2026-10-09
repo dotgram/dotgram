@@ -107,7 +107,9 @@ Both example projects write it to disk:
 <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
 ```
 
-After a build it is under `obj/GeneratedFiles/DotGram/DotGram.Generation.GramGenerator`.
+After a build it is under `GeneratedFiles/DotGram/DotGram.Generation.GramGenerator` in the
+project's intermediate folder: `.build/obj/DotGram.Examples` in this repository, where all build
+output is collected, and `obj` beside the project file in a project of your own.
 
 ## What these deliberately do not show
 
