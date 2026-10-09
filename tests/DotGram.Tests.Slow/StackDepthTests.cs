@@ -312,28 +312,43 @@ public sealed class StackDepthTests
 	/// the next hand-off from that thread reads its own input rather than taking the last one's end.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The interrupt used to end the wait at once. The reading went on over there, and when it ended it
 	/// left its completion behind; the next hand-off, reusing the same thread within its linger, took
 	/// that completion as its own, came back before anything had been read, and cleared fields the
 	/// reading still had in hand. Now the interrupt is held until the reading is done and thrown then,
-	/// which is what is held first: when it is thrown, the reading it interrupted has ended. Whether the
-	/// next hand-off then came back too soon depends on timing the test cannot fix, so that is asserted
-	/// only as its answer.
-	/// The leaf of the first reading sleeps, so the interrupt lands while the wait is on, and says when
-	/// it is done, so the next hand-off is made while the thread it went to is waiting for another.
+	/// which is what is held first: when it is thrown, the reading it interrupted has ended.
+	/// </para>
+	/// <para>
+	/// After that, the thread is not handed another. An interrupt that meets the end of the reading
+	/// leaves the semaphore the wait was on unable to wake its next waiter, and the next hand-off
+	/// waited for ever on a reading that had already ended. Whether the two meet is a matter of
+	/// microseconds; the next hand-off is held to its answer, and to its leaf having been read by the
+	/// time it came back, and the bounds on the waits turn a hang into a failure.
+	/// </para>
+	/// <para>
+	/// Nothing here is timed: see <see cref="InterruptWhileWaiting"/>. The interrupt is sent while the
+	/// reading is held at its leaf, so it cannot be thrown before the reading ends unless the wait
+	/// gives it up early.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void An_interrupted_hand_off_leaves_nothing_behind_for_the_next()
 	{
-		var host  = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
-		var pause = host.GetType("Carried.Probe")!.GetField("Pause")!;
-		var left  = (ManualResetEventSlim)host.GetType("Carried.Probe")!.GetField("Left")!.GetValue(null)!;
-		var first = default(Exception);
-		var next  = default((bool IsSuccess, object? Value, string? Error, long Position));
-		var other = default(Exception);
-		var ended = false;
+		var host     = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
+		var probe    = host.GetType("Carried.Probe")!;
+		var pause    = probe.GetField("Pause")!;
+		var hold     = probe.GetField("Hold")!;
+		var reached  = (ManualResetEventSlim)probe.GetField("Reached")!.GetValue(null)!;
+		var release  = (ManualResetEventSlim)probe.GetField("Release")!.GetValue(null)!;
+		var left     = (ManualResetEventSlim)probe.GetField("Left")!.GetValue(null)!;
+		var first    = default(Exception);
+		var next     = default((bool IsSuccess, object? Value, string? Error, long Position));
+		var other    = default(Exception);
+		var ended    = false;
+		var answered = false;
 
-		pause.SetValue(null, 300);
+		hold.SetValue(null, true);
 
 		var thread = new Thread(
 			() =>
@@ -350,16 +365,16 @@ public sealed class StackDepthTests
 					ended = left.IsSet;
 				}
 
-				// Until the reading has ended over there, and its thread waits for another, which it does for
-				// a tenth of a second: the next hand-off goes to it. Its leaf sleeps too, so a wait that took
-				// the old completion comes back long before it.
+				first ??= Pending(left, ref ended);
+
+				hold.SetValue(null, false);
 				pause.SetValue(null, 50);
-				left.Wait();
-				Thread.Sleep(50);
+				left.Reset();
 
 				try
 				{
-					next = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+					next     = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+					answered = left.IsSet;
 				}
 				catch (Exception caught)
 				{
@@ -368,16 +383,150 @@ public sealed class StackDepthTests
 			},
 			128 * 1024);
 
-		thread.Start();
-		Thread.Sleep(100);
-		thread.Interrupt();
-		thread.Join();
+		InterruptWhileWaiting(thread, reached, release);
 
 		Assert.IsType<ThreadInterruptedException>(first);
 		Assert.True(ended, "the interrupt came back before the reading it interrupted had ended");
 		Assert.Null(other);
 		Assert.True(next.IsSuccess, next.Error);
 		Assert.Equal("/", next.Value);
+		Assert.True(answered, "the next hand-off came back before its reading had ended");
+	}
+
+	/// <summary>
+	/// The same of DotGram.Sql's own hand-off, which the writer and the walkers of a deep tree go
+	/// through: the interrupt is thrown once the walk has ended, and the next walk handed off from that
+	/// thread is walked and waited for.
+	/// </summary>
+	[Fact]
+	public void An_interrupted_walk_leaves_nothing_behind_for_the_next()
+	{
+		var deeper = typeof(SqlStandardParser).Assembly.GetType("DotGram.Sql.SqlStack")!
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Single(method => method.Name == "Deeper" && method.GetGenericArguments().Length == 2)
+			.MakeGenericMethod(typeof(ManualResetEventSlim), typeof(ManualResetEventSlim));
+
+		var reached  = new ManualResetEventSlim();
+		var release  = new ManualResetEventSlim();
+		var left     = new ManualResetEventSlim();
+		var first    = default(Exception);
+		var other    = default(Exception);
+		var ended    = false;
+		var answered = false;
+
+		var held = new Action<ManualResetEventSlim, ManualResetEventSlim>(
+			(arrived, letGo) =>
+			{
+				arrived.Set();
+				letGo.Wait();
+				left.Set();
+			});
+
+		var quick = new Action<ManualResetEventSlim, ManualResetEventSlim>(
+			(_, _) =>
+			{
+				Thread.Sleep(50);
+				left.Set();
+			});
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					deeper.Invoke(null, [reached, release, held]);
+				}
+				catch (TargetInvocationException caught)
+				{
+					first = caught.InnerException;
+					ended = left.IsSet;
+				}
+
+				first ??= Pending(left, ref ended);
+
+				left.Reset();
+
+				try
+				{
+					deeper.Invoke(null, [reached, release, quick]);
+					answered = left.IsSet;
+				}
+				catch (Exception caught)
+				{
+					other = caught;
+				}
+			});
+
+		InterruptWhileWaiting(thread, reached, release);
+
+		Assert.IsType<ThreadInterruptedException>(first);
+		Assert.True(ended, "the interrupt came back before the walk it interrupted had ended");
+		Assert.Null(other);
+		Assert.True(answered, "the next walk came back before it had ended");
+	}
+
+	/// <summary>
+	/// Starts <paramref name="thread"/>, which hands off work that sets <paramref name="reached"/> and
+	/// then waits for <paramref name="release"/>; interrupts it while it waits for that work; lets the
+	/// work end; and waits for the thread.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Once the work has been reached, the thread that handed it off has nothing left to do but wait
+	/// for it, and a semaphore only spins before it blocks, so once that thread is seen blocked it is
+	/// blocked in that wait, and the work cannot end before the interrupt has been sent. An interrupt
+	/// sent any sooner could find the thread not yet waiting, and be left for whatever it waits on
+	/// next.
+	/// </para>
+	/// <para>
+	/// Even so, a wait that is interrupted and released at nearly the same moment may wake as
+	/// released and leave the interrupt pending, which the runtime then throws from the thread's next
+	/// wait; on Linux that is most of the time when nothing comes between the two. The interrupt is
+	/// therefore looked for in both places (<see cref="Pending"/>): thrown by the hand-off, once the
+	/// work has ended, or still pending after it, and never lost. The bounds only keep a broken
+	/// hand-off from hanging the run; nothing depends on how long anything takes.
+	/// </para>
+	/// </remarks>
+	static void InterruptWhileWaiting(Thread thread, ManualResetEventSlim reached, ManualResetEventSlim release)
+	{
+		thread.IsBackground = true;
+		thread.Start();
+
+		try
+		{
+			Assert.True(reached.Wait(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken), "the handed-off work was never reached");
+			Assert.True(
+				SpinWait.SpinUntil(() => (thread.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1)),
+				"the thread that handed the work off never waited for it");
+
+			thread.Interrupt();
+		}
+		finally
+		{
+			release.Set();
+		}
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the thread is still waiting a minute after the work was let go");
+	}
+
+	/// <summary>
+	/// The interrupt still pending on this thread, after a hand-off that returned as though it had not
+	/// been interrupted: thrown by the next wait, which a sleep of no time is.
+	/// </summary>
+	static ThreadInterruptedException? Pending(ManualResetEventSlim left, ref bool ended)
+	{
+		ended = left.IsSet;
+
+		try
+		{
+			Thread.Sleep(0);
+		}
+		catch (ThreadInterruptedException caught)
+		{
+			return caught;
+		}
+
+		return null;
 	}
 
 	/// <summary>A nest whose innermost value says what it saw of its caller's context.</summary>
@@ -391,11 +540,20 @@ public sealed class StackDepthTests
 	const string SeeingMembers =
 		"""
 		public static readonly global::System.Threading.AsyncLocal<string> Ambient = new global::System.Threading.AsyncLocal<string>();
+		public static bool Hold;
 		public static int Pause;
-		public static readonly global::System.Threading.ManualResetEventSlim Left = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Reached = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Release = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Left    = new global::System.Threading.ManualResetEventSlim();
 		static string Seen()
 		{
-			if (Pause > 0)
+			if (Hold)
+			{
+				Reached.Set();
+				Release.Wait();
+				Left.Set();
+			}
+			else if (Pause > 0)
 			{
 				global::System.Threading.Thread.Sleep(Pause);
 				Left.Set();
