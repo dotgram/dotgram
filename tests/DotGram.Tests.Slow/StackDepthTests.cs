@@ -529,6 +529,316 @@ public sealed class StackDepthTests
 		return null;
 	}
 
+	/// <summary>
+	/// A hand-off whose wait was interrupted retires the thread it went to, and the next hand-off from
+	/// the same thread goes to a new one.
+	/// </summary>
+	/// <remarks>
+	/// The wait is certain to be interrupted, not merely likely: the thread interrupts itself before
+	/// it hands the reading off, and the reading ends only once that thread is seen blocked, so the
+	/// interrupt is pending when its wait begins with nothing yet to take, and a wait that begins with
+	/// an interrupt pending throws it. (An interrupt sent from outside may meet the reading's end, and
+	/// then the wait can come back as though it had not been interrupted; see
+	/// <see cref="InterruptWhileWaiting"/>.)
+	/// </remarks>
+	[Fact]
+	public void An_interrupted_hand_off_retires_the_thread_it_went_to()
+	{
+		var host      = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
+		var probe     = host.GetType("Carried.Probe")!;
+		var caller    = (Thread[])probe.GetField("Caller")!.GetValue(null)!;
+		var left      = (ManualResetEventSlim)probe.GetField("Left")!.GetValue(null)!;
+		var deep      = probe.GetNestedTypes(BindingFlags.NonPublic).Single(type => type.GetField("deepLingering", BindingFlags.NonPublic | BindingFlags.Static) != null);
+		var lingering = deep.GetField("deepLingering", BindingFlags.NonPublic | BindingFlags.Static)!;
+		var retired   = deep.GetField("deepRetired", BindingFlags.NonPublic | BindingFlags.Instance)!;
+		var first     = default(Exception);
+		var ended     = false;
+		var went      = default(object);
+		var next      = default((bool IsSuccess, object? Value, string? Error, long Position));
+		var nextWent  = default(object);
+
+		OnThread(
+			() =>
+			{
+				caller[0] = Thread.CurrentThread;
+				Thread.CurrentThread.Interrupt();
+
+				try
+				{
+					EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 2_000) + "x" + new string(')', 2_000));
+				}
+				catch (TargetInvocationException caught)
+				{
+					first = caught.InnerException;
+					ended = left.IsSet;
+				}
+
+				went      = lingering.GetValue(null);
+				caller[0] = null!;
+				next      = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+				nextWent  = lingering.GetValue(null);
+			},
+			128 * 1024);
+
+		Assert.IsType<ThreadInterruptedException>(first);
+		Assert.True(ended, "the interrupt came back before the reading it interrupted had ended");
+		Assert.NotNull(went);
+		Assert.True((bool)retired.GetValue(went)!, "the thread the interrupted hand-off went to was not retired");
+		Assert.True(next.IsSuccess, next.Error);
+		Assert.NotSame(went, nextWent);
+	}
+
+	/// <summary>
+	/// The same of DotGram.Sql's own hand-off: a walk whose wait was interrupted retires its worker,
+	/// and the next walk from the same thread goes to a new one.
+	/// </summary>
+	/// <remarks>Certain to be interrupted in the same way as the reading of the test above.</remarks>
+	[Fact]
+	public void An_interrupted_walk_retires_its_worker()
+	{
+		var worker  = SqlStackType.GetField("_worker", BindingFlags.NonPublic | BindingFlags.Static)!;
+		var deeper  = SqlDeeper(typeof(Thread), typeof(int));
+		var first   = default(Exception);
+		var ended   = false;
+		var went    = default(object);
+		var nextWent = default(object);
+
+		var held = new Action<Thread, int>(
+			(caller, _) =>
+			{
+				SpinWait.SpinUntil(() => (caller.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1));
+				ended = true;
+			});
+
+		OnThread(
+			() =>
+			{
+				Thread.CurrentThread.Interrupt();
+
+				try
+				{
+					deeper.Invoke(null, [Thread.CurrentThread, 0, held]);
+				}
+				catch (TargetInvocationException caught)
+				{
+					first = caught.InnerException;
+				}
+
+				went = worker.GetValue(null);
+
+				deeper.Invoke(null, [Thread.CurrentThread, 0, new Action<Thread, int>((_, _) => { })]);
+
+				nextWent = worker.GetValue(null);
+			});
+
+		Assert.IsType<ThreadInterruptedException>(first);
+		Assert.True(ended, "the interrupt came back before the walk it interrupted had ended");
+		Assert.NotNull(went);
+		Assert.True(SqlRetired(went!), "the worker of the interrupted walk was not retired");
+		Assert.NotSame(went, nextWent);
+	}
+
+	/// <summary>
+	/// A walk handed to a worker while the worker's semaphore is held elsewhere, by a thread that is
+	/// interrupted while it waits for that semaphore's lock, is still handed over and walked, and the
+	/// interrupt is thrown once the walk has ended, as one in the wait for it would be.
+	/// </summary>
+	/// <remarks>
+	/// The lock is the semaphore's own, held here through reflection on <see cref="SemaphoreSlim"/>'s
+	/// private field, which is the only way to make that wait happen at will; if the runtime renames
+	/// the field, this test fails to find it rather than passing. The thread interrupts itself before
+	/// it hands the walk over, and the lock is let go only once that thread is seen blocked, which is
+	/// in the release: a lock waited for with an interrupt pending throws it. The interrupt used to
+	/// leave the release undone, the worker claimed with nothing sent, and its thread waiting for ever.
+	/// </remarks>
+	[Fact]
+	public void A_hand_over_interrupted_while_it_waits_for_the_lock_is_still_made()
+	{
+		var worker   = NewSqlWorker();
+		var run      = SqlWorker.GetMethod("Run")!;
+		var go       = SemaphoreLock(SqlWorker.GetField("_go", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(worker)!);
+		var walked   = false;
+		var first    = default(Exception);
+		var ended    = false;
+		var going    = false;
+		var thread   = default(Thread);
+
+		thread = new Thread(
+			() =>
+			{
+				Thread.CurrentThread.Interrupt();
+				Volatile.Write(ref going, true);
+
+				try
+				{
+					run.Invoke(worker, [new Action(() => walked = true)]);
+				}
+				catch (TargetInvocationException caught)
+				{
+					first = caught.InnerException;
+					ended = walked;
+				}
+			})
+		{
+			IsBackground = true,
+		};
+
+		lock (go)
+		{
+			thread.Start();
+
+			// Or until it has given up, which is what the interrupt used to make it do.
+			Assert.True(
+				SpinWait.SpinUntil(
+					() => Volatile.Read(ref going) && ((thread.ThreadState & ThreadState.WaitSleepJoin) != 0 || !thread.IsAlive),
+					TimeSpan.FromMinutes(1)),
+				"the thread never waited for the semaphore's lock");
+		}
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the thread is still waiting a minute after the lock was let go");
+		Assert.IsType<ThreadInterruptedException>(first);
+		Assert.True(ended, "the interrupt came back before the walk had been made");
+		Assert.True(SqlRetired(worker), "the worker of the interrupted walk was not retired");
+	}
+
+	/// <summary>
+	/// A walk that leaves an interrupt pending on its worker does not take the process down when the
+	/// worker, publishing its end, waits for the semaphore's lock: the interrupt is dropped, the caller
+	/// has its walk back, and the worker takes the next one.
+	/// </summary>
+	/// <remarks>
+	/// The lock is held as in the test above, and let go only once the walk has interrupted its own
+	/// thread and that thread is seen blocked, which after the walk is only in the release. The
+	/// interrupt used to be thrown from the release, outside every catch of the worker's thread, and an
+	/// exception unhandled on any thread ends the process.
+	/// </remarks>
+	[Fact]
+	public void A_walk_that_leaves_its_worker_interrupted_still_ends()
+	{
+		var worker    = NewSqlWorker();
+		var run       = SqlWorker.GetMethod("Run")!;
+		var take      = SqlWorker.GetMethod("Take")!;
+		var done      = SemaphoreLock(SqlWorker.GetField("_done", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(worker)!);
+		var reached   = new ManualResetEventSlim();
+		var letGo     = new ManualResetEventSlim();
+		var walker    = default(Thread);
+		var returning = false;
+		var thrown    = default(Exception);
+		var again     = false;
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					run.Invoke(
+						worker,
+						[
+							new Action(
+								() =>
+								{
+									walker = Thread.CurrentThread;
+									reached.Set();
+									letGo.Wait();
+									Thread.CurrentThread.Interrupt();
+									Volatile.Write(ref returning, true);
+								}),
+						]);
+
+					if ((bool)take.Invoke(worker, null)!)
+						run.Invoke(worker, [new Action(() => again = true)]);
+				}
+				catch (Exception caught)
+				{
+					thrown = caught;
+				}
+			})
+		{
+			IsBackground = true,
+		};
+
+		thread.Start();
+
+		Assert.True(reached.Wait(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken), "the walk was never reached");
+
+		lock (done)
+		{
+			letGo.Set();
+
+			Assert.True(
+				SpinWait.SpinUntil(() => Volatile.Read(ref returning) && (walker!.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1)),
+				"the worker never waited for the semaphore's lock");
+		}
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the walk did not come back a minute after the lock was let go");
+		Assert.Null(thrown);
+		Assert.True(again, "the worker did not take the next walk");
+	}
+
+	/// <summary>DotGram.Sql's hand-off, which is internal to it.</summary>
+	static readonly Type SqlStackType = typeof(SqlStandardParser).Assembly.GetType("DotGram.Sql.SqlStack")!;
+
+	/// <summary>The thread DotGram.Sql hands a walk to.</summary>
+	static readonly Type SqlWorker = SqlStackType.GetNestedType("Worker", BindingFlags.NonPublic)!;
+
+	/// <summary><c>SqlStack.Deeper</c> of two arguments.</summary>
+	static MethodInfo SqlDeeper(Type first, Type second)
+	{
+		return SqlStackType
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Single(method => method.Name == "Deeper" && method.GetGenericArguments().Length == 2)
+			.MakeGenericMethod(first, second);
+	}
+
+	/// <summary>A worker of its own, made claimed, as a hand-off makes one, so it waits for its first walk.</summary>
+	static object NewSqlWorker()
+	{
+		return Activator.CreateInstance(SqlWorker, nonPublic: true)!;
+	}
+
+	static bool SqlRetired(object worker)
+	{
+		return (bool)SqlWorker.GetField("_retired", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(worker)!;
+	}
+
+	/// <summary>The object a <see cref="SemaphoreSlim"/> locks.</summary>
+	static object SemaphoreLock(object semaphore)
+	{
+		var field = typeof(SemaphoreSlim).GetField("m_lockObjAndDisposed", BindingFlags.NonPublic | BindingFlags.Instance);
+
+		Assert.True(field != null, "SemaphoreSlim no longer keeps its lock in m_lockObjAndDisposed; find where it does");
+
+		return field!.GetValue(semaphore)!;
+	}
+
+	/// <summary>Runs <paramref name="body"/> on a thread of its own and waits a bounded time for it.</summary>
+	static void OnThread(Action body, int stackSize = 0)
+	{
+		var thrown = default(Exception);
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					body();
+				}
+				catch (Exception caught)
+				{
+					thrown = caught;
+				}
+			},
+			stackSize)
+		{
+			IsBackground = true,
+		};
+
+		thread.Start();
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the thread is still running after a minute");
+		Assert.Null(thrown);
+	}
+
 	/// <summary>A nest whose innermost value says what it saw of its caller's context.</summary>
 	const string Seeing =
 		"""
@@ -545,9 +855,17 @@ public sealed class StackDepthTests
 		public static readonly global::System.Threading.ManualResetEventSlim Reached = new global::System.Threading.ManualResetEventSlim();
 		public static readonly global::System.Threading.ManualResetEventSlim Release = new global::System.Threading.ManualResetEventSlim();
 		public static readonly global::System.Threading.ManualResetEventSlim Left    = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.Thread[] Caller = new global::System.Threading.Thread[1];
 		static string Seen()
 		{
-			if (Hold)
+			var caller = Caller[0];
+
+			if (caller != null)
+			{
+				global::System.Threading.SpinWait.SpinUntil(() => (caller.ThreadState & global::System.Threading.ThreadState.WaitSleepJoin) != 0, global::System.TimeSpan.FromMinutes(1));
+				Left.Set();
+			}
+			else if (Hold)
 			{
 				Reached.Set();
 				Release.Wait();
