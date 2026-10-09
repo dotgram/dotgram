@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Stop'
 
 $textExtensions = @('.cs', '.csproj', '.props', '.targets', '.slnx', '.md', '.json', '.gram', '.ps1', '.editorconfig', '.gitattributes', '.gitignore')
 $bomExtensions  = @('.cs', '.csproj', '.props', '.targets')
-$excludedDirs   = @('.vs', '.git', 'bin', 'obj', 'node_modules', 'artifacts')
+$excludedDirs   = @('.vs', '.git', 'bin', 'obj', '.build', 'node_modules', 'artifacts')
 
 $changed = 0
 

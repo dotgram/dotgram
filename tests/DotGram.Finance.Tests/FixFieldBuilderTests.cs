@@ -124,7 +124,7 @@ public sealed class FixFieldBuilderTests
 	/// <summary>What each tag of a version is called and its type, as the repository gives them.</summary>
 	static Dictionary<int, (string Name, string Type)> Fields(string version)
 	{
-		var corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository");
+		var corpus = Path.Combine(TestPaths.Tests, "Corpus", "FixRepository");
 		var named  = new Dictionary<int, (string Name, string Type)>();
 
 		foreach (var field in XDocument.Load(Path.Combine(corpus, version, "Base", "Fields.xml")).Root!.Elements())

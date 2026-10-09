@@ -7,4 +7,10 @@
 	     same reasoning stops Directory.Packages.props beside it — a stranger names a
 	     version on the reference, which is also how this one pins what it just built. -->
 
+	<!-- Nothing of the repository's own reaches this project, but where its build
+	     output goes is not part of what is under test: it joins the rest in the one folder at the root. -->
+	<PropertyGroup>
+		<ArtifactsPath>$(MSBuildThisFileDirectory)../../.build</ArtifactsPath>
+	</PropertyGroup>
+
 </Project>

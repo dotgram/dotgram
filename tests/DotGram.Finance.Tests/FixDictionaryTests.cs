@@ -215,7 +215,7 @@ public sealed class FixDictionaryTests
 		Assert.Equal("Field dictionary key 44 does not match its Tag 40.", exception.Message);
 	}
 
-	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
+	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");
 
 	static string Read(string name)
 	{

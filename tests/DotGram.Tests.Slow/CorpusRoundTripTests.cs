@@ -234,7 +234,7 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 		text.AppendLine("#   same    - read, printed, and printed back to the same statement");
 		text.AppendLine("# A fall in `read` or `same`, or a rise in `threw`, fails CorpusRoundTripTests. A rise in the");
 		text.AppendLine("# first two is printed, and this file is regenerated deliberately rather than by a passing run:");
-		text.AppendLine("#   DOTGRAM_RECORD_CORPUS_BASELINE=1 dotnet tests/DotGram.Tests.Slow/bin/Debug/net10.0/DotGram.Tests.Slow.dll");
+		text.AppendLine("#   DOTGRAM_RECORD_CORPUS_BASELINE=1 dotnet .build/bin/DotGram.Tests.Slow/debug/DotGram.Tests.Slow.dll");
 		text.AppendLine("# Both the reading and the printing are ScriptDom's, at each file's own parser version where a");
 		text.AppendLine("# Baselines<n> directory names one, capped at 180. The counts are the same ones `--roundtrip`");
 		text.AppendLine("# prints, from the same code (CorpusRoundTrip.cs).");

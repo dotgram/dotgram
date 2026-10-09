@@ -35,7 +35,7 @@ namespace DotGram.Finance.Tests;
 public sealed class FixFixtureGrammarTests
 {
 	static readonly string Grammar = Path.Combine(
-		AppContext.BaseDirectory, "..", "..", "..", "..", "DotGram.Finance.Fix44", "FixField.gram");
+		TestPaths.Tests, "DotGram.Finance.Fix44", "FixField.gram");
 
 	[Fact]
 	public void Every_field_the_fixture_builds_takes_what_its_converter_returns()

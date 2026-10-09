@@ -26,17 +26,13 @@ public sealed class CodeSnippetsTests
 	{
 		get
 		{
-			// Locate tools/snippets/vscode/gram.code-snippets relative to the test assembly
-			// Assembly: /ramdisk/agents/dotgram/snippets/tests/DotGram.Tests/bin/Release/net10.0/DotGram.Tests.dll
-			// DirectoryName: /ramdisk/agents/dotgram/snippets/tests/DotGram.Tests/bin/Release/net10.0
-			// Repo root: /ramdisk/agents/dotgram/snippets (5 levels up from DirectoryName)
-			var assembly = typeof(CodeSnippetsTests).Assembly;
-			var assemblyDir = new FileInfo(assembly.Location).DirectoryName!;
-			var repoRoot = Directory.GetParent(assemblyDir)!  // Release
-				.Parent!  // bin
-				.Parent!  // DotGram.Tests
-				.Parent!  // tests
-				.Parent!; // snippets (repo root)
+			// Locate tools/snippets/vscode/gram.code-snippets from the repository root, found by
+			// walking up from the test assembly to the solution: where the assembly is built to is
+			// not a fixed number of folders below it.
+			var repoRoot = new DirectoryInfo(AppContext.BaseDirectory);
+			while (repoRoot is not null && !File.Exists(Path.Combine(repoRoot.FullName, "DotGram.slnx")))
+				repoRoot = repoRoot.Parent;
+			Assert.NotNull(repoRoot);
 			return Path.Combine(repoRoot.FullName, "tools", "snippets", "vscode", "gram.code-snippets");
 		}
 	}

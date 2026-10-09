@@ -118,7 +118,7 @@ public sealed class Fix42Tests
 		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 22);
 	}
 
-	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
+	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");
 
 	/// <summary>A FIX 4.2 message of the given type around a body written with '|' for SOH.</summary>
 	static string Wire(string type, string body)

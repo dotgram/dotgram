@@ -5,7 +5,7 @@
 #   same    - read, printed, and printed back to the same statement
 # A fall in `read` or `same`, or a rise in `threw`, fails CorpusRoundTripTests. A rise in the
 # first two is printed, and this file is regenerated deliberately rather than by a passing run:
-#   DOTGRAM_RECORD_CORPUS_BASELINE=1 dotnet tests/DotGram.Tests.Slow/bin/Debug/net10.0/DotGram.Tests.Slow.dll
+#   DOTGRAM_RECORD_CORPUS_BASELINE=1 dotnet .build/bin/DotGram.Tests.Slow/debug/DotGram.Tests.Slow.dll
 # Both the reading and the printing are ScriptDom's, at each file's own parser version where a
 # Baselines<n> directory names one, capped at 180. The counts are the same ones `--roundtrip`
 # prints, from the same code (CorpusRoundTrip.cs).

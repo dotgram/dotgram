@@ -38,9 +38,9 @@ public sealed class TraceCostTests(ITestOutputHelper output)
 	[Fact]
 	public void A_deep_refusal_is_explained_in_bounded_memory()
 	{
-		var here = AppContext.BaseDirectory;
-		var deep = Path.GetFullPath(Path.Combine(here, "..", "..", "..", "..", "DotGram.Trace.Deep",
-			Path.GetRelativePath(Path.GetFullPath(Path.Combine(here, "..", "..", "..")), here), "DotGram.Trace.Deep.dll"));
+		// The other project's output is beside this one's, under the same configuration folder.
+		var here = new DirectoryInfo(AppContext.BaseDirectory);
+		var deep = Path.Combine(here.Parent!.Parent!.FullName, "DotGram.Trace.Deep", here.Name, "DotGram.Trace.Deep.dll");
 
 		Assert.True(File.Exists(deep), deep);
 

@@ -340,7 +340,7 @@ public abstract class FixRepositoryAgreementTests
 		{
 			if (!Files.TryGetValue((version, name), out var root))
 				Files[(version, name)] = root = XDocument.Load(Path.Combine(
-					AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "FixRepository", version, "Base", name)).Root!;
+					TestPaths.Tests, "Corpus", "FixRepository", version, "Base", name)).Root!;
 
 			return root;
 		}

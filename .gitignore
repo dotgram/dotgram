@@ -6,6 +6,9 @@
 [Ll]ogs/
 artifacts/
 
+## All build output of the repository (Directory.Build.props)
+.build/
+
 ## User-specific Visual Studio files
 *.suo
 *.user

@@ -37,7 +37,7 @@ namespace DotGram.Finance.Tests;
 /// </remarks>
 public sealed class QuickFixScenarioTests
 {
-	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix", "quickfixn");
+	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix", "quickfixn");
 
 	static readonly Lazy<Fix44Context> Schema = new(() =>
 		Fix44Context.Default.Load([

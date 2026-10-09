@@ -37,7 +37,7 @@ for pkg in Sql Web Finance ExpressionLanguage Examples; do
 		# (a genuine ProjectReference in the shipped package, not just the analyzer), which the
 		# throwaway Analysis.csproj needs as an ordinary reference to resolve (prepare-analysis.sh's
 		# own usage comment).
-		extra=("$ROOT/src/DotGram.ExpressionLanguage/bin/Release/net10.0/DotGram.ExpressionLanguage.dll")
+		extra=("$ROOT/.build/bin/DotGram.ExpressionLanguage/release_net10.0/DotGram.ExpressionLanguage.dll")
 	fi
 
 	"$HERE/prepare-analysis.sh" "$pkg" "${PREFIX[$pkg]}" "$ROOT" "$SCRATCH/emit" \

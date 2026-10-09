@@ -347,5 +347,5 @@ public sealed class FixLoadTests
 		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 23);
 	}
 
-	static readonly string Corpus = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Corpus", "Fix");
+	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");
 }

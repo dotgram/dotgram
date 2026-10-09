@@ -74,18 +74,14 @@ public sealed class LoadOrderTests
 		if (root is null)
 			throw new InvalidOperationException("The repository root is not above the test binaries.");
 
-		// The same configuration and framework this assembly was built for: the two projects are
-		// built together, so the one that ran this is the one to run.
-		var framework    = here.Name;
-		var configuration = here.Parent!.Name;
-
+		// The same configuration this assembly was built for (the folder's name holds it): the two
+		// projects are built together, so the one that ran this is the one to run.
 		return Path.Combine(
 			root.FullName,
-			"benchmarks",
-			"DotGram.Benchmarks",
+			".build",
 			"bin",
-			configuration,
-			framework,
+			"DotGram.Benchmarks",
+			here.Name,
 			"DotGram.Benchmarks" + (OperatingSystem.IsWindows() ? ".exe" : ""));
 	}
 }

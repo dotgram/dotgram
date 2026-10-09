@@ -1,5 +1,15 @@
 ﻿<Project>
 
+	<!-- All build output of the repository, the bin and obj of every project, goes under one
+	     git-ignored folder at the root instead of into each project's own: what is disposable is
+	     in one place, and can be left out of a backup or cleared with one delete. The paths are
+	     .build/bin/<project>/<config> and .build/obj/<project>/<config> (lower-case, with the
+	     target framework appended for a project that has several). Only the repository takes
+	     this: DotGram.targets, which ships in the package, does not depend on it. -->
+	<PropertyGroup>
+		<ArtifactsPath>$(MSBuildThisFileDirectory).build</ArtifactsPath>
+	</PropertyGroup>
+
 	<PropertyGroup>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>

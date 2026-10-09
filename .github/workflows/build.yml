@@ -22,14 +22,14 @@ jobs:
 
       # The Linux solution configuration: every project built as Release, minus the
       # two that need the Visual Studio SDK and cannot be built off Windows. Being a
-      # solution configuration and not a project one, it still writes to bin/Release,
+      # solution configuration and not a project one, it still writes to .build/bin/<project>/release,
       # which is why the steps below name Release and mean the same build.
       - name: Build
         run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
 
       # The runner names each failure inline -- "failed <test>", its message and its stack --
       # so this step IS the report. A "Show the test log" step used to follow, reading
-      # tests/*/bin/Release/*/TestResults/*.log; it printed "No test log" on every red build
+      # .build/bin/*/release/TestResults/*.log; it printed "No test log" on every red build
       # there has ever been, because Microsoft.Testing.Platform writes no such log and the
       # directory it looked in does not exist. Collecting one needs the TrxReport extension in
       # every test project, which is a change to the projects rather than to CI; it is worth
@@ -43,13 +43,13 @@ jobs:
       - name: Show the refusal exponents
         if: always()
         shell: bash
-        run: cat tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt || echo "no RefusalExponents.txt"
+        run: cat .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt || echo "no RefusalExponents.txt"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: refusal-exponents-linux
-          path: tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt
+          path: .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt
           if-no-files-found: warn
 
       - name: Pack
@@ -101,7 +101,7 @@ jobs:
       # The counters of D144 sit behind a symbol no shipped project defines, so the build
       # above never compiles them. This compiles them once, on all three of Compatibility's
       # targets and at its C# 8 floor, so that the counted variant cannot rot unseen. Last,
-      # because it builds over bin/Release, which nothing after it reads.
+      # because it builds over .build/bin/DotGram.Compatibility/release, which nothing after it reads.
       - name: The counted variant compiles
         run: dotnet build tests/DotGram.Compatibility/DotGram.Compatibility.csproj --configuration Release -p:DotGramCounts=true -warnaserror
 
@@ -212,7 +212,7 @@ jobs:
       - name: The count ratchet -- fails if any (package, rule) total differs from the checked-in ceiling
         run: |
           dotnet build tools/generated-analysis/SarifGate/SarifGate.csproj --configuration Release -nodeReuse:false
-          dotnet tools/generated-analysis/SarifGate/bin/Release/net10.0/SarifGate.dll \
+          dotnet .build/bin/SarifGate/release/SarifGate.dll \
             check tools/generated-analysis/counts.txt \
             /tmp/generated-analysis/sarif/Sql.sarif /tmp/generated-analysis/sarif/Web.sarif \
             /tmp/generated-analysis/sarif/Finance.sarif /tmp/generated-analysis/sarif/ExpressionLanguage.sarif \
@@ -260,20 +260,20 @@ jobs:
       - name: Show the refusal exponents
         if: always()
         shell: bash
-        run: cat tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt || echo "no RefusalExponents.txt"
+        run: cat .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt || echo "no RefusalExponents.txt"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: refusal-exponents-windows
-          path: tests/DotGram.Tests.Slow/bin/Release/*/RefusalExponents.txt
+          path: .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt
           if-no-files-found: warn
 
       # The third artifact of the tag, and the only one that cannot be built above.
       - name: Check the extension was built
         shell: bash
         run: |
-          vsix=$(find src/DotGram.VisualStudio/bin/Release -name '*.vsix' | head -1)
+          vsix=$(find .build/bin/DotGram.VisualStudio -name '*.vsix' | head -1)
           test -n "$vsix" || { echo "no .vsix was produced"; exit 1; }
           echo "built $vsix"
           echo "VSIX=$vsix" >> "$GITHUB_ENV"

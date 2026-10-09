@@ -76,13 +76,18 @@ public sealed class FuzzTests
 		}
 	}
 
+	static string Here([System.Runtime.CompilerServices.CallerFilePath] string here = "")
+	{
+		return Path.GetDirectoryName(here)!;
+	}
+
 	/// <summary>The grammars checked in beside their generated output, as starting points.</summary>
 	static IReadOnlyList<string> Seeds()
 	{
 		var texts = new List<string>();
 
 		foreach (var path in Directory.GetFiles(
-			Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Snapshots"), "*.gram"))
+			Path.Combine(Here(), "..", "Snapshots"), "*.gram"))
 		{
 			texts.Add(File.ReadAllText(path));
 		}
