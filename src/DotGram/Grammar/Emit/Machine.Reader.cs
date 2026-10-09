@@ -1035,7 +1035,11 @@ sealed partial class Machine
 	/// next wait, as the runtime leaves any interrupt that comes too late.) The interrupt retires the
 	/// thread too, and so does anything else that ends the wait early: a <c>SemaphoreSlim</c> whose
 	/// waiter is interrupted as it is released does not count that waiter as woken, and never wakes the
-	/// next one, so the next hand-off to that thread would wait for ever.
+	/// next one, so the next hand-off to that thread would wait for ever. The hand-over itself waits
+	/// for the semaphore's lock when the thread it goes to holds it, and an interrupt there is held the
+	/// same way rather than leaving that thread claimed with nothing sent; an interrupt the grammar's own
+	/// code leaves pending on that thread is dropped, there as in its wait for the next reading, rather
+	/// than thrown where nothing catches it.
 	/// </para>
 	/// </remarks>
 	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
@@ -1092,9 +1096,24 @@ sealed partial class Machine
 			file.Line("deepCulture   = global::System.Globalization.CultureInfo.CurrentCulture;");
 			file.Line("deepUiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;");
 			file.Line();
-			file.Line("deepGo.Release();");
-			file.Line();
 			file.Line("global::System.Threading.ThreadInterruptedException? interrupted = null;");
+			file.Line();
+			file.Line("// A release waits for the semaphore's lock when another thread holds it, and that wait can be");
+			file.Line("// interrupted before the reading is handed over: the interrupt is held like one in the wait below.");
+
+			using (file.Block("while (true)"))
+			{
+				using (file.Block("try"))
+				{
+					file.Line("deepGo.Release();");
+					file.Line();
+					file.Line("break;");
+				}
+
+				using (file.Block("catch (global::System.Threading.ThreadInterruptedException caught)"))
+					file.Line("interrupted = caught;");
+			}
+
 			file.Line();
 
 			using (file.Block("while (true)"))
@@ -1183,7 +1202,23 @@ sealed partial class Machine
 				file.Line("deepUiCulture = null;");
 				file.Line();
 				file.Line("global::System.Threading.Volatile.Write(ref deepState, 0);");
-				file.Line("deepDone.Release();");
+				file.Line();
+				file.Line("// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,");
+				file.Line("// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.");
+
+				using (file.Block("while (true)"))
+				{
+					using (file.Block("try"))
+					{
+						file.Line("deepDone.Release();");
+						file.Line();
+						file.Line("break;");
+					}
+
+					using (file.Block("catch (global::System.Threading.ThreadInterruptedException)"))
+					{
+					}
+				}
 			}
 		}
 

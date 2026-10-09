@@ -130,7 +130,10 @@ static class SqlStack
 	/// retires the thread too, and so does anything else that ends the wait early, so that it
 	/// is never handed another: a <see cref="SemaphoreSlim"/> whose waiter is interrupted as it is
 	/// released does not count that waiter as woken, and never wakes the next one, so the next walk
-	/// handed to that thread would wait for ever.
+	/// handed to that thread would wait for ever. The hand-over itself waits for the semaphore's lock
+	/// when the worker holds it, and an interrupt there is held the same way rather than leaving the
+	/// worker claimed with nothing sent; an interrupt the walk's own code leaves pending on the worker
+	/// is dropped, there as in its wait for the next walk, rather than thrown where nothing catches it.
 	/// </para>
 	/// </remarks>
 	sealed class Worker
@@ -181,9 +184,23 @@ static class SqlStack
 			_culture   = CultureInfo.CurrentCulture;
 			_uiCulture = CultureInfo.CurrentUICulture;
 
-			_go.Release();
-
 			ThreadInterruptedException? interrupted = null;
+
+			// A release waits for the semaphore's lock when another thread holds it, and that wait can be
+			// interrupted before the walk is handed over: the interrupt is held like one in the wait below.
+			while (true)
+			{
+				try
+				{
+					_go.Release();
+
+					break;
+				}
+				catch (ThreadInterruptedException caught)
+				{
+					interrupted = caught;
+				}
+			}
 
 			while (true)
 			{
@@ -257,7 +274,22 @@ static class SqlStack
 				_uiCulture = null;
 
 				Volatile.Write(ref _state, Idle);
-				_done.Release();
+
+				// An interrupt the walk's own code left pending here is dropped, as the wait above drops it,
+				// rather than thrown by a release that waits for the semaphore's lock, where nothing would
+				// catch it and the process would go down with this thread.
+				while (true)
+				{
+					try
+					{
+						_done.Release();
+
+						break;
+					}
+					catch (ThreadInterruptedException)
+					{
+					}
+				}
 			}
 		}
 

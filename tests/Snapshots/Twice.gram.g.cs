@@ -860,9 +860,23 @@ namespace DotGram.Snapshots
 				deepCulture   = global::System.Globalization.CultureInfo.CurrentCulture;
 				deepUiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;
 
-				deepGo.Release();
-
 				global::System.Threading.ThreadInterruptedException? interrupted = null;
+
+				// A release waits for the semaphore's lock when another thread holds it, and that wait can be
+				// interrupted before the reading is handed over: the interrupt is held like one in the wait below.
+				while (true)
+				{
+					try
+					{
+						deepGo.Release();
+
+						break;
+					}
+					catch (global::System.Threading.ThreadInterruptedException caught)
+					{
+						interrupted = caught;
+					}
+				}
 
 				while (true)
 				{
@@ -938,7 +952,21 @@ namespace DotGram.Snapshots
 					deepUiCulture = null;
 
 					global::System.Threading.Volatile.Write(ref deepState, 0);
-					deepDone.Release();
+
+					// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,
+					// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.
+					while (true)
+					{
+						try
+						{
+							deepDone.Release();
+
+							break;
+						}
+						catch (global::System.Threading.ThreadInterruptedException)
+						{
+						}
+					}
 				}
 			}
 
