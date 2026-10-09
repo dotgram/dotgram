@@ -67,7 +67,13 @@ using Microsoft.CodeAnalysis.Text;
 
 // Usage: genprof [dump-directory|-] [runs]
 
-var repo = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+var repoDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+
+// The binary is under .build/bin/genprof/<config>, a depth that has changed before: walk up to the solution.
+while (repoDirectory is not null && !File.Exists(Path.Combine(repoDirectory.FullName, "DotGram.slnx")))
+	repoDirectory = repoDirectory.Parent;
+
+var repo = repoDirectory?.FullName ?? throw new InvalidOperationException("No DotGram.slnx above the binary.");
 var root = Path.Combine(repo, "src", "DotGram.Sql");
 var obj  = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
 var bin  = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";

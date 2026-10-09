@@ -104,8 +104,16 @@ try {
 					if (($m = $compilerLine.Match($_)).Success) { $out = $m.Groups['out'].Value }
 					elseif ($out -and ($m = $generatorLine.Match($_)).Success) {
 						if ([IO.Path]::GetFileNameWithoutExtension($out) -eq $assembly) {
-							# The folder is `obj/Release/<tfm>` on a commit from before the build output moved, and `.build/obj/<project>/release_<tfm>` since: the framework is the key either way.
-							$key = "$assembly $((Split-Path $out | Split-Path -Leaf) -replace '^release_', '')"
+							# The folder is `obj/Release/<tfm>` on a commit from before the build output moved, `.build/obj/<project>/release_<tfm>` since for a project of several frameworks and plain
+							# `.build/obj/<project>/release` for one of a single framework: the key is the framework in every case, read from the project when the folder does not name it.
+							$folder = Split-Path $out | Split-Path -Leaf
+							if ($folder -match '^release_(?<tfm>.+)$') { $framework = $Matches['tfm'] }
+							elseif ($folder -eq 'release') {
+								$declared  = ([xml](Get-Content (Join-Path $dir $project) -Raw)).Project.PropertyGroup.TargetFramework | Where-Object { $_ } | Select-Object -First 1
+								$framework = if ($declared) { $declared } else { $folder }
+							}
+							else { $framework = $folder }
+							$key = "$assembly $framework"
 							if (-not $compiled[$name].ContainsKey($key)) { $compiled[$name][$key] = @() }
 							$compiled[$name][$key] += 1000 * [double]::Parse($m.Groups['seconds'].Value.Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
 						}
@@ -116,7 +124,9 @@ try {
 
 				if ($LASTEXITCODE -ne 0) { throw "$name $project did not build" }
 
-				$projectRoot = Split-Path (Join-Path $dir $project)
+				# The reports are in the project's folder under .build/obj, or in the project's own folder in a tree from before the build output moved there.
+				$projectRoot = Join-Path $dir ".build/obj/$assembly"
+				if (-not (Test-Path $projectRoot)) { $projectRoot = Split-Path (Join-Path $dir $project) }
 				$hosts = 0
 
 				foreach ($report in Get-ChildItem $projectRoot -Recurse -Filter '*.DotGramReport.g.cs' -ErrorAction SilentlyContinue) {
