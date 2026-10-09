@@ -316,24 +316,32 @@ public sealed class StackDepthTests
 	/// left its completion behind; the next hand-off, reusing the same thread within its linger, took
 	/// that completion as its own, came back before anything had been read, and cleared fields the
 	/// reading still had in hand. Now the interrupt is held until the reading is done and thrown then,
-	/// which is what is held first: when it is thrown, the reading it interrupted has ended. Whether the
-	/// next hand-off then came back too soon depends on timing the test cannot fix, so that is asserted
-	/// only as its answer.
-	/// The leaf of the first reading sleeps, so the interrupt lands while the wait is on, and says when
-	/// it is done, so the next hand-off is made while the thread it went to is waiting for another.
+	/// which is what is held first: when it is thrown, the reading it interrupted has ended.
+	/// Nothing here is timed. The leaf of the first reading says it has been reached and then waits to
+	/// be let go, so the thread that handed it off is in its wait, or on its way into it, when the
+	/// interrupt is sent, and the reading cannot end before the interrupt has been; an interrupt sent
+	/// before the wait begins is thrown when it does. The next hand-off follows at once, while the
+	/// thread the first went to lingers, and its leaf sleeps, so a wait that took an old completion
+	/// would come back before it: whether it does depends on timing the test cannot fix, so that is
+	/// asserted only as its answer and as its leaf having been read when it came back.
 	/// </remarks>
 	[Fact]
 	public void An_interrupted_hand_off_leaves_nothing_behind_for_the_next()
 	{
-		var host  = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
-		var pause = host.GetType("Carried.Probe")!.GetField("Pause")!;
-		var left  = (ManualResetEventSlim)host.GetType("Carried.Probe")!.GetField("Left")!.GetValue(null)!;
-		var first = default(Exception);
-		var next  = default((bool IsSuccess, object? Value, string? Error, long Position));
-		var other = default(Exception);
-		var ended = false;
+		var host     = Compile(CarrierKind.Immediate, Seeing, SeeingMembers);
+		var probe    = host.GetType("Carried.Probe")!;
+		var pause    = probe.GetField("Pause")!;
+		var hold     = probe.GetField("Hold")!;
+		var reached  = (ManualResetEventSlim)probe.GetField("Reached")!.GetValue(null)!;
+		var release  = (ManualResetEventSlim)probe.GetField("Release")!.GetValue(null)!;
+		var left     = (ManualResetEventSlim)probe.GetField("Left")!.GetValue(null)!;
+		var first    = default(Exception);
+		var next     = default((bool IsSuccess, object? Value, string? Error, long Position));
+		var other    = default(Exception);
+		var ended    = false;
+		var answered = false;
 
-		pause.SetValue(null, 300);
+		hold.SetValue(null, true);
 
 		var thread = new Thread(
 			() =>
@@ -350,16 +358,14 @@ public sealed class StackDepthTests
 					ended = left.IsSet;
 				}
 
-				// Until the reading has ended over there, and its thread waits for another, which it does for
-				// a tenth of a second: the next hand-off goes to it. Its leaf sleeps too, so a wait that took
-				// the old completion comes back long before it.
+				hold.SetValue(null, false);
 				pause.SetValue(null, 50);
-				left.Wait();
-				Thread.Sleep(50);
+				left.Reset();
 
 				try
 				{
-					next = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+					next     = EmittedCode.Match(host, "Carried.Probe", "TryParseStart", new string('(', 1_500) + "x" + new string(')', 1_500));
+					answered = left.IsSet;
 				}
 				catch (Exception caught)
 				{
@@ -369,15 +375,30 @@ public sealed class StackDepthTests
 			128 * 1024);
 
 		thread.Start();
-		Thread.Sleep(100);
-		thread.Interrupt();
-		thread.Join();
+
+		try
+		{
+			// The bounds only keep a broken hand-off from hanging the run; nothing depends on how long
+			// either takes. Once the leaf is reached, the thread that handed it off is past its release
+			// of the reading and blocks in its wait, which the interrupt reaches whether it is sent before
+			// the thread blocks or after.
+			Assert.True(reached.Wait(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken), "the first reading never reached its leaf");
+
+			SpinWait.SpinUntil(() => (thread.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1));
+			thread.Interrupt();
+		}
+		finally
+		{
+			release.Set();
+			thread.Join();
+		}
 
 		Assert.IsType<ThreadInterruptedException>(first);
 		Assert.True(ended, "the interrupt came back before the reading it interrupted had ended");
 		Assert.Null(other);
 		Assert.True(next.IsSuccess, next.Error);
 		Assert.Equal("/", next.Value);
+		Assert.True(answered, "the next hand-off came back before its reading had ended");
 	}
 
 	/// <summary>A nest whose innermost value says what it saw of its caller's context.</summary>
@@ -391,11 +412,20 @@ public sealed class StackDepthTests
 	const string SeeingMembers =
 		"""
 		public static readonly global::System.Threading.AsyncLocal<string> Ambient = new global::System.Threading.AsyncLocal<string>();
+		public static bool Hold;
 		public static int Pause;
-		public static readonly global::System.Threading.ManualResetEventSlim Left = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Reached = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Release = new global::System.Threading.ManualResetEventSlim();
+		public static readonly global::System.Threading.ManualResetEventSlim Left    = new global::System.Threading.ManualResetEventSlim();
 		static string Seen()
 		{
-			if (Pause > 0)
+			if (Hold)
+			{
+				Reached.Set();
+				Release.Wait();
+				Left.Set();
+			}
+			else if (Pause > 0)
 			{
 				global::System.Threading.Thread.Sleep(Pause);
 				Left.Set();
