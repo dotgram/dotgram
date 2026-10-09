@@ -711,6 +711,9 @@ public sealed class StackDepthTests
 	/// thread and that thread is seen blocked, which after the walk is only in the release. The
 	/// interrupt used to be thrown from the release, outside every catch of the worker's thread, and an
 	/// exception unhandled on any thread ends the process.
+	/// The worker is asked for the next walk while the lock of the semaphore it waits on for walks is
+	/// held here, taken before it could begin that wait: it cannot give up waiting, however long the
+	/// caller takes to ask, until the next walk is claimed.
 	/// </remarks>
 	[Fact]
 	public void A_walk_that_leaves_its_worker_interrupted_still_ends()
@@ -719,12 +722,15 @@ public sealed class StackDepthTests
 		var run       = SqlWorker.GetMethod("Run")!;
 		var take      = SqlWorker.GetMethod("Take")!;
 		var done      = SemaphoreLock(SqlWorker.GetField("_done", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(worker)!);
+		var go        = SemaphoreLock(SqlWorker.GetField("_go", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(worker)!);
 		var reached   = new ManualResetEventSlim();
 		var letGo     = new ManualResetEventSlim();
 		var walker    = default(Thread);
 		var returning = false;
 		var thrown    = default(Exception);
 		var again     = false;
+		var taken     = false;
+		var asked     = false;
 
 		var thread = new Thread(
 			() =>
@@ -745,7 +751,10 @@ public sealed class StackDepthTests
 								}),
 						]);
 
-					if ((bool)take.Invoke(worker, null)!)
+					taken = (bool)take.Invoke(worker, null)!;
+					Volatile.Write(ref asked, true);
+
+					if (taken)
 						run.Invoke(worker, [new Action(() => again = true)]);
 				}
 				catch (Exception caught)
@@ -761,17 +770,34 @@ public sealed class StackDepthTests
 
 		Assert.True(reached.Wait(TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken), "the walk was never reached");
 
-		lock (done)
+		var parked = false;
+
+		try
 		{
-			letGo.Set();
+			lock (done)
+			{
+				letGo.Set();
+
+				Assert.True(
+					SpinWait.SpinUntil(() => Volatile.Read(ref returning) && (walker!.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1)),
+					"the worker never waited for the semaphore's lock");
+
+				Monitor.Enter(go, ref parked);
+			}
 
 			Assert.True(
-				SpinWait.SpinUntil(() => Volatile.Read(ref returning) && (walker!.ThreadState & ThreadState.WaitSleepJoin) != 0, TimeSpan.FromMinutes(1)),
-				"the worker never waited for the semaphore's lock");
+				SpinWait.SpinUntil(() => Volatile.Read(ref asked) || !thread.IsAlive, TimeSpan.FromMinutes(1)),
+				"the walk did not come back a minute after the lock was let go");
+		}
+		finally
+		{
+			if (parked)
+				Monitor.Exit(go);
 		}
 
 		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the walk did not come back a minute after the lock was let go");
 		Assert.Null(thrown);
+		Assert.True(taken, "the worker could not be claimed for the next walk");
 		Assert.True(again, "the worker did not take the next walk");
 	}
 
