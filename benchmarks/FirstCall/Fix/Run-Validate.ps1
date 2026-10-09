@@ -31,14 +31,14 @@
 	refuses what it does not recognise.
 
 .EXAMPLE
-	pwsh benchmarks/Run-Announced.ps1 -Label fix-first-validate -SlotMinutes 15 -Script benchmarks/FirstCall/Fix/Run-Validate.ps1 -Artifacts benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst, src/DotGram.Finance/bin/Release/net10.0/DotGram.Finance.dll
+	pwsh benchmarks/Run-Announced.ps1 -Label fix-first-validate -SlotMinutes 15 -Script benchmarks/FirstCall/Fix/Run-Validate.ps1 -Artifacts .build/bin/DotGram.FirstCall.Fix/release/fixfirst, .build/bin/DotGram.Finance/release_net10.0/DotGram.Finance.dll
 #>
 param(
 	# A directory holding the DotGram.Finance.dll under test, built Release.
-	[string]   $Library  = 'src/DotGram.Finance/bin/Release/net10.0',
+	[string]   $Library  = '.build/bin/DotGram.Finance/release_net10.0',
 	[string[]] $Types    = @('Heartbeat', 'NewOrderSingle', 'ExecutionReport', 'TradeCaptureReport'),
 	[int]      $Launches = 11,
-	[string]   $Harness  = $(if ($IsWindows) { 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst.exe' } else { 'benchmarks/FirstCall/Fix/bin/Release/net10.0/fixfirst' }),
+	[string]   $Harness  = $(if ($IsWindows) { '.build/bin/DotGram.FirstCall.Fix/release/fixfirst.exe' } else { '.build/bin/DotGram.FirstCall.Fix/release/fixfirst' }),
 
 	# One process that validates one message of EVERY type, instead of one type a process. It is
 	# the other question: not what the first message costs, but what a process pays to have met

@@ -8,15 +8,29 @@ if (args.Length != 2)
 	throw new ArgumentException("Usage: DotGram.CodeSize <before-repository> <after-repository>");
 
 var roots = args.Select(Path.GetFullPath).ToArray();
+
+// The build output of a repository is under .build, or, for a commit from before it moved there, in
+// each project's own bin and obj: whichever the repository has.
+static string Generated(string root, string project)
+{
+	var moved = Path.Combine(root, ".build", "obj", project, "GeneratedFiles", "DotGram", "DotGram.Generation.GramGenerator");
+	return Directory.Exists(moved) ? moved : Path.Combine(root, "src", project, "obj", "GeneratedFiles", "DotGram", "DotGram.Generation.GramGenerator");
+}
+
+static string Assembly(string root, string project)
+{
+	var moved = Path.Combine(root, ".build", "bin", project, "release_net10.0", project + ".dll");
+	return File.Exists(moved) ? moved : Path.Combine(root, "src", project, "bin", "Release", "net10.0", project + ".dll");
+}
+
 foreach (var project in new[] { "DotGram.Sql", "DotGram.ExpressionLanguage" })
 {
-	var relative = $"src/{project}/obj/GeneratedFiles/DotGram/DotGram.Generation.GramGenerator";
-	foreach (var file in Directory.GetFiles(Path.Combine(roots[1], relative), project + "*.g.cs"))
+	foreach (var file in Directory.GetFiles(Generated(roots[1], project), project + "*.g.cs"))
 	{
 		var name = Path.GetFileName(file);
 		var measurements = roots.Select(root =>
 		{
-			var path = Path.Combine(root, relative, name);
+			var path = Path.Combine(Generated(root, project), name);
 			var text = File.ReadAllText(path);
 			var normalized = text.Replace(root.Replace('\\', '/'), "/_").Replace(root.Replace('/', '\\'), "/_");
 			return new { Bytes = new FileInfo(path).Length, NormalizedBytes = Encoding.UTF8.GetByteCount(normalized), Lines = File.ReadLines(path).Count() };
@@ -25,7 +39,7 @@ foreach (var project in new[] { "DotGram.Sql", "DotGram.ExpressionLanguage" })
 	}
 	foreach (var root in roots)
 	{
-		var path = Path.Combine(root, $"src/{project}/bin/Release/net10.0/{project}.dll");
+		var path = Assembly(root, project);
 		using var stream = File.OpenRead(path);
 		using var pe = new PEReader(stream);
 		var metadata = pe.GetMetadataReader();

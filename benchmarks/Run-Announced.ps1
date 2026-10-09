@@ -22,7 +22,7 @@
 	The priority cannot be raised here (no privilege to lower a nice value); every timing runs at the default priority and run.txt says so.
 
 .EXAMPLE
-	pwsh benchmarks/Run-Announced.ps1 -Label stand -Command dotnet, benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll, --stand, --repeat, 5 -SlotMinutes 40
+	pwsh benchmarks/Run-Announced.ps1 -Label stand -Command dotnet, .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll, --stand, --repeat, 5 -SlotMinutes 40
 
 .EXAMPLE
 	pwsh benchmarks/Run-Announced.ps1 -Label fix-first-validate -Script benchmarks/FirstCall/Fix/Run-Validate.ps1 -SlotMinutes 15 -Artifacts <harness dll>, <library dll>

@@ -2892,10 +2892,8 @@ static partial class Stand
 
 		var found = new Dictionary<string, Generated>(StringComparer.Ordinal);
 
-		foreach (var top in new[] { "src", "examples" })
+		foreach (var directory in ReportProjects(root).Select(project => ReportFolder(root, project)))
 		{
-			var directory = Path.Combine(root, top);
-
 			if (!Directory.Exists(directory))
 				continue;
 
@@ -2953,6 +2951,17 @@ static partial class Stand
 		}
 
 		return [.. projects];
+	}
+
+	/// <summary>
+	/// Where a project's build leaves its intermediate files, and so the generator's reports: its folder under <c>.build/obj</c>, or, in a
+	/// tree from before the build output moved there, the project's own folder.
+	/// </summary>
+	static string ReportFolder(string root, string project)
+	{
+		var moved = Path.Combine(root, ".build", "obj", Path.GetFileNameWithoutExtension(project));
+
+		return Directory.Exists(moved) ? moved : Path.GetDirectoryName(project)!;
 	}
 
 	/// <summary>
@@ -3018,9 +3027,9 @@ static partial class Stand
 
 		foreach (var project in ReportProjects(root))
 		{
-			var directory = Path.GetDirectoryName(project)!;
+			var directory = ReportFolder(root, project);
 
-			if (!Directory.EnumerateFiles(directory, "*.DotGramReport.g.cs", SearchOption.AllDirectories).Any())
+			if (!Directory.Exists(directory) || !Directory.EnumerateFiles(directory, "*.DotGramReport.g.cs", SearchOption.AllDirectories).Any())
 				missing.Add(Path.GetFileNameWithoutExtension(project));
 		}
 

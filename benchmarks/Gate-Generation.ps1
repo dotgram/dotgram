@@ -79,7 +79,7 @@ $summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<b
 $taken = @{ base = @{}; head = @{} }
 $perProject = @{ base = @{}; head = @{} }
 
-# The compiler's count: at detailed verbosity with ReportAnalyzer, each compilation prints the generators' seconds after its command line (`/out:obj/Release/<tfm>/<name>.dll`). Only the compilations
+# The compiler's count: at detailed verbosity with ReportAnalyzer, each compilation prints the generators' seconds after its command line (`/out:` and the path of the assembly in `.build/obj/<project>/release_<tfm>`). Only the compilations
 # of the project itself are kept: a -t:Rebuild rebuilds what the project references too, and that is the referenced project's row.
 $compilerLine  = [regex]'/out:(?<out>\S+\.dll)'
 $generatorLine = [regex]'^\s*(?<seconds>\d+[.,]\d+)\s+\S+\s+DotGram\.Generation\.GramGenerator\s*$'
@@ -104,7 +104,8 @@ try {
 					if (($m = $compilerLine.Match($_)).Success) { $out = $m.Groups['out'].Value }
 					elseif ($out -and ($m = $generatorLine.Match($_)).Success) {
 						if ([IO.Path]::GetFileNameWithoutExtension($out) -eq $assembly) {
-							$key = "$assembly $(Split-Path (Split-Path $out) -Leaf)"
+							# The folder is `obj/Release/<tfm>` on a commit from before the build output moved, and `.build/obj/<project>/release_<tfm>` since: the framework is the key either way.
+							$key = "$assembly $((Split-Path $out | Split-Path -Leaf) -replace '^release_', '')"
 							if (-not $compiled[$name].ContainsKey($key)) { $compiled[$name][$key] = @() }
 							$compiled[$name][$key] += 1000 * [double]::Parse($m.Groups['seconds'].Value.Replace(',', '.'), [Globalization.CultureInfo]::InvariantCulture)
 						}

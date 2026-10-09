@@ -146,7 +146,7 @@ sealed class FileText(string path) : AdditionalText
 
 ```bash
 benchmarks/Aside.sh dotnet build .work/genprof -c Release
-benchmarks/Aside.sh dotnet .work/genprof/bin/Release/net10.0/genprof.dll $scratch/after
+benchmarks/Aside.sh dotnet .build/bin/genprof/release/genprof.dll $scratch/after
 ```
 
 It prints the whole run and the `Compiled` stage per host: which grammar the time goes to. The
@@ -175,7 +175,7 @@ alternately, never beside a test run, and in a window (`benchmarks/Run-Announced
 
 ```bash
 benchmarks/Aside.sh dotnet-trace collect --profile dotnet-sampled-thread-time --format Speedscope \
-    -o $scratch/gen.nettrace -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
+    -o $scratch/gen.nettrace -- .build/bin/genprof/release/genprof $scratch/dump
 ```
 
 EventPipe samples the managed stack of every thread about a hundred times a second, running or
@@ -193,7 +193,7 @@ it collect, how big is the heap, how fast does it allocate" without a trace:
 
 ```bash
 benchmarks/Aside.sh dotnet-counters collect --counters System.Runtime --refresh-interval 1 --format csv \
-    -o $scratch/counters.csv -- .work/genprof/bin/Release/net10.0/genprof $scratch/dump
+    -o $scratch/counters.csv -- .build/bin/genprof/release/genprof $scratch/dump
 ```
 
 The same arguments with `monitor` instead of `collect` print them live.
@@ -207,7 +207,7 @@ dotnet tool install -g JetBrains.dotTrace.GlobalTools
 
 dottrace start --profiling-type=Sampling --time-measurement=ThreadTime `
     --save-to=$scratch\dt\gen.dtp --overwrite --no-check-for-updates `
-    P:\...\.work\genprof\bin\Release\net10.0\genprof.exe $scratch\dump
+    P:\...\.build\bin\genprof\release\genprof.exe $scratch\dump
 ```
 
 - Give it the **apphost** `genprof.exe` by full path. `dotnet genprof.dll` fails: it does not
@@ -261,10 +261,10 @@ no command-line report at all.
 
 ```bash
 benchmarks/Aside.sh dotnet-trace collect --profile gc-verbose -o $scratch/gc.nettrace -- \
-    .work/genprof/bin/Release/net10.0/genprof $scratch/dump
+    .build/bin/genprof/release/genprof $scratch/dump
 
 benchmarks/Aside.sh dotnet build .work/allocs -c Release
-dotnet .work/allocs/bin/Release/net10.0/allocs.dll $scratch/gc.nettrace 30
+dotnet .build/bin/allocs/release/allocs.dll $scratch/gc.nettrace 30
 ```
 
 This works the same on Linux and on Windows (on Windows the apphost is `genprof.exe`).
@@ -397,7 +397,7 @@ Expand-Archive $scratch\dotmemory.zip $scratch\dotmemory
 
 & $scratch\dotmemory\tools\dotMemory.exe start --trigger-timer=40s --trigger-max-snapshots=1 `
     --save-to-dir=$scratch\dm --no-check-for-updates `
-    P:\...\.work\genprof\bin\Release\net10.0\genprof.exe $scratch\dump
+    P:\...\.build\bin\genprof\release\genprof.exe $scratch\dump
 ```
 
 Allocations are sampled unless `--collect-alloc` is given. The result is a workspace (`.dmw`,
@@ -412,7 +412,7 @@ assembly with its own xUnit runner:
 
 ```bash
 benchmarks/Aside.sh dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug &&
-benchmarks/Aside.sh dotnet tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.dll -class DotGram.Tests.ReaderTests
+benchmarks/Aside.sh dotnet .build/bin/DotGram.Tests/debug/DotGram.Tests.dll -class DotGram.Tests.ReaderTests
 ```
 
 **Joined by `&&`, and not two commands.** A project that fails to build leaves its previous

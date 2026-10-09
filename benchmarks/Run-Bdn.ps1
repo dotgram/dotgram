@@ -30,7 +30,7 @@
 	Every class that compares two things carries an A/A row (the same method under two names), and a ratio is read against its spread: the resolution is the hour's.
 
 .EXAMPLE
-	pwsh benchmarks/Run-Bdn.ps1 -Assembly benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll -Label sql-tsql -BdnArgs '--filter','*ScriptDomBenchmarks*' -LimitMinutes 45
+	pwsh benchmarks/Run-Bdn.ps1 -Assembly .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll -Label sql-tsql -BdnArgs '--filter','*ScriptDomBenchmarks*' -LimitMinutes 45
 #>
 param(
 	[Parameter(Mandatory)][string]$Assembly,

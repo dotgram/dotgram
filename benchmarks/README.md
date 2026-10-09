@@ -24,9 +24,9 @@ project is in the solution so that it has to keep compiling.
 
 ```console
 benchmarks/Aside.sh dotnet build benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj -c Release
-pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll, --stand, --repeat, 5
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-compare before.json after.json
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-check
+pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll, --stand, --repeat, 5
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand-compare before.json after.json
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand-check
 ```
 
 The last two time nothing and need no window. The command lines below give the stand's arguments; every one that times is run the same way, through `Run-Announced.ps1 -Command`.
@@ -34,7 +34,7 @@ The last two time nothing and need no window. The command lines below give the s
 **A `-Command`/`-Arguments`/`-Sides`/`-Rows`/`-Property`/`-Projects`/`-Types` list called from bash arrives flattened, and a comma inside one of its own values needs to be doubled.** `pwsh -File` from bash hands such a list over as ONE string (`WindowLib.ps1`, `Split-FileList`), which is split back into its parts; a piece that is itself a comma list — an `--only`/`--aa-only` value — must write its comma TWICE, `a,,b`, so it survives as one piece rather than becoming two and shifting whatever came after it (2026-09-29: `--stand --only fix/Order.text,el/ladder` sent through `Run-Announced.ps1` from bash this way, with a single comma, read as `--only fix/Order.text` plus a stray element `el/ladder` taken as the output directory, and silently changed what was timed):
 
 ```console
-pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll, --stand, --only, fix/Order.text,,el/ladder, --repeat, 5
+pwsh benchmarks/Run-Announced.ps1 -Label stand -SlotMinutes 40 -Command dotnet, .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll, --stand, --only, fix/Order.text,,el/ladder, --repeat, 5
 ```
 
 A check that this reconstructs the pieces without the bug (`--repeat`'s own five is unaffected, and the doubled comma between the two row ids becomes one, not two elements):
@@ -100,10 +100,10 @@ Timings here are for trends, and counts decide (D147): a periodic run of the sta
 ### Medians, not runs
 
 ```console
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --repeat 5
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --only fix/Order.text,el/ladder --repeat 5
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --repeat 5
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --first --only sql/
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand --repeat 5
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand --only fix/Order.text,el/ladder --repeat 5
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --repeat 5
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir --first --only sql/
 ```
 
 A before and an after are quoted as medians of at least five runs, even on a quiet machine:
@@ -125,7 +125,7 @@ an unhandled exception, an undocumented exit code, and a stack trace instead of 
 above):
 
 ```console
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand --repeat 2; echo "exit $?"
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand --repeat 2; echo "exit $?"
 ```
 
 prints one line to stderr and `exit 3`, nothing else — no stack trace, and no run of the stand
@@ -427,7 +427,7 @@ BenchmarkDotNet is for an ABSOLUTE number and for allocations, one process per c
 ### Which carrier a grammar took: `--carriers`
 
 ```console
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --carriers [output]
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --carriers [output]
 ```
 
 Not a benchmark: it times nothing and builds nothing. It gathers, from the `*.DotGramReport.g.cs`
@@ -436,7 +436,7 @@ file, which carrier each grammar of the solution is read with — for one left t
 (`Auto`), Immediate unless that carrier refused a machine — what the gates say the tape would hold
 back (`Replay` or the reader's), the reasons the build is told of it (GRAM5016, GRAM5012) and each
 rule the gates name with its cause, and writes them into `docs/carriers.md` (or to `output`). Run it
-after such a build: it reads what the last one left in every `obj/GeneratedFiles`, so it is a run
+after such a build: it reads what the last one left in every project's `GeneratedFiles` folder under `.build/obj`, so it is a run
 behind main by construction. It is written, never edited. A change to what a grammar is told, or to
 what the immediate carrier refuses, is measured by the difference in this file before and after it.
 
@@ -464,7 +464,7 @@ rows the profile moves.
 ### `--stand-paired`: two builds, one process
 
 ```console
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand-paired beforeDir afterDir
 ```
 
 `--stand-compare` runs `--stand` twice, in two separate processes, and compares the two
@@ -524,7 +524,7 @@ PowerShell process, without concurrent tests or builds:
 
 ```powershell
 $env:DOTNET_TieredCompilation = '0'
-dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --filter '*ParserResourceBenchmarks*' '*TinyParserBenchmarks*' '*ExpressionBenchmarks*' '*UrlBenchmarks.Grammar' --inProcess --launchCount 1 --warmupCount 3 --iterationCount 5 --iterationTime 100 --artifacts .work/strategy-audit/bdn-baseline
+dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --filter '*ParserResourceBenchmarks*' '*TinyParserBenchmarks*' '*ExpressionBenchmarks*' '*UrlBenchmarks.Grammar' --inProcess --launchCount 1 --warmupCount 3 --iterationCount 5 --iterationTime 100 --artifacts .work/strategy-audit/bdn-baseline
 ```
 
 This short in-process run is a baseline for investigation, not a precise speedup
@@ -1298,7 +1298,7 @@ dotnet run --project benchmarks/DotGram.CodeSize -c Release -- <before-repositor
 The tool compares SQL and ExpressionLanguage generated source files, byte counts with
 repository paths normalized, line counts, DLL sizes, and method IL instruction bytes.
 It separates Located and Immediate variants in the IL totals. Both trees must use the
-same grammar revision and build settings; existing files under obj/GeneratedFiles must
+same grammar revision and build settings; existing files under .build/obj/*/GeneratedFiles must
 belong to those builds. It does not build or clean either tree.
 
 Raw source bytes include absolute #line paths, and DLLs may contain embedded debug

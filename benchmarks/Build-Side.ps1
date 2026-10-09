@@ -61,7 +61,9 @@ $projects = 'src/DotGram.Finance/DotGram.Finance.csproj', 'src/DotGram.Expressio
 # project, and its side reads that reading from the package (Stand.cs, PairedSide).
 $fixture  = 'tests/DotGram.ExpressionLanguage.Immediate/DotGram.ExpressionLanguage.Immediate.csproj'
 if (Test-Path (Join-Path $Tree $fixture)) { $projects += $fixture }
-$flags    = @($Property | ForEach-Object { "-p:$_" })
+# The output of every project goes under the tree's .build, named by the property and not left to the tree's own Directory.Build.props: a side may be a commit from before the build output moved there.
+$artifacts = Join-Path $Tree '.build'
+$flags    = @("-p:ArtifactsPath=$artifacts") + @($Property | ForEach-Object { "-p:$_" })
 $rebuild  = @(if ($Property.Count -gt 0) { '-t:Rebuild' })
 $watch    = [Diagnostics.Stopwatch]::StartNew()
 $aside    = Enter-Aside
@@ -83,15 +85,17 @@ Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $out | Out-Null
 
 foreach ($project in $projects) {
-	$directory = Split-Path (Join-Path $Tree $project)
+	$assembly = [IO.Path]::GetFileNameWithoutExtension($project)
+	# A project of several target frameworks has the framework in the folder's name, one of a single framework has not.
+	$bin  = @("release_$Framework", 'release') | ForEach-Object { Join-Path $artifacts "bin/$assembly/$_" } | Where-Object { Test-Path (Join-Path $_ "$assembly.dll") } | Select-Object -First 1
 
-	Copy-Item (Join-Path $directory "bin/Release/$Framework/$([IO.Path]::GetFileNameWithoutExtension($project)).dll") $out
+	Copy-Item (Join-Path $bin "$assembly.dll") $out
 }
 
 # The emitted code, hashed without the worktree's path (`#line` directives carry it), file by file in name order.
 $sha256 = [Security.Cryptography.SHA256]::Create()
 $bytes  = [Text.Encoding]::UTF8.GetBytes(($projects | ForEach-Object {
-	$generated = Join-Path (Split-Path (Join-Path $Tree $_)) 'obj/GeneratedFiles'
+	$generated = Join-Path $artifacts "obj/$([IO.Path]::GetFileNameWithoutExtension($_))/GeneratedFiles"
 
 	if (Test-Path $generated) {
 		Get-ChildItem $generated -Recurse -Filter *.g.cs | Where-Object { $_.Name -notlike '*DotGramReport*' } | Sort-Object FullName | ForEach-Object { (Get-Content $_.FullName -Raw).Replace($Tree, '') }

@@ -18,7 +18,7 @@ namespace DotGram.Benchmarks;
 /// machine, what the gates say the tape would hold back, the reasons a diagnostic gives
 /// (GRAM5016, GRAM5012), and each rule the gates name with its cause. `Replay`'s gate names the place a cause was found and what around it lets the reading be
 /// replaced; the reader's gate names the rules that can be read again after answering. This builds
-/// nothing: it reads what the last such build left in every <c>obj/GeneratedFiles</c>, so run it
+/// nothing: it reads what the last such build left in every project's <c>GeneratedFiles</c> folder under <c>.build/obj</c>, so run it
 /// after one.
 /// </para>
 /// <para>
@@ -87,12 +87,21 @@ static class Carriers
 
 		foreach (var file in Directory.EnumerateFiles(root, "*.DotGramReportDetail.g.cs", SearchOption.AllDirectories))
 		{
-			var at = file.Replace('\\', '/').IndexOf("/obj/GeneratedFiles/", StringComparison.Ordinal);
+			var at = file.Replace('\\', '/').IndexOf("/GeneratedFiles/", StringComparison.Ordinal);
 
 			if (at < 0)
 				continue;
 
-			var project = Path.GetFileName(file.Substring(0, at));
+			// The folder is `.build/obj/<project>/GeneratedFiles` in this repository, and was
+			// `<project>/obj/GeneratedFiles` before the build output moved there: a checkout of an
+			// older commit is read as well.
+			var folder = file.Substring(0, at);
+			var parent = Path.GetFileName(Path.GetDirectoryName(folder));
+			var project = Path.GetFileName(folder) == "obj" ? parent : parent == "obj" ? Path.GetFileName(folder) : null;
+
+			if (project is null)
+				continue;
+
 			var written = File.GetLastWriteTime(file);
 
 			// The newest of a project's reports: one build wrote them all, and a project built for two

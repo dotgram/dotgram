@@ -348,7 +348,7 @@ static class Corpus
 	/// <remarks>
 	/// Found by walking up to the solution rather than by a path relative to the binary:
 	/// the working directory a benchmark is launched from is whatever the launcher felt
-	/// like, and `bin/Release/net10.0` is not where the corpus lives.
+	/// like, and `.build/bin/DotGram.Benchmarks/release` is not where the corpus lives.
 	/// </remarks>
 	internal static string Checked()
 	{
