@@ -1030,8 +1030,12 @@ sealed partial class Machine
 	/// <para>
 	/// <b>A wait disturbed.</b> An interrupt of the thread that handed a reading off is held until the
 	/// reading is done and thrown then: returning at once would leave a completion behind for the next
-	/// hand-off to take as its own, and clear fields the reading still had in hand. Anything else that
-	/// ends the wait early retires the thread.
+	/// hand-off to take as its own, and clear fields the reading still had in hand. (One that meets the
+	/// reading's end may instead find the wait already over, and is then left pending for the thread's
+	/// next wait, as the runtime leaves any interrupt that comes too late.) The interrupt retires the
+	/// thread too, and so does anything else that ends the wait early: a <c>SemaphoreSlim</c> whose
+	/// waiter is interrupted as it is released does not count that waiter as woken, and never wakes the
+	/// next one, so the next hand-off to that thread would wait for ever.
 	/// </para>
 	/// </remarks>
 	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
@@ -1078,7 +1082,8 @@ sealed partial class Machine
 		file.Line("/// <remarks>");
 		file.Line("/// However the wait is disturbed: an interrupt is held until the reading is done and then thrown,");
 		file.Line("/// since returning early would leave its completion for the next hand-off to take as its own, and");
-		file.Line("/// anything else that ends the wait retires the thread, so that it is never handed another.");
+		file.Line("/// the interrupt or anything else that ends the wait retires the thread, so that it is never handed");
+		file.Line("/// another.");
 		file.Line("/// </remarks>");
 
 		using (file.Block("internal void Go()"))
@@ -1116,6 +1121,9 @@ sealed partial class Machine
 
 			using (file.Block("if (interrupted != null)"))
 			{
+				file.Line("// An interrupt that meets the release leaves deepDone unable to wake its next waiter.");
+				file.Line("deepRetired = true;");
+				file.Line();
 				file.Line("Clear();");
 				file.Line();
 				file.Line("global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(interrupted).Throw();");

@@ -124,8 +124,13 @@ static class SqlStack
 	/// <para>
 	/// <b>A wait interrupted.</b> The thread that handed a walk off waits for it to end however the wait
 	/// is disturbed: <see cref="Thread.Interrupt"/> is held until the walk is done and then thrown, since
-	/// returning early would leave a completion behind for the next walk to take as its own. Anything
-	/// else that ends the wait early retires the thread, so that it is never handed another.
+	/// returning early would leave a completion behind for the next walk to take as its own. (One that
+	/// meets the walk's end may instead find the wait already over, and is then left pending for the
+	/// thread's next wait, as the runtime leaves any interrupt that comes too late.) The interrupt
+	/// retires the thread too, and so does anything else that ends the wait early, so that it
+	/// is never handed another: a <see cref="SemaphoreSlim"/> whose waiter is interrupted as it is
+	/// released does not count that waiter as woken, and never wakes the next one, so the next walk
+	/// handed to that thread would wait for ever.
 	/// </para>
 	/// </remarks>
 	sealed class Worker
@@ -202,7 +207,9 @@ static class SqlStack
 
 			if (interrupted is not null)
 			{
-				_thrown = null;
+				// An interrupt that meets the release leaves _done unable to wake its next waiter.
+				_retired = true;
+				_thrown  = null;
 
 				ExceptionDispatchInfo.Capture(interrupted).Throw();
 			}

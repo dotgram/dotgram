@@ -886,6 +886,9 @@ namespace DotGram.Snapshots
 
 				if (interrupted != null)
 				{
+					// An interrupt that meets the release leaves deepDone unable to wake its next waiter.
+					deepRetired = true;
+
 					Clear();
 
 					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(interrupted).Throw();
