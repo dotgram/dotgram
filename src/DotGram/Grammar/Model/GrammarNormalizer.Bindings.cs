@@ -143,6 +143,22 @@ public sealed partial class GrammarNormalizer
 		return binding;
 	}
 
+	/// <summary><c>q: X</c>, and <c>q: ($q: X)</c> as <c>$q: (q: X)</c>.</summary>
+	/// <remarks>
+	/// A capture of a binding is the way to have both, and both stand on the same span: the
+	/// capture outside would see a binding where it looks for the rule it takes a value from,
+	/// and keep text where <c>q: X</c> keeps <c>X</c>'s value. Inside, it is <c>q: X</c> exactly.
+	/// </remarks>
+	Node LowerCapture(string name, Expr operand, GrammarNamespace ns)
+	{
+		var lowered = Lower(operand, ns);
+
+		if (lowered is Node.Bind bind)
+			return bind with { Body = new Node.Capture(name, bind.Body) };
+
+		return new Node.Capture(name, lowered);
+	}
+
 	/// <summary><c>$q: X</c>.</summary>
 	Node LowerBind(Expr expression, string name, Expr operand, GrammarNamespace ns)
 	{
