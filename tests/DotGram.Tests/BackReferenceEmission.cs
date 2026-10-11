@@ -30,7 +30,7 @@ namespace DotGram.Tests;
 static class BackReferenceEmission
 {
 	/// <summary>The reader over contiguous input: <c>Direct</c> on, a string.</summary>
-	static readonly bool ReaderGenerates = false;
+	static readonly bool ReaderGenerates = true;
 
 	/// <summary>The engine: <c>Direct</c> off, <c>find</c>, and what the reader hands it.</summary>
 	static readonly bool EngineGenerates = false;
