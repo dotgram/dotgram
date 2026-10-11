@@ -38,6 +38,10 @@ public sealed partial class GrammarNormalizer
 			{
 				if (!alternative && ValueAlternatives(node).Any(part => part is Node.Construct && !offered.Contains(part)))
 				{
+					// Read before the group moves: `_bodies[owner]` is the body as it was until
+					// this visit hands back the rebuilt one.
+					RefuseCrossing(owner, node, _bodies[owner]);
+
 					var name = owner.Name + "_Group" + _rules.Count;
 
 					while (_rules.Exists(rule => rule.Namespace == owner.Namespace && rule.Name == name))
@@ -72,6 +76,8 @@ public sealed partial class GrammarNormalizer
 					Node.Atomic atomic     => atomic with { Body = Visit(atomic.Body, alternative) },
 					Node.Marked marked     => marked with { Body = Visit(marked.Body, alternative) },
 					Node.Lookahead look    => look with { Body = Visit(look.Body, false) },
+					Node.Bind bind         => bind with { Body = Visit(bind.Body, false) },
+					Node.Counted counted   => counted with { Body = Visit(counted.Body, false) },
 					_                      => node,
 				};
 

@@ -333,7 +333,7 @@ public sealed partial class GrammarNormalizer
 
 			rewritten ??= [.. alternatives];
 
-			rewritten[at]     = CloneAndRewrite(_bodies[longer], NoTargets, [], owner.Name);
+			rewritten[at]     = CloneBody(_bodies[longer], NoTargets, [], owner.Name);
 			rewritten[at + 1] = new Node.Construct(head, new Construction.Expression("(" + name + ")"));
 
 			// Where either call stood for a collapsed forwarding rule, what replaces it does.
