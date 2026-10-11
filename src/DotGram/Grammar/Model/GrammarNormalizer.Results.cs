@@ -670,6 +670,29 @@ public sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
 
+			// A binding is not a capture: it records where its body was, and the operands
+			// inside it are this rule's as they would be without it.
+			case Node.Bind bind:
+			{
+				var inner = Gather(bind.Body, element, ref taken, joined, group);
+
+				return ReferenceEquals(inner, bind.Body) ? node : bind with { Body = inner };
+			}
+
+			// A repetition, as above, whose bounds are known only while reading.
+			case Node.Counted(var body, var min, var max):
+			{
+				if (group is null && joined is not null && max is not CountBound.Items(1) && Sites(body, element) > 1)
+				{
+					group = [];
+					joined.Add(group);
+				}
+
+				var inner = Gather(body, element, ref taken, joined, group);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Counted(inner, min, max);
+			}
+
 			default:
 				return node;
 		}
@@ -689,6 +712,9 @@ public sealed partial class GrammarNormalizer
 		var name = "item" + taken++;
 
 		group?.Add(name);
+
+		if (part is Node.Counted(var counted, var least, var most))
+			return new Node.Counted(new Node.Capture(name, counted), least, most);
 
 		if (part is not Node.Repeat(var body, var min, var max))
 			return new Node.Capture(name, part);
@@ -731,6 +757,7 @@ public sealed partial class GrammarNormalizer
 		{
 			Node.Call(var rule, _)                     => rule,
 			Node.Repeat(Node.Call(var rule, _), _, _)  => rule,
+			Node.Counted(Node.Call(var rule, _), _, _) => rule,
 			_                                          => null,
 		};
 
@@ -855,6 +882,8 @@ public sealed partial class GrammarNormalizer
 			Node.Repeat(var body, _, _)    => Sites(body, element),
 			Node.Atomic(var body)          => Sites(body, element),
 			Node.Marked(var body, _)       => Sites(body, element),
+			Node.Bind(_, var body, _)      => Sites(body, element),
+			Node.Counted(var body, _, _)   => Sites(body, element),
 			_                              => 0,
 		};
 	}
@@ -898,6 +927,10 @@ public sealed partial class GrammarNormalizer
 			Node.Atomic(var body) => HasCapture(body),
 			Node.Marked(var body, _) => HasCapture(body),
 			Node.Construct(var built, _) => HasCapture(built),
+
+			// Not a capture itself — a binding makes no member — but what it holds may be.
+			Node.Bind(_, var body, _) => HasCapture(body),
+			Node.Counted(var body, _, _) => HasCapture(body),
 
 			// Not across a call — that is another rule's result — and not into a lookahead,
 			// which consumes nothing and is compiled with its captures stripped.

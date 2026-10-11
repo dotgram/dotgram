@@ -101,6 +101,14 @@ public sealed partial class GrammarNormalizer
 			Node.Marked(var kept, _) => Nullable(kept, seen),
 			Node.Capture(_, var held) => Nullable(held, seen),
 			Node.Construct(var built, _) => Nullable(built, seen),
+			Node.Bind(_, var bound, _) => Nullable(bound, seen),
+
+			// As a repetition above: no turn is enough only where a number says so. A length
+			// that may be zero, and a reference to text that may be empty, are answered no —
+			// the answer that leaves a seam woven, where a wrong yes would take out one that
+			// matters.
+			Node.Counted(_, var min, _) => min is CountBound.Items(0),
+			Node.Same => false,
 			_ => false,
 		};
 	}
@@ -146,6 +154,12 @@ public sealed partial class GrammarNormalizer
 
 			case Node.Lookahead(var positive, var watched):
 				return new Node.Lookahead(positive, Unwoven(watched, seam));
+
+			case Node.Bind bind:
+				return bind with { Body = Unwoven(bind.Body, seam) };
+
+			case Node.Counted(var body, var min, var max):
+				return new Node.Counted(Unwoven(body, seam), min, max);
 
 			default:
 				return node;

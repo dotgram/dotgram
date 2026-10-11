@@ -118,6 +118,24 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Construct(made, how);
 
+				// A binding's text is what its body read, seams between turns included, as a
+				// capture's is.
+				case Node.Bind bind:
+					return Spaced(bind.Body, seam) is var bound && ReferenceEquals(bound, bind.Body)
+						? node
+						: bind with { Body = bound };
+
+				// A count by a length is spaced between its turns as any repetition is, unless a
+				// number rules out a second turn: a length is not known to be 0 or 1 here.
+				case Node.Counted(var turn, var min, var max)
+					when max is not CountBound.Items { Count: 0 or 1 } && Listed(turn):
+					return new Node.Counted(new Node.Sequence([seam, Spaced(turn, seam)]), min, max);
+
+				case Node.Counted(var body, var min, var max):
+					return Spaced(body, seam) is var counted && ReferenceEquals(counted, body)
+						? node
+						: new Node.Counted(counted, min, max);
+
 				default:
 					return node;
 			}
@@ -164,6 +182,7 @@ public sealed partial class GrammarNormalizer
 		{
 			Node.Call(var called, { Count: 0 }) => Spaceable(called),
 			Node.Capture(_, Node.Call(var called, { Count: 0 })) => Spaceable(called),
+			Node.Bind(_, Node.Call(var called, { Count: 0 }), _) => Spaceable(called),
 			_ => false,
 		};
 	}

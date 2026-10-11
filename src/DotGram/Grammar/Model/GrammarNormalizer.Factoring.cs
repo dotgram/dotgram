@@ -578,6 +578,27 @@ public sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Repeat(inner, min, max));
 			}
 
+			// A binding records what its body read, which folding inside it does not change. A
+			// guard never names it, so it does not change what is named either.
+			case Node.Bind bind:
+			{
+				var inner = Folded(bind.Body, following, graph, owner);
+
+				return ReferenceEquals(inner, bind.Body) ? node : Instead(node, bind with { Body = inner });
+			}
+
+			case Node.Counted(var body, var min, var max):
+			{
+				var inner = Folded(
+					body,
+					following.Or(new FollowSets.Continuation(
+						FirstSets.Of(body, graph), FirstSets.Of(body, graph))),
+					graph,
+					owner);
+
+				return ReferenceEquals(inner, body) ? node : Instead(node, new Node.Counted(inner, min, max));
+			}
+
 			// Left alone rather than walked into. A mark stands over an extent and a
 			// lookahead is rewound; both are shapes this first cut does not move.
 			default: return node;
