@@ -59,6 +59,14 @@ public sealed partial class GrammarNormalizer
 						PureText(captured):
 					return new Node.Capture(name, new Node.Repeat(Hoist(captured), min, max));
 
+				// A count by a length, on the same terms: its turns are as contiguous. A length may
+				// be zero, so a lower bound that is one counts as none, and only a count with no
+				// upper bound then moves — as `*` does and `{0,m}` does not.
+				case Node.Counted(Node.Capture(var name, var captured), var min, var max)
+					when (min is CountBound.Items { Count: >= 1 } || max is null) &&
+						PureText(captured):
+					return new Node.Capture(name, new Node.Counted(Hoist(captured), min, max));
+
 				case Node.Sequence(var parts):
 				{
 					var rebuilt = Rebuilt(parts);

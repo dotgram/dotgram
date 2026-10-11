@@ -112,6 +112,7 @@ public sealed partial class GrammarNormalizer
 		_resolver = resolver;
 
 		_ruleIsNullable = rule => _nullable.TryGetValue(rule, out var nullable) && nullable;
+		_boundBodies    = BoundBodies;
 	}
 
 	/// <param name="resolver">
@@ -494,14 +495,45 @@ public sealed partial class GrammarNormalizer
 	/// <summary>
 	/// Whether a node can match without consuming anything, asked of the one place that
 	/// knows the shapes — with the answer for a call taken from the estimate this fixed
-	/// point is still refining.
+	/// point is still refining, and the answer for a reference from what its binding's
+	/// bodies can match.
 	/// </summary>
 	bool IsNullable(Node node)
 	{
-		return FirstSets.Nullable(node, _ruleIsNullable);
+		return FirstSets.Nullable(node, _ruleIsNullable, _boundBodies);
 	}
 
 	readonly Func<RuleSymbol, bool> _ruleIsNullable;
+
+	readonly Func<TextBinding, IEnumerable<Node>> _boundBodies;
+
+	/// <summary>The bodies a binding is bound to, in the rules as they stand now.</summary>
+	/// <remarks>
+	/// Looked for first in the rule that declared it, where every binding lowering made
+	/// stands; a copy made for another rule still names the rule it was copied from, and is
+	/// found by looking through every rule. Asked only where a reference or a length is met,
+	/// so a grammar that binds nothing never pays for it.
+	/// </remarks>
+	IEnumerable<Node> BoundBodies(TextBinding binding)
+	{
+		var found = new List<Node>();
+
+		if (_bodies.TryGetValue(binding.Rule, out var own))
+			Collect(own);
+
+		if (found.Count == 0)
+			foreach (var body in _bodies.Values)
+				Collect(body);
+
+		return found;
+
+		void Collect(Node body)
+		{
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Bind(var bound, var held, _) && ReferenceEquals(bound, binding))
+					found.Add(held);
+		}
+	}
 
 	// ── Results ──────────────────────────────────────────────────────────────────
 
