@@ -32,8 +32,8 @@ properties, enums and lists in place of the BNF's structure, with validation out
    the tree simpler and open to extension.
 
 5. **The first criterion of structure is how simply it represents SQL.** SQL reads straight from the
-   object: a `SELECT` is roughly `Statement.Select` with `Items`, `From`, `Where`, `GroupBy`, `Having`,
-   `Window`, `SetOperations`, `OrderBy`, `Offset` and `Fetch`, not a chain of the BNF's wrappers.
+   object: a `SELECT` is roughly `Query.Select` with `Columns`, `From`, `Where`, `GroupBy`, `Having`,
+   `Window`, `SetOperations`, `OrderBy` and `Limit`, not a chain of the BNF's wrappers.
 
 6. **Class hierarchies are one level deep.** Allowed:
 
@@ -167,10 +167,18 @@ word the author wrote (requirement 3).
 - *CASE.* A simple `CASE`'s when clause holds a list, `WHEN 1, 2`, and a when operand may be a predicate
   without its left side, `WHEN < 5`: the missing side is `Expression.CaseOperand`, for which nothing is
   written.
-- *Queries.* `Statement.Select` gains `Body`, for a query expression whose first operand is `VALUES`,
-  `TABLE t` or a query in brackets, with the specification's properties then empty; `Parentheses`, a
-  count rather than a flag, since `((SELECT 1))` is two; and `Updatability`, a cursor specification's
-  `FOR UPDATE`. A join's kind is nullable — a bare `JOIN` is not `INNER JOIN` — with `Natural` a flag of
+- *Queries.* A query is a family of its own, `Query`, which a subquery, a derived table, a common table
+  expression, a view and an INSERT's source hold; `Statement.Select` is a query as a statement, and adds
+  only T-SQL's `OPTION (…)` hints. `Query.Select` is one `SELECT` (its list is `Columns`), a `VALUES`
+  list (`Values`), or `TABLE t`, which is `SELECT * FROM t` with the spelling flag `Table`.
+  `Query.Parenthesized` is a pair of brackets written around a query, so `((SELECT 1))` is two nodes and
+  `(A) UNION B` is not `(A UNION B)`. `UNION`, `EXCEPT` and `INTERSECT` are `SetOperations`, a list on
+  the query they follow read as a left fold, what binds tighter an operand with a list of its own; the
+  operator is one of six kinds (`Union`, `UnionAll`, … `ExceptAll`) and a written `DISTINCT` a spelling
+  flag. A query's `With`, `OrderBy`, `Limit` (`OFFSET` and `FETCH`, one record), `For` and `Locking`
+  (`FOR UPDATE`, `FOR READ ONLY`) are of its whole result — the compound where it has set operations —
+  and its specification's members are the first operand's; an operand's own clauses are inside a
+  `Parenthesized`. T-SQL's `TOP` is a member of `Query.Select` and of the data change statements. A join's kind is nullable — a bare `JOIN` is not `INNER JOIN` — with `Natural` a flag of
   its own rather than four more values, and a partitioned join's two column lists. `TABLE (f (a))` is
   `TableSource.TableFunction` and `MATCH_RECOGNIZE` after a table is `TableSource.RowPatternRecognition`.
 - *Statements.* Added `GetDiagnostics`, with its three forms and both item enums from the BNF, and
