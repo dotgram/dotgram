@@ -343,6 +343,23 @@ public sealed partial class BackReferenceTests
 			Accepted: ["aa:bb", "aaa:bb", "aaa:bbb"],
 			Refused:  ["a:b", "aa:b", "aa:bbb"]),
 
+		// A body of more than one item is a loop of turns, where one item is a run.
+		new("CountOfASequence", "R", "R = $q: 'a'+ & ':' & \"bc\"{#q}",
+			Accepted: ["a:bc", "aa:bcbc"],
+			Refused:  ["aa:bc", "a:bcbc", "a:b", "aa:bcb"]),
+
+		new("CountOfASequenceFromANumberToALength", "R", "R = $q: 'a'* & ':' & \"bc\"{2,#q}",
+			Accepted: ["aa:bcbc", "aaa:bcbc", "aaa:bcbcbc"],
+			Refused:  ["a:bc", "a:bcbc", ":", "aa:bc", "aa:bcbcbc"]),
+
+		new("CountOfASequenceBetweenTwoLengths", "R", "R = $q: 'a'* & $r: 'c'* & ':' & \"bd\"{#q,#r}",
+			Accepted: ["acc:bd", "acc:bdbd", ":", "ac:bd"],
+			Refused:  ["aac:bd", "acc:bdbdbd", "acc:", "a:"]),
+
+		new("CountOfASequenceGivesBack", "R", "R = $q: 'a'+ & ':' & \"bc\"{1,#q} & \"bc\" & 'x'",
+			Accepted: ["a:bcbcx", "aa:bcbcx", "aa:bcbcbcx"],
+			Refused:  ["aa:bcx", "a:bcbcbcx", "aa:bcbcbcbcx"]),
+
 		new("CountOfARepeatedBinding", "R", "R = $p: 'n'* & ($q: 'a'){#p} & ':' & $q",
 			Accepted: ["nnaa:aa", ":", "na:a"],
 			Refused:  ["nnaa:a", "na:"]),
