@@ -72,6 +72,7 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 			[GramSyntaxKind.SpecialSymbol]  = Type(classifications, GramClassificationTypes.SpecialSymbol),
 			[GramSyntaxKind.Operator]       = Type(classifications, GramClassificationTypes.Operator),
 			[GramSyntaxKind.Punctuation]    = Type(classifications, GramClassificationTypes.Punctuation),
+			[GramSyntaxKind.Binding]        = Type(classifications, GramClassificationTypes.Identifier),
 		};
 		_dslTypes = DslTypes(classifications);
 

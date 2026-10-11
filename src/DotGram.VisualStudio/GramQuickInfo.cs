@@ -482,6 +482,7 @@ sealed class GramQuickInfoSource(
 			GramSyntaxKind.SpecialSymbol => GramClassificationTypes.SpecialSymbol,
 			GramSyntaxKind.Operator => GramClassificationTypes.Operator,
 			GramSyntaxKind.Punctuation => GramClassificationTypes.Punctuation,
+			GramSyntaxKind.Binding => GramClassificationTypes.Identifier,
 			_ => PredefinedClassificationTypeNames.Text,
 		};
 	}
@@ -512,6 +513,7 @@ sealed class GramQuickInfoSource(
 			GramSyntaxKind.Comment => "DotGram comment",
 			GramSyntaxKind.Invalid => "Unrecognized DotGram syntax",
 			GramSyntaxKind.Operator => $"DotGram operator: {text}",
+			GramSyntaxKind.Binding => $"DotGram binding: {text}",
 			_ => $"DotGram syntax: {text}",
 		};
 	}
