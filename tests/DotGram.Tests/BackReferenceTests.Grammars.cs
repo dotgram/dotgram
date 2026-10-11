@@ -155,6 +155,21 @@ public sealed partial class BackReferenceTests
 			],
 			Refused:  ["``\na\n``", "```a`b\nx\n```", "    ```\ncode\n```", "x```\n```"]),
 
+		// Backticks or tildes: one top-level alternative each, so `$f` is two bindings, and a
+		// tilde fence is not closed by backticks however many.
+		new("MarkdownFenceOfEitherCharacter", "Fence", """
+			Fence   = ' '{0,3} & $f: '`'{3,} & [^ '`' | '\r' | '\n']* & eol
+			          & { (?!(' '{0,3} & $f & '`'* & ' '* & EndLine) & Line)* }
+			          & (' '{0,3} & $f & '`'* & ' '* & EndLine | eof)
+			        | ' '{0,3} & $f: '~'{3,} & [^ '\r' | '\n']* & eol
+			          & { (?!(' '{0,3} & $f & '~'* & ' '* & EndLine) & Line)* }
+			          & (' '{0,3} & $f & '~'* & ' '* & EndLine | eof)
+			Line    = [^ '\r' | '\n']+ & EndLine | eol
+			EndLine = eol | eof
+			""",
+			Accepted: ["~~~\ncode\n~~~", "~~~ `info`\na\n~~~~", "~~~~\n~~~\n````\n~~~~", "```\n~~~\n```"],
+			Refused:  ["~~\na\n~~", "~~~\na\n~~~\nmore"]),
+
 		new("RestructuredTextHeading", "Heading", Heading,
 			Accepted: ["Title\n=====\n", "Title\n=======\n", "T\n=\n"],
 			Refused:  ["Title\n====\n", "Title\n=====", "\n=\n"]),
