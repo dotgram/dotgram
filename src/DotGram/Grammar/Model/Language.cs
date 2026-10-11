@@ -109,6 +109,12 @@ static class Language
 			case Node.Marked(var kept, _):     return Shortest(graph, kept, depth + 1);
 			case Node.Capture(_, var held):    return Shortest(graph, held, depth + 1);
 			case Node.Construct(var built, _): return Shortest(graph, built, depth + 1);
+			case Node.Bind(_, var bound, _):   return Shortest(graph, bound, depth + 1);
+
+			// What these read depends on what a binding read before them, which this walk
+			// does not keep: no witness, rather than one the node may not accept.
+			case Node.Same or Node.Counted:
+				return null;
 
 			default: return null;
 		}
@@ -168,31 +174,26 @@ static class Language
 			}
 
 			case Node.Repeat(var body, var min, var max):
+				return Repeated(graph, body, min, max, text, at);
+
+			// A length is not known here, so it is taken as any number of turns: more positions
+			// than the rule reaches, the direction a lookahead taken as satisfied already errs in.
+			case Node.Counted(var body, var min, var max):
+				return Repeated(
+					graph, body,
+					min is CountBound.Items(var least) ? least : 0,
+					max is CountBound.Items(var most) ? most : null,
+					text, at);
+
+			// The text a binding read is not kept here, so any of what is left may be it.
+			case Node.Same:
 			{
-				var reached = new HashSet<int>();
-				var here    = new HashSet<int> { at };
+				var all = new HashSet<int>();
 
-				if (min == 0)
-					reached.Add(at);
+				for (var end = at; end <= text.Length; end++)
+					all.Add(end);
 
-				// A turn that consumes nothing is dropped rather than repeated: the string is
-				// finite, so a run of them can only ever arrive where it already is.
-				for (var turn = 1; turn <= (max ?? text.Length + 1) && here.Count > 0; turn++)
-				{
-					var next = new HashSet<int>();
-
-					foreach (var one in here)
-						foreach (var end in Ends(graph, body, text, one))
-							if (end > one)
-								next.Add(end);
-
-					if (turn >= min)
-						reached.UnionWith(next);
-
-					here = next;
-				}
-
-				return reached;
+				return all;
 			}
 
 			case Node.Call(var called, _):
@@ -204,8 +205,38 @@ static class Language
 			case Node.Marked(var kept, _):     return Ends(graph, kept, text, at);
 			case Node.Capture(_, var held):    return Ends(graph, held, text, at);
 			case Node.Construct(var built, _): return Ends(graph, built, text, at);
+			case Node.Bind(_, var bound, _):   return Ends(graph, bound, text, at);
 
 			default: return [];
 		}
+	}
+
+	/// <summary>Where a repetition of <paramref name="body"/> between these bounds can end.</summary>
+	static HashSet<int> Repeated(RecognitionGraph graph, Node body, int min, int? max, string text, int at)
+	{
+		var reached = new HashSet<int>();
+		var here    = new HashSet<int> { at };
+
+		if (min == 0)
+			reached.Add(at);
+
+		// A turn that consumes nothing is dropped rather than repeated: the string is
+		// finite, so a run of them can only ever arrive where it already is.
+		for (var turn = 1; turn <= (max ?? text.Length + 1) && here.Count > 0; turn++)
+		{
+			var next = new HashSet<int>();
+
+			foreach (var one in here)
+				foreach (var end in Ends(graph, body, text, one))
+					if (end > one)
+						next.Add(end);
+
+			if (turn >= min)
+				reached.UnionWith(next);
+
+			here = next;
+		}
+
+		return reached;
 	}
 }

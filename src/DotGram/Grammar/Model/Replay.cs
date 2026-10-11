@@ -273,6 +273,30 @@ public static class Replay
 				Walk(body, taken, elsewhere, after, seam, graph, found, where);
 
 				break;
+
+			case Node.Bind(_, var body, _):
+				Walk(body, taken, elsewhere, after, seam, graph, found, where);
+
+				break;
+
+			// A repetition like any other here: its bounds are not what decides whether a
+			// failed turn is replaced.
+			case Node.Counted(var body, _, _):
+			{
+				var stops = Seamed(body, seam, out var past)
+					? Begins(past, after.AfterSeam, graph) is not { } beyond || !after.AfterSeam.IsKnown || beyond.Overlaps(after.AfterSeam)
+					: Begins(body, after.Plain, graph) is not { } begins || !after.Plain.IsKnown || begins.Overlaps(after.Plain);
+
+				Walk(
+					body, taken, elsewhere || stops, after, seam, graph, found,
+					!elsewhere && stops && where.Places is not null ? where with { Why = "[turn]" } : where);
+
+				break;
+			}
+
+			// A reference reads text and calls nothing.
+			case Node.Same:
+				break;
 		}
 	}
 
@@ -424,6 +448,13 @@ public static class Replay
 
 			case Node.Capture(_, var one):
 				return CanFail(one, graph, asked);
+
+			case Node.Bind(_, var one, _):
+				return CanFail(one, graph, asked);
+
+			// As a repetition with no lower bound; a length may ask for turns that are not there.
+			case Node.Counted(_, CountBound.Items(0), _):
+				return false;
 
 			case Node.Marked(var one, _):
 				return CanFail(one, graph, asked);

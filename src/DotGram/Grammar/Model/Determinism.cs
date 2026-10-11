@@ -305,6 +305,8 @@ public static class Determinism
 			case Node.Atomic(var kept):        return LeadsStill(kept, graph, seen);
 			case Node.Marked(var kept, _):     return LeadsStill(kept, graph, seen);
 			case Node.Repeat(var body, _, _):  return LeadsStill(body, graph, seen);
+			case Node.Bind(_, var bound, _):   return LeadsStill(bound, graph, seen);
+			case Node.Counted(var body, _, _): return LeadsStill(body, graph, seen);
 
 			case Node.Call(var rule, _):
 				return seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var called) && LeadsStill(called, graph, seen);
@@ -326,7 +328,7 @@ public static class Determinism
 			var roots = one.Bodies.Values.Concat(one.Trivia.Values).Concat(one.Recoveries.Values.Select(static recovery => recovery.Sync));
 
 			return roots.SelectMany(static root => NodeWalk.Descendants(root)).Any(static node =>
-				node is Node.Guard or Node.External or Node.Capture(_, Node.Lookahead));
+				node is Node.Guard or Node.External or Node.Capture(_, Node.Lookahead) or Node.Bind(_, Node.Lookahead, _));
 		});
 	}
 
@@ -339,6 +341,7 @@ public static class Determinism
 		{
 			Node.Capture(_, var body) => Unbuilt(body),
 			Node.Construct(var body, _) => Unbuilt(body),
+			Node.Bind(_, var body, _) => Unbuilt(body),
 			_ => node,
 		};
 	}
@@ -353,6 +356,7 @@ public static class Determinism
 			Node.Construct(var built, _) => Leading(built),
 			Node.Marked(var kept, _) => Leading(kept),
 			Node.Atomic(var kept) => Leading(kept),
+			Node.Bind(_, var bound, _) => Leading(bound),
 			_ => node,
 		};
 	}
@@ -468,7 +472,10 @@ public static class Determinism
 		static bool Reads(Node body)
 		{
 			return !NodeWalk.Descendants(body).Any(static node =>
-			node is Node.Guard or Node.Capture or Node.Construct or Node.Marked or Node.Lookahead or Node.Behind or Node.Glue or Node.External);
+			node is Node.Guard or Node.Capture or Node.Construct or Node.Marked or Node.Lookahead or Node.Behind or Node.Glue or Node.External or
+				// What a binding holds, and so what a reference to it compares, depends on where
+				// the run was cut, as what a capture holds does.
+				Node.Bind or Node.Same);
 		}
 	}
 
@@ -572,6 +579,12 @@ public static class Determinism
 			// every grammar.
 			Node.Atomic => true,
 			Node.Marked(var body, _) => Of(body, asked, following, graph, seam),
+			Node.Bind(_, var body, _) => Of(body, asked, following, graph, seam),
+			// The text it reads is one text, matched one way.
+			Node.Same => true,
+			// How many turns it takes is decided only while reading, so it may take them more
+			// than one way.
+			Node.Counted => false,
 			Node.Sequence(var parts) => All(parts, asked, following, graph, seam),
 			Node.Choice(var options) => Distinguishable(options, graph) &&
 											 All(options, asked, following, graph, seam, sequence: false),

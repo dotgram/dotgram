@@ -579,6 +579,8 @@ public static class Retention
 			Node.Construct(var built, _)     => [built],
 			Node.Atomic   (var body)         => [body],
 			Node.Marked   (var body, _)      => [body],
+			Node.Bind     (_, var bound, _)  => [bound],
+			Node.Counted  (var body, _, _)   => [body],
 			_                                => (IEnumerable<Node>)[]
 		};
 	}
@@ -642,6 +644,19 @@ public static class Retention
 			case Node.Construct(var built, _)   : return Extent(built, rules, consuming);
 			case Node.Atomic   (var body)       : return Extent(body, rules, consuming);
 			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming);
+			case Node.Bind     (_, var bound, _): return Extent(bound, rules, consuming);
+
+			// Reads again what a binding read, which this walk does not see: as many lines as
+			// anything could take.
+			case Node.Same: return LineExtent.Beyond;
+
+			// A repetition whose bounds are known only while reading.
+			case Node.Counted(var body, _, _):
+			{
+				var once = Extent(body, rules, consuming);
+
+				return once == LineExtent.AtEnd ? LineExtent.Beyond : once;
+			}
 
 			case Node.Choice(var alternatives):
 			{
@@ -716,6 +731,8 @@ public static class Retention
 			Node.Marked(var body, _) => Consumes(body, consuming),
 			Node.Capture(_, var captured) => Consumes(captured, consuming),
 			Node.Construct(var built, _) => Consumes(built, consuming),
+			Node.Bind(_, var bound, _) => Consumes(bound, consuming),
+			Node.Counted(var body, _, _) => Consumes(body, consuming),
 			Node.Sequence(var parts) => Any(parts, consuming),
 			Node.Choice(var alternatives) => Any(alternatives, consuming),
 			Node.Call(var called, _) => consuming.Contains(called),

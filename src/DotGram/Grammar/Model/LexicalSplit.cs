@@ -599,6 +599,13 @@ public sealed class LexicalSplit
 				case Node.Construct(var built, var how):
 					return new Node.Construct(Rewrite(built, owner, blocked), how);
 
+				// A binding compares text, and over kinds there is none to compare: rewritten
+				// through, a reference would compare kind numbers. Bindings are refused in a
+				// grammar that is split before it gets here; this keeps the split from going
+				// ahead should one ever arrive.
+				case Node.Bind or Node.Same or Node.Counted:
+					return Refuse(node, owner, blocked);
+
 				default:
 					return node;
 			}
