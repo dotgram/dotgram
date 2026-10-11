@@ -99,6 +99,40 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 			$"the generated one says {(generated.IsSuccess ? "yes" : "no")}.");
 	}
 
+	/// <summary>
+	/// A bound text, a reference to it and a count by its length, held against each other
+	/// where the two parsers could part: the sigil glued to the name or not, the colon spaced
+	/// or not, a length outside a count.
+	/// </summary>
+	[Theory]
+	[InlineData("R = '[' & $eq: '='* & '[' & ?!$eq & $eq", true)]
+	[InlineData("R = $q : 'a' & $q", true)]
+	[InlineData("R = { $q: '`'{3,} } & (?!$q & any)* & $q & ?!'`'", true)]
+	[InlineData("R = $o: ('='?) & close: $o", true)]
+	[InlineData("R = ('<' & $t: W & '>' | $t: W) & $t\nW = ['a'..'z']+", true)]
+	[InlineData("R = $x: ?='x' & $x", true)]
+	[InlineData("R = $d: '$'+ & '{'{#d}", true)]
+	[InlineData("R = $d: '$'+ & '{'{ #d , }", true)]
+	[InlineData("R = $d: '$'+ & '{'{2,#d}", true)]
+	[InlineData("R = $d: '$'+ & '{'{#d,5}", true)]
+	[InlineData("R = $d: '$'+ & $e: 'a' & '{'{#d,#e}", true)]
+	[InlineData("R = $ q", false)]
+	[InlineData("R = $q: 'a' & $ q", false)]
+	[InlineData("R = $1", false)]
+	[InlineData("R = #q", false)]
+	[InlineData("R = 'a' & #q", false)]
+	[InlineData("R = 'a'{#}", false)]
+	[InlineData("R = 'a'{# q}", false)]
+	[InlineData("R = $q: ", false)]
+	public void Both_implementations_agree_on_bound_text(string text, bool accepted)
+	{
+		var handed    = GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance));
+		var generated = GramGrammar.TryParseFile(text);
+
+		Assert.True(!handed.HasErrors == accepted, $"{text}: the hand-written parser says {(handed.HasErrors ? "no" : "yes")}.");
+		Assert.True(generated.IsSuccess == accepted, $"{text}: the generated parser says {(generated.IsSuccess ? "yes" : "no")}.");
+	}
+
 	[Fact]
 	public void And_this_is_what_each_costs()
 	{

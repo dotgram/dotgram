@@ -169,6 +169,52 @@ public sealed class GramLexerTests
 			GramLexer.Tokenize("@ int . Parse ( text )").ToString());
 	}
 
+	[Fact]
+	public void Reads_a_bound_name_and_its_length_as_one_token_each()
+	{
+		// The colon stays a token of its own, so `$q :` binds as `$q:` does: what tells a
+		// binding from a reference is the token after the name, as it is for a capture.
+		Assert.Equal(
+			"""
+			BindingName "q"
+			Colon
+			BindingName "q"
+			Colon
+			BindingName "q"
+			LengthName "q"
+			OpenBrace
+			LengthName "d_2"
+			Comma
+			CloseBrace
+			""",
+			GramLexer.Tokenize("$q: $q : $q #q {#d_2,}").ToString());
+	}
+
+	[Fact]
+	public void A_bound_name_spans_its_sigil()
+	{
+		var source = "x & $tag";
+		var token  = GramLexer.Tokenize(source).Tokens.Single(t => t.Kind == TokenKind.BindingName);
+
+		Assert.Equal(("$tag", "tag"), (source.Substring(token.Position, token.Length), token.Value));
+	}
+
+	/// <summary>A sigil with no name glued to it is refused at the sigil, and the rest still lexes.</summary>
+	[Theory]
+	[InlineData("$ q",  0, "Unknown \"$\"\nIdentifier \"q\"")]
+	[InlineData("$1",   0, "Unknown \"$\"\nInteger \"1\"")]
+	[InlineData("a # ", 2, "Identifier \"a\"\nUnknown \"#\"")]
+	[InlineData("{#}",  1, "OpenBrace\nUnknown \"#\"\nCloseBrace")]
+	[InlineData("$",    0, "Unknown \"$\"")]
+	public void A_sigil_needs_a_name_right_after_it(string source, int position, string tokens)
+	{
+		var lexed      = GramLexer.Tokenize(source);
+		var diagnostic = Assert.Single(lexed.Diagnostics);
+
+		Assert.Equal((GramLexer.SigilNeedsName, position, 1), (diagnostic.Id, diagnostic.Position, diagnostic.Length));
+		Assert.Equal(tokens, string.Join("\n", lexed.Tokens.Where(t => t.Kind != TokenKind.EndOfFile)));
+	}
+
 	[Theory]
 	[InlineData("'a",           GramLexer.UnterminatedCharacter)]
 	[InlineData("\"a",          GramLexer.UnterminatedString)]
