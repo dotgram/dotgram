@@ -257,6 +257,7 @@ sealed partial class Machine
 				Node.Call(var rule, _) => rule,
 				Node.Construct(var body, _) => Called(body),
 				Node.Atomic(var body) => Called(body),
+				Node.Bind(_, var body, _) => Called(body),
 				Node.Sequence(var parts) when parts.Count == 1 => Called(parts[0]),
 				_ => null,
 			};

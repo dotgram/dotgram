@@ -396,6 +396,17 @@ sealed partial class Machine
 		Opening(rule, shape + captured, WhyRepeat(repeat, following), repeat);
 	}
 
+	/// <summary>A count whose bounds are read while parsing, which opens a way wherever it may stop short.</summary>
+	void OpeningCount(RuleSymbol rule, Node.Counted counted)
+	{
+		if (!Reporting)
+			return;
+
+		var captured = NodeWalk.Descendants(counted.Body).Any(static one => one is Node.Capture) ? ", captured" : "";
+
+		Opening(rule, "counted" + captured, "its bounds are read while parsing", counted);
+	}
+
 	void Opening(RuleSymbol rule, string form, string why, Node node)
 	{
 		OpenedAt ??= [];

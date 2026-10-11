@@ -328,6 +328,9 @@ sealed partial class Machine
 			Node.Construct => false,
 			Node.Guard => false,
 			Node.External { HasValue: true } => false,
+
+			// A binding is kept where the reader keeps it, which a flat method has no slot for.
+			Node.Bind or Node.Same or Node.Counted => false,
 			_ => true,
 		};
 	}
@@ -350,6 +353,9 @@ sealed partial class Machine
 			Node.Atomic(var body) => Extent(body),
 			Node.Call(var called, _) => _graph.Results[called].Count == 0 &&
 											 !_graph.Types.ContainsKey(called),
+
+			// A binding, a reference and a count are text too, but kept off the flat and sited
+			// renderings, which have no slot for a binding: a capture over one is no extent.
 			_ => false,
 		};
 	}

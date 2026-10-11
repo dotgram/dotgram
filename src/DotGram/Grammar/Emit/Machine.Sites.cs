@@ -289,6 +289,10 @@ sealed partial class Machine
 			Node.Construct => false,
 			Node.Guard => false,
 			Node.External { HasValue: true } => false,
+
+			// Two sites of one callee would share its binding's slot: a callee that binds keeps
+			// its boundary.
+			Node.Bind or Node.Same or Node.Counted => false,
 			_ => true,
 		};
 	}
