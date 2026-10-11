@@ -401,6 +401,7 @@ before. Two alternatives that both bind `q` are fine, and share it:
 
 ```dotgram
 Quoted = ('\'' & $t: Word & '\'' | $t: Word) & " " & $t
+Word   = ['a'..'z']+
 ```
 
 The same name bound twice on one route is an error, and so is a reference inside its own
@@ -468,7 +469,8 @@ the closing line:
 ```dotgram
 Heredoc = "<<"  & $tag: Word & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
         | "<<-" & $tag: Word & eol & { (?!('\t'* & $tag & EndLine) & Line)* } & '\t'* & $tag & ?=EndLine
-Line    = [^ '\r' | '\n']* & eol
+Word    = ['A'..'Z' | 'a'..'z' | '_']+
+Line    = [^ '\r' | '\n']+ & EndLine | eol
 EndLine = eol | eof
 ```
 
@@ -476,10 +478,15 @@ A **Markdown fence**: the closing fence is the same character and at least as lo
 "at least as long" is `$f` followed by more of the same, and needs no comparison:
 
 ```dotgram
-Fenced = ' '{0,3} & $f: '`'{3,} & [^ '`' | '\r' | '\n']* & eol
-         & { (?!(' '{0,3} & $f & '`'* & ' '* & EndLine) & Line)* }
-         & (' '{0,3} & $f & '`'* & ' '* & EndLine | eof)
+Fenced  = ' '{0,3} & $f: '`'{3,} & [^ '`' | '\r' | '\n']* & eol
+          & { (?!(' '{0,3} & $f & '`'* & ' '* & EndLine) & Line)* }
+          & (' '{0,3} & $f & '`'* & ' '* & EndLine | eof)
+Line    = [^ '\r' | '\n']+ & EndLine | eol
+EndLine = eol | eof
 ```
+
+A fence that is never closed runs to the end of the input, so a `Line` may end there too,
+without a line break.
 
 A count by the length of a binding says "at least as long" for a run. In
 reStructuredText the underline of a title is at least as long as the title:
