@@ -1411,7 +1411,7 @@ SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Litera
 
 // ── §7.12 Query specification ───────────────────────────────────────────────
 
-QuerySpecification : @Query.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
+QuerySpecification : @Query = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
 SetQuantifier      = "DISTINCT"i | "ALL"i
 
 SelectList : @Sql.SqlList<SelectColumn> = '*' => @(Nodes.Everything())
@@ -1461,8 +1461,10 @@ QueryPrimary : @Query
 	= s: SimpleTable => @(s)
 	| '(' & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? & ')' => @(Nodes.InBrackets(Nodes.Expressed(b, null, o, f, x)))
 
-// <simple table>, with <explicit table>, which is `SELECT * FROM t` written short.
-SimpleTable : @Query.Select
+// <simple table>, with <explicit table>, which is `SELECT * FROM t` written short. Each is a
+// Query.Select; the rules say Query, the type of the query primary they are, so that the primary passes
+// them through as they are rather than constructing its value again.
+SimpleTable : @Query
 	= s: QuerySpecification => @(s)
 	| v: TableValueConstructor => @(new Query.Select { Values = v })
 	| "TABLE"i & n: TableOrQueryName => @(Nodes.Tabled(n))
