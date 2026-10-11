@@ -18,6 +18,7 @@ using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
 using QualifiedName = DotGram.Sql.Ast.QualifiedName;
+using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
@@ -48,6 +49,20 @@ public sealed class Sql2023WriterCoverageTests
 		new(RoutineKind.Procedure, new QualifiedName([new Identifier("p")]));
 
 	static readonly TransactionName Saved = new(new Identifier("s"));
+
+	static readonly QualifiedName T = new([new Identifier("t")]);
+
+	/// <summary><c>SELECT a</c>, the smallest query there is, for a clause to be put on.</summary>
+	static readonly Query.Select Selected = new() { Columns = [new SelectColumn.ExpressionItem(A)] };
+
+	/// <summary><c>SELECT a op SELECT b</c>.</summary>
+	static Query.Select Combined(SetOperator op, bool distinct = false)
+	{
+		return Selected with
+		{
+			SetOperations = [new SetOperation(op, new Query.Select { Columns = [new SelectColumn.ExpressionItem(B)] }) { Distinct = distinct }],
+		};
+	}
 
 	/// <summary>A revoked SELECT on one table, written with the page's FROM or its TO.</summary>
 	static RevokeBody Revoked(bool to)
@@ -100,7 +115,7 @@ public sealed class Sql2023WriterCoverageTests
 			Cursor      = new CursorReference(new QualifiedName([new Identifier("c")])),
 			Properties  = properties,
 			SourceValue = new CursorSource.Query(
-				new Statement.Select { Items = [new SelectItem.ExpressionItem(A)] },
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(A)] } },
 				new UpdatabilityClause(true, [], underscored),
 				updatabilityFirst),
 		};
@@ -121,6 +136,10 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(BinaryTypeKind)]     = v => new DataType.Binary((BinaryTypeKind)v),
 		[typeof(IdentifierStyle)]    = v => new Identifier("x", (IdentifierStyle)v),
 		[typeof(TransactionKeyword)] = v => new Statement.Commit { Keyword = (TransactionKeyword)v },
+		[typeof(SetOperator)]        = v => Combined((SetOperator)v),
+		[typeof(LockingMode)]        = v => Selected with { Locking = [new LockingClause((LockingMode)v, [])] },
+		[typeof(RowWord)]            = v => Selected with { Limit = new Limit { Offset = A, OffsetRowWord = (RowWord)v, Count = B, FetchRowWord = (RowWord)v } },
+		[typeof(FetchPosition)]      = v => Selected with { Limit = new Limit { Count = A, FetchRowWord = RowWord.Rows, Position = (FetchPosition)v } },
 		// A hundred and seventy permissions and twenty-eight classes, generated from the catalogue (D148):
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
 		[typeof(PrivilegeKind)]      = v => Granted(null, new Privilege((PrivilegeKind)v, [], [])),
@@ -315,6 +334,12 @@ public sealed class Sql2023WriterCoverageTests
 			["Query.UpdatabilityBeforeOptions"] = (
 				Declared(new CursorProperties(null, null, null, null), false),
 				Declared(new CursorProperties(null, null, null, null), true)),
+			["Select.Table"] = (
+				new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Named(T)]) },
+				new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Named(T)]), Table = true }),
+			["SetOperation.Distinct"] = (
+				Combined(SetOperator.Union),
+				Combined(SetOperator.Union, distinct: true)),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),

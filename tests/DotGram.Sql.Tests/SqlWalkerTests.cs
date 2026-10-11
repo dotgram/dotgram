@@ -53,7 +53,7 @@ public sealed class SqlWalkerTests
 		}));
 
 		Assert.Same(query, seen[0]);
-		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.SelectItem.ExpressionItem);
+		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.SelectColumn.ExpressionItem);
 		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.Expression.Binary);
 		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.TableSource.Named);
 	}

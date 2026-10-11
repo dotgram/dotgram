@@ -14,6 +14,7 @@ namespace DotGram.Sql.Tests;
 // Inside the namespace, where it is asked before DotGram.Sql's own Expression — the tree T-SQL
 // builds, which a using directive above the namespace would lose to.
 using Expression = DotGram.Sql.Ast.Expression;
+using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
@@ -218,18 +219,19 @@ static class Both
 
 	// ── §7 Query expressions ───────────────────────────────────────────────────
 
-	public static SqlStandardProductions.Match<Statement.Select> TryParseQueryExpression(string input)
+	public static SqlStandardProductions.Match<Query> TryParseQueryExpression(string input)
 	{
 		var read = SqlStandardProductions.TryParseQueryExpression(input);
 
 		Agree(input, read.IsSuccess, read.IsSuccess ? read.Value : null, HandSqlStandard.TryParseQueryExpression(input, out var hand), hand);
 
-		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? read.Value : null);
+		// A query read as a statement is the same query, held by the statement that adds nothing to it.
+		Shipped.Statement(input, read.IsSuccess, read.IsSuccess ? new Statement.Select { Query = read.Value } : null);
 
 		return read;
 	}
 
-	public static Statement.Select ParseQueryExpression(string input)
+	public static Query ParseQueryExpression(string input)
 	{
 		return TryParseQueryExpression(input).IsSuccess
 		? SqlStandardProductions.ParseQueryExpression(input)

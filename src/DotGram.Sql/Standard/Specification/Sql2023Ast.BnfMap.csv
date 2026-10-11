@@ -553,12 +553,12 @@ table row value expression,erased classifier/alias,erased,Expression,no,yes,2,<r
 contextually typed row value expression,erased classifier/alias,erased,Expression,no,yes,2,<row value special case> | <contextually typed row value constructor>
 row value predicand,erased classifier,erased,Polymorphic AST family,no,yes,2,<row value special case> | <row value constructor predicand>
 row value special case,erased alias,erased,Referenced AST target,yes,yes,1,<non-parenthesized value expression primary>
-table value constructor,record/value,QueryOperand.Values,Structural helper AST,no,no,1,VALUES <row value expression list>
-row value expression list,expression/value,QueryOperand.Values.Rows,Expression,no,no,3,<table row value expression> [ { <comma> <table row value expression> }... ]
+table value constructor,record/value,Query.Select.Values,Structural helper AST,no,no,1,VALUES <row value expression list>
+row value expression list,expression/value,Query.Select.Values; RowValue,Expression,no,no,3,<table row value expression> [ { <comma> <table row value expression> }... ]
 contextually typed table value constructor,record/value,InsertSource.Values,Structural helper AST,no,no,1,VALUES <contextually typed row value expression list>
 contextually typed row value expression list,expression/value,InsertSource.Values.Rows,Expression,no,no,3,<contextually typed row value expression> [ { <comma> <contextually typed row value expression> }... ]
 table expression,expression/value,erased,Expression,no,no,5,<from clause> [ <where clause> ] [ <group by clause> ] [ <having clause> ] [ <window clause> ]
-from clause,property/value,FromClause; Statement.Select.From,Clause/helper/property,no,no,1,FROM <table reference list>
+from clause,property/value,FromClause; Query.Select.From,Clause/helper/property,no,no,1,FROM <table reference list>
 table reference list,list property,FromClause.Sources,IReadOnlyList<T> property,no,no,3,<table reference> [ { <comma> <table reference> }... ]
 table reference,erased classifier,TableSource,Polymorphic AST family,no,yes,2,<table factor> | <joined table>
 table factor,record/value,TableSource; TableSource.Sample,Structural helper AST,no,no,2,<table primary> [ <sample clause> ]
@@ -675,8 +675,8 @@ JSON table primitive,family/value/enum,JsonTableDefinition.Primitive,JSON/JSON P
 JSON table primitive columns clause,family/value/enum,JsonTableDefinition.Columns,JSON/JSON Path AST,no,no,5,COLUMNS <left paren> <JSON table primitive column definition> [ { <comma> <JSON table primitive column definition> }... ] <right paren>
 JSON table primitive column definition,family/value/enum,JsonTableColumn,JSON/JSON Path AST,no,yes,4,<JSON table ordinality column definition> | <JSON table regular column definition> | <JSON table formatted column definition> | <JSON table primitive chaining column>
 JSON table primitive chaining column,family/value/enum,JsonTableColumn.Chaining,JSON/JSON Path AST,no,no,1,<column name> FOR CHAINING
-where clause,property/value,Statement.Select.Where,Clause/helper/property,no,no,1,WHERE <search condition>
-group by clause,property/value,GroupByClause; Statement.Select.GroupBy,Clause/helper/property,no,no,2,GROUP BY [ <set quantifier> ] <grouping element list>
+where clause,property/value,Query.Select.Where,Clause/helper/property,no,no,1,WHERE <search condition>
+group by clause,property/value,GroupByClause; Query.Select.GroupBy,Clause/helper/property,no,no,2,GROUP BY [ <set quantifier> ] <grouping element list>
 grouping element list,list property,GroupByClause.Items,IReadOnlyList<T> property,no,no,3,<grouping element> [ { <comma> <grouping element> }... ]
 grouping element,erased classifier,GroupingElement,Polymorphic AST family,no,yes,5,<ordinary grouping set> | <rollup list> | <cube list> | <grouping sets specification> | <empty grouping set>
 ordinary grouping set,erased classifier,erased,Polymorphic AST family,no,yes,4,<grouping column reference> | <left paren> <grouping column reference list> <right paren>
@@ -689,8 +689,8 @@ grouping sets specification,enum/value,GroupingElement.Sets,Enum/value/helper,no
 grouping set list,list property,GroupingElement.Sets.Items,IReadOnlyList<T> property,no,no,3,<grouping set> [ { <comma> <grouping set> }... ]
 grouping set,erased classifier,erased,Polymorphic AST family,no,yes,5,<ordinary grouping set> | <rollup list> | <cube list> | <grouping sets specification> | <empty grouping set>
 empty grouping set,erased classifier,erased,Polymorphic AST family,no,yes,2,<left paren> <right paren>
-having clause,property/value,Statement.Select.Having,Clause/helper/property,no,no,1,HAVING <search condition>
-window clause,property/value,WindowClause; Statement.Select.Window,Clause/helper/property,no,no,1,WINDOW <window definition list>
+having clause,property/value,Query.Select.Having,Clause/helper/property,no,no,1,HAVING <search condition>
+window clause,property/value,WindowClause; Query.Select.Window,Clause/helper/property,no,no,1,WINDOW <window definition list>
 window definition list,list property,WindowClause.Windows,IReadOnlyList<T> property,no,no,3,<window definition> [ { <comma> <window definition> }... ]
 window definition,record/value,WindowDefinition,Structural helper AST,no,no,2,<new window name> AS <window specification>
 new window name,name/value,WindowDefinition.Name,Identifier / QualifiedName,yes,yes,1,<window name>
@@ -712,35 +712,35 @@ window frame bound 2,erased alias,erased,Referenced AST target,yes,yes,1,<window
 window frame bound,record/value,WindowFrameBound; WindowBoundKind,Structural helper AST,no,no,2,<window frame start> | UNBOUNDED FOLLOWING | <window frame following>
 window frame following,record/value,WindowBoundKind.Following; WindowFrameBound.Offset,Structural helper AST,no,no,1,<unsigned value specification> FOLLOWING
 window frame exclusion,record/value,WindowFrameExclusion; WindowFrame.Exclusion,Structural helper AST,no,no,0,EXCLUDE CURRENT ROW | EXCLUDE GROUP | EXCLUDE TIES | EXCLUDE NO OTHERS
-query specification,enum/value,Statement.Select,Enum/value/helper,no,no,3,SELECT [ <set quantifier> ] <select list> <table expression>
-select list,list property,Statement.Select.Items; SelectItem.All,IReadOnlyList<T> property,no,no,4,<asterisk> | <select sublist> [ { <comma> <select sublist> }... ]
-select sublist,list property,SelectItem,IReadOnlyList<T> property,no,yes,2,<derived column> | <qualified asterisk>
-qualified asterisk,erased classifier,SelectItem.QualifiedAll,Polymorphic AST family,no,yes,4,<asterisked identifier chain> <period> <asterisk> | <all fields reference>
-asterisked identifier chain,record/value,SelectItem.QualifiedAll.Qualifier,Query/TableSource/helper property,no,no,3,<asterisked identifier> [ { <period> <asterisked identifier> }... ]
+query specification,enum/value,Query.Select,Enum/value/helper,no,no,3,SELECT [ <set quantifier> ] <select list> <table expression>
+select list,list property,Query.Select.Columns; SelectColumn.All,IReadOnlyList<T> property,no,no,4,<asterisk> | <select sublist> [ { <comma> <select sublist> }... ]
+select sublist,list property,SelectColumn,IReadOnlyList<T> property,no,yes,2,<derived column> | <qualified asterisk>
+qualified asterisk,erased classifier,SelectColumn.QualifiedAll,Polymorphic AST family,no,yes,4,<asterisked identifier chain> <period> <asterisk> | <all fields reference>
+asterisked identifier chain,record/value,SelectColumn.QualifiedAll.Qualifier,Query/TableSource/helper property,no,no,3,<asterisked identifier> [ { <period> <asterisked identifier> }... ]
 asterisked identifier,erased alias,erased,Referenced AST target,yes,yes,1,<identifier>
-derived column,record/value,SelectItem.ExpressionItem,Structural helper AST,no,no,2,<value expression> [ <as clause> ]
-as clause,property/value,SelectItem.ExpressionItem.Alias; SelectItem.ExpressionItem.AsKeyword,Clause/helper/property,no,no,1,[ AS ] <column name>
-all fields reference,enum/value,SelectItem.QualifiedAll; SelectItem.QualifiedAll.RenamedFields,Enum/value/helper,no,no,6,<value expression primary> <period> <asterisk> [ AS <left paren> <all fields column name list> <right paren> ]
-all fields column name list,name/value,SelectItem.QualifiedAll.RenamedFields,Identifier / QualifiedName,yes,yes,1,<column name list>
-query expression,expression/value,Statement.Select,Expression,no,no,5,[ <with clause> ] <query expression body> [ <order by clause> ] [ <result offset clause> ] [ <fetch first clause> ]
-with clause,property/value,WithClause; Statement.Select.With,Clause/helper/property,no,no,1,WITH [ RECURSIVE ] <with list>
+derived column,record/value,SelectColumn.ExpressionItem,Structural helper AST,no,no,2,<value expression> [ <as clause> ]
+as clause,property/value,SelectColumn.ExpressionItem.Alias; SelectColumn.ExpressionItem.AsKeyword,Clause/helper/property,no,no,1,[ AS ] <column name>
+all fields reference,enum/value,SelectColumn.QualifiedAll; SelectColumn.QualifiedAll.RenamedFields,Enum/value/helper,no,no,6,<value expression primary> <period> <asterisk> [ AS <left paren> <all fields column name list> <right paren> ]
+all fields column name list,name/value,SelectColumn.QualifiedAll.RenamedFields,Identifier / QualifiedName,yes,yes,1,<column name list>
+query expression,expression/value,Query,Expression,no,no,5,[ <with clause> ] <query expression body> [ <order by clause> ] [ <result offset clause> ] [ <fetch first clause> ]
+with clause,property/value,WithClause; Query.With,Clause/helper/property,no,no,1,WITH [ RECURSIVE ] <with list>
 with list,list property,WithClause.Items,IReadOnlyList<T> property,no,no,3,<with list element> [ { <comma> <with list element> }... ]
 with list element,list property,CommonTableExpression,IReadOnlyList<T> property,no,no,6,<query name> [ <left paren> <with column list> <right paren> ] AS <table subquery> [ <search or cycle clause> ]
 with column list,list property,CommonTableExpression.Columns,IReadOnlyList<T> property,yes,yes,1,<column name list>
-query expression body,expression/value,SetOperation; Statement.Select.SetOperations; SetOperator.Union; SetOperator.Except,Expression,no,no,7,<query term> | <query expression body> UNION [ ALL | DISTINCT ] [ <corresponding spec> ] <query term> | <query expression body> EXCEPT [ ALL | DISTINCT ] [ <corresponding spec> ] <query term>
-query term,record/value,SetOperation; SetOperator.Intersect,Structural helper AST,no,no,4,<query primary> | <query term> INTERSECT [ ALL | DISTINCT ] [ <corresponding spec> ] <query primary>
-query primary,record/value,QueryOperand.Select; Statement.Select.Parentheses,Structural helper AST,no,no,7,<simple table> | <left paren> <query expression body> [ <order by clause> ] [ <result offset clause> ] [ <fetch first clause> ] <right paren>
-simple table,erased classifier,QueryOperand,Polymorphic AST family,no,yes,3,<query specification> | <table value constructor> | <explicit table>
-explicit table,record/value,QueryOperand.Table,Structural helper AST,no,no,1,TABLE <table or query name>
+query expression body,expression/value,SetOperation; Query.SetOperations; SetOperator.Union; SetOperator.UnionAll; SetOperator.Except; SetOperator.ExceptAll; SetOperation.Distinct,Expression,no,no,7,<query term> | <query expression body> UNION [ ALL | DISTINCT ] [ <corresponding spec> ] <query term> | <query expression body> EXCEPT [ ALL | DISTINCT ] [ <corresponding spec> ] <query term>
+query term,record/value,SetOperation; SetOperator.Intersect; SetOperator.IntersectAll,Structural helper AST,no,no,4,<query primary> | <query term> INTERSECT [ ALL | DISTINCT ] [ <corresponding spec> ] <query primary>
+query primary,record/value,Query.Parenthesized,Structural helper AST,no,no,7,<simple table> | <left paren> <query expression body> [ <order by clause> ] [ <result offset clause> ] [ <fetch first clause> ] <right paren>
+simple table,erased classifier,Query.Select,Polymorphic AST family,no,yes,3,<query specification> | <table value constructor> | <explicit table>
+explicit table,record/value,Query.Select.Table,Structural helper AST,no,no,1,TABLE <table or query name>
 corresponding spec,record/value,SetOperation.Corresponding; CorrespondingClause,Query/TableSource/helper property,no,no,3,CORRESPONDING [ BY <left paren> <corresponding column list> <right paren> ]
 corresponding column list,list property,CorrespondingClause.Columns,IReadOnlyList<T> property,yes,yes,1,<column name list>
-order by clause,property/value,OrderByClause; Statement.Select.OrderBy,Clause/helper/property,no,no,1,ORDER BY <sort specification list>
-result offset clause,property/value,Statement.Select.Offset; OffsetClause,Clause/helper/property,no,no,1,OFFSET <offset row count> { ROW | ROWS }
-fetch first clause,property/value,Statement.Select.Fetch; FetchClause,Clause/helper/property,no,no,1,FETCH { FIRST | NEXT } [ <fetch first quantity> ] { ROW | ROWS } { ONLY | WITH TIES }
+order by clause,property/value,OrderByClause; Query.OrderBy,Clause/helper/property,no,no,1,ORDER BY <sort specification list>
+result offset clause,property/value,Query.Limit; Limit.Offset; Limit.OffsetRowWord,Clause/helper/property,no,no,1,OFFSET <offset row count> { ROW | ROWS }
+fetch first clause,property/value,Query.Limit; Limit.Count; Limit.Position; Limit.FetchRowWord; Limit.WithTies,Clause/helper/property,no,no,1,FETCH { FIRST | NEXT } [ <fetch first quantity> ] { ROW | ROWS } { ONLY | WITH TIES }
 fetch first quantity,erased classifier,erased,Polymorphic AST family,no,yes,2,<fetch first row count> | <fetch first percentage>
 offset row count,erased alias,erased,Referenced AST target,yes,yes,1,<simple value specification>
 fetch first row count,erased alias,erased,Referenced AST target,yes,yes,1,<simple value specification>
-fetch first percentage,record/value,FetchClause.Quantity; FetchClause.Percent,Query/TableSource/helper property,no,no,1,<simple value specification> PERCENT
+fetch first percentage,record/value,Limit.Count; Limit.Percent,Query/TableSource/helper property,no,no,1,<simple value specification> PERCENT
 search or cycle clause,erased classifier/alias,erased,Clause/helper/property,no,yes,4,<search clause> | <cycle clause> | <search clause> <cycle clause>
 search clause,property/value,SearchClause; CommonTableExpression.Search,Clause/helper/property,no,no,2,SEARCH <recursive search order> SET <sequence column>
 recursive search order,record/value,SearchOrder; SearchClause.Order; SearchClause.Columns,Query/TableSource/helper property,no,no,2,DEPTH FIRST BY <column name list> | BREADTH FIRST BY <column name list>
@@ -1401,15 +1401,15 @@ cursor sensitivity,record/value,CursorSensitivity; CursorProperties.Sensitivity,
 cursor scrollability,record/value,CursorScrollability; CursorProperties.Scrollability,Structural helper AST,no,no,0,SCROLL | NO SCROLL
 cursor holdability,record/value,CursorHoldability; CursorProperties.Holdability,Structural helper AST,no,no,0,WITH HOLD | WITHOUT HOLD
 cursor returnability,record/value,CursorReturnability; CursorProperties.Returnability,Structural helper AST,no,no,0,WITH RETURN | WITHOUT RETURN
-cursor specification,enum/value,CursorSource.Query; Statement.Select.Updatability,Enum/value/helper,no,no,2,<query expression> [ <updatability clause> ]
-updatability clause,property/value,UpdatabilityClause,Clause/helper/property,no,no,1,FOR { READ ONLY | UPDATE [ OF <column name list> ] }
+cursor specification,enum/value,Statement.Select; Query.Locking; CursorSource.Query,Enum/value/helper,no,no,2,<query expression> [ <updatability clause> ]
+updatability clause,property/value,LockingClause; LockingMode.ReadOnly; LockingMode.Update,Clause/helper/property,no,no,1,FOR { READ ONLY | UPDATE [ OF <column name list> ] }
 open statement,statement/property,Statement.OpenCursor,Statement,no,no,1,OPEN <cursor name>
 fetch statement,statement/property,Statement.FetchCursor; Statement.FetchCursor.FromKeyword; Statement.FetchCursor.Into,Statement,no,no,3,FETCH [ [ <fetch orientation> ] FROM ] <cursor name> INTO <fetch target list>
 fetch orientation,enum/value,FetchOrientation; FetchOrientationKind,Enum/value/helper,no,no,1,NEXT | PRIOR | FIRST | LAST | { ABSOLUTE | RELATIVE } <simple value specification>
 fetch target list,list property,Statement.FetchCursor.Into,IReadOnlyList<T> property,no,no,3,<target specification> [ { <comma> <target specification> }... ]
 close statement,statement/property,Statement.CloseCursor,Statement,no,no,1,CLOSE <cursor name>
-select statement: single row,statement/property,Statement.Select; Statement.Select.Into,Statement,no,no,4,SELECT [ <set quantifier> ] <select list> INTO <select target list> <table expression>
-select target list,list property,Statement.Select.Into; IntoClause.Targets,IReadOnlyList<T> property,no,no,3,<target specification> [ { <comma> <target specification> }... ]
+select statement: single row,statement/property,Statement.Select; Query.Select.Into,Statement,no,no,4,SELECT [ <set quantifier> ] <select list> INTO <select target list> <table expression>
+select target list,list property,Query.Select.Into; IntoClause.Targets,IReadOnlyList<T> property,no,no,3,<target specification> [ { <comma> <target specification> }... ]
 delete statement: positioned,statement/property,Statement.Delete; Statement.Delete.CurrentOf,Statement,no,no,3,DELETE FROM <target table> [ [ AS ] <correlation name> ] WHERE CURRENT OF <cursor name>
 target table,record/value,TableSource.Named,Structural helper AST,no,no,4,<table name> | ONLY <left paren> <table name> <right paren>
 delete statement: searched,statement/property,Statement.Delete,Statement,no,no,6,DELETE FROM <target table> [ FOR PORTION OF <application time period name> FROM <point in time 1> TO <point in time 2> ] [ [ AS ] <correlation name> ] [ WHERE <search condition> ]
@@ -1418,7 +1418,7 @@ identity column restart option,enum/value,Statement.TruncateTable.Identity; Iden
 insert statement,statement/property,Statement.Insert,Statement,no,no,2,INSERT INTO <insertion target> <insert columns and source>
 insertion target,erased alias,erased,Referenced AST target,yes,yes,1,<table name>
 insert columns and source,erased classifier,erased,Polymorphic AST family,no,yes,3,<from subquery> | <from constructor> | <from default>
-from subquery,record/value,InsertSource.Query; Statement.Insert.Columns; Statement.Insert.Override,Structural helper AST,no,no,5,[ <left paren> <insert column list> <right paren> ] [ <override clause> ] <query expression>
+from subquery,record/value,InsertSource.Subquery; Statement.Insert.Columns; Statement.Insert.Override,Structural helper AST,no,no,5,[ <left paren> <insert column list> <right paren> ] [ <override clause> ] <query expression>
 from constructor,record/value,InsertSource.Values; Statement.Insert.Columns; Statement.Insert.Override,Statement/helper/value family,no,no,5,[ <left paren> <insert column list> <right paren> ] [ <override clause> ] <contextually typed table value constructor>
 override clause,property/value,OverrideKind; Statement.Insert.Override; MergeInsertAction.Override,Clause/helper/property,no,no,0,OVERRIDING USER VALUE | OVERRIDING SYSTEM VALUE
 from default,record/value,InsertSource.DefaultValues,Statement/helper/value family,no,no,0,DEFAULT VALUES

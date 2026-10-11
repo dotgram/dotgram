@@ -37,7 +37,8 @@ constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two t
 
 `SqlStandardParser` reads at six levels: `ParseValue` (the standard's literal, a signed number among
 them, or `NULL`), `ParseDataType`, `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one
-statement of any kind, its `;` optional; a query is the `Statement.Select` among them) and `ParseSql`
+statement of any kind, its `;` optional; a query is the `Statement.Select` among them, holding an
+`Ast.Query`) and `ParseSql`
 (statements, each ended by a `;` or by the end of the text, where an empty statement is refused).
 A production below them is read through the level that holds it, and a statement's kind is the type
 of its node. `TransactSqlParser` publishes `ParseSelect`,

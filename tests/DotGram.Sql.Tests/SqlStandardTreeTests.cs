@@ -365,21 +365,21 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("SELECT a, b AS c, d e FROM t",
-		"Select(Items: [ExpressionItem(a, null, false), ExpressionItem(b, c, true), ExpressionItem(d, e, false)], From: FromClause([Named(t)]))")]
+		"Select(Columns: [ExpressionItem(a, null, false), ExpressionItem(b, c, true), ExpressionItem(d, e, false)], From: FromClause([Named(t)]))")]
 	[InlineData("SELECT DISTINCT t.*, u.* AS (x, y) FROM t, u",
-		"Select(Quantifier: Distinct, Items: [QualifiedAll(t, null), QualifiedAll(u, [x, y])], From: FromClause([Named(t), Named(u)]))")]
+		"Select(Quantifier: Distinct, Columns: [QualifiedAll(t, null), QualifiedAll(u, [x, y])], From: FromClause([Named(t), Named(u)]))")]
 	[InlineData("SELECT * FROM t WHERE a = 1 GROUP BY ROLLUP (a, (b, c)), () HAVING COUNT(*) > 1",
-		"Select(Items: [All()], From: FromClause([Named(t)]), Where: Comparison(a, Equal, 1, false), GroupBy: GroupByClause(null, [Rollup([Ordinary([a], false), Ordinary([b, c], true)]), Empty()]), Having: Comparison(Invocation(COUNT, [Argument(Asterisk(), null, false)]), Greater, 1, false))")]
+		"Select(Columns: [All()], From: FromClause([Named(t)]), Where: Comparison(a, Equal, 1, false), GroupBy: GroupByClause(null, [Rollup([Ordinary([a], false), Ordinary([b, c], true)]), Empty()]), Having: Comparison(Invocation(COUNT, [Argument(Asterisk(), null, false)]), Greater, 1, false))")]
 	[InlineData("SELECT a FROM t UNION ALL SELECT b FROM u INTERSECT SELECT c FROM v ORDER BY 1",
-		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Operator: Union, Quantifier: All, Operand: Select(Select(Items: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]), SetOperations: [SetOperation(Operator: Intersect, Operand: Select(Select(Items: [ExpressionItem(c, null, false)], From: FromClause([Named(v)]))))])))], OrderBy: OrderByClause([SortItem(1, null, null)]))")]
+		"Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(UnionAll, Select(Columns: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]), SetOperations: [SetOperation(Intersect, Select(Columns: [ExpressionItem(c, null, false)], From: FromClause([Named(v)])))]))], OrderBy: OrderByClause([SortItem(1, null, null)]))")]
 	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u EXCEPT CORRESPONDING BY (a) TABLE v",
-		"Select(SetOperations: [SetOperation(Operator: Except, Corresponding: CorrespondingClause(true, [a]), Operand: Table(v))], Body: Select(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Operator: Intersect, Operand: Select(Select(Items: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]))))])))")]
+		"Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Intersect, Select(Columns: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]))), SetOperation(Except, Select(Columns: [All()], Table: true, From: FromClause([Named(v)])), Corresponding: CorrespondingClause(true, [a]))])")]
 	[InlineData("(SELECT a FROM t ORDER BY a) ORDER BY b OFFSET 1 ROW FETCH NEXT 10 PERCENT ROWS WITH TIES",
-		"Select(OrderBy: OrderByClause([SortItem(b, null, null)]), Offset: OffsetClause(1, Row), Fetch: FetchClause(Next, 10, true, Rows, WithTies), Body: Select(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), OrderBy: OrderByClause([SortItem(a, null, null)]), Parentheses: 1)))")]
-	[InlineData("((SELECT a FROM t))", "Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Parentheses: 2)")]
-	[InlineData("VALUES (1, 2), ROW(3, 4), 5", "Select(Body: Values([RowValue([1, 2], false), RowValue([3, 4], true), RowValue([5], false)]))")]
+		"Parenthesized(Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), OrderBy: OrderByClause([SortItem(a, null, null)])), OrderBy: OrderByClause([SortItem(b, null, null)]), Limit: Limit(Offset: 1, Count: 10, Percent: true, WithTies: true, OffsetRowWord: Row, FetchRowWord: Rows, Position: Next))")]
+	[InlineData("((SELECT a FROM t))", "Parenthesized(Parenthesized(Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]))))")]
+	[InlineData("VALUES (1, 2), ROW(3, 4), 5", "Select(Values: [RowValue([1, 2], false), RowValue([3, 4], true), RowValue([5], false)])")]
 	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT n FROM r",
-		"Select(With: WithClause(true, [CommonTableExpression(r, [n], Select(Body: Values([RowValue([1], false)])), SearchClause(DepthFirst, [n], s), null)]), Items: [ExpressionItem(n, null, false)], From: FromClause([Named(r)]))")]
+		"Select(Columns: [ExpressionItem(n, null, false)], From: FromClause([Named(r)]), With: WithClause(true, [CommonTableExpression(r, [n], Select(Values: [RowValue([1], false)]), SearchClause(DepthFirst, [n], s), null)]))")]
 	public void A_query_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseQueryExpression(input)));
@@ -391,7 +391,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("t PARTITION BY (a) NATURAL FULL JOIN u", "Join(Left: Named(t), Right: Named(u), Kind: Full, Natural: true, LeftPartition: [a])")]
 	[InlineData("t JOIN u JOIN v ON b ON a", "Join(Left: Named(t), Right: Join(Left: Named(u), Right: Named(v), Specification: On(b)), Specification: On(a))")]
 	[InlineData("(t JOIN u ON a = b)", "Parenthesized(Join(Left: Named(t), Right: Named(u), Specification: On(Comparison(a, Equal, b, false))))")]
-	[InlineData("LATERAL (SELECT 1 FROM t) AS s", "Subquery(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])), Lateral: true, Alias: Alias(s, null, true))")]
+	[InlineData("LATERAL (SELECT 1 FROM t) AS s", "Subquery(Select(Columns: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])), Lateral: true, Alias: Alias(s, null, true))")]
 	[InlineData("ONLY (t)", "Named(t, Only: true)")]
 	[InlineData("t FOR SYSTEM_TIME FROM a TO b s", "Named(t, SystemTime: FromTo(a, b), Alias: Alias(s, null, false))")]
 	[InlineData("UNNEST(a, b) WITH ORDINALITY AS u", "Unnest([a, b], true, Alias(u, null, true))")]
@@ -406,9 +406,9 @@ public sealed class SqlStandardTreeTests
 	}
 
 	[Theory]
-	[InlineData("EXISTS (SELECT 1 FROM t)", "Exists(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])))")]
-	[InlineData("a IN (VALUES 1)", "In(a, false, Query(Select(Body: Values([RowValue([1], false)]))))")]
-	[InlineData("a = ANY (TABLE t)", "QuantifiedComparison(a, Equal, Any, Select(Body: Table(t)))")]
+	[InlineData("EXISTS (SELECT 1 FROM t)", "Exists(Select(Columns: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])))")]
+	[InlineData("a IN (VALUES 1)", "In(a, false, Subquery(Select(Values: [RowValue([1], false)])))")]
+	[InlineData("a = ANY (TABLE t)", "QuantifiedComparison(a, Equal, Any, Select(Columns: [All()], Table: true, From: FromClause([Named(t)])))")]
 	public void A_subquery_in_a_predicate_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseSearchCondition(input)));
@@ -419,7 +419,7 @@ public sealed class SqlStandardTreeTests
 	[Theory]
 	[InlineData("INSERT INTO t (a, b) OVERRIDING SYSTEM VALUE VALUES (1, DEFAULT), ROW(NULL, 2), (DEFAULT), 3",
 		"Insert(Target: Named(t), Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
-	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
+	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Subquery(Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
 	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
 	public void An_insert_is_built_as_written(string input, string tree)
 	{
@@ -474,11 +474,11 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE TABLE t (a INT REFERENCES u (b) MATCH FULL ON DELETE CASCADE ON UPDATE SET NULL, LIKE v INCLUDING DEFAULTS, PERIOD FOR p (s, e))",
 		"CreateTable(Name: t, Contents: Elements([Column(ColumnDefinition(a, Numeric(Int, null, null), null, [ForeignKey([], null, ReferencesSpecification(u, [b], null, Full, SetNull, Cascade, true))], null)), Like(v, [IncludingDefaults]), Period(PeriodDefinition(ApplicationTime, p, s, e))]))")]
 	[InlineData("CREATE TABLE t AS (SELECT a FROM u) WITH NO DATA",
-		"CreateTable(Name: t, Contents: AsQuery([], Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)])), WithNoData))")]
+		"CreateTable(Name: t, Contents: AsQuery([], Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(u)])), WithNoData))")]
 	[InlineData("ALTER TABLE t ALTER COLUMN a SET GENERATED BY DEFAULT RESTART WITH 5 SET INCREMENT BY 2",
 		"AlterTable(Name: t, Actions: [AlterColumn(a, SetIdentityGeneration(ByDefault, [Restart(5), Increment(2)]), true)])")]
 	[InlineData("CREATE VIEW v (a) AS SELECT a FROM t WITH LOCAL CHECK OPTION",
-		"CreateView(Name: v, Specification: Regular([a]), Query: Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)])), CheckOption: Local)")]
+		"CreateView(Name: v, Specification: Regular([a]), Query: Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)])), CheckOption: Local)")]
 	[InlineData("CREATE SEQUENCE s AS BIGINT START WITH 1 NO MAXVALUE CYCLE",
 		"CreateSequence(Name: s, Options: [DataTypeOption(Numeric(BigInt, null, null)), Start(1), Max(null, true), Cycle(true)])")]
 	[InlineData("CREATE COLLATION c FOR utf8 FROM d NO PAD",
@@ -525,7 +525,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT) ON COMMIT DELETE ROWS;",
 		"DeclareLocalTemporaryTable(Name: t, Elements: [Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))], OnCommit: Delete)")]
 	[InlineData("SELECT a FROM t FOR UPDATE OF a;",
-		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Updatability: UpdatabilityClause(false, [a], false))")]
+		"Select(Query: Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Locking: [LockingClause(Update, [a])]))")]
 	[InlineData("START TRANSACTION ISOLATION LEVEL READ COMMITTED, READ ONLY, DIAGNOSTICS SIZE 5;",
 		"StartTransaction(Modes: [Isolation(ReadCommitted), Access(ReadOnly), DiagnosticsSize(5)])")]
 	[InlineData("ROLLBACK WORK AND NO CHAIN TO SAVEPOINT s;", "Rollback(Work: true, Chain: NoChain, ToSavepoint: s)")]
@@ -545,7 +545,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a, b[1]",
 		"FetchCursor(Orientation: FetchOrientation(Absolute, 3), FromKeyword: true, Cursor: CursorReference(c, null, false, false, false), Into: Values([Parameter(Host, a), Element(b, 1, null, false)]))")]
 	[InlineData("SELECT a INTO :x FROM t",
-		"Select(Items: [ExpressionItem(a, null, false)], Into: IntoClause([Parameter(Host, x)]), From: FromClause([Named(t)]))")]
+		"Select(Query: Select(Columns: [ExpressionItem(a, null, false)], Into: IntoClause([Parameter(Host, x)]), From: FromClause([Named(t)])))")]
 	[InlineData("CALL p(1)", "Call(Invocation: Invocation(p, [Argument(1, null, false)]))")]
 	[InlineData("RETURN NULL", "Return(NullKeyword: true)")]
 	[InlineData("GET DIAGNOSTICS :n = ROW_COUNT, m = MORE",

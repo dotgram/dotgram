@@ -131,7 +131,7 @@ public sealed class ShippedExampleTests
 		Assert.False(standard);
 
 		// A statement's kind is the type of its node.
-		if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Updatability: null } query)
+		if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Query.Locking.Count: 0 } query)
 			again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
 
 		Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two

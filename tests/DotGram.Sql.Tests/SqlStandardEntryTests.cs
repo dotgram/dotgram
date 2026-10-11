@@ -152,8 +152,8 @@ public sealed class SqlStandardEntryTests
 	}
 
 	/// <summary>
-	/// A query read as a statement is the node a query is, and a cursor's updatability is read with it:
-	/// a caller that wants a query and nothing else asks for <see cref="Statement.Select"/> without one.
+	/// A query read as a statement is a <see cref="Statement.Select"/> holding it, and a cursor's
+	/// updatability is read with it as the query's locking clause.
 	/// </summary>
 	[Fact]
 	public void A_query_is_a_statement_and_may_be_updatable()
@@ -161,9 +161,9 @@ public sealed class SqlStandardEntryTests
 		var query = Assert.IsType<Statement.Select>(SqlStandardParser.ParseStatement("SELECT a FROM t"));
 		var cursor = Assert.IsType<Statement.Select>(SqlStandardParser.ParseStatement("SELECT a FROM t FOR UPDATE OF a"));
 
-		Assert.Null(query.Updatability);
-		Assert.NotNull(cursor.Updatability);
-		Assert.Equal(query, cursor with { Updatability = null });
+		Assert.Empty(query.Query.Locking);
+		Assert.Equal(LockingMode.Update, Assert.Single(cursor.Query.Locking).Mode);
+		Assert.Equal(query, cursor with { Query = cursor.Query with { Locking = [] } });
 	}
 
 	[Theory]

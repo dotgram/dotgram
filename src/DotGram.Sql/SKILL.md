@@ -25,7 +25,10 @@ is what to decide before using one, the contract they share, and what is easy to
   `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one statement of any kind, its `;`
   optional) and `ParseSql` (statements, each ended by `;` or by the end of the text). A query is
   a statement: `ParseStatement` gives back a `Statement`, and a query is the `Statement.Select`
-  among them. `TransactSqlParser.ParseValueExpression` is an expression and
+  among them, which holds an `Ast.Query` — the node a subquery holds too. A `UNION`, `EXCEPT` or
+  `INTERSECT` is a list on the query it follows (`Query.SetOperations`), and that query's
+  `OrderBy`, `Limit` and locking clauses are then the whole result's; its `Columns`, `From`,
+  `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound. `TransactSqlParser.ParseValueExpression` is an expression and
   `SqlStandardParser.ParseValue` a literal: the names are not the same level yet.
 - **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on.
 
@@ -137,7 +140,7 @@ string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
 bool standard = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t").IsSuccess;  // false
 
 // A statement's kind is the type of its node.
-if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Updatability: null } query)
+if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Query.Locking.Count: 0 } query)
 	again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
 
 Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
