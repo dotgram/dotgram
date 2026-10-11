@@ -73,6 +73,11 @@ namespace DotGram.Examples.Languages;
 
 		Category     = "\\p{" & Identifier & '}'
 
+		// A bound text's name and its length: the sigil glued to the name, so `$q` and `:`
+		// are two tokens and `$ q` is none.
+		BindingName  = '$' & Identifier
+		LengthName   = '#' & Identifier
+
 		Space        = [' ' | '\t' | '\r' | '\n']
 		LineComment  = "//" & [^ '\n' | '\r']*
 		BlockComment = "/*" & (?!"*/" & any)* & "*/"
@@ -244,21 +249,24 @@ namespace DotGram.Examples.Languages;
 
 	Recovery : @GramExpr = "recover" & sync: Prefixed & ("=>" & Value)? => @(sync)
 
-	Count          = Int | Identifier
+	Count          = Int | Identifier | LengthName
 
 	Prefixed : @GramExpr
 		= prefix: ("?=" | "?!")? & body: Captured
 		=> @(prefix is null ? body : new GramLookahead(prefix == "?=", body))
 
+	// `$q: X` binds at a capture's level, and what it binds is prefixed, as the hand-written
+	// parser reads it: `$q: ?!X` is a binding of a lookahead.
 	Captured : @GramExpr
-		= (name: Identifier & ':')? & body: Primary
-		=> @(name is null ? body : new GramCapture(name, body))
+		= bound: BindingName & ':' & body: Prefixed => @(new GramBind(bound.Substring(1), body))
+		| (name: Identifier & ':')? & body: Primary => @(name is null ? body : new GramCapture(name, body))
 
 	Primary : @GramExpr
 		= text: Char             => @(new GramLiteral(text, true))
 		| text: String           => @(new GramLiteral(text, false))
 		| e: ElementSet          => @(e)
 		| cs: CsExpr             => @(new GramCSharp(cs))
+		| same: BindingName      => @(new GramSame(same.Substring(1)))
 		| e: RefOrCall           => @(e)
 		| '(' & body: Body & ')' => @(body)
 		| '{' & body: Body & '}' => @(new GramGroup(body, true))
@@ -338,6 +346,12 @@ public partial class GramGrammar
 	public sealed record GramMarked(GramExpr Body, string Value) : GramExpr;
 
 	public sealed record GramCapture(string Name, GramExpr Body) : GramExpr;
+
+	/// <summary><c>$q: X</c> — the text <c>X</c> matched, bound to <c>q</c>.</summary>
+	public sealed record GramBind(string Name, GramExpr Body) : GramExpr;
+
+	/// <summary><c>$q</c> — the text bound to <c>q</c>, matched again.</summary>
+	public sealed record GramSame(string Name) : GramExpr;
 
 	public sealed record GramLookahead(bool Positive, GramExpr Body) : GramExpr;
 

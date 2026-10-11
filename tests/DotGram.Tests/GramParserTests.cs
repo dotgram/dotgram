@@ -508,6 +508,134 @@ public sealed class GramParserTests
 		Assert.Equal(("public", PublishAccess.Private), (publish.RuleName, publish.Access));
 	}
 
+	/// <summary>
+	/// <c>$q: X</c> binds at a capture's level, and <c>$q</c> is an operand like any other.
+	/// </summary>
+	/// <remarks>
+	/// So a quantifier written after a binding repeats the binding, `$eq: '='*` being
+	/// `($eq: '=')*`, as `q: '='*` is `(q: '=')*`; and what is bound may be prefixed, as what
+	/// is captured may.
+	/// </remarks>
+	[Fact]
+	public void Binds_at_a_captures_level_and_refers_as_an_operand()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "Long"
+					Sequence
+						Char "["
+						ZeroOrMore
+							Bind "eq"
+								Char "="
+						Char "["
+						NegativeLookahead
+							Same "eq"
+						Capture "close"
+							Same "eq"
+						Bind "o"
+							Group
+								Optional
+									Char "="
+						Bind "x"
+							PositiveLookahead
+								Char "x"
+			""",
+			Parse("Long = '[' & $eq: '='* & '[' & ?!$eq & close: $eq & $o: ('='?) & $x : ?='x'"));
+	}
+
+	[Fact]
+	public void An_atomic_group_holds_a_binding()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "Raw"
+					Sequence
+						Atomic
+							Count 3..*
+								Bind "q"
+									Char "`"
+						ZeroOrMore
+							Group
+								Sequence
+									NegativeLookahead
+										Same "q"
+									Reference "any"
+						Same "q"
+			""",
+			Parse("Raw = { $q: '`'{3,} } & (?!$q & any)* & $q"));
+	}
+
+	/// <summary>A length stands on either side of a count, or on both, beside the forms a count already had.</summary>
+	[Theory]
+	[InlineData("{#d}",     "Count #d..#d")]
+	[InlineData("{#d,}",    "Count #d..*")]
+	[InlineData("{2,#d}",   "Count 2..#d")]
+	[InlineData("{#d,5}",   "Count #d..5")]
+	[InlineData("{#d,#e}",  "Count #d..#e")]
+	[InlineData("{n,#d}",   "Count n..#d")]
+	[InlineData("{#d,n}",   "Count #d..n")]
+	public void Counts_by_the_length_of_a_bound_text(string count, string expected)
+	{
+		Assert.Equal(
+			$$"""
+			File
+				Rule "R"
+					{{expected}}
+						Char "{"
+			""",
+			Parse("R = '{'" + count));
+	}
+
+	[Fact]
+	public void A_length_keeps_where_it_was_written()
+	{
+		const string source = "R = 'a'{2,#len}";
+
+		var result     = GramParser.Parse(GramLexer.Tokenize(source));
+		var quantified = Assert.IsType<Expr.Quantified>(Assert.Single(result.File.Decls.OfType<Decl.Rule>()).Body);
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal(2, quantified.Min);
+		Assert.Null(quantified.MinName);
+		Assert.Null(quantified.MinLength);
+		Assert.Null(quantified.Max);
+		Assert.Null(quantified.MaxName);
+		Assert.Equal(new LengthOf("len", new Location(source.IndexOf('#'), 4)), quantified.MaxLength);
+	}
+
+	[Fact]
+	public void A_binding_spans_its_name_and_what_it_binds()
+	{
+		const string source = "R = $tag: 'a'+ & $tag";
+
+		var result   = GramParser.Parse(GramLexer.Tokenize(source));
+		var sequence = Assert.IsType<Expr.Sequence>(Assert.Single(result.File.Decls.OfType<Decl.Rule>()).Body);
+		var bind     = Assert.IsType<Expr.Bind>(Assert.IsType<Expr.Quantified>(sequence.Operands[0]).Operand);
+		var same     = Assert.IsType<Expr.Same>(sequence.Operands[1]);
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal("$tag: 'a'", source.Substring(bind.At.Position, bind.At.Length));
+		Assert.Equal("$tag",      source.Substring(same.At.Position, same.At.Length));
+	}
+
+	/// <summary>A length means something only as a count, and anywhere else it is refused where it stands.</summary>
+	[Theory]
+	[InlineData("R = #q")]
+	[InlineData("R = 'a' & #q & 'b'")]
+	[InlineData("R = 'a' | x: #q")]
+	[InlineData("R = ?!#q & 'a'")]
+	public void A_length_outside_a_count_is_refused_where_it_stands(string source)
+	{
+		var diagnostic = Assert.Single(GramParser.Parse(GramLexer.Tokenize(source)).Diagnostics);
+
+		Assert.Equal(
+			(GramParser.LengthOutsideCount, source.IndexOf('#'), 2),
+			(diagnostic.Id, diagnostic.Position, diagnostic.Length));
+		Assert.Contains("$q", diagnostic.Message, StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void A_correct_grammar_reports_nothing()
 	{
