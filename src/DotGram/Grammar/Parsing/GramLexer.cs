@@ -15,10 +15,15 @@ namespace DotGram.Grammar.Parsing;
 /// never be continued by what looks like the next rule.
 /// </para>
 /// <para>
-/// The one place adjacency matters is <c>@(</c>: the parenthesis must follow the
+/// Adjacency matters in three places. The first is <c>@(</c>: the parenthesis must follow the
 /// <c>@</c> with nothing between. Everywhere else whitespace is free, so
 /// <c>@ int . Parse ( text )</c> lexes the same as the tight spelling — but
 /// <c>@ (a + b)</c> would be indistinguishable from a call on a missing name.
+/// </para>
+/// <para>
+/// The other two are the sigils of bound text: <c>$q</c> and <c>#q</c> are one token
+/// each, the name glued to the sigil, so <c>$ q</c> is refused rather than read as
+/// something else.
 /// </para>
 /// </remarks>
 public static class GramLexer
@@ -33,6 +38,7 @@ public static class GramLexer
 	public const string MalformedCategory      = "GRAM1008";
 	public const string UnknownCategory        = "GRAM1009";
 	public const string MalformedCharacter     = "GRAM1010";
+	public const string SigilNeedsName         = "GRAM1011";
 
 	/// <param name="scanner">
 	/// Finds where an inline <c>@(...)</c> ends. Null means the grammar may not use
@@ -177,6 +183,35 @@ public static class GramLexer
 					if (category is not null)
 						Add(TokenKind.UnicodeCategory, start, position - start, category);
 
+					continue;
+
+				// `$q` and `#q` are one token each, the sigil glued to the name as `@(` is
+				// glued to its parenthesis: `$q` then `:` binds, anything else after it
+				// refers, and that stays a two-token question for the parser.
+				case '$':
+				case '#':
+					if (position + 1 < text.Length && (text[position + 1] == '_' || char.IsLetter(text[position + 1])))
+					{
+						position++;
+
+						while (position < text.Length && (text[position] == '_' || char.IsLetterOrDigit(text[position])))
+							position++;
+
+						Add(
+							current == '$' ? TokenKind.BindingName : TokenKind.LengthName,
+							start, position - start, text.Substring(start + 1, position - start - 1));
+						continue;
+					}
+
+					Report(
+						SigilNeedsName,
+						current == '$'
+							? "'$' needs a name right after it, with no space: `$name: X` binds the text X matched, and `$name` matches it again."
+							: "'#' needs a name right after it, with no space: `X{#name}` repeats X as many times as the text bound to `$name` is long.",
+						start,
+						1);
+					Add(TokenKind.Unknown, start, 1, current.ToString());
+					position++;
 					continue;
 
 				case '@' when position + 1 < text.Length && text[position + 1] == '(':

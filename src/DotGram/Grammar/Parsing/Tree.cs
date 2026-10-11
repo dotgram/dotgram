@@ -58,6 +58,9 @@ public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Loc
 
 public sealed record Rebinding (string Left, string Right, Location At)                   : ILocated;
 
+/// <summary><c>#q</c> in a count: the length of the text bound to <c>$q</c>, read when the count is reached.</summary>
+public sealed record LengthOf  (string Name, Location At)                                 : ILocated;
+
 // ── Sums: flat, one level of alternatives each ───────────────────────────────────
 
 /// <summary>
@@ -181,6 +184,20 @@ public abstract record Expr : ILocated
 	/// </remarks>
 	public sealed record Condition (Test Test)                                 : Expr;
 	public sealed record Capture   (string Name, Expr Operand)                 : Expr;
+
+	/// <summary>
+	/// <c>$q: X</c> — the text <c>X</c> matched, bound to <c>q</c> for a later <see cref="Same"/>
+	/// or count to read.
+	/// </summary>
+	/// <remarks>
+	/// Not a capture: it is no member of a built type and nothing in C# sees it, so a rule
+	/// that binds keeps the result it would have without the binding. Binding names and
+	/// capture names are apart, and <c>q: ($q: X)</c> is both.
+	/// </remarks>
+	public sealed record Bind      (string Name, Expr Operand)                 : Expr;
+
+	/// <summary><c>$q</c> — the very text bound to <c>q</c>, matched again.</summary>
+	public sealed record Same      (string Name)                               : Expr;
 	public sealed record Group     (Expr Body)                                 : Expr;
 	public sealed record Atomic    (Expr Body)                                 : Expr;
 	public sealed record Lookahead (bool IsPositive, Expr Operand)             : Expr;
@@ -207,7 +224,20 @@ public abstract record Expr : ILocated
 	public sealed record Call     (Reference Target, IReadOnlyList<Expr> Arguments)                  : Expr;
 
 	public sealed record Quantified(
-		Expr Operand, QuantifierKind Kind, int? Min, string? MinName, int? Max, string? MaxName) : Expr;
+		Expr Operand, QuantifierKind Kind, int? Min, string? MinName, int? Max, string? MaxName) : Expr
+	{
+		/// <summary><c>{#q}</c>, <c>{#q,}</c>, <c>{#q,m}</c>: a lower bound that is a bound text's length.</summary>
+		/// <remarks>
+		/// Init properties rather than positional ones, so that the patterns over the other
+		/// counts keep their shape. Where it is set, <see cref="Min"/> and <see cref="MinName"/>
+		/// are null.
+		/// </remarks>
+		public LengthOf? MinLength { get; init; }
+
+		/// <summary><c>{#q}</c>, <c>{n,#q}</c>: an upper bound that is a bound text's length.</summary>
+		/// <remarks>Where it is set, <see cref="Max"/> and <see cref="MaxName"/> are null.</remarks>
+		public LengthOf? MaxLength { get; init; }
+	}
 
 	/// <summary>
 	/// <c>Expression with (A = B, ...)</c> — §5.1's substitution, applied to one
@@ -367,6 +397,7 @@ static class Dump
 			Expr.Switch(var value, var cases) => new[] { value }.Concat(cases.Select(one => one.Body)).ToArray(),
 			Expr.Condition(var test) => Test.Operands(test),
 			Expr.Capture(_, var operand) => [operand],
+			Expr.Bind(_, var operand) => [operand],
 			Expr.Bound(var body, _, _) => [body],
 			Expr.Recovering(var body, var sync, null) => [body, sync],
 			Expr.Recovering(var body, var sync, var factory) => [body, sync, factory],
@@ -415,6 +446,8 @@ static class Dump
 			Expr.Switch => "Switch",
 			Expr.Condition => "Condition",
 			Expr.Capture(var name, _) => $"Capture {Quote(name)}",
+			Expr.Bind(var name, _) => $"Bind {Quote(name)}",
+			Expr.Same(var name) => $"Same {Quote(name)}",
 			Expr.Group => "Group",
 			Expr.Atomic => "Atomic",
 			Expr.Lookahead(true, _) => "PositiveLookahead",
@@ -427,12 +460,12 @@ static class Dump
 			Expr.Reference(var isCSharp, var name, _) => $"Reference{(isCSharp ? " (C#)" : "")} {Quote(name)}",
 			Expr.Call => "Call",
 
-			Expr.Quantified(_, var kind, var min, var minName, var max, var maxName) => kind switch
+			Expr.Quantified(_, var kind, var min, var minName, var max, var maxName) quantified => kind switch
 			{
 				QuantifierKind.Optional => "Optional",
 				QuantifierKind.ZeroOrMore => "ZeroOrMore",
 				QuantifierKind.OneOrMore => "OneOrMore",
-				_ => $"Count {Bound(min, minName)}..{Bound(max, maxName) ?? "*"}",
+				_ => $"Count {Bound(min, minName, quantified.MinLength)}..{Bound(max, maxName, quantified.MaxLength) ?? "*"}",
 			},
 
 			Expr.With => "With",
@@ -454,9 +487,9 @@ static class Dump
 		};
 	}
 
-	static string? Bound(int? value, string? name)
+	static string? Bound(int? value, string? name, LengthOf? length)
 	{
-		return name ?? value?.ToString();
+		return length is not null ? "#" + length.Name : name ?? value?.ToString();
 	}
 
 	public static string Quote(string value)
