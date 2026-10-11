@@ -85,6 +85,10 @@ public static class Doors
 			Node.Marked(var body, _) => LeavesOne(body, doors),
 			Node.Capture(_, var captured) => LeavesOne(captured, doors),
 			Node.Construct(var built, _) => LeavesOne(built, doors),
+			Node.Bind(_, var bound, _) => LeavesOne(bound, doors),
+			// A repetition, whose turns can be given back like any other's. A reference
+			// matches one way, the text it reads, and leaves no way back in.
+			Node.Counted => true,
 			_ => false,
 		};
 	}

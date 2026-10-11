@@ -153,10 +153,32 @@ static class SeamSplits
 					return all;
 				}
 
+				// As a repetition, with a length taken as a bound that may be zero.
+				case Node.Counted(var body, var min, _):
+				{
+					var all  = min is CountBound.Items(> 0) ? default : state;
+					var turn = state;
+
+					for (var i = 0; i < 3; i++)
+					{
+						turn = Walk(body, turn, ref hazard);
+						all  = all.Or(turn);
+						turn = turn.Or(state);
+					}
+
+					return all;
+				}
+
 				case Node.Capture(_, var body):   return Walk(body, state, ref hazard);
 				case Node.Construct(var body, _): return Walk(body, state, ref hazard);
 				case Node.Atomic(var body):       return Walk(body, state, ref hazard);
 				case Node.Marked(var body, _):    return Walk(body, state, ref hazard);
+				case Node.Bind(_, var body, _):   return Walk(body, state, ref hazard);
+
+				// Reads text that may be empty, so a seam read just before may still be the last
+				// thing read.
+				case Node.Same:
+					return state;
 
 				// The end, which fails wherever a run of the seam still stands.
 				case var end when FollowSets.AtEnd(end, graph):

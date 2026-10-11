@@ -374,6 +374,35 @@ public static class Commit
 					Walk(body, taken, elsewhere, after, inner, lost);
 
 					break;
+
+				// A binding only records where its body began and ended.
+				case Node.Bind(_, var body, _):
+					Walk(body, taken, elsewhere, after, inner, lost);
+
+					break;
+
+				// A count by a length is a repetition nothing proves settled: how many turns it
+				// takes is known only while reading, so a turn it took may always be given back.
+				// No point of its own, then, and every turn is read as one that may be.
+				case Node.Counted(var body, _, _):
+				{
+					var stops = Replay.Seamed(body, _seam, out var past)
+						? Replay.Begins(past, after.AfterSeam, graph) is not { } beyond || !after.AfterSeam.IsKnown || beyond.Overlaps(after.AfterSeam)
+						: Replay.Begins(body, after.Plain, graph) is not { } begins || !after.Plain.IsKnown || begins.Overlaps(after.Plain);
+
+					var within = taken;
+
+					if (Replay.Weaker(within, Replay.Because.Turn))
+						within = Replay.Because.Turn;
+
+					Walk(body, within, elsewhere || stops, after, inner, lost);
+
+					break;
+				}
+
+				// A reference reads text and calls nothing.
+				case Node.Same:
+					break;
 			}
 		}
 

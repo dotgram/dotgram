@@ -9,9 +9,16 @@ namespace DotGram.Grammar.Model;
 /// <remarks>
 /// <para>
 /// Most passes over a grammar are not this: lowering, compilation and the analyses take
-/// each node apart differently and are written as a <c>switch</c> over its shape, which
-/// is what makes a missing case a compile error. This is for the other kind — the ones
-/// that ask a question of every node and do not care how it is spelled.
+/// each node apart differently and are written as a <c>switch</c> over its shape. This is
+/// for the other kind — the ones that ask a question of every node and do not care how it
+/// is spelled.
+/// </para>
+/// <para>
+/// Such a <c>switch</c> is not exhaustive to the compiler: nearly every one ends in a
+/// default arm or simply falls out, so a node kind it does not name takes that arm without
+/// a word. A new kind of node is added to each of them by hand, and what each default
+/// answers for it has to be read, not assumed. A walk through here needs no such care as
+/// long as the node lists its operands in <see cref="Node.Children"/>.
 /// </para>
 /// <para>
 /// Nodes are records and compare by value, so a set of them collapses two structurally
@@ -61,6 +68,8 @@ static class NodeWalk
 				Node.Lookahead one => one.Body,
 				Node.Capture one   => one.Body,
 				Node.Construct one => one.Body,
+				Node.Bind one      => one.Body,
+				Node.Counted one   => one.Body,
 				_                  => null,
 			};
 

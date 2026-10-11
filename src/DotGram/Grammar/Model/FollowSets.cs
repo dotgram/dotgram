@@ -549,10 +549,21 @@ public static class FollowSets
 
 					return;
 
+				// A count by a length is a repetition whose bounds are known only while reading,
+				// so another turn may always follow a turn unless no turn but one is allowed.
+				case Node.Counted(var body, _, var max):
+					Contribute(
+						body,
+						max is CountBound.Items(1) ? after : Precedes(body, after, graph, seam).Or(after),
+						seam);
+
+					return;
+
 				case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
 				case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
 				case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
 				case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
+				case Node.Bind(_, var bound, _):    Contribute(bound,    after, seam); return;
 
 				// Inside, the body is sealed: a look is decided at its first match and gives
 				// back everything it read, so nothing after it can ever ask its body for a
@@ -660,6 +671,12 @@ public static class FollowSets
 			case Node.Construct(var built, _):   return LeadOf(built,    after, graph);
 			case Node.Atomic(var kept):          return LeadOf(kept,     after, graph);
 			case Node.Marked(var kept, _):       return LeadOf(kept,     after, graph);
+			case Node.Bind(_, var bound, _):     return LeadOf(bound,    after, graph);
+
+			// A count that must take a turn leads as its turn does; one that may take none,
+			// because a length may be zero, is the unknown a run that may be empty is.
+			case Node.Counted(var body, CountBound.Items(> 0), _):
+				return LeadOf(body, after, graph);
 
 			// Optional padding is followed: what the way in begins to consume with is what
 			// follows it, read after any of it (Lead.Padding).
@@ -848,6 +865,22 @@ public static class FollowSets
 			case Node.Construct(var built, _):   return Precedes(built,    after, graph, seam);
 			case Node.Atomic(var kept):          return Precedes(kept,     after, graph, seam);
 			case Node.Marked(var kept, _):       return Precedes(kept,     after, graph, seam);
+			case Node.Bind(_, var bound, _):     return Precedes(bound,    after, graph, seam);
+
+			// As a repetition, taken as one that may take no turn unless a number says it must
+			// take one: a length may be zero.
+			case Node.Counted(var body, var min, _):
+			{
+				var plain = Plainly(node, after.Plain, graph);
+				var turn = Precedes(
+					body,
+					new Continuation(plain, FirstSets.First.All),
+					graph, seam);
+
+				return new Continuation(
+					plain,
+					min is CountBound.Items(> 0) ? turn.AfterSeam : turn.AfterSeam.Or(after.AfterSeam));
+			}
 
 			// A turn is either taken — and then it stands before another turn or before the
 			// continuation, with anything past its own seam unknowable from here — or, for
@@ -919,6 +952,7 @@ public static class FollowSets
 		{
 			Node.Construct(var built, _) => Unwrapped(built),
 			Node.Capture(_, var captured) => Unwrapped(captured),
+			Node.Bind(_, var bound, _) => Unwrapped(bound),
 			_ => body,
 		};
 	}

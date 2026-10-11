@@ -468,7 +468,7 @@ public static class FirstSets
 		// followed by the rest of the shape around it, which is a question this does not
 		// ask and would answer wrongly by borrowing the rule's. Stopped at the construction,
 		// a rule that builds never had its last optional held to what follows it.
-		var inside = node is Node.Choice or Node.Construct or Node.Capture or Node.Marked or Node.Atomic
+		var inside = node is Node.Choice or Node.Construct or Node.Capture or Node.Marked or Node.Atomic or Node.Bind
 			? after
 			: First.None;
 
@@ -1224,6 +1224,14 @@ public static class FirstSets
 				case Node.Atomic(var kept):        Visit(kept);  break;
 				case Node.Marked(var kept, _):     Visit(kept);  break;
 				case Node.Construct(var built, _): Visit(built); break;
+				case Node.Bind(_, var bound, _):   Visit(bound); break;
+
+				// A count by a length may take more than one turn.
+				case Node.Counted(var counted, _, _):
+					frames.Add((null, 0));
+					Visit(counted);
+					frames.RemoveAt(frames.Count - 1);
+					break;
 			}
 		}
 	}
@@ -1696,6 +1704,7 @@ public static class FirstSets
 			Node.Atomic(var body) => OneCharacter(body, graph, seen),
 			Node.Marked(var body, _) => OneCharacter(body, graph, seen),
 			Node.Construct(var built, _) => OneCharacter(built, graph, seen),
+			Node.Bind(_, var bound, _) => OneCharacter(bound, graph, seen),
 			Node.Repeat(var body, var min, var max) => min == 1 && max == 1 && OneCharacter(body, graph, seen),
 			Node.Call(var called, _) => seen.Add(called) &&
 													   graph.Bodies.TryGetValue(called, out var body) &&
@@ -2016,6 +2025,32 @@ public static class FirstSets
 			case Node.Atomic   (var body):         return Inner(body,     graph, byRule);
 			case Node.Marked   (var body, _):      return Inner(body,     graph, byRule);
 			case Node.Repeat   (var body, _, _):   return Inner(body,     graph, byRule);
+			case Node.Bind     (_, var bound, _):  return Inner(bound,    graph, byRule);
+			case Node.Counted  (var body, _, _):   return Inner(body,     graph, byRule);
+
+			// What a reference matches is what its binding matched, so it begins as the bodies
+			// the binding is bound to begin. Where one of them reads another binding the answer
+			// would lean on that one's, perhaps round again through exclusive routes: anything,
+			// which is never wrong. Nullable says whether it may match nothing.
+			case Node.Same(var binding, _):
+			{
+				var bodies = BoundBodies(graph, binding);
+
+				if (bodies.Count == 0)
+					return First.All;
+
+				var first = First.None;
+
+				foreach (var body in bodies)
+				{
+					if (GrammarNormalizer.HoldsBoundText(body))
+						return First.All;
+
+					first = first.Or(Inner(body, graph, byRule));
+				}
+
+				return first;
+			}
 
 			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
 			// down — not one met and left somewhere else. Kept as the path rather than as
@@ -2229,6 +2264,10 @@ public static class FirstSets
 					node = held;
 					continue;
 
+				case Node.Bind(_, var bound, _):
+					node = bound;
+					continue;
+
 				case Node.Marked(var kept, _):
 					node = kept;
 					continue;
@@ -2257,6 +2296,7 @@ public static class FirstSets
 			Node.Element(_, _, var categories, var references) => categories.Count == 0 && references.Count == 0,
 			Node.Choice(var alternatives) { Selection: null } => alternatives.Count > 0 && alternatives.All(one => Decided(one, graph, seen)),
 			Node.Capture(_, var held) => Decided(held, graph, seen),
+			Node.Bind(_, var bound, _) => Decided(bound, graph, seen),
 			Node.Marked(var kept, _) => Decided(kept, graph, seen),
 			Node.Atomic(var kept) => Decided(kept, graph, seen),
 			Node.Call(var called, { Count: 0 }) => seen.Add(called) &&
@@ -2321,6 +2361,12 @@ public static class FirstSets
 			case Node.Construct(var built, _):  return Unfailing(built,    graph, rules);
 			case Node.Atomic(var kept):         return Unfailing(kept,     graph, rules);
 			case Node.Marked(var kept, _):      return Unfailing(kept,     graph, rules);
+			case Node.Bind(_, var bound, _):    return Unfailing(bound,    graph, rules);
+
+			// No turn at all is always enough where none is asked for; a length may ask for more
+			// turns than an upper bound allows, and a reference for text that is not there.
+			case Node.Counted(_, CountBound.Items(0), _):
+				return true;
 
 			case Node.Call(var called, { Count: 0 }):
 			{
@@ -2345,7 +2391,7 @@ public static class FirstSets
 	/// <summary>Whether a node can match without consuming anything.</summary>
 	public static bool Nullable(Node node, RecognitionGraph graph)
 	{
-		return Nullable(node, graph.RuleIsNullable);
+		return Nullable(node, graph.RuleIsNullable, graph, null);
 	}
 
 	/// <summary>
@@ -2366,43 +2412,165 @@ public static class FirstSets
 	/// So the shape of a node is answered here, once, and who can answer for a rule is the
 	/// parameter.
 	/// </para>
+	/// <para>
+	/// A reference <c>$q</c> matches nothing where what it reads matched nothing, which is a
+	/// question about the bindings of <c>q</c> this form cannot see: it answers that it may,
+	/// the answer that never calls a loop safe that is not. The form below sees them.
+	/// </para>
 	/// </remarks>
 	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule)
+	{
+		return Nullable(node, rule, null, null);
+	}
+
+	/// <summary>
+	/// The same question, with where each binding a reference or a length reads is bound —
+	/// the bodies of its <see cref="Node.Bind"/> nodes.
+	/// </summary>
+	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule, Func<TextBinding, IEnumerable<Node>> bound)
+	{
+		return Nullable(node, rule, null, bound);
+	}
+
+	static bool Nullable(Node node, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
 	{
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
 			Node.Literal(var text) => text.Length == 0,
 			Node.Element => false,
-			Node.Atomic(var body) => Nullable(body, rule),
-			Node.Marked(var body, _) => Nullable(body, rule),
-			Node.Capture(_, var captured) => Nullable(captured, rule),
-			Node.Construct(var built, _) => Nullable(built, rule),
-			Node.Repeat(var body, var min, _) => min == 0 || Nullable(body, rule),
-			Node.Sequence(var parts) => All(parts, rule),
-			Node.Choice(var alternatives) => Any(alternatives, rule),
+			Node.Atomic(var body) => Nullable(body, rule, graph, bound),
+			Node.Marked(var body, _) => Nullable(body, rule, graph, bound),
+			Node.Capture(_, var captured) => Nullable(captured, rule, graph, bound),
+			Node.Construct(var built, _) => Nullable(built, rule, graph, bound),
+			Node.Repeat(var body, var min, _) => min == 0 || Nullable(body, rule, graph, bound),
+			Node.Sequence(var parts) => All(parts, rule, graph, bound),
+			Node.Choice(var alternatives) => Any(alternatives, rule, graph, bound),
 			Node.Call(var called, _) => rule(called),
+
+			// A binding records what its body matched and reads nothing more.
+			Node.Bind(_, var body, _) => Nullable(body, rule, graph, bound),
+
+			// What the binding matched, again: nothing where it may have matched nothing.
+			Node.Same(var binding, _) => MayBeEmpty(binding, rule, graph, bound),
+
+			// A length is zero where the text it measures may be empty, and then so many turns
+			// are none.
+			Node.Counted(var body, var min, _) => min switch
+			{
+				CountBound.Items(var count) => count == 0,
+				CountBound.Length(var binding, _) => MayBeEmpty(binding, rule, graph, bound),
+				_ => true,
+			} || Nullable(body, rule, graph, bound),
+
 			_ => false,
 		};
 	}
 
-	static bool All(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule)
+	static bool All(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
 	{
 		foreach (var node in nodes)
-			if (!Nullable(node, rule))
+			if (!Nullable(node, rule, graph, bound))
 				return false;
 
 		return true;
 	}
 
-	static bool Any(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule)
+	static bool Any(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
 	{
 		foreach (var node in nodes)
-			if (Nullable(node, rule))
+			if (Nullable(node, rule, graph, bound))
 				return true;
 
 		return false;
 	}
+
+	/// <summary>
+	/// Whether the text a binding holds may be empty: whether any of the bodies it is bound to
+	/// may match nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Bindings of one name on routes that exclude each other are one binding, so it may have
+	/// several bodies, and one may read another binding: <c>$a: $b</c>. Two such bodies can
+	/// read each other on two exclusive routes, and the walk keeps the bindings it is inside so
+	/// that it does not go round: one met again answers no, as a rule met again answers its
+	/// estimate in a fixed point. The question is a disjunction, so a body that may be empty
+	/// is found without going round at all.
+	/// </para>
+	/// <para>
+	/// Where nobody says where the binding is bound, it may be empty: the answer that never
+	/// calls a loop safe that is not.
+	/// </para>
+	/// </remarks>
+	static bool MayBeEmpty(TextBinding binding, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
+	{
+		var bodies = bound is not null ? bound(binding) : graph is not null ? BoundBodies(graph, binding) : null;
+
+		if (bodies is null)
+			return true;
+
+		var inside = _insideBindings ??= new HashSet<TextBinding>();
+
+		if (!inside.Add(binding))
+			return false;
+
+		try
+		{
+			var any   = false;
+			var empty = false;
+
+			foreach (var body in bodies)
+			{
+				any = true;
+
+				if (Nullable(body, rule, graph, bound))
+				{
+					empty = true;
+
+					break;
+				}
+			}
+
+			return empty || !any;
+		}
+		finally
+		{
+			inside.Remove(binding);
+		}
+	}
+
+	[ThreadStatic]
+	static HashSet<TextBinding>? _insideBindings;
+
+	/// <summary>The bodies each binding of a graph is bound to, gathered at the first reference asked about.</summary>
+	/// <remarks>
+	/// Gathered lazily and only then: a grammar that binds nothing is never walked for it, and
+	/// a graph's bodies do not change once it is made.
+	/// </remarks>
+	internal static IReadOnlyList<Node> BoundBodies(RecognitionGraph graph, TextBinding binding)
+	{
+		var index = _boundBodies.GetValue(graph, static graph =>
+		{
+			var found = new Dictionary<TextBinding, List<Node>>();
+
+			foreach (var body in graph.Bodies.Values)
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Bind(var bound, var held, _))
+					{
+						if (!found.TryGetValue(bound, out var list))
+							found[bound] = list = [];
+
+						list.Add(held);
+					}
+
+			return found;
+		});
+
+		return index.TryGetValue(binding, out var bodies) ? bodies : [];
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, Dictionary<TextBinding, List<Node>>> _boundBodies = new();
 
 	static IEnumerable<Node> Children(Node node)
 	{
@@ -2415,6 +2583,8 @@ public static class FirstSets
 			case Node.Construct(var built, _):     return [built];
 			case Node.Atomic   (var body):         return [body];
 			case Node.Marked   (var body, _):      return [body];
+			case Node.Bind     (_, var bound, _):  return [bound];
+			case Node.Counted  (var body, _, _):   return [body];
 			default:                               return [];
 		}
 	}
