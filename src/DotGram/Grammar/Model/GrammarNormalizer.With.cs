@@ -283,6 +283,12 @@ public sealed partial class GrammarNormalizer
 			Node.Behind   (var test)                                                => new Node.Behind(Same(test)),
 			Node.Reading  (var readings)                                            => new Node.Reading(readings),
 			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
+
+			// The same symbols: this rebuilds the rule in place, and a binding stays the one its
+			// references read. Only a copy into another rule gets symbols of its own.
+			Node.Bind     (var binding, var body, var at)                           => new Node.Bind(binding, SpliceWithSites(body, rewrites), at),
+			Node.Same     (var binding, var at)                                     => new Node.Same(binding, at),
+			Node.Counted  (var body, var min, var max)                              => new Node.Counted(SpliceWithSites(body, rewrites), min, max),
 			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
 			Node.Condition(var test, var at)                                        =>
 				new Node.Condition(Test.Mapped(test, one => SpliceWithSites(one, rewrites)), at),

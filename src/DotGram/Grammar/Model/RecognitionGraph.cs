@@ -289,6 +289,74 @@ public abstract record Node
 		}
 	}
 
+	/// <summary>
+	/// <c>$q: X</c> — what <paramref name="Body"/> matched, recorded under <paramref name="Binding"/>
+	/// for a <see cref="Same"/> or a <see cref="Counted"/> later in the rule to read.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Not a capture: no member is made of it and nothing in C# sees it, so what the rule
+	/// builds is what it would build without the binding. It reads what its body reads and
+	/// nothing more — the record of where the body began and ended is all it adds.
+	/// </para>
+	/// <para>
+	/// A binding under a repetition other than a plain option has already been lifted out of
+	/// it by lowering: <c>($q: X)*</c> is <c>$q: (X*)</c>, the whole run, and reads "" after
+	/// no turns. So a <see cref="Repeat"/> whose body holds a binding is either an option —
+	/// which may leave it unbound — or one whose turns hold more than the binding, which
+	/// rebinds it every turn.
+	/// </para>
+	/// </remarks>
+	/// <param name="At">Where <c>$q:</c> was written, for a diagnostic; -1 for one the compiler made.</param>
+	public sealed record Bind(TextBinding Binding, Node Body, int At = -1) : Node
+	{
+		public override IEnumerable<Node> Children => [Body];
+
+		public override string ToString()
+		{
+			return $"${Binding.Name}: {Body}";
+		}
+	}
+
+	/// <summary>
+	/// <c>$q</c> — exactly the items <paramref name="Binding"/> recorded, matched again here.
+	/// </summary>
+	/// <remarks>
+	/// Compared item by item, ordinally, and consumed. A leaf: what it matches is decided
+	/// while the parser runs, so every analysis that has to know it ahead of time answers
+	/// for any text the binding's body could have matched.
+	/// </remarks>
+	/// <param name="At">Where <c>$q</c> was written, for a diagnostic; -1 for one the compiler made.</param>
+	public sealed record Same(TextBinding Binding, int At = -1) : Node
+	{
+		public override string ToString()
+		{
+			return "$" + Binding.Name;
+		}
+	}
+
+	/// <summary>
+	/// <c>X{#q}</c>, <c>X{#q,}</c>, <c>X{n,#q}</c> — a repetition at least one of whose bounds is
+	/// the length of a bound text, read when the repetition is reached.
+	/// </summary>
+	/// <remarks>
+	/// A node of its own and not a <see cref="Repeat"/>, whose bounds are numbers every pass
+	/// may read as numbers: a pass that took a length for one would be wrong without saying
+	/// so. Where both bounds are numbers the repetition is a <see cref="Repeat"/>, always.
+	/// </remarks>
+	/// <param name="Max">Null where there is no upper bound.</param>
+	public sealed record Counted(Node Body, CountBound Min, CountBound? Max) : Node
+	{
+		public override IEnumerable<Node> Children => [Body];
+
+		public override string ToString()
+		{
+			var bounds = Max is null ? $"{Min}," : Min == Max ? Min.ToString() : $"{Min},{Max}";
+
+			return $"{(Body is Sequence ? $"({Body})" : Body.ToString())}{{{bounds}}}";
+		}
+	}
+
 	/// <summary>A `when` guard. Consumes nothing.</summary>
 	/// <param name="At">
 	/// Where the C# starts in the grammar, so that a C# error in it can be reported there
@@ -389,6 +457,75 @@ public abstract record Node
 		public override string ToString()
 		{
 			return Arguments.Count == 0 ? Rule.Name : $"{Rule.Name}({string.Join(", ", Arguments)})";
+		}
+	}
+}
+
+/// <summary>
+/// What <c>$q: X</c> binds, as one thing every <c>$q</c> and <c>#q</c> that reads it points at.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A symbol and not a name, compared by reference: a name is only unique within the
+/// alternative that wrote it, and the passes after lowering copy bodies into other rules,
+/// specialize them and inline them. Two bindings that share a spelling are two symbols
+/// wherever they came from, so none of that can make one read the other's text.
+/// </para>
+/// <para>
+/// One per name in each top-level alternative of a rule: bindings of one name on routes
+/// that exclude each other — <c>('\'' &amp; $t: W &amp; '\'' | $t: W) &amp; $t</c> — are one
+/// symbol, which the reference after them reads whichever route bound it. A copy of a body
+/// made for another rule or another specialization gets symbols of its own.
+/// </para>
+/// </remarks>
+public sealed class TextBinding(RuleSymbol rule, int index, string name, int at)
+{
+	/// <summary>The rule whose text declared it — for a copy, the rule it was copied from.</summary>
+	public RuleSymbol Rule { get; } = rule;
+
+	/// <summary>Its number among the bindings lowering made for <see cref="Rule"/>, in the order written.</summary>
+	public int Index { get; } = index;
+
+	/// <summary>The name written after <c>$</c>.</summary>
+	public string Name { get; } = name;
+
+	/// <summary>Where the first <c>$q</c> naming it was written; -1 where the compiler made it.</summary>
+	public int At { get; } = at;
+
+	/// <summary>Another symbol saying the same, for a copy of the body that holds this one.</summary>
+	public TextBinding Copy()
+	{
+		return new TextBinding(Rule, Index, Name, At);
+	}
+
+	public override string ToString()
+	{
+		return "$" + Name;
+	}
+}
+
+/// <summary>One bound of a <see cref="Node.Counted"/>: a number, or the length of a bound text.</summary>
+public abstract record CountBound
+{
+	/// <summary>A number known when the parser is generated.</summary>
+	public sealed record Items(int Count) : CountBound
+	{
+		public override string ToString()
+		{
+			return Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+		}
+	}
+
+	/// <summary>
+	/// <c>#q</c>: how many input items <paramref name="Binding"/> recorded, read when the count
+	/// is reached.
+	/// </summary>
+	/// <param name="At">Where <c>#q</c> was written, for a diagnostic; -1 for one the compiler made.</param>
+	public sealed record Length(TextBinding Binding, int At = -1) : CountBound
+	{
+		public override string ToString()
+		{
+			return "#" + Binding.Name;
 		}
 	}
 }
@@ -566,6 +703,9 @@ public sealed class RecognitionGraph(
 				case Node.Call(var called, _):     text.Append(' ').Append(called.Name); break;
 				case Node.Construct(_, var how):   text.Append(" => ").Append(how); break;
 				case Node.Repeat(_, var min, var max): text.Append(' ').Append(min).Append("..").Append(max?.ToString() ?? "*"); break;
+				case Node.Bind(var binding, _, _): text.Append(" $").Append(binding.Name); break;
+				case Node.Same(var binding, _):    text.Append(" $").Append(binding.Name); break;
+				case Node.Counted(_, var min, var max): text.Append(' ').Append(min).Append("..").Append(max?.ToString() ?? "*"); break;
 				case Node.Guard or Node.Literal or Node.Element or Node.External or Node.Marked:
 					text.Append(' ').Append(node);
 					break;
@@ -617,6 +757,49 @@ public sealed class RecognitionGraph(
 
 	/// <summary>The public API this grammar asked for — carried through unchanged (§6).</summary>
 	public IReadOnlyList<Publication> Publications { get; } = publications;
+
+	/// <summary>
+	/// Whether reading <paramref name="rule"/> can reach a binding, a reference or a count by a
+	/// length (<c>$q: X</c>, <c>$q</c>, <c>X{#q}</c>).
+	/// </summary>
+	/// <remarks>
+	/// What the forms that read the input a window at a time ask before they offer themselves: a
+	/// reference compares text bound earlier, and a window may have let it go. Answered from the
+	/// set of rules that hold one, worked out once, so a grammar with none pays one walk.
+	/// </remarks>
+	public bool ReachesBoundText(RuleSymbol rule)
+	{
+		if (rule is null)
+			throw new ArgumentNullException(nameof(rule));
+
+		_boundText ??= [.. Rules.Where(one => Bodies.TryGetValue(one, out var body) && GrammarNormalizer.HoldsBoundText(body))];
+
+		if (_boundText.Count == 0)
+			return false;
+
+		var reached = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>([rule]);
+
+		while (pending.Count > 0)
+		{
+			var current = pending.Pop();
+
+			if (!reached.Add(current))
+				continue;
+
+			if (_boundText.Contains(current))
+				return true;
+
+			if (Bodies.TryGetValue(current, out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var called, _))
+						pending.Push(called);
+		}
+
+		return false;
+	}
+
+	HashSet<RuleSymbol>? _boundText;
 
 	/// <summary>
 	/// The C# type a grammar's own state is declared as, or null where it declares none.

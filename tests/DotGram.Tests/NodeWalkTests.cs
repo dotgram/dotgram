@@ -10,6 +10,9 @@ namespace DotGram.Tests;
 
 public sealed class NodeWalkTests
 {
+	static readonly TextBinding Text =
+		new(new Grammar.Binding.RuleSymbol("R", new Grammar.Binding.GrammarNamespace("", null), null), 0, "q", -1);
+
 	[Fact]
 	public void Unary_nodes_keep_their_body_and_left_to_right_order()
 	{
@@ -24,6 +27,8 @@ public sealed class NodeWalkTests
 			new Node.Lookahead(true, sequence),
 			new Node.Capture("text", sequence),
 			new Node.Construct(sequence, new Construction.Expression("text")),
+			new Node.Bind(Text, sequence),
+			new Node.Counted(sequence, new CountBound.Length(Text), null),
 		];
 
 		foreach (var wrapper in wrappers)
