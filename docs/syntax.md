@@ -279,6 +279,7 @@ X+                      one or more
 X{3}                    exactly three
 X{2,4}                  two to four
 X{2,}                   two or more
+X{#q}  X{#q,}  X{n,#q}  by the length of a bound text, §3.5.1
 ```
 
 Every quantifier is postfix, and together they form one consistent family. Braces
@@ -288,6 +289,9 @@ braces in primary position are an atomic group.
 The body of `X*`, `X+` or `X{n,m}` must consume at least one input item per
 iteration — a build-time check, not runtime behaviour. `(A?)*` and `(?!A)*` are
 rejected by the compiler.
+
+A bound may also be the length of a text bound earlier in the rule, `#q` (§3.5.1): `X{#q}`,
+`X{#q,}`, `X{n,#q}`. That count is read when it is reached, in input items, like the others.
 
 ### 3.4 Lookahead
 
@@ -344,6 +348,150 @@ The escape belongs to C# and stops at its edge: the grammar says `using:` on the
 because a rule name and a capture name are the grammar's own and nothing there is
 reserved. Written without the `@` inside the `=>`, it is a C# syntax error against that
 line of the grammar, which is what it is.
+
+**`$q: X` is not a capture.** It binds the text `X` matched so that `$q` can match it again
+(§3.5.1); it adds no member to the rule's type and no name to a `=>` or a `when`. A name
+can be both: `q: ($q: X)` captures the text and binds it, and the two names live apart.
+
+#### 3.5.1 Binding and back-reference
+
+```dotgram
+$q: X                   bind: q is the text X matched
+$q                      the same text again
+X{#q}  X{#q,}  X{n,#q}  repeat X by the length of q
+```
+
+Some constructs close with the very text that opened them: a Lua long bracket
+`[==[ … ]==]`, a C# raw string, a PostgreSQL `$tag$ … $tag$`, a heredoc, a Markdown
+fence. A grammar cannot list the openings, because there are as many as there are texts.
+It binds the opening to a name and matches that text again.
+
+**`$q: X` binds.** It records the text `X` matched under the name `q`. It stands where a
+capture stands, so `$q: '"'{3,}` is `($q: '"'){3,}` — and, as for a repeated text capture,
+the binding is the whole run, joined. A binding is **not a capture**: it adds no member to
+the rule's type, `=>` and `when` do not see it, and a rule that was text stays text. To
+have the text in C# as well, capture it too: `q: ($q: X)`.
+
+**`$q` matches exactly that text again**: the same items, compared one for one, with no
+regard to case whatever the binding read (`$k: "end"i` that read `End` matches `End`
+and nothing else). It is an ordinary operand and composes as one: `?!$q`, `$q*`, `r: $q`,
+`($q & X)`. `$q*` is refused where `q` can be empty, as `(A?)*` is.
+
+**`X{#q}` repeats `X` by the length of `q`**, counted in input items as `{n}` and `any`
+are — characters over characters, kinds over kinds. The forms are `{#q}`, `{#q,}`,
+`{n,#q}`, `{#q,m}` and `{#q,#r}`; the bound is read when the count is reached, and there
+is no arithmetic (`{#q-1}` is not a count). `{n,#q}` with `n` greater than the length of
+`q` is a count that cannot be met, and simply fails when it is read. `#q` stands only
+inside count braces.
+
+Backtracking is as in a regular expression. A reference is checked against the text bound
+on the path being tried; when a greedy binding gives an item back, the references after
+it are tried again with the shorter text. A binding the author means as a whole is written
+as an atomic group, `{ $q: X }`.
+
+**Scope.** A reference sees a binding to its left in the same alternative of the same
+rule, through groups, atomic groups and repetitions, and also from *inside* a lookahead
+(`?!$q` reads an outer binding). It does not see a binding in a sibling of `|`, in a rule
+it calls, in the rule that calls it, inside a constructing group `( … => … )`, or in the
+step of a fold; the name of a binding is not a rule or a capture, and `$q` never names
+anything but a binding.
+
+**Every route.** A reference is an error unless every way of reaching it has bound `q`
+before. Two alternatives that both bind `q` are fine, and share it:
+
+```dotgram
+Quoted = ('\'' & $t: Word & '\'' | $t: Word) & " " & $t
+```
+
+The same name bound twice on one route is an error, and so is a reference inside its own
+binding. What a binding reads when it matched zero times follows the same line as a text
+capture's (§7.3):
+
+| Written | After zero turns |
+| --- | --- |
+| `$q: (X?)`, `$q: X*`, `$q: (X{m,n})` | `""`, the text of no items |
+| `($q: X)*`, `($q: X){m,n}` | `""` — the same thing; a repetition of a binding **is** a binding of the repetition |
+| `($q: X)?`, `($q: X){0,1}` | there is no text: the skipping route never bound `q` |
+
+A reference after `($q: X)?` is therefore a build error, and the fix is the one in the
+table: `$q: (X?)`. A repeated binding whose turns are separated, as in `($q: X & ',')*`,
+may be read only within its own turn; read after the repetition it is an error, and the
+fix is to bind the whole run, `$q: (X & ',')*`.
+
+**What is not supported.** A binding is refused inside a lookahead and in anything that
+holds a recovery point (§8.2): a recovery point inside a binding, or a `recover` on a
+repetition that holds one. A binding or a reference over kinds is refused too; there a
+guard does the job: `close: Name & when @(close == open)`. Case-insensitive references,
+references across rules and arithmetic in counts are out of scope (§11).
+
+Trivia, where it is woven in, is part of a binding's text — as in a text capture — and
+is woven around a reference as around a literal. Rules that use bindings are, in
+practice, rules with `trivia = none` (§4.5).
+
+Examples. Each recognizes the token; what is made of it (unindenting, unescaping) is the
+rule's `=>` or C#'s.
+
+A **Lua long bracket**, for strings and for comments:
+
+```dotgram
+LongString = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
+trivia     = { (Std.Spacing | "--" & LongString | Std.LineComment("--"))* }
+```
+
+A **C# raw string**, three quotes or more:
+
+```dotgram
+RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
+```
+
+The atomic group says every opening quote belongs to the opening, so that `""""a"""` is
+not read as a three-quote string that begins with a quote. The last `?!'"'` refuses a
+closing run longer than the opening. Rust is the same shape, with `#` for the quotes:
+
+```dotgram
+RustRaw = 'r' & $h: '#'* & '"' & { (?!('"' & $h) & any)* } & '"' & $h
+```
+
+**PostgreSQL dollar quoting**, `$$ … $$` and `$tag$ … $tag$`; tags are case-sensitive and
+cannot start with a digit:
+
+```dotgram
+DollarQuoted = '$' & $tag: (Tag?) & '$' & { (?!('$' & $tag & '$') & any)* } & '$' & $tag & '$'
+Tag          = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+```
+
+`$tag: (Tag?)` that matched nothing binds `""`, so `$$ … $$` is the same rule.
+
+A **heredoc** whose body starts on the next line, with `<<-` stripping leading tabs of
+the closing line:
+
+```dotgram
+Heredoc = "<<"  & $tag: Word & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
+        | "<<-" & $tag: Word & eol & { (?!('\t'* & $tag & EndLine) & Line)* } & '\t'* & $tag & ?=EndLine
+Line    = [^ '\r' | '\n']* & eol
+EndLine = eol | eof
+```
+
+A **Markdown fence**: the closing fence is the same character and at least as long, so
+"at least as long" is `$f` followed by more of the same, and needs no comparison:
+
+```dotgram
+Fenced = ' '{0,3} & $f: '`'{3,} & [^ '`' | '\r' | '\n']* & eol
+         & { (?!(' '{0,3} & $f & '`'* & ' '* & EndLine) & Line)* }
+         & (' '{0,3} & $f & '`'* & ' '* & EndLine | eof)
+```
+
+A count by the length of a binding says "at least as long" for a run. In
+reStructuredText the underline of a title is at least as long as the title:
+
+```dotgram
+Heading = $t: Title & eol & '='{#t,} & eol
+Title   = [^ '\r' | '\n']+
+```
+
+The cost of the "until" idiom, `(?!$q & any)*`, is the length of the text and of the
+binding multiplied: a crafted input can make it as slow as the opening it was given is
+long. For a binding that is a run of one character it is linear.
 
 ### 3.6 Guard
 
@@ -585,7 +733,8 @@ produce more than one such result.
 Highest to lowest:
 
 ```text
-1.  capture, lookahead    name: X  ?=X  ?!X
+1.  capture, binding,     name: X  $q: X  ?=X  ?!X
+    lookahead
 2.  postfix quantifiers   X?  X*  X+  X{n,m}
 3.  adjacency             a ~ b
 4.  sequence              a & b
@@ -595,7 +744,9 @@ Highest to lowest:
 
 Capture and lookahead are prefixes of one level and nest either way round: `n: ?=X` and
 `?=n: X` are both written. A quantifier applies to everything before it on its operand,
-so `name: X*` is `(name: X)*` and `?!X*` is `(?!X)*`.
+so `name: X*` is `(name: X)*` and `?!X*` is `(?!X)*`. A binding is a prefix of the
+same level as a capture, so `$q: X*` is `($q: X)*`; a reference `$q` is an operand, not an
+operator, and so has no row.
 
 `=>` binds to a single alternative rather than to the whole rule body, which is what
 lets each branch of a `|` construct its own result.
@@ -2812,6 +2963,9 @@ The two quantifier rows are what makes the regex-shaped case behave:
 same principle as §4.1 case 4 — where nothing produces a value of its own, the value
 is the matched extent — applied one level down, at the capture.
 
+A binding `$q: X` (§3.5.1) is not a capture and is not a member of the result: the type of a
+rule is what its captures make it, whatever it binds.
+
 A capture binds tighter than a quantifier (§3.8), so `scheme: ['a'..'z']+` is one capture
 repeated rather than a capture of a run — and the two rows above are how that is read:
 repeated text is the text joined, a repeated rule is an array of its values.
@@ -3524,6 +3678,14 @@ the grammar has no comparison operators.
 ## 11. Deliberately out of scope
 
 None of what follows changes the notation described above.
+
+- **Back-references beyond one rule's own text.** A binding is read by a reference in the
+  same alternative of the same rule, over characters (§3.5.1). A reference in another rule
+  would be a run-time text handed to a rule, and a rule is specialized at build time
+  (§4.2). The same goes for a reference that matches without regard to case, for one over
+  kinds (a guard does that: `when @(close == open)`), and for arithmetic in a count
+  (`{#q-1}`; the `?!` idioms of §3.5.1 cover what C# needs). Length-prefixed data —
+  `5:hello`, where the count is a *number* that was read — is a different decision again.
 
 - **Repairing a document.** When a whole input is one construct — a source
   file in an editor — there is no notation for it: recovery here is scoped to
