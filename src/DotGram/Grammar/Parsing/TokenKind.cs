@@ -28,6 +28,13 @@ public enum TokenKind
 	/// <summary><c>@(…)</c> — carries the raw C# text between the parentheses.</summary>
 	CSharpExpression,
 
+	/// <summary><c>$name</c> — carries the name, without the sigil.</summary>
+	/// <remarks>Followed by <c>:</c> it binds the text an operand matched; anywhere else it matches that text again.</remarks>
+	BindingName,
+
+	/// <summary><c>#name</c> — the length of a bound text, inside count braces; carries the name, without the sigil.</summary>
+	LengthName,
+
 	// Fixed spellings.
 	Ampersand,          // &
 	Bar,                // |

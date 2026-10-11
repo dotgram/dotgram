@@ -35,6 +35,9 @@ public sealed class GramParser
 	/// <summary>A condition after <c>when</c> whose operand is not followed by <c>is</c>.</summary>
 	public const string ExpectedIs           = "GRAM2009";
 
+	/// <summary>A length <c>#q</c> standing anywhere but inside count braces.</summary>
+	public const string LengthOutsideCount   = "GRAM2010";
+
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
 
@@ -964,9 +967,23 @@ public sealed class GramParser
 	{
 		var operand = ParsePrefixed();
 
-		Expr Quantify(QuantifierKind kind, int? min = null, string? minName = null, int? max = null, string? maxName = null)
+		Expr Quantify(
+			QuantifierKind kind,
+			int?           min       = null,
+			string?        minName   = null,
+			int?           max       = null,
+			string?        maxName   = null,
+			LengthOf?      minLength = null,
+			LengthOf?      maxLength = null)
 		{
-			return Recovering(new Expr.Quantified(operand, kind, min, minName, max, maxName) { At = From(start) }, start);
+			var quantified = new Expr.Quantified(operand, kind, min, minName, max, maxName)
+			{
+				At        = From(start),
+				MinLength = minLength,
+				MaxLength = maxLength,
+			};
+
+			return Recovering(quantified, start);
 		}
 
 		if (TakeIf(TokenKind.Question)) return Quantify(QuantifierKind.Optional);
@@ -978,13 +995,14 @@ public sealed class GramParser
 
 		Take();
 
-		var (min, minName) = ParseCount();
+		var (min, minName, minLength) = ParseCount();
 
-		int?    max     = min;
-		string? maxName = minName;
+		int?      max       = min;
+		string?   maxName   = minName;
+		LengthOf? maxLength = minLength;
 
 		if (TakeIf(TokenKind.Comma))
-			(max, maxName) = At(TokenKind.CloseBrace) ? (null, null) : ParseCount();
+			(max, maxName, maxLength) = At(TokenKind.CloseBrace) ? (null, null, null) : ParseCount();
 
 		var closeAt = Current.Position;
 
@@ -998,7 +1016,7 @@ public sealed class GramParser
 				$"'{{{lower},{upper}}}' asks for at least {lower} and at most {upper}, so it can never match.",
 				new Location(start, closeAt + 1 - start));
 
-		return Quantify(QuantifierKind.Count, min, minName, max, maxName);
+		return Quantify(QuantifierKind.Count, min, minName, max, maxName, minLength, maxLength);
 	}
 
 	/// <summary>
@@ -1060,16 +1078,27 @@ public sealed class GramParser
 		return new Expr.Number(0) { At = new Location(token.Position, token.Length) };
 	}
 
-	(int? Value, string? Name) ParseCount()
+	/// <summary>
+	/// One side of a count: a number, a value parameter's name, or <c>#q</c>, the length of
+	/// a bound text.
+	/// </summary>
+	(int? Value, string? Name, LengthOf? Length) ParseCount()
 	{
 		if (At(TokenKind.Identifier))
-			return (null, Take().Value);
+			return (null, Take().Value, null);
+
+		if (At(TokenKind.LengthName))
+		{
+			var length = Take();
+
+			return (null, null, new LengthOf(length.Value!, new Location(length.Position, length.Length)));
+		}
 
 		if (!At(TokenKind.Integer))
 		{
-			Report(InvalidCount, "Expected a repetition count or a parameter name.");
+			Report(InvalidCount, "Expected a repetition count, a parameter name or a length such as #q.");
 
-			return (null, null);
+			return (null, null, null);
 		}
 
 		var token = Take();
@@ -1084,10 +1113,10 @@ public sealed class GramParser
 				$"'{token.Value}' is too large for a repetition count.",
 				new Location(token.Position, token.Length));
 
-			return (null, null);
+			return (null, null, null);
 		}
 
-		return (count, null);
+		return (count, null, null);
 	}
 
 	Expr ParsePrefixed()
@@ -1103,6 +1132,18 @@ public sealed class GramParser
 
 	Expr ParseCaptured()
 	{
+		// `$q:` binds at a capture's level, and for the same reason a capture is read here:
+		// `$q: '"'{3,}` is `($q: '"'){3,}`, and the count belongs to what is bound.
+		if (At(TokenKind.BindingName) && Next.Kind == TokenKind.Colon)
+		{
+			var at    = Current.Position;
+			var bound = Take().Value!;
+
+			Take();                                 // `:`
+
+			return new Expr.Bind(bound, ParsePrefixed()) { At = From(at) };
+		}
+
 		if (!At(TokenKind.Identifier) || Next.Kind != TokenKind.Colon)
 			return ParsePrimary();
 
@@ -1167,6 +1208,24 @@ public sealed class GramParser
 			case TokenKind.At:
 			case TokenKind.Identifier:
 				return ParseReferenceOrCall();
+
+			case TokenKind.BindingName:
+				return new Expr.Same(Take().Value!) { At = From(start) };
+
+			// Reported and read past, not left to the generic message: what was meant is
+			// clear, and the fix is to write it where a count goes.
+			case TokenKind.LengthName:
+			{
+				var length = Take();
+
+				Report(
+					LengthOutsideCount,
+					$"A length '#{length.Value}' stands only inside count braces, as in X{{#{length.Value}}}; " +
+					$"to match the bound text itself, write '${length.Value}'.",
+					new Location(length.Position, length.Length));
+
+				return new Expr.Same(length.Value!) { At = From(start) };
+			}
 
 			default:
 				Report(ExpectedExpression, "Expected a literal, a reference, an element set, a group or an atomic group.");
