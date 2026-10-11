@@ -132,11 +132,11 @@ then quietly mean nothing.
 | the same reporting a rule that only forwards where it was collapsed §6.9 | — | — | ✓ | ✓ | ✓ |
 | the same over a reading on the engine, flat, buffered or streamed, and a rule retracted by the engine §6.9 | — | — | — | ✓ | ✓ |
 | a `@Name` or `[@Name]` the parser cannot call, said on the grammar (`GRAM4025`) §7.1 | — | — | ✓ | — | — |
-| a binding and its back-reference, `$q: X` … `$q` §3.5.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
-| a count by the length of a binding, `X{#q}` `{#q,}` `{n,#q}` §3.5.1 | ✗ | ✗ | ✗ | ✗ | ✗ |
-| a binding read where it may not have happened, `($q: X)?` then `$q`, refused with the fix §3.5.1 | ✗ | ✗ | ✗ | — | — |
-| a binding inside a lookahead, or over a recovery point, refused §3.5.1 | ✗ | ✗ | ✗ | — | — |
-| a binding or a back-reference in a terminal the lexer reads, or reaching a buffered or streamed publication, refused for now §3.5.1 | ✗ | ✗ | ✗ | — | — |
+| a binding and its back-reference, `$q: X` … `$q` §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a count by the length of a binding, `X{#q}` `{#q,}` `{n,#q}` §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a binding read where it may not have happened, `($q: X)?` then `$q`, refused with the fix §3.5.1 | ✓ | ✓ | ✓ | — | — |
+| a binding inside a lookahead, or over a recovery point, refused §3.5.1 | ✓ | ✓ | ✓ | — | — |
+| a binding or a back-reference in a terminal the lexer reads, or reaching a buffered or streamed publication, refused, not yet supported §3.5.1 | ✓ | ✓ | ✓ | — | — |
 
 **Two things this table used to carry as rows are decisions rather than gaps**, and a
 row of crosses read as neither. **Repairing a document** — searching a broken input for
@@ -489,21 +489,26 @@ thing beside `Position`, not delivered by this.
 ## Back-references
 
 `syntax.md` §3.5.1 describes a binding, `$q: X`, and the operands that read it: `$q`,
-and a count by its length, `X{#q}`. **None of it builds yet**; the rows above are crosses
-because the construct is specified and not started in the pipeline, not because a stage
-was found wanting.
+and a count by its length, `X{#q}`. It works in both readers, the generated one and the
+engine, for `parse` and for `find`, over a string, a span, a memory or an array.
 
-What the first version will leave out is stated here so that the specification is not
-read as promising it:
+What it does not do is refused at build time with a diagnostic that says where:
 
 - A binding is read by a reference in the same alternative of the same rule. A reference
   across a rule call, into or out of a constructing group, or in the step of a fold is
-  refused.
-- A binding in a terminal the lexer reads, and one reaching a publication over a
-  `TextReader` or a stream, is refused with a message saying it is not supported here yet.
-- A binding inside a lookahead, and one over a recovery point, are refused.
-- Over kinds neither a binding nor a reference is accepted; a guard compares two captures
-  there.
+  refused (`GRAM4033`), and so is a name that nothing bound (`GRAM3021`).
+- A reference that may be reached on a route that skipped its binding is refused with the
+  fix (`GRAM4032`).
+- A binding inside a lookahead is refused (`GRAM4033`); a reference inside one is fine.
+- Not yet supported (`GRAM4034`): a binding in a repetition that recovers, or in what such
+  a repetition skips to; in a terminal the lexer reads once a grammar is cut into a lexer
+  and a syntactic half; and in a publication over a `TextReader` or a stream.
+- Over kinds neither a binding nor a reference is accepted (`GRAM4035`); a guard compares
+  two captures there.
+
+A count whose bounds cannot be met is not a build error, because the lengths are known
+only when the count is reached: `{n,#q}`, `{#q,m}` and `{#q,#r}` fail at run time when
+the lower bound exceeds the upper.
 
 ## Captures, and what they build
 
