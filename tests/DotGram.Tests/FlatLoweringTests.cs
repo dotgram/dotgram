@@ -88,6 +88,22 @@ public sealed class FlatLoweringTests
 		Assert.Equal((false, ""),     Run(grammar, "cd")); // needs at least one 'a'
 	}
 
+	[Theory]
+	[InlineData("Start = 'a' & (?!'a' & any)* & 'a'\nparse Start")]
+	[InlineData("Start = 'a' & (?!'a' & any)+ & 'a'\nparse Start")]
+	[InlineData("Start = 'a' & (?!['a' | 'b'] & any)* & 'a'\nparse Start")]
+	public void A_run_until_a_character_lowers_as_a_loop(string grammar)
+	{
+		// A run that stops at a character is compiled for the engine as a search, which keeps
+		// an entry to give a character back from; the lowered method has no arena to keep it
+		// on, and the run has nothing to give back once the lowering proved it possessive.
+		AssertLowered(Emit(grammar));
+
+		Assert.Equal((true, "axya"), Run(grammar, "axya"));
+		Assert.Equal((false, ""),    Run(grammar, "axy"));
+		Assert.Equal((false, ""),    Run(grammar, "axyab"));
+	}
+
 	[Fact]
 	public void A_capture_anywhere_in_the_grammar_does_not_lower()
 	{

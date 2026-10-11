@@ -3758,6 +3758,12 @@ sealed partial class Machine
 				if (_recoveries.TryGetValue(node, out var recovery))
 					return CompileRecoveringRepeat(repeat, recovery, next, following);
 
+				// A lowered method has no arena and no trace: the scans below keep a run entry to
+				// give back from and trace it, so a repetition the lowering proved silent is
+				// compiled as the loop it was proved to be.
+				if (_lowering && SilentRepeat(repeat, following))
+					return CompileSilentRepeat(repeat, next, following);
+
 				if (PaddedDelimiter(repeat) is { } delimiter)
 					return CompilePaddedScan(repeat, delimiter.Padding, delimiter.Stop, next, following);
 
