@@ -66,6 +66,8 @@ public sealed class GraphIntegrityTests
 		{ "Parameterized",  "List(item) = item & (',' & item)*\nStart = List(Word)\nWord = ['a'..'z']+" },
 		{ "Recovering",     "Feed : @Item[] = row: Row* recover eol & eof\nRow : @Item = ['a'..'z']+ & eol" },
 		{ "BindingPowers",  "Expr : @int = left: Expr & '+' & right: Expr << 1 => @(left + right) | digit: ['0'..'9'] => @int.Parse(digit)" },
+		{ "Bound",          "Start = $q: Item+ & Item{#q} & ($q | '-')\nItem = ['a'..'z']" },
+		{ "BoundSequence",  "Start : @Item[] = $q: Item & Item{#q,}\nItem : @Item = ['a'..'z']" },
 	};
 
 	/// <summary>
