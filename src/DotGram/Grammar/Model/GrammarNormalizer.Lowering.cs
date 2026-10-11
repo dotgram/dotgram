@@ -87,7 +87,7 @@ public sealed partial class GrammarNormalizer
 			Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
 			Expr.Group(var body) => Lower(body, ns),
 			Expr.Atomic(var body) => new Node.Atomic(Lower(body, ns)),
-			Expr.Capture(var name, var operand) => new Node.Capture(name, Lower(operand, ns)),
+			Expr.Capture(var name, var operand) => LowerCapture(name, operand, ns),
 			Expr.Bind(var name, var operand) => LowerBind(expression, name, operand, ns),
 			Expr.Same(var name) => LowerSame(expression, name),
 			Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
