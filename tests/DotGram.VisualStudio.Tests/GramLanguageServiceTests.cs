@@ -630,4 +630,81 @@ public sealed class GramLanguageServiceTests
 	{
 		Assert.Throws<ArgumentNullException>(() => GramLanguageService.Analyze(null!));
 	}
+
+	[Fact]
+	public void ClassifiesBindingBinderReferenceAndLengthAsBindings()
+	{
+		const string source = "Q = 'x'\nStart = $q: Q & 'y' & $q & 'z'{#q}\nparse Start";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Equal(3, classified.Count(item => item.Kind == GramSyntaxKind.Binding));
+		Assert.Equal(2, classified.Count(item => item is ("$q", GramSyntaxKind.Binding)));
+		Assert.Contains(("#q", GramSyntaxKind.Binding), classified);
+		Assert.Contains((":", GramSyntaxKind.Punctuation), classified);
+	}
+
+	[Fact]
+	public void BindingNameIsNotARuleEvenWhenARuleHasTheSpelling()
+	{
+		const string source = "q = 'x'\nStart = $q: q & 'y' & $q & 'z'{#q}\nparse Start";
+
+		var document = GramLanguageService.Analyze(source);
+
+		// Only the rule's own definition and its one use (`$q: q`) are rule symbols; the three
+		// binding tokens belong to none, so Go To Definition on them goes nowhere and Rename of
+		// the rule does not touch them.
+		var rule = document.Symbols.Where(symbol => symbol.Name == "q").ToArray();
+
+		Assert.Equal(2, rule.Length);
+		Assert.All(rule, symbol => Assert.Equal(GramSymbolKind.Rule, symbol.Kind));
+		Assert.All(rule, symbol => Assert.Equal(0, symbol.DefinitionPosition));
+
+		foreach (var token in new[] { "$q: ", "& $q", "{#q}" })
+		{
+			var at = source.IndexOf(token, StringComparison.Ordinal) + token.IndexOfAny(['$', '#']);
+
+			Assert.DoesNotContain(document.Symbols, symbol => symbol.Position <= at && at < symbol.Position + symbol.Length);
+
+			var span = Assert.Single(document.Classifications, candidate => candidate.Position == at);
+
+			Assert.Equal(GramSyntaxKind.Binding, span.Kind);
+			Assert.Null(span.DefinitionPosition);
+			Assert.Null(span.SymbolKind);
+		}
+	}
+
+	[Fact]
+	public void BindingNameIsNotACaptureEvenWhenACaptureHasTheSpelling()
+	{
+		const string source = "Start = q: 'a' & $q & 'b'{#q}\nparse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var captures = document.Symbols.Where(symbol => symbol.Name == "q").ToArray();
+
+		Assert.Single(captures);
+		Assert.True(captures[0].IsDefinition);
+		Assert.Equal(GramSymbolKind.Capture, captures[0].Kind);
+		Assert.Equal(source.IndexOf("q:", StringComparison.Ordinal), captures[0].Position);
+		Assert.Equal(
+			2,
+			document.Classifications.Count(span => span.Kind == GramSyntaxKind.Binding));
+	}
+
+	[Fact]
+	public void RuleReferencesInsideABindingAreSymbols()
+	{
+		const string source = "Word = 'a'+\nStart = $tag: Word & $tag\nparse Start";
+
+		var uses = GramLanguageService.Analyze(source).Symbols
+			.Where(symbol => symbol.Name == "Word")
+			.ToArray();
+
+		// Rename of `Word` must reach the use under the binder, or it breaks the grammar.
+		Assert.Equal(2, uses.Length);
+		Assert.Contains(uses, symbol => symbol.Position == source.IndexOf("Word &", StringComparison.Ordinal));
+	}
+
 }

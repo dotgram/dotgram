@@ -31,6 +31,9 @@ public enum GramSyntaxKind
 	SpecialSymbol,
 	Operator,
 	Punctuation,
+
+	/// <summary>A binding: <c>$q</c>, the <c>$q</c> of <c>$q:</c>, or the <c>#q</c> of a count.</summary>
+	Binding,
 }
 
 /// <summary>One classified source span in a <c>.gram</c> document.</summary>
@@ -223,6 +226,7 @@ public static class GramLanguageService
 						symbolKind: symbol.Kind));
 				else if (symbolsByPosition.TryGetValue(token.Position, out symbol) &&
 					rulesByPosition.TryGetValue(symbol.DefinitionPosition, out var rule) ||
+					token.Kind is not (TokenKind.BindingName or TokenKind.LengthName) &&
 					token.Value is not null && rules.TryGetValue(token.Value, out rule) &&
 					resolved.SameGrammar(token.Position, rule.Position))
 					classifications.Add(new GramClassifiedSpan(
@@ -1035,6 +1039,10 @@ public static class GramLanguageService
 				case Expr.Capture capture:
 					Visit(capture.Operand);
 					break;
+				case Expr.Bind bind:
+					// The name belongs to no symbol here: a binding is neither a rule nor a capture.
+					Visit(bind.Operand);
+					break;
 				case Expr.Group group:
 					if (Constructs(group.Body))
 					{
@@ -1248,6 +1256,9 @@ public static class GramLanguageService
 				case Expr.Capture capture:
 					Visit(capture.Operand);
 					break;
+				case Expr.Bind bind:
+					Visit(bind.Operand);
+					break;
 				case Expr.Group group:
 					Visit(group.Body);
 					break;
@@ -1381,6 +1392,7 @@ public static class GramLanguageService
 			TokenKind.Identifier when conditionKeywords.Contains(token.Position) => GramSyntaxKind.Keyword,
 			TokenKind.Identifier when Keywords.Contains(token.Value!) => GramSyntaxKind.Keyword,
 			TokenKind.Identifier => GramSyntaxKind.Identifier,
+			TokenKind.BindingName or TokenKind.LengthName => GramSyntaxKind.Binding,
 			TokenKind.Integer => GramSyntaxKind.Number,
 			TokenKind.Character => GramSyntaxKind.Character,
 			TokenKind.String => GramSyntaxKind.String,
