@@ -115,10 +115,7 @@ public sealed class ReferenceDifferentialTests
 		if (direct)
 			BackReferenceEmission.RequireReader();
 		else
-		{
-			BackReferenceEmission.RequireReader();
-			BackReferenceEmission.RequireEngine();
-		}
+			BackReferenceEmission.RequireBoth();
 
 		var random   = new Random(seed * 104729);
 		var compiled = 0;
