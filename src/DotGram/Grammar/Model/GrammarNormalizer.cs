@@ -151,6 +151,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
+		// Straight after lowering: whether every route to a reference bound its text is a
+		// question about the routes the author wrote, and every pass below may reshape them.
+		normalizer.CheckBoundTexts();
+
 		// Here and not with the other checks, which run at the end: this one asks what the
 		// author wrote, and by the end several passes have rewritten the calls it would be
 		// reading. A specialization clones a rule and leaves the original reachable only
@@ -539,6 +543,12 @@ public sealed partial class GrammarNormalizer
 			var tails        = new List<Node>();
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
 
+			// A step is read as a loop of its own, once per operator, so a binding in it is
+			// refused whichever way the rule is rewritten below.
+			foreach (var alternative in alternatives)
+				if (Tail(alternative, rule) is var (step, _))
+					RefuseFoldStep(rule, step);
+
 			// A rule that states its own strengths is climbed rather than folded: the same
 			// loop over the same tails, entered on a comparison instead of unconditionally.
 			if (RewriteBindingPowers(rule, alternatives))
@@ -754,6 +764,7 @@ public sealed partial class GrammarNormalizer
 			{
 				case Node.Construct(var built,  _)           : node = built; break;
 				case Node.Capture  (_,          var captured): node = captured; break;
+				case Node.Bind     (_,          var bound, _): node = bound; break;
 				case Node.Sequence (var operands)            : node = operands[^1]; break;
 				case Node.Call     (var called, _) call      : return ReferenceEquals(called, rule) ? call : null;
 				default                                      : return null;
@@ -797,6 +808,7 @@ public sealed partial class GrammarNormalizer
 			{
 				case Node.Construct(var built, _)   : node = built; break;
 				case Node.Capture  (_, var captured): node = captured; break;
+				case Node.Bind     (_, var bound, _): node = bound; break;
 				case Node.Sequence (var operands)   : node = operands[^1]; break;
 				case Node.Call     (var called, _)  : return ReferenceEquals(called, rule);
 				default:                              return false;
@@ -902,6 +914,14 @@ public sealed partial class GrammarNormalizer
 			case Node.Capture(_, var captured):
 				return WritesBefore(captured, site, name);
 
+			// A binding records text and writes no capture; what its body wrote before the site, did.
+			case Node.Bind(_, var bound, _):
+				return WritesBefore(bound, site, name);
+
+			// As a run: what the same turn wrote before the site.
+			case Node.Counted(var counted, _, _):
+				return WritesBefore(counted, site, name);
+
 			case Node.Atomic(var atomic):
 				return WritesBefore(atomic, site, name);
 
@@ -934,6 +954,7 @@ public sealed partial class GrammarNormalizer
 		return node switch
 		{
 			Node.Capture(var captured, var body) => captured == name || Writes(body, name),
+			Node.Bind(_, var body, _) => Writes(body, name),
 			Node.Atomic(var body) => Writes(body, name),
 			Node.Marked(var body, _) => Writes(body, name),
 			Node.Sequence(var nodes) => nodes.Any(child => Writes(child, name)),
@@ -943,6 +964,9 @@ public sealed partial class GrammarNormalizer
 			// A run that may be empty still writes: the text of no iterations is "". Only a
 			// genuine option — `X?`, which either happened or did not — leaves it unwritten.
 			Node.Repeat(var body, var min, var max) => (min > 0 || max != 1) && Writes(body, name),
+
+			// Never the option `{0,1}`: a length is not a number the parser is generated with.
+			Node.Counted(var body, _, _) => Writes(body, name),
 
 			_ => false,
 		};

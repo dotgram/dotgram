@@ -306,7 +306,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var clone = cloneMap[rule];
 
-			_bodies[clone] = CloneAndRewrite(_bodies[rule], targets, cloneMap, siteName);
+			_bodies[clone] = CloneBody(_bodies[rule], targets, cloneMap, siteName);
 			_rules.Add(clone);
 
 			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
@@ -400,6 +400,64 @@ public sealed partial class GrammarNormalizer
 		return new(element.IsNegated, element.Ranges, element.Categories, element.References);
 	}
 
+	/// <summary>
+	/// <see cref="CloneAndRewrite"/> of a whole rule body into a rule of its own, with bindings of
+	/// its own.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A copy into another rule — a specialization, or a callee inlined into its caller — must not
+	/// share a <see cref="TextBinding"/> with what it was copied from: everything after this tells
+	/// two bindings apart by symbol, and two that shared one would be read as one. So each binding
+	/// of the copy is a new symbol, and every reference and length in the copy reads the new one.
+	/// </para>
+	/// <para>
+	/// Only here, and not in every <see cref="CloneAndRewrite"/>: a copy of part of a rule within
+	/// the same rule — an alternative distributed over the rules a forwarder names, the operand of
+	/// a <c>with</c> — may be bound on one side of the copy and read on the other, and keeps its
+	/// symbols for that reason.
+	/// </para>
+	/// </remarks>
+	Node CloneBody(
+		Node body,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
+		string siteName)
+	{
+		var outer = _rebound;
+
+		_rebound = [];
+
+		var clone = CloneAndRewrite(body, targets, cloneMap, siteName);
+
+		_rebound = outer;
+
+		return clone;
+	}
+
+	/// <summary>
+	/// The symbols of the body <see cref="CloneBody"/> is copying, each with its copy; null where
+	/// what is copied keeps its symbols.
+	/// </summary>
+	Dictionary<TextBinding, TextBinding>? _rebound;
+
+	/// <summary>The symbol a copy reads for one its original read.</summary>
+	TextBinding Rebound(TextBinding binding)
+	{
+		if (_rebound is null)
+			return binding;
+
+		if (!_rebound.TryGetValue(binding, out var copy))
+			_rebound[binding] = copy = binding.Copy();
+
+		return copy;
+	}
+
+	CountBound Rebound(CountBound bound)
+	{
+		return bound is CountBound.Length(var binding, var at) ? new CountBound.Length(Rebound(binding), at) : bound;
+	}
+
 	Node CloneAndRewrite(
 		Node node,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
@@ -427,6 +485,10 @@ public sealed partial class GrammarNormalizer
 			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
 			Node.Reading  (var readings)                                            => new Node.Reading  (readings),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Bind     (var binding, var body, var at)                           => new Node.Bind     (Rebound(binding), CloneAndRewrite(body, targets, cloneMap, siteName), at),
+			Node.Same     (var binding, var at)                                     => new Node.Same     (Rebound(binding), at),
+			Node.Counted  (var body, var min, var max)                              =>
+				new Node.Counted(CloneAndRewrite(body, targets, cloneMap, siteName), Rebound(min), max is null ? null : Rebound(max)),
 			Node.Construct(var body, var how)                                       =>
 				new Node.Construct(
 					CloneAndRewrite(body, targets, cloneMap, siteName),
@@ -525,7 +587,7 @@ public sealed partial class GrammarNormalizer
 
 		cloneMap[replacement] = clone;
 
-		_bodies[clone] = CloneAndRewrite(_bodies[replacement], targets, cloneMap, siteName);
+		_bodies[clone] = CloneBody(_bodies[replacement], targets, cloneMap, siteName);
 		_rules.Add(clone);
 
 		if (_trivia.TryGetValue(replacement, out var trivia))

@@ -101,6 +101,16 @@ public sealed class GrammarBinder
 	public const string StateNotInvariant         = "GRAM3020";
 
 	/// <summary>
+	/// <c>$q</c> or <c>#q</c> where the rule binds nothing called <c>q</c>.
+	/// </summary>
+	/// <remarks>
+	/// A binding is read in the rule that bound it, so a name the rule does not bind is not
+	/// looked for anywhere else — not among its captures, which are a namespace of their own,
+	/// and not among the rules, which <c>$</c> never names (docs/syntax.md §3.5.1).
+	/// </remarks>
+	public const string UnknownBinding            = "GRAM3021";
+
+	/// <summary>
 	/// The built-in rules: what every grammar has without declaring it (§3.1.1). They live
 	/// in a namespace outside the global one, so a grammar can shadow any of them by
 	/// declaring its own — which is exactly how whitespace handling works (§4.5). Not the
@@ -661,10 +671,45 @@ public sealed class GrammarBinder
 
 		Captures(rule.Body);
 
+		_bound.Clear();
+		Bound(rule.Body);
+
 		ResolveExpression(rule.Body, ns, parameters);
 	}
 
 	readonly HashSet<string> _captures = new(StringComparer.Ordinal);
+
+	/// <summary>The names the rule being resolved binds with <c>$q:</c>: apart from its captures.</summary>
+	readonly HashSet<string> _bound = new(StringComparer.Ordinal);
+
+	void Bound(Expr expression)
+	{
+		if (expression is Expr.Bind(var name, _))
+			_bound.Add(name);
+
+		foreach (var child in Dump.Children(expression))
+			Bound(child);
+	}
+
+	/// <summary>A <c>$q</c> or a <c>#q</c>, held to the bindings of its rule.</summary>
+	void ResolveBound(string name, char sigil, Location at, GrammarNamespace ns)
+	{
+		if (_bound.Contains(name))
+			return;
+
+		// The two things the name could have been meant as, each with the way to say it.
+		var hint = _captures.Contains(name) && !SuppliedNames.All.Contains(name)
+			? $" '{name}' is a capture here, and a capture is not a binding: bind its text as well with '{name}: (${name}: …)'."
+			: ns.LookupQualified(name) is not null
+				? $" '{name}' is a rule, and '$' names only a binding: to match the rule, write '{name}'."
+				: "";
+
+		Report(
+			UnknownBinding,
+			$"No binding '${name}' in this rule: '{sigil}{name}' reads text bound with '${name}: …' earlier in " +
+			$"the same rule (docs/syntax.md §3.5.1).{hint}",
+			at);
+	}
 
 	void Captures(Expr expression)
 	{
@@ -818,6 +863,20 @@ public sealed class GrammarBinder
 			// The text inside @(...) is C#, checked by the C# compiler where the
 			// generator puts it. Nothing here can say anything useful about it.
 			case Expr.CSharp:
+				return;
+
+			case Expr.Same(var name):
+				ResolveBound(name, '$', expression.At, ns);
+				return;
+
+			case Expr.Quantified quantified when quantified.MinLength is not null || quantified.MaxLength is not null:
+				if (quantified.MinLength is { } low)
+					ResolveBound(low.Name, '#', low.At, ns);
+
+				if (quantified.MaxLength is { } high && high != quantified.MinLength)
+					ResolveBound(high.Name, '#', high.At, ns);
+
+				ResolveExpression(quantified.Operand, ns, parameters, csharpValue);
 				return;
 
 			case Expr.With(var operand, var rebindings):
