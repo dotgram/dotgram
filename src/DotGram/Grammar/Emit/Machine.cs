@@ -3966,6 +3966,22 @@ sealed partial class Machine
 				return state;
 			}
 
+			// Not yet read by the engine: a binding reads its body and records nothing, and a
+			// reference or a count stops the parse loudly where it is reached. Every machine
+			// compiles its engine, the reader's included, so this is what lets a grammar with
+			// bindings be read by the reader while the engine does not read them.
+			case Node.Bind(_, var bound, _):
+				return Compile(bound, next, following);
+
+			case Node.Same or Node.Counted:
+			{
+				var state = Reserve(out var writer);
+
+				writer.Line("throw new global::System.NotSupportedException(\"The engine does not read a back-reference yet.\");");
+
+				return state;
+			}
+
 			default:
 				throw new InvalidOperationException($"Unsupported unified-automaton node: {node.GetType().Name}.");
 		}
