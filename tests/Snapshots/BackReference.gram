@@ -1,0 +1,58 @@
+// Bindings and back-references (docs/syntax.md §3.5.1): a text bound by `$q: X`, matched again
+// by `$q`, and counted by `#q`. One grammar for each way a binding is read, so that the
+// generated file shows each: the two positions a binding records, the comparison a reference
+// makes with them, and the run-time bound of a count.
+
+// ── The until scan, delimited and not ───────────────────────────────────────────────
+//
+// `RawString` binds a run of quotes in an atomic group and scans to the same run again: the
+// reference is a comparison of as many items as the opening had, at every position of the
+// body. `LongString` reads its opening's `=` run the same way, but its scan tests a closing
+// bracket first, so a near miss fails at its first item.
+
+RawString  = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
+LongString = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
+
+// ── A binding that may be empty, and one shared by two routes ───────────────────────
+//
+// `$tag: (Tag?)` binds "" where there is no tag, so `$$ … $$` is the same rule. `Quoted`
+// binds `t` on either route of the choice, and the reference after it reads whichever did.
+
+DollarQuoted = '$' & $tag: (Tag?) & '$' & { (?!('$' & $tag & '$') & any)* } & '$' & $tag & '$'
+Tag          = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+Quoted       = ('\'' & $t: Word & '\'' | $t: Word) & " " & $t
+Word         = ['a'..'z']+
+
+// ── Counts by a length ──────────────────────────────────────────────────────────────
+//
+// `Heading` repeats `=` at least as many times as the title is long; `Between` reads both
+// bounds of a count from two bindings, when the count is reached.
+
+Heading = $t: Title & eol & '='{#t,} & eol
+Title   = [^ '\r' | '\n']+
+Between = $q: 'a'* & $r: 'c'* & ':' & 'b'{#q,#r}
+
+// ── A binding per call ──────────────────────────────────────────────────────────────
+//
+// `Element` calls itself between its tags; each call binds its own name, so the closing tag
+// is compared with the opening of the same call.
+
+Element = '<' & $n: Word & '>' & (Element | Text)* & "</" & $n & '>'
+Text    = { [^ '<']+ }
+
+// ── Beside members ──────────────────────────────────────────────────────────────────
+//
+// A binding is no member: `Pair` has the two captures it names, and the reference is read
+// as a capture's text like any other operand.
+
+Pair : @string = c: ($q: Word) & ' ' & r: $q => @(c + "|" + r)
+
+parse RawString
+parse LongString
+parse DollarQuoted
+parse Quoted
+parse Heading
+parse Between
+parse Element
+parse Pair
+find RawString as AnyRawString
