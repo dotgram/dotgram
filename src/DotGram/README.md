@@ -274,6 +274,9 @@ keeps every one and reads them all.
 * sequence, ordered choice, `?`, `*`, `+` and bounded repetition;
 * lookahead and atomic groups;
 * named captures and generated result types;
+* back-references — `$q: X` binds the text `X` matched, `$q` matches it again, and
+  `X{#q}` repeats by its length — for raw strings, heredocs, Lua long brackets and the
+  like, over characters;
 * existing C# result types, filled by constructor or by `required` properties;
 * semantic actions, guards, external C# predicates and recognizers;
 * parameterized rules, rule rebinding and parser specialization;

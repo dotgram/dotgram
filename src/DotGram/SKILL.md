@@ -147,6 +147,9 @@ X{3}  X{2,4}  X{2,}     exactly, between, at least — the body must consume som
 
 @M                      an external recognizer, `bool M(ReadOnlySpan<char> input, ref int pos)`
 name: X                 a capture
+$q: X                   a binding: q is the text X matched, and no capture
+$q                      the same text again (a back-reference)
+X{#q}  X{#q,}  X{n,#q}  repeat X by the length of q
 ```
 
 Seven rules exist without being declared, and any of them may be shadowed by declaring
@@ -174,6 +177,22 @@ what makes substitution work. A `=>` without a declared type is `GRAM4008`.
 
 Captures can also be matched straight to a constructor or to `required` properties, in
 which case the grammar holds no construction code at all.
+
+**`$q: X` binds a text so that `$q` can match it again**: a raw string, a Lua long
+bracket, a heredoc, a PostgreSQL `$tag$`, a Markdown fence. It is not a capture — no
+property, invisible to `=>` and `when`. The reference sees a binding to its left in the
+same alternative, also from inside a lookahead, and the binding has to happen on every
+route to it: `($q: X)?` followed by `$q` is refused, write `$q: (X?)`, which reads `""` when
+`X` did not match. A repetition of a binding (`($q: X)*`) is a binding of the run and
+reads `""` after zero turns.
+
+```dotgram
+RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
+```
+
+It works over characters only; over tokens use a guard. A binding inside a lookahead or
+over a recovery point is refused, and so is one in a terminal the lexer reads or on a
+streamed publication, for now.
 
 A guard asks C# a question in the middle of a parse — the thing a grammar cannot express:
 
