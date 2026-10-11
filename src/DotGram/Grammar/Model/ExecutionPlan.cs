@@ -96,7 +96,7 @@ public sealed class ExecutionPlan
 				!graph.Recursive.Contains(rule)               &&
 				!graph.Climbing.ContainsKey(rule)             &&
 				 graph.Bodies.TryGetValue(rule, out var body) &&
-				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct) &&
+				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct or Node.Bind) &&
 				 NodeWalk.Descendants(body).Take(Copied + 1).Count() <= Copied)
 			{
 				inPlace.Add(rule);

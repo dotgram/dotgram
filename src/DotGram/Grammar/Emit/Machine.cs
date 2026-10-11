@@ -238,6 +238,9 @@ sealed partial class Machine
 	/// </remarks>
 	readonly HashSet<int> _repeatedCaptures = [];
 
+	/// <summary>The machine-wide slot each binding is recorded in (<see cref="CompileBind"/>).</summary>
+	readonly Dictionary<TextBinding, int> _bindingSlots = [];
+
 	/// <summary>
 	/// The repeated captures whose pieces can overlap, which are those of a positive lookahead: see
 	/// <see cref="Overlaps"/>.
@@ -532,9 +535,24 @@ sealed partial class Machine
 				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node, rule);
+				else if (node is Node.Bind(var binding, var bound, _))
+				{
+					// A binding is recorded as a text capture is, in a slot numbered after the
+					// rule's captures, which no member names: what the arena holds of it is
+					// read back by a reference and by a count, never by Accept. Kept in the
+					// arena rather than a variable for the same two reasons a capture is.
+					var slot = _captures + layout.SlotOf(binding);
+
+					_bindingSlots[binding] = slot;
+
+					_textCaptures.Add(slot);
+
+					if (graph.Recursive.Contains(rule) || Doors.LeavesOne(bound, doors))
+						_nestedCaptures.Add(slot);
+				}
 			}
 
-			_captures += layout.Slots.Count;
+			_captures += layout.Slots.Count + layout.Bindings.Count;
 
 			// One plan per marked repetition: each has its own sync, its own `=>` and its
 			// own sequence, and the arena has always dispatched a recovery by plan.
@@ -692,7 +710,9 @@ sealed partial class Machine
 			if (inside && node is Node.Capture)
 				found.Add(node);
 
-			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, fold);
+			// A count's bounds are read while parsing, and any of them may be more than one.
+			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, fold) ||
+				node is Node.Counted;
 
 			foreach (var child in node.Children)
 				pending.Push((child, inside || loops));
@@ -2941,39 +2961,7 @@ sealed partial class Machine
 					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(writer, inner)};");
 
-					atClose.Line("var closed  = 0;");
-					atClose.Line("var openedAt = entries.Count - 1;");
-					atClose.Line();
-
-					using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
-					{
-						atClose.Line("var opened = entries[openedAt];");
-						atClose.Line();
-						atClose.Line($"if (opened.State != {slot}) continue;");
-						atClose.Line();
-
-						using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
-						{
-							atClose.Line("closed++;");
-							atClose.Line("continue;");
-						}
-
-						atClose.Line();
-						atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
-						atClose.Then("continue;");
-						atClose.Line();
-						atClose.Line("if (closed == 0)");
-						atClose.Then("break;");
-						atClose.Line();
-						atClose.Line("closed--;");
-					}
-
-					atClose.Line();
-					atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
-					atClose.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
-						"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
-					atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+					CloseOpened(atClose, slot);
 					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
@@ -3966,21 +3954,14 @@ sealed partial class Machine
 				return state;
 			}
 
-			// Not yet read by the engine: a binding reads its body and records nothing, and a
-			// reference or a count stops the parse loudly where it is reached. Every machine
-			// compiles its engine, the reader's included, so this is what lets a grammar with
-			// bindings be read by the reader while the engine does not read them.
-			case Node.Bind(_, var bound, _):
-				return Compile(bound, next, following);
+			case Node.Bind(var binding, var bound, _):
+				return CompileBind(binding, bound, next, following);
 
-			case Node.Same or Node.Counted:
-			{
-				var state = Reserve(out var writer);
+			case Node.Same(var binding, _):
+				return CompileSame(node, binding, next);
 
-				writer.Line("throw new global::System.NotSupportedException(\"The engine does not read a back-reference yet.\");");
-
-				return state;
-			}
+			case Node.Counted counted:
+				return CompileCounted(counted, next, following);
 
 			default:
 				throw new InvalidOperationException($"Unsupported unified-automaton node: {node.GetType().Name}.");
@@ -4012,6 +3993,382 @@ sealed partial class Machine
 	}
 
 	readonly ExecutionPlan _plan;
+
+	/// <summary>
+	/// Writes the close of a capture whose opening is an arena entry: the opening found by
+	/// counting openings against closes, the way brackets are counted, and the capture recorded
+	/// from where it opened to here.
+	/// </summary>
+	void CloseOpened(Writer atClose, int slot)
+	{
+		atClose.Line("var closed  = 0;");
+		atClose.Line("var openedAt = entries.Count - 1;");
+		atClose.Line();
+
+		using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
+		{
+			atClose.Line("var opened = entries[openedAt];");
+			atClose.Line();
+			atClose.Line($"if (opened.State != {slot}) continue;");
+			atClose.Line();
+
+			using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+			{
+				atClose.Line("closed++;");
+				atClose.Line("continue;");
+			}
+
+			atClose.Line();
+			atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
+			atClose.Then("continue;");
+			atClose.Line();
+			atClose.Line("if (closed == 0)");
+			atClose.Then("break;");
+			atClose.Line();
+			atClose.Line("closed--;");
+		}
+
+		atClose.Line();
+		atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
+		atClose.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
+			"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
+		atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+	}
+
+	/// <summary>The machine-wide slot a binding is recorded in.</summary>
+	int BindingSlot(TextBinding binding)
+	{
+		if (!_bindingSlots.TryGetValue(binding, out var slot))
+			throw new InvalidOperationException($"{binding} of '{binding.Rule.Name}' is read where no rule of this machine binds it.");
+
+		return slot;
+	}
+
+	/// <summary>
+	/// <c>$q: X</c>: the span the body matched, recorded in the arena as a text capture is and
+	/// in the binding's own slot, which no member names.
+	/// </summary>
+	/// <remarks>
+	/// The arena and not a variable, because the arena is what backtracking puts back: a turn
+	/// given back takes the record it made with it, and the reference after it finds the one
+	/// made before. Tagged with the call, so that a rule that reaches itself — an element whose
+	/// closing tag repeats its opening one — reads its own binding and not an inner one. Opened
+	/// and closed in the arena where the rule can open it again before it closes, exactly where
+	/// a text capture would be (<see cref="_nestedCaptures"/>).
+	/// </remarks>
+	int CompileBind(TextBinding binding, Node bound, int next, FollowSets.Continuation following)
+	{
+		if (_valuesInLocals || _lowering)
+			throw new InvalidOperationException($"A binding reached a reading that keeps nothing in the arena: {binding}.");
+
+		var slot    = BindingSlot(binding);
+		var close   = Reserve(out var atClose);
+		var inner   = Compile(bound, close, following);
+		var state   = Reserve(out var writer);
+
+		if (_nestedCaptures.Contains(slot))
+		{
+			writer.Line(
+				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
+				"call, atomic, repeat, lookahead, 0));");
+			writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
+			writer.Line($"goto {Label(writer, inner)};");
+
+			CloseOpened(atClose, slot);
+			atClose.Line($"goto {Label(atClose, next)};");
+
+			return state;
+		}
+
+		writer.Line($"capture{slot} = p;");
+		writer.Line($"goto {Label(writer, inner)};");
+
+		atClose.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
+			"call, atomic, repeat, lookahead, p));");
+		atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+		atClose.Line($"goto {Label(atClose, next)};");
+
+		return state;
+	}
+
+	/// <summary>
+	/// Writes <c>var <paramref name="into"/> = …;</c>: the arena index of what a binding last
+	/// recorded in the current call.
+	/// </summary>
+	/// <remarks>
+	/// The newest record of the binding's slot above the call: every route to a reference binds
+	/// before it, which lowering made sure of, and a record a failure took back is no longer
+	/// there to be found. A look around keeps the call it was entered in, so a reference inside
+	/// one finds the binding made outside it.
+	/// </remarks>
+	void FindBinding(Writer writer, TextBinding binding, string into)
+	{
+		var slot = BindingSlot(binding);
+
+		writer.Line($"var {into} = -1;");
+
+		using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+		{
+			writer.Line("var candidate = entries[candidateAt];");
+
+			using (writer.Block(
+				$"if (candidate.Kind == ParserEntry.Capture && candidate.State == {slot} && candidate.CallIndex == call)"))
+			{
+				writer.Line($"{into} = candidateAt;");
+				writer.Line("break;");
+			}
+		}
+
+		writer.Line($"global::System.Diagnostics.Debug.Assert({into} > call);");
+	}
+
+	/// <summary>
+	/// <c>$q</c>: the items the binding recorded, compared ordinally with those at the position
+	/// and read past — refused at the reference's start, saying it was wanted, where they differ
+	/// or the input ends first, as the reader refuses it.
+	/// </summary>
+	int CompileSame(Node node, TextBinding binding, int next)
+	{
+		if (_valuesInLocals || _lowering)
+			throw new InvalidOperationException($"A reference reached a reading that keeps nothing in the arena: {node}.");
+
+		var state     = Reserve(out var writer);
+		var arrayName = DeclareExpected(Displays(node));
+
+		FindBinding(writer, binding, "boundAt");
+		writer.Line("var bound = entries[boundAt];");
+
+		using (writer.Block($"if (!{SameText()}(text, p, bound.Position, bound.Value))"))
+			EmitTerminalFailure(writer, _fail, arrayName);
+
+		writer.Line("p += bound.Value - bound.Position;");
+		writer.Line($"goto {Label(writer, next)};");
+
+		return state;
+	}
+
+	/// <summary>
+	/// <c>X{#q}</c>, <c>X{#q,}</c>, <c>X{n,#q}</c>: a repetition whose bounds are read where it is
+	/// reached and kept, for as long as it runs, in an entry of their own above its count.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The general loop of <see cref="CompileRepeat"/> — a count in the Repeat entry, a way out
+	/// per turn past the fewest, a turn taken back where a failure unwinds into it — with none of
+	/// its proofs: nothing knows the bounds before the parse, so no turn is taken to be settled
+	/// and none is skipped for the character it would begin on. The bounds stand in a passed-over
+	/// entry right above the count, which unwinding pops as it pops the count, so a length read
+	/// once is the length every turn compares with, as the reader reads it once.
+	/// </para>
+	/// <para>
+	/// A count whose most is below its fewest stops at the most and is refused there, saying
+	/// that one more turn was wanted — as the reader says it.
+	/// </para>
+	/// </remarks>
+	int CompileCounted(Node.Counted counted, int next, FollowSets.Continuation following)
+	{
+		if (_valuesInLocals || _lowering)
+			throw new InvalidOperationException($"A count reached a reading that keeps nothing in the arena: {counted}.");
+
+		var (body, min, max) = counted;
+
+		if (RunTest(body) is { } test)
+			return CompileCountedRun(body, test, min, max, next);
+
+		_usesTurns = true;
+		_usesDead  = true;
+
+		var exit  = Reserve(out var atExit);
+		var loop  = Reserve(out var atLoop);
+		var after = Reserve(out var atAfter);
+		var entry = Reserve(out var atEntry);
+
+		var inner = Compile(
+			body, after,
+			following.Map(one => new FollowSets.Continuation(
+				FirstSets.Of(body, _graph).Or(one.Plain),
+				FirstSets.Of(body, _graph).Or(one.Plain))));
+
+		var least = CountBoundRead(atEntry, min, "leastAt");
+		var most  = max is null ? null : SameCountBound(min, max) ? least : CountBoundRead(atEntry, max, "mostAt");
+
+		atEntry.Line("var repeatIndex = entries.Count;");
+		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Dead, 0, {least}, call, atomic, repeatIndex, lookahead, {most ?? "-1"}));");
+		atEntry.Line("repeat = repeatIndex;");
+		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
+		atEntry.Line($"goto {Label(atEntry, loop)};");
+
+		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat + 1 < entries.Count);");
+		atLoop.Line("var repeating = entries[repeat];");
+		atLoop.Line("var bounds    = entries[repeat + 1];");
+		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);");
+
+		if (max is not null)
+		{
+			using (atLoop.Block("if (repeating.Value >= bounds.Value)"))
+			{
+				// Only where the two can cross: one number never does, and one length neither.
+				if (!SameCountBound(min, max) && min is not CountBound.Items { Count: 0 })
+				{
+					var wanted = DeclareExpected(Displays(body));
+
+					using (atLoop.Block("if (repeating.Value < bounds.Position)"))
+						EmitTerminalFailure(atLoop, _fail, wanted);
+				}
+
+				atLoop.Line($"goto {Label(atLoop, exit)};");
+			}
+		}
+
+		if (min is CountBound.Items { Count: 0 })
+			PushRepeatExit(atLoop, exit);
+		else
+		{
+			atLoop.Line("if (repeating.Value >= bounds.Position)");
+			atLoop.Then(
+				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, exit)}, p, call, atomic, repeat, " +
+				"lookahead, 0));");
+		}
+
+		atLoop.Line($"goto {Label(atLoop, inner)};");
+
+		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atAfter.Line("var repeated = entries[repeat];");
+		atAfter.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
+			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+			"repeated.LookaheadIndex, repeated.Value + 1);");
+		atAfter.Line(
+			"entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, " +
+			"lookahead, 0));");
+		atAfter.Line($"goto {Label(atAfter, loop)};");
+
+		// The count and its bounds go together, where nothing above them is left to name them.
+		atExit.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat + 1 < entries.Count);");
+		atExit.Line("var finished = entries[repeat];");
+		atExit.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
+
+		using (atExit.Block("if (entries.Count == repeat + 2)"))
+		{
+			if (Caches)
+				atExit.Line("parser.Truncate(repeat, entries);");
+
+			atExit.Line("entries.RemoveRange(repeat, 2);");
+		}
+
+		atExit.Line("repeat = finished.RepeatIndex;");
+		atExit.Line("lookahead = finished.LookaheadIndex;");
+		atExit.Line($"Trace(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		atExit.Line($"goto {Label(atExit, next)};");
+
+		return entry;
+
+	}
+
+	/// <summary>Whether two bounds of a count are the same number or the same binding's length.</summary>
+	static bool SameCountBound(CountBound one, CountBound other)
+	{
+		return (one, other) switch
+		{
+			(CountBound.Items(var a), CountBound.Items(var b))         => a == b,
+			(CountBound.Length(var a, _), CountBound.Length(var b, _)) => ReferenceEquals(a, b),
+			_                                                          => false,
+		};
+	}
+
+	/// <summary>
+	/// A count's bound as C#: a number as written, or the length of what the binding recorded,
+	/// looked up into <paramref name="at"/> where the count is reached.
+	/// </summary>
+	string CountBoundRead(Writer writer, CountBound bound, string at)
+	{
+		switch (bound)
+		{
+			case CountBound.Items(var count):
+				return count.ToString(CultureInfo.InvariantCulture);
+
+			case CountBound.Length(var binding, _):
+				FindBinding(writer, binding, at);
+
+				return $"entries[{at}].Value - entries[{at}].Position";
+
+			default:
+				throw new InvalidOperationException($"A count bound the engine does not know: {bound}.");
+		}
+	}
+
+	/// <summary>
+	/// A count whose body is one item a test decides: read as a run, as <see cref="CompileRun"/>
+	/// reads a repetition of one, up to the most, and given back an item at a time down to the
+	/// fewest — and refused where the run stops short of the fewest, saying the body was wanted
+	/// there, as the reader says it.
+	/// </summary>
+	int CompileCountedRun(Node body, string test, CountBound min, CountBound? max, int next)
+	{
+		var state = Reserve(out var writer);
+		var least = min is CountBound.Items { Count: 0 } ? null : CountBoundRead(writer, min, "leastAt");
+		var most  = max is null ? null : least is not null && SameCountBound(min, max) ? least : CountBoundRead(writer, max, "mostAt");
+
+		_usesRuns = true;
+
+		writer.Line("var runStart = p;");
+
+		if (least is not null)
+			writer.Line($"var runLeast = {least};");
+
+		if (most is not null)
+			writer.Line($"var runMost = {(ReferenceEquals(most, least) ? "runLeast" : most)};");
+
+		using (writer.Block("while (true)"))
+		{
+			if (most is not null)
+				writer.Line("if (p - runStart >= runMost) break;");
+
+			if (_starves)
+			{
+				writer.Line($"if ({Short(1)})");
+				using (writer.Block(""))
+				{
+					writer.Line("failure.Starved = true;");
+					writer.Line("break;");
+				}
+			}
+			else
+				writer.Line($"if ({Short(1)}) break;");
+
+			if (test != "true")
+			{
+				_usesChar = true;
+				writer.Line($"c = {ReadAt("p")};");
+				writer.Line($"if (!({test})) break;");
+			}
+
+			writer.Line("p++;");
+		}
+
+		var floor = least is null ? "runStart" : "runStart + runLeast";
+
+		if (least is not null)
+		{
+			var wanted = DeclareExpected(Displays(body));
+
+			using (writer.Block($"if (p < {floor})"))
+				EmitTerminalFailure(writer, _fail, wanted);
+		}
+
+		writer.Line($"if (p > {floor})");
+		writer.Then(
+			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
+			"call, atomic, repeat, lookahead, p));");
+		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, next)};");
+
+		return state;
+	}
 
 	int CompileLookaheadCapture(int slot, Node seen, int next)
 	{
@@ -5558,6 +5915,13 @@ sealed partial class Machine
 			case Node.Repeat(var repeated, var least, _):
 				return least > 0 ? EntryTest(repeated, seen) : null;
 
+			case Node.Bind(_, var bound, _):
+				return EntryTest(bound, seen);
+
+			// A length may be nothing: only a fewest that is a number above none says a turn is owed.
+			case Node.Counted(var counted, CountBound.Items { Count: > 0 }, _):
+				return EntryTest(counted, seen);
+
 			case Node.Call(var called, _):
 			{
 				seen ??= [];
@@ -6118,6 +6482,11 @@ sealed partial class Machine
 				case Node.Construct:
 					return true;
 
+				// What a binding recorded is read by the reference after the group, so the
+				// commit keeps it: `{ $q: '"'{3,} }` is how a run is bound whole.
+				case Node.Bind:
+					return true;
+
 				case Node.Call(var rule, _) when ValueRule(rule) >= 0:
 					return true;
 			}
@@ -6566,6 +6935,20 @@ sealed partial class Machine
 				Lead(body, items);
 				break;
 
+			// A binding is said by what it binds, a count by what it repeats, and a reference
+			// as written: what it matches is known only while parsing.
+			case Node.Bind(_, var body, _):
+				Lead(body, items);
+				break;
+
+			case Node.Counted(var body, _, _):
+				Lead(body, items);
+				break;
+
+			case Node.Same:
+				Add(node.ToString());
+				break;
+
 			case Node.Choice(var alternatives):
 				foreach (var alternative in alternatives)
 					Lead(alternative, items);
@@ -6608,6 +6991,10 @@ sealed partial class Machine
 			case Node.Atomic(var body):
 				return BeginsWithSeam(body);
 			case Node.Marked(var body, _):
+				return BeginsWithSeam(body);
+			case Node.Bind(_, var body, _):
+				return BeginsWithSeam(body);
+			case Node.Counted(var body, _, _):
 				return BeginsWithSeam(body);
 			case Node.Choice(var alternatives):
 				return alternatives.Any(BeginsWithSeam);
@@ -6704,6 +7091,12 @@ sealed partial class Machine
 
 				case Node.Capture(_, var captured):
 					return Leads(captured, seen);
+
+				case Node.Bind(_, var bound, _):
+					return Leads(bound, seen);
+
+				case Node.Counted(var counted, _, _):
+					return Leads(counted, seen);
 
 				case Node.Atomic(var body):
 					return Leads(body, seen);
