@@ -380,9 +380,14 @@ and nothing else). It is an ordinary operand and composes as one: `?!$q`, `$q*`,
 **`X{#q}` repeats `X` by the length of `q`**, counted in input items as `{n}` and `any`
 are — characters over characters, kinds over kinds. The forms are `{#q}`, `{#q,}`,
 `{n,#q}`, `{#q,m}` and `{#q,#r}`; the bound is read when the count is reached, and there
-is no arithmetic (`{#q-1}` is not a count). `{n,#q}` with `n` greater than the length of
-`q` is a count that cannot be met, and simply fails when it is read. `#q` stands only
-inside count braces.
+is no arithmetic (`{#q-1}` is not a count). A count whose lower
+bound is greater than its upper bound cannot be met, and simply fails when it is read —
+`{n,#q}` with `n` greater than the length of `q`, `{#q,m}` with the length of `q` greater
+than `m`, and `{#q,#r}` with `q` longer than `r`; the lengths are known only then, so it
+is not an error at build time. `#q` stands only inside count braces.
+
+A quantifier binds tighter than `?!`, so `?!'}'{#d}` is `(?!'}'){#d}`: a lookahead that is
+then repeated. To look ahead for the whole count, write `?!('}'{#d})`.
 
 Backtracking is as in a regular expression. A reference is checked against the text bound
 on the path being tried; when a greedy binding gives an item back, the references after
@@ -419,11 +424,14 @@ table: `$q: (X?)`. A repeated binding whose turns are separated, as in `($q: X &
 may be read only within its own turn; read after the repetition it is an error, and the
 fix is to bind the whole run, `$q: (X & ',')*`.
 
-**What is not supported.** A binding is refused inside a lookahead and in anything that
-holds a recovery point (§8.2): a recovery point inside a binding, or a `recover` on a
-repetition that holds one. A binding or a reference over kinds is refused too; there a
-guard does the job: `close: Name & when @(close == open)`. Case-insensitive references,
-references across rules and arithmetic in counts are out of scope (§11).
+**What is not supported.** A binding is refused inside a lookahead: a lookahead gives back
+what it read, so there would be nothing to bind. A binding or a reference over kinds is
+refused too; there a guard does the job: `close: Name & when @(close == open)`.
+Case-insensitive references, references across rules and arithmetic in counts are out of
+scope (§11). Three places are not yet supported and are refused with a message saying so:
+anything that holds a recovery point (§8.2) — a recovery point inside a binding, or a
+`recover` on a repetition that holds one; a rule the lexer reads once a grammar is cut in
+two (§4); and a publication over a `TextReader` or a stream.
 
 Trivia, where it is woven in, is part of a binding's text — as in a text capture — and
 is woven around a reference as around a literal. Rules that use bindings are, in
@@ -474,6 +482,11 @@ Line    = [^ '\r' | '\n']+ & EndLine | eol
 EndLine = eol | eof
 ```
 
+The closing tag is followed by `?=EndLine`, a lookahead, so the line break after it is not
+part of the match: `Heredoc` ends right after the tag, and `parse Heredoc` of a text that
+ends in that line break refuses it. Say `& EndLine` instead where the break belongs to
+the token.
+
 A **Markdown fence**: the closing fence is the same character and at least as long, so
 "at least as long" is `$f` followed by more of the same, and needs no comparison:
 
@@ -496,9 +509,13 @@ Heading = $t: Title & eol & '='{#t,} & eol
 Title   = [^ '\r' | '\n']+
 ```
 
-The cost of the "until" idiom, `(?!$q & any)*`, is the length of the text and of the
-binding multiplied: a crafted input can make it as slow as the opening it was given is
-long. For a binding that is a run of one character it is linear.
+The cost of the "until" idiom depends on its shape. Where the closing is a delimiter
+that begins with a delimiter character of its own, as in the Lua, PostgreSQL and heredoc
+examples, a position that does not begin a closing fails at its first item and the scan is
+linear in the text. For `(?!$q & any)*`, as in the raw string, every
+position compares the binding with the text there, so the worst case is the length of the
+text multiplied by the length of the binding: a crafted input can make it as slow as the
+opening it was given is long.
 
 ### 3.6 Guard
 

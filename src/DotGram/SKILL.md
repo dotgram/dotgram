@@ -190,9 +190,11 @@ reads `""` after zero turns.
 RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
 ```
 
-It works over characters only; over tokens use a guard. A binding inside a lookahead or
-over a recovery point is refused, and so is one in a terminal the lexer reads or on a
-streamed publication, for now.
+It works over characters only; over tokens use a guard. A binding inside a lookahead
+is refused. Not yet supported, and refused with a message saying so: a binding over a
+recovery point, in a terminal the lexer reads, or on a streamed publication. Counts
+`{n,#q}`, `{#q,m}` and `{#q,#r}` fail at run time when the lower bound exceeds the upper.
+`?!'}'{#d}` is `(?!'}'){#d}`; write `?!('}'{#d})` to look ahead for the whole count.
 
 A guard asks C# a question in the middle of a parse — the thing a grammar cannot express:
 
