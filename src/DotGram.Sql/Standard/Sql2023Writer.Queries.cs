@@ -41,6 +41,9 @@ public static partial class Sql2023Writer
 
 			if (query is Query.Parenthesized parenthesized)
 			{
+				if (parenthesized.Query.With is not null)
+					throw Misplaced(parenthesized.Query, "With", "inside the brackets of a query, which take no WITH");
+
 				Open();
 				PutQuery(parenthesized.Query);
 				Close();
@@ -167,7 +170,10 @@ public static partial class Sql2023Writer
 		// without brackets only where all of them bind tighter; its own clauses never do.
 		void PutOperand(Query operand, int binding)
 		{
-			var bracketed = operand.With is not null || operand.OrderBy is not null || operand.Limit is not null
+			if (operand.With is not null)
+				throw Misplaced(operand, "With", "on the operand of a set operation, which takes no WITH");
+
+			var bracketed = operand.OrderBy is not null || operand.Limit is not null
 				|| operand.For is not null || operand.Locking.Count > 0;
 
 			foreach (var operation in operand.SetOperations)
@@ -179,8 +185,21 @@ public static partial class Sql2023Writer
 				PutQuery(operand);
 		}
 
+		// What a limit holds that only FETCH or OFFSET writes is refused where the one that writes it is
+		// not there, rather than dropped.
 		void PutLimit(Limit limit)
 		{
+			var fetched = limit.Count is not null || limit.FetchRowWord is not null;
+
+			if (!fetched && limit.Offset is null)
+				throw Empty(limit, "Offset", "Count", "FetchRowWord");
+
+			if (!fetched && (limit.WithTies || limit.Percent || limit.Position != FetchPosition.First))
+				throw Misplaced(limit, "WithTies, Percent or Position", "without a FETCH, which alone writes them");
+
+			if (limit.Offset is null && limit.OffsetRowWord is not null)
+				throw Misplaced(limit, "OffsetRowWord", "without an Offset, which alone writes it");
+
 			if (limit.Offset is { } offset)
 			{
 				Word("OFFSET");
@@ -188,7 +207,7 @@ public static partial class Sql2023Writer
 				Word(limit.OffsetRowWord == RowWord.Row ? "ROW" : "ROWS");
 			}
 
-			if (limit.Count is null && limit.FetchRowWord is null)
+			if (!fetched)
 				return;
 
 			Word(limit.Position == FetchPosition.First ? "FETCH FIRST" : "FETCH NEXT");
@@ -307,7 +326,10 @@ public static partial class Sql2023Writer
 			if (query is not { Columns: [SelectColumn.All], From.Sources: [TableSource.Named named], Top: null, Quantifier: null, Into: null, Where: null, GroupBy: null, Having: null, Window: null })
 				return null;
 
-			return named == new TableSource.Named(named.Name) ? named.Name : null;
+			// A property pattern rather than record equality: equality probes the stack, and this runs at
+			// the depth the caller last checked, so on a deep tree it could throw where the writer would
+			// otherwise hand the walk to a fresh stack.
+			return named.GetType() == typeof(TableSource.Named) && named is { Sample: null, SystemTime: null, Alias: null, Only: false } ? named.Name : null;
 		}
 
 		// A row of values: its values in brackets, or a value alone, which may have brackets of its own.

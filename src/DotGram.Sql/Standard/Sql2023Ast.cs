@@ -364,42 +364,52 @@ public abstract record Query : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	// The family is closed: Select and Parenthesized are every query there is.
+	private protected Query()
+	{
+	}
+
 	/// <summary>
 	/// <c>WITH …</c>, written before the first operand. Of the whole result: the query and its
 	/// <see cref="SetOperations"/>.
 	/// </summary>
+	/// <remarks>
+	/// Only on the outermost query of a query expression — a statement's, a subquery's, a common table
+	/// expression's, a view's, an INSERT's source. The brackets of a <see cref="Parenthesized"/> and the
+	/// operand of a set operation take none, and the writer refuses a tree that has one there.
+	/// </remarks>
 	public WithClause? With { get; init; }
 
 	/// <summary>
 	/// The operations after this query, in text order, each with its operand: a left fold. Empty on a
 	/// query with no set operator.
 	/// </summary>
-	public SqlList<SetOperation> SetOperations { get; init; } = [];
+	[WalkedLast] public SqlList<SetOperation> SetOperations { get; init; } = [];
 
 	/// <summary>
 	/// <c>ORDER BY …</c>. Of the whole result: where <see cref="SetOperations"/> is not empty it sorts
 	/// the compound, not the first operand. An operand's own ORDER BY stands inside a
 	/// <see cref="Parenthesized"/>.
 	/// </summary>
-	public OrderByClause? OrderBy { get; init; }
+	[WalkedLast] public OrderByClause? OrderBy { get; init; }
 
 	/// <summary>
 	/// <c>OFFSET … FETCH …</c>. Of the whole result: where <see cref="SetOperations"/> is not empty it
 	/// limits the compound, not the first operand.
 	/// </summary>
-	public Limit? Limit { get; init; }
+	[WalkedLast] public Limit? Limit { get; init; }
 
 	/// <summary>
 	/// T-SQL: FOR Clause. <c>FOR XML</c>, <c>FOR JSON</c>, <c>FOR BROWSE</c>. Of the whole result, as
 	/// <see cref="OrderBy"/> is.
 	/// </summary>
-	public ForClause? For { get; init; }
+	[WalkedLast] public ForClause? For { get; init; }
 
 	/// <summary>
 	/// <c>FOR UPDATE [OF …]</c>, <c>FOR READ ONLY</c> and the other locking clauses. Of the whole
 	/// result, as <see cref="OrderBy"/> is.
 	/// </summary>
-	public SqlList<LockingClause> Locking { get; init; } = [];
+	[WalkedLast] public SqlList<LockingClause> Locking { get; init; } = [];
 
 	/// <summary>
 	/// BNF: <c>&lt;query specification&gt;</c>, <c>&lt;table value constructor&gt;</c>,
@@ -481,7 +491,8 @@ public abstract record Query : ISqlNode
 	/// <summary>
 	/// This query followed by one more set operation. Where it has an ORDER BY, a limit, a FOR or a
 	/// locking clause, which would then be the compound's, it is bracketed first so that they stay its
-	/// own.
+	/// own. Its WITH stays on the whole result either way, as it is when no brackets are needed: the
+	/// brackets take none, and its tables are then visible to the added operand too.
 	/// </summary>
 	public Query Combine(SetOperation operation)
 	{
@@ -489,7 +500,7 @@ public abstract record Query : ISqlNode
 			throw new ArgumentNullException(nameof(operation));
 
 		if (OrderBy is not null || Limit is not null || For is not null || Locking.Count > 0)
-			return new Parenthesized(this) { SetOperations = [operation] };
+			return new Parenthesized(this with { With = null }) { With = With, SetOperations = [operation] };
 
 		return this with { SetOperations = [.. SetOperations, operation] };
 	}

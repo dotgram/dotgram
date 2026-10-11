@@ -336,6 +336,70 @@ public sealed class SetOperationTests
 		Assert.Equal("(TABLE a ORDER BY x) UNION TABLE c", Sql2023Writer.Write(sorted.Combine(union)));
 	}
 
+	/// <summary>
+	/// A WITH stands only on the outermost query of a query expression: inside a query's brackets or on a
+	/// set operation's operand there is no text for it, and the writer says so rather than writing what
+	/// cannot be read back.
+	/// </summary>
+	[Fact]
+	public void A_WITH_inside_brackets_or_on_an_operand_is_refused()
+	{
+		var with = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], A)]);
+		var q    = Table("q") with { With = with };
+
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { SetOperations = [Op(SetOperator.Union, q)] }));
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(new Query.Parenthesized(q)));
+		Assert.Equal("WITH q AS (TABLE a) (TABLE q)", Sql2023Writer.Write(new Query.Parenthesized(Table("q")) { With = with }));
+	}
+
+	/// <summary>Combine keeps a WITH on the whole result where it brackets the query, as where it does not.</summary>
+	[Fact]
+	public void Combine_lifts_a_WITH_out_of_the_brackets_it_adds()
+	{
+		var with   = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], A)]);
+		var sorted = Table("q") with { With = with, OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
+		var union  = Op(SetOperator.Union, B);
+		var both   = sorted.Combine(union);
+
+		Assert.Equal(new Query.Parenthesized(sorted with { With = null }) { With = with, SetOperations = [union] }, both);
+		Assert.Equal("WITH q AS (TABLE a) (TABLE q ORDER BY x) UNION TABLE b", Sql2023Writer.Write(both));
+		Assert.Equal(both, Both.ParseQueryExpression(Sql2023Writer.Write(both)));
+	}
+
+	[Fact]
+	public void A_limit_that_holds_what_its_text_has_no_place_for_is_refused()
+	{
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit() }));
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit { Count = Column("n"), OffsetRowWord = RowWord.Row } }));
+		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit { Offset = Column("n"), Position = FetchPosition.Next } }));
+		Assert.Equal("TABLE a OFFSET n ROWS", Sql2023Writer.Write(A with { Limit = new Limit { Offset = Column("n") } }));
+	}
+
+	/// <summary>
+	/// The walker visits a query in the order it is written: its WITH, then what the member holds — the
+	/// select list and FROM, or the query in the brackets — then the set operations and the clauses of
+	/// the whole result, though those are declared on the family's base.
+	/// </summary>
+	[Theory]
+	[InlineData("WITH q AS (TABLE e) SELECT x FROM a UNION TABLE b ORDER BY y", "e x a b y")]
+	[InlineData("WITH q AS (TABLE e) (TABLE a ORDER BY z) UNION TABLE b ORDER BY y", "e a z b y")]
+	public void The_walker_visits_a_query_in_text_order(string input, string order)
+	{
+		var seen = new System.Collections.Generic.List<string>();
+
+		SqlWalker.Walk(Both.ParseQueryExpression(input), node =>
+		{
+			if (node is TableSource.Named named)
+				seen.Add(named.Name.Parts[0].Text);
+			else if (node is Expression.Reference reference)
+				seen.Add(reference.Name.Parts[0].Text);
+
+			return true;
+		});
+
+		Assert.Equal(order, string.Join(" ", seen));
+	}
+
 	// ── What only T-SQL writes ─────────────────────────────────────────────────
 
 	/// <summary>

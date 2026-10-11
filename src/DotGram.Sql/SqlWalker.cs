@@ -88,14 +88,17 @@ public static class SqlWalker
 		}
 	}
 
-	/// <summary>The properties of a record that can hold a node, in the order they were declared.</summary>
+	/// <summary>
+	/// The properties of a record that can hold a node, in the order they were declared — a base's
+	/// first, except those it marks <see cref="WalkedLastAttribute"/>, which follow the record's own.
+	/// </summary>
 	static PropertyInfo[] FieldsOf(Type type)
 	{
 		return Fields.GetOrAdd(type, static type =>
 		[
 			.. from property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
 			   where property.GetIndexParameters().Length == 0 && Holds(property.PropertyType)
-			   orderby property.MetadataToken
+			   orderby property.IsDefined(typeof(WalkedLastAttribute), true) ? 1 : 0, property.MetadataToken
 			   select property,
 		]);
 	}
@@ -119,3 +122,11 @@ public static class SqlWalker
 
 	static readonly ConcurrentDictionary<Type, PropertyInfo[]> Fields = new();
 }
+
+/// <summary>
+/// Marks a property of a family's base record that is written after what each member of the family
+/// holds, so that <see cref="SqlWalker"/> visits it there too: a query's set operations and the clauses
+/// of its whole result follow its select list or its brackets, where its WITH comes before them.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property)]
+internal sealed class WalkedLastAttribute : Attribute;

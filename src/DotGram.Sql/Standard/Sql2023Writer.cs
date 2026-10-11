@@ -1403,6 +1403,14 @@ public static partial class Sql2023Writer
 				nameof(node));
 		}
 
+		// And where a node holds something where the text has no place for it, it has no text either.
+		static Exception Misplaced(object node, string what, string where)
+		{
+			return new ArgumentException(
+				$"{node.GetType().Name} has {what} {where}; there is no text for it there.",
+				nameof(node));
+		}
+
 		// And where a node stands for one of several things, a node that is none of them has no text either.
 		static Exception Empty(object node, params string[] any)
 		{
