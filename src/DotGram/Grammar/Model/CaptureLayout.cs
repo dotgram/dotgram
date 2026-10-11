@@ -256,11 +256,61 @@ public sealed class CaptureLayout
 				_after[node] = _slots.Count;
 				break;
 
+			// A binding is no capture and makes no member, but it is kept where captures are: a
+			// slot of its own, numbered after every capture so that the captures' numbering is
+			// what it would be without it. What is captured inside its body is the rule's as
+			// it would be without the binding.
+			case Node.Bind(var binding, var bound, _):
+
+				if (!_bindings.Contains(binding))
+					_bindings.Add(binding);
+
+				Walk(bound, buildsValue, repeated, inFold);
+				break;
+
+			// A repetition, as above, whose bounds are read while parsing: any of them may be
+			// more than one, so what is captured under it is written once per turn.
+			case Node.Counted(var body, _, _):
+
+				_before[node] = _slots.Count;
+
+				Walk(body, buildsValue, repeated: true, inFold);
+
+				_after[node] = _slots.Count;
+				break;
+
 			// A lookahead consumes nothing and is compiled as a separate machine, with its
 			// captures stripped: there is no slot of this rule's for it to write.
 			default:
 				break;
 		}
+	}
+
+	/// <summary>The rule's bindings, each once, in the order they are first written.</summary>
+	readonly List<TextBinding> _bindings = [];
+
+	/// <summary>The rule's bindings, in the order of their slots.</summary>
+	public IReadOnlyList<TextBinding> Bindings => _bindings;
+
+	/// <summary>
+	/// The slot a binding is kept in: one per binding, however many places bind it, after
+	/// the slots of every capture. -1 where the body binds no such thing.
+	/// </summary>
+	/// <remarks>
+	/// One binding written on routes that exclude each other is one slot, which a reference
+	/// after them reads whichever route bound it.
+	/// </remarks>
+	public int SlotOf(TextBinding binding)
+	{
+		var index = _bindings.IndexOf(binding);
+
+		return index < 0 ? -1 : _slots.Count + index;
+	}
+
+	/// <summary>Whether a slot of this layout is a binding's rather than a capture's.</summary>
+	public bool IsBinding(int slot)
+	{
+		return slot >= _slots.Count && slot < _slots.Count + _bindings.Count;
 	}
 }
 

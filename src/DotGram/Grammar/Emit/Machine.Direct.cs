@@ -159,6 +159,10 @@ sealed partial class Machine
 						case Node.Capture or Node.Construct or Node.Marked:
 							break;
 
+						// A binding is kept in two locals, and a reference and a count read them.
+						case Node.Bind or Node.Same or Node.Counted:
+							break;
+
 						case Node.Guard guard:
 							if (!DirectGuard(rule, guard))
 								return Refused(rule, "of what one of its guards is handed");
@@ -474,7 +478,9 @@ sealed partial class Machine
 			if (inside && node is Node.Capture && _captureSlots.TryGetValue(node, out var slot))
 				found.Add(slot - offset);
 
-			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, loop);
+			// A count's bounds are read while parsing, and any of them may be more than one.
+			var loops = node is Node.Repeat(_, _, var most) && most != 1 && !ReferenceEquals(node, loop) ||
+				node is Node.Counted;
 
 			foreach (var child in node.Children)
 				pending.Push((child, inside || loops));

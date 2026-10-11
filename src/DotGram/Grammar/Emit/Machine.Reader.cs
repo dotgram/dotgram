@@ -93,6 +93,8 @@ sealed partial class Machine
 			{
 				case Node.Call:
 				case Node.Repeat:
+				case Node.Counted:
+				case Node.Same:
 				case Node.Guard:
 				case Node.Lookahead:
 				case Node.Behind:
@@ -1931,6 +1933,15 @@ sealed partial class Machine
 				if (_handed.Contains(slot))
 					continue;
 
+				// A binding is kept as a run of text is, and is a member of nothing.
+				if (machine.IsBindingSlot(owner, slot))
+				{
+					Declare($"var a{slot} = -1;");
+					Declare($"var b{slot} = -1;");
+
+					continue;
+				}
+
 				switch (machine.MemberOfSlot(owner, slot)?.Shape)
 				{
 					case MemberShape.Text:
@@ -2323,10 +2334,146 @@ sealed partial class Machine
 					EmitRecord(code, machine._constructs[node]);
 					break;
 
+				case Node.Bind(var binding, var bound, _):
+					EmitBind(code, binding, bound, following, loaded);
+					break;
+
+				case Node.Same(var binding, _):
+					EmitSame(code, node, binding);
+					break;
+
+				case Node.Counted counted:
+					EmitCounted(code, counted, following);
+					break;
+
 				default:
 					throw new InvalidOperationException(
 						$"{node.GetType().Name} passed CanRead and the reader has no statement for it.");
 			}
+		}
+
+		/// <summary>
+		/// <c>$q: X</c>: where the body began and where it ended, in the two locals a run of
+		/// text is kept in — as a text capture is kept, with no member to hand them to.
+		/// </summary>
+		/// <remarks>
+		/// Written again by every reading that reaches it, so a reading given back and read
+		/// again leaves what the last one bound: nothing has to be put back. A binding nothing
+		/// reads is its body and no locals.
+		/// </remarks>
+		void EmitBind(Writer code, TextBinding binding, Node bound, FollowSets.Continuation following, bool loaded)
+		{
+			var slot = machine.BindingSlot(owner, binding);
+
+			if (!ReadAnywhere.Contains(slot))
+			{
+				Emit(code, bound, following, loaded);
+
+				return;
+			}
+
+			code.Line($"a{slot} = p;");
+			Emit(code, bound, following, loaded);
+			code.Line($"b{slot} = p;");
+
+			_kept.Add(slot);
+		}
+
+		/// <summary>
+		/// <c>$q</c>: the items the binding recorded, compared ordinally with those at the
+		/// position and read past. Refused where they differ or the input ends first.
+		/// </summary>
+		void EmitSame(Writer code, Node node, TextBinding binding)
+		{
+			var slot = machine.BindingSlot(owner, binding);
+			var name = machine.DeclareExpected(machine.Displays(node));
+
+			using (code.Block($"if (!{machine.SameText()}(text, p, a{slot}, b{slot}))"))
+				Refused(code, name);
+
+			code.Line($"p += b{slot} - a{slot};");
+		}
+
+		/// <summary>
+		/// <c>X{#q}</c>, <c>X{#q,}</c>, <c>X{n,#q}</c>: the loop of a repetition, with each
+		/// length read once where the count is reached.
+		/// </summary>
+		/// <remarks>
+		/// A count is never taken to be settled the way a repetition is proved to be: nothing
+		/// knows its bounds before the parse, so every turn past the fewest is one a failure
+		/// after it may ask back — except where both bounds are the one length, and there is
+		/// only one number of turns.
+		/// </remarks>
+		void EmitCounted(Writer code, Node.Counted counted, FollowSets.Continuation following)
+		{
+			if (!_tape)
+				throw new InvalidOperationException("A count over a bound length passed CanRead over kinds.");
+
+			var (body, min, max) = counted;
+
+			var inside = following.Map(one => new FollowSets.Continuation(
+				FirstSets.Of(body, _graph).Or(one.Plain),
+				one.AfterSeam));
+
+			// `{#q}` is one length, read once.
+			var settled = max is not null && SameBound(min, max);
+			var least   = Bound(code, min, floor: true);
+			var most    = max is null ? null : settled && least is not null ? least : Bound(code, max, floor: false);
+
+			if (analyzing && !settled)
+				machine.OpeningCount(owner, counted);
+
+			if (machine.RunTest(body) is { } test)
+				EmitRun(code, body, test, least, most, settled);
+			else
+				EmitTurns(code, body, null, least, most, inside, settled);
+		}
+
+		/// <summary>
+		/// A count's bound as C#: a number as written, and a length as a local holding it,
+		/// declared here — where the count is reached — and read by the loop after.
+		/// </summary>
+		/// <param name="floor">Whether this is the fewest, which is no bound at all where it is the number 0.</param>
+		string? Bound(Writer code, CountBound bound, bool floor)
+		{
+			switch (bound)
+			{
+				case CountBound.Items(var count):
+					return floor && count == 0 ? null : Number(count);
+
+				case CountBound.Length(var binding, _):
+				{
+					var slot   = machine.BindingSlot(owner, binding);
+					var length = $"n{_lengths++}";
+
+					code.Line($"var {length} = b{slot} - a{slot};");
+
+					return length;
+				}
+
+				default:
+					throw new InvalidOperationException($"A count bound the reader does not know: {bound}.");
+			}
+		}
+
+		/// <summary>Whether two bounds of a count are the same number or the same binding's length.</summary>
+		static bool SameBound(CountBound one, CountBound other)
+		{
+			return (one, other) switch
+			{
+				(CountBound.Items(var a), CountBound.Items(var b))             => a == b,
+				(CountBound.Length(var a, _), CountBound.Length(var b, _)) => ReferenceEquals(a, b),
+				_                                                              => false,
+			};
+		}
+
+		/// <summary>The lengths a count has read into locals, which name them.</summary>
+		int _lengths;
+
+		/// <summary>A number as C# writes it.</summary>
+		static string Number(int value)
+		{
+			return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 		}
 
 		/// <summary>What the rule keeps of what it read: a record it names, or the text.</summary>
@@ -3925,6 +4072,14 @@ sealed partial class Machine
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)
 		{
+			if (machine.IsBindingSlot(owner, slot))
+			{
+				yield return "a" + slot;
+				yield return "b" + slot;
+
+				yield break;
+			}
+
 			switch (machine.MemberOfSlot(owner, slot)?.Shape)
 			{
 				case MemberShape.Text:
@@ -3956,7 +4111,8 @@ sealed partial class Machine
 		/// </remarks>
 		bool Handed(int slot)
 		{
-			return machine.MemberOfSlot(owner, slot)?.Shape is MemberShape.Text or MemberShape.Record;
+			return machine.IsBindingSlot(owner, slot) ||
+				machine.MemberOfSlot(owner, slot)?.Shape is MemberShape.Text or MemberShape.Record;
 		}
 
 		/// <summary>What a part captures, and what the records inside it read.</summary>
@@ -3987,6 +4143,14 @@ sealed partial class Machine
 						foreach (var named in slots)
 							if (Handed(named))
 								used.Add(named);
+
+				// A binding writes its locals as a capture does, and a reference or a count
+				// reads them as a record reads a capture's.
+				if (one is Node.Bind(var binding, _, _))
+					captured.Add(machine.BindingSlot(owner, binding));
+
+				foreach (var read in machine.BindingsRead(one))
+					used.Add(machine.BindingSlot(owner, read));
 			}
 
 			return (captured, used);
@@ -4021,6 +4185,11 @@ sealed partial class Machine
 						foreach (var slot in slots)
 							if (Handed(slot))
 								used.Add(slot);
+				}
+				else if (!mine.Contains(one))
+				{
+					foreach (var read in machine.BindingsRead(one))
+						used.Add(machine.BindingSlot(owner, read));
 				}
 
 			return used;
@@ -4433,13 +4602,21 @@ sealed partial class Machine
 		/// </param>
 		void EmitRun(Writer code, Node body, string test, int min, int? max, bool settled)
 		{
+			EmitRun(code, body, test, min > 0 ? Number(min) : null, max is { } most ? Number(most) : null, settled);
+		}
+
+		/// <summary>The same, with the bounds as C# expressions read where the run is.</summary>
+		/// <param name="min">The fewest characters, or null where the fewest is none.</param>
+		/// <param name="max">The most characters, or null where there is no most.</param>
+		void EmitRun(Writer code, Node body, string test, string? min, string? max, bool settled)
+		{
 			var name = machine.DeclareExpected(machine.Displays(body));
 			var mark = $"m{_marks++}";
 
 			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
 			// asks where it started, and writing it down is a local the consumer's compiler
 			// would rightly warn about.
-			var counted = max is not null || min > 0 || !settled;
+			var counted = max is not null || min is not null || !settled;
 
 			_character = true;
 
@@ -4473,7 +4650,7 @@ sealed partial class Machine
 
 			code.Line();
 
-			if (min > 0)
+			if (min is not null)
 			{
 				using (code.Block($"if (p < {mark} + {min})"))
 					Refused(code, name);
@@ -4485,7 +4662,7 @@ sealed partial class Machine
 			if (settled)
 				return;
 
-			var floor = min == 0 ? mark : $"({mark} + {min})";
+			var floor = min is null ? mark : $"({mark} + {min})";
 			var gave  = $"d{_ways++}";
 
 			using (code.Block($"if (p > {floor})"))
@@ -4971,7 +5148,17 @@ sealed partial class Machine
 			if (max == 0)
 				return;
 
-			var turn     = min > 0 || max is not null ? $"t{_turns++}" : null;
+			EmitTurns(code, body, repeat, min > 0 ? Number(min) : null, max is { } most ? Number(most) : null, inside, settled);
+		}
+
+		/// <summary>The same, with the bounds as C# expressions read where the loop runs.</summary>
+		/// <param name="repeat">The repetition, or null where the turns are a count's (<see cref="Node.Counted"/>).</param>
+		/// <param name="min">The fewest turns, or null where the fewest is none.</param>
+		/// <param name="max">The most turns, or null where there is no most.</param>
+		void EmitTurns(
+			Writer code, Node body, Node.Repeat? repeat, string? min, string? max, FollowSets.Continuation inside, bool settled)
+		{
+			var turn     = min is not null || max is not null ? $"t{_turns++}" : null;
 			var nullable = FirstSets.Nullable(body, _graph);
 			var (call, undo, opens) = Called(body, inside);
 
@@ -4988,7 +5175,7 @@ sealed partial class Machine
 				}
 
 				var way   = _ways++;
-				var stops = min > 0 ? $"{turn} >= {min}" : null;
+				var stops = min is not null ? $"{turn} >= {min}" : null;
 
 				// The turn is not tried where the token in hand cannot begin it — the same
 				// door the reading over kinds has, and for the same two reasons: a turn that
@@ -5025,7 +5212,7 @@ sealed partial class Machine
 					{
 						// A door that does not open below the minimum is not the loop ending
 						// but the rule failing, and says what it wanted.
-						if (min > 0)
+						if (min is not null)
 						{
 							using (code.Block($"if ({turn} < {min})"))
 								Refused(code, machine.DeclareExpected(machine.Displays(body)));
@@ -5033,7 +5220,8 @@ sealed partial class Machine
 							code.Line();
 						}
 
-						NoteTails(code, repeat, body);
+						if (repeat is not null)
+							NoteTails(code, repeat, body);
 
 						code.Line("break;");
 					}
