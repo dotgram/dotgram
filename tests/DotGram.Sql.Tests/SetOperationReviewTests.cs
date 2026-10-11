@@ -206,13 +206,20 @@ public sealed class SetOperationReviewTests
 		Assert.Equal("((TABLE a) ORDER BY x) UNION TABLE c", Sql2023Writer.Write(outer.Combine(union)));
 	}
 
+	/// <summary>
+	/// Combine refuses a query with a WITH, which on the result could capture a name in the added
+	/// operand; a caller who means it to be shared puts it on the result, and that reads back.
+	/// </summary>
 	[Fact]
-	public void Combine_keeps_WITH_on_the_whole_result()
+	public void Combine_refuses_WITH_and_a_shared_WITH_is_put_on_the_result()
 	{
 		var with = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], Table("a"))]);
 		var q    = Table("q") with { With = with };
+		var b    = new SetOperation(SetOperator.Union, Table("b"));
 
-		var combined = q.Combine(new SetOperation(SetOperator.Union, Table("b")));
+		Assert.Throws<ArgumentException>(() => q.Combine(b));
+
+		var combined = (q with { With = null }).Combine(b) with { With = with };
 
 		Assert.Equal("WITH q AS (TABLE a) TABLE q UNION TABLE b", Sql2023Writer.Write(combined));
 		Assert.Equal(combined, Both.ParseQueryExpression(Sql2023Writer.Write(combined)));

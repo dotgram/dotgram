@@ -352,18 +352,26 @@ public sealed class SetOperationTests
 		Assert.Equal("WITH q AS (TABLE a) (TABLE q)", Sql2023Writer.Write(new Query.Parenthesized(Table("q")) { With = with }));
 	}
 
-	/// <summary>Combine keeps a WITH on the whole result where it brackets the query, as where it does not.</summary>
+	/// <summary>
+	/// Combine refuses a query with a WITH, bracketed or not: on the result, the CTE <c>q</c> would
+	/// capture the table <c>q</c> the added operand reads. A WITH meant to be shared is put on the
+	/// result by the caller.
+	/// </summary>
 	[Fact]
-	public void Combine_lifts_a_WITH_out_of_the_brackets_it_adds()
+	public void Combine_refuses_a_WITH_that_would_capture_a_name_in_the_added_operand()
 	{
-		var with   = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], A)]);
-		var sorted = Table("q") with { With = with, OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
-		var union  = Op(SetOperator.Union, B);
-		var both   = sorted.Combine(union);
+		var with      = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], A)]);
+		var plain     = Table("q") with { With = with };
+		var sorted    = plain with { OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
+		var collision = Op(SetOperator.UnionAll, Table("q"));
 
-		Assert.Equal(new Query.Parenthesized(sorted with { With = null }) { With = with, SetOperations = [union] }, both);
-		Assert.Equal("WITH q AS (TABLE a) (TABLE q ORDER BY x) UNION TABLE b", Sql2023Writer.Write(both));
-		Assert.Equal(both, Both.ParseQueryExpression(Sql2023Writer.Write(both)));
+		Assert.Throws<ArgumentException>(() => plain.Combine(collision));
+		Assert.Throws<ArgumentException>(() => sorted.Combine(collision));
+
+		var shared = (sorted with { With = null }).Combine(collision) with { With = with };
+
+		Assert.Equal("WITH q AS (TABLE a) (TABLE q ORDER BY x) UNION ALL TABLE q", Sql2023Writer.Write(shared));
+		Assert.Equal(shared, Both.ParseQueryExpression(Sql2023Writer.Write(shared)));
 	}
 
 	[Fact]

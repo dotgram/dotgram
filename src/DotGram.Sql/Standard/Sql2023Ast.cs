@@ -491,16 +491,29 @@ public abstract record Query : ISqlNode
 	/// <summary>
 	/// This query followed by one more set operation. Where it has an ORDER BY, a limit, a FOR or a
 	/// locking clause, which would then be the compound's, it is bracketed first so that they stay its
-	/// own. Its WITH stays on the whole result either way, as it is when no brackets are needed: the
-	/// brackets take none, and its tables are then visible to the added operand too.
+	/// own.
 	/// </summary>
+	/// <remarks>
+	/// A query with a WITH is refused. Its WITH would be the whole result's, and a table it names would
+	/// then capture the same name in the added operand: <c>WITH q AS (TABLE a) TABLE q</c> combined with
+	/// <c>UNION ALL TABLE q</c> would read the CTE twice rather than the table <c>q</c> once. Where the
+	/// WITH is meant to be shared, combine the query without it and put it on the result:
+	/// <c>(left with { With = null }).Combine(operation) with { With = left.With }</c>.
+	/// </remarks>
+	/// <exception cref="ArgumentException">This query has a WITH.</exception>
 	public Query Combine(SetOperation operation)
 	{
 		if (operation is null)
 			throw new ArgumentNullException(nameof(operation));
 
+		if (With is not null)
+			throw new ArgumentException(
+				"The query has a WITH, which would become the combined result's and could capture a name in the added operand. "
+				+ "Combine the query without it and put it on the result explicitly: (left with { With = null }).Combine(operation) with { With = left.With }.",
+				nameof(operation));
+
 		if (OrderBy is not null || Limit is not null || For is not null || Locking.Count > 0)
-			return new Parenthesized(this with { With = null }) { With = With, SetOperations = [operation] };
+			return new Parenthesized(this) { SetOperations = [operation] };
 
 		return this with { SetOperations = [.. SetOperations, operation] };
 	}
