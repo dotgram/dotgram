@@ -4324,7 +4324,6 @@ sealed partial class Machine
 		atExit.Line($"goto {Label(atExit, next)};");
 
 		return entry;
-
 	}
 
 	/// <summary>Whether two bounds of a count are the same number or the same binding's length.</summary>
