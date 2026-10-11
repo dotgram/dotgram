@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -133,7 +133,15 @@ public sealed class ExponentialShapeProbe
 	{
 		foreach (var outer in Walk(node, inAtomic: false))
 		{
-			if (outer is not Node.Repeat { Max: null } repeat)
+			// A count by a length with no upper bound repeats without a cap, as `*` does.
+			var repeat = outer switch
+			{
+				Node.Repeat { Max: null } unbounded => unbounded,
+				Node.Counted { Max: null } counted  => new Node.Repeat(counted.Body, 0, null),
+				_                                   => null,
+			};
+
+			if (repeat is null)
 				continue;
 
 			foreach (var inner in Leading(repeat.Body, graph, []))
@@ -152,6 +160,13 @@ public sealed class ExponentialShapeProbe
 		{
 			case Node.Repeat { Max: null } inner when !FirstSets.Nullable(inner.Body, graph):
 				yield return inner;
+
+				break;
+
+			// A count by a length with no upper bound is as unbounded as `*`: the length is read
+			// while the parser runs, and nothing caps it.
+			case Node.Counted { Max: null } inner when !FirstSets.Nullable(inner.Body, graph):
+				yield return new Node.Repeat(inner.Body, 0, null);
 
 				break;
 
@@ -215,6 +230,8 @@ public sealed class ExponentialShapeProbe
 			Node.Sequence(var parts) => parts,
 			Node.Choice(var choices) => choices,
 			Node.Repeat(var body, _, _) => [body],
+			Node.Counted(var body, _, _) => [body],
+			Node.Bind(_, var bound, _) => [bound],
 			Node.Capture(_, var held) => [held],
 			Node.Construct(var built, _) => [built],
 			Node.Marked(var kept, _) => [kept],
@@ -229,6 +246,7 @@ public sealed class ExponentialShapeProbe
 		return node switch
 		{
 			Node.Capture(_, var held) => Unwrapped(held),
+			Node.Bind(_, var bound, _) => Unwrapped(bound),
 			Node.Construct(var built, _) => Unwrapped(built),
 			Node.Marked(var kept, _) => Unwrapped(kept),
 			_ => node,
