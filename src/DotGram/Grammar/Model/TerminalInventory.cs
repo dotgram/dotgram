@@ -367,6 +367,64 @@ public sealed class TerminalInventory
 		return walker.Gathered();
 	}
 
+	/// <summary>
+	/// The bindings, references and lengths a grammar cut in two cannot read: every one, each where
+	/// it was written.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Asked before anything is numbered, and answered with errors rather than with a reason the cut
+	/// was not made. A reason would leave the grammar to be read over characters with a warning,
+	/// where a binding works — but what was asked for was a grammar read over tokens, and an author
+	/// who asked for one is told plainly why there is none.
+	/// </para>
+	/// <para>
+	/// Two answers. A rule with trivia is read over token kinds, where a binding would bind kinds
+	/// and not text, and is never right; a guard comparing two captures says what was meant. A rule
+	/// the lexer reads — a terminal, or what it or trivia calls — reads characters, and a binding
+	/// there is only not built yet: the lexer would have to read a token's remainder again from the
+	/// token's start.
+	/// </para>
+	/// </remarks>
+	public static IReadOnlyList<GramDiagnostic> BoundTextRefusals(RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var walker   = new Walker(graph);
+		var refusals = new List<GramDiagnostic>();
+
+		if (!walker.Applies)
+			return refusals;
+
+		foreach (var rule in graph.Rules)
+		{
+			if (!graph.Bodies.TryGetValue(rule, out var body) || !GrammarNormalizer.HoldsBoundText(body))
+				continue;
+
+			var syntactic = walker.IsSyntactic(rule);
+
+			foreach (var node in NodeWalk.Descendants(body))
+				foreach (var (binding, at) in GrammarNormalizer.BoundTextAt(node))
+					refusals.Add(syntactic
+						? new GramDiagnostic(
+							GrammarNormalizer.BindingOverKinds,
+							$"'${binding.Name}' is in '{rule.Name}', which carries trivia and is read over tokens " +
+							"once the grammar is cut in two (Lexical = true): there it would bind token kinds, not " +
+							"text. Compare two captures with a guard instead — 'close: Name & when @(close == open)' " +
+							"— or read the rule over characters (docs/syntax.md §3.5.1).",
+							Math.Max(at, 0), at < 0 ? 0 : binding.Name.Length + 1, GramSeverity.Error)
+						: new GramDiagnostic(
+							GrammarNormalizer.BindingNotSupported,
+							$"'${binding.Name}' is in '{rule.Name}', which the lexer reads once the grammar is cut " +
+							"in two (Lexical = true), and a binding in what the lexer reads is not supported yet. " +
+							"Read this grammar over characters: leave Lexical off.",
+							Math.Max(at, 0), at < 0 ? 0 : binding.Name.Length + 1, GramSeverity.Error));
+		}
+
+		return refusals;
+	}
+
 	/// <summary>The runs a set of numbers comes to.</summary>
 	static List<Group> Runs(string name, IEnumerable<int> numbers)
 	{

@@ -62,7 +62,7 @@ public sealed partial class GrammarNormalizer
 		var outerRule = _currentRule;
 		_currentRule  = rule;
 
-		var lowered = Lower(rule.Declaration.Body, rule.Namespace);
+		var lowered = LowerBody(rule, rule.Declaration.Body, rule.Namespace);
 
 		_currentRule = outerRule;
 
@@ -88,6 +88,8 @@ public sealed partial class GrammarNormalizer
 			Expr.Group(var body) => Lower(body, ns),
 			Expr.Atomic(var body) => new Node.Atomic(Lower(body, ns)),
 			Expr.Capture(var name, var operand) => new Node.Capture(name, Lower(operand, ns)),
+			Expr.Bind(var name, var operand) => LowerBind(expression, name, operand, ns),
+			Expr.Same(var name) => LowerSame(expression, name),
 			Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
 			Expr.Guard(var value) => Guarded(value),
 			Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
@@ -106,10 +108,15 @@ public sealed partial class GrammarNormalizer
 			// nothing would swallow a bad record in silence.
 			Expr.Recovering(var body, var sync, var factory) => LowerRecovery(body, sync, factory, ns, expression),
 
+			// A count by the length of a bound text is read while the parser runs, so it is a
+			// node of its own rather than a repetition with numbers for bounds.
+			Expr.Quantified { MinLength: not null } or Expr.Quantified { MaxLength: not null } =>
+				LowerCounted((Expr.Quantified)expression, ns),
+
 			// §4.2: a count may be a parameter's name, and inside a specialization it stands
 			// for the number the call passed.
 			Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
-				Repeated(
+				Repetition(
 					Lower(operand, ns),
 					Bounds(kind, Counted(min, minName, expression)).Min,
 					Bounds(kind, Counted(max, maxName, expression)).Max,
@@ -121,7 +128,7 @@ public sealed partial class GrammarNormalizer
 			Expr.Call(var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
 			Expr.Reference(_, var name, _) => LowerReference(expression, name, ns),
 			Expr.With(var operand, _) => LowerWith(expression, operand, ns),
-			Expr.Marked(var operand, var value) => new Node.Marked(Lower(operand, ns), Substituted(Text(value))),
+			Expr.Marked(var operand, var value) => new Node.Marked(Lower(operand, ns), Substituted(Valued(value, "in the value of a 'with state'"))),
 			_ => Node.Empty.Instance,
 		};
 	}
@@ -131,7 +138,7 @@ public sealed partial class GrammarNormalizer
 	{
 		return new Node.Construct(
 			Lower(pattern, ns),
-			new Construction.Expression(Substituted(Text(value)), StartOf(value)));
+			new Construction.Expression(Substituted(Valued(value, "in the value of a '=>', which is C#")), StartOf(value)));
 	}
 
 	// Substituted, because a value parameter is allowed anywhere a value is expected and
@@ -140,7 +147,18 @@ public sealed partial class GrammarNormalizer
 	// handed back as it was written.
 	Node Guarded(Expr value)
 	{
-		return new Node.Guard(Substituted(Text(value)), StartOf(value));
+		return new Node.Guard(Substituted(Valued(value, "in a 'when', which is C#")), StartOf(value));
+	}
+
+	/// <summary>
+	/// <see cref="Text(Expr)"/>, where a binding or a reference written in the value is reported:
+	/// it is C#, and what <c>$q</c> bound is not a C# value (docs/syntax.md §3.5.1).
+	/// </summary>
+	string Valued(Expr value, string where)
+	{
+		RefuseBoundText(value, where);
+
+		return Text(value);
 	}
 
 	/// <summary>A condition with every recognizer under it lowered.</summary>
@@ -149,12 +167,20 @@ public sealed partial class GrammarNormalizer
 		return test switch
 		{
 			Parsing.Test.Meets(var left, var right, var negated) =>
-				new Test.Meets(Lower(left, ns), Lower(right, ns), negated),
+				new Test.Meets(Condition(left, ns), Condition(right, ns), negated),
 			Parsing.Test.Runs(var value) => new Test.Runs(Substituted(Text(value)), StartOf(value)),
 			Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
 			Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
 			_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),
 		};
+	}
+
+	/// <summary>One side of <c>when A is B</c>, which is decided before anything is read.</summary>
+	Node Condition(Expr operand, GrammarNamespace ns)
+	{
+		return RefuseBoundText(operand, "in 'when … is …', which is decided before the parser reads anything")
+			? Node.Empty.Instance
+			: Lower(operand, ns);
 	}
 
 	/// <summary>
@@ -406,6 +432,20 @@ public sealed partial class GrammarNormalizer
 	{
 		var repetition = Lower(body, ns);
 
+		// `($q: X)* recover …` is a binding of the run by now, and `X{#q} recover …` a count; both
+		// are refused with the rest of what a recovering repetition may not hold yet, rather than
+		// as a `recover` on something that is not a repetition.
+		if (repetition is Node.Bind or Node.Counted)
+		{
+			Report(
+				BindingNotSupported,
+				"A repetition that recovers ('recover', docs/syntax.md §8.2) may not hold a binding, a " +
+				"reference or a count by a length yet.",
+				at.At);
+
+			return repetition;
+		}
+
 		if (repetition is not Node.Repeat)
 		{
 			Report(
@@ -421,7 +461,7 @@ public sealed partial class GrammarNormalizer
 		// to a `partial void` the generated class declares and the consumer may implement.
 		_recoveries[repetition] = new Recovery(
 			Lower(sync, ns),
-			factory is null ? null : Text(factory));
+			factory is null ? null : Valued(factory, "in the value of a '=>', which is C#"));
 
 		return repetition;
 	}
@@ -654,7 +694,11 @@ public sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			passed.Add(Lower(argument, ns));
+			// Lowered here and read inside the rule it is passed to, which is another rule: a
+			// binding is read only in the rule that bound it.
+			passed.Add(RefuseBoundText(argument, $"in an argument of '{rule.Name}', which is read inside that rule")
+				? Node.Empty.Instance
+				: Lower(argument, ns));
 			counts.Add(null);
 			values.Add(null);
 		}
@@ -734,7 +778,7 @@ public sealed partial class GrammarNormalizer
 		var outerRule = _currentRule;
 		_currentRule  = specialized;
 
-		_bodies[specialized] = Lower(declaration.Body, rule.Namespace);
+		_bodies[specialized] = LowerBody(specialized, declaration.Body, rule.Namespace);
 		_currentRule         = outerRule;
 		_arguments           = outerArguments;
 		_counts              = outerCounts;

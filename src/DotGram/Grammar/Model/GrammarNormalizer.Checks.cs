@@ -714,7 +714,16 @@ public sealed partial class GrammarNormalizer
 
 	void CheckRepetitions(Node node, RuleSymbol rule)
 	{
-		if (node is Node.Repeat(var body, _, var max) && max != 1 && IsNullable(body))
+		// A count with no upper bound is a loop like any other; one whose upper bound is a length
+		// ends when the count does.
+		var looped = node switch
+		{
+			Node.Repeat(var body, _, var max) when max != 1 => body,
+			Node.Counted(var body, _, null)                  => body,
+			_                                                => null,
+		};
+
+		if (looped is not null && IsNullable(looped))
 			Report(
 				NullableRepetition,
 				$"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
@@ -771,6 +780,8 @@ public sealed partial class GrammarNormalizer
 
 			case Node.Choice   (var nodes):          return nodes.Any(child => Reaches(child, target, seen));
 			case Node.Capture  (_, var captured):    return Reaches(captured, target, seen);
+			case Node.Bind     (_, var bound, _):    return Reaches(bound, target, seen);
+			case Node.Counted  (var counted, _, _):  return Reaches(counted, target, seen);
 			case Node.Construct(var built, _):       return Reaches(built, target, seen);
 			case Node.Atomic   (var atomic):         return Reaches(atomic, target, seen);
 			case Node.Marked   (var marked, _):      return Reaches(marked, target, seen);

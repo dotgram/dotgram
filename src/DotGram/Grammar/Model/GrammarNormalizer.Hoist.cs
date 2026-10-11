@@ -103,6 +103,18 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Lookahead(positive, looked);
 
+				// A binding was lifted out of its own repetitions while lowering; what is left is
+				// the captures inside it.
+				case Node.Bind(var binding, var bound, var at):
+					return Hoist(bound) is var rebound && ReferenceEquals(rebound, bound)
+						? node
+						: new Node.Bind(binding, rebound, at);
+
+				case Node.Counted(var body, var min, var max):
+					return Hoist(body) is var counted && ReferenceEquals(counted, body)
+						? node
+						: new Node.Counted(counted, min, max);
+
 				default:
 					return node;
 			}
@@ -141,6 +153,11 @@ public sealed partial class GrammarNormalizer
 				Node.Atomic(var body) => PureText(body),
 				Node.Marked(var body, _) => PureText(body),
 				Node.Lookahead(_, var body) => PureText(body),
+
+				// A binding adds no value to what its body matched, and a reference matches text.
+				Node.Bind(_, var body, _) => PureText(body),
+				Node.Counted(var body, _, _) => PureText(body),
+				Node.Same => true,
 				_ => false,
 			};
 		}
