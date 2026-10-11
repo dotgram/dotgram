@@ -241,6 +241,9 @@ sealed partial class Machine
 	/// <summary>The machine-wide slot each binding is recorded in (<see cref="CompileBind"/>).</summary>
 	readonly Dictionary<TextBinding, int> _bindingSlots = [];
 
+	/// <summary>The bindings a reference or a count of this machine reads.</summary>
+	readonly HashSet<TextBinding> _bindingsRead = [];
+
 	/// <summary>
 	/// The repeated captures whose pieces can overlap, which are those of a positive lookahead: see
 	/// <see cref="Overlaps"/>.
@@ -535,6 +538,16 @@ sealed partial class Machine
 				}
 				else if (node is Node.Construct)
 					_constructs[node] = IndexOf(factories, node, rule);
+				else if (node is Node.Same(var same, _))
+					_bindingsRead.Add(same);
+				else if (node is Node.Counted(_, var least, var most))
+				{
+					if (least is CountBound.Length(var shortest, _))
+						_bindingsRead.Add(shortest);
+
+					if (most is CountBound.Length(var longest, _))
+						_bindingsRead.Add(longest);
+				}
 				else if (node is Node.Bind(var binding, var bound, _))
 				{
 					// A binding is recorded as a text capture is, in a slot numbered after the
@@ -1891,6 +1904,9 @@ sealed partial class Machine
 				for (var i = 0; i < _captures; i++)
 					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i) && UsesCapture(i))
 						file.Line($"var capture{i} = 0;");
+				foreach (var slot in _bindingSlots.Values.OrderBy(static slot => slot))
+					if (UsesBound(slot))
+						file.Line($"var bound{slot} = -1;");
 
 				file.Line();
 				file.Line(
@@ -4076,6 +4092,7 @@ sealed partial class Machine
 			writer.Line($"goto {Label(writer, inner)};");
 
 			CloseOpened(atClose, slot);
+			Recorded(atClose, binding, slot);
 			atClose.Line($"goto {Label(atClose, next)};");
 
 			return state;
@@ -4088,9 +4105,31 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 			"call, atomic, repeat, lookahead, p));");
 		atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+		Recorded(atClose, binding, slot);
 		atClose.Line($"goto {Label(atClose, next)};");
 
 		return state;
+	}
+
+	/// <summary>
+	/// Where a binding something reads was just recorded, kept in a variable as a hint the
+	/// reference checks before it searches (<see cref="FindBinding"/>).
+	/// </summary>
+	void Recorded(Writer atClose, TextBinding binding, int slot)
+	{
+		if (_bindingsRead.Contains(binding))
+			atClose.Line($"bound{slot} = entries.Count - 1;");
+	}
+
+	/// <summary>Whether a written state names a binding's hint.</summary>
+	bool UsesBound(int slot)
+	{
+		foreach (var index in _order)
+			if (_bodies[index].Contains($"bound{slot} ", StringComparison.Ordinal) ||
+				_bodies[index].Contains($"bound{slot};", StringComparison.Ordinal))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -4098,26 +4137,45 @@ sealed partial class Machine
 	/// recorded in the current call.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The newest record of the binding's slot above the call: every route to a reference binds
 	/// before it, which lowering made sure of, and a record a failure took back is no longer
 	/// there to be found. A look around keeps the call it was entered in, so a reference inside
 	/// one finds the binding made outside it.
+	/// </para>
+	/// <para>
+	/// The record the binding last made is where it is nearly always, and that is asked first:
+	/// <c>(?!$q &amp; any)*</c> asks at every item, and a search down past every way back the
+	/// loop has kept would make the scan the square of the text. The hint is only ever the index
+	/// the last close of the slot wrote, so where it still holds a record of the slot and the
+	/// call, no newer one can stand above it — a newer one would have moved it. Where it does
+	/// not — a failure took the record back, or the rule reached itself and an inner call
+	/// recorded since — the arena is searched.
+	/// </para>
 	/// </remarks>
 	void FindBinding(Writer writer, TextBinding binding, string into)
 	{
 		var slot = BindingSlot(binding);
 
-		writer.Line($"var {into} = -1;");
+		writer.Line($"var {into} = bound{slot};");
+		writer.Line();
 
-		using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
+		using (writer.Block(
+			$"if ((uint){into} >= (uint)entries.Count || entries[{into}].Kind != ParserEntry.Capture || " +
+			$"entries[{into}].State != {slot} || entries[{into}].CallIndex != call)"))
 		{
-			writer.Line("var candidate = entries[candidateAt];");
+			writer.Line($"{into} = -1;");
 
-			using (writer.Block(
-				$"if (candidate.Kind == ParserEntry.Capture && candidate.State == {slot} && candidate.CallIndex == call)"))
+			using (writer.Block("for (var candidateAt = entries.Count - 1; candidateAt > call; candidateAt--)"))
 			{
-				writer.Line($"{into} = candidateAt;");
-				writer.Line("break;");
+				writer.Line("var candidate = entries[candidateAt];");
+
+				using (writer.Block(
+					$"if (candidate.Kind == ParserEntry.Capture && candidate.State == {slot} && candidate.CallIndex == call)"))
+				{
+					writer.Line($"{into} = candidateAt;");
+					writer.Line("break;");
+				}
 			}
 		}
 
