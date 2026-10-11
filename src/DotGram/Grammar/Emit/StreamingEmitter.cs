@@ -663,10 +663,15 @@ public static partial class CSharpEmitter
 	/// grow it from. Refused here rather than emitted and left not to compile, which is
 	/// where it was found: three call sites in the streamed forms handed the recognizer
 	/// characters where it now wants the text the tokens came from.
+	/// <para>
+	/// Nor where a reading reaches a binding (<c>$q: X</c>): a reference compares text bound
+	/// earlier, and a window may have let it go. Left out rather than refused, because this form
+	/// is offered beside every <c>find</c> unasked, and the string form reads the same grammar.
+	/// </para>
 	/// </remarks>
 	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false)
 	{
-		return !overKinds && publication.Kind != PublishKind.Yield &&
+		return !overKinds && publication.Kind != PublishKind.Yield && !graph.ReachesBoundText(publication.Rule) &&
 		(publication.Kind != PublishKind.Parse || publication.ResultType is null) &&
 		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&
