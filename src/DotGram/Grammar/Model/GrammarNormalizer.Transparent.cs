@@ -272,6 +272,17 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Lookahead(positive, looked);
 
+				// A source reads what the forwarder read, so the text a binding records is the same.
+				case Node.Bind bind:
+					return Inline(bind.Body) is var bound && ReferenceEquals(bound, bind.Body)
+						? node
+						: bind with { Body = bound };
+
+				case Node.Counted(var body, var min, var max):
+					return Inline(body) is var counted && ReferenceEquals(counted, body)
+						? node
+						: new Node.Counted(counted, min, max);
+
 				default:
 					return node;
 			}

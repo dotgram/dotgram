@@ -693,6 +693,11 @@ public sealed partial class GrammarNormalizer
 			case Node.Construct(var built, _):
 				return Spellings(built, seen);
 
+			case Node.Bind(_, var bound, _):
+				return Spellings(bound, seen);
+
+			// A reference spells what was bound and a length counts it, both known only while
+			// reading: not a list, which the default says too.
 			default:
 				return null;
 		}

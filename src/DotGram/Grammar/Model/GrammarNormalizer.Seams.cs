@@ -142,6 +142,20 @@ public sealed partial class GrammarNormalizer
 						? node
 						: new Node.Lookahead(positive, looked);
 
+				// Inside a binding: what the body reads, start to end, is the same text after the
+				// move. No seam moves across its edge, since the binding is no seam.
+				case Node.Bind bind:
+					return Hoist(bind.Body) is var bound && ReferenceEquals(bound, bind.Body)
+						? node
+						: bind with { Body = bound };
+
+				// Inside a turn of a count; the count's own turns are not moved (Moved takes a
+				// repetition whose bounds are numbers).
+				case Node.Counted(var body, var min, var max):
+					return Hoist(body) is var counted && ReferenceEquals(counted, body)
+						? node
+						: new Node.Counted(counted, min, max);
+
 				default:
 					return node;
 			}
